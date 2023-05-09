@@ -55,9 +55,9 @@
     
     </html>
 
-![img.png](../image/img_jsoup.png)
+![img.png](../../../../image/img_jsoup.png)
 
-![img_1.png](../image/img_1.png)
+![img_1.png](../../../../image/img_1.png)
 
 - 크롤링은 불법일까?
 

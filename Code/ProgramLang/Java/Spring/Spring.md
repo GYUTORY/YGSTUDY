@@ -2,7 +2,7 @@
 - 버튼을 누르게 되면 서버에 요청을 하게 되고 스프링의 DispatcherServlet이 controller에서 RequestMapping을 찾고 ViewResolver에서 jsp를 찾아 포워딩합니다.
 
 # Filter, Interceptor, AOP의 흐름
-![img.png](../image/img.png)
+![img.png](../../../../image/img.png)
 
 - 컨트롤러가 실행되기 전에 사용한다는 점에서 별반 차이가 없어보이지만 흐름을 보면 명확히 호출되는 시점이 다르다.
 - 서버를 실행시켜 서블릿 올라오는 동안 init이 실행되고, 그 후 doFilter가 실행된다. 그 후 컨트롤러에 들어가기 전에 preHandler가 실행된다.
