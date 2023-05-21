@@ -2,115 +2,45 @@
 MQTT(MQ Telemetry Transport): Overview, Objectives, Applications, and Advantages
 
 # 요약
- - 해당 내용은 MQTT(MQ Telemetry Transport) 프로토콜에 대한 개요, 목적, 사용 내용, 그리고 장점에 대해 다룹니다.
- - MQTT는 경량의 기계 간 통신을 위한 표준 메시징 프로토콜로서, 제한된 대역폭과 리소스가 있는 네트워크 환경에서 효율적인 데이터 전송을 제공합니다.
- - MQTT는 Publisher-Subscriber 모델을 기반으로 하며, 토픽을 통해 실시간 데이터 스트리밍과 이벤트 기반 통신을 지원합니다. 
- - 해당 설명은 MQTT의 기능과 특징을 설명하고, 다양한 응용 분야에서의 사용 사례를 소개하며, MQTT의 장점과 활용 가능성에 대해 논의합니다.
+- 경량 메시징 프로토콜로서, 기기 간 통신을 위해 설계된 프로토콜입니다.
+- MQTT는 TCP/IP 프로토콜을 기반으로 하여, TCP 통신을 사용하여 메시지를 전송합니다.
 
-# 목차
 
-서론
-- 연구 배경
-- 연구 목적
+# Publish-Subscribe 모델
+-  메시지 송신자와 수신자 간의 느슨한 결합을 제공하여 효율적인 통신을 가능하게 합니다.
 
-MQTT 개요
-- MQTT의 기본 개념
-- MQTT의 동작 방식
-- MQTT의 주요 구성 요소
-- MQTT 통신 모델
+# 발행자 (Publisher)
+- 발행자는 메시지를 생성하고 특정 주제(Topic)에 해당하는 메시지를 브로커에게 보냅니다. 
+- 주제는 메시지의 종류나 카테고리를 나타내며, 일반적으로 슬래시('/')로 계층 구조를 형성합니다. 
+- 예를 들어, "home/living_room/temperature"과 같은 주제는 주거 공간의 온도에 대한 메시지를 나타낼 수 있습니다.
 
-MQTT의 목적
-- 리소스 제약된 환경에서의 데이터 전송
-- 실시간 데이터 스트리밍 및 이벤트 기반 통신
-- IoT 및 M2M 통신을 위한 표준 프로토콜
+# 구독자 (Subscriber)
+- 구독자는 특정 주제(Topic)를 구독하여 해당 주제와 관련된 메시지를 받습니다.
+- 구독자는 브로커에게 해당 주제를 알려주고, 해당 주제로 발행된 모든 메시지를 수신합니다. 
+- 예를 들어, "home/living_room/temperature" 주제를 구독하는 구독자는 해당 주제로 발행된 온도 값에 대한 메시지를 받을 수 있습니다.
 
-MQTT의 사용 내용
-- 디바이스 간 통신을 위한 MQTT 프로토콜의 구현
-- 토픽 기반 데이터 발행 및 구독
-- MQTT 브로커의 역할과 기능
 
-MQTT의 장점
-- 가벼움과 효율성
-- 확장성과 저전력 소비
-- 신뢰성과 QoS(Quality of Service) 지원
-- 보안 기능과 인증 프로토콜
-- 다양한 언어 및 플랫폼의 지원
+# MQTT Broker
+- 브로커는 발행자와 구독자 사이에서 중간 매개체 역할을 합니다. 
+- 발행자가 메시지를 브로커에게 보내면, 브로커는 해당 메시지를 해당 주제를 구독하는 모든 구독자에게 전달합니다. 
+- 브로커는 발행자와 구독자 간의 통신을 관리하고, 메시지의 라우팅과 필터링 역할을 수행합니다. 
+- 또한, QoS (Quality of Service) 수준을 관리하여 메시지의 전달 신뢰성과 효율성을 제어합니다.
 
-MQTT의 응용 분야
-- 스마트 홈 및 스마트 시티
-- 산업 자동화와 제조업체
-- 헬스케어 및 의료 분야
-- MQTT의 응용 분야
-- 스마트 홈 및 스마트 시티
-- 산업 자동화와 제조업체
-- 헬스케어 및 의료 분야
-- 교통 및 운송 관리
-- 에너지 관리 시스템
+# Mosca 와 Mosquito
+    - Mosca와 Mosquito는 둘 다 MQTT 브로커(Broker)로 사용되는 소프트웨어입니다.
+    그러나 두 소프트웨어는 다른 개발자 및 커뮤니티에 의해 개발되었으며, 각각의 특징과 기능에 약간의 차이가 있습니다.
 
-# Publisher
-- Publisher는 MQTT 브로커에 데이터를 발행하는 역할을 합니다.
-- 특정 토픽에 대한 발행 권한이 필요합니다.
-- 아래는 Node.js를 사용한 MQTT Publisher의 코드 예시입니다
-- 
+# Mosca
+- Mosca는 MQTT 브로커의 오픈 소스 구현으로서, Node.js로 작성되었습니다.
+- Mosca는 경량화되고 확장 가능한 MQTT 브로커를 제공하기 위해 설계되었습니다. 
+- Mosca는 MQTT 3.1.1 프로토콜 사양을 준수하며, 다양한 클라이언트 플랫폼과의 상호 운용성을 지원합니다.
+- 또한 Mosca는 플러그인 아키텍처를 가지고 있어 사용자 정의 기능을 추가하고 확장할 수 있는 유연성을 제공합니다.
 
-      const mqtt = require('mqtt');
-
-      // MQTT 브로커에 연결
-      const client = mqtt.connect('mqtt://broker.example.com');
-
-      // 연결이 수립되면 데이터를 발행
-      client.on('connect', () => {
-         const topic = 'mytopic'; // 발행할 토픽
-         const message = 'Hello, MQTT!'; // 발행할 메시지
-
-         // 토픽에 데이터 발행
-         client.publish(topic, message, (err) => {
-         
-         if (err) {
-            console.error('Failed to publish message:', err);
-         } else {
-            console.log('Message published successfully.');
-         }
-
-         // 연결 종료
-         client.end();
-         });
-      });
-
-# Subscriber
-- Subscriber는 MQTT 브로커에서 특정 토픽을 구독하여 데이터를 수신하는 역할을 합니다.
-- MQTT 브로커로부터 발행된 데이터를 실시간으로 수신합니다.
-- 아래는 Python을 사용한 MQTT Subscriber의 코드 예시입니다
-
-       const mqtt = require('mqtt');
-   
-       // MQTT 브로커에 연결
-       const client = mqtt.connect('mqtt://broker.example.com');
-   
-       // 연결이 수립되면 토픽을 구독
-       client.on('connect', () => {
-       const topic = 'mytopic'; // 구독할 토픽
-   
-       // 토픽 구독
-       client.subscribe(topic, (err) => {
-          if (err) {
-              console.error('Failed to subscribe:', err);
-          } else {
-              console.log('Subscribed to topic:', topic);
-          }
-        });
-       });
-   
-       // 데이터를 수신하면 처리
-       client.on('message', (topic, message) => {
-           console.log('Received message:', 'Topic=', topic, 'Message=', message.toString());
-       });
-   
-       // 연결 종료 시 처리
-       client.on('close', () => {
-           console.log('Disconnected from MQTT broker');
-       });
-
+# Mosquitto
+- Mosquitto는 Eclipse Foundation에서 개발된 MQTT 브로커 소프트웨어입니다. 
+- C 언어로 작성되었으며, 경량화된 구현을 제공하여 다양한 임베디드 시스템이나 리소스 제한된 환경에서 사용할 수 있습니다.
+- Mosquitto는 MQTT 3.1 및 3.1.1 프로토콜 사양을 지원하며, 다양한 플랫폼 및 운영 체제에서 실행될 수 있습니다.
+- 또한 Mosquitto는 트랜스포트 보안(TLS/SSL)과 인증 메커니즘을 포함한 다양한 보안 기능을 제공합니다.
 
 # Topic과 Message에 대해서 자세하게 알아보자.
 
