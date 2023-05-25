@@ -42,5 +42,5 @@ ex)
 - 68: 'h'
 
 # ASCII 코드표
-![img.png](../../image/ASCII.png)
-![img.png](../../image/ASCII2.png)
+![img.png](../../etc/image/ASCII.png)
+![img.png](../../etc/image/ASCII2.png)

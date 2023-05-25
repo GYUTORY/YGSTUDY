@@ -43,7 +43,7 @@ Host ID
 - IPv6는 최종적으로 IPv4를 대체하기 위한 것이지만, 맞물려있으며 대부분의 엔지니어는 두 가지를 병행하고 있습니다.
 
 # IPV4와 IPV6의 차이
-![img.png](../../../image/Network_image/img.png)
+![img.png](../../../etc/image/Network_image/img.png)
 
 # IPv4 및 IPv6의 작동 원리
 - IPv6 주소의 128비트는 콜론으로 분리된 8개의 16비트 16진수 블록입니다. 예를 들어 2dfc:0:0:0:0217:cbff:fe8c:0과 같습니다.

@@ -6,7 +6,7 @@ ps 명령어란?
 - 프로세스의 상태(Process Status : ps)를 확인하는 명령어입니다.
 - 명령어 형식은 ps- [옵션]으로 이루어져 있습니다.
 
-![img.png](../../image/Linux_Command_image/img.png)
+![img.png](../../../etc/image/Linux_Command_image/img.png)
 
 
 ps -a
@@ -22,7 +22,7 @@ ps -f
 
 - 각각의 명령어에 대한 프로세스 ID와 모 프로세스 ID를 포함한 전체 리스틀 표시
 
-![img_1.png](../../image/Linux_Command_image/img_1.png)
+![img_1.png](../../../etc/image/Linux_Command_image/img_1.png)
 
 
 

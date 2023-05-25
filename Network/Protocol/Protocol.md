@@ -26,8 +26,3 @@
 
 다음 시간에는 HTTP, FTP, SMTP와 POP, DHCP에  대해 알아보도록 하자
 
-
-
-
-출처
-- https://it.donga.com/31842/

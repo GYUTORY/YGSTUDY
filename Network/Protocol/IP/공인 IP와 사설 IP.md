@@ -17,4 +17,4 @@
 
 
 # 공인 IP와 사설 IP의 차이
-![img.png](../../../image/Network_image/공인IP와%20사설IP의%20차이.png)
+![img.png](../../../etc/image/Network_image/공인IP와%20사설IP의%20차이.png)

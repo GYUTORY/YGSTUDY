@@ -57,7 +57,7 @@
 - 네트워크는 어떻게 통신하고 계층화를 어떤 방법으로 적용하였는지에 대해 알아보겠습니다.
 
 
-# ![img_1.png](../../image/Network_image/img_1.png)
+# ![img_1.png](../../etc/image/Network_image/img_1.png)
 
 # 먼저 패킷이란?
 - 인터넷을 통해 주고받는 바이너리 데이터 블록(조각)를 포괄적으로 패킷(packet)이라 합니다.
