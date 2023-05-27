@@ -16,6 +16,8 @@
 2. get { key } 형식으로 key에 해당하는 value을 가져 올 수 있음.
 > ![](../../../../../../../../../var/folders/py/mt1_j5_j7pzb4jcv7tm58bfr0000gn/T/TemporaryItems/NSIRD_screencaptureui_jBFnH3/스크린샷 2023-01-01 오후 3.10.07.png)
 
+
+
 3. expire을 이용하여 해당 키의 만료시간을 설정할 수 있음.(10초)
 > ![](../../../../../../../../../var/folders/py/mt1_j5_j7pzb4jcv7tm58bfr0000gn/T/TemporaryItems/NSIRD_screencaptureui_QnpTi1/스크린샷 2023-01-01 오후 3.12.02.png)
 
