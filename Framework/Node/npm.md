@@ -60,3 +60,27 @@ npm install 명령은 패키지를 설치하는데 사용되며, 다양한 옵�
 --no-save
 - npm install <package> --no-save 명령은 패키지를 설치할 때 package.json 파일을 업데이트하지 않습니다. 
 - 종속성을 자동으로 추가하지 않고, 패키지를 설치한 후에도 package.json 파일은 변경되지 않습니다.
+
+# package.json과 package-lock.json의 차이
+
+package.json
+1. 프로젝트의 메타데이터를 포함하는 파일입니다.
+2. 프로젝트의 이름, 버전, 저작권 정보 등과 함께 의존성 패키지 목록을 정의합니다.
+3. 프로젝트 개발자가 의존하는 패키지의 목록과 버전을 기술합니다.
+4. 의존성 관리를 위해 npm (Node Package Manager) 명령어를 사용할 수 있습니다.
+5. npm install 명령어를 실행하면 package.json 파일을 기반으로 의존성 패키지를 설치합니다.
+6. 의존성 패키지 목록은 "dependencies"와 "devDependencies"라는 두 가지 섹션으로 구분될 수 있습니다. "dependencies"는 프로덕션 환경에서 필요한 패키지를, "devDependencies"는 개발 및 테스트에 필요한 패키지를 정의합니다.
+
+package-lock.json
+1. 의존성 패키지의 정확한 버전 및 의존 관계를 포함하는 자동 생성된 파일입니다.
+2. package.json 파일에 명시된 의존성 패키지의 구체적인 버전 정보를 담고 있습니다.
+3. package-lock.json은 프로젝트의 의존성 트리를 잠금(lock)하는 역할을 합니다. 이는 모든 개발자들이 동일한 패키지 버전을 사용하고, 의존성 충돌을 방지하기 위함입니다.
+4. package-lock.json 파일은 일반적으로 프로젝트 루트 디렉토리에 저장되며, 버전 관리 시스템(Git 등)에 포함시키는 것이 좋습니다.
+5. npm install 명령어를 실행할 때, package-lock.json 파일을 참조하여 의존성 패키지를 설치합니다. 이는 동일한 의존성 트리를 생성하여 패키지 버전을 일관되게 유지합니다.
+6. package.json 파일이 수정되지 않는 한, package-lock.json 파일은 자동으로 업데이트되지 않습니다. 따라서 의존성 패키지를 추가하거나 업데이트할 때는 package.json 파일을 직접 수정하고 npm install 명령어를 실행하여 package-lock.json을 갱신해야 합니다.
+
+정리
+1. npm install 명령어를 실행할 때, npm은 먼저 package-lock.json 파일을 확인하여 의존성 패키지의 구체적인 버전과 의존 관계를 기반으로 패키지를 설치합니다.
+2. package-lock.json 파일이 없을 경우에는 package.json 파일의 의존성 목록을 기반으로 패키지를 설치합니다.
+3. package.json은 프로젝트의 의존성 패키지 목록과 메타데이터를 정의하고, package-lock.json은 의존성 패키지의 구체적인 버전 및 의존 관계를 포함하여 일관성과 안정성을 유지합니다.
+
