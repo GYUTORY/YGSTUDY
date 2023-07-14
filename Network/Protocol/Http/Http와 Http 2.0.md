@@ -47,8 +47,3 @@ Header Compression
 - 위 그림처럼 클라이언트가 요청을 두 번 보낸다고 가정하면, HTTP1.1의 경우 헤더 중복이 발생해도 중복 전송한다.
 - 하지만 2.0의 경우 헤더에 중복이 있는 경우 Static/Dynamic Header Table 개념을 이용하여 중복을 검출해내고,
 - 해당 테이블에서의 index값 + 중복되지 않은 Header 정보를 Huffman Encoding 방식으로 인코딩한 데이터를 전송한다.
-
-Reference
-- https://seokbeomkim.github.io/posts/http1-http2/
-- https://medium.com/@shlee1353/http1-1-vs-http2-0-%EC%B0%A8%EC%9D%B4%EC%A0%90-%EA%B0%84%EB%8B%A8%ED%9E%88-%EC%82%B4%ED%8E%B4%EB%B3%B4%EA%B8%B0-5727b7499b78
-- https://velog.io/@wiostz98kr/HTTP1.1%EA%B3%BC-HTTP2.0%EC%9D%98-%EC%B0%A8%EC%9D%B4-e2v4x4t1
