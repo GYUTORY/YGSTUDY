@@ -44,9 +44,11 @@ JavaScript와의 하위 호환성
 > 위 명령은 app.js 파일을 Node.js로 실행하여 TypeScript 코드의 결과를 확인합니다.
 
 ## ts-node
+- TypeScript 파일을 컴파일하지 않고도 직접 실행할 수 있게 해주는 도구
+- 추가적인 설정이나 컴파일 과정 없이 바로 결과를 확인할 수 있습니다.
 - Node.js에서 TypeScript 코드를 실행하고 REPL(Read-Eval-Print Loop)을 제공하는 도구입니다.
 - 소스 맵과 원시 ESM(native ESM)을 지원합니다.
-- ts-node를 사용하면 TypeScript 코드를 직접 실행할 수 있으며, 추가적인 설정이나 컴파일 과정 없이 바로 결과를 확인할 수 있습니다.
+- ts-node를 사용하면 TypeScript 코드를 직접 실행할 수 있으며,를 확인할 수 있습니다.
 > 즉, tsc 명령과는 달리 별도의 컴파일 단계 없이 TypeScript 코드를 직접 실행할 수 있도록 도와줍니다.
 
 
@@ -59,5 +61,13 @@ JavaScript와의 하위 호환성
 - 실행 : 입력된 코드가 평가되고 실행됩니다. 결과나 에러 메시지가 반환됩니다.
 - 출력 : 실행 결과나 에러 메시지 등이 출력됩니다.
 - 반복 : REPL은 다음 입력을 대기하고, 사용자가 추가적인 코드를 입력하면 위의 갖정을 반복합니다.
+
+
+
+## --require ts-node/register
+- TypeScript로 작성된 파일을 실행하기 위해 ts-node 모듈을 등록하는 옵션입니다.
+- TypeScript는 JavaScript를 확장한 언어로, 타입 체크와 ES6 이상의 문법을 지원하여 개발자들에게 더 안전하고 강력한 기능을 제공합니다. 
+- 그러나 TypeScript 코드를 실행하려면 먼저 해당 코드를 JavaScript로 컴파일해야 합니다.
+
 
 
