@@ -1,10 +1,9 @@
 
 # gRPC
 
-## 개요
-- gRPC는 Google이 개발한 고성능 RPC(Remote Procedure Call) 프레임워크입니다. 
-- gRPC는 프로토콜 버퍼(Protocol Buffers)를 기반으로 하며, 다양한 언어와 플랫폼 간의 상호 운용성을 제공합니다. 
-- 이제부터 gRPC의 개요, 작동 방식, 주요 기능, 이점, 그리고 사용 사례에 대해 자세히 알아보도록 하겠습니다.
+# 개요
+- Google에서 만든 RPC
+
 
 ## 내용
 ### 프로토콜 버퍼
@@ -98,5 +97,9 @@
 - 이는 네트워크 통신이나 데이터 저장에 사용될 때 효율적입니다.
 
 
-### 데이터 직렬화? 데이터 역직렬화가 뭔데?
-- 
+# 당근마켓 gRPC 인프라 구성
+
+<div style="text-align: center;">
+<img src="../../../etc/image/Network_image/당근grpc.png" alt="이미지" width="75%">
+</div>
+
