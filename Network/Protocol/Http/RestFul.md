@@ -16,5 +16,19 @@
 - 라우트(route)에 resource, id 외의 정보가 들어가는 경우(/books/updateName)
 
 
+# PUT과 PATCH
+- 리소스의 업데이트를 의미한다.
+- 리소스를 업데이트 한다는 점에서는 같은 역할을 하는 메소드처럼 보이지만 두개의 요청에는 약간의 차이가 있다.
+
+## PUT 
+- 리소스의 모든 것을 업데이트 한다.
+
+## PATCH 
+- 리소스의 일부를 업데이트 한다.
+
+
+
+```
 출처
-# https://aws.amazon.com/ko/what-is/restful-api/
+ https://aws.amazon.com/ko/what-is/restful-api/
+```
