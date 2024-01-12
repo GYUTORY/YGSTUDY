@@ -18,11 +18,11 @@
 - Docker는 컨테이너 기반의 가상화 플랫폼으로, 애플리케이션을 격리된 환경에서 실행할 수 있도록 해준다.
 - 즉, 컨테이너 기반의 오픈소스 가상화 플랫폼
 
-![도커 컨테이너.png](..%2F..%2F..%2Fetc%2Fimage%2FDocker%2F%EB%8F%84%EC%BB%A4%20%EC%BB%A8%ED%85%8C%EC%9D%B4%EB%84%88.png)
+![도커 컨테이너.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FApplication%20Architecture%2FKubernetes%2FDocker%2F%EB%8F%84%EC%BB%A4%20%EC%BB%A8%ED%85%8C%EC%9D%B4%EB%84%88.png)
 
 - 컨테이너는 이미지를 기반으로 생성되며, 파일 시스템, 네트워크, 프로세스 등의 격리된 환경에서 실행됩니다.
 
-![컨테이너.png](..%2F..%2F..%2Fetc%2Fimage%2FDocker%2F%EC%BB%A8%ED%85%8C%EC%9D%B4%EB%84%88.png)
+![컨테이너.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FApplication%20Architecture%2FKubernetes%2FDocker%2F%EC%BB%A8%ED%85%8C%EC%9D%B4%EB%84%88.png)
 
 
 --- 
@@ -41,7 +41,7 @@
 - 가상머신 :  하이퍼바이저를 사용하여 호스트 운영 체제 위에 여러개의 게스트 운영 체제를 실행
 - 도커 : 여러 컨테이너들이 똑같은 하나의 머신 위에서 OS 커널을 공유한다
   
-![도커와 가상머신의 차이.png](..%2F..%2F..%2Fetc%2Fimage%2FDocker%2F%EB%8F%84%EC%BB%A4%EC%99%80%20%EA%B0%80%EC%83%81%EB%A8%B8%EC%8B%A0%EC%9D%98%20%EC%B0%A8%EC%9D%B4.png)
+![도커와 가상머신의 차이.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FApplication%20Architecture%2FKubernetes%2FDocker%2F%EB%8F%84%EC%BB%A4%EC%99%80%20%EA%B0%80%EC%83%81%EB%A8%B8%EC%8B%A0%EC%9D%98%20%EC%B0%A8%EC%9D%B4.png)
 
 --- 
 
@@ -49,7 +49,7 @@
 - 도커에서 서비스 운영에 필요한 서버 프로그램, 코드 및 라이브러리, 컴파일된 실행 파일 등을 묶는 형태
 - 즉, 컨테이너 생성(실행)에 필요한 모든 파일과 환경을 가진 것
 
-![Docker Image.png](..%2F..%2F..%2Fetc%2Fimage%2FDocker%2FDocker%20Image.png)
+![Docker Image.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FApplication%20Architecture%2FKubernetes%2FDocker%2FDocker%20Image.png)
 
 --- 
 
@@ -65,11 +65,7 @@
 
 
 
-
-
-![Docker Hub.png](..%2F..%2F..%2Fetc%2Fimage%2FDocker%2FDocker%20Hub.png)
-
-
+![Docker Hub.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FApplication%20Architecture%2FKubernetes%2FDocker%2FDocker%20Hub.png)
 
 
 

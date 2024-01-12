@@ -1,4 +1,4 @@
-- First Created by KYG. on 2023-01-01
+
 
 #  Docker Desktop 이란?
 - 로컬 환경에서 docker를 편리하게 설치하고 실행하기 위해서 사용한다.
