@@ -26,9 +26,6 @@
 
 ![AES.png](..%2F..%2Fetc%2Fimage%2FSECURITY%2FAES.png) 
 
-### spn
-- Subsititution Layer과 Pernutation을 이용하여 Confusion과 Diffusion을 만족시켜주는 구조이다. 
-- 이 구조의 장점은 Feistal 구조와 반대로 병렬연산이 가능하여 속도가 빠르고 단점은 복호화시 별도의 복호화 모듈을 구현해줘야 한다는 것이다.
 
 ```
 출처
