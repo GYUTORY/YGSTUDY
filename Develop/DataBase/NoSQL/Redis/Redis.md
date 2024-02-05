@@ -5,9 +5,17 @@
 ## Redis란?
 - 인메모리 데이터베이스로 데이터를 메모리에 저장하고 조회
 - NoSQL로서 Key-Value 타입의 저장소이다.
-- 레디스는 고성능 키-값 저장소로서 문자열, 리스트, 해시, 셋, 정렬된 셋 형식의 데이터를 지원하는 NoSQL이다.
 
-![Redis.png](..%2F..%2Fetc%2Fimage%2FDataBase%2FRedis.png)
+
+![Redis.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FDataBase%2FNoSQL%2FRedis%2FRedis.png)
+
+
+### 지원하는 데이터 형식
+-  크게 5가지 <String, Set, Sorted Set, Hash, List >의 데이터 형식을 지원
+
+![Redis-DataType.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FDataBase%2FNoSQL%2FRedis%2FRedis-DataType.png)
+
+---
 
 # Redis의 주요 특징
 - Key, Value 구조의 비정형 데이터를 저장하고 관리하기 위한 오픈 소스 기반의 비관계형 데이터 베이스 관리 시스템 (DBMS)입니다.
@@ -48,7 +56,7 @@ Mysql, Oracle, Mssql, Tibero등 상용화된 데이터베이스가 있는데 굳
 ## Redis의 단점
 ###  Memory fragmentation
 - Redis는 메모리 기반으로 동작하기 때문에 서버의 메모리 용량에 제약이 있습니다.
-- 데이터의 크기가 자주 변하는 경우에는 메모리를 효율적으로 관리해야 할 필욜가 있다.
+- 데이터의 크기가 자주 변하는 경우에는 메모리를 효율적으로 관리해야 할 필요가 있다.
 
 ### Single thread
 - Redis는 단일 스레드 모델을 사용하므로 하나의 요청을 처리하는 동안 다른 요청을 처리할 수 없습니다.
