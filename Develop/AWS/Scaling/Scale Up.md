@@ -16,10 +16,6 @@
 - AWS에서 EC2 인스턴스 사양을 micro > small 또는 small > medium 등으로 높이는 것이다.
 
 
-
-> 이처럼 하나의 서버의 능력을 증강하기 때문에 수직 스케일링(vertical scaling)이라고도 한다.
-
-
 ```
 출처 
 https://tecoble.techcourse.co.kr/post/2021-10-12-scale-up-scale-out/
