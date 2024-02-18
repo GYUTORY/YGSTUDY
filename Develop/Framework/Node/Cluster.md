@@ -88,3 +88,39 @@ cluster.fork(); // 다시 워커 프로세스 생성
 
 
 ```
+
+---
+
+## pm2에서 클러스터모드로 실행시키는 법
+
+1. PM2 설치
+```shell
+npm install pm2 -g
+```
+
+2. 애플리케이션 폴더로 이동
+```shell
+cd /path/to/your/app
+```
+
+3. PM2 설정 파일 생성
+```shell
+pm2 set pm2.config.js
+```
+
+4. 설정 파일 편집
+```text
+module.exports = {
+apps : [{
+name: "your-app-name",
+script: "main.js",
+instances: 6,
+exec_mode: "cluster"
+}]
+};
+```
+
+5. 애플리케이션 시작
+```shell
+pm2 start pm2.config.js
+```
