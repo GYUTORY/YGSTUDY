@@ -41,8 +41,4 @@
 
 ---
 
-### NoSQL의 여러 종류
-
-![img.png](img.png)
-
 > 출처 : https://velog.io/@swhan9404/NoSQL-%EC%9D%98-%EC%A2%85%EB%A5%98%EB%B3%84-%ED%8A%B9%EC%A7%95
