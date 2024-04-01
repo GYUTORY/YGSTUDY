@@ -129,3 +129,5 @@ OpenSearch 대시보드를 사용하여 데이터를 검색하고 시각화를 �
 출처
 https://docs.aws.amazon.com/ko_kr/opensearch-service/latest/developerguide/what-is.html
 ``
+
+--> 해당 페이지 폐기 예정
