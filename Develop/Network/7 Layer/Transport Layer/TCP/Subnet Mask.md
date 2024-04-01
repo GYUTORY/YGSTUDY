@@ -31,7 +31,6 @@
 
 ### Subent Mask 설명 
 
-![subnet-mask-ko.png](..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2Fsubnet-mask-ko.png)
 
 - 모든 집 주소가 도로명 주소와 번지수로 정해지듯이 IP 주소는 네트워크 구성요소와 호스트 구성요소로 구성됩니다. 
 - IP 주소에 대해서 잘 모르신다면, 여기에서 IP 주소에 대해서 자세히 알아볼 수 있습니다.
