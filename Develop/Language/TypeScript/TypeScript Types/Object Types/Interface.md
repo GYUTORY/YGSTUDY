@@ -5,24 +5,33 @@
 - 이를 통해 객체의 타입을 추상화하고, 코드의 가독성과 유지 보수성을 높일 수 있습니다.
 
 # 사용법
-    interface Person {
+```typescript
+interface Person {
         name: string;
         age: number;
     }
-> 인터페이스는 'interface' 키워드를 사용하여 정의합니다.
-> 아래는 'Person' 인터페이스의 예시입니다.
+```
     
-    function greet(person: Person) {
-        return 'Hello ' + person.name;
-    }
+- 인터페이스는 'interface' 키워드를 사용하여 정의합니다.
+
+---
+
+##  아래는 'Person' 인터페이스의 예시
+
+```typescript
+function greet(person: Person) {
+    return 'Hello ' + person.name;
+}
+```
 
 > 위 예시에서 'Person' 인터페이스는 'name'과 'age'라는 두 개의 속성을 가지고 있습니다.
 - 'name'은 문자열 타입이고, 'age'는 숫자 타입입니다.
 - 인터페이스를 사용하여 함수의 매개변수나 리턴 타입으로 객체의 타입을 지정할 수 있습니다.
 - 예를 들어, 'greet' 함수는 'Person' 인터페이스를 매개변수로 받으며, 'person.name' 을 이용하여 인사말을 생성합니다.
 
-# 좀 더 고도화를 한다면?
-    // 인터페이스 선언: User 인터페이스
+## 좀 더 고도화를 한다면?
+```typescript
+// 인터페이스 선언: User 인터페이스
     interface User {
         id: number;
         name: string;
@@ -53,8 +62,7 @@
     user1.greet(); // 출력: Hello, John Doe!
     
     // User 객체 배열
-    const users: User[] = [
-    user1,
+    const users: User[] = [user1,
     { id: 2, name: 'Jane Smith', email: 'jane@example.com', greet: () => console.log('Hi!') }
     ];
     
@@ -70,5 +78,7 @@
         user.greet();
         console.log('-------------');
     });
+```
+    
 
 
