@@ -33,7 +33,7 @@
 ```javascript
 let
     min = 2,
-    max = 10_000_000,
+    max = 10000000,
     primes = [];
 
 // 아리토스테네스의 체 소수구하기
