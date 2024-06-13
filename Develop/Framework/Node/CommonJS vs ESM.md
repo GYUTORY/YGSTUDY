@@ -7,15 +7,16 @@
 - CommonJS 모듈은 require() 함수를 사용하여 다른 모듈을 가져올 수 있습니다.
 - 예시로, 다음과 같이 CommonJS 문법으로 모듈을 작성하고 사용할 수 있습니다.
 
-
-    // 모듈 내보내기
-    exports.sum = function(a, b) {
+```javascript
+// 모듈 내보내기
+exports.sum = function(a, b) {
     return a + b;
-    };
+};
     
-    // 모듈 가져오기
-    const math = require('./math');
-    console.log(math.sum(2, 3)); // 출력: 5
+// 모듈 가져오기
+const math = require('./math');
+console.log(math.sum(2, 3)); // 출력: 5
+```
 
 
 # ESM (ECMAScript Modules)
@@ -24,14 +25,16 @@
 - 예시로, 다음과 같이 ESM 문법으로 모듈을 작성하고 사용할 수 있습니다.
 
 
-        // 모듈 내보내기
-        export function sum(a, b) {
-        return a + b;
-        }
+```javascript
+// 모듈 내보내기
+export function sum(a, b) {
+    return a + b;
+}
         
-        // 모듈 가져오기
-        import { sum } from './math';
-        console.log(sum(2, 3)); // 출력: 5
+// 모듈 가져오기
+import { sum } from './math';
+console.log(sum(2, 3)); // 출력: 5
+```
 
 
 # CommonJS와 ESM의 주요한 차이점
