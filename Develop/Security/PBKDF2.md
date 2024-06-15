@@ -43,18 +43,18 @@ Node.js에서 pbkdf2 함수를 사용하기 위해 "crypto" 모듈을 사용해�
 ## 다음은 pbkdf2 함수의 기본적인 사용 방법
 
 ```javascript
-    const crypto = require('crypto');
-    
-    const password = 'myPassword';
-    const salt = crypto.randomBytes(16).toString('hex'); // 무작위로 생성된 솔트 값
-    const iterations = 100000; // 반복 횟수
-    const keyLength = 64; // 출력 길이
-    
-    crypto.pbkdf2(password, salt, iterations, keyLength, 'sha512', (err, derivedKey) => {
+const crypto = require('crypto');
+
+const password = 'myPassword';
+const salt = crypto.randomBytes(16).toString('hex'); // 무작위로 생성된 솔트 값
+const iterations = 100000; // 반복 횟수
+const keyLength = 64; // 출력 길이
+
+crypto.pbkdf2(password, salt, iterations, keyLength, 'sha512', (err, derivedKey) => {
     if (err) throw err;
     const hashedPassword = derivedKey.toString('hex');
     console.log('Hashed Password:', hashedPassword);
-    });
+});
 ```
 
 
@@ -68,19 +68,19 @@ Node.js에서 pbkdf2 함수를 사용하기 위해 "crypto" 모듈을 사용해�
 
 ## 비밀번호를 검증하는 방법
 ```javascript
-    const storedHashedPassword = '...'; // 저장된 해시화된 비밀번호
-    const userEnteredPassword = '...'; // 사용자가 입력한 비밀번호
-    
-    crypto.pbkdf2(userEnteredPassword, salt, iterations, keyLength, 'sha512', (err, derivedKey) => {
-        if (err) throw err;
-        const hashedPasswordToCompare = derivedKey.toString('hex');
-    
-        if (storedHashedPassword === hashedPasswordToCompare) {
-            console.log('Passwords match!');
-        } else {
+const storedHashedPassword = '...'; // 저장된 해시화된 비밀번호
+const userEnteredPassword = '...'; // 사용자가 입력한 비밀번호
+
+crypto.pbkdf2(userEnteredPassword, salt, iterations, keyLength, 'sha512', (err, derivedKey) => {
+    if (err) throw err;
+    const hashedPasswordToCompare = derivedKey.toString('hex');
+
+    if (storedHashedPassword === hashedPasswordToCompare) {
+        console.log('Passwords match!');
+    } else {
         console.log('Passwords do not match!');
-        }
-    });
+    }
+});
 ```
 
 
