@@ -1,75 +1,119 @@
 
-# Observer Pattern
+# Observer_Pattern Pattern
+
+
+<div align="center">
+    <img src="../../../etc/image/Application Architecture/Design Pattern/Observer Pattern.png" alt="Observer_Pattern" width="50%">
+</div>
 
 
 ## 개요
-- Observer Pattern은 객체들 간의 일대다 의존성을 정의하는 행위 디자인 패턴으로, 
-한 객체의 상태가 변경되면 의존하는 다른 객체들에게 자동으로 알림을 보내어 상태 변경을 처리할 수 있게 해줍니다. 
-- 이를 통해 객체들 사이의 결합도를 줄이고 유연하고 확장 가능한 코드를 작성할 수 있습니다.
+- 옵저버 패턴은 객체의 상태 변화를 관찰하는 관찰자들, 즉 옵저버들의 목록을 객체에 등록하여 상태 변화가 있을 때마다 메서드 등을 통해 객체가 직접 목록의 각 옵저버에게 통지하도록 하는 디자인 패턴이다.
+- 쉽게 말해 어떤 객체의 상태가 변할 때 그와 연관된 객체들에게 알림을 보내는 패턴이다.
 
 ## 내용
 - Observer Pattern은 소프트웨어 개발에서 종종 발생하는 "이벤트 처리" 문제를 해결하기 위해 등장하였습니다. 
 - 예를 들어, GUI 애플리케이션에서는 사용자 인터페이스 요소들 간에 서로 상호작용이 필요하며, 한 요소의 상태 변경이 다른 요소에 영향을 주는 경우가 많습니다. 
-- 이때 Observer Pattern은 각 요소들을 독립적으로 유지하면서 상호작용을 가능하게 해줍니다.
+- 이때 Observer_Pattern Pattern은 각 요소들을 독립적으로 유지하면서 상호작용을 가능하게 해줍니다.
+
+--- 
+
+## Observer_Pattern Pattern 구조 
+
+<div align="center">
+    <img src="../../../etc/image/Application Architecture/Design Pattern/Observer_Structure.png" alt="Obeserver Structure" width="30%">
+</div>
 
 
-## 구성요소
-### Subject(주제)
-- 상태 변화를 관찰하는 대상 객체입니다. 
-- 주제 객체는 관찰자들을 등록하고 알림 메시지를 보내는 역할을 수행합니다.
+**1. Subject**
+- Observer_Pattern 목록을 유지하고 Observer_Pattern 추가 또는 제거를 용이하게 하는 역할
 
-### Observer(관찰자)
-- 주제 객체의 상태 변화를 감지하고, 필요에 따라 적절한 동작을 수행하는 객체입니다.
-- 주제 객체의 상태 변화를 감시하기 위해 인터페이스를 구현합니다.
+**2. ConcreteSubject**
+- 상태 변경에 대한 알림을 Observer에게 제공하고, concreteObserver의 상태를 저장하는 역할
 
-## 동작 방식
-1. 주제 객체는 관찰자들을 저장할 컬렉션(예: 리스트)을 가지고 있습니다.
-2. 관찰자들은 주제 객체의 인터페이스를 구현하여 등록됩니다.
-3. 주제 객체의 상태가 변경되면, 등록된 모든 관찰자들에게 알림을 보냅니다.
-4. 각 관찰자들은 알림을 받고 적절한 동작을 수행합니다.
+**3. Observer_Pattern**
+- Subject의 상태 변경을 통지해야 하는 객체에 대한 업데이트 인터페이스를 제공하는 역할
 
+**4. ConcreteObserver**
+- concreteSubject에 대한 참조를 저장하고, Observer에 대한 업데이트 인터페이스를 구현하여 상태가 Subject와 일치하는지 확인하는 역할
 
-``` javascript
-# Subject(주제) 클래스
-class Subject:
-def __init__(self):
-self._observers = []
+---
 
-    def attach(self, observer):
-        self._observers.append(observer)
+## Js로 알아보는 사용예제
 
-    def detach(self, observer):
-        self._observers.remove(observer)
+```javascript
+// Subject 클래스 정의
+class Subject {
+    constructor() {
+        this.observers = []; // 옵저버(구독자) 리스트 초기화
+    }
 
-    def notify(self, message):
-        for observer in self._observers:
-            observer.update(message)
+    // 옵저버 등록 메소드
+    addObserver(observer) {
+        this.observers.push(observer);
+    }
 
-# Observer(관찰자) 인터페이스
-class Observer:
-def update(self, message):
-pass
+    // 옵저버 제거 메소드
+    removeObserver(observer) {
+        this.observers = this.observers.filter(obs => obs !== observer);
+    }
 
-# 구체적인 Observer 클래스
-class ConcreteObserver(Observer):
-def __init__(self, name):
-self.name = name
+    // 모든 옵저버에게 알림을 보내는 메소드
+    notifyObservers() {
+        this.observers.forEach(observer => observer.update());
+    }
+}
 
-    def update(self, message):
-        print(f"{self.name} received message: {message}")
+// Observer_Pattern 클래스 정의
+class Observer_Pattern {
+    constructor(name) {
+        this.name = name;
+    }
 
-# 예제 실행
-if __name__ == "__main__":
-subject = Subject()
+    // 업데이트 메소드 (옵저버가 알림을 받을 때 호출되는 메소드)
+    update() {
+        console.log(`${this.name}가 알림을 받았습니다.`);
+    }
+}
 
-observer1 = ConcreteObserver("Observer 1")
-observer2 = ConcreteObserver("Observer 2")
+// 예제 사용
 
-subject.attach(observer1)
-subject.attach(observer2)
+// Subject 인스턴스 생성
+const subject = new Subject();
 
-subject.notify("Hello, observers!")
+// Observer_Pattern 인스턴스 생성
+const observer1 = new Observer_Pattern('옵저버 1');
+const observer2 = new Observer_Pattern('옵저버 2');
+
+// 옵저버 등록
+subject.addObserver(observer1);
+subject.addObserver(observer2);
+
+// 상태 변화 발생 및 알림
+console.log('모든 옵저버에게 알림을 보냅니다.');
+subject.notifyObservers(); // 모든 옵저버의 update 메소드가 호출됩니다.
+
+// 옵저버 제거 후 알림
+subject.removeObserver(observer1);
+console.log('옵저버 1을 제거한 후, 남은 옵저버에게 알림을 보냅니다.');
+subject.notifyObservers(); // 옵저버 1은 알림을 받지 않습니다.
 
 
 ```
 
+## 설명 
+
+### 1. Subject 클래스
+- this.observers는 옵저버들을 저장하는 배열입니다.
+- addObserver(observer) 메소드는 옵저버를 배열에 추가합니다.
+- removeObserver(observer) 메소드는 배열에서 옵저버를 제거합니다.
+- notifyObservers() 메소드는 배열에 있는 모든 옵저버의 update() 메소드를 호출하여 알림을 보냅니다.
+
+### 2. Observer_Pattern 클래스:
+- name은 옵저버의 이름을 저장하는 속성입니다.
+- update() 메소드는 옵저버가 알림을 받을 때 실행됩니다. 여기서는 단순히 콘솔에 메시지를 출력합니다.
+
+
+---
+
+> [출처] [디자인 패턴] Observer_Pattern Pattern|작성자 공부쟁이
