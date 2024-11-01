@@ -10,14 +10,51 @@ function main() { // 일반 함수
 const main = () => 'function'; // 화살표 함수
 ```
 
+---
 
 ## this!
 - 일반함수와 화살표함수의 가장 큰 차이는 this이다.
 
-### 일반 함수의 this
-- 자바스크립트는 함수 호출 방식에 따라 this에 바인딩될 어떤 객체가 동적으로 결정이 된다.
-- 즉, 함수를 호출할 때 함수가 어떻게 호출 되었느냐에 따라 this에 바인딩할 객체가 결정이 된다.
+### 일반 Function의 this
 
-아래 코드를 보면, 일반함수에서 this가 어떻게 동작하는지 살펴보기 위해 객체를 하나 정의했다. obj 라는 객체를 하나 생성했다. name은 'go'이고, main이라는 메소드도 만들었다. 메소드는 객체의 속성으로 넣어진 함수이다.
+```javascript
+const obj = {
+    a: 10,
+    method: function() {
+        const arrowFunc = () => {
+            console.log(this.a);
+        };
+        arrowFunc();
+    }
+};
 
-일반함수에서의 this는 어떻게 호출 하느냐에 따라 달라진다.
+obj.method(); // 10
+```
+
+- 위 코드에서 method는 일반 함수이므로, this는 obj를 가리킵니다. 따라서 어로우 함수인 arrowFunc가 this.a를 참조할 때 obj.a에 접근할 수 있습니다.
+
+
+
+### Arrow Function의 this
+-  자신만의 this를 가지지 않기 때문에, 상위 스코프에 this가 바인딩된 객체가 없는 경우에는 자신의 객체의 속성에 접근할 수 없습니다.
+
+```javascript
+const obj = {
+    a: 10,
+    method: function() {
+        const arrowFunc = () => {
+            console.log(this.a);
+        };
+        const anotherObj = {
+            a: 20,
+            arrowFunc: arrowFunc
+        };
+        anotherObj.arrowFunc(); // undefined
+    }
+};
+
+obj.method();
+```
+
+- 여기서 anotherObj.arrowFunc()를 호출하면, arrowFunc는 여전히 method가 호출된 컨텍스트의 this를 참조하기 때문에 this.a는 undefined가 됩니다.
+- 결론적으로, Arrow Function는 상위 스코프의 this를 사용하기 때문에, 자신의 객체에 정의된 속성에 접근하려면 해당 객체의 메서드에서 일반 함수를 사용하는 것이 좋습니다.
