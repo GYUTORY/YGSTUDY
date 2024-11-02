@@ -60,6 +60,93 @@ person.greet();  // "Hello, my name is undefined"
 > 즉, 화살표 함수는 함수가 선언된 당시의 this를 기억하고 그대로 사용하기 때문에, 함수 안에서 this가 변하지 않아요.
 
 
+---
+
+## Arrow Function과 exports의 문제 
+
+```javascript
+const person = {
+    name: "Alice",
+    greet: () => {
+        console.log(`Hello, my name is ${this.name}`);
+    }
+};
+
+exports.name = "James";
+
+person.greet();  // "Hello, my name is James"
+```
+
+- 코드에 exports.name = "James";를 추가하면, greet 메서드에서 출력되는 this.name 값이 "James"로 바뀌게 됩니다. 
+- 그 이유는 화살표 함수 greet에서 this가 글로벌 스코프(또는 Node.js 환경에서는 module.exports)를 참조하기 때문입니다.
+
+
+## 이유 설명
+- 화살표 함수는 this를 새롭게 바인딩하지 않고, 상위 스코프의 this를 사용합니다.
+- Node.js 환경에서는 모듈 전체가 module.exports라는 객체에 속하게 됩니다.
+- 따라서 exports.name = "James";로 설정하면 module.exports.name이 "James"가 되고, greet 메서드에서 this.name은 module.exports.name을 참조해 "James"를 출력하게 됩니다.
+
+### 정리
+- 일반 함수는 호출된 객체에 따라 this가 바뀌지만, 화살표 함수는 상위 스코프의 this를 그대로 사용합니다.
+- 이 경우, this는 module.exports를 가리켜 name의 값이 "James"로 출력됩니다.
+
+---
+
+# 그러면 Arrow Function은 항상, exports만 호출이 가능한가?
+- 정답부터 말하자면 아니다, 화살표 함수는 선언된 위치의 상위 스코프에 따라 this가 결정되기 때문에, 그 상위 스코프가 무엇이냐에 따라 this가 달라질 수 있습니다.
+
+
+## 예시로 살펴보기
+- exports가 아닌 다른 환경에서도 this가 달라질 수 있는 예시를 통해 좀 더 구체적으로 설명해볼게요.
+
+### 1. 객체 내부에서 사용되는 경우
+- 화살표 함수가 객체 메서드로 선언되면, 객체의 상위 스코프에 있는 this를 참조하게 됩니다. 
+- 예를 들어, 전역 컨텍스트에서 객체 내부에 선언된 화살표 함수는 전역 스코프의 this를 참조합니다.
+
+```javascript
+const person = {
+    name: "Alice",
+    greet: () => {
+        console.log(`Hello, my name is ${this.name}`);
+    }
+};
+
+global.name = "Global Name";  // Node.js에서는 글로벌 스코프에 `name`을 설정
+person.greet();  // "Hello, my name is Global Name"
+```
+
+- 위 코드에서 greet의 this는 person이 아니라 전역 객체(Node.js에서는 global, 브라우저에서는 window)를 참조하게 되어, global.name의 값 "Global Name"이 출력됩니다.
+
+
+### 2. 함수 내부에서 사용하는 경우
+- 함수 내부에 화살표 함수를 선언하면, 화살표 함수는 그 **상위 함수의 this**를 사용하게 됩니다.
+
+```javascript
+function Person(name) {
+    this.name = name;
+    this.greet = () => {
+        console.log(`Hello, my name is ${this.name}`);
+    };
+}
+
+const alice = new Person("Alice");
+alice.greet();  // "Hello, my name is Alice"
+```
+
+- 여기서 greet은 Person 생성자 함수 내부에 선언된 화살표 함수이므로, **상위 스코프인 Person 함수의 this**를 사용합니다. 
+- 생성된 alice 객체에서 this.name은 "Alice"로 설정되었으므로, "Hello, my name is Alice"가 출력됩니다.
+
+## 요약
+> 화살표 함수는 exports뿐만 아니라 선언된 위치의 상위 스코프에 따라 this가 결정됩니다. 따라서, 어디에서 선언되었느냐에 따라 this는 전역 객체나 함수의 this로도 설정될 수 있습니다.
+
+
+
+
+
+
+
+
+
 
 
 
