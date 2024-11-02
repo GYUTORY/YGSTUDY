@@ -38,9 +38,10 @@ person.greet();  // "Hello, my name is Alice"
 <br>
 
 ## Arrow Function의 this
-- 일반 함수와 다르게, 화살표 함수는 새로운 this를 가지지 않고, 화살표 함수가 선언된 위치에서 화살표 함수가 정의된 렉시컬 환경(상위 스코프)의 this를 상속합니다.
-- 즉, 화살표 함수 내부에서 this는 화살표 함수가 선언된 위치의 this를 가리킵니다. 화살표 함수는 call, apply, bind로 this를 변경할 수 없으며, this가 고정되어 있습니다.
-- 
+- 화살표 함수는 일반 함수와 달리 새로운 this를 생성하지 않습니다.
+- 즉, 화살표 함수 내부의 this는 화살표 함수가 선언된 **상위 스코프의 this**를 그대로 사용합니다.
+- 따라서, 화살표 함수는 this가 고정되어 있으며, call, apply, bind 메서드로도 this를 변경할 수 없습니다.
+
 ```javascript
 const person = {
     name: "Alice",
@@ -52,7 +53,10 @@ const person = {
 person.greet();  // "Hello, my name is undefined"
 ```
 
-- regularFunction에서는 this가 exampleObj를 가리키지만, arrowFunction에서는 this가 상위 스코프의 this를 그대로 사용합니다.
+- 위 코드에서 greet 메서드는 화살표 함수로 작성되었습니다.
+- 화살표 함수는 this를 person 객체가 아닌 **상위 스코프(글로벌 스코프)의 this**를 참조하기 때문에, this.name은 undefined가 됩니다.
+- 일반 함수로 작성된 메서드라면 this가 person 객체를 가리키겠지만, 화살표 함수에서는 그렇지 않습니다.
+
 > 즉, 화살표 함수는 함수가 선언된 당시의 this를 기억하고 그대로 사용하기 때문에, 함수 안에서 this가 변하지 않아요.
 
 
