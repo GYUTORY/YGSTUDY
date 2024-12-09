@@ -1,5 +1,42 @@
 
 
+# The next chapter will soon unfold
+
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+---
 
 # 프록시(Proxy)란?
 - 프록시의 사전적 의미는 '대리', '대신'입니다. 보안상의 문제로 직접 통신을 주고받을 수 없는 두 PC 사이에서 통신을 할 때 직접 하지 않고 중간에서 대리로 중계를 하는 개념을 '프록시'라고 합니다.
