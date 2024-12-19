@@ -94,7 +94,8 @@ public class Main {
 
 
 ## 4. 다중 인터페이스 구현과 충돌 해결
-Java는 다중 인터페이스 구현을 지원하지만, 동일한 시그니처를 가진 default 메서드가 여러 인터페이스에 존재하면 충돌이 발생합니다. 이를 해결하려면 구현 클래스에서 명시적으로 오버라이드해야 합니다.
+- Java는 다중 인터페이스 구현을 지원하지만, 동일한 시그니처를 가진 default 메서드가 여러 인터페이스에 존재하면 충돌이 발생합니다. 
+- 이를 해결하려면 구현 클래스에서 명시적으로 오버라이드해야 합니다.
 
 ### 예제
 ```java
@@ -132,29 +133,9 @@ public class Main {
 }
 ```
 
-## 5. 함수형 인터페이스와 람다 표현식
-Java 8부터 함수형 인터페이스(Functional Interface)가 도입되었습니다. 함수형 인터페이스는 추상 메서드가 하나만 있는 인터페이스를 의미하며, 람다 표현식과 함께 사용됩니다.
 
-### 예제
-```java
-@FunctionalInterface
-interface Calculator {
-    int calculate(int a, int b);
-}
 
-public class Main {
-    public static void main(String[] args) {
-        // 람다 표현식 사용
-        Calculator add = (a, b) -> a + b;
-        Calculator multiply = (a, b) -> a * b;
-
-        System.out.println(add.calculate(5, 3));       // 8
-        System.out.println(multiply.calculate(5, 3)); // 15
-    }
-}
-```
-
-## 6. Marker Interface (마커 인터페이스)
+## 5. Marker Interface (마커 인터페이스)
 Marker Interface는 메서드가 없는 빈 인터페이스로, 특정 클래스에 특별한 속성을 부여하거나 식별하기 위해 사용됩니다.
 
 ### 예제
@@ -171,7 +152,7 @@ class Data implements java.io.Serializable {
 }
 ```
 
-## 7. 인터페이스와 제네릭
+## 6. 인터페이스와 제네릭
 인터페이스는 제네릭(Generic) 을 지원하여 다양한 데이터 타입을 다룰 수 있습니다.
 
 ### 예제
@@ -209,7 +190,7 @@ public class Main {
 }
 ```
 
-## 8. 인터페이스의 확장
+## 7. 인터페이스의 확장
 interface는 다른 인터페이스를 상속받을 수 있습니다. 이를 통해 인터페이스의 기능을 확장할 수 있습니다.
 
 ### 예제
@@ -243,7 +224,7 @@ public class Main {
 }
 ```
 
-## 9. 인터페이스와 Dependency Injection
+## 8. 인터페이스와 Dependency Injection
 인터페이스는 의존성 주입(Dependency Injection) 을 통해 유연한 설계를 가능하게 합니다. 이는 구현체의 변경이 용이하고 테스트 코드 작성이 간편하다는 장점이 있습니다.
 
 ### 예제
