@@ -152,7 +152,7 @@ if (isMainThread) {
 
 
 <div align="center">
-    <img src="../../../etc/image/Framework/Node/NodeJS_CPU.png" alt="NodeJS CPU Image" width="50%">
+    <img src="../../../../etc/image/Framework/Node/NodeJS_CPU.png" alt="NodeJS CPU Image" width="50%">
 </div>
 
 --- 
@@ -164,7 +164,7 @@ if (isMainThread) {
 
 
 <div align="center">
-    <img src="../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
+    <img src="../../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
 </div>
 
 ---

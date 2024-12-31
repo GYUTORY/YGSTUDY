@@ -9,7 +9,7 @@
 - npm 패키지를 실행할 수 있는 도구
 
 <div align="center">
-    <img src="../../../etc/image/Framework/Node/npx.png" alt="npx" width="50%">
+    <img src="../../../../etc/image/Framework/Node/npx.png" alt="npx" width="50%">
 </div>
 
 > 정리! 

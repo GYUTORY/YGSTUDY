@@ -2,7 +2,7 @@
 # Event Loop
 
 <div align="center">
-    <img src="../../../etc/image/Framework/Node/Event Loop.jpeg" alt="Domain" width="50%">
+    <img src="../../../../etc/image/Framework/Node/Event%20Loop.jpeg" alt="Domain" width="50%">
 </div>
 
 ## 1. 이벤트루프가 왜 중요한가?
