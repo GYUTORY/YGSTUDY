@@ -27,7 +27,7 @@ console.log('End!');
 ### 자세한 실행 과정
 
 <div align="center">
-    <img src="../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
+    <img src="../../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
 </div>
 
 

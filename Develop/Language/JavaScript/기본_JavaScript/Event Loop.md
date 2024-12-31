@@ -19,7 +19,7 @@
 - 싱글 스레드인, 자바스크립트의 작업을 멀티 스레드로 돌려 작업을 동시에 처리시키게 하더나, 여러 작업 중 어떤 작업을 우선으로 동작시킬 것인지 결정하는 세심한 컨트롤을 하기 위해 존재하는 것이 바로 **Event Loop**이다.
 
 <div align="center">
-    <img src="../../../etc/image/Language/JavaScript/Event Loop.png" alt="Event Loop" width="50%">
+    <img src="../../../../etc/image/Language/JavaScript/Event%20Loop.png" alt="Event Loop" width="50%">
 </div>
 
 - 이러한 이벤트 루프를 이용한, 프로그램 방식을 이벤트 기반(Event Driven) 프로그래밍이라 한다.
@@ -35,7 +35,7 @@
 - 브라우저는 웹 사이트를 화면에 보여주기 위해 **Web APIs**, **Event Table**, **Callback Queue**, **Event Loop**등으로 이루어져 있다.
 
 <div align="center">
-    <img src="../../../etc/image/Language/JavaScript/브라우저.png" alt="브라우저" width="50%">
+    <img src="../../../../etc/image/Language/JavaScript/브라우저.png" alt="브라우저" width="50%">
 </div>
 
 #### Call Stack 
@@ -58,7 +58,7 @@
 - 그래서 브라우저는 비동기 작업에 대해 메인 스레드를 차단하지 않고 다른 스레드를 사용하여 동시에 처리할수 있는 것이다.
 
 <div align="center">
-    <img src="../../../etc/image/Language/JavaScript/Web APIs.png" alt="Web APIs" width="50%">
+    <img src="../../../../etc/image/Language/JavaScript/Web%20APIs.png" alt="Web APIs" width="50%">
 </div>
 
 
@@ -85,7 +85,7 @@
 - Callback Queue에는 (macro)task queue와 microtask queue 두 가지 종류가 있다.
 
 <div align="center">
-    <img src="../../../etc/image/Language/JavaScript/Callback Queue.png" alt="Callback Queue" width="50%">
+    <img src="../../../../etc/image/Language/JavaScript/Callback%20Queue.png" alt="Callback Queue" width="50%">
 </div>
 
 #### 1. Task Queue 
@@ -103,7 +103,7 @@
 - 예를 들어, Node.js에서 HTTP 요청을 수행하려면 http 모듈을 사용한다. 단, Node.js에서도 일부 Web API를 사용할 수 있는데, setTimeout, setInterval 등이 그렇다.
 
 <div align="center">
-    <img src="../../../etc/image/Framework/Node/Nodejs-구상도.png" alt="Nodejs-구상도" width="50%">
+    <img src="../../../../etc/image/Framework/Node/Nodejs-구상도.png" alt="Nodejs-구상도" width="50%">
 </div>
 
 
@@ -131,7 +131,7 @@
 - 자바스크립트에는 비동기로 동작하는 비동기 전용 함수가 있는데 대표적으로 setTimeout 이나 fetch, addEventListener 가 있다.
 
 <div align="center">
-    <img src="../../../etc/image/Language/JavaScript/JS - EventLoop.png" alt="JS - Event Loop" width="50%">
+    <img src="../../../../etc/image/Language/JavaScript/JS%20-%20EventLoop.png" alt="JS - Event Loop" width="50%">
 </div>
 
 
