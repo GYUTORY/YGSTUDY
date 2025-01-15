@@ -1,39 +1,161 @@
 
-# JWT
+# 🔐 JSON Web Token (JWT) 완벽 가이드
 
-1. 헤더 : 헤더에는 토큰의 종류와 SIGNATRUE 생성을 위해서 어떤 알고리즘을 사용했는지가 명시되어 있다.
-2. PAYLOAD : 페이로드에는 내가 로그인한 유저임을 증명할 수 있는 기본적인 정보들을 넣는다. 차후에 틀라이언트가 다시 토큰을 보내면 해독해서 DB내의 유저 정보와 비교한다.
-3. SIGNATURE : Signature는 토큰을 인코딩하거나 유효성 검증을 할 때 사용하는 고유한 암호화 코드이다. 서명은 위에서 만든 헤더와 페이로드의 값을 각각 BASE64로 인코딩하고, 인코딩한 값을 내가 설정한 비밀키를 이용해 헤더에서 정의한 알고리즘(여기서는 HS256)으로 해싱을 하고, 이 값을 다시 BASE64로 인코딩하여 생성한다. 혹시라도 토큰이 제 3자에 의해 탈취되어서 페이로드의 내용이 변경된다면 토큰의 값이 크게 변경된다.
+---
 
+## 1. JWT란?
+**JWT (JSON Web Token)**는 JSON 형식으로 데이터를 안전하게 전송하기 위한 **토큰 기반 인증 방식**입니다.  
+웹 애플리케이션에서 **사용자 인증** 및 **정보 교환**에 자주 사용됩니다.
 
-HEADER(ALGOFITEM & TOKEN TYPE)
+---
+
+### 👉🏻 JWT의 주요 특징
+- **토큰 기반 인증**: 상태를 유지하지 않고도 인증 정보를 관리.
+- **자기 포함 토큰**: 토큰 자체에 모든 정보를 포함.
+- **서명(Signature) 포함**: 데이터 위변조 방지.
+- **가벼운 데이터 포맷**: JSON 기반의 경량 토큰.
+
+---
+
+## 2. JWT의 구성 요소 📦
+JWT는 **Header, Payload, Signature**로 구성된 **3개의 JSON 객체**를 `.`으로 구분하여 인코딩한 문자열입니다.
+
+### 📌 예제 JWT (Base64 인코딩)
+```plaintext
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+.
+eyJ1c2VybmFtZSI6ImpvaG5kb2UiLCJyb2xlIjoiYWRtaW4ifQ
+.
+SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+---
+
+### 📦 2.1 Header (헤더)
+JWT의 **알고리즘과 타입**을 명시합니다.
+
+```json
 {
-    “alg” : “HS256”,
-    “typ” : “JWT”
+  "alg": "HS256",
+  "typ": "JWT"
 }
+```
 
-PAYLOAD(DATA)
+- `alg`: 서명 알고리즘 (예: HS256)
+- `typ`: 토큰의 타입 (JWT)
+
+---
+
+### 📦 2.2 Payload (페이로드)
+**클레임(Claim)** 정보를 담고 있는 데이터 부분입니다.
+
+```json
 {
-    “userId” : “test”,
-    “userPwd” : “1111”
+  "username": "johndoe",
+  "role": "admin",
+  "exp": 1681234567
 }
+```
 
-VERIFY SIGNATURE
+- `username`: 사용자 이름
+- `role`: 사용자 역할
+- `exp`: 만료 시간 (Unix Timestamp)
 
-HAMCSHA256{
-    base64UrlEncode(header) + “.” +
-    base64UrlEncode(payload) ,
-    your-256-bit-secret
+---
+
+### 📦 2.3 Signature (서명)
+서명은 **데이터 무결성을 보장**하며, 헤더와 페이로드를 기반으로 생성됩니다.
+
+```plaintext
+HMACSHA256(
+  base64UrlEncode(header) + "." + base64UrlEncode(payload), 
+  secret_key
 )
+```
 
-## 장점
-- JWT를 이용하면 따로 서버의 메모리에 저장 공간을 확보 할 필요가 없다.
-- 서버가 토큰을 한번 클라이언트에게 보내주면 클라이언트는 토큰을 보관하고 있다가(가장 쉬운 방법은 localstorage에 저장하는 것이다) 요청을 보낼 대마다 헤더에 토큰을 실어보내면 된다.
-- 쿠키를 사용할 수 없는(쿠키는 웹브라우저에서 사용할 수 있는 기능이다!) 모바일 어플리케이션에는 JWT를 사용한 인증방식이 최적이다.
+---
 
-## 단점
-- JWT는 HTTP를 통해 전송하기 때문에 페이로드의 크기가 클수록 데이터 전송에 있어서 비용이 커진다.
-- JWT는 유효기간을 따로 정하지 않는 이상 소멸되지 않기 때문에 장기간 방치시 해킹의 위험이 커진다.
-- JWT를 localstorage에 보관한다면 XSS공격에 취약해진다.
-- (XSS는 외부의 해커가 우리의 프로그램에 특정 javascript 코드를 심어서 local storage에 접근하는 공격이다.)
-- 보통 httpOnly가 설정돼서 브라우저만 접근 가능한 쿠키에 토큰을 실어보내서 XSS 공격을 막는다.
+## 3. JWT의 동작 방식 🛠️
+1. **클라이언트 로그인 요청** → 사용자가 로그인 정보를 서버에 전송.
+2. **서버 인증 및 JWT 발급** → 서버가 사용자 정보를 검증 후 JWT를 발급.
+3. **클라이언트 JWT 저장** → JWT를 로컬 스토리지나 쿠키에 저장.
+4. **클라이언트 요청 시 JWT 전송** → 요청 시 JWT를 `Authorization` 헤더에 포함.
+5. **서버 JWT 검증 및 응답** → 서버가 JWT를 검증하고 리소스 제공.
+
+---
+
+### ✅ JWT 예제 (Node.js)
+```javascript
+const jwt = require('jsonwebtoken');
+
+const payload = {
+    username: 'johndoe',
+    role: 'admin'
+};
+
+const secretKey = 'mySecretKey123';
+const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
+console.log('Generated JWT:', token);
+```
+
+---
+
+### ✅ JWT 검증 예제 (Node.js)
+```javascript
+const decoded = jwt.verify(token, secretKey);
+console.log('Decoded Token:', decoded);
+```
+
+---
+
+## 4. JWT의 장점과 단점 📊
+### ✅ 장점
+- **무상태성 (Stateless)**: 서버에 세션을 저장할 필요 없음.
+- **확장성 (Scalable)**: 마이크로서비스와 잘 어울림.
+- **간편한 데이터 전송**: JSON 포맷으로 쉽게 인코딩 및 디코딩.
+
+---
+
+### ❗ 단점
+- **서명만 확인 가능**: 암호화가 아닌 서명 검증 방식.
+- **Payload 노출 가능성**: Base64로 인코딩되었기 때문에 쉽게 디코딩 가능.
+- **만료 시간 관리 어려움**: 토큰 발급 후 취소가 어려움.
+
+---
+
+## 5. JWT 보안 모범 사례 🔒
+- **강력한 시크릿 키 사용**: 예측 불가능한 시크릿 키 사용.
+- **만료 시간 짧게 설정**: 토큰 재발급을 자주 수행.
+- **HTTPS 사용**: 데이터 전송 시 반드시 HTTPS 사용.
+- **Refresh Token 사용**: 장기 인증은 리프레시 토큰으로 관리.
+
+---
+
+## 6. JWT와 OAuth의 차이점 🔄
+| **항목**                  | **JWT**                   | **OAuth**             |
+|:--------------------------|:--------------------------|:----------------------|
+| **정의**                  | 인증 정보 자체 포함       | 권한 부여 프레임워크 |
+| **주요 용도**              | 자체 인증 및 인가          | 외부 서비스 접근 제어|
+| **보안 수준**             | 중간 수준 (서명 기반)      | 더 높은 보안 (토큰 기반)|
+| **세션 관리**             | 무상태성                  | 상태 관리 (Access, Refresh Token) |
+
+---
+
+## 7. JWT 사용 사례 📦
+- **사용자 로그인 및 세션 관리**
+- **API 인증 및 권한 부여**
+- **마이크로서비스 간 데이터 교환**
+
+---
+
+## 8. JWT 사용 시 주의사항 ⚠️
+- **민감한 데이터 포함 금지**: JWT는 **서명**만 포함하고 **암호화**는 하지 않음.
+- **짧은 만료 시간 유지**: 보안을 위해 만료 시간 짧게 설정.
+- **토큰 저장 위치**: 로컬 스토리지보다는 **쿠키** 사용 권장.
+
+---
+
+## 9. 결론 ✅
+- **JWT**는 가벼운 **토큰 기반 인증 방식**으로, RESTful 서비스에 적합합니다.
+- **보안 모범 사례**를 준수하지 않으면 보안 문제가 발생할 수 있습니다.
+- **OAuth 2.0**과의 비교를 통해 사용 목적에 맞는 기술을 선택하는 것이 중요합니다.
