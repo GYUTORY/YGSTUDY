@@ -1,102 +1,159 @@
-## Amazon ECS와 EKS의 비교
 
-| 특징                        | Amazon ECS                           | Amazon EKS                           |
-|-----------------------------|---------------------------------------|---------------------------------------|
-| 오케스트레이션 방식          | AWS 독자적 오케스트레이션            | Kubernetes 기반                      |
-| 실행 옵션                   | Fargate, EC2                         | Fargate, EC2                         |
-| 사용 편의성                 | 간단한 설정 및 운영                  | Kubernetes 지식 필요                 |
-| 적합한 워크로드             | AWS 중심의 단순 애플리케이션          | 멀티클라우드 또는 Kubernetes 사용 사례 |
+# AWS ECS (Elastic Container Service)
 
 ---
 
-## Amazon ECS 아키텍처 예시
-
-### 1. **단일 컨테이너 애플리케이션**
-- 하나의 컨테이너가 단일 태스크로 실행.
-- Fargate를 사용하여 서버리스로 배포.
-
-### 2. **마이크로서비스 아키텍처**
-- 여러 마이크로서비스를 각각의 태스크와 서비스로 배포.
-- API Gateway를 사용해 요청 라우팅.
-- Auto Scaling을 통해 트래픽 증가에 따라 확장.
-
-### 3. **배치 작업**
-- 일정 기반 또는 이벤트 기반의 컨테이너 작업 실행.
-- CloudWatch Events와 통합.
+## 1. AWS ECS란?
+**Amazon ECS (Elastic Container Service)**는 **완전관리형 컨테이너 오케스트레이션 서비스**로,  
+Docker 컨테이너를 실행, 관리, 스케일링할 수 있도록 도와주는 AWS의 서비스입니다.
 
 ---
 
-## Amazon ECS와 통합 서비스
-
-1. **Amazon CloudWatch**:
-    - 애플리케이션 로그와 성능 지표를 모니터링.
-
-2. **Elastic Load Balancing**:
-    - 태스크에 대한 트래픽 분산.
-
-3. **AWS App Mesh**:
-    - 서비스 간 통신 제어 및 모니터링.
-
-4. **AWS X-Ray**:
-    - 분산 애플리케이션의 요청 추적.
-
-5. **Amazon VPC**:
-    - 태스크와 서비스에 대한 네트워크 격리.
+### 👉🏻 ECS의 주요 특징
+- **서버리스 방식 지원**: `Fargate` 모드를 통해 서버리스로 컨테이너를 실행할 수 있습니다.
+- **고가용성 및 확장성**: 컨테이너를 자동으로 확장하고 관리.
+- **다중 배포 옵션**: EC2 및 Fargate를 통한 배포 지원.
+- **다양한 통합**: ECR, CloudWatch, IAM, CodePipeline과의 원활한 통합.
 
 ---
 
-## Amazon ECS 사용 사례
-
-1. **웹 애플리케이션**:
-    - Fargate 기반의 서버리스 웹 애플리케이션 배포.
-
-2. **데이터 처리 파이프라인**:
-    - ECS에서 데이터 처리를 위한 작업 실행.
-
-3. **마이크로서비스**:
-    - API Gateway와 통합하여 독립적인 마이크로서비스 배포.
-
-4. **CI/CD 파이프라인**:
-    - CodePipeline 및 CodeBuild와 함께 컨테이너화된 애플리케이션을 지속적으로 배포.
+## 2. ECS의 구성 요소 📦
+- **클러스터(Cluster)**: 컨테이너를 실행하는 인프라의 논리적 그룹.
+- **태스크(Task)**: 하나 이상의 컨테이너로 구성된 실행 단위.
+- **태스크 정의(Task Definition)**: 태스크를 설명하는 JSON 기반의 템플릿.
+- **서비스(Service)**: 특정 태스크를 일정 수량 유지 및 배포를 관리.
+- **런타임 모드**:
+   - **Fargate**: 서버리스 방식, 인프라 관리 불필요.
+   - **EC2**: 사용자가 직접 EC2 인스턴스를 관리.
 
 ---
 
-## 요금 체계
-
-### 1. **Fargate**
-- 사용한 vCPU 및 메모리에 따라 요금 청구.
-
-### 2. **EC2**
-- EC2 인스턴스와 관련된 표준 요금 적용.
-
-### 3. **추가 비용**
-- 데이터 전송, EBS, CloudWatch 등 추가 서비스 사용 시 별도 청구.
+## 3. ECS 사용 예제 🛠️
+### 📦 사전 준비
+- AWS CLI 설치 및 구성 (`aws configure`)
+- Docker 설치 및 실행
 
 ---
 
-## Amazon ECS 설계 시 고려 사항
-
-1. **워크로드 특성 파악**:
-    - Fargate 또는 EC2 중 적합한 실행 옵션 선택.
-
-2. **보안 설정**:
-    - IAM 및 VPC를 활용한 태스크 및 서비스의 보안 관리.
-
-3. **모니터링 및 로깅**:
-    - CloudWatch Logs와 X-Ray를 통해 문제를 진단하고 성능을 최적화.
-
-4. **리소스 최적화**:
-    - 태스크 정의 시 적절한 vCPU와 메모리 설정.
+### 📂 3.1 ECS 클러스터 생성
+```bash
+aws ecs create-cluster --cluster-name my-ecs-cluster
+```
 
 ---
 
-## 결론
+### 📄 3.2 태스크 정의 생성 (`task-def.json`)
+```json
+{
+  "family": "my-task",
+  "containerDefinitions": [
+    {
+      "name": "my-app-container",
+      "image": "<AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo:latest",
+      "memory": 512,
+      "cpu": 256,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80
+        }
+      ]
+    }
+  ]
+}
+```
 
-Amazon ECS는 AWS 환경에서 컨테이너화된 애플리케이션을 관리하고 실행하기 위한 강력한 도구입니다. 서버리스 및 EC2 기반 옵션을 제공하여 다양한 워크로드에 유연하게 대응할 수 있으며, AWS의 다른 서비스와 긴밀히 통합되어 개발자와 운영자가 애플리케이션을 효율적으로 관리할 수 있도록 지원합니다.
+```bash
+aws ecs register-task-definition --cli-input-json file://task-def.json
+```
 
-## 참고 자료
+---
 
-- [Amazon ECS 공식 문서](https://aws.amazon.com/ecs/)
-- [AWS Fargate](https://aws.amazon.com/fargate/)
-- [ECS와 EKS 비교](https://aws.amazon.com/ecs/eks/)
-  """
+### 🚀 3.3 ECS 서비스 생성 (Fargate)
+```bash
+aws ecs create-service     --cluster my-ecs-cluster     --service-name my-ecs-service     --task-definition my-task     --desired-count 2     --launch-type FARGATE     --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxxx],securityGroups=[sg-xxxxxx],assignPublicIp=ENABLED}"
+```
+
+---
+
+### 📊 3.4 ECS 서비스 상태 확인
+```bash
+aws ecs describe-services --cluster my-ecs-cluster --services my-ecs-service
+```
+
+---
+
+### 📥 3.5 서비스 삭제
+```bash
+aws ecs delete-service --cluster my-ecs-cluster --service my-ecs-service --force
+```
+
+---
+
+## 4. ECS와 CI/CD 연동 🌐
+### 예제: GitHub Actions와 ECS 배포
+```yaml
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Build and Push Docker Image to ECR
+        run: |
+          aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com
+          docker build -t my-app .
+          docker tag my-app:latest <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo
+          docker push <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service --cluster my-ecs-cluster --service my-ecs-service --force-new-deployment
+```
+
+---
+
+## 5. ECS 비용 및 보안
+### 💰 비용
+- **Fargate 요금**: 사용한 CPU 및 메모리 시간에 따라 과금
+- **EC2 요금**: EC2 인스턴스 크기 및 사용량에 따라 과금
+
+### 🔒 보안 모범 사례
+- **IAM 최소 권한 원칙 적용**
+- **VPC 및 프라이빗 서브넷 사용**
+- **ECR 이미지 스캔 활성화**
+
+---
+
+## 6. ECS와 EKS의 비교
+| **특징**                   | **ECS**                   | **EKS**                |
+|:---------------------------|:--------------------------|:-----------------------|
+| **관리 방식**              | AWS 자체 관리형          | Kubernetes 기반 관리 |
+| **사용 편의성**            | 간편함                   | 복잡함 (쿠버네티스 지식 필요)|
+| **서버리스 지원**          | Fargate 사용 가능         | Fargate 사용 가능     |
+| **주요 용도**              | 단순 컨테이너 배포        | 대규모 컨테이너 오케스트레이션 |
+| **커뮤니티**               | AWS 중심                 | 글로벌 오픈소스 커뮤니티 |
+
+---
+
+## 7. 결론 ✅
+- **AWS ECS**는 간편하고 강력한 **컨테이너 오케스트레이션 서비스**입니다.
+- **Fargate**를 사용하면 서버리스 방식으로 컨테이너를 실행할 수 있습니다.
+- **CI/CD 파이프라인**과 쉽게 통합할 수 있어 개발과 배포를 자동화할 수 있습니다.
