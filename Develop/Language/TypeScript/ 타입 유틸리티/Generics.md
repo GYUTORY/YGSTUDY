@@ -1,94 +1,221 @@
 
+# TypeScript Generic
 
-## TypeScript 제너릭 (Generics)란?
-- TypeScript의 제너릭은 코드의 재사용성을 높이고, 타입 안전성을 강화하는 기능입니다.
-- 제너릭을 사용하면 특정 타입에 의존하지 않고, 다양한 타입을 처리할 수 있는 유연한 함수를 작성할 수 있습니다.
+- TypeScript의 제네릭(Generic)은 재사용 가능한 컴포넌트를 작성할 때 사용되는 강력한 도구입니다.
+- 제네릭을 활용하면 타입의 유연성과 안정성을 동시에 확보할 수 있습니다.
 
+---
 
-### 1. 기본 개념
-- 제너릭은 함수, 클래스, 인터페이스에서 사용할 수 있으며, 타입 매개변수를 통해 다양한 타입을 매개변수로 받을 수 있습니다. 기본 문법은 다음과 같습니다.
+## 👉🏻 Generic의 기본 개념
 
-```typescript
-function identity<T>(arg: T): T {
-  return arg;
-}
-```
+- 제네릭은 **타입을 매개변수로 받을 수 있는 함수, 클래스, 인터페이스를 정의**할 수 있게 해줍니다.
+- 코드 재사용성을 높이고 타입 안정성을 보장합니다.
 
-- 위의 예에서 T는 타입 매개변수로, 함수가 호출될 때 구체적인 타입으로 대체됩니다.
-
-
-### 2. 제너릭 함수
-- 제너릭 함수를 사용하면 다양한 타입의 인자를 받을 수 있습니다. 예를 들어, 다음은 숫자와 문자열 모두를 처리할 수 있는 함수입니다.
+### 기본 사용법
 
 ```typescript
-function log<T>(value: T): void {
-    console.log(value);
+function identity<T>(value: T): T { // T는 타입 매개변수
+    return value;
 }
 
-log<number>(123); // 숫자
-log<string>('Hello'); // 문자열
+const num = identity<number>(42); // T를 number로 지정
+const str = identity<string>('Hello'); // T를 string으로 지정
+
+console.log(num); // 42
+console.log(str); // Hello
 ```
 
-- 타입 매개변수를 명시하지 않으면 TypeScript가 자동으로 타입을 추론합니다.
+#### 주석으로 설명:
+- `T`는 타입 매개변수로, 함수 호출 시 실제 타입이 결정됩니다.
+- `identity<number>(42)`는 `T`를 `number`로, `identity<string>('Hello')`는 `T`를 `string`으로 설정합니다.
+
+---
+
+## ✨ Generic 함수를 활용한 예제
+
+### 배열 반환 함수
 
 ```typescript
-log(true); // boolean
+function getArray<T>(items: T[]): T[] {
+    return items;
+}
+
+const numArray = getArray<number>([1, 2, 3]); // number 배열
+const strArray = getArray<string>(['a', 'b', 'c']); // string 배열
+
+console.log(numArray); // [1, 2, 3]
+console.log(strArray); // ['a', 'b', 'c']
 ```
 
-### 3. 제너릭 인터페이스
-- 인터페이스에서도 제너릭을 사용할 수 있습니다. 다음은 제너릭 인터페이스의 예입니다.
+#### 주석으로 설명:
+- `T[]`는 `T` 타입의 배열을 나타냅니다.
+- 동일한 함수가 다양한 타입의 배열을 처리할 수 있습니다.
+
+---
+
+## 👉🏻 Generic 인터페이스
+
+제네릭은 인터페이스에도 적용할 수 있습니다.
+
+### 기본 사용법
 
 ```typescript
 interface Pair<K, V> {
-  key: K;
-  value: V;
-}자
-
-const pair: Pair<number, string> = {
-  key: 1,
-  value: 'One',
-};
-```
-
-- 이 인터페이스는 키와 값의 타입을 유연하게 지정할 수 있습니다.
-
-### 4. 제너릭 클래스
-- 제너릭은 클래스에서도 사용할 수 있습니다. 아래는 제너릭 클래스를 사용하는 예제입니다.
-
-```typescript
-class Box<T> {
-  private contents: T;
-
-  constructor(value: T) {
-    this.contents = value;
-  }
-
-  getContents(): T {
-    return this.contents;
-  }
+    key: K;
+    value: V;
 }
 
-const numberBox = new Box<number>(123);
-const stringBox = new Box<string>('Hello');
+const numPair: Pair<number, string> = { key: 1, value: 'one' };
+const strPair: Pair<string, boolean> = { key: 'isActive', value: true };
+
+console.log(numPair); // { key: 1, value: 'one' }
+console.log(strPair); // { key: 'isActive', value: true }
 ```
 
-- 이 클래스는 다양한 타입의 내용을 담을 수 있는 박스를 생성합니다.
+#### 주석으로 설명:
+- `Pair<K, V>`는 두 개의 타입 매개변수 `K`와 `V`를 사용합니다.
+- `numPair`와 `strPair`는 각각 다른 타입 조합을 사용합니다.
 
-### 5. 제너릭 제약조건
-- 제너릭 타입에 제약을 추가하여 특정 타입만 사용할 수 있도록 제한할 수 있습니다. 이를 통해 더 안전한 코드를 작성할 수 있습니다.
+---
+
+## ✨ Generic 클래스
+
+제네릭은 클래스에서도 유용하게 사용할 수 있습니다.
+
+### 기본 사용법
 
 ```typescript
-function logLength<T extends { length: number }>(arg: T): void {
-  console.log(arg.length);
+class DataStorage<T> {
+    private items: T[] = [];
+
+    addItem(item: T): void {
+        this.items.push(item);
+    }
+
+    removeItem(item: T): void {
+        this.items = this.items.filter(i => i !== item);
+    }
+
+    getItems(): T[] {
+        return this.items;
+    }
 }
 
-logLength('Hello'); // 문자열의 길이
-logLength([1, 2, 3]); // 배열의 길이
+const stringStorage = new DataStorage<string>();
+stringStorage.addItem('Apple');
+stringStorage.addItem('Banana');
+stringStorage.removeItem('Apple');
+console.log(stringStorage.getItems()); // ['Banana']
+
+const numberStorage = new DataStorage<number>();
+numberStorage.addItem(10);
+numberStorage.addItem(20);
+console.log(numberStorage.getItems()); // [10, 20]
 ```
 
---- 
+#### 주석으로 설명:
+- `DataStorage<T>` 클래스는 `T` 타입의 데이터를 저장, 삭제, 조회할 수 있습니다.
+- 서로 다른 타입의 데이터를 각각 관리할 수 있습니다.
 
-## 결론
-- TypeScript의 제너릭은 코드의 재사용성과 타입 안전성을 높이는 데 매우 유용한 기능입니다.
-- 이를 통해 다양한 타입을 유연하게 처리할 수 있으며, 코드 작성 시 더욱 안전한 타입 검사를 제공합니다. 제너릭을 잘 활용하면 더 깔끔하고 유지보수하기 쉬운 코드를 작성할 수 있습니다.
+---
+
+## 👉🏻 제약 조건 (Constraints)
+
+제네릭에 타입 제약 조건을 추가하여 특정 타입만 허용할 수 있습니다.
+
+### 기본 사용법
+
+```typescript
+interface Lengthwise {
+    length: number;
+}
+
+function logWithLength<T extends Lengthwise>(value: T): void {
+    console.log(value.length);
+}
+
+logWithLength('Hello'); // 5 (문자열은 length 속성이 있음)
+logWithLength([1, 2, 3]); // 3 (배열은 length 속성이 있음)
+// logWithLength(42); // 오류: number에는 length 속성이 없음
+```
+
+#### 주석으로 설명:
+- `T extends Lengthwise`는 `T`가 반드시 `length` 속성을 가져야 함을 명시합니다.
+- 문자열과 배열은 허용되지만, `number`는 허용되지 않습니다.
+
+---
+
+## ✨ 여러 타입 매개변수 사용
+
+제네릭은 여러 개의 타입 매개변수를 사용할 수 있습니다.
+
+```typescript
+function merge<T, U>(obj1: T, obj2: U): T & U {
+    return { ...obj1, ...obj2 };
+}
+
+const mergedObj = merge({ name: 'Alice' }, { age: 25 });
+console.log(mergedObj); // { name: 'Alice', age: 25 }
+```
+
+#### 주석으로 설명:
+- `T`와 `U`는 각각 객체의 타입을 나타냅니다.
+- 반환 타입은 두 객체의 속성을 모두 포함하는 교차 타입(`T & U`)입니다.
+
+---
+
+## 👉🏻 제네릭 유틸리티 타입
+
+TypeScript에는 제네릭과 함께 사용할 수 있는 유틸리티 타입이 존재합니다.
+
+### `keyof` 연산자
+
+```typescript
+function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
+    return obj[key];
+}
+
+const person = { name: 'Bob', age: 30 };
+const name = getProperty(person, 'name'); // 'Bob'
+const age = getProperty(person, 'age'); // 30
+```
+
+#### 주석으로 설명:
+- `K extends keyof T`는 `K`가 반드시 `T`의 키 중 하나임을 보장합니다.
+- 반환 타입은 `T[K]`로, 키의 값 타입을 나타냅니다.
+
+---
+
+## 📋 제네릭의 주요 장점
+
+1. **타입 안전성**: 컴파일 단계에서 타입 검사가 이루어져 런타임 오류를 줄입니다.
+2. **재사용성**: 다양한 타입을 처리할 수 있는 범용 함수와 클래스를 작성할 수 있습니다.
+3. **가독성**: 코드를 이해하기 쉽고 유지보수가 용이합니다.
+
+---
+
+## 🛠️ 제네릭 조합 예제
+
+제네릭을 조합하여 더욱 복잡한 타입을 정의할 수 있습니다.
+
+```typescript
+interface ApiResponse<T> {
+    data: T;
+    success: boolean;
+}
+
+function fetchData<T>(url: string): ApiResponse<T> {
+    // 가상의 데이터 반환
+    return {
+        data: {} as T,
+        success: true,
+    };
+}
+
+const userResponse = fetchData<{ id: number; name: string }>('api/user');
+console.log(userResponse.data.id); // number
+console.log(userResponse.data.name); // string
+```
+
+---
 
