@@ -12,16 +12,36 @@
 
 ---
 
-## ✅ 의존성 주입이 왜 필요한가?
-의존성 주입을 사용하는 이유는 다음과 같습니다:
 
-- **결합도 감소 (Loose Coupling)**:
-    - 클래스 간의 강한 결합을 줄이고, 코드의 독립성을 높임
-- **유지보수성 증가**:
-    - 코드 변경이 필요할 때 특정 클래스만 수정하면 됨
-- **테스트 용이성 (Testability)**:
-    - **Mock 객체**를 활용해 독립적으로 테스트 가능
-- **코드 재사용성 증가**
+
+## ✅ 의존성 주입을 사용하지 않은 경우 (Bad Case)
+- 아래 코드는 의존성 주입을 사용하지 않은 경우입니다.
+- QuoteController 클래스 내부에서 QuoteService 객체를 직접 생성(new QuoteService())하여 사용하고 있습니다.
+
+```java
+@RestController
+public class QuoteController {
+
+    private final QuoteService quoteService = new QuoteService(); // ❌ 직접 객체 생성
+
+    @GetMapping("/quote")
+    public String getQuote() {
+        return quoteService.getQuote();
+    }
+}
+```
+
+🔴 문제점 왜 의존성 주입이 왜 필요한가?
+### 1. 강한 결합 (Tightly Coupled)
+- QuoteController가 QuoteService에 직접 의존하므로, QuoteService의 구현이 변경되면 QuoteController도 변경해야 합니다.
+- 예를 들어, QuoteService를 AdvancedQuoteService로 변경하려면 QuoteController의 코드도 수정해야 합니다.
+
+### 2. 테스트 어려움
+- QuoteService를 Mock 객체로 대체할 수 없기 때문에 단위 테스트(Unit Test)가 어렵습니다.
+- 예를 들어, 실제 QuoteService가 데이터베이스를 사용한다면, 테스트 시에도 데이터베이스 연결이 필요합니다.
+
+### 3. 유지보수성 저하
+- QuoteService의 변경이 있을 때마다 QuoteController도 수정해야 하므로 유지보수가 어려워집니다.
 
 ---
 
