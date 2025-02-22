@@ -1,127 +1,150 @@
 
-## 디자인 패턴 중 하나인 싱글톤 패턴
 
-### 요약
-- 전역적으로 사용할 수 있는 유일한 인스턴스를 생성하는 패턴.
+# 🚀 Singleton Pattern(싱글톤 패턴) 개념과 예제
 
-### 설명
-- 싱글톤 패턴은 특정 인스턴스가 오직 하나만 존재하도록 보장하는 소프트웨어 설계 패턴이다.
-- 전역 변수를 사용하지 않고도 해당 객체를 전역적으로 접근 할 수 있게 되며 공유 자원에 대한 동시 접근을 제어할 수 있다.
+## ✨ 싱글톤 패턴이란?
+싱글톤 패턴(Singleton Pattern)은 **어떤 클래스가 단 하나의 인스턴스만 가지도록 보장하는 디자인 패턴**이다.  
+즉, **객체가 한 번만 생성되고 이후에는 같은 인스턴스를 공유**하도록 하는 방식이다.
 
+---
 
+## 🎯 싱글톤 패턴의 특징
 
---- 
+✅ **유일한 인스턴스**: 같은 객체를 여러 번 생성하지 않고, 한 번만 생성하여 공유  
+✅ **전역 접근 가능**: 프로그램 어디서든 동일한 인스턴스에 접근 가능  
+✅ **메모리 절약**: 불필요한 객체 생성을 방지하여 성능 최적화 가능
 
-## class 문법을 이용한 싱글톤
-### 기본예시
-```javascript
-// Singleton.js
-let instance;
+---
 
-export default class Singleton {
-    constructor(data = 'Initial data') {
-        if (instance) {
-            return instance;
+## 🌐 언제 싱글톤 패턴을 사용할까?
+다음과 같은 경우 싱글톤 패턴을 사용하면 좋다.
+
+1️⃣ **데이터베이스 연결 관리**: 같은 연결을 여러 번 만들 필요 없이 하나만 유지  
+2️⃣ **로그 관리**: 동일한 로그 객체를 사용하여 로그 기록을 일관되게 관리  
+3️⃣ **설정 정보 관리**: 애플리케이션의 전역 설정을 하나의 인스턴스로 관리  
+4️⃣ **캐싱 시스템**: 여러 객체가 동일한 캐시를 공유할 때
+
+---
+
+## 🚀 JavaScript에서 싱글톤 패턴 구현하기
+
+### ✅ 기본적인 싱글톤 패턴 구현
+
+```js
+class Singleton {
+    constructor() {
+        if (!Singleton.instance) {
+            Singleton.instance = this; // 첫 번째 인스턴스를 저장
         }
-        this.data = data;
-        instance = this;
+        return Singleton.instance; // 이후 요청은 동일한 인스턴스를 반환
+    }
+
+    sayHello() {
+        console.log("Hello, Singleton Pattern!");
+    }
+}
+
+// 인스턴스 생성
+const instance1 = new Singleton();
+const instance2 = new Singleton();
+
+// 👉🏻 동일한 객체를 참조하는지 확인
+console.log(instance1 === instance2); // true (같은 인스턴스 반환)
+
+instance1.sayHello(); // "Hello, Singleton Pattern!"
+```
+
+🔹 `new Singleton()`을 여러 번 호출해도 **항상 동일한 객체**가 반환된다.
+
+---
+
+## ✅ 모듈 패턴을 이용한 싱글톤 (Node.js)
+
+Node.js에서는 **모듈 캐싱**을 이용해 간단하게 싱글톤 패턴을 구현할 수 있다.
+
+📌 `singleton.js` 파일
+
+```js
+class Singleton {
+    constructor() {
+        if (!Singleton.instance) {
+            Singleton.instance = this;
+            this.data = "싱글톤 인스턴스 데이터";
+        }
+        return Singleton.instance;
     }
 
     getData() {
         return this.data;
     }
-
-    setData(data) {
-        this.data = data;
-    }
 }
+
+module.exports = new Singleton(); // 모듈을 내보낼 때 같은 인스턴스 유지
 ```
 
-### 코드 설명
-- Singleton 클래스를 만들어 만약 instance가 있는 경우에는 return instance를 통해 새로운 클래스가 생성되지 않도록 막고 있다.
-- data를 받지 않을 시 기본 데이터로 “Initial data”를 주고 있다.
-- 기본적인 getData, setData 함수를 통해 Singleton 클래스 안에서 값을 가져오고, 업데이트 하는 기능을 제공한다.
+📌 `app.js` 파일
 
-### 사용 예시
-```javascript
-import Singleton from './Singleton.js';
+```js
+const singletonA = require("./singleton");
+const singletonB = require("./singleton");
 
-// Singleton 클래스의 인스턴스를 생성합니다.
-let singleton = new Singleton('First data');
+console.log(singletonA === singletonB); // true (같은 인스턴스 반환)
 
-// 데이터를 가져옵니다.
-console.log(singleton.getData());  // "First data"
-
-// 데이터를 업데이트합니다.
-singleton.setData('Updated data');
-console.log(singleton.getData());  // "Updated data"
-
-// 또 다른 인스턴스를 생성하려고 시도합니다.
-let anotherSingleton = new Singleton('Another data');
-
-// 하지만 싱글톤 패턴에 따라, 이전에 생성된 인스턴스가 반환됩니다.
-console.log(anotherSingleton === singleton);  // true
-console.log(anotherSingleton.getData());  // "Updated data"
+console.log(singletonA.getData()); // "싱글톤 인스턴스 데이터"
 ```
 
-### 코드 설명
-- Singleton 클래스를 import 해와서 singleton 이라는 변수에 저장한다.
-- 저장 함과 동시에 “First data” 라는 스트링을 전달해 Singleton의 constructor를 통해 this 바인딩을 통해 data = “First data”가 된다.
-- 그래서 콘솔에 처음 찍히는 getData함수는 “First data”가 되고 Singeton은 새로운 변수에 저장하더라도 여전히 “First data” 라는 data 값을 갖고 있다.
-
---- 
-
-## 즉시 실행 함수 싱글톤 패턴
-
-### 사용예시
-```javascript
-let Singleton = (function() {
-  let instance = null;
-
-  function SingletonClass(data = 'Initial data') {
-    if (instance) {
-      return instance;
-    }
-
-    this.data = data;
-    instance = this;
-  }
-
-  SingletonClass.prototype.getData = function() {
-    return this.data;
-  }
-
-  SingletonClass.prototype.setData = function(data) {
-    this.data = data;
-  }
-
-  return SingletonClass;
-})();
-
-export default Singleton;
-```
-
-### 사용 예시
-```javascript
-import Singleton from './Singleton.js';
-
-let singleton = new Singleton('First data');
-console.log(singleton.getData()); // 'First data'
-
-singleton.setData('Updated data');
-console.log(singleton.getData()); // 'Updated data'
-
-let anotherSingleton = new Singleton();
-
-console.log(anotherSingleton.getData()); // 'Updated data'
-console.log(singleton === anotherSingleton); // true
-```
+🔹 `require()`는 모듈을 **캐싱**하기 때문에, 같은 인스턴스를 반환한다.
 
 ---
 
+## ✅ 클로저를 이용한 싱글톤 패턴
 
+JavaScript에서는 **클로저(Closure)**를 이용해 싱글톤을 만들 수도 있다.
 
+```js
+const Singleton = (function () {
+    let instance; // 유일한 인스턴스를 저장할 변수
+
+    function createInstance() {
+        return { message: "I am a Singleton!" }; // 단일 객체 생성
+    }
+
+    return {
+        getInstance: function () {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        },
+    };
+})();
+
+const singleton1 = Singleton.getInstance();
+const singleton2 = Singleton.getInstance();
+
+console.log(singleton1 === singleton2); // true (같은 인스턴스 반환)
+console.log(singleton1.message); // "I am a Singleton!"
 ```
-출처
-https://chaeoff.medium.com/singleton-pattern-%EC%8B%B1%EA%B8%80%ED%86%A4-%ED%8C%A8%ED%84%B4-1131fae052f5
-```
+
+🔹 `Singleton.getInstance()`를 호출할 때마다 **동일한 객체**가 반환된다.
+
+---
+
+## 🚀 싱글톤 패턴의 장점과 단점
+
+### ✅ 장점
+✅ **메모리 절약**: 불필요한 객체 생성을 방지  
+✅ **전역 상태 유지**: 하나의 인스턴스를 공유하여 데이터 일관성 유지  
+✅ **모듈화**: 한 번 생성된 객체를 여러 곳에서 사용 가능
+
+### ❌ 단점
+❌ **전역 상태 오염**: 너무 많은 싱글톤 사용은 코드의 복잡성을 증가시킬 수 있음  
+❌ **테스트 어려움**: 특정 상태를 유지하므로, 테스트 환경에서 초기화가 필요할 수 있음  
+❌ **멀티스레드 환경에서 문제 발생 가능**: Node.js는 단일 스레드지만, 멀티스레드 환경에서는 동기화 문제가 발생할 수 있음
+
+---
+
+## 🎉 결론
+싱글톤 패턴은 **전역적으로 하나의 인스턴스를 유지해야 할 때 유용**하다.  
+하지만 **너무 남용하면 코드의 유연성이 떨어질 수 있으므로, 필요한 경우에만 사용**하자! 🚀
+
