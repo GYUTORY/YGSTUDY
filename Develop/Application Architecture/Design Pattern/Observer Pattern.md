@@ -1,119 +1,192 @@
+# 옵저버 패턴 (Observer Pattern) 👀
 
-# Observer_Pattern Pattern
+## 1. 옵저버 패턴이란?
+**옵저버 패턴(Observer Pattern)** 은 객체 간의 **일대다(1:N) 관계를 형성하여, 특정 객체(Subject)의 상태 변화가 발생하면 연결된 여러 객체(Observer)들이 자동으로 변경을 감지**하도록 하는 디자인 패턴입니다.
 
-
-<div align="center">
-    <img src="../../../etc/image/Application Architecture/Design Pattern/Observer Pattern.png" alt="Observer_Pattern" width="50%">
-</div>
-
-
-## 개요
-- 옵저버 패턴은 객체의 상태 변화를 관찰하는 관찰자들, 즉 옵저버들의 목록을 객체에 등록하여 상태 변화가 있을 때마다 메서드 등을 통해 객체가 직접 목록의 각 옵저버에게 통지하도록 하는 디자인 패턴이다.
-- 쉽게 말해 어떤 객체의 상태가 변할 때 그와 연관된 객체들에게 알림을 보내는 패턴이다.
-
-## 내용
-- Observer Pattern은 소프트웨어 개발에서 종종 발생하는 "이벤트 처리" 문제를 해결하기 위해 등장하였습니다. 
-- 예를 들어, GUI 애플리케이션에서는 사용자 인터페이스 요소들 간에 서로 상호작용이 필요하며, 한 요소의 상태 변경이 다른 요소에 영향을 주는 경우가 많습니다. 
-- 이때 Observer_Pattern Pattern은 각 요소들을 독립적으로 유지하면서 상호작용을 가능하게 해줍니다.
-
---- 
-
-## Observer_Pattern Pattern 구조 
-
-<div align="center">
-    <img src="../../../etc/image/Application Architecture/Design Pattern/Observer_Structure.png" alt="Obeserver Structure" width="30%">
-</div>
-
-
-**1. Subject**
-- Observer_Pattern 목록을 유지하고 Observer_Pattern 추가 또는 제거를 용이하게 하는 역할
-
-**2. ConcreteSubject**
-- 상태 변경에 대한 알림을 Observer에게 제공하고, concreteObserver의 상태를 저장하는 역할
-
-**3. Observer_Pattern**
-- Subject의 상태 변경을 통지해야 하는 객체에 대한 업데이트 인터페이스를 제공하는 역할
-
-**4. ConcreteObserver**
-- concreteSubject에 대한 참조를 저장하고, Observer에 대한 업데이트 인터페이스를 구현하여 상태가 Subject와 일치하는지 확인하는 역할
+- Node.js에서는 기본적으로 **이벤트 기반 아키텍처**를 사용하므로, 옵저버 패턴이 자주 활용됩니다.  
+- 특히 `EventEmitter`를 사용하여 **효율적인 이벤트 처리 시스템**을 만들 수 있습니다.
 
 ---
 
-## Js로 알아보는 사용예제
+## 2. Node.js에서 옵저버 패턴 활용 ✨
+
+### 📌 `EventEmitter`를 활용한 기본 옵저버 패턴 구현
 
 ```javascript
-// Subject 클래스 정의
-class Subject {
-    constructor() {
-        this.observers = []; // 옵저버(구독자) 리스트 초기화
-    }
+// events 모듈 가져오기
+const EventEmitter = require('events');
 
-    // 옵저버 등록 메소드
-    addObserver(observer) {
-        this.observers.push(observer);
-    }
+// 새로운 EventEmitter 인스턴스 생성
+class MyEmitter extends EventEmitter {}
 
-    // 옵저버 제거 메소드
-    removeObserver(observer) {
-        this.observers = this.observers.filter(obs => obs !== observer);
-    }
+// 인스턴스 생성
+const myEmitter = new MyEmitter();
 
-    // 모든 옵저버에게 알림을 보내는 메소드
-    notifyObservers() {
-        this.observers.forEach(observer => observer.update());
-    }
-}
+// 이벤트 리스너 등록
+myEmitter.on('event', () => {
+    console.log('이벤트가 발생했습니다!');
+});
 
-// Observer_Pattern 클래스 정의
-class Observer_Pattern {
-    constructor(name) {
-        this.name = name;
-    }
-
-    // 업데이트 메소드 (옵저버가 알림을 받을 때 호출되는 메소드)
-    update() {
-        console.log(`${this.name}가 알림을 받았습니다.`);
-    }
-}
-
-// 예제 사용
-
-// Subject 인스턴스 생성
-const subject = new Subject();
-
-// Observer_Pattern 인스턴스 생성
-const observer1 = new Observer_Pattern('옵저버 1');
-const observer2 = new Observer_Pattern('옵저버 2');
-
-// 옵저버 등록
-subject.addObserver(observer1);
-subject.addObserver(observer2);
-
-// 상태 변화 발생 및 알림
-console.log('모든 옵저버에게 알림을 보냅니다.');
-subject.notifyObservers(); // 모든 옵저버의 update 메소드가 호출됩니다.
-
-// 옵저버 제거 후 알림
-subject.removeObserver(observer1);
-console.log('옵저버 1을 제거한 후, 남은 옵저버에게 알림을 보냅니다.');
-subject.notifyObservers(); // 옵저버 1은 알림을 받지 않습니다.
-
-
+// 이벤트 발생시키기
+myEmitter.emit('event'); // "이벤트가 발생했습니다!"
 ```
 
-## 설명 
-
-### 1. Subject 클래스
-- this.observers는 옵저버들을 저장하는 배열입니다.
-- addObserver(observer) 메소드는 옵저버를 배열에 추가합니다.
-- removeObserver(observer) 메소드는 배열에서 옵저버를 제거합니다.
-- notifyObservers() 메소드는 배열에 있는 모든 옵저버의 update() 메소드를 호출하여 알림을 보냅니다.
-
-### 2. Observer_Pattern 클래스:
-- name은 옵저버의 이름을 저장하는 속성입니다.
-- update() 메소드는 옵저버가 알림을 받을 때 실행됩니다. 여기서는 단순히 콘솔에 메시지를 출력합니다.
-
+> - `EventEmitter` 클래스를 상속받아 `MyEmitter`를 생성
+> - `on(event, callback)`을 이용해 이벤트 리스너를 등록
+> - `emit(event)`을 이용해 이벤트를 발생
 
 ---
 
-> [출처] [디자인 패턴] Observer_Pattern Pattern|작성자 공부쟁이
+## 3. 옵저버 패턴을 활용한 실전 예제
+
+### 📌 사용자 로그인 이벤트 처리 시스템 만들기
+
+```javascript
+const EventEmitter = require('events');
+
+// 사용자 로그인 이벤트를 관리할 클래스 생성
+class User extends EventEmitter {
+    login(username) {
+        console.log(`${username}님이 로그인했습니다.`);
+        
+        // 로그인 이벤트 발생
+        this.emit('login', username);
+    }
+}
+
+// 새로운 User 인스턴스 생성
+const user = new User();
+
+// 옵저버(리스너) 추가: 로그인 시 이메일 알림 발송
+user.on('login', (username) => {
+    console.log(`📧 ${username}님에게 로그인 알림 이메일을 보냈습니다.`);
+});
+
+// 옵저버(리스너) 추가: 로그인 시 데이터베이스 업데이트
+user.on('login', (username) => {
+    console.log(`💾 ${username}님의 로그인 정보를 데이터베이스에 저장했습니다.`);
+});
+
+// 사용자 로그인 실행
+user.login("철수");
+
+/*
+출력:
+철수님이 로그인했습니다.
+📧 철수님에게 로그인 알림 이메일을 보냈습니다.
+💾 철수님의 로그인 정보를 데이터베이스에 저장했습니다.
+*/
+```
+
+> **설명**
+> - `User` 클래스는 `EventEmitter`를 상속받아 로그인 이벤트를 처리
+> - `login(username)` 메서드 실행 시, `'login'` 이벤트 발생
+> - `'login'` 이벤트를 감지하여 **이메일 알림**과 **데이터베이스 저장**을 수행
+
+---
+
+## 4. 여러 개의 이벤트 리스너 등록하기
+
+### 📌 한 이벤트에 여러 개의 리스너 추가
+
+```javascript
+const EventEmitter = require('events');
+const myEmitter = new EventEmitter();
+
+// 첫 번째 리스너
+myEmitter.on('data', (msg) => {
+    console.log(`첫 번째 리스너: ${msg}`);
+});
+
+// 두 번째 리스너
+myEmitter.on('data', (msg) => {
+    console.log(`두 번째 리스너: ${msg}`);
+});
+
+// 이벤트 발생
+myEmitter.emit('data', 'Hello, World!');
+
+/*
+출력:
+첫 번째 리스너: Hello, World!
+두 번째 리스너: Hello, World!
+*/
+```
+
+> - **같은 이벤트(`'data'`)에 여러 개의 리스너를 등록** 가능
+> - `emit('data', 'Hello, World!')` 호출 시, **모든 리스너가 실행됨**
+
+---
+
+## 5. 한 번만 실행되는 이벤트 리스너 (`once`)
+
+`once(event, callback)` 메서드를 사용하면 **이벤트가 한 번만 실행되고 자동으로 제거**됩니다.
+
+```javascript
+const EventEmitter = require('events');
+const myEmitter = new EventEmitter();
+
+// 한 번만 실행되는 리스너 등록
+myEmitter.once('message', (msg) => {
+    console.log(`📢 한 번만 실행됨: ${msg}`);
+});
+
+// 이벤트 발생
+myEmitter.emit('message', '안녕하세요!'); // 실행됨
+myEmitter.emit('message', '다시 실행됩니다!'); // 실행되지 않음
+```
+
+> **설명**
+> - `once('message', callback)`을 사용하여 **이벤트가 한 번만 실행되도록 제한**
+> - 두 번째 `emit('message', '다시 실행됩니다!')`는 실행되지 않음
+
+---
+
+## 6. 이벤트 리스너 제거하기
+
+이벤트 리스너를 제거하는 방법도 알아두면 좋습니다.
+
+### 📌 특정 이벤트 리스너 제거 (`removeListener`)
+
+```javascript
+const EventEmitter = require('events');
+const myEmitter = new EventEmitter();
+
+// 이벤트 리스너 함수 정의
+function greet(name) {
+    console.log(`👋 안녕하세요, ${name}님!`);
+}
+
+// 이벤트 등록
+myEmitter.on('greet', greet);
+
+// 이벤트 실행
+myEmitter.emit('greet', '지민'); // "👋 안녕하세요, 지민님!"
+
+// 리스너 제거
+myEmitter.removeListener('greet', greet);
+
+// 다시 이벤트 실행 (리스너가 제거되었으므로 실행되지 않음)
+myEmitter.emit('greet', '지민');
+```
+
+> - `removeListener(event, listener)`를 사용하면 특정 리스너만 제거 가능
+
+### 📌 모든 리스너 제거 (`removeAllListeners`)
+
+```javascript
+const EventEmitter = require('events');
+const myEmitter = new EventEmitter();
+
+myEmitter.on('data', (msg) => console.log(`📩 데이터 수신: ${msg}`));
+myEmitter.on('data', (msg) => console.log(`📩 추가 처리: ${msg}`));
+
+// 모든 'data' 이벤트 리스너 제거
+myEmitter.removeAllListeners('data');
+
+// 이벤트 실행 (리스너가 모두 제거되었으므로 아무것도 출력되지 않음)
+myEmitter.emit('data', '새로운 메시지');
+```
+
+> - `removeAllListeners(event)`를 사용하면 **특정 이벤트의 모든 리스너 제거 가능**
+
