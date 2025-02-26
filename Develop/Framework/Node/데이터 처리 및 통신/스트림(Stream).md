@@ -1,104 +1,168 @@
 
-# Node.js의 스트림 (Streams)
 
-## 스트림이란 무엇인가?
-Node.js의 스트림(Stream)은 대량의 데이터를 처리하기 위해 사용되는 추상 인터페이스입니다.  
-파일 읽기/쓰기, HTTP 요청/응답, TCP 소켓, 압축 작업 등 데이터가 연속적으로 처리되는 작업에서 효율적으로 사용할 수 있습니다.
+# 🚀 Node.js Stream 개념 및 설명
 
-### 스트림의 주요 특징
-1. 데이터를 작은 청크(chunk) 단위로 처리.
-2. 메모리 효율성 향상.
-3. 비동기적으로 데이터 처리.
+## 1️⃣ Node.js Stream이란?
+**Stream(스트림)**은 **데이터를 작은 조각(Chunk) 단위로 읽고 쓰는 방식**입니다.  
+일반적인 파일이나 데이터를 처리할 때 한꺼번에 메모리에 로드하는 방식이 아니라, **데이터를 스트리밍하여 처리 속도와 메모리 효율을 극대화**할 수 있습니다.
 
-## 대분류와 중분류
-Node.js 스트림은 **비동기 프로그래밍** 및 **데이터 처리** 분야에 속합니다.
+> **👉🏻 스트림을 사용하면 대용량 데이터 처리 시 성능을 향상시킬 수 있습니다.**
 
-### 대분류
-- 비동기 프로그래밍
+---
 
-### 중분류
-- 데이터 스트리밍
-- 파일 입출력
-- 네트워크 통신
+## 2️⃣ Node.js에서 제공하는 스트림의 유형
+Node.js의 스트림은 크게 **4가지 유형**으로 나뉩니다.
 
-## 스트림의 종류
-Node.js 스트림은 4가지 유형으로 분류됩니다.
-1. **Readable Stream**: 데이터를 읽을 수 있는 스트림.  
-   예: 파일 읽기 스트림, HTTP 요청.
-2. **Writable Stream**: 데이터를 쓸 수 있는 스트림.  
-   예: 파일 쓰기 스트림, HTTP 응답.
-3. **Duplex Stream**: 데이터를 읽고 쓸 수 있는 스트림.  
-   예: TCP 소켓.
-4. **Transform Stream**: 데이터를 읽고 변환하여 출력하는 스트림.  
-   예: 압축, 암호화.
+### ✅ 1. Readable Stream (읽기 스트림)
+- 데이터를 **읽어들이는 역할**을 하는 스트림
+- 예제: 파일을 읽거나, HTTP 요청에서 데이터를 받을 때 사용
 
-## 스트림의 이벤트
-Node.js 스트림은 다양한 이벤트를 제공합니다.
-- `data`: 새로운 데이터 청크를 읽을 때 발생.
-- `end`: 읽기가 완료되었을 때 발생.
-- `error`: 오류가 발생했을 때 발생.
-- `finish`: 쓰기가 완료되었을 때 발생.
+### ✅ 2. Writable Stream (쓰기 스트림)
+- 데이터를 **쓰기 위한 스트림**
+- 예제: 파일에 데이터를 쓰거나, HTTP 응답을 보낼 때 사용
 
-## 스트림 사용 예제
+### ✅ 3. Duplex Stream (양방향 스트림)
+- **읽기와 쓰기가 동시에 가능한 스트림**
+- 예제: 네트워크 소켓 (Socket) 통신
 
-### 파일 읽기 스트림과 쓰기 스트림
+### ✅ 4. Transform Stream (변환 스트림)
+- 입력 데이터를 받아 **변환하여 출력하는 스트림**
+- 예제: 파일 압축(Gzip), 데이터 암호화
+
+---
+
+## 3️⃣ Readable Stream (읽기 스트림) 예제
+
+### ✨ 파일을 읽어 스트림으로 출력
+```javascript
+const fs = require('fs');
+
+// fs.createReadStream을 사용하여 파일을 읽기 스트림으로 열기
+const readableStream = fs.createReadStream('example.txt', { encoding: 'utf8' });
+
+// 데이터가 읽힐 때마다 실행되는 이벤트 리스너
+readableStream.on('data', chunk => {
+    console.log('읽은 데이터:', chunk);
+});
+
+// 스트림이 끝났을 때 실행되는 이벤트 리스너
+readableStream.on('end', () => {
+    console.log('파일 읽기 완료!');
+});
+```
+> **👉🏻 위 코드는 "example.txt" 파일을 스트리밍 방식으로 읽고, 데이터가 들어올 때마다 출력하는 예제입니다.**
+
+---
+
+## 4️⃣ Writable Stream (쓰기 스트림) 예제
+
+### ✨ 파일에 데이터를 스트림으로 쓰기
+```javascript
+const fs = require('fs');
+
+// fs.createWriteStream을 사용하여 파일 쓰기 스트림 생성
+const writableStream = fs.createWriteStream('output.txt');
+
+// 스트림을 통해 데이터 쓰기
+writableStream.write('안녕하세요, Node.js Stream!');
+writableStream.write('데이터를 스트리밍 방식으로 기록합니다.
+');
+
+// 스트림 종료
+writableStream.end(() => {
+    console.log('파일 쓰기 완료!');
+});
+```
+> **👉🏻 위 코드는 "output.txt" 파일에 데이터를 스트리밍 방식으로 기록하는 예제입니다.**
+
+---
+
+## 5️⃣ Pipe를 사용한 스트림 연결
+
+### ✅ Pipe란?
+- `pipe()` 메서드를 사용하면 **Readable Stream에서 Writable Stream으로 데이터를 바로 전달**할 수 있습니다.
+- **버퍼(Buffer) 없이 효율적인 데이터 처리**가 가능함
+
+### ✨ 예제: 파일 읽고 쓰기
 ```javascript
 const fs = require('fs');
 
 // 읽기 스트림 생성
-const readableStream = fs.createReadStream('input.txt', { encoding: 'utf8' });
+const readableStream = fs.createReadStream('input.txt');
 
 // 쓰기 스트림 생성
 const writableStream = fs.createWriteStream('output.txt');
 
-// 데이터 처리
-readableStream.on('data', (chunk) => {
-    console.log('읽은 데이터:', chunk);
-    writableStream.write(chunk.toUpperCase()); // 데이터를 대문자로 변환하여 저장
-});
-
-readableStream.on('end', () => {
-    console.log('읽기가 완료되었습니다.');
-    writableStream.end(); // 쓰기 종료
-});
-
-readableStream.on('error', (err) => {
-    console.error('오류 발생:', err);
-});
-```
-
-### 파이프와 체이닝
-Node.js 스트림은 파이프(pipe) 메서드를 사용해 데이터를 다른 스트림으로 쉽게 전달할 수 있습니다.
-
-#### 예: 파일 압축
-```javascript
-const fs = require('fs');
-const zlib = require('zlib');
-
-// 읽기 스트림, 쓰기 스트림, 변환 스트림 생성
-const readableStream = fs.createReadStream('input.txt');
-const gzipStream = zlib.createGzip();
-const writableStream = fs.createWriteStream('input.txt.gz');
-
-// 파이프를 사용한 데이터 처리
-readableStream.pipe(gzipStream).pipe(writableStream);
+// pipe()를 사용하여 읽은 데이터를 그대로 출력 파일에 쓰기
+readableStream.pipe(writableStream);
 
 writableStream.on('finish', () => {
-    console.log('파일 압축 완료');
+    console.log('파일 복사 완료!');
 });
 ```
+> **👉🏻 위 코드는 "input.txt" 파일을 읽어서 "output.txt"에 그대로 저장하는 예제입니다.**
 
-## 스트림의 장점
-1. **메모리 효율성**: 대량의 데이터를 한꺼번에 메모리에 로드하지 않음.
-2. **성능 향상**: 데이터 처리와 전송을 동시에 수행.
-3. **확장성**: 네트워크 애플리케이션과 같은 대규모 시스템에서 효율적.
+---
 
-## 스트림을 사용해야 하는 경우
-- 대용량 파일 처리.
-- 실시간 데이터 전송.
-- 네트워크 통신(예: HTTP 요청/응답).
-- 데이터 변환(압축, 암호화 등).
+## 6️⃣ Duplex Stream (양방향 스트림) 예제
 
-## 결론
-Node.js 스트림은 대량의 데이터를 효율적으로 처리할 수 있는 강력한 도구입니다.  
-이를 통해 메모리와 CPU 사용량을 최적화하고, 비동기 처리의 이점을 극대화할 수 있습니다.
+### ✨ 예제: Duplex Stream 구현
+```javascript
+const { Duplex } = require('stream');
+
+// 새로운 Duplex 스트림 생성
+const myDuplexStream = new Duplex({
+    write(chunk, encoding, callback) {
+        console.log('쓰기:', chunk.toString());
+        callback();
+    },
+    read(size) {
+        this.push('읽기 스트림에서 보낸 데이터');
+        this.push(null); // 스트림 종료
+    }
+});
+
+// 데이터 쓰기
+myDuplexStream.write('안녕하세요!');
+myDuplexStream.end();
+
+// 데이터 읽기
+myDuplexStream.on('data', chunk => {
+    console.log('읽기:', chunk.toString());
+});
+```
+> **👉🏻 Duplex Stream을 사용하면 데이터를 읽고 쓸 수 있는 스트림을 직접 구현할 수 있습니다.**
+
+---
+
+## 7️⃣ Transform Stream (변환 스트림) 예제
+
+### ✨ 예제: 대문자로 변환하는 Transform Stream
+```javascript
+const { Transform } = require('stream');
+
+// 새로운 Transform 스트림 생성
+const upperCaseTransform = new Transform({
+    transform(chunk, encoding, callback) {
+        this.push(chunk.toString().toUpperCase()); // 대문자로 변환
+        callback();
+    }
+});
+
+// 스트림을 사용하여 변환 실행
+process.stdin.pipe(upperCaseTransform).pipe(process.stdout);
+```
+> **👉🏻 위 코드는 입력된 데이터를 대문자로 변환하여 출력하는 Transform Stream 예제입니다.**
+
+---
+
+## 8️⃣ Node.js Stream 사용 시 주의할 점
+
+| 문제 | 발생 원인 | 해결 방법 |
+|------|----------|----------|
+| 메모리 누수 | 스트림이 제대로 종료되지 않음 | `.on('end', callback)` 사용 |
+| 속도 불균형 | Readable과 Writable 속도 차이 발생 | `.pipe()`를 사용하여 자동 조정 |
+| 데이터 손실 | 비정상적인 종료 | `.on('error', callback)`을 사용하여 예외 처리 |
+
+> **👉🏻 스트림을 올바르게 사용하면 성능을 최적화할 수 있습니다!**
+
