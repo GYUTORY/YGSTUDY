@@ -1,126 +1,185 @@
 
-# Node.js Builder 패턴
 
-## 개요
-Builder 패턴은 객체 생성 로직이 복잡한 경우 이를 단계적으로 설정하고 최종적으로 객체를 생성할 수 있게 해주는 디자인 패턴입니다.  
-Node.js 환경에서도 Builder 패턴을 활용해 **복잡한 객체 생성**을 단순화할 수 있습니다.
+# JavaScript Builder 패턴
 
----
+## 1️⃣ Builder 패턴이란?
+**Builder 패턴**은 **객체를 단계적으로 생성할 수 있도록 도와주는 디자인 패턴**입니다.  
+객체의 생성 과정이 복잡할 때, **생성 로직을 분리하여 더 읽기 쉽고 유지보수하기 쉽게 만듭니다.**
 
-## 장점
-1. **유연성**  
-   객체 생성 과정에서 필요한 값만 설정할 수 있어 불필요한 코드 작성이 줄어듭니다.
-
-2. **가독성 향상**  
-   메서드 체이닝 방식을 활용하여 더 직관적으로 객체를 구성할 수 있습니다.
-
-3. **재사용성**  
-   여러 객체 생성 로직을 하나의 Builder 클래스로 재사용할 수 있습니다.
+> **👉🏻 Builder 패턴은 특히 옵션이 많은 객체를 만들 때 유용합니다.**
 
 ---
 
-## 구현 방법
+## 2️⃣ 왜 Builder 패턴을 사용할까?
 
-### 1. Builder 클래스 정의
-Builder 클래스는 생성할 객체의 프로퍼티를 초기화하고 설정 메서드를 제공합니다.
-
-### 2. 메서드 체이닝 구현
-각 설정 메서드는 Builder 인스턴스를 반환하여 메서드 체이닝이 가능하게 합니다.
-
-### 3. 최종 객체 반환
-Builder 클래스에 `build()` 메서드를 추가하여 최종 객체를 반환합니다.
-
----
-
-## 코드 예제
-
-### 사용자 정의 객체 생성
+### ✅ 객체 생성의 복잡성 해결
 ```javascript
-// Product 클래스 정의
-class Product {
-  constructor(builder) {
-    this.name = builder.name;
-    this.price = builder.price;
-    this.description = builder.description;
-  }
-}
-
-// Builder 클래스 정의
-class ProductBuilder {
-  constructor() {
-    this.name = "";
-    this.price = 0;
-    this.description = "";
-  }
-
-  // 이름 설정
-  setName(name) {
-    this.name = name;
-    return this;
-  }
-
-  // 가격 설정
-  setPrice(price) {
-    this.price = price;
-    return this;
-  }
-
-  // 설명 설정
-  setDescription(description) {
-    this.description = description;
-    return this;
-  }
-
-  // 최종 객체 생성
-  build() {
-    return new Product(this);
-  }
-}
-
-// 사용 예제
-const product = new ProductBuilder()
-  .setName("Laptop")
-  .setPrice(1500)
-  .setDescription("High-end gaming laptop")
-  .build();
-
-console.log(product);
+const user1 = {
+    name: "Alice",
+    age: 25,
+    email: "alice@example.com",
+    address: "Seoul",
+    phone: "010-1234-5678",
+};
 ```
+> **👉🏻 위처럼 직접 객체를 생성하면, 속성이 많아질수록 코드가 지저분해지고 유지보수가 어려워집니다.**
 
-출력 결과:
-```
-Product {
-  name: 'Laptop',
-  price: 1500,
-  description: 'High-end gaming laptop'
-}
-```
+✅ **Builder 패턴을 사용하면 더 깔끔한 방식으로 객체를 생성할 수 있습니다.**
 
 ---
 
-## 장점 요약
+## 3️⃣ 기본적인 Builder 패턴 구현
 
-| 장점                | 설명                                                    |
-|---------------------|-------------------------------------------------------|
-| 가독성             | 메서드 체이닝을 통해 객체 생성 과정을 직관적으로 표현 가능 |
-| 유연성             | 객체 생성 시 필요한 값만 선택적으로 설정 가능            |
-| 유지보수 용이성    | 객체 생성 로직을 분리하여 코드의 유지보수성 향상          |
+### ✨ 클래스를 이용한 Builder 패턴
+```javascript
+class UserBuilder {
+    constructor(name) {
+        this.name = name; // 필수 값
+    }
+
+    setAge(age) {
+        this.age = age;
+        return this; // 메서드 체이닝 지원
+    }
+
+    setEmail(email) {
+        this.email = email;
+        return this;
+    }
+
+    setAddress(address) {
+        this.address = address;
+        return this;
+    }
+
+    build() {
+        return new User(this);
+    }
+}
+
+class User {
+    constructor(builder) {
+        this.name = builder.name;
+        this.age = builder.age;
+        this.email = builder.email;
+        this.address = builder.address;
+    }
+
+    display() {
+        console.log(`User: ${this.name}, Age: ${this.age}, Email: ${this.email}, Address: ${this.address}`);
+    }
+}
+
+const user = new UserBuilder("Alice")
+    .setAge(25)
+    .setEmail("alice@example.com")
+    .setAddress("Seoul")
+    .build();
+
+user.display(); // User: Alice, Age: 25, Email: alice@example.com, Address: Seoul
+```
+
+> **👉🏻 `UserBuilder`를 사용하여 단계적으로 객체를 생성할 수 있습니다.**
+
+✅ **메서드 체이닝을 활용하면 코드가 더 간결해집니다.**
 
 ---
 
-## 응용 사례
+## 4️⃣ 함수형 Builder 패턴 구현
 
-1. **데이터 모델링**  
-   복잡한 데이터 모델을 생성할 때 Builder 패턴을 사용하면 구조를 단순화할 수 있습니다.
+클래스를 사용하지 않고, **함수형 방식으로도 Builder 패턴을 구현할 수 있습니다.**
 
-2. **설정 객체 생성**  
-   설정(config) 파일이나 HTTP 요청 객체와 같이 다수의 선택적 파라미터가 있는 경우 유용합니다.
+```javascript
+function createUser(name) {
+    const user = { name };
 
-3. **테스트 객체 생성**  
-   테스트 데이터 생성을 위한 Mock 객체를 생성할 때 유용합니다.
+    return {
+        setAge(age) {
+            user.age = age;
+            return this;
+        },
+        setEmail(email) {
+            user.email = email;
+            return this;
+        },
+        setAddress(address) {
+            user.address = address;
+            return this;
+        },
+        build() {
+            return user;
+        },
+    };
+}
+
+const user = createUser("Bob")
+    .setAge(30)
+    .setEmail("bob@example.com")
+    .setAddress("Busan")
+    .build();
+
+console.log(user);
+// { name: 'Bob', age: 30, email: 'bob@example.com', address: 'Busan' }
+```
+
+> **👉🏻 함수형 방식도 동일한 메서드 체이닝을 지원합니다.**
 
 ---
 
-## 결론
-Node.js에서 Builder 패턴은 특히 객체의 생성 단계가 복잡하거나 필드가 많을 때 효과적입니다.  
-이를 통해 객체 생성 로직을 단순화하고 유지보수성을 높일 수 있습니다.
+## 5️⃣ Builder 패턴의 장점과 단점
+
+| 장점 | 단점 |
+|------|------|
+| 객체 생성 과정을 단계적으로 관리 가능 | 코드가 다소 길어질 수 있음 |
+| 선택적 매개변수를 쉽게 설정 가능 | 작은 객체에는 불필요할 수 있음 |
+| 가독성이 높고 유지보수가 쉬움 | 초기 학습이 필요함 |
+
+> **👉🏻 특히 옵션이 많은 객체를 생성할 때 유용합니다!**
+
+---
+
+## 6️⃣ 실제 사용 사례
+
+### ✅ 1. HTTP 요청 생성기
+```javascript
+class RequestBuilder {
+    constructor(url) {
+        this.url = url;
+        this.method = "GET"; // 기본값
+        this.headers = {};
+        this.body = null;
+    }
+
+    setMethod(method) {
+        this.method = method;
+        return this;
+    }
+
+    setHeaders(headers) {
+        this.headers = headers;
+        return this;
+    }
+
+    setBody(body) {
+        this.body = body;
+        return this;
+    }
+
+    build() {
+        return fetch(this.url, {
+            method: this.method,
+            headers: this.headers,
+            body: this.body,
+        });
+    }
+}
+
+// 요청 생성 및 실행
+new RequestBuilder("https://api.example.com/data")
+    .setMethod("POST")
+    .setHeaders({ "Content-Type": "application/json" })
+    .setBody(JSON.stringify({ key: "value" }))
+    .build()
+    .then(response => response.json())
+    .then(data => console.log(data));
+```
