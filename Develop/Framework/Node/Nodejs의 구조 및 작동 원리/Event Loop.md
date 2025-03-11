@@ -1,91 +1,150 @@
+# Node.js - Event Loop 개념 및 동작 방식 🚀
 
-# Node.js Event Loop
+## 1. Event Loop란? 🤔
 
-Node.js의 **Event Loop**는 JavaScript 런타임에서 비동기 작업을 처리하는 핵심 메커니즘입니다. Node.js는 단일 스레드로 작동하지만, 비동기 작업을 효율적으로 처리하여 높은 성능을 제공합니다.
+**Node.js의 Event Loop(이벤트 루프)**는 **비동기 처리를 가능하게 하는 핵심 메커니즘**입니다.  
+Node.js는 **싱글 스레드(Single Thread) 기반**이지만, **Event Loop**를 활용하여 **비동기 I/O 작업을 효율적으로 처리**할 수 있습니다.
 
-## Event Loop의 역할
+> **✨ Event Loop의 핵심 개념**
+> - **Node.js는 기본적으로 싱글 스레드**
+> - **비동기 작업(I/O, 타이머, 네트워크 요청 등)을 처리**
+> - **이벤트 기반(Event-Driven)으로 실행**
+> - **논-블로킹(Non-Blocking) 방식으로 동작**
+> - **콜백 함수와 함께 실행 흐름을 관리**
 
-Event Loop는 다음을 수행합니다:
+---
 
-1. **비동기 작업 관리**: I/O 작업(파일 읽기/쓰기, 네트워크 요청 등)과 같은 비동기 작업을 관리합니다.
-2. **콜백 실행**: 완료된 비동기 작업의 콜백 함수를 적절한 시점에 실행합니다.
-3. **Task Queue 확인**: Task Queue에 쌓인 작업을 메인 스레드에서 순차적으로 실행합니다.
+## 2. Event Loop의 동작 과정 🔄
 
-## Event Loop의 6단계
+Node.js의 **Event Loop**는 다음과 같은 단계로 실행됩니다.
 
-Node.js의 Event Loop는 6단계로 나뉩니다.
+1️⃣ **Timers (타이머 실행)**
+- `setTimeout()`, `setInterval()` 등의 타이머 콜백 실행
 
-1. **Timers 단계**: `setTimeout`과 `setInterval`의 콜백을 실행합니다.
-2. **Pending Callbacks 단계**: 지연된 I/O 콜백(예: 일부 네트워크 작업)이 처리됩니다.
-3. **Idle, Prepare 단계**: 내부 작업을 준비하거나 조정하는 단계입니다.
-4. **Poll 단계**: 새로운 I/O 이벤트를 처리하거나, 적합한 콜백을 실행합니다.
-5. **Check 단계**: `setImmediate`로 예약된 콜백을 실행합니다.
-6. **Close Callbacks 단계**: 닫기 콜백(예: 소켓 종료 등)이 실행됩니다.
+2️⃣ **I/O Callbacks (I/O 작업 완료 후 콜백 실행)**
+- 파일 시스템, 네트워크 요청 등의 비동기 작업이 완료되면 실행됨
 
-## 예시 코드
+3️⃣ **Idle, Prepare (내부적인 작업)**
+- 내부적으로 사용되며, 일반적인 애플리케이션 개발에서는 거의 사용되지 않음
 
-다음은 Event Loop의 동작을 이해하기 위한 예제 코드입니다.
+4️⃣ **Poll (I/O 이벤트 대기 및 처리)**
+- 가장 중요한 단계! 비동기 I/O 작업을 처리하는 핵심 부분
+- 새로운 I/O 이벤트가 있으면 처리하고, 없으면 다음 단계로 이동
 
+5️⃣ **Check (setImmediate() 실행)**
+- `setImmediate()`로 예약된 콜백이 실행됨
+
+6️⃣ **Close Callbacks (닫기 이벤트 처리)**
+- 소켓 연결 종료, `process.exit()` 등 실행
+
+---
+
+## 3. Event Loop의 단계별 실행 예제
+
+### 3.1 기본적인 Event Loop 실행 순서
+
+#### ✅ 예제 (Event Loop 실행 순서)
 ```javascript
-console.log("Start");
+console.log("1️⃣ Start");
 
-setTimeout(() => {
-  console.log("setTimeout");
-}, 0);
+setTimeout(() => console.log("4️⃣ setTimeout"), 0);
+setImmediate(() => console.log("3️⃣ setImmediate"));
 
-setImmediate(() => {
-  console.log("setImmediate");
-});
+Promise.resolve().then(() => console.log("2️⃣ Promise"));
 
-Promise.resolve().then(() => {
-  console.log("Promise");
-});
-
-console.log("End");
+console.log("1️⃣ End");
 ```
 
-### 출력 결과
-
+### 📌 실행 결과:
 ```
-Start
-End
-Promise
-setTimeout
-setImmediate
+1️⃣ Start
+1️⃣ End
+2️⃣ Promise
+3️⃣ setImmediate
+4️⃣ setTimeout
 ```
 
-### 이유
-1. **동기 코드**인 `console.log("Start")`와 `console.log("End")`가 먼저 실행됩니다.
-2. **Promise**의 `then`은 `microtask queue`에 들어가고, 이벤트 루프가 우선 처리합니다.
-3. `setTimeout`과 `setImmediate`는 각각 **Timer Queue**와 **Check Queue**에 들어가며, `setTimeout`이 먼저 실행됩니다.
+> **📌 `Promise.then()`은 Microtask Queue에서 처리되므로 먼저 실행됨!**  
+> **📌 `setImmediate()`는 Poll 단계 이후 실행되므로 `setTimeout(0)`보다 먼저 실행될 가능성이 높음!**
 
-## Event Loop와 비동기 프로그래밍
+---
 
-Node.js에서 Event Loop를 활용하면 I/O 집약적인 작업을 효율적으로 처리할 수 있습니다. 예를 들어, 서버 요청을 비동기적으로 처리하면 단일 스레드에서도 높은 처리량을 달성할 수 있습니다.
+### 3.2 setTimeout vs. setImmediate 차이점
 
-### 비동기 서버 예제
-
+#### ✅ 예제 (setTimeout vs. setImmediate)
 ```javascript
-const http = require('http');
+const fs = require("fs");
 
-const server = http.createServer((req, res) => {
-  if (req.url === "/") {
-    setTimeout(() => {
-      res.end("Hello, World!");
-    }, 2000);
-  } else {
-    res.end("Other route");
-  }
-});
-
-server.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
+fs.readFile(__filename, () => {
+    setTimeout(() => console.log("setTimeout 실행"), 0);
+    setImmediate(() => console.log("setImmediate 실행"));
 });
 ```
 
-위 코드는 비동기적으로 요청을 처리하여 동시에 여러 클라이언트를 처리할 수 있게 합니다.
+### 📌 실행 결과:
+```
+setImmediate 실행
+setTimeout 실행
+```
 
-## 참고 자료
+> **📌 파일 읽기(`fs.readFile`) 후 `setImmediate()`가 먼저 실행됨!**
+> - `setImmediate()`는 Poll 단계가 끝나면 즉시 실행
+> - `setTimeout(0)`은 Poll 단계 이후 Timers 단계에서 실행
 
-- [Node.js 공식 문서](https://nodejs.org/en/docs/)
-- [MDN Event Loop](https://developer.mozilla.org/en-US/docs/Web/JavaScript/EventLoop)
+---
+
+### 3.3 process.nextTick() (Microtask Queue)
+
+#### ✅ 예제 (process.nextTick() vs. Promise)
+```javascript
+console.log("1️⃣ Start");
+
+process.nextTick(() => console.log("2️⃣ nextTick"));
+Promise.resolve().then(() => console.log("3️⃣ Promise"));
+
+console.log("1️⃣ End");
+```
+
+### 📌 실행 결과:
+```
+1️⃣ Start
+1️⃣ End
+2️⃣ nextTick
+3️⃣ Promise
+```
+
+> **📌 `process.nextTick()`은 현재 실행 중인 코드가 끝난 직후 실행되며, Promise보다 먼저 실행됨!**
+
+---
+
+## 4. Event Loop과 Worker Threads 비교
+
+| 비교 항목 | Event Loop | Worker Threads |
+|-----------|-----------|---------------|
+| **기본 개념** | 싱글 스레드 기반 비동기 실행 | 멀티 스레드 기반 작업 분산 |
+| **사용 목적** | I/O 작업, 네트워크 요청 처리 | CPU 집중적인 연산 처리 |
+| **비동기 방식** | 이벤트 기반 (Event-Driven) | 백그라운드 워커 스레드 사용 |
+| **예제** | `setTimeout`, `setImmediate`, `Promise` | `worker_threads` 모듈 사용 |
+
+#### ✅ Worker Threads 예제
+```javascript
+const { Worker } = require('worker_threads');
+
+const worker = new Worker('./worker.js'); // 별도의 스레드 실행
+
+worker.on('message', (msg) => console.log("워커에서 받은 메시지:", msg));
+worker.postMessage("작업 시작");
+```
+
+> **📌 Worker Threads는 CPU 집중적인 연산 처리에 적합하며, I/O 작업에는 Event Loop가 더 효과적!**
+
+---
+
+## 📌 결론
+
+- **Node.js의 Event Loop는 싱글 스레드이지만 논-블로킹 방식으로 비동기 작업을 처리**
+- **setTimeout(), setImmediate(), process.nextTick(), Promise 등 실행 순서를 이해하는 것이 중요**
+- **CPU 집중적인 작업은 Worker Threads를 활용하는 것이 적절**
+
+> **👉🏻 Event Loop의 동작을 이해하면 Node.js의 비동기 동작을 효율적으로 활용할 수 있음!**
+
