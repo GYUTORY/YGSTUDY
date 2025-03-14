@@ -1,206 +1,186 @@
+# Node.js - Threads (멀티스레딩) 개념 및 활용 🚀
 
+## 1. Node.js에서 Threads란? 🤔
 
-# Nodejs Threads 
+Node.js는 **기본적으로 싱글 스레드(Single Thread) 기반**의 실행 환경입니다.  
+하지만, **Worker Threads**를 활용하면 멀티 스레드 기반의 작업 처리가 가능합니다.
 
-## worker_thread
-- Node.js 애플리케이션에서 별도의 스레드를 생성하여 빠르게 병렬처리를 할 수 있는 기능이다.
-
-### 병렬 처리가 가능하다는 것이 무엇일까?
-- 말 그대로 물리적 병렬성을 가지고 물리적으로 여러 스레드를 CPU에서 동시에 수행을 할 수 있음을 뜻한다.
-
----
-
-### Node.js가 시작되면 생기는 일
-1. #### 하나의 프로세스 
-- 어디서든 접근 가능한 전역 객체이자 그 순간 실행되고 있는 것들의 정보를 가지고 있는 프로세스
-2. #### 하나의 스레드
-- 단일 스레드는 주어진 프로세스에서 오직 한 번에 하나의 명령만이 실행된다는 뜻.
-3. #### 하나의 이벤트 루프 
-- 노드를 이해하기 위해 가장 중요한 부분 중 하나입니다.
-- 이는 자바스크립트가 단일 스레드라는 사실에도 불구하고, 언제든 가능한 callback, promise, async/await 를 통해 시스템 커널에 작업을 offload 하게 합니다. 이로서 노드가 비동기식, 비차단 I/O 의 특성을 가집니다.
-4. #### 하나의 js 엔진 인스턴스 
-- js 코드를 실행하는 컴퓨터 프로그램입니다.
-5. #### 하나의 노드js 인스턴스 
-- 노드js 코드를 실행하는 컴퓨터 프로그램입니다.
-
-> 즉, 노드는 단일 스레드에서 실행되고, 이벤트 루프에는 한 번에 하나의 프로세스만 발생합니다. 하나의 코드, 하나의 실행, (코드는 병렬로 실행되지 않습니다).
+> **✨ Node.js의 스레드 모델**
+> - 기본적으로 **Event Loop**를 활용하여 싱글 스레드에서 논-블로킹 방식으로 동작
+> - **CPU 집중적인 작업(예: 암호화, 이미지 처리)**을 할 경우 Worker Threads를 활용하여 멀티스레드 처리 가능
+> - **I/O 작업(파일 읽기, 네트워크 요청)**은 Event Loop가 효율적으로 처리
 
 ---
 
-### 싱글스레드 :  아리토스테네스의 체 소수 구하기
+## 2. Worker Threads란? 🔄
 
+**Worker Threads**는 **Node.js에서 멀티스레딩을 지원하는 기능**으로,  
+CPU 집약적인 작업을 별도의 스레드에서 실행할 수 있도록 합니다.
+
+| 비교 항목 | 기본 Event Loop | Worker Threads |
+|-----------|---------------|---------------|
+| **기본 개념** | 싱글 스레드 기반 비동기 실행 | 멀티 스레드 기반 작업 분산 |
+| **사용 목적** | I/O 작업, 네트워크 요청 처리 | CPU 집중적인 연산 처리 |
+| **비동기 방식** | 이벤트 기반 (Event-Driven) | 백그라운드 워커 스레드 사용 |
+| **예제** | `setTimeout`, `setImmediate`, `Promise` | `worker_threads` 모듈 사용 |
+
+---
+
+## 3. Worker Threads 기본 사용법 🔥
+
+### 3.1 메인 스레드에서 Worker 실행
+
+#### ✅ `main.js`
 ```javascript
-let
-    min = 2,
-    max = 10000000,
-    primes = [];
+const { Worker } = require('worker_threads');
 
-// 아리토스테네스의 체 소수구하기
-function generatePrimes(start, range) {
-    let isPrime = true;
-    const end = start + range;
-    for (let i = start; i < end; i++) {
-        for (let j = min; j < Math.sqrt(end); j++) {
-            if (i !== j && i % j === 0) {
-                isPrime = false;
-                break;
-            }
-        }
+const worker = new Worker('./worker.js'); // 별도의 스레드 실행
 
-        if (isPrime) {
-            primes.push(i)
-        }
-        isPrime = true;
+worker.on('message', (msg) => console.log("워커에서 받은 메시지:", msg));
+worker.postMessage("작업 시작");
+```
+
+#### ✅ `worker.js` (Worker 스레드)
+```javascript
+const { parentPort } = require('worker_threads');
+
+parentPort.on('message', (msg) => {
+    console.log("메인 스레드로부터 메시지:", msg);
+    parentPort.postMessage("작업 완료!");
+});
+```
+
+### 📌 실행 결과:
+```
+메인 스레드로부터 메시지: 작업 시작
+워커에서 받은 메시지: 작업 완료!
+```
+
+> **📌 `Worker`를 사용하면 메인 스레드와 독립적으로 작업을 실행 가능!**
+
+---
+
+## 4. Worker Threads를 활용한 CPU 집중 작업
+
+### 4.1 싱글 스레드에서 연산 실행 (비효율적)
+
+#### ✅ `single-thread.js`
+```javascript
+const heavyComputation = () => {
+    let sum = 0;
+    for (let i = 0; i < 1e9; i++) {
+        sum += i;
     }
-}
+    return sum;
+};
 
-console.time('prime');
-generatePrimes(min, max)
-console.timeEnd('prime');
-console.log(primes.length);
+console.log("계산 시작");
+console.log("결과:", heavyComputation());
+console.log("계산 완료");
 ```
 
-### 멀티스레드 :  아리토스테네스의 체 소수 구하기
+### 📌 실행 결과 (느림)
+```
+계산 시작
+(연산 지연)
+결과: 499999999500000000
+계산 완료
+```
+> **🛑 연산이 끝날 때까지 Event Loop가 멈춰버림 (Block 현상 발생)**
 
+---
+
+### 4.2 Worker Threads로 병렬 연산 (효율적)
+
+#### ✅ `main.js` (메인 스레드)
 ```javascript
-const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+const { Worker } = require('worker_threads');
 
-let
-   min = 2,
-   max = 10_000_000,
-   primes = [];
+console.log("계산 시작");
 
-function generatePrimes(start, range) {
-   let isPrime = true;
-   const end = start + range;
-   for (let i = start; i < end; i++) {
-      for (let j = min; j < Math.sqrt(end); j++) {
-         if (i !== j && i % j === 0) {
-            isPrime = false;
-            break;
-         }
-      }
+const worker = new Worker("./worker.js");
 
-      if (isPrime) {
-         primes.push(i)
-      }
-      isPrime = true;
-   }
-}
-
-
-if (isMainThread) {
-   const threadCount = 8;
-   const threads = new Set()
-   const range = Math.ceil((max - min) / threadCount); // 10_000_000 max를 8개의 쓰레드에 분배를 해서 처리하기 위해서
-
-   let start = min;
-   console.time('prime2');
-
-   for (let i = 0; i < threadCount - 1; i++) {
-      const wStart = start;
-      threads.add(new Worker(__filename, { workerData: { start: wStart, range: range } }))
-      start += range;
-   }
-   
-   threads.add(new Worker(__filename, { workerData: { start: start, range: range + ((max - min + 1) % threadCount) } }));
-
-   for (let worker of threads) {
-
-      worker.on('error', (err) => {
-         throw err;
-      })
-
-      worker.on('exit', () => {
-
-         threads.delete(worker);
-
-         if (threads.size ===0){
-            console.timeEnd('prime2')
-            console.log(primes.length);
-         }
-      });
-
-          
-      worker.on('message', (msg) => {
-         primes = primes.concat(msg);
-      })
-   }
-
-} else {
-   generatePrimes(workerData.start, workerData.range);
-   parentPort.postMessage(primes);
-}
+worker.on("message", (result) => {
+    console.log("결과:", result);
+    console.log("계산 완료");
+});
 ```
 
----
-
-## 싱글스레드와 멀티스레드의 처리결과 비교
-- 처리된 결과 값은 똑같지만 처리 시간을 worker_threads를 이용한 방식이 월등히 빠르다.
-- 하나의 작업을 두 스레드가 나누어서 물리적으로 동시에 수행함으로써 병렬처리가 가능하다는 것을 증명하는 것이고, Node.js에서 여러 스레드를 동시에 구동시킬 수 있음을 뜻한다.
-
-
-### Node는 비동기 처리가 가능한 동시성을 가지고 있는 환경인데, 동시성도 멀티스레드처럼 병렬처리가 가능한가?
-- 우선 비동기 처리는 병렬처리를 하는 방식이 아니라, 단지 CPU Time Sharing을 통해 여러 일을 동시에 작업하는 것처럼 보이게 하는 것일 뿐이다.
-
----
-> #### **잠깐!** 알고 넘어가는, 동시성과 병렬성의 차이
-
-**동시성** : 하나의 스레드 위에서 여러 작업이 CPU가 한번씩 빠르게 돌아가면서 동시에 수행되는 것처럼 보이는 것
-<br>
-**병렬성** :  실제 CPU 위에서 여러 스레드를 물리적으로 동시에 수행되는 것을 뜻한다.
-
-
-<div align="center">
-    <img src="../../../../etc/image/Framework/Node/NodeJS_CPU.png" alt="NodeJS CPU Image" width="50%">
-</div>
-
---- 
-
-## Workers_threads에 대해 자세히 알아보자.
-
-- 작업을 처리할 새로운 스레드 풀을 생성 후 스레드 별 비동기 처리가 가능하도록 지원해 주는 libuv 엔진이 세팅된다.
-- 그리고 각 스레드에서 Javascript 엔진으로 코드를 실행시키고, 하나의 이벤트 루프를 통해서 각 스레드들끼리의 응답 처리를 Task Queue를 통해서 전달된다.
-
-
-<div align="center">
-    <img src="../../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
-</div>
-
----
-
-### Worker Thread 사용
-
-#### 메인 스레드 <-> Worker 데이터 송수신 
-- **worker.postMessage** 로 부모에서 워커로 데이터를 보냄
-- parentPort.on(message)로 부모로부터 데이터를 받고, postMessage로 데이터를 보냄
-
-
+#### ✅ `worker.js` (Worker 스레드)
 ```javascript
-const { Worker, isMainThread, parentPort } = require('worker_threads');
+const { parentPort } = require('worker_threads');
 
-if (isMainThread) { // 메인 스레드
-   const worker = new Worker(__filename);
+const heavyComputation = () => {
+    let sum = 0;
+    for (let i = 0; i < 1e9; i++) {
+        sum += i;
+    }
+    return sum;
+};
 
-   worker.on('message', (value) => {
-      console.log('워커로부터', value)
-   })
-   worker.on('exit', (value) => { // parentPort.close()가 일어나면 이벤트 발생
-      console.log('워커 끝~');
-   })
-
-   worker.postMessage('ping'); // 워커스레드에게 메세지를 보낸다.
-
-} else { // 워커스레드
-
-   parentPort.on('message', (value) => {
-      console.log("부모로부터", value);
-      parentPort.postMessage('pong');
-      parentPort.close(); // 워커스레드 종료라고 메인스레드에 알려줘야 exit이벤트 발생
-   })
-}
+parentPort.postMessage(heavyComputation());
 ```
 
-> 출처 
-> 1. https://helloinyong.tistory.com/350
-> 2. https://inpa.tistory.com/entry/NODE-%F0%9F%93%9A-workerthreads-%EB%AA%A8%EB%93%88
+### 📌 실행 결과 (빠름)
+```
+계산 시작
+(백그라운드에서 연산 수행)
+결과: 499999999500000000
+계산 완료
+```
+> **✅ Worker Threads를 사용하면 Event Loop가 차단되지 않고 병렬 연산 수행 가능!**
+
+---
+
+## 5. 부모와 Worker 간 데이터 교환
+
+✔ `postMessage(data)` → 부모 스레드에서 Worker에게 데이터 전송  
+✔ `parentPort.on('message', callback)` → Worker 스레드에서 메시지 수신  
+✔ `parentPort.postMessage(data)` → Worker 스레드에서 부모에게 응답
+
+#### ✅ 부모 → Worker 데이터 전송
+```javascript
+const { Worker } = require('worker_threads');
+
+const worker = new Worker("./worker.js");
+
+worker.postMessage({ task: "연산", number: 5 });
+
+worker.on("message", (result) => console.log("결과:", result));
+```
+
+#### ✅ Worker에서 부모에게 응답
+```javascript
+const { parentPort } = require('worker_threads');
+
+parentPort.on("message", (msg) => {
+    console.log("메시지 수신:", msg);
+    parentPort.postMessage("작업 완료!");
+});
+```
+
+> **📌 `postMessage()`를 이용하면 부모 스레드와 Worker 간 데이터를 주고받을 수 있음!**
+
+---
+
+## 6. 언제 Worker Threads를 사용해야 할까? 🤔
+
+| 사용해야 하는 경우 | 사용하지 않아도 되는 경우 |
+|-----------------|-----------------|
+| **CPU 집중적인 작업** (예: 암호화, 이미지 처리) | **I/O 작업** (예: 파일 읽기, 네트워크 요청) |
+| **병렬 연산이 필요한 경우** | **Event Loop를 활용할 수 있는 경우** |
+| **메인 스레드가 차단되는 문제 발생 시** | **간단한 비동기 코드 실행 시** |
+
+✅ **I/O 작업은 Event Loop가 더 적합하고, CPU 연산은 Worker Threads가 효과적!**
+
+---
+
+## 📌 결론
+
+- **Node.js는 기본적으로 싱글 스레드 기반**이지만, `worker_threads` 모듈을 사용하여 **멀티 스레드 지원 가능**
+- **Worker Threads는 CPU 집중적인 연산을 백그라운드에서 실행하여 메인 스레드의 Event Loop를 방해하지 않음**
+- **I/O 작업에는 Event Loop가 더 적합하며, CPU 연산 작업에는 Worker Threads가 효과적**
+- **`postMessage()`를 이용하여 부모와 Worker 간 데이터를 주고받을 수 있음**
+
+> **👉🏻 Worker Threads를 적절히 활용하면 Node.js에서도 멀티스레딩이 가능하며, CPU 집중적인 작업을 효과적으로 분산할 수 있음!**  
+
