@@ -1,26 +1,43 @@
+# 🚀 Project Lombok: Java 개발자의 필수 도구
 
-# ✨ Lombok 개념과 예제
+## 📚 목차
+1. [Lombok 소개](#1-lombok-소개)
+2. [환경 설정](#2-환경-설정)
+3. [핵심 어노테이션](#3-핵심-어노테이션)
+4. [실전 활용](#4-실전-활용)
+5. [모범 사례와 주의사항](#5-모범-사례와-주의사항)
 
-## 1. Lombok이란?
+## 1. Lombok 소개
 
-**Lombok**은 Java 코드에서 **반복적인 보일러플레이트 코드(Boilerplate Code)를 줄여주는 라이브러리**입니다.  
-`@Getter`, `@Setter`, `@ToString`, `@EqualsAndHashCode`, `@NoArgsConstructor`, `@AllArgsConstructor` 등의 어노테이션을 제공하여 개발자의 생산성을 높입니다.
+### 1.1 Lombok이란?
 
----
+Project Lombok은 Java 생태계에서 **반복적인 보일러플레이트 코드를 획기적으로 줄여주는 라이브러리**입니다. 
+개발자의 생산성을 극대화하고 코드의 가독성을 높이는 것이 주요 목적입니다.
 
-## 2. Lombok 설정 방법
+### 1.2 주요 특징
 
-### 👉🏻 1) Lombok 의존성 추가 (Gradle / Maven)
+- ✨ **코드 간소화**: getter/setter, constructor 등 자동 생성
+- 🛡️ **안정성**: 컴파일 시점에 코드 생성으로 런타임 오버헤드 없음
+- 🔄 **유지보수성**: 보일러플레이트 코드 감소로 유지보수 용이
+- ⚡ **생산성**: 반복 작업 최소화로 개발 시간 단축
 
-#### **Gradle (build.gradle.kts)**
+## 2. 환경 설정
+
+### 2.1 의존성 추가
+
+#### 📦 Gradle (build.gradle.kts)
 ```kotlin
 dependencies {
     implementation("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
+    
+    // Spring Boot 사용 시
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
 }
 ```
 
-#### **Maven (pom.xml)**
+#### 📦 Maven (pom.xml)
 ```xml
 <dependencies>
     <dependency>
@@ -32,136 +49,145 @@ dependencies {
 </dependencies>
 ```
 
-✔️ **설치 후 IDE에서 Lombok Plugin을 활성화해야 합니다.**
-- **IntelliJ IDEA**: `Preferences > Plugins > Lombok` 검색 후 설치
-- **Eclipse**: `Help > Eclipse Marketplace > Lombok` 검색 후 설치
+### 2.2 IDE 설정
 
----
+#### IntelliJ IDEA
+1. `Settings/Preferences` → `Plugins` → `Marketplace`
+2. "Lombok" 검색 및 설치
+3. `Settings/Preferences` → `Build, Execution, Deployment` → `Compiler` → `Annotation Processors`
+4. "Enable annotation processing" 활성화
 
-## 3. Lombok 주요 어노테이션
+#### Eclipse
+1. lombok.jar 파일 다운로드
+2. jar 파일 실행 후 IDE 위치 지정
+3. IDE 재시작
 
-### ✨ 1) @Getter / @Setter
+## 3. 핵심 어노테이션
 
+### 3.1 기본 어노테이션
+
+#### @Getter / @Setter
 ```java
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter // 모든 필드에 대한 Getter 메서드 자동 생성
-@Setter // 모든 필드에 대한 Setter 메서드 자동 생성
+@Getter @Setter
 public class User {
-    private String name;
-    private int age;
-}
-```
-
-✔️ `@Getter`와 `@Setter`를 사용하면, **자동으로 Getter / Setter 메서드를 생성**합니다.
-
-```java
-User user = new User();
-user.setName("홍길동");
-System.out.println(user.getName()); // 홍길동
-```
-
----
-
-### ✨ 2) @ToString
-
-```java
-import lombok.ToString;
-
-@ToString // toString() 메서드 자동 생성
-public class User {
-    private String name;
-    private int age;
-}
-```
-
-```java
-User user = new User("홍길동", 30);
-System.out.println(user.toString());
-// User(name=홍길동, age=30)
-```
-
-✔️ `@ToString`은 객체의 내용을 문자열로 출력할 때 유용합니다.
-
----
-
-### ✨ 3) @NoArgsConstructor / @AllArgsConstructor
-
-```java
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-
-@NoArgsConstructor  // 기본 생성자 생성
-@AllArgsConstructor // 모든 필드를 포함하는 생성자 생성
-public class User {
-    private String name;
-    private int age;
-}
-```
-
-```java
-User user1 = new User(); // 기본 생성자 사용
-User user2 = new User("홍길동", 30); // 모든 필드를 받는 생성자 사용
-```
-
-✔️ `@NoArgsConstructor`는 매개변수가 없는 생성자를 생성합니다.  
-✔️ `@AllArgsConstructor`는 모든 필드를 매개변수로 받는 생성자를 생성합니다.
-
----
-
-### ✨ 4) @EqualsAndHashCode
-
-```java
-import lombok.EqualsAndHashCode;
-
-@EqualsAndHashCode // equals()와 hashCode() 자동 생성
-public class User {
-    private String name;
-    private int age;
-}
-```
-
-✔️ `@EqualsAndHashCode`는 객체의 동등성 비교를 위한 `equals()`와 `hashCode()` 메서드를 자동 생성합니다.
-
----
-
-### ✨ 5) @Data (포괄적인 Lombok 어노테이션)
-
-```java
-import lombok.Data;
-
-@Data // @Getter, @Setter, @ToString, @EqualsAndHashCode, @RequiredArgsConstructor 포함
-public class User {
-    private String name;
-    private int age;
-}
-```
-
-✔️ `@Data`는 **가장 많이 사용되는 Lombok 어노테이션**으로,  
-`@Getter`, `@Setter`, `@ToString`, `@EqualsAndHashCode`, `@RequiredArgsConstructor` 를 포함합니다.
-
----
-
-## 4. Lombok과 Spring 사용 예제
-
-### 1️⃣ Lombok을 활용한 Service 클래스
-
-```java
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
-@Service
-@RequiredArgsConstructor // final 필드만 포함한 생성자 자동 생성 (DI에 유용)
-public class UserService {
+    private String username;
+    private String email;
     
-    private final UserRepository userRepository; // 생성자를 통한 의존성 주입
+    @Getter(AccessLevel.PROTECTED) // 접근 제어 설정 가능
+    private String password;
+}
+```
 
-    public User getUserById(Long id) {
-        return userRepository.findById(id).orElse(null);
+#### @ToString
+```java
+@ToString(exclude = "password") // 특정 필드 제외 가능
+public class User {
+    private String username;
+    private String email;
+    private String password;
+}
+```
+
+### 3.2 생성자 관련 어노테이션
+
+#### @NoArgsConstructor / @AllArgsConstructor / @RequiredArgsConstructor
+```java
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // 접근 제어 설정
+@AllArgsConstructor
+public class User {
+    private final String username;  // final 필드는 @RequiredArgsConstructor에 포함
+    private String email;
+    private String password;
+}
+```
+
+### 3.3 유틸리티 어노테이션
+
+#### @Data
+```java
+@Data  // @Getter, @Setter, @ToString, @EqualsAndHashCode, @RequiredArgsConstructor 통합
+public class User {
+    private final String username;
+    private String email;
+    private String password;
+}
+```
+
+## 4. 실전 활용
+
+### 4.1 Spring Boot에서의 활용
+
+#### JPA Entity 클래스
+```java
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)
+    private String username;
+    
+    @CreatedDate
+    private LocalDateTime createdAt;
+    
+    @Builder  // 빌더 패턴 적용
+    public User(String username) {
+        this.username = username;
     }
 }
 ```
 
-✔️ `@RequiredArgsConstructor`는 `final` 필드를 매개변수로 받는 생성자를 자동으로 생성합니다.  
-✔️ Spring에서 **의존성 주입(DI)** 시 매우 유용하게 사용됩니다.
+#### Service 계층
+```java
+@Service
+@RequiredArgsConstructor  // final 필드 생성자 주입
+@Slf4j  // 로깅 기능 추가
+public class UserService {
+    private final UserRepository userRepository;
+    
+    public User createUser(String username) {
+        log.info("Creating user: {}", username);
+        return userRepository.save(
+            User.builder()
+                .username(username)
+                .build()
+        );
+    }
+}
+```
+
+## 5. 모범 사례와 주의사항
+
+### 5.1 권장 사항
+- ✅ `@Data` 대신 필요한 어노테이션만 명시적 사용
+- ✅ `@Builder` 패턴 활용으로 객체 생성 안정성 확보
+- ✅ JPA Entity에는 `@Setter` 지양
+- ✅ 생성자 접근 제어에 주의
+
+### 5.2 안티 패턴
+- ❌ 무분별한 `@Data` 사용
+- ❌ `@ToString`에서 양방향 연관관계 필드 미제외
+- ❌ `@EqualsAndHashCode`에서 모든 필드 포함
+- ❌ 순환 참조가 발생할 수 있는 구조에서 `@ToString` 사용
+
+### 5.3 성능 최적화
+```java
+@ToString(onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(of = "id")
+public class OptimizedEntity {
+    @ToString.Include
+    private Long id;
+    
+    private String heavyField1;
+    private String heavyField2;
+}
+```
+
+## 📚 참고 자료
+- [Project Lombok 공식 문서](https://projectlombok.org/features/all)
+- [Spring Boot with Lombok](https://spring.io/blog/2018/12/12/spring-boot-with-lombok)
+- [Lombok Best Practices](https://www.baeldung.com/lombok-ide)
