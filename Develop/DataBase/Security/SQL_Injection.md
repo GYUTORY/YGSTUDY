@@ -1,78 +1,138 @@
-
 # SQL 인젝션(SQL Injection)
 
 ## 개념
-**SQL 인젝션**(SQL Injection)은 웹 애플리케이션의 보안 취약점 중 하나로, 공격자가 웹 애플리케이션의 데이터베이스 쿼리를 조작할 수 있도록 하는 보안 취약점입니다. 주로 웹 양식(input field)이나 URL 파라미터 등을 이용하여 악성 SQL 코드를 삽입하는 방식으로 이루어집니다.
+**SQL 인젝션**(SQL Injection)은 웹 애플리케이션의 보안 취약점 중 하나로, 공격자가 웹 애플리케이션의 데이터베이스 쿼리를 조작할 수 있도록 하는 보안 취약점입니다. 이는 OWASP Top 10에서 가장 위험한 웹 애플리케이션 보안 취약점 중 하나로 꼽힙니다.
 
-공격자가 이러한 취약점을 악용하면 다음과 같은 행동을 할 수 있습니다:
-- 데이터베이스의 데이터 조회
-- 데이터베이스의 데이터 변경 (삽입, 수정, 삭제)
-- 인증 우회
-- 데이터베이스 서버의 권한 상승
+### 발생 원인
+SQL 인젝션이 발생하는 주요 원인은 다음과 같습니다:
+1. 사용자 입력값의 불충분한 검증
+2. 동적 SQL 쿼리 생성 시 문자열 연결 사용
+3. 데이터베이스 오류 메시지의 과도한 노출
+4. 최소 권한 원칙 미준수
+
+### 공격 가능한 영역
+- 로그인 폼
+- 검색 기능
+- URL 파라미터
+- HTTP 헤더
+- 쿠키 값
+- XML 데이터
+- JSON 데이터
+
+### 공격으로 인한 피해
+1. **데이터 노출**
+   - 사용자 정보
+   - 비밀번호 해시
+   - 개인 식별 정보
+   - 금융 정보
+   - 기업 기밀
+
+2. **데이터 조작**
+   - 데이터 삽입
+   - 데이터 수정
+   - 데이터 삭제
+   - 권한 변경
+
+3. **시스템 접근**
+   - 관리자 권한 획득
+   - 운영체제 명령어 실행
+   - 네트워크 접근
+   - 다른 시스템 침투
 
 ---
 
 ## SQL 인젝션 동작 방식
-SQL 인젝션은 웹 애플리케이션이 사용자 입력값을 직접 SQL 쿼리에 포함시킬 때 발생합니다.
 
-### 예제 1: 취약한 로그인 시스템
+### 1. 기본적인 SQL 인젝션
 ```sql
+-- 원본 쿼리
 SELECT * FROM users WHERE username = '$username' AND password = '$password';
-```
 
-위의 쿼리는 사용자가 입력한 `username`과 `password`를 그대로 사용하고 있습니다. 공격자가 다음과 같은 입력을 제공할 경우:
+-- 공격자가 입력한 값
+username: admin' --
+password: anything
 
-- **Username:** `admin' --`
-- **Password:** `anything`
-
-실행되는 쿼리는 다음과 같이 변형됩니다:
-```sql
+-- 변형된 쿼리
 SELECT * FROM users WHERE username = 'admin' --' AND password = 'anything';
 ```
 
-`--` 주석 처리를 사용하여 비밀번호 확인 로직을 무시하고, `admin` 사용자로 로그인할 수 있습니다.
+### 2. UNION 기반 공격
+```sql
+-- 원본 쿼리
+SELECT product_name, price FROM products WHERE category = '$category';
+
+-- 공격자가 입력한 값
+category: Electronics' UNION SELECT username, password FROM users --
+
+-- 변형된 쿼리
+SELECT product_name, price FROM products WHERE category = 'Electronics' 
+UNION SELECT username, password FROM users --';
+```
+
+### 3. 조건부 공격
+```sql
+-- 원본 쿼리
+SELECT * FROM articles WHERE id = $id;
+
+-- 공격자가 입력한 값
+id: 1 AND 1=1
+
+-- 변형된 쿼리
+SELECT * FROM articles WHERE id = 1 AND 1=1;
+```
 
 ---
 
 ## SQL 인젝션 종류
 
 ### 1. 블라인드 SQL 인젝션 (Blind SQL Injection)
-- 데이터베이스의 오류 메시지를 반환하지 않지만, 참/거짓에 따른 결과를 확인하여 데이터를 추측하는 기법.
-- 예시: 참과 거짓에 따른 웹 페이지의 다른 응답을 확인.
+- **특징**
+  - 데이터베이스 오류 메시지가 표시되지 않음
+  - 참/거짓 결과만으로 데이터 추출
+  - 시간 지연 기반 공격 가능
+
+- **예시**
+```sql
+-- 시간 지연 기반 공격
+SELECT * FROM users WHERE username = 'admin' AND IF(1=1, SLEEP(5), 0);
+```
 
 ### 2. 오류 기반 SQL 인젝션 (Error-Based SQL Injection)
-- SQL 에러 메시지를 통해 데이터베이스 정보를 노출시키는 공격.
-- 예시: `1=1`과 같은 조건을 사용하여 쿼리 오류 유발.
+- **특징**
+  - 데이터베이스 오류 메시지를 활용
+  - 시스템 정보 추출
+  - 데이터베이스 구조 파악
+
+- **예시**
+```sql
+-- MySQL에서 버전 정보 추출
+SELECT * FROM users WHERE id = 1 AND extractvalue(1, concat(0x5c, version()));
+```
 
 ### 3. 유니온 기반 SQL 인젝션 (Union-Based SQL Injection)
-- `UNION SELECT` 문을 사용하여 다중 쿼리 결과를 결합하는 공격.
-- 예시:
-  ```sql
-  SELECT username, password FROM users WHERE id=1 UNION SELECT null, version();
-  ```
+- **특징**
+  - UNION 연산자 사용
+  - 다중 쿼리 결과 결합
+  - 데이터 추출 용이
+
+- **예시**
+```sql
+-- 사용자 테이블과 시스템 테이블 정보 추출
+SELECT username, password FROM users WHERE id = 1 
+UNION SELECT table_name, column_name FROM information_schema.columns;
+```
 
 ### 4. 스토어드 프로시저 SQL 인젝션 (Stored Procedure Injection)
-- 데이터베이스의 저장 프로시저를 조작하여 시스템 명령어 실행.
+- **특징**
+  - 저장 프로시저 내 SQL 인젝션
+  - 시스템 명령어 실행 가능
+  - 확장 저장 프로시저 악용
 
----
-
-## SQL 인젝션 예제와 시나리오
-
-### 시나리오: 웹사이트에서 사용자 데이터 조회
+- **예시**
 ```sql
-SELECT * FROM customers WHERE customer_id = '$customer_id';
+-- MSSQL에서 xp_cmdshell 실행
+EXEC master..xp_cmdshell 'net user hacker Password123 /add';
 ```
-
-공격자가 `customer_id` 입력란에 다음을 입력하면:
-```sql
-1 OR 1=1
-```
-
-결과:
-```sql
-SELECT * FROM customers WHERE customer_id = '1 OR 1=1';
-```
-모든 고객 데이터를 조회할 수 있습니다.
 
 ---
 
@@ -80,39 +140,155 @@ SELECT * FROM customers WHERE customer_id = '1 OR 1=1';
 
 ### 1. **프리페어드 스테이트먼트(Prepared Statement) 사용**
 ```python
+# Python 예시
 import sqlite3
 
-conn = sqlite3.connect('example.db')
-cursor = conn.cursor()
+def safe_login(username, password):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    # 안전한 쿼리 실행
+    cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", 
+                  (username, password))
+    
+    result = cursor.fetchone()
+    conn.close()
+    return result
 
-username = "admin"
-password = "password123"
-
-cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
-conn.commit()
-conn.close()
+# Java 예시
+String query = "SELECT * FROM users WHERE username = ? AND password = ?";
+PreparedStatement stmt = connection.prepareStatement(query);
+stmt.setString(1, username);
+stmt.setString(2, password);
+ResultSet rs = stmt.executeQuery();
 ```
 
 ### 2. **입력 데이터 검증**
-- 사용자 입력 데이터에서 SQL 메타 문자(`'`, `"`, `;`, `--` 등)를 필터링.
+```python
+def validate_input(input_data):
+    # SQL 메타 문자 필터링
+    forbidden_chars = ["'", '"', ";", "--", "/*", "*/", "xp_"]
+    for char in forbidden_chars:
+        if char in input_data:
+            return False
+    
+    # 입력 길이 제한
+    if len(input_data) > 100:
+        return False
+    
+    # 정규식 패턴 검증
+    import re
+    if not re.match(r'^[a-zA-Z0-9_]+$', input_data):
+        return False
+    
+    return True
+```
 
 ### 3. **최소 권한 원칙 적용**
-- 데이터베이스 사용자에게 최소 권한만 부여.
+```sql
+-- 데이터베이스 사용자 권한 설정
+CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'password';
+GRANT SELECT, INSERT ON database.users TO 'app_user'@'localhost';
+REVOKE ALL PRIVILEGES ON *.* FROM 'app_user'@'localhost';
+```
 
-### 4. **웹 애플리케이션 방화벽(WAF) 사용**
-- 웹 요청을 필터링하여 악성 SQL 인젝션 시도를 차단.
+### 4. **웹 애플리케이션 방화벽(WAF) 설정**
+```nginx
+# Nginx WAF 설정 예시
+location / {
+    # SQL 인젝션 패턴 차단
+    if ($request_uri ~* "union.*select|xp_cmdshell") {
+        return 403;
+    }
+    
+    # 특수 문자 필터링
+    if ($args ~* "[;'\"<>]") {
+        return 403;
+    }
+}
+```
 
-### 5. **데이터베이스 오류 메시지 숨기기**
-- 프로덕션 환경에서는 데이터베이스 오류 메시지를 사용자에게 노출하지 않음.
+### 5. **데이터베이스 오류 메시지 관리**
+```php
+// PHP 예시
+try {
+    $result = $db->query($sql);
+} catch (PDOException $e) {
+    // 프로덕션 환경에서는 일반적인 오류 메시지만 표시
+    error_log($e->getMessage());
+    echo "데이터베이스 오류가 발생했습니다. 관리자에게 문의하세요.";
+}
+```
+
+### 6. **ORM 사용**
+```python
+# Django ORM 예시
+from django.db import models
+
+class User(models.Model):
+    username = models.CharField(max_length=100)
+    password = models.CharField(max_length=100)
+
+# 안전한 쿼리 실행
+User.objects.filter(username=username, password=password)
+```
 
 ---
 
-## SQL 인젝션 테스트 도구
-- **SQLmap**: 자동화된 SQL 인젝션 탐지 및 실행 도구.
-- **Burp Suite**: 웹 애플리케이션 취약점 스캐너.
+## SQL 인젝션 테스트 방법
+
+### 1. 수동 테스트
+```sql
+-- 기본 테스트
+' OR '1'='1
+' OR '1'='1' --
+admin' --
+
+-- UNION 테스트
+' UNION SELECT null, null --
+' UNION SELECT username, password FROM users --
+
+-- 오류 기반 테스트
+' AND 1=CONVERT(int,(SELECT @@version)) --
+```
+
+### 2. 자동화 도구
+- **SQLmap**
+  ```bash
+  # 기본 스캔
+  sqlmap -u "http://example.com/login.php" --forms
+  
+  # 데이터베이스 덤프
+  sqlmap -u "http://example.com/login.php" --dump -D database
+  
+  # OS 쉘 획득
+  sqlmap -u "http://example.com/login.php" --os-shell
+  ```
+
+- **Burp Suite**
+  - Proxy 기능을 통한 요청/응답 분석
+  - Intruder 기능을 통한 자동화된 테스트
+  - Scanner 기능을 통한 취약점 스캔
 
 ---
 
 ## 결론
-SQL 인젝션은 웹 애플리케이션에서 흔히 발생하는 심각한 보안 취약점 중 하나입니다. 이를 방지하기 위해서는 **프리페어드 스테이트먼트** 사용, **입력값 검증**, **최소 권한 설정** 등의 보안 조치를 반드시 적용해야 합니다.
+SQL 인젝션은 여전히 가장 위험한 웹 애플리케이션 취약점 중 하나입니다. 이를 방지하기 위해서는:
+
+1. **코드 레벨에서의 방어**
+   - 프리페어드 스테이트먼트 사용
+   - 입력값 검증
+   - ORM 활용
+
+2. **인프라 레벨에서의 방어**
+   - WAF 구성
+   - 데이터베이스 권한 관리
+   - 로깅 및 모니터링
+
+3. **운영 레벨에서의 방어**
+   - 정기적인 보안 점검
+   - 취약점 스캔
+   - 보안 패치 관리
+
+이러한 다층적인 방어 전략을 통해 SQL 인젝션 공격으로부터 안전한 웹 애플리케이션을 구축할 수 있습니다.
 
