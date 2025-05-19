@@ -16,7 +16,7 @@
 ## SSL과 TLS의 차이점
 
 <div align="center">
-    <img src="../../../../etc/image/Network_image/7Layer/Http/TLS vs TSL.png" alt="Domain" width="50%">
+    <img src="../../etc/image/Network_image/7Layer/Http/TLS%20vs%20TSL.png" alt="Domain" width="50%">
 </div>
 
 
