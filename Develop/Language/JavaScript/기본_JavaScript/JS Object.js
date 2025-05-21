@@ -1,138 +1,219 @@
+// JavaScript Object 메서드 상세 설명 및 예제
 
-// 1. Object.keys(obj): 주어진 객체의 열거 가능한 프로퍼티 키를 배열로 반환합니다.
+// 1. Object.keys(obj): 객체의 모든 열거 가능한 프로퍼티 키를 배열로 반환
+// - 객체의 키만 필요할 때 유용
+// - 열거 가능한 프로퍼티만 반환 (enumerable: true)
+const user = {
+    name: 'John',
+    age: 30,
+    job: 'Developer',
+    [Symbol('id')]: 123 // 심볼은 열거되지 않음
+};
+console.log(Object.keys(user)); // ['name', 'age', 'job']
 
-const obj = { a: 1, b: 2, c: 3 };
-const keys = Object.keys(obj);
-console.log(keys); // ["a", "b", "c"]
-
-
-// 2. Object.values(obj): 주어진 객체의 열거 가능한 프로퍼티 값들을 배열로 반환합니다.
-
-const obj2 = { a: 1, b: 2, c: 3 };
-const values = Object.values(obj2);
-console.log(values); // [1, 2, 3]
-
-
-// 3. Object.entries(obj): 주어진 객체의 열거 가능한 프로퍼티 키와 값들을 [키, 값] 쌍의 배열로 반환합니다.
-
-const obj3 = { a: 1, b: 2, c: 3 };
-const entries = Object.entries(obj3);
-console.log(entries); // [["a", 1], ["b", 2], ["c", 3]]
-
-
-// 4. Object.assign(target, ...sources): 하나 이상의 소스 객체에서 대상 객체로 프로퍼티들을 복사합니다.
-
-const target = { a: 1 };
-const source = { b: 2 };
-const result = Object.assign(target, source);
-console.log(result); // { a: 1, b: 2 }
-
-
-// 5. Object.hasOwnProperty(prop): 객체가 주어진 프로퍼티를 직접 소유하고 있는지 여부를 확인합니다.
-
-const obj4 = { a: 1 };
-console.log(obj4.hasOwnProperty('a')); // true
-console.log(obj4.hasOwnProperty('b')); // false
-
-
-// 6. Object.freeze(obj): 주어진 객체를 변경할 수 없도록 동결합니다. 프로퍼티의 추가, 수정, 삭제가 불가능해집니다.
-
-const obj5 = { a: 1 };
-Object.freeze(obj5);
-obj5.b = 2; // 변경이 불가능하므로 무시됩니다.
-console.log(obj5); // { a: 1 }
-
-
-// 7. Object.seal(obj): 주어진 객체를 밀봉하여 프로퍼티의 추가와 삭제는 불가능하지만 값의 수정은 가능하도록 합니다.
-const obj6 = { a: 1 };
-Object.seal(obj6);
-obj6.a = 2; // 값의 수정은 가능합니다.
-obj6.b = 3; // 프로퍼티의 추가는 불가능하므로 무시됩니다.
-console.log(obj6); // { a: 2 }
-
-
-// 8. Object.getOwnPropertyDescriptor(obj, prop): 주어진 객체의 특정 프로퍼티에 대한 속성 디스크립터를 반환합니다. 디스크립터에는 해당 프로퍼티의 속성 정보가 포함됩니다.
-const obj7 = { a: 1 };
-const descriptor = Object.getOwnPropertyDescriptor(obj7, 'a');
-console.log(descriptor);
-// { value: 1, writable: true, enumerable: true, configurable: true }
-
-
-// 9. Object.defineProperty(obj, prop, descriptor): 주어진 객체에 새로운 프로퍼티를 정의하거나 기존 프로퍼티의 속성을 수정합니다.
-const obj9 = {};
-Object.defineProperty(obj, 'a', {
-    value: 1,
-    writable: false,
-    enumerable: true,
-    configurable: false
+// 실제 사용 예시: 객체의 모든 키를 순회하며 처리
+Object.keys(user).forEach(key => {
+    console.log(`${key}: ${user[key]}`);
 });
-console.log(obj9); // { a: 1 }
-obj9.a = 2; // writable이 false이므로 값 수정이 불가능합니다.
-console.log(obj9); // { a: 1 }
 
+// 2. Object.values(obj): 객체의 모든 열거 가능한 프로퍼티 값을 배열로 반환
+// - 객체의 값만 필요할 때 유용
+// - 열거 가능한 프로퍼티의 값만 반환
+const product = {
+    name: 'Laptop',
+    price: 1000,
+    inStock: true,
+    [Symbol('sku')]: 'LP001' // 심볼은 열거되지 않음
+};
+console.log(Object.values(product)); // ['Laptop', 1000, true]
 
+// 실제 사용 예시: 모든 가격의 합계 계산
+const prices = {
+    item1: 100,
+    item2: 200,
+    item3: 300
+};
+const total = Object.values(prices).reduce((sum, price) => sum + price, 0);
+console.log(`Total: $${total}`); // Total: $600
 
-// 10. Object.create(proto, [propertiesObject]): 주어진 프로토타입을 가지는 새로운 객체를 생성합니다. 선택적으로 프로퍼티를 지정하여 추가적인 설정을 할 수 있습니다.
-const person = {
-    greeting() {
-        console.log('Hello!');
+// 3. Object.entries(obj): 객체의 모든 열거 가능한 프로퍼티를 [키, 값] 쌍의 배열로 반환
+// - 객체를 배열로 변환하여 반복 처리가 필요할 때 유용
+const settings = {
+    theme: 'dark',
+    language: 'ko',
+    notifications: true
+};
+console.log(Object.entries(settings)); // [['theme', 'dark'], ['language', 'ko'], ['notifications', true]]
+
+// 실제 사용 예시: 객체를 Map으로 변환
+const map = new Map(Object.entries(settings));
+console.log(map.get('theme')); // 'dark'
+
+// 4. Object.assign(target, ...sources): 하나 이상의 소스 객체에서 대상 객체로 프로퍼티를 복사
+// - 객체 병합, 복사, 기본값 설정 등에 사용
+// - 얕은 복사만 수행 (중첩된 객체는 참조만 복사)
+const defaultConfig = {
+    apiKey: 'default-key',
+    timeout: 5000,
+    retries: 3
+};
+const userConfig = {
+    apiKey: 'user-key',
+    timeout: 3000
+};
+const finalConfig = Object.assign({}, defaultConfig, userConfig);
+console.log(finalConfig); // { apiKey: 'user-key', timeout: 3000, retries: 3 }
+
+// 실제 사용 예시: 객체 복사
+const original = { a: 1, b: { c: 2 } };
+const copy = Object.assign({}, original);
+console.log(copy); // { a: 1, b: { c: 2 } }
+copy.b.c = 3; // 원본 객체도 변경됨 (얕은 복사)
+
+// 5. Object.freeze(obj): 객체를 완전히 불변하게 만듦
+// - 프로퍼티 추가, 수정, 삭제가 모두 불가능
+// - 중첩된 객체는 동결되지 않음 (얕은 동결)
+const config = Object.freeze({
+    apiKey: '123',
+    endpoints: {
+        users: '/api/users',
+        posts: '/api/posts'
+    }
+});
+config.apiKey = '456'; // 무시됨
+config.endpoints.users = '/api/new-users'; // 중첩 객체는 수정 가능
+console.log(config); // { apiKey: '123', endpoints: { users: '/api/new-users', posts: '/api/posts' } }
+
+// 실제 사용 예시: 설정 객체 보호
+const appConfig = Object.freeze({
+    version: '1.0.0',
+    debug: false,
+    settings: {
+        theme: 'light',
+        language: 'en'
+    }
+});
+
+// 6. Object.seal(obj): 객체를 밀봉하여 프로퍼티 추가/삭제는 불가능하지만 값 수정은 가능
+// - 기존 프로퍼티의 값은 수정 가능
+// - 프로퍼티 추가/삭제는 불가능
+const userProfile = Object.seal({
+    name: 'John',
+    age: 30,
+    email: 'john@example.com'
+});
+userProfile.age = 31; // 가능
+userProfile.job = 'Developer'; // 무시됨
+delete userProfile.email; // 무시됨
+console.log(userProfile); // { name: 'John', age: 31, email: 'john@example.com' }
+
+// 실제 사용 예시: 사용자 프로필 수정 제한
+const profile = Object.seal({
+    username: 'john_doe',
+    email: 'john@example.com',
+    preferences: {
+        theme: 'dark',
+        notifications: true
+    }
+});
+
+// 7. Object.defineProperty(obj, prop, descriptor): 객체의 프로퍼티를 상세하게 정의
+// - 프로퍼티의 특성(writable, enumerable, configurable)을 제어
+// - getter/setter 정의 가능
+const person = {};
+Object.defineProperty(person, 'name', {
+    value: 'John',
+    writable: false, // 값 수정 불가
+    enumerable: true, // 열거 가능
+    configurable: false // 삭제 및 재정의 불가
+});
+console.log(person.name); // 'John'
+person.name = 'Jane'; // 무시됨
+console.log(person.name); // 'John'
+
+// 실제 사용 예시: getter/setter 정의
+const temperature = {
+    _celsius: 0
+};
+Object.defineProperty(temperature, 'celsius', {
+    get() {
+        return this._celsius;
+    },
+    set(value) {
+        if (value < -273.15) {
+            throw new Error('Temperature cannot be below absolute zero');
+        }
+        this._celsius = value;
+    }
+});
+temperature.celsius = 25;
+console.log(temperature.celsius); // 25
+
+// 8. Object.create(proto, [propertiesObject]): 지정된 프로토타입을 가진 새 객체 생성
+// - 프로토타입 상속을 구현할 때 유용
+// - 프로퍼티를 추가로 정의 가능
+const animal = {
+    makeSound() {
+        console.log('Some sound');
     }
 };
-const john = Object.create(person);
-john.name = 'John';
-console.log(john.name); // John
-john.greeting(); // Hello!
+const dog = Object.create(animal, {
+    name: {
+        value: 'Rex',
+        enumerable: true
+    },
+    breed: {
+        value: 'German Shepherd',
+        enumerable: true
+    }
+});
+dog.makeSound(); // 'Some sound'
+console.log(dog.name); // 'Rex'
 
-
-// 11. Object.getPrototypeOf(obj): 주어진 객체의 프로토타입을 반환합니다.
-const person2 = { name: 'John' };
-const john2 = Object.create(person2);
-console.log(Object.getPrototypeOf(john2)); // { name: 'John' }
-
-
-// 12. Object.setPrototypeOf(obj, prototype): 주어진 객체의 프로토타입을 설정합니다.
-const person3 = { name: 'John' };
-const john3 = {};
-Object.setPrototypeOf(john3, person3);
-console.log(john3.name); // John
-
-
-// 13. Object.is(value1, value2): 두 값이 같은지 여부를 비교합니다. 일치 연산자(===)와 유사하지만 몇 가지 특별한 경우에 다른 결과를 반환할 수 있습니다.
-console.log(Object.is(5, 5)); // true
-console.log(Object.is('abc', 'abc')); // true
-console.log(Object.is([], [])); // false (각각 다른 객체)
-
-// 14. JavaScript에서 객체의 키를 만드는 방법
-// 객체 리터럴 문법을 사용하여 객체와 문자열 키를 생성할 수 있습니다.
-const obj14 = {
-    key1: 'value1',
-    'key2': 'value2',
-    "key3": 'value3'
+// 실제 사용 예시: 프로토타입 체인 구현
+const vehicle = {
+    start() {
+        console.log('Vehicle starting...');
+    }
 };
+const car = Object.create(vehicle, {
+    wheels: {
+        value: 4,
+        enumerable: true
+    }
+});
+car.start(); // 'Vehicle starting...'
 
-// 변수를 사용하여 동적으로 키를 생성할 수도 있습니다.
-const dynamicKey = 'dynamicKey';
-const obj14_2 = {
-    [dynamicKey]: 'dynamicValue'
+// 9. Object.getPrototypeOf(obj)와 Object.setPrototypeOf(obj, prototype)
+// - 객체의 프로토타입을 가져오거나 설정
+const animal2 = { type: 'animal' };
+const dog2 = { name: 'Rex' };
+Object.setPrototypeOf(dog2, animal2);
+console.log(Object.getPrototypeOf(dog2) === animal2); // true
+console.log(dog2.type); // 'animal'
+
+// 실제 사용 예시: 프로토타입 체인 확인
+const mammal = { type: 'mammal' };
+const dog3 = Object.create(mammal);
+console.log(Object.getPrototypeOf(dog3) === mammal); // true
+
+// 10. Object.is(value1, value2): 두 값이 같은지 여부를 비교
+// - === 연산자와 달리 NaN과 -0, +0을 정확하게 비교
+console.log(Object.is(NaN, NaN)); // true
+console.log(NaN === NaN); // false
+console.log(Object.is(-0, +0)); // false
+console.log(-0 === +0); // true
+
+// 실제 사용 예시: 특수한 값 비교
+const compareValues = (a, b) => {
+    if (Object.is(a, b)) {
+        console.log('Values are exactly the same');
+    } else {
+        console.log('Values are different');
+    }
 };
-
-console.log(obj14_2);
-
-// 15. 심볼을 생성하고 객체의 키로 사용할 수 있습니다.
-const key = Symbol('uniqueKey');
-const obj15 = {
-    [key]: 'value'
-};
-
-console.log(obj15)
-
-// 16. 표현식을 사용하여 키를 동적으로 계산할 수 있습니다.
-const prefix = 'pre';
-const suffix = 'suf';
-const obj16 = {
-   [`${prefix}fix`]: 'value'
-};
-console.log(obj16)
+compareValues(NaN, NaN); // 'Values are exactly the same'
+compareValues(-0, +0); // 'Values are different'
 
 
 
