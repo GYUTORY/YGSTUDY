@@ -14,23 +14,164 @@
 - 쿼리 트리(Query Tree) 생성
 
 ### 2. 실행 계획 생성(Execution Plan Generation)
-- 다양한 실행 계획 후보군 생성
-- 테이블 접근 방법 결정
-  - 전체 테이블 스캔(Full Table Scan)
-  - 인덱스 스캔(Index Scan)
-  - 인덱스 범위 스캔(Index Range Scan)
-  - 인덱스 고유 스캔(Index Unique Scan)
-- 조인 방법 선택
-  - 중첩 루프 조인(Nested Loop Join)
-  - 해시 조인(Hash Join)
-  - 정렬 병합 조인(Sort Merge Join)
-- 조인 순서 최적화
-- 서브쿼리 처리 방식 결정
-  - 서브쿼리 언네스팅(Subquery Unnesting)
-  - 서브쿼리 머지(Subquery Merging)
-  - 서브쿼리 팩토링(Subquery Factoring)
-- 인덱스 사용 여부 및 선택
-- 정렬 및 그룹화 방법 결정
+실행 계획 생성은 옵티마이저의 핵심 기능으로, SQL 쿼리를 가장 효율적으로 실행할 수 있는 방법을 결정하는 과정입니다. 이 과정은 마치 GPS가 최적의 경로를 찾는 것과 유사합니다.
+
+#### 2.1 실행 계획의 기본 개념
+- **정의**: SQL 쿼리를 실행하기 위한 단계별 처리 방법을 정의한 청사진
+- **목적**: 최소한의 자원으로 최대한의 성능을 달성
+- **구성 요소**: 테이블 접근 방법, 조인 방식, 정렬 방식, 필터 조건 등
+
+#### 2.2 테이블 접근 방법 (Table Access Methods)
+1. **전체 테이블 스캔 (Full Table Scan)**
+   - 모든 데이터 블록을 순차적으로 읽는 방식
+   - 적합한 경우:
+     - 테이블이 작은 경우 (전체 데이터의 5-10% 이하)
+     - WHERE 절의 조건이 인덱스를 사용할 수 없는 경우
+     - 대부분의 행을 검색해야 하는 경우
+   - 예시:
+     ```sql
+     SELECT * FROM employees WHERE salary > 1000;
+     ```
+
+2. **인덱스 스캔 (Index Scan)**
+   - **인덱스 범위 스캔 (Index Range Scan)**
+     - 특정 범위의 값을 검색할 때 사용
+     - 예시:
+       ```sql
+       SELECT * FROM employees WHERE salary BETWEEN 3000 AND 5000;
+       ```
+   - **인덱스 고유 스캔 (Index Unique Scan)**
+     - 단일 행을 검색할 때 사용
+     - 예시:
+       ```sql
+       SELECT * FROM employees WHERE employee_id = 100;
+       ```
+   - **인덱스 스킵 스캔 (Index Skip Scan)**
+     - 복합 인덱스의 첫 번째 컬럼이 WHERE 절에 없는 경우에도 사용 가능
+     - 예시:
+       ```sql
+       -- (gender, salary) 복합 인덱스가 있는 경우
+       SELECT * FROM employees WHERE salary > 5000;
+       ```
+
+#### 2.3 조인 방법 (Join Methods)
+1. **중첩 루프 조인 (Nested Loop Join)**
+   - 작은 테이블을 외부 테이블로 사용
+   - 적합한 경우:
+     - 조인 조건에 인덱스가 있는 경우
+     - 결과 집합이 작은 경우
+   - 예시:
+     ```sql
+     SELECT e.name, d.department_name
+     FROM employees e
+     JOIN departments d ON e.department_id = d.department_id;
+     ```
+
+2. **해시 조인 (Hash Join)**
+   - 메모리에 해시 테이블을 생성하여 조인
+   - 적합한 경우:
+     - 대용량 테이블 간의 조인
+     - 동등 조인(=) 조건
+   - 예시:
+     ```sql
+     SELECT e.name, s.salary
+     FROM employees e
+     JOIN salaries s ON e.employee_id = s.employee_id;
+     ```
+
+3. **정렬 병합 조인 (Sort Merge Join)**
+   - 양쪽 테이블을 정렬한 후 병합
+   - 적합한 경우:
+     - 대용량 테이블 간의 조인
+     - 정렬된 데이터가 필요한 경우
+   - 예시:
+     ```sql
+     SELECT e.name, s.salary
+     FROM employees e
+     JOIN salaries s ON e.employee_id = s.employee_id
+     ORDER BY e.name;
+     ```
+
+#### 2.4 서브쿼리 처리 방식
+1. **서브쿼리 언네스팅 (Subquery Unnesting)**
+   - 서브쿼리를 조인으로 변환
+   - 예시:
+     ```sql
+     -- 변환 전
+     SELECT * FROM employees
+     WHERE department_id IN (SELECT department_id FROM departments);
+     
+     -- 변환 후
+     SELECT e.* FROM employees e
+     JOIN departments d ON e.department_id = d.department_id;
+     ```
+
+2. **서브쿼리 머지 (Subquery Merging)**
+   - 서브쿼리를 메인 쿼리와 병합
+   - 예시:
+     ```sql
+     -- 변환 전
+     SELECT e.*, (SELECT AVG(salary) FROM employees) as avg_salary
+     FROM employees e;
+     
+     -- 변환 후
+     SELECT e.*, avg_salary
+     FROM employees e
+     CROSS JOIN (SELECT AVG(salary) as avg_salary FROM employees) s;
+     ```
+
+#### 2.5 실행 계획 최적화 기법
+1. **조인 순서 최적화**
+   - 테이블 크기와 선택도를 고려한 조인 순서 결정
+   - 작은 결과 집합을 먼저 처리하는 것이 유리
+   - 예시:
+     ```sql
+     -- 최적화 전
+     SELECT * FROM large_table l
+     JOIN small_table s ON l.id = s.id;
+     
+     -- 최적화 후
+     SELECT * FROM small_table s
+     JOIN large_table l ON s.id = l.id;
+     ```
+
+2. **인덱스 선택 최적화**
+   - 선택도가 높은 인덱스 우선 사용
+   - 복합 인덱스의 컬럼 순서 고려
+   - 예시:
+     ```sql
+     -- (last_name, first_name) 인덱스가 있는 경우
+     SELECT * FROM employees
+     WHERE last_name = 'Smith' AND first_name = 'John';
+     ```
+
+3. **정렬 최적화**
+   - 인덱스를 활용한 정렬
+   - 메모리 정렬 vs 디스크 정렬 결정
+   - 예시:
+     ```sql
+     -- 인덱스를 활용한 정렬
+     SELECT * FROM employees
+     ORDER BY employee_id;  -- employee_id에 인덱스가 있는 경우
+     ```
+
+#### 2.6 실행 계획 생성 시 고려사항
+1. **통계 정보 활용**
+   - 테이블 크기
+   - 컬럼 분포도
+   - 인덱스 선택도
+   - 데이터 블록 수
+
+2. **시스템 리소스 고려**
+   - 사용 가능한 메모리
+   - CPU 코어 수
+   - 디스크 I/O 성능
+   - 네트워크 대역폭
+
+3. **동시성 제어**
+   - 락(Lock) 경합
+   - 트랜잭션 격리 수준
+   - 동시 접근 사용자 수
 
 ### 3. 실행 계획 평가(Execution Plan Evaluation)
 - 각 실행 계획의 비용 계산
