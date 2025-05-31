@@ -1,6 +1,207 @@
+# JavaScript의 함수 정의 방식: 일반 함수 vs 화살표 함수
 
-### 자바스크립트(ES6)에서 함수를 정의하는 방법은 크게 두가지로 나뉜다.
-- 일반함수와 화살표 함수 이다.
+## 1. 함수 정의 방식의 차이
+
+### 1.1 일반 함수 (Function Declaration/Expression)
+```javascript
+// 함수 선언식 (Function Declaration)
+function main() {
+	return 'function';
+}
+
+// 함수 표현식 (Function Expression)
+const main = function() {
+	return 'function';
+};
+```
+
+### 1.2 화살표 함수 (Arrow Function)
+```javascript
+// 기본 화살표 함수
+const main = () => {
+	return 'function';
+};
+
+// 단일 표현식의 경우 return과 중괄호 생략 가능
+const main = () => 'function';
+
+// 매개변수가 하나인 경우 괄호 생략 가능
+const square = x => x * x;
+
+// 매개변수가 없는 경우 괄호 필수
+const sayHello = () => 'Hello!';
+```
+
+## 2. 주요 차이점
+
+### 2.1 this 바인딩
+가장 중요한 차이점은 `this` 키워드의 동작 방식입니다.
+
+#### 일반 함수의 this
+- 일반 함수에서 `this`는 함수가 호출되는 방식에 따라 동적으로 결정됩니다.
+- 함수를 호출한 객체를 가리키며, 호출 방식에 따라 달라질 수 있습니다.
+
+```javascript
+const person = {
+	name: "Alice",
+	greet: function() {
+		console.log(`Hello, my name is ${this.name}`);
+	}
+};
+
+person.greet();  // "Hello, my name is Alice"
+
+const greet = person.greet;
+greet();  // "Hello, my name is undefined" (전역 객체의 name)
+```
+
+#### 화살표 함수의 this
+- 화살표 함수는 자신만의 `this`를 가지지 않고, 상위 스코프의 `this`를 그대로 사용합니다.
+- 이를 "렉시컬 this"라고도 합니다.
+
+```javascript
+const person = {
+	name: "Alice",
+	greet: () => {
+		console.log(`Hello, my name is ${this.name}`);
+	}
+};
+
+person.greet();  // "Hello, my name is undefined"
+```
+
+### 2.2 arguments 객체
+- 일반 함수는 자체적으로 `arguments` 객체를 가집니다.
+- 화살표 함수는 `arguments` 객체를 가지지 않습니다.
+
+```javascript
+// 일반 함수
+function regular() {
+	console.log(arguments);
+}
+regular(1, 2, 3);  // Arguments(3) [1, 2, 3]
+
+// 화살표 함수
+const arrow = () => {
+	console.log(arguments);
+}
+arrow(1, 2, 3);  // ReferenceError: arguments is not defined
+```
+
+### 2.3 생성자 함수
+- 일반 함수는 `new` 키워드로 생성자 함수로 사용할 수 있습니다.
+- 화살표 함수는 생성자 함수로 사용할 수 없습니다.
+
+```javascript
+// 일반 함수는 생성자로 사용 가능
+function Person(name) {
+	this.name = name;
+}
+const person = new Person('Alice');
+
+// 화살표 함수는 생성자로 사용 불가
+const Person = (name) => {
+	this.name = name;
+}
+const person = new Person('Alice');  // TypeError: Person is not a constructor
+```
+
+## 3. 실제 사용 사례
+
+### 3.1 이벤트 핸들러
+```javascript
+class Button {
+	constructor() {
+		this.clicks = 0;
+		this.button = document.querySelector('button');
+		
+		// 일반 함수: this가 이벤트 타겟을 가리킴
+		this.button.addEventListener('click', function() {
+			this.clicks++;  // this는 button 요소
+		});
+		
+		// 화살표 함수: this가 Button 인스턴스를 가리킴
+		this.button.addEventListener('click', () => {
+			this.clicks++;  // this는 Button 인스턴스
+		});
+	}
+}
+```
+
+### 3.2 콜백 함수
+```javascript
+class Timer {
+	constructor() {
+		this.seconds = 0;
+	}
+	
+	start() {
+		// 일반 함수: this가 undefined
+		setInterval(function() {
+			this.seconds++;
+		}, 1000);
+		
+		// 화살표 함수: this가 Timer 인스턴스
+		setInterval(() => {
+			this.seconds++;
+		}, 1000);
+	}
+}
+```
+
+### 3.3 메서드 축약
+```javascript
+const obj = {
+	// 일반 함수 메서드
+	method: function() {
+		return this;
+	},
+	
+	// 화살표 함수 메서드
+	arrowMethod: () => {
+		return this;
+	}
+};
+```
+
+## 4. 모범 사례와 주의사항
+
+### 4.1 화살표 함수 사용이 적절한 경우
+- 콜백 함수
+- 이벤트 핸들러
+- 클래스 메서드
+- `this` 바인딩이 필요한 경우
+
+### 4.2 일반 함수 사용이 적절한 경우
+- 생성자 함수
+- 메서드 정의
+- `arguments` 객체가 필요한 경우
+- `this`가 동적으로 바인딩되어야 하는 경우
+
+### 4.3 주의사항
+```javascript
+// 잘못된 사용 예시
+const person = {
+	name: "Alice",
+	greet: () => {
+		console.log(`Hello, my name is ${this.name}`);
+	}
+};
+
+// 올바른 사용 예시
+const person = {
+	name: "Alice",
+	greet() {
+		console.log(`Hello, my name is ${this.name}`);
+	}
+};
+```
+
+## 5. 결론
+- 일반 함수와 화살표 함수는 각각의 용도에 맞게 사용해야 합니다.
+- `this` 바인딩이 중요한 경우 화살표 함수를 사용하세요.
+- 생성자 함수나 메서드 정의에는 일반 함수를 사용하세요.
+- 코드의 가독성과 유지보수성을 고려하여 적절한 함수 타입을 선택하세요.
 
 ```javascript
 function main() { // 일반 함수
@@ -23,10 +224,10 @@ const main = () => 'function'; // 화살표 함수
 
 ```javascript
 const person = {
-    name: "Alice",
-    greet: function() {
-        console.log(`Hello, my name is ${this.name}`);
-    }
+	name: "Alice",
+	greet: function() {
+		console.log(`Hello, my name is ${this.name}`);
+	}
 };
 
 person.greet();  // "Hello, my name is Alice"
@@ -44,10 +245,10 @@ person.greet();  // "Hello, my name is Alice"
 
 ```javascript
 const person = {
-    name: "Alice",
-    greet: () => {
-        console.log(`Hello, my name is ${this.name}`);
-    }
+	name: "Alice",
+	greet: () => {
+		console.log(`Hello, my name is ${this.name}`);
+	}
 };
 
 person.greet();  // "Hello, my name is undefined"
@@ -66,10 +267,10 @@ person.greet();  // "Hello, my name is undefined"
 
 ```javascript
 const person = {
-    name: "Alice",
-    greet: () => {
-        console.log(`Hello, my name is ${this.name}`);
-    }
+	name: "Alice",
+	greet: () => {
+		console.log(`Hello, my name is ${this.name}`);
+	}
 };
 
 exports.name = "James";
@@ -105,10 +306,10 @@ person.greet();  // "Hello, my name is James"
 
 ```javascript
 const person = {
-    name: "Alice",
-    greet: () => {
-        console.log(`Hello, my name is ${this.name}`);
-    }
+	name: "Alice",
+	greet: () => {
+		console.log(`Hello, my name is ${this.name}`);
+	}
 };
 
 global.name = "Global Name";  // Node.js에서는 글로벌 스코프에 `name`을 설정
@@ -125,17 +326,17 @@ person.greet();  // "Hello, my name is Global Name"
 #### 2.1 생성자 함수 내부에서의 화살표 함수
 ```javascript
 function Person(name) {
-    this.name = name;
-    
-    // 일반 함수로 메서드 정의
-    this.sayHello = function() {
-        console.log(`Hello, my name is ${this.name}`);
-    };
-    
-    // 화살표 함수로 메서드 정의
-    this.sayHelloArrow = () => {
-        console.log(`Hello, my name is ${this.name}`);
-    };
+	this.name = name;
+	
+	// 일반 함수로 메서드 정의
+	this.sayHello = function() {
+		console.log(`Hello, my name is ${this.name}`);
+	};
+	
+	// 화살표 함수로 메서드 정의
+	this.sayHelloArrow = () => {
+		console.log(`Hello, my name is ${this.name}`);
+	};
 }
 
 const alice = new Person("Alice");
@@ -162,21 +363,21 @@ greetArrow();  // "Hello, my name is Alice"
 #### 2.2 이벤트 핸들러에서의 화살표 함수
 ```javascript
 class Button {
-    constructor() {
-        this.clicks = 0;
-        
-        // 일반 함수로 이벤트 핸들러 정의
-        this.handleClick = function() {
-            this.clicks++;
-            console.log(`Clicked ${this.clicks} times`);
-        };
-        
-        // 화살표 함수로 이벤트 핸들러 정의
-        this.handleClickArrow = () => {
-            this.clicks++;
-            console.log(`Clicked ${this.clicks} times`);
-        };
-    }
+	constructor() {
+		this.clicks = 0;
+		
+		// 일반 함수로 이벤트 핸들러 정의
+		this.handleClick = function() {
+			this.clicks++;
+			console.log(`Clicked ${this.clicks} times`);
+		};
+		
+		// 화살표 함수로 이벤트 핸들러 정의
+		this.handleClickArrow = () => {
+			this.clicks++;
+			console.log(`Clicked ${this.clicks} times`);
+		};
+	}
 }
 
 const button = new Button();
@@ -193,23 +394,23 @@ document.addEventListener('click', button.handleClickArrow);  // this가 Button 
 #### 2.3 콜백 함수에서의 화살표 함수
 ```javascript
 class Counter {
-    constructor() {
-        this.count = 0;
-    }
-    
-    startCounting() {
-        // 일반 함수를 콜백으로 사용
-        setInterval(function() {
-            this.count++;
-            console.log(this.count);
-        }, 1000);  // this가 undefined 또는 window를 가리킴
-        
-        // 화살표 함수를 콜백으로 사용
-        setInterval(() => {
-            this.count++;
-            console.log(this.count);
-        }, 1000);  // this가 Counter 인스턴스를 가리킴
-    }
+	constructor() {
+		this.count = 0;
+	}
+	
+	startCounting() {
+		// 일반 함수를 콜백으로 사용
+		setInterval(function() {
+			this.count++;
+			console.log(this.count);
+		}, 1000);  // this가 undefined 또는 window를 가리킴
+		
+		// 화살표 함수를 콜백으로 사용
+		setInterval(() => {
+			this.count++;
+			console.log(this.count);
+		}, 1000);  // this가 Counter 인스턴스를 가리킴
+	}
 }
 ```
 
