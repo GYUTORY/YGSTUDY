@@ -77,11 +77,33 @@ SSM은 정말 다양한 기능을 제공합니다.
 
 ## 4. SSM 시작하기: 실습 예제 🧑‍💻
 
-### 4.1. SSM Agent 설치
+### 4.1. SSM Agent란 무엇인가?
 
-대부분의 최신 Amazon Linux, Ubuntu 등에는 SSM Agent가 기본 설치되어 있습니다. 하지만 직접 설치해야 하는 경우도 있으니, 아래 명령어로 설치할 수 있습니다.
+SSM Agent는 AWS Systems Manager의 핵심 구성요소로, EC2 인스턴스(또는 온프레미스 서버)와 AWS SSM 서비스 간의 통신을 담당하는 소프트웨어입니다. 이 에이전트가 설치되어 있어야만 Run Command, Session Manager, Patch Manager 등 다양한 SSM 기능을 사용할 수 있습니다.
 
-> 💡 **Tip:** SSM Agent가 최신 버전인지 주기적으로 확인하는 것이 좋습니다!
+- **주요 역할:**
+  - AWS SSM 콘솔/CLI/SDK에서 내리는 명령을 인스턴스에서 실제로 실행합니다.
+  - 명령 실행 결과, 로그, 인스턴스 상태 정보를 AWS로 전송합니다.
+  - Parameter Store, Patch Manager, State Manager 등 다양한 SSM 기능과 연동됩니다.
+
+- **동작 방식:**
+  - SSM Agent는 인스턴스 내에서 데몬(서비스) 형태로 동작하며, 주기적으로 AWS SSM 서비스와 통신합니다.
+  - AWS에서 명령이 내려오면 이를 받아서 실행하고, 결과를 다시 AWS로 전송합니다.
+  - 네트워크는 기본적으로 HTTPS(443포트)를 사용하므로, 별도의 SSH 포트 오픈이 필요 없습니다.
+
+- **지원 운영체제:**
+  - Amazon Linux, Amazon Linux 2, Ubuntu, CentOS, RHEL, Windows Server 등 주요 OS를 지원합니다.
+  - 최신 AMI에는 기본 내장되어 있지만, 구버전이나 온프레미스 서버에는 직접 설치가 필요할 수 있습니다.
+
+- **보안 및 감사:**
+  - SSM Agent를 사용하면 SSH 키 관리, Bastion Host 운영, 방화벽 설정 등 복잡한 작업 없이도 안전하게 서버를 관리할 수 있습니다.
+  - 모든 명령 실행 및 세션 기록이 CloudTrail에 남아 보안 감사에 유리합니다.
+
+- **장애 시 현상 및 모니터링:**
+  - SSM Agent가 비정상적으로 종료되거나 네트워크가 끊기면 해당 인스턴스가 SSM 콘솔에서 사라지거나 명령 실행이 되지 않습니다.
+  - CloudWatch Logs와 연동해 SSM Agent의 상태를 모니터링하면 장애를 빠르게 감지할 수 있습니다.
+
+> 💡 **실무 Tip:** SSM Agent가 항상 최신 버전으로 유지되도록 관리하고, 장애 발생 시 빠르게 재시작할 수 있도록 모니터링 체계를 갖추는 것이 중요합니다.
 
 #### Amazon Linux, Amazon Linux 2, Ubuntu
 
