@@ -368,174 +368,165 @@ class ImageCache {
 
 ---
 
-# 🖥️ 백엔드(Node.js) 관점에서의 가비지 컬렉션과 메모리 관리
+## 🖥️ 백엔드(Node.js) 환경에서의 메모리 관리
 
-## 1. Node.js 메모리 구조와 가비지 컬렉션
+### 1. Node.js 특화 메모리 누수
 
-Node.js는 V8 엔진을 사용하며, 프론트엔드와 달리 서버에서 장시간 실행되는 프로세스의 특성상 메모리 누수와 가비지 컬렉션의 영향이 훨씬 큽니다.
-
-### 주요 메모리 영역
-- **힙(Heap)**: 객체, 배열 등 동적 데이터 저장
-- **콜스택(Call Stack)**: 함수 실행 컨텍스트 저장
-- **C++ 버퍼/네이티브 메모리**: Buffer, Addon 등에서 사용
-
-### V8의 가비지 컬렉션
-- **Mark-and-Sweep**: 도달 불가능한 객체를 탐색 후 해제
-- **Generational GC**: Young/Old 영역 분리, 살아남은 객체만 Old로 이동
-- **Incremental/Concurrent GC**: 서버 응답 지연 최소화
-
-## 2. 백엔드에서 자주 발생하는 메모리 누수 예제
-
-### 2.1 이벤트 리스너 누수
-```javascript
-const EventEmitter = require('events');
-const emitter = new EventEmitter();
-
-// ❌ 누수 예시: 리스너가 계속 쌓임
-function addLeakListener() {
-  emitter.on('data', () => console.log('data event'));
-}
-setInterval(addLeakListener, 1000); // 1초마다 리스너 추가
-
-// ✅ 해결: 리스너 중복 방지 또는 제거
-function addSafeListener() {
-  if (emitter.listenerCount('data') === 0) {
-    emitter.on('data', () => console.log('data event'));
-  }
-}
-```
-
-### 2.2 데이터베이스 커넥션 누수
+#### 1.1 데이터베이스 커넥션 누수
 ```javascript
 const mysql = require('mysql2');
 const pool = mysql.createPool({ connectionLimit: 10, /* ... */ });
 
 // ❌ 누수 예시: 커넥션 반환 안함
 function leakDbConn() {
-  pool.getConnection((err, conn) => {
-    if (err) return;
-    conn.query('SELECT 1', () => {
-      // conn.release() 빠짐! 누수 발생
+    pool.getConnection((err, conn) => {
+        if (err) return;
+        conn.query('SELECT 1', () => {
+            // conn.release() 빠짐! 누수 발생
+        });
     });
-  });
 }
 
 // ✅ 해결: 항상 release 호출
 function safeDbConn() {
-  pool.getConnection((err, conn) => {
-    if (err) return;
-    conn.query('SELECT 1', () => {
-      conn.release(); // 커넥션 반환
+    pool.getConnection((err, conn) => {
+        if (err) return;
+        conn.query('SELECT 1', () => {
+            conn.release(); // 커넥션 반환
+        });
     });
-  });
 }
 ```
 
-### 2.3 무한 캐시/맵 누수
+#### 1.2 무한 캐시/맵 누수
 ```javascript
 // ❌ 누수 예시: 크기 제한 없는 캐시
 const cache = new Map();
 function addToCache(key, value) {
-  cache.set(key, value); // 계속 쌓이면 메모리 폭증
+    cache.set(key, value); // 계속 쌓이면 메모리 폭증
 }
 
 // ✅ 해결: LRU 캐시 구현
 class LRUCache {
-  constructor(max = 100) {
-    this.max = max;
-    this.cache = new Map();
-  }
-  get(key) {
-    if (!this.cache.has(key)) return undefined;
-    const value = this.cache.get(key);
-    this.cache.delete(key);
-    this.cache.set(key, value);
-    return value;
-  }
-  set(key, value) {
-    if (this.cache.has(key)) this.cache.delete(key);
-    else if (this.cache.size >= this.max) this.cache.delete(this.cache.keys().next().value);
-    this.cache.set(key, value);
-  }
+    constructor(max = 100) {
+        this.max = max;
+        this.cache = new Map();
+    }
+    
+    get(key) {
+        if (!this.cache.has(key)) return undefined;
+        const value = this.cache.get(key);
+        this.cache.delete(key);
+        this.cache.set(key, value);
+        return value;
+    }
+    
+    set(key, value) {
+        if (this.cache.has(key)) this.cache.delete(key);
+        else if (this.cache.size >= this.max) {
+            this.cache.delete(this.cache.keys().next().value);
+        }
+        this.cache.set(key, value);
+    }
 }
 ```
 
-### 2.4 스트림 미사용으로 인한 메모리 폭증
+#### 1.3 스트림 미사용으로 인한 메모리 폭증
 ```javascript
 const fs = require('fs');
 
 // ❌ 누수 예시: 대용량 파일을 한 번에 읽음
 function readBigFileSync() {
-  const data = fs.readFileSync('bigfile.txt'); // 메모리 부족 위험
+    const data = fs.readFileSync('bigfile.txt'); // 메모리 부족 위험
 }
 
 // ✅ 해결: 스트림 사용
 function readBigFileStream() {
-  const stream = fs.createReadStream('bigfile.txt');
-  stream.on('data', chunk => {/* 처리 */});
+    const stream = fs.createReadStream('bigfile.txt');
+    stream.on('data', chunk => {
+        // 청크 단위로 처리
+    });
 }
 ```
 
-### 2.5 워커/서브프로세스 누수
+#### 1.4 워커/서브프로세스 누수
 ```javascript
 const { Worker } = require('worker_threads');
 
 // ❌ 누수 예시: 워커 종료 안함
 function leakWorker() {
-  const worker = new Worker('./worker.js');
-  // worker.terminate() 호출 안함
+    const worker = new Worker('./worker.js');
+    // worker.terminate() 호출 안함
 }
 
 // ✅ 해결: 작업 완료 후 종료
 function safeWorker() {
-  const worker = new Worker('./worker.js');
-  worker.on('exit', () => console.log('worker 종료'));
-  // 필요시 worker.terminate() 호출
+    const worker = new Worker('./worker.js');
+    worker.on('exit', () => console.log('worker 종료'));
+    // 필요시 worker.terminate() 호출
 }
 ```
 
-## 3. Node.js 메모리 모니터링 및 실전 관리
+### 2. Node.js 메모리 모니터링
 
-### 3.1 프로세스 메모리 사용량 체크
+#### 2.1 프로세스 메모리 사용량 체크
 ```javascript
 setInterval(() => {
-  const mu = process.memoryUsage();
-  console.log(`heapUsed: ${(mu.heapUsed/1024/1024).toFixed(2)}MB, rss: ${(mu.rss/1024/1024).toFixed(2)}MB`);
+    const mu = process.memoryUsage();
+    console.log(`heapUsed: ${(mu.heapUsed/1024/1024).toFixed(2)}MB, rss: ${(mu.rss/1024/1024).toFixed(2)}MB`);
 }, 10000);
 ```
 
-### 3.2 GC 강제 실행 및 모니터링
+#### 2.2 GC 강제 실행 및 모니터링
 ```javascript
 // node --expose-gc 옵션 필요
 if (global.gc) {
-  setInterval(() => {
-    const before = process.memoryUsage().heapUsed;
-    global.gc();
-    const after = process.memoryUsage().heapUsed;
-    console.log(`GC 실행, 해제된 메모리: ${((before-after)/1024/1024).toFixed(2)}MB`);
-  }, 60000);
+    setInterval(() => {
+        const before = process.memoryUsage().heapUsed;
+        global.gc();
+        const after = process.memoryUsage().heapUsed;
+        console.log(`GC 실행, 해제된 메모리: ${((before-after)/1024/1024).toFixed(2)}MB`);
+    }, 60000);
 }
 ```
 
-### 3.3 V8 힙 통계
+#### 2.3 V8 힙 통계
 ```javascript
 const v8 = require('v8');
 console.log(v8.getHeapStatistics());
 ```
 
-## 4. 서버 환경에서의 메모리 최적화 실전 팁
+---
 
-- **메모리 제한 설정**: node --max-old-space-size=2048 app.js (2GB 제한)
-- **PM2 max_memory_restart**: 메모리 초과시 자동 재시작
-- **커넥션 풀, 캐시, 이벤트 리스너 등 자원 해제 철저**
-- **스트림, 버퍼, 워커 등 장기 객체 관리**
-- **메모리 프로파일링 도구 활용**: Chrome DevTools, heapdump, clinic.js 등
-- **Docker/컨테이너 환경**: 메모리 제한 옵션 적극 활용
+## 🚀 서버 성능 최적화 전략
 
-## 5. 참고 자료
-- [Node.js 공식 메모리 관리 가이드](https://nodejs.org/en/docs/guides/memory-management/)
-- [V8 GC 공식 문서](https://v8.dev/blog/trash-talk)
-- [PM2 메모리 관리](https://pm2.keymetrics.io/docs/usage/memory-limit/)
+### 1. 메모리 제한 설정
+```bash
+# Node.js 메모리 제한 설정 (2GB)
+node --max-old-space-size=2048 app.js
+
+# PM2 메모리 제한 설정
+pm2 start app.js --max-memory-restart 2G
+```
+
+### 2. 실전 최적화 팁
+
+#### 2.1 자원 관리
+- **커넥션 풀**: 데이터베이스 커넥션 재사용
+- **캐시 관리**: LRU 캐시로 메모리 사용량 제한
+- **이벤트 리스너**: 컴포넌트 해제 시 리스너 정리
+- **스트림 활용**: 대용량 데이터 처리 시 메모리 효율성
+
+#### 2.2 모니터링 도구
+- **Chrome DevTools**: Memory 탭으로 힙 스냅샷 분석
+- **Node.js Inspector**: `--inspect` 플래그로 디버깅
+- **PM2**: 실시간 메모리 모니터링
+- **Docker**: 컨테이너 메모리 제한 및 모니터링
+
+#### 2.3 프로파일링 도구
+- **heapdump**: 힙 덤프 생성 및 분석
+- **clinic.js**: Node.js 성능 프로파일링
+- **v8-profiler**: V8 엔진 프로파일링
 
 ---
 
@@ -544,29 +535,17 @@ console.log(v8.getHeapStatistics());
 JavaScript의 가비지 컬렉션은 개발자가 메모리 관리를 신경 쓰지 않아도 되게 해주지만, 여전히 메모리 누수와 성능 문제를 피하기 위해서는 다음과 같은 점들을 고려해야 합니다:
 
 ### 핵심 포인트
-1. **전역 변수 사용 최소화**
-2. **이벤트 리스너 적절한 제거**
-3. **클로저 사용 시 주의**
-4. **WeakMap/WeakSet 적극 활용**
-5. **메모리 사용량 모니터링**
-6. **적절한 데이터 구조 선택**
-
-### 백엔드 특화 포인트
-1. **데이터베이스 연결 풀 관리**
-2. **스트림 활용으로 메모리 효율성 향상**
-3. **Worker Threads로 무거운 작업 분산**
-4. **Redis 캐싱으로 메모리 부담 감소**
-5. **PM2를 통한 프로세스 관리**
-6. **Docker 컨테이너 메모리 제한 설정**
+1. **메모리 누수 패턴 이해**: 전역 변수, 클로저, 이벤트 리스너 등
+2. **적절한 데이터 구조 선택**: WeakMap, TypedArray, Set 등 활용
+3. **자원 해제 철저**: 타이머, 이벤트 리스너, 데이터베이스 커넥션 등
+4. **정기적인 모니터링**: 메모리 사용량 추적 및 분석
+5. **성능 최적화 도구 활용**: 프로파일링 및 디버깅 도구
 
 ### 성능 모니터링 도구
-- Chrome DevTools Memory 탭
-- Node.js의 `--inspect` 플래그
-- `performance.memory` API
-- 메모리 프로파일링 도구
-- **Node.js: `process.memoryUsage()`, `v8.getHeapStatistics()`**
-- **PM2 모니터링**
-- **Docker 메모리 모니터링**
+- **브라우저**: Chrome DevTools Memory 탭, `performance.memory` API
+- **Node.js**: `process.memoryUsage()`, `v8.getHeapStatistics()`, `--inspect` 플래그
+- **서버**: PM2 모니터링, Docker 메모리 제한
+- **프로파일링**: heapdump, clinic.js, v8-profiler
 
 가비지 컬렉션을 이해하고 올바르게 활용하면, JavaScript 애플리케이션의 메모리 효율성과 전반적인 성능을 크게 향상시킬 수 있습니다.
 
