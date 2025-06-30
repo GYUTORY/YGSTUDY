@@ -1,63 +1,251 @@
+# 서브넷(Subnet) 완벽 가이드
 
-
-### <span style="color: lightgreen;">서브넷(Subnet)</span>
-- <span style="color: pink;">서브넷</span>은 <span style="color: lightgreen;"><span style="color: lightblue">IP 주소에서 네트워크 영역을 부분적으로 나눈 네트워크를 뜻합니다.</span></span>
-- 이러한 서브넷을 만들 때 사용되는 것이 바로 서브넷 마스크입니다.
-
-
-### 각 클래스별 기본 서브넷 마스크는 다음과 같습니다.
-
-![클래스별 서브넷마스크.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FNetwork%20Layer%2F%ED%81%B4%EB%9E%98%EC%8A%A4%EB%B3%84%20%EC%84%9C%EB%B8%8C%EB%84%B7%EB%A7%88%EC%8A%A4%ED%81%AC.png)
-
----
-
-### 서브네팅(Sub-netting)의 개념
-
-- 예를 들어, 회사에 영업부(50명), 회계부(50명), 관리부(50명) 등이 존재하는데 이를 하나의 네트워크로 묶을 수도 있지만 이를 분할해서 네트워크를 구분 지어줍니다. 
-- 이 구분된 네트워크를 브로드캐스트 도메인(Broadcast Domain)이라고 하고 너무 큰 브로드캐스트 도메인은 자원을 효율적으로 분배하기 어려워서 속도가 느려지게 됩니다.
-- 따라서, 서브넷팅으로 네트워크를 분할하게 되면 필요한 네트워크 주소만 호스트 IP로 할당해서 쓸모없이 버려지는 잉여 IP를 최소화할 수 있으며 Broadcast Domain Size를 줄여주므로 LAN의 Traffic을 줄일 수 있습니다.
-
-### Subneting 방법
-- 서브넷 마스크로 IP 주소와 AND 연산을 수행하면 해당 IP 주소가 속한 네트워크 주소를 확인할 수 있습니다.
-- 예를 들어, IP 주소가 192.168.1.10이고 서브넷 마스크가 255.255.255.0인 경우 각 주소를 2진수로 변경하고 AND 연산을 하면 아래와 같이 192.168.1.0이라는 네트워크 주소를 얻을 수 있습니다.
-
-```
-192.168.1.10  = 11000000.10101000.00000001.00001010
-255.255.255.0 = 11111111.11111111.11111111.00000000
----------------------------------------------------
-11000000.10101000.00000001.00000000 = 192.168.1.0
-```
-
-
---- 
-
-### 서브넷팅에 알아봤다면, 서브넷 마스크란?
-- 서브넷 마스크는 IP 주소의 네트워크 부분과 호스트 부분을 구분하는 32비트의 숫자로 ‘0’의 비트는 <span style="color: lightyellow;">호스트 주소</span>를 나타내고,
-‘1’의 비트는 <span style="color: lightgreen;">네트워크 주소</span>을 나타냅니다. 
-
-- 서브넷 마스크는 연속된 1과 연속된 0으로 구성되어 있습니다. 
-> 즉, 11111111.11111111.11110011.00000000 이란 값은 가질 수 없고, 11111111.11111111.11111100.00000000의 형태만 가질 수 있습니다.
-
-
-
-### <span style="color: lightgreen;">네트워크 주소</span>
-- 호스트(단말)들을 모은 네트워크를 지칭하는 주소를 뜻합니다.
-- 네트워크 주소가 동일한 네트워크를 로컬 네트워크라고 합니다.
-
-### <span style="color: lightyellow;">호스트 주소</span>
-- 하나의 네트워크 내에 존재하는 호스트(단말)를 구분하기 위한 주소를 뜻합니다.
+## 📋 목차
+- [서브넷이란?](#서브넷이란)
+- [IP 주소의 구조](#ip-주소의-구조)
+- [IP 클래스별 구분](#ip-클래스별-구분)
+- [서브넷 마스크란?](#서브넷-마스크란)
+- [CIDR 표기법](#cidr-표기법)
+- [서브네팅(Sub-netting)](#서브네팅sub-netting)
+- [실제 계산 예시](#실제-계산-예시)
 
 ---
 
-## 참고자료
+## 서브넷이란?
 
-![서브넷마스크.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FNetwork%20Layer%2F%EC%84%9C%EB%B8%8C%EB%84%B7%EB%A7%88%EC%8A%A4%ED%81%AC.png)
+**서브넷(Subnet)**은 큰 네트워크를 더 작은 네트워크로 나눈 것을 의미합니다. 
+
+### 왜 서브넷을 사용할까?
+
+🏢 **회사 예시로 이해하기**
+- 회사에 영업부(50명), 회계부(50명), 관리부(50명)가 있다고 가정
+- 모든 부서를 하나의 네트워크로 묶으면 150명이 같은 네트워크를 공유
+- 이렇게 되면 **브로드캐스트 도메인**이 너무 커져서 네트워크 속도가 느려짐
+
+### 브로드캐스트 도메인이란?
+- 네트워크에서 한 호스트가 보낸 메시지가 같은 네트워크의 모든 호스트에게 전달되는 영역
+- 너무 크면 불필요한 트래픽이 많아져서 네트워크 성능이 저하됨
+
+---
+
+## IP 주소의 구조
+
+### IP 주소는 32비트로 구성
+IP 주소는 총 32비트(4바이트)로 구성되어 있으며, 각 바이트는 점(.)으로 구분됩니다.
+
+```
+192.168.001.056
+│   │   │   │
+│   │   │   └── 4번째 바이트 (8비트)
+│   │   └────── 3번째 바이트 (8비트)  
+│   └────────── 2번째 바이트 (8비트)
+└────────────── 1번째 바이트 (8비트)
+```
+
+### JavaScript로 IP 주소 다루기
+
+```javascript
+// IP 주소를 2진수로 변환하는 함수
+function ipToBinary(ip) {
+    return ip.split('.').map(octet => {
+        return parseInt(octet).toString(2).padStart(8, '0');
+    }).join('.');
+}
+
+// 2진수를 IP 주소로 변환하는 함수
+function binaryToIp(binary) {
+    return binary.split('.').map(bin => {
+        return parseInt(bin, 2);
+    }).join('.');
+}
+
+// 사용 예시
+console.log(ipToBinary('192.168.1.56'));
+// 출력: 11000000.10101000.00000001.00111000
+
+console.log(binaryToIp('11000000.10101000.00000001.00111000'));
+// 출력: 192.168.1.56
+```
+
+---
+
+## IP 클래스별 구분
+
+IP 주소는 사용 목적에 따라 A, B, C, D, E 클래스로 나뉩니다.
+
+### 클래스별 기본 서브넷 마스크
+
+
+| 클래스 | IP 범위 | 기본 서브넷 마스크 | 용도 |
+|--------|---------|-------------------|------|
+| A | 1.0.0.0 ~ 126.255.255.255 | 255.0.0.0 | 대규모 네트워크 |
+| B | 128.0.0.0 ~ 191.255.255.255 | 255.255.0.0 | 중간 규모 네트워크 |
+| C | 192.0.0.0 ~ 223.255.255.255 | 255.255.255.0 | 소규모 네트워크 |
+| D | 224.0.0.0 ~ 239.255.255.255 | - | 멀티캐스트 |
+| E | 240.0.0.0 ~ 255.255.255.255 | - | 실험용 |
+
+### JavaScript로 클래스 확인하기
+
+```javascript
+function getIpClass(ip) {
+    const firstOctet = parseInt(ip.split('.')[0]);
+    
+    if (firstOctet >= 1 && firstOctet <= 126) return 'A';
+    if (firstOctet >= 128 && firstOctet <= 191) return 'B';
+    if (firstOctet >= 192 && firstOctet <= 223) return 'C';
+    if (firstOctet >= 224 && firstOctet <= 239) return 'D';
+    if (firstOctet >= 240 && firstOctet <= 255) return 'E';
+    
+    return 'Unknown';
+}
+
+console.log(getIpClass('192.168.1.56')); // 출력: C
+console.log(getIpClass('10.0.0.1'));     // 출력: A
+```
+
+---
+
+## 서브넷 마스크란?
+
+**서브넷 마스크**는 IP 주소에서 네트워크 부분과 호스트 부분을 구분하는 32비트 숫자입니다.
+
+### 서브넷 마스크의 특징
+- **1의 비트**: 네트워크 주소 부분
+- **0의 비트**: 호스트 주소 부분
+- **연속된 1과 0으로만 구성** (중간에 끊어지면 안 됨)
+
+### 올바른 서브넷 마스크 예시
+```
+✅ 올바른 형태
+255.255.255.0   = 11111111.11111111.11111111.00000000
+255.255.252.0   = 11111111.11111111.11111100.00000000
+
+❌ 잘못된 형태  
+255.255.243.0   = 11111111.11111111.11110011.00000000 (중간에 0이 끊어짐)
+```
+
+---
+
+## CIDR 표기법
+
+**CIDR(Classless Inter-Domain Routing)**은 IP 주소와 서브넷 마스크를 간단하게 표기하는 방법입니다.
+
+### CIDR 표기법 이해하기
+```
+192.168.1.56/24
+
+192.168.1.56  ← IP 주소
+         /24  ← 서브넷 마스크의 1의 개수
+```
+
+### /24가 의미하는 것
+- 서브넷 마스크에서 1이 24개 있다는 뜻
+- 2진수로: `11111111.11111111.11111111.00000000`
+- 10진수로: `255.255.255.0`
+
+### JavaScript로 CIDR 계산하기
+
+```javascript
+// CIDR 표기법을 서브넷 마스크로 변환
+function cidrToSubnetMask(cidr) {
+    const ones = parseInt(cidr);
+    const binary = '1'.repeat(ones) + '0'.repeat(32 - ones);
+    
+    return [
+        parseInt(binary.slice(0, 8), 2),
+        parseInt(binary.slice(8, 16), 2),
+        parseInt(binary.slice(16, 24), 2),
+        parseInt(binary.slice(24, 32), 2)
+    ].join('.');
+}
+
+// 서브넷 마스크를 CIDR로 변환
+function subnetMaskToCidr(subnetMask) {
+    const binary = subnetMask.split('.')
+        .map(octet => parseInt(octet).toString(2).padStart(8, '0'))
+        .join('');
+    
+    return binary.split('1').length - 1;
+}
+
+console.log(cidrToSubnetMask(24)); // 출력: 255.255.255.0
+console.log(cidrToSubnetMask(16)); // 출력: 255.255.0.0
+console.log(subnetMaskToCidr('255.255.255.0')); // 출력: 24
+```
+
+---
+
+## 서브네팅(Sub-netting)
+
+**서브네팅**은 큰 네트워크를 여러 개의 작은 네트워크로 나누는 과정입니다.
+
+### 서브네팅의 장점
+1. **브로드캐스트 도메인 크기 감소** → 네트워크 성능 향상
+2. **IP 주소 효율적 사용** → 불필요한 IP 낭비 방지
+3. **보안 강화** → 네트워크 분리로 보안 관리 용이
+
+### 네트워크 주소 vs 호스트 주소
+
+| 구분 | 설명 | 예시 |
+|------|------|------|
+| **네트워크 주소** | 호스트들을 모은 네트워크를 지칭하는 주소 | 192.168.1.0 |
+| **호스트 주소** | 네트워크 내 개별 호스트를 구분하는 주소 | 192.168.1.56 |
+
+---
+
+## 실제 계산 예시
+
+### AND 연산으로 네트워크 주소 구하기
+
+IP 주소와 서브넷 마스크를 AND 연산하면 해당 IP가 속한 네트워크 주소를 알 수 있습니다.
+
+```javascript
+// AND 연산 함수
+function bitwiseAnd(ip1, ip2) {
+    const octets1 = ip1.split('.').map(Number);
+    const octets2 = ip2.split('.').map(Number);
+    
+    return octets1.map((octet, index) => octet & octets2[index]).join('.');
+}
+
+// 네트워크 주소 계산
+function getNetworkAddress(ip, subnetMask) {
+    return bitwiseAnd(ip, subnetMask);
+}
+
+// 사용 예시
+const ip = '192.168.1.56';
+const subnetMask = '255.255.255.0';
+const networkAddress = getNetworkAddress(ip, subnetMask);
+
+console.log(`IP 주소: ${ip}`);
+console.log(`서브넷 마스크: ${subnetMask}`);
+console.log(`네트워크 주소: ${networkAddress}`);
+// 출력: 네트워크 주소: 192.168.1.0
+```
+
+### 2진수 계산 과정
+```
+IP 주소:        192.168.1.56  = 11000000.10101000.00000001.00111000
+서브넷 마스크:  255.255.255.0  = 11111111.11111111.11111111.00000000
+AND 연산:      ──────────────────────────────────────────────────
+네트워크 주소:  192.168.1.0    = 11000000.10101000.00000001.00000000
+```
+
+### 호스트 수 계산하기
+
+```javascript
+// 사용 가능한 호스트 수 계산
+function getAvailableHosts(cidr) {
+    const hostBits = 32 - parseInt(cidr);
+    return Math.pow(2, hostBits) - 2; // 네트워크 주소와 브로드캐스트 주소 제외
+}
+
+console.log(getAvailableHosts(24)); // 출력: 254 (256 - 2)
+console.log(getAvailableHosts(16)); // 출력: 65534 (65536 - 2)
+```
 
 ---
 
 
-
-```
-출처
-https://youngkyonyou.github.io/network/2022/02/05/Network-SubnetMask-02.html
-```
+**출처**: https://youngkyonyou.github.io/network/2022/02/05/Network-SubnetMask-02.html
