@@ -297,9 +297,3 @@ ECR의 비용은 크게 두 가지로 나뉩니다:
 - [AWS ECR 공식 문서](https://docs.aws.amazon.com/ecr/)
 - [Docker 공식 문서](https://docs.docker.com/)
 - [GitHub Actions 공식 문서](https://docs.github.com/en/actions)
-
----
-
-> **💡 이 문서가 도움이 되셨나요?**
-> 
-> 더 자세한 내용이나 궁금한 점이 있으시면 언제든지 질문해 주세요! 😊
