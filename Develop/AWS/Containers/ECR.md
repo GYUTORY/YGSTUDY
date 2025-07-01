@@ -287,13 +287,3 @@ ECR의 비용은 크게 두 가지로 나뉩니다:
 2. **고가용성**: AWS의 글로벌 인프라 활용
 3. **보안 강화**: IAM 기반 접근 제어
 4. **CI/CD 통합**: 자동화된 배포 파이프라인 구축
-
-### 🚀 다음 단계
-- [ECS (Elastic Container Service)](ECS.md) 학습하기
-- [Docker 기초](https://docs.docker.com/get-started/) 학습하기
-- [AWS CLI 설정](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html) 완료하기
-
-### 📚 추가 학습 자료
-- [AWS ECR 공식 문서](https://docs.aws.amazon.com/ecr/)
-- [Docker 공식 문서](https://docs.docker.com/)
-- [GitHub Actions 공식 문서](https://docs.github.com/en/actions)

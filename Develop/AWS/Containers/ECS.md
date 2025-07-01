@@ -520,21 +520,6 @@ jobs:
 ### Q5: 비용을 어떻게 모니터링할 수 있나요?
 **A:** AWS Cost Explorer와 CloudWatch를 통해 상세한 비용 분석이 가능합니다.
 
----
-
-## 📚 추가 학습 자료
-
-### 공식 문서
-- [AWS ECS 공식 문서](https://docs.aws.amazon.com/ecs/)
-- [ECS 시작하기 가이드](https://docs.aws.amazon.com/ecs/latest/developerguide/getting-started.html)
-
-### 실습 자료
-- [ECS Workshop](https://ecsworkshop.com/)
-- [AWS 샘플 애플리케이션](https://github.com/aws-samples/aws-ecs-sample)
-
-### 커뮤니티
-- [AWS 한국 사용자 그룹](https://aws.amazon.com/ko/blogs/korea/)
-- [ECS 포럼](https://forums.aws.amazon.com/forum.jspa?forumID=253)
 
 ---
 
