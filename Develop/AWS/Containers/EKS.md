@@ -1,4 +1,4 @@
-# ☁️ AWS EKS (Elastic Kubernetes Service) 완벽 가이드
+# ☁️ AWS EKS (Elastic Kubernetes Service)
 
 > 💡 **이 가이드는 AWS EKS를 처음 접하는 분들을 위해 작성되었습니다.**
 > 
@@ -649,20 +649,3 @@ graph TD
 3. **확장성**: 트래픽에 따른 자동 확장 지원
 4. **보안**: AWS 보안 체계와 통합된 안전한 환경
 5. **표준 준수**: 업계 표준 Kubernetes API 지원
-
-### 🚀 **다음 단계**
-1. **기본 실습**: 위의 예제들을 따라해보기
-2. **고급 기능**: Helm, Istio, Prometheus 등 도입
-3. **프로덕션 환경**: 모니터링, 로깅, 백업 전략 수립
-4. **팀 교육**: Kubernetes 기초 교육 진행
-
-### 📚 **추천 학습 자료**
-- [Kubernetes 공식 문서](https://kubernetes.io/docs/)
-- [AWS EKS 사용자 가이드](https://docs.aws.amazon.com/eks/)
-- [eksctl 공식 문서](https://eksctl.io/)
-
----
-
-> 💡 **이 가이드가 EKS 학습에 도움이 되었기를 바랍니다!**
-> 
-> 추가 질문이나 개선 사항이 있으시면 언제든 말씀해 주세요. 🚀
