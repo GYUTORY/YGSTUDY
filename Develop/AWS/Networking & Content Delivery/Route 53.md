@@ -1,4 +1,4 @@
-# AWS Route 53 완벽 가이드: DNS 관리의 모든 것
+# AWS Route 53
 
 ## ✨ AWS Route 53이란?
 AWS Route 53은 **Amazon Web Services(AWS)에서 제공하는 확장 가능하고 신뢰할 수 있는 도메인 이름 시스템(DNS) 웹 서비스**입니다.   
