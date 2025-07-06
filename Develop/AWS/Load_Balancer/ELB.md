@@ -263,24 +263,6 @@
                            → Game Server 3
 ```
 
-## 📚 추가 학습 리소스
-
-### **AWS 공식 문서**
-- [Elastic Load Balancing 사용 설명서](https://docs.aws.amazon.com/elasticloadbalancing/)
-- [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/)
-- [Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/)
-
-### **실습 가이드**
-- AWS 콘솔에서 ELB 생성 및 구성
-- 다양한 라우팅 규칙 설정
-- 상태 확인 및 모니터링 설정
-
 ## 🎉 결론
 
 AWS Elastic Load Balancer는 클라우드 환경에서 애플리케이션의 가용성과 확장성을 보장하는 핵심 서비스입니다. 각 유형별 특징을 이해하고 사용 사례에 맞는 적절한 선택을 통해 최적의 성능과 비용 효율성을 달성할 수 있습니다.
-
-**핵심 포인트:**
-- 🎯 **목적에 맞는 선택**: 사용 사례에 따라 적절한 ELB 유형 선택
-- 🔒 **보안 우선**: HTTPS, WAF, 보안 그룹 적절히 구성
-- 📊 **모니터링 필수**: CloudWatch를 통한 지속적인 모니터링
-- 💰 **비용 관리**: 사용량 모니터링을 통한 비용 최적화
