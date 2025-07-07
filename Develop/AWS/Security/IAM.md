@@ -1,4 +1,4 @@
-# AWS IAM (Identity and Access Management) 완벽 가이드
+# AWS IAM (Identity and Access Management)
 
 ## 📋 목차
 - [IAM이란?](#iam이란)
