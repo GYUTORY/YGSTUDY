@@ -305,7 +305,7 @@ const connection = await amqp.connect('amqps://localhost', {
 
 ---
 
-## 선택 가이드
+## 선택방법
 
 ### MQTT를 선택해야 할 때
 - IoT 기기나 센서와의 통신
@@ -323,7 +323,7 @@ const connection = await amqp.connect('amqps://localhost', {
 
 ---
 
-## 핵심 용어 정리
+## 용어 정리
 
 - **Broker/Exchange**: 메시지의 중간 전달자
 - **Publisher/Producer**: 메시지를 보내는 쪽
