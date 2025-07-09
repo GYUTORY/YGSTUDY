@@ -1,4 +1,4 @@
-# AWS DB Proxy (데이터베이스 프록시) 상세 가이드
+# AWS DB Proxy (데이터베이스 프록시)
 
 ## 1. AWS DB Proxy 소개
 
@@ -148,20 +148,3 @@ AWS DB Proxy는 Amazon RDS 및 Aurora 데이터베이스와 애플리케이션 �
 - 활동 모니터링
 - 보안 이벤트 추적
 - 규정 준수 요구사항
-
-## 10. 참고 자료 및 추가 정보
-
-### 10.1 공식 문서
-- [AWS DB Proxy 공식 문서](https://aws.amazon.com/db-proxy/)
-- [API 참조 가이드](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html)
-- [모범 사례 가이드](https://aws.amazon.com/blogs/database/)
-
-### 10.2 학습 리소스
-- AWS 교육 과정
-- 기술 블로그
-- 커뮤니티 포럼
-
----
-
-이 문서는 AWS DB Proxy의 주요 기능과 사용 방법을 상세하게 설명하고 있습니다. 실제 구현 시에는 AWS 공식 문서와 함께 참고하시기 바랍니다.
-
