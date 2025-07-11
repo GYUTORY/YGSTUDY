@@ -1,151 +1,323 @@
-# gRPC
+# gRPC (Google Remote Procedure Call)
 
 ---
 
-# 내용
-1. gRPC는 구글이 오픈소스로 공개한 원격 프로시저 호출을 위한 바이너리 프로토콜이다. 
-2. 성능과 간편함으로 인기를 얻은 REST의 대안이다. 
-3. gRPC는 [Http 2.0](..%2F..%2F..%2FApplication%20Layer%2FHttp%2FHttp%EC%99%80%20Http%202.0.md)에 대한 전이중(full duplex) 연결을 제공한다.
+## 📋 개요
+
+gRPC는 구글이 개발한 **원격 프로시저 호출(RPC)** 프레임워크입니다. 
+
+### 🤔 RPC란?
+**RPC(Remote Procedure Call)**는 네트워크로 연결된 다른 컴퓨터의 함수를 마치 로컬 함수처럼 호출할 수 있게 해주는 기술입니다.
+
+예를 들어:
+```javascript
+// 로컬 함수 호출
+const result = localFunction("hello");
+
+// RPC를 통한 원격 함수 호출 (같은 방식으로 호출)
+const result = remoteFunction("hello"); // 실제로는 네트워크를 통해 다른 서버의 함수가 실행됨
+```
+
+### 🎯 gRPC의 핵심 특징
+- **HTTP/2 기반**: 현대적인 웹 프로토콜 사용
+- **Protocol Buffers**: 효율적인 데이터 직렬화
+- **다양한 통신 패턴**: 단방향, 양방향, 스트리밍 지원
+- **다국어 지원**: JavaScript, Python, Java, Go 등
+
 ![gRPC.svg](..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FgRPC.svg)
 
 ---
 
-# gRPC 특징 
+## 🚀 gRPC vs REST API 비교
 
-## 1. 성능
-- 네트워크 요청으로 보내기 위해 Protobuf를 직렬화(Serialization) 및 역직렬화(Deserialization)하는 작업은 JSON 형태의 직렬화/역직렬화 보다 빠르다.
-- 또한 gRPC의 네트워크 속도가 HTTP POST/GET 속도보다 빠르다. 특히 POST 요청 시 많은 차이를 보인다.
-- HTTP/2 기반으로 동작하여 멀티플렉싱, 헤더 압축, 서버 푸시 등의 기능을 지원한다.
-- 바이너리 프로토콜을 사용하여 데이터 전송 효율성이 높다.
+### 📊 성능 비교
+| 항목 | gRPC | REST API |
+|------|------|----------|
+| 프로토콜 | HTTP/2 | HTTP/1.1 |
+| 데이터 형식 | Protocol Buffers (바이너리) | JSON (텍스트) |
+| 속도 | 빠름 | 상대적으로 느림 |
+| 크기 | 작음 | 상대적으로 큼 |
 
-## 2. REST API 지원
-- Protobuf로 정의된 API는 envoyproxy나 grpc-gateway 같은 gateway 를 통해 REST API로 제공 가능하다. 
-- gRPC로 정의된 API를 OpenAPI 프로토콜로 변환하여 REST API를 사용하는 클라이언트에도 API-우선 방식을 적용할 수 있다.
-- REST API와 gRPC를 동시에 지원하여 점진적인 마이그레이션이 가능하다.
+![gRPC & Rest.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FgRPC%20%26%20Rest.png)
 
-## 3. 통신 패턴
-gRPC는 다음과 같은 4가지 통신 패턴을 지원한다:
+### 💡 실제 데이터 크기 비교
+```javascript
+// JSON 예시 (82바이트)
+{
+  "name": "John Doe",
+  "age": 30,
+  "email": "john@example.com",
+  "isActive": true
+}
 
-1. Unary RPC (단일 요청-응답)
-   - 클라이언트가 단일 요청을 보내고 서버가 단일 응답을 반환
-   - 가장 기본적인 RPC 패턴
-
-2. Server Streaming RPC (서버 스트리밍)
-   - 클라이언트가 단일 요청을 보내고 서버가 스트림으로 응답
-   - 실시간 데이터 전송에 적합
-
-3. Client Streaming RPC (클라이언트 스트리밍)
-   - 클라이언트가 스트림으로 요청을 보내고 서버가 단일 응답을 반환
-   - 대용량 데이터 업로드에 적합
-
-4. Bidirectional Streaming RPC (양방향 스트리밍)
-   - 클라이언트와 서버가 독립적으로 스트림을 통해 데이터를 주고받음
-   - 실시간 양방향 통신에 적합
-
----
-
-## gRPC와 REST의 차이점 및 특징
-
-![gRPC & Rest.png](..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FgRPC%20%26%20Rest.png)
-
-1. gRPC는 HTTP2를 사용한다. (REST는 HTTP1.1)
-2. gRPC는 protocol buffer data format을 사용한다. REST는 주로 JSON을 사용한다.
-3. gRPC를 활용하면 server-side streaming, client-side streaming, bidirectional-streaming과 같은 HTTP/2가 가진 feature를 활용할 수 있다.
-4. 내부적으로는 Netty(소켓통신)을 사용하고 있다.
-5. 이미 배포한 서비스를 중단할 필요 없이 데이터 구조를 바꿀 수 있다.
-
----
-
-## 프로토콜 버퍼(Protocol Buffers)
-
-### 1. 프로토콜 버퍼란?
-- 프로토콜 버퍼(Protocol Buffers)는 구글에서 개발한 바이너리 직렬화 데이터 형식입니다.
-- 이는 다양한 프로그래밍 언어에서 구조화된 데이터를 직렬화하고, 효율적으로 전송하고 저장하기 위한 목적으로 사용됩니다.
-
-![Protocol Buffer.png](..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FProtocol%20Buffer.png)
-```
-위 그림은 json과 Protocol buffer를 사용한 직렬화의 용량 차이이다.
-json: 82byte
-protocol buffer: 33 byte
+// Protocol Buffers (33바이트) - 같은 데이터
+// 바이너리 형태로 저장되어 크기가 훨씬 작음
 ```
 
-### 2. 프로토콜 버퍼의 장점
-1) 통신이 빠릅니다.
-   - 같은 데이터를 보내더라도 데이터의 크기가 작아 같은 시간에 더 많은 데이터를 보낼 수 있고, 더 빠르게 보내질 수 있습니다.
-2) 파싱을 할 필요가 없습니다.
-   - json 포맷을 사용하게 되면 받은 데이터를 다시 객체로 파싱해서 사용하는데, protobuf를 사용하면 byte를 받아서 그 byte 그대로 메모리에 써버리고 객체 레퍼런스가 가리키는 형태로 사용하기 때문에 별도의 파싱이 필요가 없어집니다.
-3) 강력한 타입 시스템
-   - 명시적인 타입 정의로 런타임 에러를 줄일 수 있습니다.
-4) 자동 코드 생성
-   - .proto 파일로부터 다양한 언어의 코드를 자동 생성할 수 있습니다.
-
-### 3. 프로토콜 버퍼의 단점
-1) 인간이 읽기가 어렵습니다.
-   - json 포맷은 사람이 읽기 편한 형태로 되어 있는데, .proto 파일이 없으면 의미를 알 수 없을 정도로 protobuf로 쓴 데이터는 사람이 읽기가 어렵습니다. 
-   - 즉, .proto 파일이 반드시 있어야지 protobuf로 쓰여진 데이터를 읽을 수가 있다는 단점이 있습니다.
-   - 따라서 외부 API 통신에는 보통 사용되지 않고(각 클라이언트마다 .proto 파일이 있어야 합니다), 내부 서비스(Microservice 등)에서 주로 사용됩니다.
-2) proto문법을 배워야 합니다.
-   - .proto파일은 json과 같이 key, value 쌍으로 단순하게 되어 있지 않고, 작성 방법에 따른 문법을 배워야하기 때문에 난이도가 있습니다.
+![Protocol Buffer.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FProtocol%20Buffer.png)
 
 ---
 
-## TypeScript로 구현하는 gRPC
+## 🔄 gRPC 통신 패턴
 
-### 1. 프로젝트 설정
+### 1️⃣ Unary RPC (단일 요청-응답)
+가장 기본적인 패턴으로, 클라이언트가 하나의 요청을 보내면 서버가 하나의 응답을 반환합니다.
 
-먼저 필요한 패키지들을 설치합니다:
+```javascript
+// 클라이언트
+const response = await client.getUser({ userId: "123" });
+console.log(response.user); // 사용자 정보
+
+// 서버
+function getUser(call, callback) {
+  const userId = call.request.userId;
+  const user = findUser(userId);
+  callback(null, { user });
+}
+```
+
+### 2️⃣ Server Streaming RPC (서버 스트리밍)
+클라이언트가 하나의 요청을 보내면 서버가 여러 개의 응답을 스트림으로 전송합니다.
+
+```javascript
+// 클라이언트
+const stream = client.getNotifications({ userId: "123" });
+stream.on('data', (notification) => {
+  console.log('새 알림:', notification);
+});
+
+// 서버
+function getNotifications(call) {
+  const userId = call.request.userId;
+  
+  // 실시간으로 알림 전송
+  setInterval(() => {
+    const notification = generateNotification(userId);
+    call.write(notification);
+  }, 1000);
+}
+```
+
+### 3️⃣ Client Streaming RPC (클라이언트 스트리밍)
+클라이언트가 여러 개의 요청을 스트림으로 보내면 서버가 하나의 응답을 반환합니다.
+
+```javascript
+// 클라이언트
+const stream = client.uploadFiles((error, response) => {
+  console.log('업로드 완료:', response.summary);
+});
+
+// 여러 파일을 순차적으로 전송
+files.forEach(file => {
+  stream.write({ fileData: file });
+});
+stream.end();
+
+// 서버
+function uploadFiles(call, callback) {
+  let totalSize = 0;
+  let fileCount = 0;
+  
+  call.on('data', (request) => {
+    totalSize += request.fileData.length;
+    fileCount++;
+  });
+  
+  call.on('end', () => {
+    callback(null, { 
+      summary: `${fileCount}개 파일, 총 ${totalSize}바이트 업로드 완료` 
+    });
+  });
+}
+```
+
+### 4️⃣ Bidirectional Streaming RPC (양방향 스트리밍)
+클라이언트와 서버가 독립적으로 스트림을 통해 데이터를 주고받습니다.
+
+```javascript
+// 클라이언트
+const stream = client.chat();
+
+stream.on('data', (message) => {
+  console.log('받은 메시지:', message.text);
+});
+
+// 메시지 전송
+stream.write({ text: "안녕하세요!" });
+stream.write({ text: "반갑습니다!" });
+
+// 서버
+function chat(call) {
+  call.on('data', (message) => {
+    console.log('클라이언트 메시지:', message.text);
+    
+    // 에코 응답
+    call.write({ text: `에코: ${message.text}` });
+  });
+}
+```
+
+---
+
+## 📝 Protocol Buffers (Protobuf)
+
+### 🔍 Protocol Buffers란?
+구글이 개발한 **바이너리 직렬화 데이터 형식**입니다. JSON보다 효율적이고 빠른 데이터 전송이 가능합니다.
+
+### 📄 .proto 파일 작성법
+
+```protobuf
+syntax = "proto3";  // Protocol Buffers 버전 3 사용
+
+package chat;  // 패키지명
+
+// 서비스 정의
+service ChatService {
+  // 단일 요청-응답
+  rpc SendMessage (MessageRequest) returns (MessageResponse) {}
+  
+  // 서버 스트리밍
+  rpc GetNotifications (UserRequest) returns (stream Notification) {}
+  
+  // 클라이언트 스트리밍
+  rpc UploadFiles (stream FileData) returns (UploadResponse) {}
+  
+  // 양방향 스트리밍
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage) {}
+}
+
+// 메시지 정의
+message MessageRequest {
+  string userId = 1;      // 필드 번호 1
+  string message = 2;     // 필드 번호 2
+  int64 timestamp = 3;    // 필드 번호 3
+}
+
+message MessageResponse {
+  bool success = 1;
+  string messageId = 2;
+}
+
+message UserRequest {
+  string userId = 1;
+}
+
+message Notification {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+}
+
+message FileData {
+  bytes data = 1;
+  string filename = 2;
+}
+
+message UploadResponse {
+  int32 fileCount = 1;
+  int64 totalSize = 2;
+}
+
+message ChatMessage {
+  string userId = 1;
+  string text = 2;
+}
+```
+
+### ⚡ Protobuf의 장점
+
+1. **빠른 통신**
+   - JSON 대비 2-3배 작은 데이터 크기
+   - 파싱 속도가 빠름
+
+2. **타입 안전성**
+   - 컴파일 타임에 타입 검사
+   - 런타임 에러 감소
+
+3. **자동 코드 생성**
+   - .proto 파일로부터 JavaScript 코드 자동 생성
+
+### ⚠️ Protobuf의 단점
+
+1. **가독성 부족**
+   - 바이너리 형태로 사람이 읽기 어려움
+   - .proto 파일이 필요
+
+2. **학습 곡선**
+   - 새로운 문법 학습 필요
+
+---
+
+## 🛠️ JavaScript로 gRPC 구현하기
+
+### 📦 필요한 패키지 설치
 
 ```bash
 npm init -y
-npm install @grpc/grpc-js @grpc/proto-loader typescript ts-node @types/node
+npm install @grpc/grpc-js @grpc/proto-loader
 ```
 
-### 2. Protocol Buffer 정의
+### 🏗️ 프로젝트 구조
 
-`proto/hello.proto` 파일을 생성합니다:
+```
+my-grpc-project/
+├── proto/
+│   └── chat.proto
+├── server.js
+├── client.js
+└── package.json
+```
 
+### 📄 Protocol Buffer 정의
+
+`proto/chat.proto`:
 ```protobuf
 syntax = "proto3";
 
-package hello;
+package chat;
 
-// 서비스 정의
-service Greeter {
-  // 단일 요청-응답
-  rpc SayHello (HelloRequest) returns (HelloResponse) {}
-  
-  // 서버 스트리밍
-  rpc SayHelloServerStream (HelloRequest) returns (stream HelloResponse) {}
-  
-  // 클라이언트 스트리밍
-  rpc SayHelloClientStream (stream HelloRequest) returns (HelloResponse) {}
-  
-  // 양방향 스트리밍
-  rpc SayHelloBidirectional (stream HelloRequest) returns (stream HelloResponse) {}
+service ChatService {
+  rpc SendMessage (MessageRequest) returns (MessageResponse) {}
+  rpc GetNotifications (UserRequest) returns (stream Notification) {}
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage) {}
 }
 
-// 요청 메시지 정의
-message HelloRequest {
-  string name = 1;
+message MessageRequest {
+  string userId = 1;
+  string message = 2;
 }
 
-// 응답 메시지 정의
-message HelloResponse {
-  string message = 1;
+message MessageResponse {
+  bool success = 1;
+  string messageId = 2;
+}
+
+message UserRequest {
+  string userId = 1;
+}
+
+message Notification {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+}
+
+message ChatMessage {
+  string userId = 1;
+  string text = 2;
 }
 ```
 
-### 3. 서버 구현
+### 🖥️ 서버 구현
 
-`server.ts` 파일을 생성합니다:
-
-```typescript
-import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
-import path from 'path';
+`server.js`:
+```javascript
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const path = require('path');
 
 // proto 파일 로드
-const PROTO_PATH = path.resolve(__dirname, './proto/hello.proto');
+const PROTO_PATH = path.resolve(__dirname, './proto/chat.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -155,55 +327,72 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 });
 
 const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
-const hello = protoDescriptor.hello;
+const chatService = protoDescriptor.chat.ChatService;
 
-// 서버 구현
+// 서버 생성
 const server = new grpc.Server();
 
-// 단일 요청-응답 구현
-server.addService(hello.Greeter.service, {
-  sayHello: (call: any, callback: any) => {
+// 서비스 구현
+server.addService(chatService.service, {
+  // 단일 요청-응답
+  sendMessage: (call, callback) => {
+    const { userId, message } = call.request;
+    
+    console.log(`${userId}: ${message}`);
+    
     const response = {
-      message: `Hello ${call.request.name}!`
+      success: true,
+      messageId: `msg_${Date.now()}`
     };
+    
     callback(null, response);
   },
 
-  // 서버 스트리밍 구현
-  sayHelloServerStream: (call: any) => {
-    const name = call.request.name;
-    for (let i = 0; i < 5; i++) {
-      call.write({
-        message: `Hello ${name}! Message ${i + 1}`
-      });
-    }
-    call.end();
-  },
-
-  // 클라이언트 스트리밍 구현
-  sayHelloClientStream: (call: any, callback: any) => {
-    let names: string[] = [];
+  // 서버 스트리밍
+  getNotifications: (call) => {
+    const { userId } = call.request;
     
-    call.on('data', (request: any) => {
-      names.push(request.name);
-    });
-
-    call.on('end', () => {
-      callback(null, {
-        message: `Hello ${names.join(', ')}!`
-      });
-    });
+    console.log(`${userId}의 알림 스트림 시작`);
+    
+    // 5초 동안 1초마다 알림 전송
+    let count = 0;
+    const interval = setInterval(() => {
+      if (count >= 5) {
+        clearInterval(interval);
+        call.end();
+        return;
+      }
+      
+      const notification = {
+        id: `notif_${count}`,
+        title: `알림 ${count + 1}`,
+        content: `${userId}님에게 새로운 메시지가 있습니다.`
+      };
+      
+      call.write(notification);
+      count++;
+    }, 1000);
   },
 
-  // 양방향 스트리밍 구현
-  sayHelloBidirectional: (call: any) => {
-    call.on('data', (request: any) => {
-      call.write({
-        message: `Hello ${request.name}!`
-      });
+  // 양방향 스트리밍
+  chat: (call) => {
+    console.log('채팅 세션 시작');
+    
+    call.on('data', (message) => {
+      const { userId, text } = message;
+      console.log(`${userId}: ${text}`);
+      
+      // 에코 응답
+      const response = {
+        userId: '서버',
+        text: `에코: ${text}`
+      };
+      
+      call.write(response);
     });
 
     call.on('end', () => {
+      console.log('채팅 세션 종료');
       call.end();
     });
   }
@@ -212,21 +401,20 @@ server.addService(hello.Greeter.service, {
 // 서버 시작
 server.bindAsync('0.0.0.0:50051', grpc.ServerCredentials.createInsecure(), () => {
   server.start();
-  console.log('gRPC server running on port 50051');
+  console.log('gRPC 서버가 포트 50051에서 실행 중입니다.');
 });
 ```
 
-### 4. 클라이언트 구현
+### 💻 클라이언트 구현
 
-`client.ts` 파일을 생성합니다:
-
-```typescript
-import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
-import path from 'path';
+`client.js`:
+```javascript
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const path = require('path');
 
 // proto 파일 로드
-const PROTO_PATH = path.resolve(__dirname, './proto/hello.proto');
+const PROTO_PATH = path.resolve(__dirname, './proto/chat.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -236,113 +424,214 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 });
 
 const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
-const hello = protoDescriptor.hello;
+const chatService = protoDescriptor.chat.ChatService;
 
 // 클라이언트 생성
-const client = new hello.Greeter(
+const client = new chatService.ChatService(
   'localhost:50051',
   grpc.credentials.createInsecure()
 );
 
-// 단일 요청-응답 호출
-client.sayHello({ name: 'World' }, (error: any, response: any) => {
+// 1. 단일 요청-응답 테스트
+console.log('=== 단일 요청-응답 테스트 ===');
+client.sendMessage({ userId: '사용자1', message: '안녕하세요!' }, (error, response) => {
   if (error) {
-    console.error(error);
+    console.error('에러:', error);
     return;
   }
-  console.log('SayHello Response:', response.message);
+  console.log('응답:', response);
 });
 
-// 서버 스트리밍 호출
-const serverStream = client.sayHelloServerStream({ name: 'World' });
-serverStream.on('data', (response: any) => {
-  console.log('ServerStream Response:', response.message);
-});
-serverStream.on('end', () => {
-  console.log('ServerStream ended');
+// 2. 서버 스트리밍 테스트
+console.log('\n=== 서버 스트리밍 테스트 ===');
+const notificationStream = client.getNotifications({ userId: '사용자1' });
+
+notificationStream.on('data', (notification) => {
+  console.log('알림:', notification);
 });
 
-// 클라이언트 스트리밍 호출
-const clientStream = client.sayHelloClientStream((error: any, response: any) => {
-  if (error) {
-    console.error(error);
-    return;
-  }
-  console.log('ClientStream Response:', response.message);
+notificationStream.on('end', () => {
+  console.log('알림 스트림 종료');
 });
 
-// 여러 요청 전송
-['Alice', 'Bob', 'Charlie'].forEach(name => {
-  clientStream.write({ name });
-});
-clientStream.end();
+// 3. 양방향 스트리밍 테스트
+setTimeout(() => {
+  console.log('\n=== 양방향 스트리밍 테스트 ===');
+  const chatStream = client.chat();
 
-// 양방향 스트리밍 호출
-const bidirectionalStream = client.sayHelloBidirectional();
+  chatStream.on('data', (message) => {
+    console.log(`${message.userId}: ${message.text}`);
+  });
 
-bidirectionalStream.on('data', (response: any) => {
-  console.log('Bidirectional Response:', response.message);
-});
+  chatStream.on('end', () => {
+    console.log('채팅 스트림 종료');
+  });
 
-bidirectionalStream.on('end', () => {
-  console.log('Bidirectional stream ended');
-});
+  // 메시지 전송
+  chatStream.write({ userId: '사용자1', text: '안녕하세요!' });
+  chatStream.write({ userId: '사용자1', text: '반갑습니다!' });
 
-// 여러 요청 전송
-['Alice', 'Bob', 'Charlie'].forEach(name => {
-  bidirectionalStream.write({ name });
-});
-bidirectionalStream.end();
+  // 3초 후 스트림 종료
+  setTimeout(() => {
+    chatStream.end();
+  }, 3000);
+}, 6000);
 ```
 
-### 5. 실행 방법
+### ▶️ 실행 방법
 
-1. 서버 실행:
+1. **서버 실행**:
 ```bash
-ts-node server.ts
+node server.js
 ```
 
-2. 클라이언트 실행:
+2. **클라이언트 실행** (새 터미널에서):
 ```bash
-ts-node client.ts
+node client.js
 ```
 
 ---
 
-## gRPC 사용 시 주의사항
+## 🔒 보안 고려사항
 
-1. 보안
-   - TLS/SSL을 사용하여 통신을 암호화해야 합니다.
-   - 인증 메커니즘을 구현하여 클라이언트 인증을 수행해야 합니다.
+### 🔐 TLS/SSL 설정
 
-2. 에러 처리
-   - gRPC는 상세한 에러 코드와 메시지를 제공합니다.
-   - 클라이언트와 서버 모두 적절한 에러 처리를 구현해야 합니다.
+```javascript
+// 서버 (TLS 사용)
+const fs = require('fs');
 
-3. 성능 최적화
-   - 스트리밍을 적절히 활용하여 네트워크 효율성을 높일 수 있습니다.
-   - 메시지 크기와 빈도를 고려하여 설계해야 합니다.
+const serverCredentials = grpc.ServerCredentials.createSsl(
+  fs.readFileSync('server.crt'),
+  [{
+    private_key: fs.readFileSync('server.key'),
+    cert_chain: fs.readFileSync('server.crt')
+  }],
+  true
+);
 
-4. 버전 관리
-   - .proto 파일의 변경 시 하위 호환성을 유지해야 합니다.
-   - 필드 번호는 재사용하지 않아야 합니다.
+server.bindAsync('0.0.0.0:50051', serverCredentials, () => {
+  server.start();
+});
+
+// 클라이언트 (TLS 사용)
+const clientCredentials = grpc.credentials.createSsl(
+  fs.readFileSync('ca.crt')
+);
+
+const client = new chatService.ChatService(
+  'localhost:50051',
+  clientCredentials
+);
+```
+
+### 🔑 인증 구현
+
+```javascript
+// 서버에서 인증 미들웨어
+const authenticate = (call, callback) => {
+  const metadata = call.metadata;
+  const token = metadata.get('authorization')[0];
+  
+  if (!token || token !== 'valid-token') {
+    callback({
+      code: grpc.status.UNAUTHENTICATED,
+      message: '인증 실패'
+    });
+    return false;
+  }
+  
+  return true;
+};
+
+// 서비스에서 인증 사용
+sendMessage: (call, callback) => {
+  if (!authenticate(call, callback)) return;
+  
+  // 비즈니스 로직...
+}
+```
 
 ---
 
-## 실제 사용 사례
+## �� 실제 사용 사례
 
-1. 마이크로서비스 아키텍처
-   - 서비스 간 통신에 gRPC를 사용하여 효율적인 통신 구현
-   - Polyglot 환경에서의 일관된 API 정의
+### 1. 마이크로서비스 통신
+```javascript
+// 사용자 서비스
+const userClient = new UserService('user-service:50051', credentials);
 
-2. 모바일 앱 백엔드
-   - 모바일 앱과 서버 간의 효율적인 통신
-   - 배터리 사용량 최적화
+// 주문 서비스에서 사용자 정보 조회
+const getUserInfo = async (userId) => {
+  return new Promise((resolve, reject) => {
+    userClient.getUser({ userId }, (error, response) => {
+      if (error) reject(error);
+      else resolve(response.user);
+    });
+  });
+};
+```
 
-3. IoT 디바이스 통신
-   - 제한된 리소스 환경에서의 효율적인 통신
-   - 실시간 데이터 전송
+### 2. 실시간 채팅
+```javascript
+// 채팅 클라이언트
+const chatStream = chatClient.joinRoom({ roomId: 'room1' });
 
-4. 실시간 애플리케이션
-   - 양방향 스트리밍을 활용한 실시간 기능 구현
-   - 채팅, 게임, 실시간 모니터링 등
+chatStream.on('data', (message) => {
+  displayMessage(message);
+});
+
+// 메시지 전송
+const sendMessage = (text) => {
+  chatStream.write({
+    userId: currentUser.id,
+    text: text,
+    timestamp: Date.now()
+  });
+};
+```
+
+### 3. 파일 업로드
+```javascript
+// 파일 업로드 클라이언트
+const uploadStream = fileClient.uploadFile((error, response) => {
+  if (error) {
+    console.error('업로드 실패:', error);
+  } else {
+    console.log('업로드 완료:', response.fileId);
+  }
+});
+
+// 파일 청크 전송
+const uploadFile = (file) => {
+  const chunkSize = 1024 * 1024; // 1MB
+  let offset = 0;
+  
+  while (offset < file.size) {
+    const chunk = file.slice(offset, offset + chunkSize);
+    uploadStream.write({ data: chunk });
+    offset += chunkSize;
+  }
+  
+  uploadStream.end();
+};
+```
+
+---
+
+## 📚 주요 개념 정리
+
+### 🔧 gRPC 구성 요소
+- **Service**: 제공할 서비스 정의
+- **Message**: 데이터 구조 정의
+- **RPC Method**: 실제 함수 정의
+- **Stream**: 데이터 스트림 처리
+
+### 🌐 HTTP/2 특징
+- **멀티플렉싱**: 하나의 연결로 여러 요청/응답 처리
+- **헤더 압축**: HPACK을 통한 헤더 크기 최적화
+- **서버 푸시**: 서버가 클라이언트에게 데이터를 미리 전송
+
+### 📦 Protocol Buffers 특징
+- **바이너리 형식**: 텍스트가 아닌 바이너리로 저장
+- **스키마 기반**: .proto 파일로 데이터 구조 정의
+- **버전 관리**: 필드 번호를 통한 하위 호환성 유지
