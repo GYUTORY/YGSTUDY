@@ -1,103 +1,265 @@
+# JavaScript Getter & Setter
 
-## 프로그래밍 Getter & Setter 개념
+## 📖 기본 개념 이해하기
 
-- Getter와 Setter는 객체 지향 프로그래밍에서 사용되는 개념이며, 일종의 메서드라 칭해진다.
-- 즉, 단어 그대로 Getter는 객체의 속성(property) 값을 반환하는 메서드이며,
-- Setter는 객체의 속성 값을 설정, 변경하는 메서드라고 보면 된다. 예를들어 user 라는 객체가 있을 경우, 보통이라면 아래의 코드처럼 user.name 으로 프로퍼티로 바로 접근해서 이름값을 가져오거나 재설정할텐데,
-  
+### Getter & Setter란?
+- **Getter**: 객체의 속성 값을 안전하게 가져오는 메서드
+- **Setter**: 객체의 속성 값을 안전하게 설정하는 메서드
+- 객체 지향 프로그래밍의 **캡슐화(Encapsulation)** 원칙을 구현하는 방법
+
+### 왜 Getter & Setter를 사용할까?
+
+#### ❌ 직접 접근 방식 (문제가 있는 코드)
 ```javascript
 const user = {
-	name: 'inpa',
-    age: 50
+    name: '김철수',
+    age: 25
 }
 
-console.log(user.name); // inpa
-
-user.name = 'tistory';
+// 직접 접근 - 위험!
+console.log(user.name); // 김철수
+user.age = 999; // 나이에 999를 넣어도 아무 제한이 없음
 ```
 
-- 위의 코드처럼 직접 접근하지 않고, getName()와 setName() 메서드를 통해 경유해서 설정하도록 하는 기법이 바로 Getter와 Setter 개념이다.
-
+#### ✅ Getter & Setter 방식 (안전한 코드)
 ```javascript
 const user = {
-	name: 'inpa',
-    age: 50,
+    name: '김철수',
+    age: 25,
     
-    // 객체의 메서드(함수)
+    // Getter: 값을 안전하게 가져오기
     getName() {
-    	return user.name;
+        return this.name;
     },
-    setName(value) {
-    	user.name = value;
-    }
-}
-
-console.log(user.getName()); // inpa
-
-user.setName('tistory');
-```
-
-## Getter & Setter 활용하기
-- 그런데 두 방식은 결과적으로 목표하고자 하는 바는 같고 결과값도 같게 보일 수도 있어, 번거롭게 Getter와 Setter를 사용할 이유는 무엇일까?
-- Getter와 Setter를 사용하면 객체 내부 속성에 직접 접근하지 않아 객체의 정보 은닉을 가능하게 해주어 보안을 강화할 수 있고, 코드의 안전성과 유지보수성을 높일 수 있다는 장점이 있다.
-- 또한 옳지않은 값을 넣으려고 할때 이를 미연에 방지할 수 있다. 예를들어 user.age 프로퍼티에 400이라는 나이값은 옳지않은 값이니 이를 할당하지 못하도록 해야되는데,
-- Setter 메서드를 통해 경유하도록 설정하면 메서드 내에서 if문을 통해 값을 필터링 할 수 있게 된다.
-
-```javascript
-const user = {
-	name: 'inpa',
-    age: 50,
     
-    getAge() {
-    	return user.age;
-    },
-    setAge(value) {
-    	// 만일 나이 값이 100 초과일 경우 바로 함수를 리턴해서 user.name이 재설정되지 않도록 필터링
-    	if(value > 100) {
-        	console.error('나이는 100을 초과할 수 없습니다.')
+    // Setter: 값을 안전하게 설정하기
+    setAge(newAge) {
+        if (newAge < 0 || newAge > 150) {
+            console.error('나이는 0~150 사이여야 합니다.');
             return;
         }
-        	
-    	user.name = value;
+        this.age = newAge;
     }
 }
 
-user.setAge(400); // 나이는 100을 초과할 수 없습니다.
+console.log(user.getName()); // 김철수
+user.setAge(999); // 나이는 0~150 사이여야 합니다.
 ```
 
-___ 
+## 🔧 ES6 Getter & Setter 문법
 
-### 자바스크립트 Getter & Setter
+### 기본 문법
+```javascript
+const 객체명 = {
+    // 기존 속성들...
+    
+    get 속성명() {
+        // 값을 반환하는 로직
+        return this.실제속성명;
+    },
+    
+    set 속성명(새값) {
+        // 값을 검증하고 설정하는 로직
+        this.실제속성명 = 새값;
+    }
+}
+```
 
-- ES6 최신 자바스크립트부터는 Getter와 Setter를 간단하게 정의할 수 있는 문법이 별도로 추가되었다. 
-- 객체 리터럴 안에서 속성 이름 앞에 get 또는 set 키워드만 붙여 Getter와 Setter를 정의할 수 있게 되었는데, 이 방법을 사용하면 Getter와 Setter 코드를 더욱 간결하고 가독성 있게 작성할 수 있다.
-   
+### 실제 예제
 ```javascript
 const user = {
-	name: 'inpa',
-    age: 50,
+    _name: '김철수',    // 언더스코어(_)는 내부 속성임을 나타냄
+    _age: 25,
     
-    // userName() 메서드 왼쪽에 get, set 키워드만 붙이면 알아서 Getter, Setter 로서 동작된다
-    get userName() {
-    	return user.name;
+    // name에 대한 getter
+    get name() {
+        return this._name;
     },
-    set userName(value) {
-    	user.name = value;
+    
+    // name에 대한 setter
+    set name(newName) {
+        if (typeof newName !== 'string' || newName.length < 2) {
+            console.error('이름은 2글자 이상의 문자열이어야 합니다.');
+            return;
+        }
+        this._name = newName;
+    },
+    
+    // age에 대한 getter
+    get age() {
+        return this._age;
+    },
+    
+    // age에 대한 setter
+    set age(newAge) {
+        if (newAge < 0 || newAge > 150) {
+            console.error('나이는 0~150 사이여야 합니다.');
+            return;
+        }
+        this._age = newAge;
     }
 }
 ```
 
-> 그런데 이때의 Getter와 Setter 은 함수 호출 형식이 아닌, 일반 프로퍼티처럼 접근해서 사용된다. getter와 setter 메서드를 구현하면 객체엔 userName이라는 가상의 프로퍼티가 생기는데, 가상의 프로퍼티는 읽고 쓸 순 있지만 실제로는 존재하지 않는 프로퍼티이다.
-
+### 사용 방법
 ```javascript
-console.log(user.userName); // inpa
+// Getter 사용 - 함수 호출이 아닌 속성처럼 접근
+console.log(user.name); // 김철수
+console.log(user.age);  // 25
 
-userName = 'tistory';
+// Setter 사용 - 함수 호출이 아닌 할당처럼 사용
+user.name = '박영희';    // 정상 설정
+user.age = 30;          // 정상 설정
+
+user.name = 'A';        // 이름은 2글자 이상의 문자열이어야 합니다.
+user.age = 999;         // 나이는 0~150 사이여야 합니다.
 ```
 
+## 🎯 주요 특징과 장점
 
+### 1. 가상 속성 (Virtual Property)
+- `name`과 `age`는 실제로는 존재하지 않는 가상의 속성
+- 내부적으로는 `_name`, `_age`에 실제 데이터가 저장됨
+- 사용자는 마치 일반 속성처럼 사용할 수 있음
 
+### 2. 데이터 검증 (Validation)
+```javascript
+const bankAccount = {
+    _balance: 1000,
+    
+    get balance() {
+        return this._balance;
+    },
+    
+    set balance(amount) {
+        if (amount < 0) {
+            console.error('잔액은 음수가 될 수 없습니다.');
+            return;
+        }
+        this._balance = amount;
+    }
+}
 
+bankAccount.balance = -500; // 잔액은 음수가 될 수 없습니다.
+console.log(bankAccount.balance); // 1000 (변경되지 않음)
+```
 
+### 3. 계산된 속성 (Computed Property)
+```javascript
+const rectangle = {
+    _width: 10,
+    _height: 5,
+    
+    get area() {
+        return this._width * this._height;
+    },
+    
+    get perimeter() {
+        return 2 * (this._width + this._height);
+    }
+}
 
-출처: https://inpa.tistory.com/entry/JS-📚-getter-setter-란 [Inpa Dev 👨‍💻:티스토리]
+console.log(rectangle.area);      // 50
+console.log(rectangle.perimeter); // 30
+```
+
+## ⚠️ 주의사항
+
+### 1. 무한 루프 방지
+```javascript
+const user = {
+    _name: '김철수',
+    
+    // ❌ 잘못된 예 - 무한 루프 발생
+    get name() {
+        return this.name; // this.name을 호출하면 다시 getter가 실행됨
+    },
+    
+    // ✅ 올바른 예
+    get name() {
+        return this._name; // 내부 속성에 접근
+    }
+}
+```
+
+### 2. Getter만 정의한 경우
+```javascript
+const user = {
+    _name: '김철수',
+    
+    get name() {
+        return this._name;
+    }
+    // setter가 없으면 읽기 전용 속성이 됨
+}
+
+console.log(user.name); // 김철수
+user.name = '박영희';    // 에러는 발생하지 않지만 값이 변경되지 않음
+console.log(user.name); // 여전히 김철수
+```
+
+## 🚀 실전 활용 예제
+
+### 사용자 프로필 관리
+```javascript
+const userProfile = {
+    _email: '',
+    _password: '',
+    _age: 0,
+    
+    // 이메일 getter/setter
+    get email() {
+        return this._email;
+    },
+    
+    set email(newEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            console.error('올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+        this._email = newEmail;
+    },
+    
+    // 비밀번호 getter/setter
+    get password() {
+        return '*'.repeat(this._password.length); // 보안을 위해 마스킹
+    },
+    
+    set password(newPassword) {
+        if (newPassword.length < 8) {
+            console.error('비밀번호는 8자 이상이어야 합니다.');
+            return;
+        }
+        this._password = newPassword;
+    },
+    
+    // 나이 getter/setter
+    get age() {
+        return this._age;
+    },
+    
+    set age(newAge) {
+        if (newAge < 0 || newAge > 150) {
+            console.error('나이는 0~150 사이여야 합니다.');
+            return;
+        }
+        this._age = newAge;
+    }
+}
+
+// 사용 예시
+userProfile.email = 'test@example.com';     // 정상
+userProfile.email = 'invalid-email';        // 올바른 이메일 형식이 아닙니다.
+userProfile.password = '12345678';          // 정상
+userProfile.password = '123';               // 비밀번호는 8자 이상이어야 합니다.
+userProfile.age = 25;                       // 정상
+
+console.log(userProfile.email);    // test@example.com
+console.log(userProfile.password); // ********
+console.log(userProfile.age);      // 25
+```
+
+---
+
+**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
