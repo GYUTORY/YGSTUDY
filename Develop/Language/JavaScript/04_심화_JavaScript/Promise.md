@@ -1,4 +1,4 @@
-# JavaScript Promise 완벽 가이드
+# JavaScript Promise
 
 ## 📋 목차
 - [Promise란 무엇인가?](#promise란-무엇인가)
