@@ -1,166 +1,160 @@
-# 🚀 Jenkins, Docker, Git, CI/CD, SSH 자동 배포 가이드
+# Jenkins, Docker, Git을 활용한 자동 배포 시스템 구축 가이드
 
 ---
 
-## 1. 개요 ✨
+## 📋 목차
+- [1. 자동 배포 시스템이란?](#1-자동-배포-시스템이란)
+- [2. 필요한 기술들](#2-필요한-기술들)
+- [3. 시스템 구축 단계](#3-시스템-구축-단계)
+- [4. 실제 설정 방법](#4-실제-설정-방법)
+- [5. 문제 해결](#5-문제-해결)
 
-이 문서는 **Jenkins**, **Docker**, **Git**, **CI/CD**, **SSH**를 이용한 자동 배포(Deployment) 시스템 구축에 대해 상세히 설명합니다.
+---
 
-### 1.1 자동 배포의 장점
-- **시간 절약**: 수동 배포 과정을 자동화하여 개발자의 시간을 절약
-- **인적 오류 감소**: 배포 과정에서 발생할 수 있는 실수를 최소화
-- **일관성**: 모든 환경(개발, 테스트, 운영)에서 동일한 방식으로 배포
-- **빠른 롤백**: 문제 발생 시 이전 버전으로 즉시 복구 가능
-- **배포 이력 관리**: 모든 배포 과정이 기록되어 추적 가능
+## 1. 자동 배포 시스템이란?
 
-### 1.2 시스템 아키텍처
+### 1.1 기존 배포 방식의 문제점
+
+**수동 배포**를 할 때 겪는 불편함들:
+- 코드를 수정할 때마다 서버에 직접 접속해서 파일을 업로드해야 함
+- 배포 과정에서 실수로 잘못된 파일을 올리거나 설정을 놓칠 수 있음
+- 팀원들이 각자 다른 방식으로 배포해서 환경이 달라질 수 있음
+- 배포 중에 서비스가 중단될 수 있음
+
+### 1.2 자동 배포의 장점
+
+**자동 배포**를 사용하면:
+- 코드를 Git에 올라가면 자동으로 서버에 배포됨
+- 배포 과정이 표준화되어 실수 가능성이 줄어듦
+- 언제든지 이전 버전으로 되돌릴 수 있음
+- 배포 과정을 추적하고 기록할 수 있음
+
+### 1.3 전체 시스템 구조
+
 ```
-[개발자] → [Git Repository] → [Jenkins Server] → [Docker Registry] → [Production Server]
-   ↑            ↓                    ↓                    ↓                    ↓
-   └────────────┴────────────────────┴────────────────────┴────────────────────┘
-                    자동화된 CI/CD 파이프라인
+개발자가 코드를 수정
+        ↓
+    Git 저장소에 업로드
+        ↓
+    Jenkins가 변경사항 감지
+        ↓
+    자동으로 빌드 및 테스트
+        ↓
+    Docker 이미지 생성
+        ↓
+    서버에 자동 배포
 ```
 
 ---
 
-## 2. 주요 기술 소개
+## 2. 필요한 기술들
 
-### 2.1 Jenkins 👉🏻
+### 2.1 Git (깃)
 
-Jenkins는 **CI/CD(Continuous Integration / Continuous Deployment) 자동화 도구**입니다.
+**Git이란?**
+- 코드의 버전을 관리하는 도구
+- 여러 사람이 함께 작업할 때 코드 충돌을 방지
+- 이전 버전으로 언제든지 되돌릴 수 있음
 
-#### 2.1.1 Jenkins의 주요 기능
-- **빌드 자동화**: 코드 변경 시 자동으로 빌드 수행
-- **테스트 자동화**: 단위 테스트, 통합 테스트 자동 실행
-- **배포 자동화**: 테스트 통과 시 자동으로 서버에 배포
-- **모니터링**: 빌드/배포 상태 실시간 모니터링
-- **알림**: Slack, Email 등을 통한 빌드/배포 상태 알림
+**Git의 기본 개념:**
+- **Repository (저장소)**: 프로젝트 코드가 저장되는 곳
+- **Commit (커밋)**: 코드 변경사항을 저장하는 행위
+- **Branch (브랜치)**: 독립적인 작업 공간
+- **Push (푸시)**: 로컬 변경사항을 원격 저장소에 업로드
 
-#### 2.1.2 Jenkins 파이프라인
-```groovy
-pipeline {
-    agent any
-    stages {
-        stage('Build') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                sh './deploy.sh'
-            }
-        }
-    }
-}
-```
+### 2.2 Jenkins (젠킨스)
 
-### 2.2 Docker
+**Jenkins란?**
+- 자동화 도구 (CI/CD 도구)
+- Git에 코드가 올라가면 자동으로 감지
+- 설정한 작업들을 순서대로 자동 실행
 
-Docker는 **컨테이너 기반 가상화 기술**입니다.
+**Jenkins가 하는 일:**
+- 코드 변경 감지
+- 자동 빌드 (컴파일, 패키징)
+- 자동 테스트 실행
+- 자동 배포
 
-#### 2.2.1 Docker의 핵심 개념
-- **이미지(Image)**: 애플리케이션 실행에 필요한 모든 파일이 포함된 템플릿
-- **컨테이너(Container)**: 이미지를 실행한 인스턴스
-- **Dockerfile**: 이미지 생성 방법을 정의한 파일
-- **Docker Hub**: 공개 Docker 이미지 저장소
+### 2.3 Docker (도커)
 
-#### 2.2.2 Dockerfile 예시
-```dockerfile
-# 베이스 이미지 선택
-FROM openjdk:11-jdk-slim
+**Docker란?**
+- 애플리케이션을 컨테이너로 패키징하는 도구
+- "어디서든 동일하게 실행되는 환경"을 만들어줌
 
-# 작업 디렉토리 설정
-WORKDIR /app
+**Docker의 핵심 개념:**
+- **Image (이미지)**: 애플리케이션 실행에 필요한 모든 파일이 담긴 패키지
+- **Container (컨테이너)**: 이미지를 실행한 상태
+- **Dockerfile**: 이미지를 만드는 방법을 정의한 파일
 
-# 애플리케이션 파일 복사
-COPY target/*.jar app.jar
+**Docker를 사용하는 이유:**
+- 개발 환경과 운영 환경의 차이로 인한 문제 해결
+- 서버 설정을 코드로 관리 가능
+- 빠른 배포와 확장 가능
 
-# 포트 설정
-EXPOSE 8080
+### 2.4 SSH (에스에스에이치)
 
-# 실행 명령
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
-
-### 2.3 Git
-
-Git은 **분산형 버전 관리 시스템(VCS)**입니다.
-
-#### 2.3.1 Git 워크플로우
-1. **Feature Branch Workflow**
-   ```
-   main
-     ├── feature/login
-     ├── feature/payment
-     └── feature/user-profile
-   ```
-
-2. **Git Flow**
-   ```
-   main
-     ├── develop
-     │   ├── feature/login
-     │   └── feature/payment
-     ├── release/v1.0
-     └── hotfix/security-patch
-   ```
-
-### 2.4 CI/CD
-
-CI/CD는 **소프트웨어 개발과 배포를 자동화하는 방법론**입니다.
-
-#### 2.4.1 CI(Continuous Integration) 프로세스
-1. 코드 커밋
-2. 자동 빌드
-3. 단위 테스트
-4. 통합 테스트
-5. 코드 품질 검사
-
-#### 2.4.2 CD(Continuous Deployment) 프로세스
-1. 테스트 통과 확인
-2. 스테이징 환경 배포
-3. 자동화된 테스트
-4. 프로덕션 환경 배포
-5. 모니터링 및 알림
-
-### 2.5 SSH
-
-SSH는 **안전한 원격 접속 프로토콜**입니다.
-
-#### 2.5.1 SSH 주요 기능
-- **암호화된 통신**: 모든 데이터가 암호화되어 전송
-- **키 기반 인증**: 비밀번호 대신 SSH 키로 인증
-- **포트 포워딩**: 안전한 터널링 제공
-- **X11 포워딩**: GUI 애플리케이션 원격 실행
+**SSH란?**
+- Secure Shell의 약자
+- 원격 서버에 안전하게 접속하는 방법
+- 비밀번호 대신 키를 사용해서 더 안전함
 
 ---
 
-## 3. Jenkins 설치 및 설정
+## 3. 시스템 구축 단계
 
-### 3.1 Jenkins 설치
+### 3.1 준비 단계
 
-#### 3.1.1 시스템 요구사항
-- **하드웨어**: 최소 2GB RAM, 10GB 디스크 공간
-- **운영체제**: Ubuntu 20.04 LTS 이상
-- **Java**: OpenJDK 11 이상
+**필요한 것들:**
+- Ubuntu 서버 (20.04 LTS 이상 권장)
+- 최소 2GB RAM, 10GB 디스크 공간
+- 인터넷 연결
 
-#### 3.1.2 설치 과정
-```sh
+**서버 역할 분담:**
+- **Jenkins 서버**: 자동화 작업을 처리하는 서버
+- **배포 대상 서버**: 실제 애플리케이션이 실행될 서버
+
+### 3.2 설치 순서
+
+1. **Jenkins 서버 설정**
+   - Java 설치
+   - Jenkins 설치
+   - Docker 설치
+
+2. **Git 저장소 설정**
+   - 프로젝트 코드 준비
+   - Git 저장소 생성
+
+3. **배포 대상 서버 설정**
+   - Docker 설치
+   - SSH 키 설정
+
+---
+
+## 4. 실제 설정 방법
+
+### 4.1 Jenkins 서버 설정
+
+#### 4.1.1 Java 설치
+
+```bash
 # 시스템 업데이트
 sudo apt update
 sudo apt upgrade -y
 
-# Java 설치
+# Java 11 설치
 sudo apt install -y openjdk-11-jdk
 
-# Jenkins 저장소 추가
+# Java 버전 확인
+java -version
+```
+
+#### 4.1.2 Jenkins 설치
+
+```bash
+# Jenkins 저장소 키 추가
 wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+
+# Jenkins 저장소 추가
 sudo sh -c 'echo "deb http://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list'
 
 # Jenkins 설치
@@ -175,46 +169,32 @@ sudo systemctl enable jenkins
 sudo systemctl status jenkins
 ```
 
-#### 3.1.3 방화벽 설정
-```sh
-# Jenkins 포트(8080) 개방
-sudo ufw allow 8080/tcp
-sudo ufw status
-```
+#### 4.1.3 Jenkins 초기 설정
 
-### 3.2 Jenkins 초기 설정
+1. **브라우저에서 접속**
+   - `http://서버IP:8080` 으로 접속
 
-#### 3.2.1 초기 접속
-1. 브라우저에서 `http://<서버 IP>:8080` 접속
-2. 초기 비밀번호 확인
-   ```sh
+2. **초기 비밀번호 확인**
+   ```bash
    sudo cat /var/lib/jenkins/secrets/initialAdminPassword
    ```
 
-#### 3.2.2 필수 플러그인 설치
-- **Git Integration**: Git 저장소 연동
-- **Docker Pipeline**: Docker 컨테이너 빌드/배포
-- **SSH Agent**: SSH를 통한 원격 서버 접속
-- **Pipeline**: 파이프라인 스크립트 작성
-- **Blue Ocean**: 시각적 파이프라인 편집기
+3. **필수 플러그인 설치**
+   - Git Integration
+   - Docker Pipeline
+   - SSH Agent
+   - Pipeline
 
-#### 3.2.3 관리자 계정 설정
-1. 사용자 이름 설정
-2. 비밀번호 설정 (최소 8자, 특수문자 포함)
-3. 이메일 주소 입력
+4. **관리자 계정 생성**
+   - 사용자명과 비밀번호 설정
 
----
+#### 4.1.4 Docker 설치
 
-## 4. Docker 설정
-
-### 4.1 Docker 설치
-
-#### 4.1.1 Docker 설치 과정
-```sh
+```bash
 # 이전 버전 제거
 sudo apt remove docker docker-engine docker.io containerd runc
 
-# 필수 패키지 설치
+# 필요한 패키지 설치
 sudo apt update
 sudo apt install -y \
     apt-transport-https \
@@ -223,7 +203,7 @@ sudo apt install -y \
     gnupg \
     lsb-release
 
-# Docker 공식 GPG 키 추가
+# Docker GPG 키 추가
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
 # Docker 저장소 추가
@@ -241,86 +221,31 @@ sudo systemctl enable docker
 
 # 현재 사용자를 docker 그룹에 추가
 sudo usermod -aG docker $USER
-```
 
-#### 4.1.2 Docker 권한 설정
-```sh
-# Jenkins 사용자를 docker 그룹에 추가
+# Jenkins 사용자도 docker 그룹에 추가
 sudo usermod -aG docker jenkins
-
-# Jenkins 서비스 재시작
 sudo systemctl restart jenkins
 ```
 
-### 4.2 Docker 기본 명령어
+### 4.2 Git 저장소 설정
 
-#### 4.2.1 이미지 관리
-```sh
-# 이미지 목록 확인
-docker images
+#### 4.2.1 프로젝트 준비
 
-# 이미지 빌드
-docker build -t myapp:1.0 .
+**Dockerfile 생성:**
+```dockerfile
+# Spring Boot 애플리케이션 예시
+FROM openjdk:11-jdk-slim
 
-# 이미지 삭제
-docker rmi myapp:1.0
+WORKDIR /app
+
+COPY target/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
-#### 4.2.2 컨테이너 관리
-```sh
-# 컨테이너 실행
-docker run -d -p 8080:8080 --name myapp myapp:1.0
-
-# 컨테이너 목록 확인
-docker ps -a
-
-# 컨테이너 중지
-docker stop myapp
-
-# 컨테이너 삭제
-docker rm myapp
-```
-
----
-
-## 5. Git 자동 배포 파이프라인 구축
-
-### 5.1 Git 저장소 준비
-
-#### 5.1.1 Git 저장소 초기화
-```sh
-# 새 저장소 생성
-git init
-
-# 원격 저장소 추가
-git remote add origin https://github.com/username/repository.git
-
-# 기본 브랜치 설정
-git branch -M main
-```
-
-#### 5.1.2 .gitignore 설정
-```gitignore
-# IDE 설정 파일
-.idea/
-.vscode/
-
-# 빌드 결과물
-target/
-build/
-dist/
-
-# 환경 설정 파일
-.env
-application-*.properties
-
-# 로그 파일
-*.log
-```
-
-### 5.2 Jenkins 파이프라인 설정
-
-#### 5.2.1 파이프라인 스크립트
+**Jenkinsfile 생성:**
 ```groovy
 pipeline {
     agent any
@@ -365,24 +290,45 @@ pipeline {
             }
         }
     }
-    
-    post {
-        always {
-            cleanWs()
-        }
-        success {
-            echo '배포 성공!'
-        }
-        failure {
-            echo '배포 실패!'
-        }
-    }
 }
 ```
 
-### 5.3 배포 스크립트
+### 4.3 Jenkins 파이프라인 설정
 
-#### 5.3.1 deploy.sh
+#### 4.3.1 새 파이프라인 생성
+
+1. **Jenkins 대시보드에서 "새 작업" 클릭**
+2. **"Pipeline" 선택 후 이름 입력**
+3. **"Pipeline" 섹션에서 "Pipeline script from SCM" 선택**
+4. **SCM에서 "Git" 선택**
+5. **Repository URL 입력**
+6. **Script Path에 "Jenkinsfile" 입력**
+
+#### 4.3.2 Git 연동 설정
+
+**SSH 키 생성:**
+```bash
+# SSH 키 생성
+ssh-keygen -t rsa -b 4096 -C "jenkins@server"
+
+# 공개키 확인
+cat ~/.ssh/id_rsa.pub
+```
+
+**Git 저장소에 SSH 키 추가:**
+1. GitHub/GitLab에서 Settings → SSH Keys
+2. 위에서 확인한 공개키 내용을 추가
+
+**Jenkins에서 SSH 키 설정:**
+1. Jenkins 관리 → Credentials → System → Global credentials
+2. "Add Credentials" 클릭
+3. Kind에서 "SSH Username with private key" 선택
+4. Private key 내용 입력
+
+### 4.4 배포 스크립트 작성
+
+#### 4.4.1 deploy.sh
+
 ```bash
 #!/bin/bash
 
@@ -391,17 +337,19 @@ APP_NAME="myapp"
 DOCKER_IMAGE="myapp"
 DOCKER_TAG=$(git rev-parse --short HEAD)
 
+echo "배포 시작: $DOCKER_TAG"
+
 # 이전 컨테이너 정리
-echo "Cleaning up previous containers..."
-docker stop $APP_NAME || true
-docker rm $APP_NAME || true
+echo "기존 컨테이너 정리 중..."
+docker stop $APP_NAME 2>/dev/null || true
+docker rm $APP_NAME 2>/dev/null || true
 
 # 새 이미지 빌드
-echo "Building new Docker image..."
+echo "Docker 이미지 빌드 중..."
 docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
 
 # 새 컨테이너 실행
-echo "Starting new container..."
+echo "새 컨테이너 실행 중..."
 docker run -d \
     --name $APP_NAME \
     -p 8080:8080 \
@@ -409,38 +357,27 @@ docker run -d \
     $DOCKER_IMAGE:$DOCKER_TAG
 
 # 헬스 체크
-echo "Performing health check..."
+echo "애플리케이션 상태 확인 중..."
 for i in {1..30}; do
     if curl -s http://localhost:8080/actuator/health | grep -q "UP"; then
-        echo "Application is up and running!"
+        echo "배포 성공! 애플리케이션이 정상 실행 중입니다."
         exit 0
     fi
+    echo "대기 중... ($i/30)"
     sleep 2
 done
 
-echo "Health check failed!"
+echo "배포 실패! 애플리케이션이 정상 실행되지 않았습니다."
 exit 1
 ```
 
----
+### 4.5 원격 서버 배포 설정
 
-## 6. SSH를 통한 원격 배포
+#### 4.5.1 SSH 키 설정
 
-### 6.1 SSH 키 설정
-
-#### 6.1.1 SSH 키 생성
-```sh
-# SSH 키 생성
-ssh-keygen -t rsa -b 4096 -C "jenkins@server"
-
-# 키 권한 설정
-chmod 600 ~/.ssh/id_rsa
-chmod 644 ~/.ssh/id_rsa.pub
-```
-
-#### 6.1.2 원격 서버 설정
-```sh
-# 원격 서버에 SSH 키 복사
+**원격 서버에 SSH 키 복사:**
+```bash
+# 원격 서버에 키 복사
 ssh-copy-id -i ~/.ssh/id_rsa.pub user@remote-server
 
 # SSH 설정 파일 생성
@@ -453,9 +390,8 @@ Host remote-server
 EOF
 ```
 
-### 6.2 원격 배포 스크립트
+#### 4.5.2 원격 배포 스크립트
 
-#### 6.2.1 remote-deploy.sh
 ```bash
 #!/bin/bash
 
@@ -464,120 +400,168 @@ REMOTE_SERVER="remote-server"
 REMOTE_PATH="/opt/applications"
 APP_NAME="myapp"
 
+echo "원격 서버 배포 시작..."
+
 # 원격 서버에 배포
 ssh $REMOTE_SERVER << EOF
+    echo "원격 서버에서 작업 시작..."
+    
     # 작업 디렉토리로 이동
     cd $REMOTE_PATH
-
+    
     # 최신 코드 가져오기
+    echo "최신 코드 다운로드 중..."
     git pull origin main
-
+    
     # 이전 컨테이너 정리
-    docker stop $APP_NAME || true
-    docker rm $APP_NAME || true
-
+    echo "기존 컨테이너 정리 중..."
+    docker stop $APP_NAME 2>/dev/null || true
+    docker rm $APP_NAME 2>/dev/null || true
+    
     # 새 이미지 빌드
+    echo "새 이미지 빌드 중..."
     docker build -t $APP_NAME:latest .
-
+    
     # 새 컨테이너 실행
+    echo "새 컨테이너 실행 중..."
     docker run -d \
         --name $APP_NAME \
         -p 8080:8080 \
         -e SPRING_PROFILES_ACTIVE=prod \
         $APP_NAME:latest
-
-    # 배포 로그 확인
-    docker logs -f $APP_NAME
-EOF
-```
-
-### 6.3 모니터링 및 알림
-
-#### 6.3.1 Slack 알림 설정
-```groovy
-pipeline {
-    // ... 기존 파이프라인 설정 ...
     
-    post {
-        success {
-            slackSend(
-                channel: '#deployments',
-                color: 'good',
-                message: "배포 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-            )
-        }
-        failure {
-            slackSend(
-                channel: '#deployments',
-                color: 'danger',
-                message: "배포 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-            )
-        }
-    }
-}
+    echo "배포 완료!"
+    
+    # 컨테이너 상태 확인
+    docker ps | grep $APP_NAME
+EOF
+
+echo "원격 배포 완료!"
 ```
 
 ---
 
-## 7. 문제 해결 및 모니터링
+## 5. 문제 해결
 
-### 7.1 일반적인 문제 해결
+### 5.1 자주 발생하는 문제들
 
-#### 7.1.1 Jenkins 문제
-- **빌드 실패**: 로그 확인 및 권한 문제 체크
-- **플러그인 오류**: 플러그인 재설치 및 버전 호환성 확인
-- **메모리 부족**: JVM 힙 메모리 설정 조정
+#### 5.1.1 Jenkins 관련 문제
 
-#### 7.1.2 Docker 문제
-- **이미지 빌드 실패**: Dockerfile 문법 및 의존성 확인
-- **컨테이너 실행 오류**: 포트 충돌 및 리소스 제한 확인
-- **네트워크 문제**: Docker 네트워크 설정 확인
+**빌드가 실패하는 경우:**
+- 로그 확인: Jenkins 대시보드 → 빌드 → Console Output
+- 권한 문제: 파일 권한이나 디렉토리 권한 확인
+- 메모리 부족: JVM 힙 메모리 설정 조정
 
-### 7.2 모니터링 도구
+**플러그인 오류:**
+- 플러그인 재설치
+- Jenkins 재시작
+- 플러그인 버전 호환성 확인
 
-#### 7.2.1 시스템 모니터링
-- **Prometheus**: 메트릭 수집
-- **Grafana**: 시각화 대시보드
-- **ELK Stack**: 로그 분석
+#### 5.1.2 Docker 관련 문제
 
-#### 7.2.2 애플리케이션 모니터링
-- **Spring Boot Actuator**: 애플리케이션 상태 모니터링
-- **New Relic**: APM(Application Performance Monitoring)
-- **Datadog**: 통합 모니터링
+**이미지 빌드 실패:**
+- Dockerfile 문법 오류 확인
+- 필요한 파일이 올바른 위치에 있는지 확인
+- 네트워크 연결 상태 확인
+
+**컨테이너 실행 오류:**
+- 포트 충돌 확인: `netstat -tulpn | grep 8080`
+- 리소스 부족 확인: `docker stats`
+- 로그 확인: `docker logs 컨테이너명`
+
+#### 5.1.3 Git 관련 문제
+
+**SSH 연결 오류:**
+- SSH 키가 올바르게 설정되었는지 확인
+- Git 저장소 URL이 SSH 형식인지 확인
+- 방화벽 설정 확인
+
+### 5.2 로그 확인 방법
+
+#### 5.2.1 Jenkins 로그
+```bash
+# Jenkins 로그 확인
+sudo tail -f /var/log/jenkins/jenkins.log
+
+# Jenkins 시스템 로그
+sudo journalctl -u jenkins -f
+```
+
+#### 5.2.2 Docker 로그
+```bash
+# 컨테이너 로그 확인
+docker logs -f 컨테이너명
+
+# Docker 데몬 로그
+sudo journalctl -u docker -f
+```
+
+#### 5.2.3 애플리케이션 로그
+```bash
+# 컨테이너 내부 로그 확인
+docker exec -it 컨테이너명 tail -f /app/logs/application.log
+```
+
+### 5.3 성능 최적화
+
+#### 5.3.1 Jenkins 최적화
+- JVM 힙 메모리 설정 조정
+- 불필요한 빌드 기록 정리
+- 빌드 에이전트 추가
+
+#### 5.3.2 Docker 최적화
+- 멀티스테이지 빌드 사용
+- .dockerignore 파일 활용
+- 이미지 레이어 최적화
 
 ---
 
-## 8. 보안 고려사항
+## 6. 실제 운영 팁
 
-### 8.1 Jenkins 보안
-- **역할 기반 접근 제어(RBAC)** 설정
-- **API 토큰** 사용
-- **보안 플러그인** 설치
+### 6.1 배포 전략
 
-### 8.2 Docker 보안
-- **이미지 스캔** 도구 사용
-- **보안 베이스 이미지** 사용
-- **컨테이너 리소스 제한** 설정
+**Blue-Green 배포:**
+- 새 버전을 별도 환경에서 먼저 테스트
+- 문제없으면 트래픽을 새 환경으로 전환
+- 문제 발생 시 즉시 이전 환경으로 복구
 
-### 8.3 Git 보안
-- **SSH 키** 관리
-- **접근 권한** 설정
-- **시크릿 관리** 도구 사용
+**Rolling 배포:**
+- 서버를 하나씩 순차적으로 업데이트
+- 서비스 중단 없이 배포 가능
+- 문제 발생 시 즉시 중단 가능
+
+### 6.2 모니터링
+
+**시스템 모니터링:**
+- CPU, 메모리, 디스크 사용량 확인
+- 네트워크 트래픽 모니터링
+- 로그 파일 크기 관리
+
+**애플리케이션 모니터링:**
+- 애플리케이션 응답 시간 확인
+- 에러율 모니터링
+- 사용자 활동 추적
+
+### 6.3 백업 및 복구
+
+**정기 백업:**
+- Jenkins 설정 백업
+- Docker 이미지 백업
+- 데이터베이스 백업
+
+**재해 복구 계획:**
+- 백업에서 복구 절차 문서화
+- 복구 시간 목표 설정
+- 정기적인 복구 테스트 수행
 
 ---
 
-## 9. 결론
+## 7. 마무리
 
-이 가이드를 통해 Jenkins, Docker, Git을 활용한 자동 배포 시스템을 구축할 수 있습니다. 각 단계를 따라 설정하고, 필요에 따라 커스터마이징하여 사용하시기 바랍니다.
+이 가이드를 따라하면 Jenkins, Docker, Git을 활용한 자동 배포 시스템을 구축할 수 있습니다. 처음에는 복잡해 보일 수 있지만, 한 번 설정해두면 개발 효율성이 크게 향상됩니다.
 
-### 9.1 추가 학습 자료
-- [Jenkins 공식 문서](https://www.jenkins.io/doc/)
-- [Docker 공식 문서](https://docs.docker.com/)
-- [Git 공식 문서](https://git-scm.com/doc)
-
-### 9.2 참고 사항
-- 정기적인 백업 수행
-- 보안 업데이트 적용
-- 모니터링 시스템 구축
-- 문서화 유지
+**다음 단계:**
+- 실제 프로젝트에 적용해보기
+- 팀원들과 함께 사용해보기
+- 필요에 따라 추가 기능 구현하기
 
