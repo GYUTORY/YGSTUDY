@@ -1,3 +1,5 @@
+최종 업데이트 2025-08-08, 버전 v1.0
+
 # Nginx 이해하기
 
 ## 📖 웹서버란 무엇일까?
@@ -711,3 +713,33 @@ Nginx는 현대 웹 인프라에서 필수적인 요소입니다. 이벤트 기�
 - https://www.nginx.com/blog/nginx-vs-apache-our-view/
 - https://www.digitalocean.com/community/tutorials/apache-vs-nginx-practical-considerations
 - https://www.nginx.com/resources/wiki/
+
+---
+
+## 캐시/레이트리미트/업스트림 헬스체크
+
+리버스 프록시 캐시(요약)
+```nginx
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=STATIC:10m inactive=60m;
+server {
+  location / {
+    proxy_cache STATIC;
+    proxy_cache_valid 200 10m;
+    add_header X-Cache $upstream_cache_status;
+  }
+}
+```
+
+레이트리미트
+```nginx
+limit_req_zone $binary_remote_addr zone=reqs:10m rate=10r/s;
+server {
+  location /api/ { limit_req zone=reqs burst=20 nodelay; }
+}
+```
+
+업스트림 keepalive/헬스
+```nginx
+upstream backend { keepalive 64; server app:3000; }
+server { location / { proxy_http_version 1.1; proxy_set_header Connection ""; } }
+```
