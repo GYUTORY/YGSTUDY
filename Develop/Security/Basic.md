@@ -1,5 +1,7 @@
 
 
+최종 업데이트 2025-08-08, 버전 v1.0
+
 ## 암호화에 사용하는 요소들에 대해 알아보자
 
 ### Padding
@@ -160,3 +162,21 @@ login('bob', 'password');
 ```
 
 
+
+---
+
+## OWASP Top 10 (요약 체크리스트)
+- A01 Broken Access Control: 엔드포인트 권한 검증, 서버측 권한 필수
+- A02 Cryptographic Failures: TLS 강제, 시크릿 노출 방지, 안전한 설정
+- A03 Injection: ORM 파라미터 바인딩, 입력 검증, WAF 룰
+- A04 Insecure Design: 보안 요구사항/위협모델링 수립
+- A05 Security Misconfiguration: 기본 비번/포트/디버그 비활성화
+- A07 Identification and Authentication Failures: MFA/세션 관리 강화
+- A08 Software and Data Integrity Failures: 서플라이체인(SBOM/서명)
+- A09 Security Logging and Monitoring Failures: 중앙 로깅/알림
+- A10 Server-Side Request Forgery: 아웃바운드 제한, 메타데이터 보호
+
+보안 헤더 심화(CSP 예)
+```http
+Content-Security-Policy: default-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'
+```
