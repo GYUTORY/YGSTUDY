@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EcsDeploy",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeServices", "ecs:UpdateService",
+        "ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition",
+        "ecs:DescribeClusters"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PassTaskExecutionRole",
+      "Effect": "Allow",
+      "Action": ["iam:PassRole"],
+      "Resource": [
+        "arn:aws:iam::<ACCOUNT_ID>:role/<TASK_EXECUTION_ROLE>",
+        "arn:aws:iam::<ACCOUNT_ID>:role/<TASK_ROLE>"
+      ],
+      "Condition": { "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" } }
+    }
+  ]
+}
+

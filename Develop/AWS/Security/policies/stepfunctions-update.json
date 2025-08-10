@@ -1,0 +1,12 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SfnUpdate",
+      "Effect": "Allow",
+      "Action": ["states:UpdateStateMachine"],
+      "Resource": "arn:aws:states:<REGION>:<ACCOUNT_ID>:stateMachine:<STATE_MACHINE_NAME>"
+    }
+  ]
+}
+

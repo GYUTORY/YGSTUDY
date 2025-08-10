@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SfnStartDescribe",
+      "Effect": "Allow",
+      "Action": ["states:StartExecution", "states:DescribeExecution", "states:GetExecutionHistory"],
+      "Resource": [
+        "arn:aws:states:<REGION>:<ACCOUNT_ID>:stateMachine:<STATE_MACHINE_NAME>",
+        "arn:aws:states:<REGION>:<ACCOUNT_ID>:execution:<STATE_MACHINE_NAME>:*"
+      ]
+    }
+  ]
+}
+
