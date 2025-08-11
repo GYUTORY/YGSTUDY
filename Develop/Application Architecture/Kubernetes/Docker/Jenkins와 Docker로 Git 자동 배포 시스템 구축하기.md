@@ -1,8 +1,11 @@
+---
+title: Jenkins, Docker, Git
+tags: [application-architecture, kubernetes, docker, jenkins와-docker로-git-자동-배포-시스템-구축하기]
+updated: 2025-08-10
+---
 # Jenkins, Docker, Git을 활용한 자동 배포 시스템 구축 가이드
 
----
-
-## 📋 목차
+## 배경
 - [1. 자동 배포 시스템이란?](#1-자동-배포-시스템이란)
 - [2. 필요한 기술들](#2-필요한-기술들)
 - [3. 시스템 구축 단계](#3-시스템-구축-단계)
@@ -10,6 +13,249 @@
 - [5. 문제 해결](#5-문제-해결)
 
 ---
+
+sudo apt update
+sudo apt upgrade -y
+
+sudo apt remove docker docker-engine docker.io containerd runc
+
+sudo apt update
+sudo apt install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+cat ~/.ssh/id_rsa.pub
+```
+
+**Git 저장소에 SSH 키 추가:**
+1. GitHub/GitLab에서 Settings → SSH Keys
+2. 위에서 확인한 공개키 내용을 추가
+
+**Jenkins에서 SSH 키 설정:**
+1. Jenkins 관리 → Credentials → System → Global credentials
+2. "Add Credentials" 클릭
+3. Kind에서 "SSH Username with private key" 선택
+4. Private key 내용 입력
+
+### 4.4 배포 스크립트 작성
+
+#### 4.4.1 deploy.sh
+
+```bash
+
+APP_NAME="myapp"
+DOCKER_IMAGE="myapp"
+DOCKER_TAG=$(git rev-parse --short HEAD)
+
+echo "배포 시작: $DOCKER_TAG"
+
+echo "기존 컨테이너 정리 중..."
+docker stop $APP_NAME 2>/dev/null || true
+docker rm $APP_NAME 2>/dev/null || true
+
+echo "Docker 이미지 빌드 중..."
+docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+
+echo "새 컨테이너 실행 중..."
+docker run -d \
+    --name $APP_NAME \
+    -p 8080:8080 \
+    -e SPRING_PROFILES_ACTIVE=prod \
+    $DOCKER_IMAGE:$DOCKER_TAG
+
+echo "애플리케이션 상태 확인 중..."
+for i in {1..30}; do
+    if curl -s http://localhost:8080/actuator/health | grep -q "UP"; then
+        echo "배포 성공! 애플리케이션이 정상 실행 중입니다."
+        exit 0
+    fi
+    echo "대기 중... ($i/30)"
+    sleep 2
+done
+
+echo "배포 실패! 애플리케이션이 정상 실행되지 않았습니다."
+exit 1
+```
+
+### 4.5 원격 서버 배포 설정
+
+#### 4.5.1 SSH 키 설정
+
+**원격 서버에 SSH 키 복사:**
+```bash
+
+ssh-copy-id -i ~/.ssh/id_rsa.pub user@remote-server
+
+REMOTE_SERVER="remote-server"
+REMOTE_PATH="/opt/applications"
+APP_NAME="myapp"
+
+echo "원격 서버 배포 시작..."
+
+ssh $REMOTE_SERVER << EOF
+    echo "원격 서버에서 작업 시작..."
+    
+    # 작업 디렉토리로 이동
+    cd $REMOTE_PATH
+    
+    # 최신 코드 가져오기
+    echo "최신 코드 다운로드 중..."
+    git pull origin main
+    
+    # 이전 컨테이너 정리
+    echo "기존 컨테이너 정리 중..."
+    docker stop $APP_NAME 2>/dev/null || true
+    docker rm $APP_NAME 2>/dev/null || true
+    
+    # 새 이미지 빌드
+    echo "새 이미지 빌드 중..."
+    docker build -t $APP_NAME:latest .
+    
+    # 새 컨테이너 실행
+    echo "새 컨테이너 실행 중..."
+    docker run -d \
+        --name $APP_NAME \
+        -p 8080:8080 \
+        -e SPRING_PROFILES_ACTIVE=prod \
+        $APP_NAME:latest
+    
+    echo "배포 완료!"
+    
+    # 컨테이너 상태 확인
+    docker ps | grep $APP_NAME
+EOF
+
+echo "원격 배포 완료!"
+```
+
+---
+
+
+
+
+
+
+
+
+
+
+
+---
+
+
+
+
+
+## 5. 문제 해결
+
+### 5.1 자주 발생하는 문제들
+
+#### 5.1.1 Jenkins 관련 문제
+
+**빌드가 실패하는 경우:**
+- 로그 확인: Jenkins 대시보드 → 빌드 → Console Output
+- 권한 문제: 파일 권한이나 디렉토리 권한 확인
+- 메모리 부족: JVM 힙 메모리 설정 조정
+
+**플러그인 오류:**
+- 플러그인 재설치
+- Jenkins 재시작
+- 플러그인 버전 호환성 확인
+
+#### 5.1.2 Docker 관련 문제
+
+**이미지 빌드 실패:**
+- Dockerfile 문법 오류 확인
+- 필요한 파일이 올바른 위치에 있는지 확인
+- 네트워크 연결 상태 확인
+
+**컨테이너 실행 오류:**
+- 포트 충돌 확인: `netstat -tulpn | grep 8080`
+- 리소스 부족 확인: `docker stats`
+- 로그 확인: `docker logs 컨테이너명`
+
+#### 5.1.3 Git 관련 문제
+
+**SSH 연결 오류:**
+- SSH 키가 올바르게 설정되었는지 확인
+- Git 저장소 URL이 SSH 형식인지 확인
+- 방화벽 설정 확인
+
+### 5.2 로그 확인 방법
+
+#### 5.2.1 Jenkins 로그
+```bash
+
+docker logs -f 컨테이너명
+
+docker exec -it 컨테이너명 tail -f /app/logs/application.log
+```
+
+### 5.3 성능 최적화
+
+#### 5.3.1 Jenkins 최적화
+- JVM 힙 메모리 설정 조정
+- 불필요한 빌드 기록 정리
+- 빌드 에이전트 추가
+
+#### 5.3.2 Docker 최적화
+- 멀티스테이지 빌드 사용
+- .dockerignore 파일 활용
+- 이미지 레이어 최적화
+
+---
+
+## 6. 실제 운영 팁
+
+### 6.1 배포 전략
+
+**Blue-Green 배포:**
+- 새 버전을 별도 환경에서 먼저 테스트
+- 문제없으면 트래픽을 새 환경으로 전환
+- 문제 발생 시 즉시 이전 환경으로 복구
+
+**Rolling 배포:**
+- 서버를 하나씩 순차적으로 업데이트
+- 서비스 중단 없이 배포 가능
+- 문제 발생 시 즉시 중단 가능
+
+### 6.2 모니터링
+
+**시스템 모니터링:**
+- CPU, 메모리, 디스크 사용량 확인
+- 네트워크 트래픽 모니터링
+- 로그 파일 크기 관리
+
+**애플리케이션 모니터링:**
+- 애플리케이션 응답 시간 확인
+- 에러율 모니터링
+- 사용자 활동 추적
+
+### 6.3 백업 및 복구
+
+**정기 백업:**
+- Jenkins 설정 백업
+- Docker 이미지 백업
+- 데이터베이스 백업
+
+**재해 복구 계획:**
+- 백업에서 복구 절차 문서화
+- 복구 시간 목표 설정
+- 정기적인 복구 테스트 수행
+
+---
+
+## 7. 마무리
+
+이 가이드를 따라하면 Jenkins, Docker, Git을 활용한 자동 배포 시스템을 구축할 수 있습니다. 처음에는 복잡해 보일 수 있지만, 한 번 설정해두면 개발 효율성이 크게 향상됩니다.
+
+**다음 단계:**
+- 실제 프로젝트에 적용해보기
+- 팀원들과 함께 사용해보기
+- 필요에 따라 추가 기능 구현하기
 
 ## 1. 자동 배포 시스템이란?
 
@@ -137,10 +383,6 @@
 #### 4.1.1 Java 설치
 
 ```bash
-# 시스템 업데이트
-sudo apt update
-sudo apt upgrade -y
-
 # Java 11 설치
 sudo apt install -y openjdk-11-jdk
 
@@ -191,18 +433,6 @@ sudo systemctl status jenkins
 #### 4.1.4 Docker 설치
 
 ```bash
-# 이전 버전 제거
-sudo apt remove docker docker-engine docker.io containerd runc
-
-# 필요한 패키지 설치
-sudo apt update
-sudo apt install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
-
 # Docker GPG 키 추가
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
@@ -311,74 +541,7 @@ pipeline {
 # SSH 키 생성
 ssh-keygen -t rsa -b 4096 -C "jenkins@server"
 
-# 공개키 확인
-cat ~/.ssh/id_rsa.pub
-```
-
-**Git 저장소에 SSH 키 추가:**
-1. GitHub/GitLab에서 Settings → SSH Keys
-2. 위에서 확인한 공개키 내용을 추가
-
-**Jenkins에서 SSH 키 설정:**
-1. Jenkins 관리 → Credentials → System → Global credentials
-2. "Add Credentials" 클릭
-3. Kind에서 "SSH Username with private key" 선택
-4. Private key 내용 입력
-
-### 4.4 배포 스크립트 작성
-
-#### 4.4.1 deploy.sh
-
-```bash
 #!/bin/bash
-
-# 환경 변수 설정
-APP_NAME="myapp"
-DOCKER_IMAGE="myapp"
-DOCKER_TAG=$(git rev-parse --short HEAD)
-
-echo "배포 시작: $DOCKER_TAG"
-
-# 이전 컨테이너 정리
-echo "기존 컨테이너 정리 중..."
-docker stop $APP_NAME 2>/dev/null || true
-docker rm $APP_NAME 2>/dev/null || true
-
-# 새 이미지 빌드
-echo "Docker 이미지 빌드 중..."
-docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
-
-# 새 컨테이너 실행
-echo "새 컨테이너 실행 중..."
-docker run -d \
-    --name $APP_NAME \
-    -p 8080:8080 \
-    -e SPRING_PROFILES_ACTIVE=prod \
-    $DOCKER_IMAGE:$DOCKER_TAG
-
-# 헬스 체크
-echo "애플리케이션 상태 확인 중..."
-for i in {1..30}; do
-    if curl -s http://localhost:8080/actuator/health | grep -q "UP"; then
-        echo "배포 성공! 애플리케이션이 정상 실행 중입니다."
-        exit 0
-    fi
-    echo "대기 중... ($i/30)"
-    sleep 2
-done
-
-echo "배포 실패! 애플리케이션이 정상 실행되지 않았습니다."
-exit 1
-```
-
-### 4.5 원격 서버 배포 설정
-
-#### 4.5.1 SSH 키 설정
-
-**원격 서버에 SSH 키 복사:**
-```bash
-# 원격 서버에 키 복사
-ssh-copy-id -i ~/.ssh/id_rsa.pub user@remote-server
 
 # SSH 설정 파일 생성
 cat > ~/.ssh/config << EOF
@@ -395,91 +558,6 @@ EOF
 ```bash
 #!/bin/bash
 
-# 환경 변수
-REMOTE_SERVER="remote-server"
-REMOTE_PATH="/opt/applications"
-APP_NAME="myapp"
-
-echo "원격 서버 배포 시작..."
-
-# 원격 서버에 배포
-ssh $REMOTE_SERVER << EOF
-    echo "원격 서버에서 작업 시작..."
-    
-    # 작업 디렉토리로 이동
-    cd $REMOTE_PATH
-    
-    # 최신 코드 가져오기
-    echo "최신 코드 다운로드 중..."
-    git pull origin main
-    
-    # 이전 컨테이너 정리
-    echo "기존 컨테이너 정리 중..."
-    docker stop $APP_NAME 2>/dev/null || true
-    docker rm $APP_NAME 2>/dev/null || true
-    
-    # 새 이미지 빌드
-    echo "새 이미지 빌드 중..."
-    docker build -t $APP_NAME:latest .
-    
-    # 새 컨테이너 실행
-    echo "새 컨테이너 실행 중..."
-    docker run -d \
-        --name $APP_NAME \
-        -p 8080:8080 \
-        -e SPRING_PROFILES_ACTIVE=prod \
-        $APP_NAME:latest
-    
-    echo "배포 완료!"
-    
-    # 컨테이너 상태 확인
-    docker ps | grep $APP_NAME
-EOF
-
-echo "원격 배포 완료!"
-```
-
----
-
-## 5. 문제 해결
-
-### 5.1 자주 발생하는 문제들
-
-#### 5.1.1 Jenkins 관련 문제
-
-**빌드가 실패하는 경우:**
-- 로그 확인: Jenkins 대시보드 → 빌드 → Console Output
-- 권한 문제: 파일 권한이나 디렉토리 권한 확인
-- 메모리 부족: JVM 힙 메모리 설정 조정
-
-**플러그인 오류:**
-- 플러그인 재설치
-- Jenkins 재시작
-- 플러그인 버전 호환성 확인
-
-#### 5.1.2 Docker 관련 문제
-
-**이미지 빌드 실패:**
-- Dockerfile 문법 오류 확인
-- 필요한 파일이 올바른 위치에 있는지 확인
-- 네트워크 연결 상태 확인
-
-**컨테이너 실행 오류:**
-- 포트 충돌 확인: `netstat -tulpn | grep 8080`
-- 리소스 부족 확인: `docker stats`
-- 로그 확인: `docker logs 컨테이너명`
-
-#### 5.1.3 Git 관련 문제
-
-**SSH 연결 오류:**
-- SSH 키가 올바르게 설정되었는지 확인
-- Git 저장소 URL이 SSH 형식인지 확인
-- 방화벽 설정 확인
-
-### 5.2 로그 확인 방법
-
-#### 5.2.1 Jenkins 로그
-```bash
 # Jenkins 로그 확인
 sudo tail -f /var/log/jenkins/jenkins.log
 
@@ -489,79 +567,10 @@ sudo journalctl -u jenkins -f
 
 #### 5.2.2 Docker 로그
 ```bash
-# 컨테이너 로그 확인
-docker logs -f 컨테이너명
-
 # Docker 데몬 로그
 sudo journalctl -u docker -f
 ```
 
 #### 5.2.3 애플리케이션 로그
 ```bash
-# 컨테이너 내부 로그 확인
-docker exec -it 컨테이너명 tail -f /app/logs/application.log
-```
-
-### 5.3 성능 최적화
-
-#### 5.3.1 Jenkins 최적화
-- JVM 힙 메모리 설정 조정
-- 불필요한 빌드 기록 정리
-- 빌드 에이전트 추가
-
-#### 5.3.2 Docker 최적화
-- 멀티스테이지 빌드 사용
-- .dockerignore 파일 활용
-- 이미지 레이어 최적화
-
----
-
-## 6. 실제 운영 팁
-
-### 6.1 배포 전략
-
-**Blue-Green 배포:**
-- 새 버전을 별도 환경에서 먼저 테스트
-- 문제없으면 트래픽을 새 환경으로 전환
-- 문제 발생 시 즉시 이전 환경으로 복구
-
-**Rolling 배포:**
-- 서버를 하나씩 순차적으로 업데이트
-- 서비스 중단 없이 배포 가능
-- 문제 발생 시 즉시 중단 가능
-
-### 6.2 모니터링
-
-**시스템 모니터링:**
-- CPU, 메모리, 디스크 사용량 확인
-- 네트워크 트래픽 모니터링
-- 로그 파일 크기 관리
-
-**애플리케이션 모니터링:**
-- 애플리케이션 응답 시간 확인
-- 에러율 모니터링
-- 사용자 활동 추적
-
-### 6.3 백업 및 복구
-
-**정기 백업:**
-- Jenkins 설정 백업
-- Docker 이미지 백업
-- 데이터베이스 백업
-
-**재해 복구 계획:**
-- 백업에서 복구 절차 문서화
-- 복구 시간 목표 설정
-- 정기적인 복구 테스트 수행
-
----
-
-## 7. 마무리
-
-이 가이드를 따라하면 Jenkins, Docker, Git을 활용한 자동 배포 시스템을 구축할 수 있습니다. 처음에는 복잡해 보일 수 있지만, 한 번 설정해두면 개발 효율성이 크게 향상됩니다.
-
-**다음 단계:**
-- 실제 프로젝트에 적용해보기
-- 팀원들과 함께 사용해보기
-- 필요에 따라 추가 기능 구현하기
 
