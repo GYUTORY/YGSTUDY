@@ -1,21 +1,8 @@
-# 1. 개요 및 도입 배경
-
-최근 회사에서는 기존 레거시 시스템에서 신규 서버 환경으로의 전환을 추진하게 되었습니다. 기존 레거시 환경은 수동 배포, 불안정한 권한 관리, 배포 이력 추적의 어려움 등 여러 한계가 있었습니다. 특히, 배포 과정에서 개발자마다 접근 방식이 달라 운영 안정성에 문제가 발생했고, 민감 정보(예: DB 비밀번호, API Key 등)가 코드에 노출되는 보안 이슈도 빈번했습니다.
-
-이러한 문제를 해결하고자, 신규 서버는 최신 Node.js 20버전 기반으로 구축하였으며, CI/CD 자동화와 보안 강화를 위해 Bitbucket Pipeline, AWS SSM(Systems Manager), SSM Agent, KMS(Key Management Service), IAM(Identity and Access Management), 그리고 Bitbucket 환경변수를 적극 도입하였습니다.
-
-도입 목적은 다음과 같습니다.
-- **배포 자동화**: 수동 배포에서 발생하는 실수와 비효율을 제거하고, 누구나 동일한 방식으로 일관성 있게 배포할 수 있도록 함
-- **보안 강화**: 민감 정보는 SSM Parameter Store와 KMS로 암호화하여 안전하게 관리하고, IAM을 통해 최소 권한 원칙을 적용
-- **배포 이력 및 감사**: Bitbucket과 AWS의 로그 및 감사 기능을 활용해 모든 배포 내역을 추적 가능하게 함
-- **운영 효율성**: 신규 Node.js 20버전 서버 환경에 맞춘 자동화 배포로, 빠른 롤백과 환경별(DEV/STG/PRD) 분리 배포가 가능하도록 설계
-
-이 문서는 위와 같은 배경에서 Bitbucket Pipeline과 AWS SSM을 활용해 Node.js 20버전 신규 서버에 대한 자동화 배포 환경을 구축한 실제 경험과 노하우를 상세히 정리한 실전 가이드입니다.
-
-# Bitbucket Pipeline, SSM, KMS, IAM을 활용한 자동화 배포 실전 가이드
-
-회사에서 Bitbucket Pipeline, AWS SSM, SSM Agent, KMS, IAM, Bitbucket 환경변수를 활용해 무중단 자동화 배포를 구축한 실제 경험을 바탕으로, 실무에 바로 적용 가능한 상세 가이드를 공유합니다.
-
+---
+title: 1.
+tags: [aws, monitoring-and-management, ssmdeploy]
+updated: 2025-08-10
+---
 ## 1. 사전 준비 및 설계
 - **EC2 인스턴스**: SSM Agent가 설치 및 활성화되어 있어야 하며, 인스턴스에 SSM, KMS, S3 등 필요한 권한이 부여된 IAM Role을 할당합니다. SSM Agent가 정상 동작하는지 반드시 사전 점검이 필요합니다.
 - **IAM Role/Policy**: EC2 인스턴스에는 SSM, KMS, S3 등 필요한 최소 권한만 부여합니다. 예를 들어, `ssm:SendCommand`, `kms:Decrypt`, `ec2:DescribeInstances` 등이 있습니다.
@@ -301,12 +288,18 @@ aws ssm put-parameter \
 ## 9.2 파라미터 등록/조회 예시
 
 ```bash
-# 등록
+
+## 배경
 aws ssm put-parameter --name "/deploy/prod/db_password" --value "비밀번호" --type "SecureString" --key-id "KMS키ARN"
 
-# 조회
 aws ssm get-parameter --name "/deploy/prod/db_password" --with-decryption
 ```
+
+
+
+
+
+# 1. 개요 및 도입 배경
 
 ## 9.3 실전 활용 팁
 
@@ -315,6 +308,27 @@ aws ssm get-parameter --name "/deploy/prod/db_password" --with-decryption
 - 파라미터 접근 권한은 IAM 정책으로 엄격히 제한
 
 ---
+
+
+
+
+
+
+최근 회사에서는 기존 레거시 시스템에서 신규 서버 환경으로의 전환을 추진하게 되었습니다. 기존 레거시 환경은 수동 배포, 불안정한 권한 관리, 배포 이력 추적의 어려움 등 여러 한계가 있었습니다. 특히, 배포 과정에서 개발자마다 접근 방식이 달라 운영 안정성에 문제가 발생했고, 민감 정보(예: DB 비밀번호, API Key 등)가 코드에 노출되는 보안 이슈도 빈번했습니다.
+
+이러한 문제를 해결하고자, 신규 서버는 최신 Node.js 20버전 기반으로 구축하였으며, CI/CD 자동화와 보안 강화를 위해 Bitbucket Pipeline, AWS SSM(Systems Manager), SSM Agent, KMS(Key Management Service), IAM(Identity and Access Management), 그리고 Bitbucket 환경변수를 적극 도입하였습니다.
+
+도입 목적은 다음과 같습니다.
+- **배포 자동화**: 수동 배포에서 발생하는 실수와 비효율을 제거하고, 누구나 동일한 방식으로 일관성 있게 배포할 수 있도록 함
+- **보안 강화**: 민감 정보는 SSM Parameter Store와 KMS로 암호화하여 안전하게 관리하고, IAM을 통해 최소 권한 원칙을 적용
+- **배포 이력 및 감사**: Bitbucket과 AWS의 로그 및 감사 기능을 활용해 모든 배포 내역을 추적 가능하게 함
+- **운영 효율성**: 신규 Node.js 20버전 서버 환경에 맞춘 자동화 배포로, 빠른 롤백과 환경별(DEV/STG/PRD) 분리 배포가 가능하도록 설계
+
+이 문서는 위와 같은 배경에서 Bitbucket Pipeline과 AWS SSM을 활용해 Node.js 20버전 신규 서버에 대한 자동화 배포 환경을 구축한 실제 경험과 노하우를 상세히 정리한 실전 가이드입니다.
+
+# Bitbucket Pipeline, SSM, KMS, IAM을 활용한 자동화 배포 실전 가이드
+
+회사에서 Bitbucket Pipeline, AWS SSM, SSM Agent, KMS, IAM, Bitbucket 환경변수를 활용해 무중단 자동화 배포를 구축한 실제 경험을 바탕으로, 실무에 바로 적용 가능한 상세 가이드를 공유합니다.
 
 # 10. Bitbucket 환경변수 설계
 

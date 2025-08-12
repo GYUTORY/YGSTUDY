@@ -1,3 +1,8 @@
+---
+title: AWS CloudTrail
+tags: [aws, monitoring-and-management, cloudtail]
+updated: 2025-08-10
+---
 
 
 # 🔍 AWS CloudTrail 개념 및 설명

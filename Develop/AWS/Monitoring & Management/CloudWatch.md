@@ -1,3 +1,8 @@
+---
+title: AWS CloudWatch
+tags: [aws, monitoring-and-management, cloudwatch]
+updated: 2025-08-10
+---
 
 
 # 🌩 AWS CloudWatch 개념 및 설명
@@ -33,9 +38,18 @@
 
 ## 3️⃣ CloudWatch Metrics 예제
 
-### ✨ 기본 지표 조회하기
+## 배경
 ```python
 import boto3
+
+
+
+
+
+
+
+
+
 
 # CloudWatch 클라이언트 생성
 cloudwatch = boto3.client('cloudwatch')
