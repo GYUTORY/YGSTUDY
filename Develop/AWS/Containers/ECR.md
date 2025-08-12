@@ -1,257 +1,189 @@
-# 🐳 AWS ECR (Elastic Container Registry)
-
-> **📖 이 문서는 AWS ECR을 처음 접하는 분들을 위해 작성되었습니다.**
-
+---
+title: AWS ECR (Elastic Container Registry)
+tags: [aws, containers, ecr, docker, registry]
+updated: 2024-12-19
 ---
 
-## 📋 목차
-- [1. AWS ECR이란?](#1-aws-ecr이란)
-- [2. 기본 용어 정리](#2-기본-용어-정리)
-- [3. ECR의 핵심 개념](#3-ecr의-핵심-개념)
-- [4. ECR 사용 예제](#4-ecr-사용-예제)
-- [5. ECR과 CI/CD 연동](#5-ecr과-cicd-연동)
-- [6. ECR 비용 및 보안](#6-ecr-비용-및-보안)
-- [7. 결론](#7-결론)
+# AWS ECR (Elastic Container Registry)
 
----
+## 배경
 
-## 1. AWS ECR이란? 🤔
+AWS ECR(Elastic Container Registry)은 Docker 컨테이너 이미지를 안전하게 저장, 관리, 배포할 수 있는 완전 관리형 Docker 컨테이너 레지스트리 서비스입니다. 개발자가 컨테이너 이미지를 쉽게 업로드하고, 팀원들과 공유하며, 프로덕션 환경에 배포할 수 있도록 도와줍니다.
 
-### 💡 ECR이 무엇인가요?
-**AWS ECR (Elastic Container Registry)**는 Amazon Web Services에서 제공하는 완전관리형 **Docker 컨테이너 이미지 저장소**입니다.
+## 핵심
 
-### 🏠 쉽게 비유하면...
-ECR은 **"Docker 이미지들을 보관하는 아마존 창고"**라고 생각하시면 됩니다.
-- 🏪 **일반 창고**: 물건을 보관하는 곳
-- 🐳 **ECR**: Docker 이미지를 보관하는 곳
+### ECR의 기본 개념
 
-### 🎯 ECR이 필요한 이유
-1. **개발한 애플리케이션을 어디에 보관할까?**
-2. **팀원들과 어떻게 공유할까?**
-3. **배포할 때 어떻게 가져올까?**
+#### 컨테이너 레지스트리
+- Docker 이미지를 저장하고 관리하는 중앙 저장소
+- 팀원들이 공통으로 사용할 수 있는 이미지 저장소
+- 버전 관리 및 배포 자동화 지원
 
-이 모든 문제를 ECR이 해결해줍니다!
+#### AWS 통합
+- AWS IAM을 통한 접근 제어
+- VPC 엔드포인트를 통한 보안 강화
+- CloudWatch를 통한 모니터링
+- AWS CodePipeline과의 CI/CD 연동
 
----
+### ECR 구성 요소
 
-## 2. 기본 용어 정리 📚
+| 구성 요소 | 설명 | 역할 |
+|-----------|------|------|
+| **Registry** | ECR 전체 서비스 | Docker 이미지 저장소 전체 |
+| **Repository** | 이미지 저장 폴더 | 특정 애플리케이션의 이미지들을 그룹화 |
+| **Image** | 실행 가능한 애플리케이션 | 컨테이너로 실행될 애플리케이션 |
+| **Tag** | 이미지 버전 구분 | 이미지의 특정 버전을 식별 |
+| **Layer** | 이미지 구성 요소 | Docker 이미지를 구성하는 개별 레이어 |
 
-### 🐳 Docker란?
-- **컨테이너 기술**: 애플리케이션을 독립적인 환경에서 실행할 수 있게 해주는 기술
-- **이미지**: 애플리케이션과 실행 환경을 패키지로 만든 것
-- **컨테이너**: 이미지를 실행한 상태
+### ECR의 장점
 
-### 🏗️ CI/CD란?
-- **CI (Continuous Integration)**: 코드를 지속적으로 통합하는 과정
-- **CD (Continuous Deployment)**: 코드를 지속적으로 배포하는 과정
+#### 보안
+- AWS IAM과 통합된 접근 제어
+- 이미지 스캔을 통한 보안 취약점 검사
+- VPC 엔드포인트를 통한 프라이빗 네트워크 통신
 
-### 🔐 IAM이란?
-- **AWS Identity and Access Management**: AWS에서 사용자 권한을 관리하는 서비스
+#### 성능
+- AWS 글로벌 인프라를 활용한 빠른 이미지 전송
+- 같은 리전 내 무료 데이터 전송
+- CDN을 통한 전 세계 빠른 배포
 
----
+#### 통합
+- AWS 서비스들과의 원활한 연동
+- CI/CD 파이프라인과의 자동화
+- CloudWatch를 통한 모니터링
 
-## 3. ECR의 핵심 개념 📦
+## 예시
 
-### 🏢 레지스트리 (Registry)
-- **정의**: ECR의 전체 서비스 인스턴스
-- **비유**: 아마존 창고 전체 건물
+### 기본 ECR 사용 예시
 
-### 📁 리포지터리 (Repository)
-- **정의**: Docker 이미지를 저장하는 폴더
-- **비유**: 창고 안의 특정 구역 (예: 전자제품 구역, 의류 구역)
-
-### 🖼️ 이미지 (Image)
-- **정의**: 실행 가능한 애플리케이션 패키지
-- **비유**: 창고에 보관되는 상품
-
-### 🏷️ 태그 (Tag)
-- **정의**: 이미지 버전을 구분하는 라벨
-- **비유**: 상품의 모델명이나 버전 (예: iPhone 14, iPhone 15)
-
-### 📋 용어 정리 표
-| 용어 | 설명 | 비유 |
-|------|------|------|
-| Registry | ECR 전체 서비스 | 창고 전체 건물 |
-| Repository | 이미지 저장 폴더 | 창고 내 특정 구역 |
-| Image | 실행 가능한 애플리케이션 | 창고에 보관되는 상품 |
-| Tag | 이미지 버전 구분 | 상품의 모델명/버전 |
-
----
-
-## 4. ECR 사용 예제 🛠️
-
-### 🎯 목표
-간단한 웹 애플리케이션을 ECR에 업로드하고 다운로드하는 과정을 단계별로 설명합니다.
-
-### 📋 사전 준비사항
-1. **AWS 계정**이 필요합니다
-2. **AWS CLI** 설치 및 구성
-3. **Docker** 설치 및 실행
-
-> **💡 AWS CLI란?**
-> AWS 서비스를 명령줄에서 사용할 수 있게 해주는 도구입니다.
-
-> **💡 Docker란?**
-> 컨테이너 기술로, 애플리케이션을 독립적인 환경에서 실행할 수 있게 해주는 도구입니다.
-
----
-
-### 📂 4.1 ECR 리포지터리 생성
 ```bash
-aws ecr create-repository --repository-name my-app-repo
-```
+# 1. ECR 레지스트리 로그인
+aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com
 
-**🤔 이 명령어가 하는 일:**
-- ECR에 "my-app-repo"라는 이름의 저장소를 만듭니다
-- 마치 창고에 새로운 구역을 만드는 것과 같습니다
+# 2. 리포지토리 생성
+aws ecr create-repository --repository-name my-app --region ap-northeast-2
 
-**📝 결과:**
-- 리포지터리가 생성됩니다
-- 리포지터리 URI가 반환됩니다 (예: `123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo`)
-
----
-
-### 📦 4.2 Docker 이미지 빌드
-```bash
+# 3. Docker 이미지 빌드
 docker build -t my-app .
+
+# 4. 이미지 태그 지정
+docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest
+
+# 5. 이미지 푸시
+docker push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest
+
+# 6. 이미지 풀
+docker pull 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest
 ```
 
-**🤔 이 명령어가 하는 일:**
-- 현재 디렉토리의 코드를 Docker 이미지로 만듭니다
-- `-t my-app`: 이미지 이름을 "my-app"으로 지정
-- `.`: 현재 디렉토리를 빌드 컨텍스트로 사용
+### Python을 사용한 ECR 관리
 
-**📝 결과:**
-- 로컬에 "my-app"이라는 Docker 이미지가 생성됩니다
+```python
+import boto3
+import subprocess
+import json
 
----
+class ECRManager:
+    def __init__(self, region='ap-northeast-2'):
+        self.ecr_client = boto3.client('ecr', region_name=region)
+        self.region = region
+        
+    def create_repository(self, repository_name):
+        """ECR 리포지토리 생성"""
+        try:
+            response = self.ecr_client.create_repository(
+                repositoryName=repository_name,
+                imageScanningConfiguration={
+                    'scanOnPush': True
+                },
+                encryptionConfiguration={
+                    'encryptionType': 'AES256'
+                }
+            )
+            return response['repository']['repositoryUri']
+        except Exception as e:
+            print(f"리포지토리 생성 실패: {e}")
+            return None
+    
+    def get_login_token(self):
+        """ECR 로그인 토큰 획득"""
+        try:
+            response = self.ecr_client.get_authorization_token()
+            token = response['authorizationData'][0]['authorizationToken']
+            return token
+        except Exception as e:
+            print(f"로그인 토큰 획득 실패: {e}")
+            return None
+    
+    def list_images(self, repository_name):
+        """리포지토리의 이미지 목록 조회"""
+        try:
+            response = self.ecr_client.list_images(
+                repositoryName=repository_name
+            )
+            return response['imageIds']
+        except Exception as e:
+            print(f"이미지 목록 조회 실패: {e}")
+            return []
+    
+    def delete_image(self, repository_name, image_tag):
+        """이미지 삭제"""
+        try:
+            response = self.ecr_client.batch_delete_image(
+                repositoryName=repository_name,
+                imageIds=[{'imageTag': image_tag}]
+            )
+            return response
+        except Exception as e:
+            print(f"이미지 삭제 실패: {e}")
+            return None
 
-### 🔑 4.3 ECR 인증 (로그인)
-```bash
-aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com
+# 사용 예시
+ecr_manager = ECRManager()
+
+# 리포지토리 생성
+repo_uri = ecr_manager.create_repository('my-web-app')
+print(f"생성된 리포지토리 URI: {repo_uri}")
+
+# 이미지 목록 조회
+images = ecr_manager.list_images('my-web-app')
+print(f"이미지 목록: {images}")
 ```
 
-**🤔 이 명령어가 하는 일:**
-- AWS ECR에 로그인합니다
-- 마치 창고에 들어가기 전에 출입증을 받는 것과 같습니다
-
-**📝 주의사항:**
-- `<AWS_ACCOUNT_ID>`를 실제 AWS 계정 ID로 바꿔야 합니다
-- `ap-northeast-2`는 서울 리전입니다
-
----
-
-### 🚀 4.4 Docker 이미지 ECR 푸시
-```bash
-# 1단계: 이미지에 태그 지정
-docker tag my-app:latest <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo
-
-# 2단계: ECR에 이미지 업로드
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo
-```
-
-**🤔 이 과정이 하는 일:**
-1. **태그 지정**: 로컬 이미지에 ECR 주소를 붙입니다
-2. **업로드**: ECR에 이미지를 보냅니다
-
-**📝 비유:**
-- 창고에 상품을 보낼 때 주소를 붙이고 배송하는 것과 같습니다
-
----
-
-### 📥 4.5 ECR에서 Docker 이미지 Pull
-```bash
-docker pull <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo:latest
-```
-
-**🤔 이 명령어가 하는 일:**
-- ECR에서 이미지를 다운로드합니다
-- 마치 창고에서 상품을 가져오는 것과 같습니다
-
----
-
-## 5. ECR과 CI/CD 연동 🛠️
-
-### 🎯 CI/CD란?
-**CI/CD**는 개발자가 코드를 작성하면 자동으로 테스트하고 배포하는 과정입니다.
-
-### 📋 CI/CD의 장점
-1. **자동화**: 수동 작업을 줄일 수 있습니다
-2. **일관성**: 항상 같은 방식으로 배포됩니다
-3. **빠른 배포**: 코드 변경 시 즉시 반영됩니다
-
----
-
-### 🔄 GitHub Actions와 AWS ECR 연동 예제
+### Docker Compose와 ECR 연동
 
 ```yaml
-name: Deploy to ECR
+# docker-compose.yml
+version: '3.8'
 
-on:
-  push:
-    branches:
-      - main
+services:
+  web:
+    image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-web-app:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - db
+  
+  db:
+    image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-database:latest
+    environment:
+      - POSTGRES_DB=myapp
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      # 1단계: 코드 가져오기
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      # 2단계: AWS 인증 설정
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      # 3단계: ECR 로그인
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com
-
-      # 4단계: 이미지 빌드 및 업로드
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t my-app .
-          docker tag my-app:latest <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo
-          docker push <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app-repo
+volumes:
+  postgres_data:
 ```
 
-**🤔 이 과정이 하는 일:**
-1. **코드 변경 감지**: GitHub에 코드가 올라오면 자동으로 시작
-2. **AWS 인증**: ECR에 접근할 수 있는 권한 설정
-3. **ECR 로그인**: ECR에 로그인
-4. **빌드 및 업로드**: Docker 이미지를 만들고 ECR에 업로드
+## 운영 팁
 
----
+### 1. 보안 설정
 
-## 6. ECR 비용 및 보안 💰🔒
-
-### 💰 비용 구조
-ECR의 비용은 크게 두 가지로 나뉩니다:
-
-#### 📦 저장 비용
-- **과금 기준**: 저장된 이미지의 크기
-- **비용**: GB당 월 요금
-- **예시**: 1GB 이미지를 1개월 보관하면 약 $0.10
-
-#### 📡 데이터 전송 비용
-- **과금 기준**: 인터넷으로 이미지를 전송할 때
-- **비용**: GB당 전송 요금
-- **예시**: 1GB 이미지를 다운로드하면 약 $0.09
-
-> **💡 팁: 같은 리전 내에서는 데이터 전송 비용이 무료입니다!**
-
----
-
-### 🔒 보안 모범 사례
-
-#### 1️⃣ IAM 정책 최소 권한 설정
+#### IAM 정책 최소 권한 설정
 ```json
 {
     "Version": "2012-10-17",
@@ -265,25 +197,212 @@ ECR의 비용은 크게 두 가지로 나뉩니다:
                 "ecr:BatchGetImage"
             ],
             "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:PutImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload"
+            ],
+            "Resource": "arn:aws:ecr:ap-northeast-2:123456789012:repository/my-app"
         }
     ]
 }
 ```
 
-#### 2️⃣ VPC 엔드포인트 사용
-- **목적**: 인터넷을 거치지 않고 AWS 내부에서만 통신
-- **장점**: 보안 강화 및 비용 절약
+#### VPC 엔드포인트 설정
+```bash
+# VPC 엔드포인트 생성
+aws ec2 create-vpc-endpoint \
+    --vpc-id vpc-12345678 \
+    --service-name com.amazonaws.ap-northeast-2.ecr.dkr \
+    --subnet-ids subnet-12345678 subnet-87654321 \
+    --security-group-ids sg-12345678
+```
 
-#### 3️⃣ 이미지 스캔 활성화
-- **목적**: 보안 취약점 자동 검사
-- **장점**: 안전한 이미지 보장
+### 2. 이미지 태깅 전략
 
----
+#### 시맨틱 버저닝
+```bash
+# 메이저.마이너.패치 형식
+docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:1.2.3
+docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:1.2
+docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:1
+```
 
-## 7. 결론 ✅
+#### 환경별 태깅
+```bash
+# 환경별 태그
+docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:dev
+docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:staging
+docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:prod
+```
 
-### 🎯 ECR의 핵심 가치
-1. **완전관리형**: 인프라 관리 없이 사용 가능
-2. **고가용성**: AWS의 글로벌 인프라 활용
-3. **보안 강화**: IAM 기반 접근 제어
-4. **CI/CD 통합**: 자동화된 배포 파이프라인 구축
+### 3. 이미지 최적화
+
+#### 멀티스테이지 빌드
+```dockerfile
+# Dockerfile
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:18-alpine AS runtime
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+#### 이미지 크기 최적화
+```bash
+# 불필요한 파일 제거
+docker build --no-cache -t my-app .
+
+# 이미지 압축
+docker save my-app:latest | gzip > my-app.tar.gz
+
+# 이미지 분석
+docker history my-app:latest
+```
+
+### 4. 자동화 및 CI/CD
+
+#### GitHub Actions와 연동
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy to ECR
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+    
+    - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: my-app
+        IMAGE_TAG: ${{ github.sha }}
+        run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+```
+
+#### Jenkins와 연동
+```groovy
+// Jenkinsfile
+pipeline {
+    agent any
+    
+    environment {
+        AWS_DEFAULT_REGION = 'ap-northeast-2'
+        ECR_REPOSITORY = 'my-app'
+    }
+    
+    stages {
+        stage('Login to ECR') {
+            steps {
+                sh 'aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com'
+            }
+        }
+        
+        stage('Build and Push') {
+            steps {
+                sh 'docker build -t my-app .'
+                sh 'docker tag my-app:latest 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest'
+                sh 'docker push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest'
+            }
+        }
+    }
+}
+```
+
+### 5. 비용 최적화
+
+#### 이미지 수명 주기 정책
+```json
+{
+    "rules": [
+        {
+            "rulePriority": 1,
+            "description": "Keep last 5 images",
+            "selection": {
+                "tagStatus": "tagged",
+                "tagPrefixList": ["v"],
+                "countType": "imageCountMoreThan",
+                "countNumber": 5
+            },
+            "action": {
+                "type": "expire"
+            }
+        },
+        {
+            "rulePriority": 2,
+            "description": "Remove untagged images older than 1 day",
+            "selection": {
+                "tagStatus": "untagged",
+                "countType": "sinceImagePushed",
+                "countUnit": "days",
+                "countNumber": 1
+            },
+            "action": {
+                "type": "expire"
+            }
+        }
+    ]
+}
+```
+
+#### 크로스 리전 복제 최적화
+```bash
+# 필요한 리전에만 복제
+aws ecr create-repository \
+    --repository-name my-app \
+    --region us-west-2
+
+aws ecr put-image \
+    --repository-name my-app \
+    --image-tag latest \
+    --image-manifest "$(aws ecr batch-get-image --repository-name my-app --image-ids imageTag=latest --region ap-northeast-2 --query 'images[0].imageManifest' --output text)" \
+    --region us-west-2
+```
+
+## 참고
+
+### ECR과 다른 레지스트리 비교
+
+| 기능 | AWS ECR | Docker Hub | Google Container Registry | Azure Container Registry |
+|------|---------|------------|---------------------------|--------------------------|
+| **무료 티어** | 500MB/월 | 1개 리포지토리 | 0.5GB/월 | 0.5GB/월 |
+| **AWS 통합** | 완전 통합 | 제한적 | 제한적 | 제한적 |
+| **보안** | IAM, VPC 엔드포인트 | 기본 인증 | IAM | Azure AD |
+| **CI/CD** | CodePipeline, CodeBuild | GitHub Actions | Cloud Build | Azure DevOps |
+
+### 관련 링크
+
+- [AWS ECR 공식 문서](https://docs.aws.amazon.com/ecr/)
+- [AWS ECR 가격](https://aws.amazon.com/ecr/pricing/)
+- [Docker 공식 문서](https://docs.docker.com/)
+- [AWS Well-Architected Framework - 컨테이너](https://aws.amazon.com/architecture/well-architected/)
+
