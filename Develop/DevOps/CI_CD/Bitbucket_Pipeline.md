@@ -1,69 +1,37 @@
-# Bitbucket Pipelines 가이드 🚀
+---
+title: Bitbucket Pipelines 완벽 가이드
+tags: [devops, cicd, bitbucket, pipeline, automation, deployment]
+updated: 2025-08-15
+---
 
-## 목차 📑
-1. [Bitbucket Pipelines란?](#bitbucket-pipelines란)
-2. [기본 개념](#기본-개념)
-3. [bitbucket-pipelines.yml 설정](#bitbucket-pipelinesyml-설정)
-4. [파이프라인 단계](#파이프라인-단계)
-5. [자주 사용되는 기능](#자주-사용되는-기능)
-6. [고급 기능](#고급-기능)
-7. [모범 사례](#모범-사례)
-8. [문제 해결](#문제-해결)
+# Bitbucket Pipelines
 
-## Bitbucket Pipelines란? 🤔
+## 배경
 
-Bitbucket Pipelines는 Bitbucket Cloud에서 제공하는 CI/CD(지속적 통합/배포) 서비스입니다. 코드 저장소에 변경사항이 발생할 때마다 자동으로 빌드, 테스트, 배포를 수행할 수 있게 해주는 도구입니다.
+Bitbucket Pipelines는 Atlassian에서 제공하는 클라우드 기반 CI/CD 서비스입니다. Git 저장소와 통합되어 코드 변경사항을 자동으로 빌드, 테스트, 배포할 수 있으며, Docker 기반의 격리된 환경에서 안전하고 일관된 빌드 프로세스를 제공합니다.
 
-### 주요 특징 ✨
-- Docker 기반의 격리된 환경
-- YAML 파일로 간단한 설정
-- Bitbucket과의 완벽한 통합
-- 다양한 프로그래밍 언어 및 프레임워크 지원
-- 무료 크레딧 제공 (월 2,500분)
-- AWS, Google Cloud, Azure 등 주요 클라우드 서비스와의 통합
+### Bitbucket Pipelines의 필요성
+- **자동화**: 수동 빌드/배포 과정의 자동화로 개발 효율성 향상
+- **품질 보장**: 코드 변경 시 자동 테스트 실행으로 품질 관리
+- **빠른 피드백**: 개발자에게 즉각적인 피드백 제공
+- **일관성**: 모든 환경에서 동일한 빌드 프로세스 보장
+- **통합**: Bitbucket과의 완벽한 통합으로 개발 워크플로우 최적화
 
-### 장점 🌟
-1. **간편한 설정**: YAML 파일 하나로 전체 CI/CD 파이프라인 구성
-2. **격리된 환경**: 각 빌드는 독립된 Docker 컨테이너에서 실행
-3. **확장성**: 필요에 따라 파이프라인 단계 추가/수정 가능
-4. **보안**: 저장소 내에서 모든 작업이 수행되어 보안성 향상
-5. **통합성**: Bitbucket의 다른 기능들과 원활한 연동
+### 기본 개념
+- **파이프라인**: 전체 CI/CD 프로세스를 정의하는 최상위 개념
+- **스텝**: 파이프라인의 개별 작업 단위
+- **스크립트**: 각 스텝에서 실행되는 명령어들
+- **아티팩트**: 빌드 결과물로 다음 스텝에서 사용
+- **캐시**: 빌드 속도 향상을 위한 의존성 캐싱
 
-## 기본 개념 📚
+## 핵심
 
-### 파이프라인 구성요소
-1. **파이프라인(Pipeline)**: 전체 CI/CD 프로세스
-   - 브랜치별 파이프라인
-   - 풀 리퀘스트 파이프라인
-   - 태그 파이프라인
+### 1. 파이프라인 구성요소
 
-2. **스텝(Step)**: 파이프라인의 개별 작업 단위
-   - 빌드 스텝
-   - 테스트 스텝
-   - 배포 스텝
-   - 검증 스텝
-
-3. **스크립트(Script)**: 각 스텝에서 실행되는 명령어들
-   - 쉘 명령어
-   - 프로그래밍 언어 명령어
-   - 커스텀 스크립트
-
-4. **아티팩트(Artifact)**: 빌드 결과물
-   - 빌드된 파일
-   - 테스트 리포트
-   - 로그 파일
-
-### 파이프라인 트리거 조건
-- 브랜치 푸시
-- 풀 리퀘스트 생성/업데이트
-- 태그 푸시
-- 수동 트리거
-
-## bitbucket-pipelines.yml 설정 ⚙️
-
-### 기본 구조
+#### 기본 파이프라인 구조
 ```yaml
-image: node:16
+# bitbucket-pipelines.yml
+image: node:18
 
 definitions:
   caches:
@@ -74,7 +42,407 @@ definitions:
         caches:
           - npm
         script:
-          - npm install
+          - npm ci
+          - npm run build
+          - npm run test
+        artifacts:
+          - dist/**
+
+pipelines:
+  default:
+    - step: *build-test
+  branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy to Staging
+          script:
+            - echo "Deploying to staging environment"
+  pull-requests:
+    '**':
+      - step: *build-test
+```
+
+#### 파이프라인 트리거 조건
+```yaml
+pipelines:
+  # 기본 브랜치 (main/master)
+  default:
+    - step:
+        name: Build and Test
+        script:
+          - npm ci
+          - npm run build
+          - npm run test
+  
+  # 특정 브랜치
+  branches:
+    develop:
+      - step:
+          name: Build and Test
+          script:
+            - npm ci
+            - npm run build
+            - npm run test
+      - step:
+          name: Deploy to Staging
+          script:
+            - echo "Deploying to staging"
+    
+    feature/*:
+      - step:
+          name: Build and Test
+          script:
+            - npm ci
+            - npm run build
+            - npm run test
+  
+  # 풀 리퀘스트
+  pull-requests:
+    '**':
+      - step:
+          name: Build and Test
+          script:
+            - npm ci
+            - npm run build
+            - npm run test
+  
+  # 태그
+  tags:
+    'v*':
+      - step:
+          name: Build and Test
+          script:
+            - npm ci
+            - npm run build
+            - npm run test
+      - step:
+          name: Deploy to Production
+          script:
+            - echo "Deploying to production"
+```
+
+### 2. 다양한 언어별 파이프라인
+
+#### Node.js 프로젝트
+```yaml
+image: node:18
+
+definitions:
+  caches:
+    npm: ~/.npm
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run lint
+          - npm run build
+          - npm run test
+          - npm run test:coverage
+        artifacts:
+          - dist/**
+          - coverage/**
+
+pipelines:
+  default:
+    - step: *build-test
+  branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy to Staging
+          script:
+            - npm run deploy:staging
+    main:
+      - step: *build-test
+      - step:
+          name: Deploy to Production
+          script:
+            - npm run deploy:production
+```
+
+#### Java 프로젝트 (Maven)
+```yaml
+image: maven:3.8-openjdk-17
+
+definitions:
+  caches:
+    maven: ~/.m2
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - maven
+        script:
+          - mvn clean install
+          - mvn test
+          - mvn jacoco:report
+        artifacts:
+          - target/**
+
+pipelines:
+  default:
+    - step: *build-test
+  branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy to Staging
+          script:
+            - mvn spring-boot:run -Dspring.profiles.active=staging
+    main:
+      - step: *build-test
+      - step:
+          name: Deploy to Production
+          script:
+            - mvn spring-boot:run -Dspring.profiles.active=production
+```
+
+#### Python 프로젝트
+```yaml
+image: python:3.11
+
+definitions:
+  caches:
+    pip: ~/.cache/pip
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - pip
+        script:
+          - pip install -r requirements.txt
+          - pip install -r requirements-dev.txt
+          - python -m pytest tests/
+          - python -m flake8 src/
+          - python -m black --check src/
+
+pipelines:
+  default:
+    - step: *build-test
+  branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy to Staging
+          script:
+            - pip install -r requirements.txt
+            - python manage.py migrate
+            - python manage.py runserver
+```
+
+### 3. 고급 파이프라인 기능
+
+#### 조건부 실행
+```yaml
+pipelines:
+  default:
+    - step:
+        name: Build and Test
+        script:
+          - npm ci
+          - npm run build
+          - npm run test
+        condition:
+          changesets:
+            includePaths:
+              - "src/**"
+              - "package.json"
+              - "package-lock.json"
+    
+    - step:
+        name: Deploy
+        script:
+          - npm run deploy
+        condition:
+          changesets:
+            includePaths:
+              - "src/**"
+            excludePaths:
+              - "src/docs/**"
+```
+
+#### 병렬 실행
+```yaml
+pipelines:
+  default:
+    - parallel:
+        - step:
+            name: Unit Tests
+            script:
+              - npm run test:unit
+        - step:
+            name: Integration Tests
+            script:
+              - npm run test:integration
+        - step:
+            name: E2E Tests
+            script:
+              - npm run test:e2e
+    
+    - step:
+        name: Deploy
+        script:
+          - npm run deploy
+```
+
+#### 환경 변수와 시크릿
+```yaml
+definitions:
+  services:
+    docker:
+      memory: 2048
+  steps:
+    - step: &build-test
+        name: Build and Test
+        script:
+          - echo $DATABASE_URL
+          - echo $API_KEY
+          - npm ci
+          - npm run build
+          - npm run test
+
+pipelines:
+  default:
+    - step: *build-test
+  branches:
+    develop:
+      - step:
+          <<: *build-test
+          name: Build and Deploy to Staging
+          script:
+            - echo $STAGING_DATABASE_URL
+            - npm ci
+            - npm run build
+            - npm run test
+            - npm run deploy:staging
+```
+
+## 예시
+
+### 1. 실제 사용 사례
+
+#### React 애플리케이션 파이프라인
+```yaml
+image: node:18
+
+definitions:
+  caches:
+    npm: ~/.npm
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run lint
+          - npm run build
+          - npm run test
+          - npm run test:coverage
+        artifacts:
+          - build/**
+          - coverage/**
+
+pipelines:
+  default:
+    - step: *build-test
+  
+  branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy to Staging
+          script:
+            - npm install -g aws-cli
+            - aws s3 sync build/ s3://staging-bucket --delete
+            - aws cloudfront create-invalidation --distribution-id $STAGING_DISTRIBUTION_ID --paths "/*"
+    
+    main:
+      - step: *build-test
+      - step:
+          name: Deploy to Production
+          script:
+            - npm install -g aws-cli
+            - aws s3 sync build/ s3://production-bucket --delete
+            - aws cloudfront create-invalidation --distribution-id $PRODUCTION_DISTRIBUTION_ID --paths "/*"
+  
+  pull-requests:
+    '**':
+      - step: *build-test
+```
+
+#### Node.js API 서버 파이프라인
+```yaml
+image: node:18
+
+definitions:
+  caches:
+    npm: ~/.npm
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run lint
+          - npm run build
+          - npm run test
+          - npm run test:coverage
+        artifacts:
+          - dist/**
+          - coverage/**
+
+pipelines:
+  default:
+    - step: *build-test
+  
+  branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy to Staging
+          script:
+            - npm install -g pm2
+            - pm2 deploy ecosystem.config.js staging
+            - pm2 restart api-staging
+    
+    main:
+      - step: *build-test
+      - step:
+          name: Deploy to Production
+          script:
+            - npm install -g pm2
+            - pm2 deploy ecosystem.config.js production
+            - pm2 restart api-production
+  
+  pull-requests:
+    '**':
+      - step: *build-test
+```
+
+### 2. 고급 패턴
+
+#### 마이크로서비스 파이프라인
+```yaml
+image: node:18
+
+definitions:
+  caches:
+    npm: ~/.npm
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run lint
+          - npm run build
           - npm run test
         artifacts:
           - dist/**
@@ -84,551 +452,190 @@ pipelines:
     - step: *build-test
   
   branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy User Service
+          script:
+            - docker build -t user-service:$BITBUCKET_COMMIT .
+            - docker push user-service:$BITBUCKET_COMMIT
+            - kubectl set image deployment/user-service user-service=user-service:$BITBUCKET_COMMIT
+    
+    main:
+      - step: *build-test
+      - step:
+          name: Deploy All Services
+          script:
+            - docker build -t user-service:$BITBUCKET_COMMIT .
+            - docker push user-service:$BITBUCKET_COMMIT
+            - kubectl set image deployment/user-service user-service=user-service:$BITBUCKET_COMMIT
+            - kubectl rollout status deployment/user-service
+```
+
+#### 다중 환경 배포
+```yaml
+image: node:18
+
+definitions:
+  caches:
+    npm: ~/.npm
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run lint
+          - npm run build
+          - npm run test
+        artifacts:
+          - dist/**
+
+pipelines:
+  default:
+    - step: *build-test
+  
+  branches:
+    develop:
+      - step: *build-test
+      - step:
+          name: Deploy to Development
+          script:
+            - echo "Deploying to development environment"
+            - npm run deploy:dev
+    
+    staging:
+      - step: *build-test
+      - step:
+          name: Deploy to Staging
+          script:
+            - echo "Deploying to staging environment"
+            - npm run deploy:staging
+    
     main:
       - step: *build-test
       - step:
           name: Deploy to Production
-          deployment: production
           script:
-            - echo "Deploying to production..."
-  
-  pull-requests:
-    '**':
-      - step: *build-test
+            - echo "Deploying to production environment"
+            - npm run deploy:production
 ```
 
-### 주요 설정 항목 상세 설명
-1. **image**: 파이프라인 실행 환경
-   - 공식 Docker 이미지 사용
-   - 커스텀 Docker 이미지 사용
-   - 멀티 스테이지 빌드 지원
+## 운영 팁
 
-2. **pipelines**: 파이프라인 정의
-   - default: 기본 파이프라인
-   - branches: 브랜치별 파이프라인
-   - pull-requests: PR별 파이프라인
-   - tags: 태그별 파이프라인
+### 성능 최적화
 
-3. **step**: 실행할 작업 단계
-   - name: 스텝 이름
-   - script: 실행할 명령어
-   - caches: 캐시 설정
-   - artifacts: 아티팩트 설정
-   - services: 추가 서비스 설정
-
-4. **script**: 실행할 명령어
-   - 쉘 명령어
-   - 프로그래밍 언어 명령어
-   - 조건문과 반복문 사용 가능
-
-5. **artifacts**: 저장할 빌드 결과물
-   - 파일 패턴 지정
-   - 디렉토리 지정
-   - 와일드카드 사용 가능
-
-## 파이프라인 단계 🔄
-
-### 1. 빌드 단계
-```yaml
-- step:
-    name: Build
-    caches:
-      - npm
-    script:
-      - npm ci
-      - npm run build
-    artifacts:
-      - dist/**
-      - build/**
-```
-
-### 2. 테스트 단계
-```yaml
-- step:
-    name: Test
-    caches:
-      - npm
-    script:
-      - npm run test:unit
-      - npm run test:integration
-      - npm run test:e2e
-    artifacts:
-      - coverage/**
-      - test-results/**
-```
-
-### 3. 린트 및 코드 품질 검사
-```yaml
-- step:
-    name: Lint and Quality
-    script:
-      - npm run lint
-      - npm run sonar
-    artifacts:
-      - sonar-report/**
-```
-
-### 4. 배포 단계
-```yaml
-- step:
-    name: Deploy
-    deployment: production
-    script:
-      - npm run deploy
-    after-script:
-      - npm run health-check
-```
-
-## 자주 사용되는 기능 🛠️
-
-### 환경 변수
-```yaml
-definitions:
-  steps:
-    - step: &build-step
-        script:
-          - echo $MY_SECRET
-          - echo $AWS_ACCESS_KEY
-          - echo $DATABASE_URL
-
-# 환경 변수 설정 방법
-# 1. Bitbucket 저장소 설정에서 직접 설정
-# 2. bitbucket-pipelines.yml에서 설정
-# 3. 배포 환경별로 다른 값 설정
-```
-
-### 캐시 사용
+#### 캐시 활용
 ```yaml
 definitions:
   caches:
     npm: ~/.npm
-    gradle: ~/.gradle
-    maven: ~/.m2
-
-- step:
-    caches:
-      - npm
-      - gradle
-    script:
-      - npm install
-      - ./gradlew build
-```
-
-### 병렬 실행
-```yaml
-- parallel:
-    - step:
-        name: Unit Tests
-        script:
-          - npm run test:unit
-    - step:
-        name: Integration Tests
-        script:
-          - npm run test:integration
-    - step:
-        name: E2E Tests
-        script:
-          - npm run test:e2e
-```
-
-### 조건부 실행
-```yaml
-- step:
-    name: Conditional Step
-    condition:
-      changesets:
-        includePaths:
-          - "src/**"
-          - "package.json"
-    script:
-      - echo "Changes detected in source files"
-```
-
-## 고급 기능 🎯
-
-### 커스텀 Docker 이미지
-```yaml
-image:
-  name: your-registry/custom-image:latest
-  username: $DOCKER_USERNAME
-  password: $DOCKER_PASSWORD
-```
-
-### 서비스 컨테이너
-```yaml
-definitions:
-  services:
-    docker:
-      memory: 2048
-    database:
-      image: postgres:13
-      variables:
-        POSTGRES_DB: testdb
-        POSTGRES_USER: testuser
-        POSTGRES_PASSWORD: testpass
-```
-
-### 워크플로우
-```yaml
-pipelines:
-  custom:
-    build-and-deploy:
-      - step:
-          name: Build
-          script:
-            - npm run build
-      - step:
-          name: Deploy
-          deployment: staging
-          trigger: manual
-          script:
-            - npm run deploy
-```
-
-## 모범 사례 💡
-
-### 1. 효율적인 캐시 사용
-- 의존성 파일 캐싱
-  ```yaml
-  caches:
-    npm: ~/.npm
-    pip: ~/.cache/pip
-    gradle: ~/.gradle
-  ```
-- 빌드 결과물 캐싱
-  ```yaml
-  caches:
-    build: build/
-    dist: dist/
-  ```
-
-### 2. 보안
-- 민감한 정보는 환경 변수로 관리
-  ```yaml
-  script:
-    - echo $AWS_ACCESS_KEY
-    - echo $DATABASE_URL
-  ```
-- SSH 키 보안 관리
-  ```yaml
-  script:
-    - pipe: atlassian/ssh-run:0.7.0
-      variables:
-        SSH_USER: $SSH_USER
-        SERVER: $SERVER
-        COMMAND: 'deploy.sh'
-  ```
-
-### 3. 성능 최적화
-- 불필요한 단계 제거
-- 병렬 실행 활용
-- 캐시 전략 수립
-- 이미지 크기 최적화
-
-### 4. 모니터링
-- 파이프라인 실행 상태 모니터링
-- 실패 시 알림 설정
-- 메트릭 수집
-- 로그 분석
-
-## 문제 해결 🔧
-
-### 일반적인 문제
-1. **빌드 실패**
-   - 로그 확인
-   - 환경 변수 검증
-   - 의존성 문제 확인
-
-2. **성능 이슈**
-   - 캐시 활용 확인
-   - 불필요한 단계 제거
-   - 이미지 최적화
-
-3. **보안 문제**
-   - 환경 변수 검증
-   - 권한 설정 확인
-   - 시크릿 관리 확인
-
-### 디버깅 팁
-1. 로그 레벨 조정
-2. 단계별 실행
-3. 로컬 테스트
-4. 캐시 초기화
-
-## EC2 배포 파이프라인 구성 🚀
-
-### 1. AWS 인증 설정
-```yaml
-definitions:
+    node_modules: node_modules
+    build: build
   steps:
-    - step: &deploy-to-ec2
-        name: Deploy to EC2
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - npm
+          - node_modules
+          - build
         script:
-          # AWS 인증 설정
-          - pipe: atlassian/aws-ecs-deploy:1.1.0
-            variables:
-              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-              AWS_DEFAULT_REGION: 'ap-northeast-2'
-```
-
-### 2. SSH 키 설정
-```yaml
-definitions:
-  steps:
-    - step: &deploy-to-ec2
-        name: Deploy to EC2
-        script:
-          # SSH 키 설정
-          - mkdir -p ~/.ssh
-          - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          - chmod 600 ~/.ssh/id_rsa
-          - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
-```
-
-### 3. 배포 스크립트 예제
-```yaml
-pipelines:
-  branches:
-    main:
-      - step:
-          name: Build and Deploy
-          script:
-            # 빌드
-            - npm install
-            - npm run build
-            
-            # 배포 스크립트 실행
-            - pipe: atlassian/ssh-run:0.7.0
-              variables:
-                SSH_USER: 'ec2-user'
-                SERVER: $EC2_HOST
-                COMMAND: |
-                  cd /home/ec2-user/app
-                  git pull origin main
-                  npm install
-                  pm2 restart app
-```
-
-### 4. 환경 변수 설정
-```yaml
-# Bitbucket 저장소 설정에서 다음 환경 변수 설정 필요
-# AWS_ACCESS_KEY_ID: AWS 액세스 키
-# AWS_SECRET_ACCESS_KEY: AWS 시크릿 키
-# EC2_HOST: EC2 인스턴스 호스트 주소
-# SSH_PRIVATE_KEY: EC2 인스턴스 접속용 SSH 프라이빗 키
-```
-
-### 5. 배포 전 준비사항
-
-#### 5.1 EC2 인스턴스 설정
-1. **보안 그룹 설정**
-   ```bash
-   # SSH 접속 허용 (포트 22)
-   # 애플리케이션 포트 허용 (예: 3000, 8080 등)
-   ```
-
-2. **Node.js 설치**
-   ```bash
-   # Amazon Linux 2
-   curl -sL https://rpm.nodesource.com/setup_16.x | sudo bash -
-   sudo yum install -y nodejs
-   
-   # Ubuntu
-   curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-   sudo apt-get install -y nodejs
-   ```
-
-3. **PM2 설치**
-   ```bash
-   sudo npm install -g pm2
-   ```
-
-#### 5.2 배포 디렉토리 설정
-```bash
-# EC2 인스턴스에서 실행
-mkdir -p /home/ec2-user/app
-cd /home/ec2-user/app
-git init
-git remote add origin <repository-url>
-```
-
-### 6. 자동화된 배포 파이프라인
-
-#### 6.1 기본 배포 파이프라인
-```yaml
-image: node:16
-
-definitions:
-  steps:
-    - step: &build-and-deploy
-        name: Build and Deploy
-        script:
-          # 빌드
-          - npm install
+          - npm ci --cache .npm --prefer-offline
           - npm run build
-          
-          # 배포
-          - pipe: atlassian/ssh-run:0.7.0
-            variables:
-              SSH_USER: 'ec2-user'
-              SERVER: $EC2_HOST
-              COMMAND: |
-                cd /home/ec2-user/app
-                git pull origin main
-                npm install
-                pm2 restart app
-
-pipelines:
-  branches:
-    main:
-      - step: *build-and-deploy
+          - npm run test
 ```
 
-#### 6.2 Blue-Green 배포 파이프라인
+#### 병렬 처리
 ```yaml
-image: node:16
-
-definitions:
-  steps:
-    - step: &blue-green-deploy
-        name: Blue-Green Deployment
+pipelines:
+  default:
+    - parallel:
+        - step:
+            name: Lint
+            script:
+              - npm run lint
+        - step:
+            name: Unit Tests
+            script:
+              - npm run test:unit
+        - step:
+            name: Integration Tests
+            script:
+              - npm run test:integration
+    
+    - step:
+        name: Build
         script:
-          # 빌드
-          - npm install
           - npm run build
-          
-          # Blue-Green 배포
-          - pipe: atlassian/ssh-run:0.7.0
-            variables:
-              SSH_USER: 'ec2-user'
-              SERVER: $EC2_HOST
-              COMMAND: |
-                # 현재 실행 중인 인스턴스 확인
-                CURRENT_INSTANCE=$(pm2 list | grep "app" | awk '{print $2}')
-                
-                # 새 인스턴스 배포
-                cd /home/ec2-user/app
-                git pull origin main
-                npm install
-                pm2 start app.js --name "app-new"
-                
-                # 트래픽 전환
-                sleep 10
-                pm2 delete $CURRENT_INSTANCE
+```
 
+### 에러 처리
+
+#### 재시도 로직
+```yaml
+pipelines:
+  default:
+    - step:
+        name: Build and Test
+        script:
+          - npm ci
+          - npm run build
+          - npm run test
+        retry:
+          automatic:
+            - limit: 2
+              reason: retry_on_retry
+```
+
+#### 조건부 배포
+```yaml
 pipelines:
   branches:
     main:
-      - step: *blue-green-deploy
+      - step:
+          name: Build and Test
+          script:
+            - npm ci
+            - npm run build
+            - npm run test
+      
+      - step:
+          name: Deploy to Production
+          script:
+            - npm run deploy:production
+          condition:
+            changesets:
+              includePaths:
+                - "src/**"
+              excludePaths:
+                - "src/docs/**"
 ```
 
-### 7. 배포 후 검증
+## 참고
 
-#### 7.1 헬스 체크
-```yaml
-- step:
-    name: Health Check
-    script:
-      - pipe: atlassian/ssh-run:0.7.0
-        variables:
-          SSH_USER: 'ec2-user'
-          SERVER: $EC2_HOST
-          COMMAND: |
-            curl -f http://localhost:3000/health || exit 1
-```
+### Bitbucket Pipelines vs 다른 CI/CD 도구
 
-#### 7.2 로그 확인
-```yaml
-- step:
-    name: Check Logs
-    script:
-      - pipe: atlassian/ssh-run:0.7.0
-        variables:
-          SSH_USER: 'ec2-user'
-          SERVER: $EC2_HOST
-          COMMAND: |
-            pm2 logs app --lines 100
-```
+| 측면 | Bitbucket Pipelines | GitHub Actions | GitLab CI | Jenkins |
+|------|-------------------|----------------|-----------|---------|
+| **통합** | Bitbucket 완벽 통합 | GitHub 완벽 통합 | GitLab 완벽 통합 | 독립적 |
+| **설정** | YAML | YAML | YAML | Groovy |
+| **무료 크레딧** | 2,500분/월 | 2,000분/월 | 400분/월 | 무제한 |
+| **Docker 지원** | 네이티브 | 네이티브 | 네이티브 | 플러그인 |
+| **클라우드 서비스** | 제한적 | 풍부 | 풍부 | 제한적 |
 
-### 8. 롤백 전략
+### 파이프라인 모범 사례
 
-#### 8.1 자동 롤백
-```yaml
-- step:
-    name: Rollback if Failed
-    trigger: manual
-    script:
-      - pipe: atlassian/ssh-run:0.7.0
-        variables:
-          SSH_USER: 'ec2-user'
-          SERVER: $EC2_HOST
-          COMMAND: |
-            cd /home/ec2-user/app
-            git reset --hard HEAD^
-            npm install
-            pm2 restart app
-```
+| 항목 | 권장사항 | 이유 |
+|------|----------|------|
+| **캐시 사용** | 의존성 캐싱 | 빌드 속도 향상 |
+| **병렬 처리** | 독립적인 작업 병렬화 | 전체 실행 시간 단축 |
+| **조건부 실행** | 변경된 파일에만 실행 | 불필요한 빌드 방지 |
+| **아티팩트 관리** | 필요한 파일만 저장 | 저장 공간 절약 |
+| **보안** | 환경 변수 사용 | 민감한 정보 보호 |
 
-### 9. 모니터링 설정
-
-#### 9.1 CloudWatch 통합
-```yaml
-- step:
-    name: Setup CloudWatch
-    script:
-      - pipe: atlassian/aws-cloudwatch-metrics:0.3.0
-        variables:
-          AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-          AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-          AWS_DEFAULT_REGION: 'ap-northeast-2'
-          METRIC_NAME: 'DeploymentStatus'
-          METRIC_VALUE: '1'
-          METRIC_UNIT: 'Count'
-```
-
-### 10. 보안 모범 사례
-
-1. **IAM 역할 사용**
-   - EC2 인스턴스에 IAM 역할 할당
-   - 최소 권한 원칙 적용
-
-2. **시크릿 관리**
-   - AWS Secrets Manager 사용
-   - 환경 변수 암호화
-
-3. **네트워크 보안**
-   - VPC 설정
-   - 보안 그룹 최소화
-
-### 11. 문제 해결
-
-#### 11.1 일반적인 문제
-1. **배포 실패**
-   - SSH 연결 확인
-   - 권한 확인
-   - 디스크 공간 확인
-
-2. **애플리케이션 오류**
-   - PM2 로그 확인
-   - Node.js 버전 확인
-   - 의존성 문제 확인
-
-#### 11.2 디버깅 명령어
-```bash
-# PM2 상태 확인
-pm2 status
-
-# 애플리케이션 로그 확인
-pm2 logs app
-
-# 시스템 리소스 확인
-htop
-
-# 디스크 공간 확인
-df -h
-```
-
-## 결론 🎯
-
-Bitbucket Pipelines는 개발 워크플로우를 자동화하고 효율화하는 강력한 도구입니다. 적절한 설정과 모범 사례를 따르면 더욱 효과적인 CI/CD 파이프라인을 구축할 수 있습니다. 지속적인 모니터링과 최적화를 통해 안정적이고 효율적인 파이프라인을 유지하는 것이 중요합니다.
+### 결론
+Bitbucket Pipelines는 Git 저장소와의 완벽한 통합을 통해 효율적인 CI/CD 파이프라인을 구축할 수 있는 강력한 도구입니다.
+YAML 기반의 간단한 설정으로 다양한 프로그래밍 언어와 프레임워크를 지원합니다.
+캐시와 병렬 처리를 활용하여 빌드 성능을 최적화하세요.
+조건부 실행과 에러 처리를 통해 안정적이고 효율적인 파이프라인을 구축하세요.
