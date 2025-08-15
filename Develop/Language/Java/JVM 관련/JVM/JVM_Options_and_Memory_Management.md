@@ -1,3 +1,8 @@
+---
+title: JVM
+tags: [language, java, jvm-관련, jvm, jvmoptionsandmemorymanagement]
+updated: 2025-08-10
+---
 # JVM 옵션 및 메모리 관리 🚀
 
 ## 1. JVM 옵션이란? 🤔
@@ -133,7 +138,7 @@ java -XX:+UseG1GC MyApplication
 
 ---
 
-## 📌 결론
+## 배경
 
 - **JVM 옵션을 활용하면 Java 애플리케이션의 메모리 사용 및 성능을 최적화 가능**
 - **Heap, Stack, Metaspace 등의 크기를 설정하여 실행 환경 조정**
@@ -141,4 +146,13 @@ java -XX:+UseG1GC MyApplication
 - **GC 로그 및 모니터링 도구를 활용하여 성능 분석 가능**
 
 > **👉🏻 JVM 옵션과 메모리 관리를 잘 이해하면 애플리케이션의 안정성과 성능을 향상시킬 수 있음!**  
+
+
+
+
+
+
+
+
+
 

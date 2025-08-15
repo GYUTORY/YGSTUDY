@@ -1,8 +1,8 @@
-# AES (Advanced Encryption Standard)
-- 2001년 NIST(미국 국립표준기술연구소)에 의해 채택된 대칭키 암호화 알고리즘
-- 이전 표준이었던 DES를 대체한 현대적인 암호화 표준
-- Rijndael 알고리즘을 기반으로 하며, 2000년에 AES로 선정됨
-
+---
+title: AES Advanced Encryption Standard
+tags: [security, aes]
+updated: 2025-08-10
+---
 ## AES의 주요 특징
 1. 키 길이의 유연성
    - 128비트, 192비트, 256비트 키 길이 지원
@@ -138,7 +138,7 @@ async function deriveKeyWithSalt(password, salt) {
    - IV: 블록 크기와 동일 (AES: 16바이트)
    - Salt: 더 큰 크기 사용 가능 (일반적으로 16바이트 이상)
 
-### 보안 모범 사례
+## 배경
 1. IV 관련
    - 매 암호화마다 새로운 IV 생성
    - 암호학적으로 안전한 난수 생성기 사용
@@ -157,52 +157,6 @@ async function deriveKeyWithSalt(password, salt) {
    - 충분한 반복 횟수 사용
    - 모든 보안 관련 데이터의 무결성 보장
 
-## AES와 SHA-256의 차이점
-
-### SHA-256
-- 단방향 해시 함수
-- 임의의 길이의 입력을 256비트(32바이트) 고정 길이 출력으로 변환
-- 복호화 불가능
-- 주로 데이터 무결성 검증에 사용
-- 특징:
-  - 충돌 저항성
-  - 일방향성
-  - 눈사태 효과
-
-### AES
-- 양방향 대칭키 암호화 알고리즘
-- 암호화와 복호화가 가능
-- 주로 데이터 기밀성 보호에 사용
-- 특징:
-  - 대칭키 사용
-  - 블록 암호화
-  - 다양한 운영 모드 지원 (ECB, CBC, CFB, OFB, CTR)
-
-## AES 운영 모드
-1. ECB (Electronic Codebook)
-   - 가장 단순한 모드
-   - 각 블록을 독립적으로 암호화
-   - 보안성이 낮아 권장되지 않음
-
-2. CBC (Cipher Block Chaining)
-   - 이전 암호문 블록이 다음 평문 블록에 영향을 미침
-   - IV 필요
-   - 가장 널리 사용되는 모드
-
-3. CFB (Cipher Feedback)
-   - 스트림 암호화 방식
-   - 작은 단위의 데이터 암호화 가능
-
-4. OFB (Output Feedback)
-   - 스트림 암호화 방식
-   - 병렬 처리 가능
-
-5. CTR (Counter)
-   - 스트림 암호화 방식
-   - 병렬 처리 가능
-   - IV 대신 카운터 사용
-
-## 보안 고려사항
 1. 키 관리
    - 안전한 키 생성 및 저장
    - 정기적인 키 교체
@@ -218,7 +172,6 @@ async function deriveKeyWithSalt(password, salt) {
    - 각 사용자마다 고유한 Salt 사용
    - 암호학적으로 안전한 난수 생성기 사용
 
-## 실제 적용 예시
 ```javascript
 // AES 암호화 예시 (JavaScript - Web Crypto API)
 async function encryptAES(text, key) {
@@ -382,3 +335,62 @@ async function encryptWithPBKDF2(text, password) {
 
 
  
+
+
+
+
+
+
+
+
+
+# AES (Advanced Encryption Standard)
+- 2001년 NIST(미국 국립표준기술연구소)에 의해 채택된 대칭키 암호화 알고리즘
+- 이전 표준이었던 DES를 대체한 현대적인 암호화 표준
+- Rijndael 알고리즘을 기반으로 하며, 2000년에 AES로 선정됨
+
+## AES와 SHA-256의 차이점
+
+### SHA-256
+- 단방향 해시 함수
+- 임의의 길이의 입력을 256비트(32바이트) 고정 길이 출력으로 변환
+- 복호화 불가능
+- 주로 데이터 무결성 검증에 사용
+- 특징:
+  - 충돌 저항성
+  - 일방향성
+  - 눈사태 효과
+
+### AES
+- 양방향 대칭키 암호화 알고리즘
+- 암호화와 복호화가 가능
+- 주로 데이터 기밀성 보호에 사용
+- 특징:
+  - 대칭키 사용
+  - 블록 암호화
+  - 다양한 운영 모드 지원 (ECB, CBC, CFB, OFB, CTR)
+
+## AES 운영 모드
+1. ECB (Electronic Codebook)
+   - 가장 단순한 모드
+   - 각 블록을 독립적으로 암호화
+   - 보안성이 낮아 권장되지 않음
+
+2. CBC (Cipher Block Chaining)
+   - 이전 암호문 블록이 다음 평문 블록에 영향을 미침
+   - IV 필요
+   - 가장 널리 사용되는 모드
+
+3. CFB (Cipher Feedback)
+   - 스트림 암호화 방식
+   - 작은 단위의 데이터 암호화 가능
+
+4. OFB (Output Feedback)
+   - 스트림 암호화 방식
+   - 병렬 처리 가능
+
+5. CTR (Counter)
+   - 스트림 암호화 방식
+   - 병렬 처리 가능
+   - IV 대신 카운터 사용
+

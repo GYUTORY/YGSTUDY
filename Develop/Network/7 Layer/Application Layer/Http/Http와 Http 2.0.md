@@ -1,10 +1,29 @@
-# Http 그리고 Http 2.0
-- First created By KYG at 2023-01-02
+---
+title: Http Http 2.0
+tags: [network, 7-layer, application-layer, http, http와-http-20]
+updated: 2025-08-10
+---
 
-# 가장 큰 차이점
+## 배경
 - 가장 큰 차이는 속도이다. 2.0은 헤더를 압축해서 보내기도 하고, 한번의 연결로 동시에 에러메시지를 주고 받을 수도 있다.
 
 
+
+
+
+
+
+
+- 가장 큰 차이는 속도이다. 2.0은 헤더를 압축해서 보내기도 하고, 한번의 연결로 동시에 에러메시지를 주고 받을 수도 있다.
+
+
+
+
+
+
+
+# Http 그리고 Http 2.0
+- First created By KYG at 2023-01-02
 
 # HTTP 2.0
 - Multiplexed라는 기술을 도입하는데 1개의 세션으로 여러 개의 요청을 순서 상관없이 Stream으로 받아서 동시다발적으로 처리 및 응답

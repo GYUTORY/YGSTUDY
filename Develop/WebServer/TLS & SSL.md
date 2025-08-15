@@ -30,88 +30,54 @@ updated: 2024-12-19
 
 ## 핵심
 
-### SSL/TLS 연결 과정
+### 1. SSL/TLS 연결 과정
 
-#### 1. 핸드셰이크 과정
-```javascript
-// SSL/TLS 핸드셰이크 과정
-const tlsHandshake = {
-    step1: "Client Hello - 클라이언트가 지원하는 암호화 방식 전송",
-    step2: "Server Hello - 서버가 선택한 암호화 방식 응답",
-    step3: "Certificate - 서버 인증서 전송",
-    step4: "Key Exchange - 암호화 키 교환",
-    step5: "Finished - 핸드셰이크 완료 확인"
-};
-```
+#### 핸드셰이크 과정
+1. **Client Hello**: 클라이언트가 지원하는 암호화 방식 전송
+2. **Server Hello**: 서버가 선택한 암호화 방식 응답
+3. **Certificate**: 서버 인증서 전송
+4. **Key Exchange**: 암호화 키 교환
+5. **Finished**: 핸드셰이크 완료 확인
 
-#### 2. 실제 연결 과정
+#### 실제 연결 과정
 1. **클라이언트가 서버에 연결 요청**
 2. **서버가 SSL/TLS 인증서 전송**
 3. **클라이언트가 인증서 검증**
 4. **암호화 키 교환**
 5. **암호화된 통신 시작**
 
-### SSL/TLS 인증서 구조
+### 2. SSL/TLS 인증서 구조
 
 #### 인증서 구성 요소
-```javascript
-// SSL/TLS 인증서 구조
-const sslCertificate = {
-    purpose: "웹사이트 신원 확인 및 암호화 키 제공",
-    components: {
-        publicKey: "암호화에 사용되는 공개키",
-        privateKey: "복호화에 사용되는 개인키 (서버에만 보관)",
-        domainName: "인증서가 적용되는 도메인",
-        issuer: "인증서 발급 기관",
-        validityPeriod: "유효기간"
-    }
-};
-```
+- **Public Key**: 암호화에 사용되는 공개키
+- **Private Key**: 복호화에 사용되는 개인키 (서버에만 보관)
+- **Domain Name**: 인증서가 적용되는 도메인
+- **Issuer**: 인증서 발급 기관
+- **Validity Period**: 유효기간
 
 #### 인증서를 통한 암호화 과정
-```javascript
-// 인증서를 통한 암호화 과정
-const encryptionProcess = {
-    step1: "클라이언트가 서버에 연결 요청",
-    step2: "서버가 SSL/TLS 인증서 전송",
-    step3: "클라이언트가 인증서 검증",
-    step4: "공개키로 세션키 암호화하여 전송",
-    step5: "서버가 개인키로 세션키 복호화",
-    step6: "세션키로 데이터 암호화 통신"
-};
-```
+1. 클라이언트가 서버에 연결 요청
+2. 서버가 SSL/TLS 인증서 전송
+3. 클라이언트가 인증서 검증
+4. 공개키로 세션키 암호화하여 전송
+5. 서버가 개인키로 세션키 복호화
+6. 세션키로 데이터 암호화 통신
 
-### SSL vs TLS 비교
+### 3. SSL vs TLS 비교
 
 #### 보안 취약점
-```javascript
-// SSL의 알려진 보안 취약점
-const sslVulnerabilities = {
-    "POODLE": "SSL 3.0 취약점 (2014)",
-    "BEAST": "SSL/TLS 1.0 취약점 (2011)",
-    "Heartbleed": "OpenSSL 라이브러리 취약점 (2014)",
-    "FREAK": "SSL/TLS 취약점 (2015)"
-};
-```
+- **POODLE**: SSL 3.0 취약점 (2014)
+- **BEAST**: SSL/TLS 1.0 취약점 (2011)
+- **Heartbleed**: OpenSSL 라이브러리 취약점 (2014)
+- **FREAK**: SSL/TLS 취약점 (2015)
 
 #### 프로토콜 호환성
-```javascript
-// 프로토콜 호환성 예시
-const protocolCompatibility = {
-    modernBrowser: {
-        supports: ["TLS 1.2", "TLS 1.3"],
-        deprecated: ["SSL 2.0", "SSL 3.0", "TLS 1.0", "TLS 1.1"]
-    },
-    oldServer: {
-        supports: ["SSL 3.0", "TLS 1.0"],
-        result: "연결 실패 또는 보안 경고"
-    }
-};
-```
+- **현대 브라우저**: TLS 1.2, TLS 1.3 지원
+- **구형 서버**: SSL 3.0, TLS 1.0만 지원 시 연결 실패 또는 보안 경고
 
 ## 예시
 
-### HTTPS 연결 확인
+### 1. HTTPS 연결 확인
 
 #### 브라우저에서 HTTPS 연결 확인
 ```javascript
@@ -162,7 +128,7 @@ server.listen(443, () => {
 });
 ```
 
-### SSL/TLS 인증서 생성
+### 2. SSL/TLS 인증서 생성
 
 #### OpenSSL을 사용한 자체 서명 인증서 생성
 ```bash
@@ -190,7 +156,7 @@ sudo crontab -e
 # 0 12 * * * /usr/bin/certbot renew --quiet
 ```
 
-### Nginx에서 SSL/TLS 설정
+### 3. Nginx에서 SSL/TLS 설정
 
 #### 기본 HTTPS 설정
 ```nginx
@@ -224,7 +190,7 @@ server {
 }
 ```
 
-### Apache에서 SSL/TLS 설정
+### 4. Apache에서 SSL/TLS 설정
 
 #### Virtual Host 설정
 ```apache
@@ -257,9 +223,9 @@ server {
 
 ## 운영 팁
 
-### SSL/TLS 보안 설정
+### 1. SSL/TLS 보안 설정
 
-#### 1. 강력한 암호화 설정
+#### 강력한 암호화 설정
 ```nginx
 # Nginx에서 강력한 암호화 설정
 ssl_protocols TLSv1.2 TLSv1.3;
@@ -269,7 +235,7 @@ ssl_session_cache shared:SSL:10m;
 ssl_session_timeout 10m;
 ```
 
-#### 2. 보안 헤더 설정
+#### 보안 헤더 설정
 ```javascript
 // 보안 헤더 설정 예시
 const securityHeaders = {
@@ -282,7 +248,7 @@ const securityHeaders = {
 };
 ```
 
-#### 3. 인증서 모니터링
+#### 인증서 모니터링
 ```javascript
 // 인증서 만료일 모니터링
 class CertificateMonitor {
@@ -321,9 +287,9 @@ const warnings = monitor.checkExpiry();
 console.log('인증서 만료 경고:', warnings);
 ```
 
-### 성능 최적화
+### 2. 성능 최적화
 
-#### 1. SSL 세션 재사용
+#### SSL 세션 재사용
 ```nginx
 # Nginx에서 SSL 세션 재사용 설정
 ssl_session_cache shared:SSL:10m;
@@ -331,7 +297,7 @@ ssl_session_timeout 10m;
 ssl_session_tickets off;
 ```
 
-#### 2. OCSP Stapling
+#### OCSP Stapling
 ```nginx
 # OCSP Stapling 설정
 ssl_stapling on;
@@ -341,15 +307,15 @@ resolver 8.8.8.8 8.8.4.4 valid=300s;
 resolver_timeout 5s;
 ```
 
-#### 3. HTTP/2 활성화
+#### HTTP/2 활성화
 ```nginx
 # HTTP/2 활성화
 listen 443 ssl http2;
 ```
 
-### 인증서 관리
+### 3. 인증서 관리
 
-#### 1. 자동 갱신 스크립트
+#### 자동 갱신 스크립트
 ```bash
 #!/bin/bash
 # 인증서 자동 갱신 스크립트
@@ -373,7 +339,7 @@ else
 fi
 ```
 
-#### 2. 인증서 백업
+#### 인증서 백업
 ```bash
 #!/bin/bash
 # 인증서 백업 스크립트
@@ -442,6 +408,4 @@ nmap --script ssl-enum-ciphers -p 443 example.com
 ```
 
 ### 결론
-SSL/TLS는 웹 보안의 핵심 프로토콜로, HTTPS 통신을 통해 데이터를 안전하게 전송할 수 있게 해줍니다.
-최신 TLS 1.3 프로토콜 사용과 적절한 보안 설정을 통해 안전한 웹 서비스를 제공할 수 있습니다.
-정기적인 인증서 관리와 모니터링을 통해 지속적인 보안을 유지하는 것이 중요합니다.
+SSL/TLS는 웹 보안의 핵심 프로토콜로, HTTPS 통신을 통해 데이터를 안전하게 전송할 수 있게 해줍니다. 최신 TLS 1.3 프로토콜 사용과 적절한 보안 설정을 통해 안전한 웹 서비스를 제공할 수 있으며, 정기적인 인증서 관리와 모니터링을 통해 지속적인 보안을 유지하는 것이 중요합니다.

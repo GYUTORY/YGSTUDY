@@ -1,8 +1,9 @@
-
-
-# DHCP
-
 ---
+title: DHCP
+tags: [network, 7-layer, dhcp]
+updated: 2025-08-10
+---
+
 
 ## DHCP란?
 
@@ -53,4 +54,18 @@
 ---
 * 참고자료
 > [1] [DHCP란 무엇입니까? IP 주소 할당을 이해하기 위한 간단한 안내서](https://fiberroad.com/ko/resources/glossary/what-is-dhcp/)
+
+## 배경
+
+
+
+
+
+---
+
+
+
+
+
+# DHCP
 

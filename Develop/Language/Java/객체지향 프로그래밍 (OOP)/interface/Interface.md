@@ -1,13 +1,27 @@
+---
+title: Java Interface
+tags: [language, java, 객체지향-프로그래밍-oop, interface]
+updated: 2025-08-10
+---
 # Java Interface에 대한 자세한 설명
 
 ## 1. Interface란 무엇인가?
 `Interface`는 Java에서 **다중 상속 문제를 해결하고, 코드의 일관성과 유지보수를 돕기 위한** 일종의 계약(Contract)입니다. `Interface`는 클래스와 비슷하지만, **구현(Implementation)** 없이 메서드의 시그니처(Signature)만 정의합니다.
 
-### 주요 특징
+## 배경
 - **추상 메서드**와 **상수**만 포함할 수 있습니다. (Java 8 이상부터는 `default` 메서드와 `static` 메서드도 포함 가능)
 - `implements` 키워드를 사용하여 클래스에서 인터페이스를 구현합니다.
 - **다중 구현**이 가능합니다.
 - 객체를 생성할 수 없습니다. (즉, 직접 인스턴스화 불가)
+
+
+
+
+
+
+
+
+
 
 ## 2. Interface의 구성 요소
 

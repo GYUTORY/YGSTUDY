@@ -1,33 +1,81 @@
 ---
-title: AWS Lambda
-tags: [aws, compute, lambda, serverless, event-driven]
-updated: 2024-12-19
+title: AWS Lambda 완벽 가이드
+tags: [aws, compute, lambda, serverless, event-driven, faas]
+updated: 2025-08-10
 ---
 
-# AWS Lambda
+# AWS Lambda 완벽 가이드
 
 ## 배경
 
 AWS Lambda는 서버를 직접 관리하지 않고도 코드를 실행할 수 있게 해주는 서버리스 컴퓨팅 서비스입니다. 이벤트 기반으로 동작하며, 특정 이벤트가 발생할 때마다 지정된 코드를 자동으로 실행합니다. 서버 관리의 부담을 줄이고, 비용 효율성을 높이며, 빠른 개발과 배포를 가능하게 합니다.
 
+### AWS Lambda의 필요성
+- **서버 관리 부담 제거**: 인프라 관리 없이 코드 실행에만 집중
+- **비용 효율성**: 사용한 만큼만 비용 지불
+- **자동 확장**: 트래픽에 따른 자동 스케일링
+- **빠른 개발**: 복잡한 인프라 설정 없이 즉시 배포
+- **이벤트 기반 아키텍처**: 마이크로서비스와 서버리스 아키텍처 구현
+
+### 기본 개념
+- **서버리스**: 서버를 직접 관리하지 않는 컴퓨팅 모델
+- **FaaS**: Function as a Service, 함수 단위로 실행되는 서비스
+- **이벤트 기반**: 특정 이벤트 발생 시 자동 실행
+- **콜드 스타트**: 함수가 처음 실행될 때의 초기화 지연
+- **워밍**: 함수를 미리 로드하여 콜드 스타트 방지
+
 ## 핵심
 
-### Lambda의 기본 개념
+### 1. Lambda의 기본 개념
 
 #### 서버리스 컴퓨팅
-- 서버를 직접 관리하지 않고도 애플리케이션을 실행할 수 있는 방식
-- 인프라 관리의 복잡성을 제거하고 개발에만 집중 가능
+서버를 직접 관리하지 않고도 애플리케이션을 실행할 수 있는 방식입니다.
+
+```javascript
+// 전통적인 서버 방식
+// - 서버 프로비저닝
+// - 운영체제 설치
+// - 런타임 환경 설정
+// - 애플리케이션 배포
+// - 모니터링 및 유지보수
+
+// Lambda 서버리스 방식
+// - 코드 작성
+// - Lambda 함수 업로드
+// - 이벤트 설정
+// - 자동 실행
+```
 
 #### 이벤트 기반 실행
-- 특정 사건(이벤트)이 발생했을 때만 코드가 실행되는 방식
-- S3 파일 업로드, API Gateway 호출, DynamoDB 변경 등 다양한 이벤트 지원
+특정 사건(이벤트)이 발생했을 때만 코드가 실행되는 방식입니다.
+
+```javascript
+// 다양한 이벤트 소스
+const eventSources = {
+    s3: 'S3 파일 업로드/삭제',
+    apiGateway: 'HTTP 요청',
+    dynamodb: 'DynamoDB 스트림',
+    sqs: 'SQS 메시지',
+    sns: 'SNS 알림',
+    cloudwatch: 'CloudWatch 이벤트',
+    cognito: '사용자 인증',
+    kinesis: '데이터 스트림'
+};
+```
 
 #### 자동 확장
-- 트래픽에 따라 자동으로 인스턴스 수를 조절하는 기능
-- 동시에 수천, 수만 개의 이벤트도 병렬 처리 가능
+트래픽에 따라 자동으로 인스턴스 수를 조절하는 기능입니다.
 
-### Lambda의 특징
+```javascript
+// 동시 실행 예시
+// 1개 요청 → 1개 Lambda 인스턴스
+// 100개 요청 → 100개 Lambda 인스턴스 (병렬 처리)
+// 0개 요청 → 0개 Lambda 인스턴스 (비용 0)
+```
 
+### 2. Lambda의 특징
+
+#### 핵심 특징
 | 특징 | 설명 | 장점 |
 |------|------|------|
 | **이벤트 기반 실행** | 특정 이벤트가 발생할 때마다 자동으로 실행 | 수동 개입 불필요 |
@@ -36,8 +84,22 @@ AWS Lambda는 서버를 직접 관리하지 않고도 코드를 실행할 수 �
 | **서버 관리 불필요** | 인프라 관리 작업이 전혀 필요 없음 | 개발에만 집중 가능 |
 | **다양한 언어 지원** | Python, Node.js, Java, Go, C#, Ruby 등 | 기존 기술 스택 활용 |
 
-### Lambda의 한계
+#### 지원 언어 및 런타임
+```javascript
+const supportedRuntimes = {
+    nodejs: ['nodejs18.x', 'nodejs16.x', 'nodejs14.x'],
+    python: ['python3.11', 'python3.10', 'python3.9'],
+    java: ['java17', 'java11', 'java8.al2'],
+    go: ['provided.al2'],
+    dotnet: ['dotnet6', 'dotnetcore3.1'],
+    ruby: ['ruby3.2', 'ruby2.7'],
+    custom: ['provided', 'provided.al2']
+};
+```
 
+### 3. Lambda의 한계
+
+#### 주요 한계점
 | 한계 | 설명 | 영향 |
 |------|------|------|
 | **실행 시간 제한** | 최대 15분까지만 실행 가능 | 장시간 작업 불가 |
@@ -46,14 +108,28 @@ AWS Lambda는 서버를 직접 관리하지 않고도 코드를 실행할 수 �
 | **언어/라이브러리 제한** | 지원하지 않는 언어나 라이브러리 사용 불가 | 기술 스택 제약 |
 | **동시 실행 제한** | 계정별 동시 실행 제한 (기본 1,000개) | 대용량 트래픽 제약 |
 
+#### 한계 해결 방안
+```javascript
+// 실행 시간 제한 해결
+const solutions = {
+    longRunning: 'Step Functions 또는 ECS 사용',
+    coldStart: 'Provisioned Concurrency 사용',
+    largeFiles: 'S3와 연동하여 처리',
+    customRuntime: 'Lambda Layer 또는 Container Image 사용',
+    highConcurrency: '동시 실행 제한 증가 요청'
+};
+```
+
 ## 예시
 
-### 기본 Lambda 함수 예시
+### 1. 기본 Lambda 함수 예시
 
+#### Node.js Lambda 함수
 ```javascript
-// Node.js Lambda 함수 예시
-exports.handler = async (event) => {
+// 기본 Lambda 함수 구조
+exports.handler = async (event, context) => {
     console.log('이벤트 수신:', JSON.stringify(event, null, 2));
+    console.log('컨텍스트:', JSON.stringify(context, null, 2));
     
     try {
         // 비즈니스 로직 처리
@@ -61,9 +137,14 @@ exports.handler = async (event) => {
         
         return {
             statusCode: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
             body: JSON.stringify({
                 message: '처리 완료',
-                result: result
+                result: result,
+                timestamp: new Date().toISOString()
             })
         };
     } catch (error) {
@@ -71,9 +152,14 @@ exports.handler = async (event) => {
         
         return {
             statusCode: 500,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
             body: JSON.stringify({
                 message: '처리 실패',
-                error: error.message
+                error: error.message,
+                timestamp: new Date().toISOString()
             })
         };
     }
@@ -81,70 +167,163 @@ exports.handler = async (event) => {
 
 async function processEvent(event) {
     // 실제 비즈니스 로직 구현
-    return { processed: true, timestamp: new Date().toISOString() };
+    const { name, data } = event;
+    
+    return {
+        processed: true,
+        input: { name, data },
+        processedAt: new Date().toISOString()
+    };
 }
 ```
 
-### S3 파일 업로드 트리거 예시
+#### Python Lambda 함수
+```python
+import json
+import boto3
+from datetime import datetime
 
+def lambda_handler(event, context):
+    """AWS Lambda 함수 핸들러"""
+    print(f"이벤트 수신: {json.dumps(event)}")
+    print(f"컨텍스트: {context}")
+    
+    try:
+        # 비즈니스 로직 처리
+        result = process_event(event)
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'message': '처리 완료',
+                'result': result,
+                'timestamp': datetime.now().isoformat()
+            })
+        }
+    except Exception as error:
+        print(f"오류 발생: {error}")
+        
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'message': '처리 실패',
+                'error': str(error),
+                'timestamp': datetime.now().isoformat()
+            })
+        }
+
+def process_event(event):
+    """이벤트 처리 로직"""
+    name = event.get('name', 'Unknown')
+    data = event.get('data', {})
+    
+    return {
+        'processed': True,
+        'input': {'name': name, 'data': data},
+        'processedAt': datetime.now().isoformat()
+    }
+```
+
+### 2. 실제 사용 사례
+
+#### S3 파일 업로드 트리거
 ```javascript
-// S3 파일 업로드 시 썸네일 생성
 const AWS = require('aws-sdk');
 const sharp = require('sharp');
 
 const s3 = new AWS.S3();
 
 exports.handler = async (event) => {
+    console.log('S3 이벤트 수신:', JSON.stringify(event, null, 2));
+    
     for (const record of event.Records) {
-        const bucket = record.s3.bucket.name;
-        const key = record.s3.object.key;
-        
-        console.log(`파일 업로드 감지: ${bucket}/${key}`);
-        
         try {
+            const bucket = record.s3.bucket.name;
+            const key = record.s3.object.key;
+            
+            // 이미지 파일인지 확인
+            if (!isImageFile(key)) {
+                console.log('이미지 파일이 아님:', key);
+                continue;
+            }
+            
             // 원본 이미지 다운로드
-            const image = await s3.getObject({Bucket: bucket, Key: key}).promise();
+            const originalImage = await downloadImage(bucket, key);
             
             // 썸네일 생성
-            const thumbnail = await sharp(image.Body)
-                .resize(200, 200, {fit: 'inside'})
-                .jpeg({quality: 80})
-                .toBuffer();
+            const thumbnail = await generateThumbnail(originalImage);
             
-            // 썸네일을 다른 버킷에 저장
-            await s3.putObject({
-                Bucket: 'thumbnail-bucket',
-                Key: `thumbnails/${key}`,
-                Body: thumbnail,
-                ContentType: 'image/jpeg'
-            }).promise();
+            // 썸네일 업로드
+            const thumbnailKey = generateThumbnailKey(key);
+            await uploadThumbnail(bucket, thumbnailKey, thumbnail);
             
-            console.log(`썸네일 생성 완료: thumbnails/${key}`);
+            console.log('썸네일 생성 완료:', thumbnailKey);
+            
         } catch (error) {
-            console.error(`썸네일 생성 실패: ${error.message}`);
+            console.error('썸네일 생성 실패:', error);
             throw error;
         }
     }
 };
+
+function isImageFile(key) {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp'];
+    return imageExtensions.some(ext => key.toLowerCase().endsWith(ext));
+}
+
+async function downloadImage(bucket, key) {
+    const params = { Bucket: bucket, Key: key };
+    const response = await s3.getObject(params).promise();
+    return response.Body;
+}
+
+async function generateThumbnail(imageBuffer) {
+    return await sharp(imageBuffer)
+        .resize(200, 200, { fit: 'inside' })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+}
+
+function generateThumbnailKey(originalKey) {
+    const pathParts = originalKey.split('/');
+    const filename = pathParts.pop();
+    const thumbnailFilename = `thumb_${filename}`;
+    return [...pathParts, 'thumbnails', thumbnailFilename].join('/');
+}
+
+async function uploadThumbnail(bucket, key, thumbnailBuffer) {
+    const params = {
+        Bucket: bucket,
+        Key: key,
+        Body: thumbnailBuffer,
+        ContentType: 'image/jpeg'
+    };
+    await s3.putObject(params).promise();
+}
 ```
 
-### API Gateway 연동 예시
-
+#### API Gateway 연동
 ```javascript
-// REST API 백엔드
+// API Gateway와 연동하는 Lambda 함수
 exports.handler = async (event) => {
-    const method = event.httpMethod;
-    const path = event.path;
-    const body = event.body ? JSON.parse(event.body) : {};
+    console.log('API Gateway 이벤트:', JSON.stringify(event, null, 2));
     
-    console.log(`${method} ${path} 요청 처리`);
+    const { httpMethod, path, queryStringParameters, body } = event;
     
     try {
         let result;
         
-        switch(method) {
+        switch (httpMethod) {
             case 'GET':
-                result = await handleGet(path, event.queryStringParameters);
+                result = await handleGet(path, queryStringParameters);
                 break;
             case 'POST':
                 result = await handlePost(path, body);
@@ -156,24 +335,20 @@ exports.handler = async (event) => {
                 result = await handleDelete(path);
                 break;
             default:
-                return {
-                    statusCode: 405,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    },
-                    body: JSON.stringify({error: 'Method not allowed'})
-                };
+                throw new Error(`지원하지 않는 HTTP 메서드: ${httpMethod}`);
         }
         
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization'
             },
             body: JSON.stringify(result)
         };
+        
     } catch (error) {
         console.error('API 처리 오류:', error);
         
@@ -183,266 +358,260 @@ exports.handler = async (event) => {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify({error: 'Internal server error'})
+            body: JSON.stringify({
+                error: error.message,
+                timestamp: new Date().toISOString()
+            })
         };
     }
 };
 
 async function handleGet(path, queryParams) {
-    // GET 요청 처리 로직
-    return { message: 'GET 요청 처리됨', path, queryParams };
+    // GET 요청 처리
+    return { method: 'GET', path, queryParams };
 }
 
 async function handlePost(path, body) {
-    // POST 요청 처리 로직
-    return { message: 'POST 요청 처리됨', path, body };
+    // POST 요청 처리
+    const parsedBody = body ? JSON.parse(body) : {};
+    return { method: 'POST', path, body: parsedBody };
 }
 
 async function handlePut(path, body) {
-    // PUT 요청 처리 로직
-    return { message: 'PUT 요청 처리됨', path, body };
+    // PUT 요청 처리
+    const parsedBody = body ? JSON.parse(body) : {};
+    return { method: 'PUT', path, body: parsedBody };
 }
 
 async function handleDelete(path) {
-    // DELETE 요청 처리 로직
-    return { message: 'DELETE 요청 처리됨', path };
+    // DELETE 요청 처리
+    return { method: 'DELETE', path };
+}
+```
+
+### 3. 고급 패턴
+
+#### DynamoDB 스트림 처리
+```javascript
+const AWS = require('aws-sdk');
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+exports.handler = async (event) => {
+    console.log('DynamoDB 스트림 이벤트:', JSON.stringify(event, null, 2));
+    
+    for (const record of event.Records) {
+        try {
+            const { eventName, dynamodb } = record;
+            
+            switch (eventName) {
+                case 'INSERT':
+                    await handleInsert(dynamodb);
+                    break;
+                case 'MODIFY':
+                    await handleModify(dynamodb);
+                    break;
+                case 'REMOVE':
+                    await handleRemove(dynamodb);
+                    break;
+                default:
+                    console.log('지원하지 않는 이벤트:', eventName);
+            }
+            
+        } catch (error) {
+            console.error('스트림 처리 오류:', error);
+            throw error;
+        }
+    }
+};
+
+async function handleInsert(dynamodb) {
+    const newImage = dynamodb.NewImage;
+    console.log('새 레코드 삽입:', newImage);
+    
+    // 새 레코드에 대한 처리 로직
+    // 예: 알림 발송, 캐시 업데이트 등
+}
+
+async function handleModify(dynamodb) {
+    const oldImage = dynamodb.OldImage;
+    const newImage = dynamodb.NewImage;
+    console.log('레코드 수정:', { old: oldImage, new: newImage });
+    
+    // 수정된 레코드에 대한 처리 로직
+}
+
+async function handleRemove(dynamodb) {
+    const oldImage = dynamodb.OldImage;
+    console.log('레코드 삭제:', oldImage);
+    
+    // 삭제된 레코드에 대한 처리 로직
 }
 ```
 
 ## 운영 팁
 
-### 1. 함수 설계 원칙
+### 성능 최적화
 
-#### 단일 책임 원칙
-- 하나의 함수는 하나의 역할만 담당
-- 함수 크기를 작게 유지하여 유지보수성 향상
-
+#### 콜드 스타트 최소화
 ```javascript
-// 좋은 예: 단일 책임
-exports.processImage = async (event) => {
-    return await resizeImage(event.imageData);
+// 1. 함수 크기 최소화
+const optimization = {
+    bundleSize: '불필요한 의존성 제거',
+    layers: '공통 라이브러리를 Lambda Layer로 분리',
+    treeShaking: '사용하지 않는 코드 제거'
 };
 
-// 나쁜 예: 여러 책임
-exports.processEverything = async (event) => {
-    // 이미지 처리 + 데이터베이스 저장 + 이메일 발송
-    // 너무 많은 책임을 가짐
+// 2. Provisioned Concurrency 사용
+const provisionedConcurrency = {
+    benefit: '콜드 스타트 완전 제거',
+    cost: '사용하지 않아도 비용 발생',
+    useCase: '지연 시간이 중요한 애플리케이션'
 };
-```
 
-#### 환경 변수 활용
-- 설정값을 환경 변수로 관리
-- 환경별 다른 동작 구현
-
-```javascript
-const DATABASE_URL = process.env.DATABASE_URL;
-const API_KEY = process.env.API_KEY;
-const ENVIRONMENT = process.env.ENVIRONMENT;
-
-if (ENVIRONMENT === 'production') {
-    // 프로덕션 로직
-} else {
-    // 개발 로직
-}
-```
-
-### 2. 에러 처리 및 로깅
-
-#### 구조화된 로깅
-```javascript
-exports.handler = async (event) => {
-    const requestId = event.requestContext?.requestId || 'unknown';
+// 3. 함수 워밍
+exports.handler = async (event, context) => {
+    // 글로벌 변수 초기화 (콜드 스타트 시에만 실행)
+    if (!global.initialized) {
+        global.initialized = true;
+        global.dbConnection = await createDatabaseConnection();
+        global.cache = new Map();
+    }
     
-    console.log('요청 시작', {
-        requestId,
-        timestamp: new Date().toISOString(),
-        eventType: event.type
+    // 실제 비즈니스 로직
+    return await processRequest(event);
+};
+```
+
+#### 메모리 최적화
+```javascript
+// 메모리 설정 가이드
+const memorySettings = {
+    '128MB': '간단한 API 호출, 기본 처리',
+    '256MB': 'JSON 파싱, 간단한 계산',
+    '512MB': '이미지 처리, 데이터베이스 쿼리',
+    '1024MB': '복잡한 계산, 대용량 데이터 처리',
+    '3008MB': '최대 성능, CPU 집약적 작업'
+};
+
+// 메모리 사용량 모니터링
+exports.handler = async (event, context) => {
+    const startMemory = process.memoryUsage();
+    
+    // 비즈니스 로직 실행
+    const result = await processData(event);
+    
+    const endMemory = process.memoryUsage();
+    console.log('메모리 사용량:', {
+        heapUsed: endMemory.heapUsed - startMemory.heapUsed,
+        heapTotal: endMemory.heapTotal - startMemory.heapTotal
     });
     
-    try {
-        const result = await processRequest(event);
-        
-        console.log('요청 성공', {
-            requestId,
-            result: result
-        });
-        
-        return result;
-    } catch (error) {
-        console.error('요청 실패', {
-            requestId,
-            error: error.message,
-            stack: error.stack
-        });
-        
-        throw error;
-    }
+    return result;
 };
 ```
+
+### 에러 처리
 
 #### 재시도 로직
 ```javascript
+const AWS = require('aws-sdk');
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
 exports.handler = async (event) => {
     const maxRetries = 3;
     let retryCount = 0;
     
     while (retryCount < maxRetries) {
         try {
-            return await processEvent(event);
+            return await processWithRetry(event);
         } catch (error) {
             retryCount++;
+            console.error(`시도 ${retryCount} 실패:`, error);
             
             if (retryCount >= maxRetries) {
-                // 최대 재시도 횟수 초과 시 DLQ로 전송
                 throw error;
             }
             
-            // 지수 백오프로 재시도
-            await new Promise(resolve => 
-                setTimeout(resolve, Math.pow(2, retryCount) * 1000)
-            );
+            // 지수 백오프
+            const delay = Math.pow(2, retryCount) * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
 };
-```
 
-### 3. 성능 최적화
-
-#### 콜드 스타트 최소화
-```javascript
-// 전역 변수로 초기화 최소화
-const s3 = new AWS.S3();
-const dynamodb = new AWS.DynamoDB.DocumentClient();
-
-exports.handler = async (event) => {
-    // 핸들러 내부에서 매번 초기화하지 않음
-    const result = await s3.getObject({...}).promise();
-    await dynamodb.put({...}).promise();
-};
-```
-
-#### 패키지 크기 최적화
-```bash
-# 불필요한 개발 의존성 제거
-npm prune --production
-
-# 패키지 크기 확인
-du -sh node_modules/
-```
-
-#### 병렬 처리
-```javascript
-// 병렬 처리로 성능 향상
-exports.handler = async (event) => {
-    const promises = event.records.map(record => 
-        processRecord(record)
-    );
-    
-    // 모든 작업을 병렬로 실행
-    const results = await Promise.all(promises);
-    return results;
-};
-```
-
-### 4. 보안
-
-#### 최소 권한 원칙
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:GetObject"
-            ],
-            "Resource": "arn:aws:s3:::my-bucket/*"
-        }
-    ]
-}
-```
-
-#### 환경 변수 암호화
-```javascript
-// AWS KMS를 사용한 환경 변수 암호화
-const AWS = require('aws-sdk');
-const kms = new AWS.KMS();
-
-async function decryptValue(encryptedValue) {
-    const result = await kms.decrypt({
-        CiphertextBlob: Buffer.from(encryptedValue, 'base64')
+async function processWithRetry(event) {
+    // 실제 처리 로직
+    const result = await dynamodb.put({
+        TableName: 'MyTable',
+        Item: event
     }).promise();
     
-    return result.Plaintext.toString('utf-8');
+    return result;
 }
 ```
 
-### 5. 모니터링 및 알림
-
-#### CloudWatch 메트릭
-- Invocations: 함수 호출 횟수
-- Duration: 실행 시간
-- Errors: 오류 발생 횟수
-- Throttles: 제한 초과 횟수
-
-#### 알림 설정
+#### 데드레터 큐 활용
 ```javascript
-// CloudWatch 알람 설정 예시
-const cloudwatch = new AWS.CloudWatch();
+const AWS = require('aws-sdk');
+const sqs = new AWS.SQS();
 
-await cloudwatch.putMetricAlarm({
-    AlarmName: 'LambdaErrorRate',
-    MetricName: 'Errors',
-    Namespace: 'AWS/Lambda',
-    Statistic: 'Sum',
-    Period: 300,
-    EvaluationPeriods: 2,
-    Threshold: 5,
-    ComparisonOperator: 'GreaterThanThreshold'
-}).promise();
+exports.handler = async (event) => {
+    try {
+        // 메인 처리 로직
+        await processMessage(event);
+        
+    } catch (error) {
+        console.error('처리 실패:', error);
+        
+        // 데드레터 큐로 메시지 전송
+        await sendToDeadLetterQueue(event, error);
+        
+        throw error; // Lambda 재시도 트리거
+    }
+};
+
+async function sendToDeadLetterQueue(message, error) {
+    const params = {
+        QueueUrl: process.env.DEAD_LETTER_QUEUE_URL,
+        MessageBody: JSON.stringify({
+            originalMessage: message,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        })
+    };
+    
+    await sqs.sendMessage(params).promise();
+}
 ```
 
 ## 참고
 
-### Lambda와 연동 가능한 AWS 서비스
+### Lambda vs 전통적 서버 비교
 
-| 서비스 | 용도 | 연동 방식 |
-|--------|------|-----------|
-| **API Gateway** | REST/HTTP API 백엔드 | HTTP 요청 → Lambda 실행 |
-| **S3** | 파일 업로드/삭제 트리거 | 파일 이벤트 → Lambda 실행 |
-| **DynamoDB** | 테이블 변경 트리거 | 데이터 변경 → Lambda 실행 |
-| **Kinesis** | 실시간 데이터 스트림 처리 | 스트림 데이터 → Lambda 실행 |
-| **SQS** | 메시지 큐 처리 | 메시지 수신 → Lambda 실행 |
-| **CloudWatch Events** | 스케줄링, 이벤트 기반 자동화 | 시간/이벤트 → Lambda 실행 |
-| **SNS** | 알림 발송 | 메시지 발행 → Lambda 실행 |
-| **Step Functions** | 복잡한 워크플로우 오케스트레이션 | 상태 기계 → Lambda 실행 |
+| 측면 | Lambda | 전통적 서버 |
+|------|--------|-------------|
+| **서버 관리** | AWS 관리 | 직접 관리 |
+| **확장성** | 자동 확장 | 수동 확장 |
+| **비용** | 사용한 만큼만 | 24/7 비용 |
+| **시작 시간** | 밀리초 | 분 단위 |
+| **최대 실행 시간** | 15분 | 무제한 |
+| **메모리** | 최대 10GB | 무제한 |
+| **디스크** | /tmp만 (10GB) | 전체 디스크 |
 
-### 실무 활용 사례
+### Lambda 사용 권장사항
 
-#### 1. 이미지 변환 서비스
-- S3에 이미지 업로드 시 자동으로 썸네일 생성
-- 다양한 크기와 포맷으로 변환
-- CDN 연동으로 빠른 이미지 서빙
+| 사용 사례 | 권장도 | 이유 |
+|----------|--------|------|
+| **이벤트 기반 처리** | ⭐⭐⭐⭐⭐ | Lambda의 핵심 강점 |
+| **API 백엔드** | ⭐⭐⭐⭐ | 빠른 개발, 자동 확장 |
+| **데이터 처리** | ⭐⭐⭐⭐ | 병렬 처리, 비용 효율 |
+| **정기 작업** | ⭐⭐⭐ | CloudWatch Events 연동 |
+| **장시간 작업** | ⭐⭐ | 15분 제한 |
+| **대용량 파일 처리** | ⭐⭐ | 메모리/디스크 제한 |
 
-#### 2. 실시간 알림 시스템
-- 주문, 결제, 배송 이벤트를 SNS로 발행
-- Lambda가 이벤트를 수신하여 알림 처리
-- 다양한 채널(이메일, SMS, 푸시)로 발송
-
-#### 3. 데이터 처리 파이프라인
-- IoT 센서 데이터를 Kinesis로 수집
-- Lambda로 실시간 데이터 분석 및 필터링
-- 결과를 DynamoDB에 저장
-
-#### 4. 서버리스 API
-- API Gateway + Lambda로 REST API 구축
-- 인증, 권한 관리, 데이터 검증
-- 마이크로서비스 아키텍처 구현
-
-### 관련 링크
-
-- [AWS Lambda 공식 문서](https://docs.aws.amazon.com/lambda/)
-- [AWS Lambda 가격](https://aws.amazon.com/lambda/pricing/)
-- [AWS Lambda 모범 사례](https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html)
-- [AWS Well-Architected Framework - 서버리스](https://aws.amazon.com/architecture/well-architected/)
+### 결론
+AWS Lambda는 서버리스 컴퓨팅의 대표적인 서비스로, 이벤트 기반 아키텍처 구현에 최적화되어 있습니다.
+콜드 스타트와 실행 시간 제한을 고려하여 적절한 사용 사례를 선택하세요.
+Provisioned Concurrency와 Lambda Layer를 활용하여 성능을 최적화하세요.
+다양한 AWS 서비스와 연동하여 강력한 서버리스 애플리케이션을 구축할 수 있습니다.
 

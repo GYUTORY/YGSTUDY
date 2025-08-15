@@ -1,3 +1,8 @@
+---
+title: HTTP HyperText Transfer Protocol
+tags: [network, 7-layer, application-layer, http]
+updated: 2025-08-10
+---
 # HTTP (HyperText Transfer Protocol)
 
 ## HTTP 개요
@@ -132,24 +137,22 @@
 - 503 Service Unavailable
 
 ## HTTP 헤더
-### 일반 헤더
+
+## 배경
 - Date
 - Connection
 - Cache-Control
 
-### 요청 헤더
 - Host
 - User-Agent
 - Accept
 - Authorization
 
-### 응답 헤더
 - Server
 - Set-Cookie
 - Content-Type
 - Content-Length
 
-## 보안
 ### HTTPS
 - SSL/TLS를 통한 암호화
 - 인증서를 통한 신원 확인
@@ -165,3 +168,48 @@
 > - https://developer.mozilla.org/ko/docs/Web/HTTP/Overview
 > - https://developer.mozilla.org/ko/docs/Web/HTTP/Methods
 > - https://developer.mozilla.org/ko/docs/Web/HTTP/Status
+
+- HSTS
+- CSP
+- X-Frame-Options
+- X-XSS-Protection
+
+> 출처: 
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Overview
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Methods
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Status
+
+
+
+
+
+
+- HSTS
+- CSP
+- X-Frame-Options
+- X-XSS-Protection
+
+> 출처: 
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Overview
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Methods
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Status
+
+- HSTS
+- CSP
+- X-Frame-Options
+- X-XSS-Protection
+
+> 출처: 
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Overview
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Methods
+> - https://developer.mozilla.org/ko/docs/Web/HTTP/Status
+
+
+
+
+
+
+
+
+
+

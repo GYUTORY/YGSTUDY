@@ -1,327 +1,443 @@
 ---
-title: Nginx 이해하기
-tags: [webserver, nginx, definition, web-server, reverse-proxy]
-updated: 2024-12-19
+title: Nginx 완벽 가이드
+tags: [webserver, nginx, definition, web-server, reverse-proxy, load-balancer]
+updated: 2025-08-10
 ---
 
-# Nginx 이해하기
+# Nginx 완벽 가이드
 
 ## 배경
 
-### 웹서버의 기본 개념
-웹서버는 인터넷에서 웹사이트를 제공하는 프로그램입니다. 마치 식당에서 손님(클라이언트)의 주문을 받아서 요리(웹페이지)를 제공하는 것과 비슷합니다.
+Nginx는 고성능 웹 서버, 리버스 프록시, 로드 밸런서로 널리 사용되는 오픈소스 소프트웨어입니다. 2004년에 Igor Sysoev가 개발했으며, 현재는 전 세계 웹사이트의 약 30% 이상에서 사용되고 있습니다.
 
-**간단한 비유:**
-- 클라이언트 = 손님 (브라우저)
-- 웹서버 = 식당 (서버)
-- 요청 = 주문 (HTTP 요청)
-- 응답 = 음식 (HTML, CSS, JS 등)
+### Nginx의 필요성
+- **고성능**: 이벤트 기반 비동기 처리로 높은 동시 접속 처리
+- **리소스 효율성**: 낮은 메모리 사용량과 CPU 사용률
+- **확장성**: 마이크로서비스 아키텍처에 적합한 구조
+- **다양한 기능**: 웹 서버, 프록시, 로드 밸런서, 캐시 등
 
-### 웹서버가 하는 일
-1. **정적 파일 제공** - 이미 만들어진 파일들을 그대로 전달
-   - HTML 파일 (웹페이지 구조)
-   - CSS 파일 (디자인)
-   - JavaScript 파일 (동작)
-   - 이미지, 동영상 등
-
-2. **동적 처리** - 실시간으로 만들어지는 내용
-   - 사용자 로그인 처리
-   - 데이터베이스에서 정보 가져오기
-   - 실시간 계산 결과
-
-### Nginx의 등장 배경
-- Apache의 성능 한계 극복
-- 높은 동시 접속 처리 능력
-- 리버스 프록시 역할
-- 로드 밸런싱 기능
+### 기본 개념
+- **웹 서버**: HTTP 요청을 처리하고 정적/동적 콘텐츠를 제공
+- **리버스 프록시**: 클라이언트 요청을 백엔드 서버로 전달
+- **로드 밸런서**: 여러 서버에 트래픽을 분산
+- **이벤트 기반**: 비동기 I/O를 통한 효율적인 처리
 
 ## 핵심
 
-### Nginx의 주요 특징
-1. **고성능**: 이벤트 기반 비동기 처리
-2. **낮은 메모리 사용량**: 효율적인 리소스 관리
-3. **모듈화**: 필요한 기능만 선택적 사용
-4. **확장성**: 마이크로서비스 아키텍처 지원
+### 1. Nginx의 주요 특징
 
-### 정적 컨텐츠 vs 동적 컨텐츠
+#### 고성능 아키텍처
+```nginx
+# 이벤트 기반 비동기 처리
+events {
+    worker_connections 1024;  # 워커당 최대 연결 수
+    use epoll;               # Linux에서 효율적인 이벤트 처리
+    multi_accept on;         # 여러 연결 동시 수락
+}
+```
 
-**정적 컨텐츠 (Static Content)**
-- 미리 만들어져 있는 파일
-- 요청할 때마다 같은 내용
-- 예: HTML, CSS, JavaScript, 이미지
+#### 모듈화된 구조
+```nginx
+# 핵심 모듈들
+- ngx_core_module: 기본 기능
+- ngx_http_module: HTTP 서버 기능
+- ngx_stream_module: TCP/UDP 프록시
+- ngx_mail_module: 메일 프록시
+- ngx_upstream_module: 로드 밸런싱
+```
 
-**동적 컨텐츠 (Dynamic Content)**
-- 실시간으로 만들어지는 내용
-- 요청할 때마다 다른 내용
-- 예: 사용자별 맞춤 페이지, 실시간 데이터
+#### 설정 파일 구조
+```nginx
+# nginx.conf 기본 구조
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log;
+pid /run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    # 로그 형식 정의
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+    
+    access_log /var/log/nginx/access.log main;
+    
+    # 서버 블록들
+    server {
+        listen 80;
+        server_name example.com;
+        
+        location / {
+            root /var/www/html;
+            index index.html index.htm;
+        }
+    }
+}
+```
+
+### 2. 웹 서버 vs 리버스 프록시
+
+#### 웹 서버 모드
+```nginx
+# 정적 파일 서빙
+server {
+    listen 80;
+    server_name example.com;
+    
+    root /var/www/html;
+    index index.html;
+    
+    # 정적 파일 캐싱
+    location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # gzip 압축
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript;
+}
+```
+
+#### 리버스 프록시 모드
+```nginx
+# 백엔드 서버로 요청 전달
+upstream backend {
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+}
+
+server {
+    listen 80;
+    server_name api.example.com;
+    
+    location / {
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### 3. 정적 콘텐츠 vs 동적 콘텐츠
+
+#### 정적 콘텐츠 처리
+```nginx
+# 정적 파일 서빙 최적화
+server {
+    listen 80;
+    server_name static.example.com;
+    
+    root /var/www/static;
+    
+    # 캐시 설정
+    location ~* \.(css|js)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header Vary Accept-Encoding;
+    }
+    
+    location ~* \.(png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1M;
+        add_header Cache-Control "public";
+    }
+    
+    # gzip 압축
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript;
+}
+```
+
+#### 동적 콘텐츠 처리
+```nginx
+# PHP 애플리케이션 처리
+server {
+    listen 80;
+    server_name dynamic.example.com;
+    
+    root /var/www/dynamic;
+    index index.php;
+    
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+    
+    # 캐시 비활성화
+    location / {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+    }
+}
+```
 
 ## 예시
 
-### JavaScript로 이해하는 웹서버
-```javascript
-// 간단한 웹서버 예시 (Node.js)
-const http = require('http');
+### 1. 실제 사용 사례
 
-const server = http.createServer((req, res) => {
-    // 클라이언트의 요청을 받음
-    console.log('클라이언트가 요청했습니다:', req.url);
+#### 단일 페이지 애플리케이션 (SPA)
+```nginx
+# React/Vue/Angular SPA 설정
+server {
+    listen 80;
+    server_name spa.example.com;
     
-    // 응답을 보냄
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.end('<h1>안녕하세요! 웹서버입니다!</h1>');
-});
-
-server.listen(3000, () => {
-    console.log('웹서버가 3000번 포트에서 실행 중입니다');
-});
-```
-
-### 정적 컨텐츠 처리 예시
-```javascript
-// 정적 컨텐츠 예시
-const staticFiles = {
-    '/index.html': '<html><body><h1>안녕하세요</h1></body></html>',
-    '/style.css': 'body { font-family: Arial; }',
-    '/script.js': 'console.log("Hello World");'
-};
-
-// 정적 파일 서빙 함수
-function serveStaticFile(path) {
-    return staticFiles[path] || '404 Not Found';
-}
-```
-
-### 동적 컨텐츠 처리 예시
-```javascript
-// 동적 컨텐츠 예시
-function generateDynamicContent(userId) {
-    return `<html>
-        <body>
-            <h1>${userId}님 환영합니다!</h1>
-            <p>현재 시간: ${new Date().toLocaleString()}</p>
-        </body>
-    </html>`;
-}
-
-// 사용자별 맞춤 페이지 생성
-function createUserPage(userId, userData) {
-    return {
-        html: generateDynamicContent(userId),
-        data: userData,
-        timestamp: new Date().toISOString()
-    };
-}
-```
-
-### Nginx 설정 예시
-```javascript
-// Nginx 설정을 JavaScript 객체로 표현
-const nginxConfig = {
-    server: {
-        listen: 80,
-        server_name: 'example.com',
-        
-        // 정적 파일 처리
-        location: {
-            '/static/': {
-                root: '/var/www/html',
-                expires: '1y',
-                add_header: {
-                    'Cache-Control': 'public, immutable'
-                }
-            },
-            
-            // 동적 컨텐츠 처리 (프록시)
-            '/api/': {
-                proxy_pass: 'http://backend:3000',
-                proxy_set_header: {
-                    'Host': '$host',
-                    'X-Real-IP': '$remote_addr'
-                }
-            },
-            
-            // 로드 밸런싱
-            '/app/': {
-                proxy_pass: 'http://backend_servers',
-                proxy_set_header: {
-                    'Host': '$host',
-                    'X-Real-IP': '$remote_addr'
-                }
-            }
-        }
+    root /var/www/spa;
+    index index.html;
+    
+    # 모든 라우트를 index.html로 전달 (클라이언트 라우팅)
+    location / {
+        try_files $uri $uri/ /index.html;
     }
-};
-
-// 로드 밸런서 설정
-const upstreamConfig = {
-    backend_servers: [
-        { server: '192.168.1.10:3000', weight: 3 },
-        { server: '192.168.1.11:3000', weight: 2 },
-        { server: '192.168.1.12:3000', weight: 1 }
-    ]
-};
-```
-
-### Express.js와 Nginx 연동 예시
-```javascript
-const express = require('express');
-const app = express();
-
-// 정적 파일 서빙
-app.use('/static', express.static('public'));
-
-// API 라우트
-app.get('/api/users', (req, res) => {
-    res.json([
-        { id: 1, name: '김철수' },
-        { id: 2, name: '이영희' }
-    ]);
-});
-
-// 동적 페이지 생성
-app.get('/user/:id', (req, res) => {
-    const userId = req.params.id;
-    const userData = getUserData(userId);
     
-    res.send(`
-        <html>
-            <head><title>사용자 정보</title></head>
-            <body>
-                <h1>사용자 ID: ${userId}</h1>
-                <p>이름: ${userData.name}</p>
-                <p>이메일: ${userData.email}</p>
-            </body>
-        </html>
-    `);
-});
-
-app.listen(3000, () => {
-    console.log('Express 서버가 3000번 포트에서 실행 중입니다');
-});
-
-function getUserData(userId) {
-    // 실제로는 데이터베이스에서 조회
-    return {
-        name: '김철수',
-        email: 'kim@example.com'
-    };
+    # API 요청은 백엔드로 전달
+    location /api/ {
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    
+    # 정적 자산 캐싱
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
 }
 ```
 
-### Nginx 리버스 프록시 설정
-```javascript
-// Nginx 리버스 프록시 설정 예시
-const nginxReverseProxy = {
-    upstream: {
-        backend: [
-            '127.0.0.1:3000',
-            '127.0.0.1:3001',
-            '127.0.0.1:3002'
-        ]
-    },
-    
-    server: {
-        listen: 80,
-        server_name: 'example.com',
-        
-        location: {
-            '/': {
-                proxy_pass: 'http://backend',
-                proxy_set_header: {
-                    'Host': '$host',
-                    'X-Real-IP': '$remote_addr',
-                    'X-Forwarded-For': '$proxy_add_x_forwarded_for',
-                    'X-Forwarded-Proto': '$scheme'
-                }
-            }
-        }
-    }
-};
+#### 마이크로서비스 아키텍처
+```nginx
+# 여러 서비스로 요청 분산
+upstream user_service {
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+}
 
-// 헬스 체크 설정
-const healthCheck = {
-    interval: '30s',
-    timeout: '3s',
-    retries: 3,
-    path: '/health'
-};
+upstream product_service {
+    server 127.0.0.1:3003;
+    server 127.0.0.1:3004;
+}
+
+upstream order_service {
+    server 127.0.0.1:3005;
+    server 127.0.0.1:3006;
+}
+
+server {
+    listen 80;
+    server_name api.example.com;
+    
+    # 사용자 서비스
+    location /api/users/ {
+        proxy_pass http://user_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # 상품 서비스
+    location /api/products/ {
+        proxy_pass http://product_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # 주문 서비스
+    location /api/orders/ {
+        proxy_pass http://order_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### 2. 고급 패턴
+
+#### 로드 밸런싱 전략
+```nginx
+# 다양한 로드 밸런싱 방법
+upstream backend {
+    # 라운드 로빈 (기본값)
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+    
+    # 가중치 기반
+    server 127.0.0.1:3003 weight=3;
+    server 127.0.0.1:3004 weight=1;
+    
+    # 최소 연결 수 기반
+    server 127.0.0.1:3005;
+    server 127.0.0.1:3006;
+    
+    # IP 해시 기반 (세션 유지)
+    ip_hash;
+    server 127.0.0.1:3007;
+    server 127.0.0.1:3008;
+    
+    # 헬스 체크
+    server 127.0.0.1:3009 max_fails=3 fail_timeout=30s;
+}
+```
+
+#### 캐싱 전략
+```nginx
+# 프록시 캐싱
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my_cache:10m max_size=10g inactive=60m use_temp_path=off;
+
+server {
+    listen 80;
+    server_name cache.example.com;
+    
+    location / {
+        proxy_cache my_cache;
+        proxy_cache_use_stale error timeout http_500 http_502 http_503 http_504;
+        proxy_cache_valid 200 1h;
+        proxy_cache_valid 404 1m;
+        
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+    }
+    
+    # 캐시 무효화
+    location ~ /purge(/.*) {
+        allow 127.0.0.1;
+        deny all;
+        proxy_cache_purge my_cache "$scheme$request_method$host$1";
+    }
+}
 ```
 
 ## 운영 팁
 
 ### 성능 최적화
-1. **정적 파일 캐싱**
-   - 브라우저 캐시 설정
-   - CDN 활용
-   - 파일 압축
 
-2. **로드 밸런싱**
-   - 여러 서버에 요청 분산
-   - 헬스 체크 설정
-   - 세션 스티키 설정
+#### 워커 프로세스 설정
+```nginx
+# CPU 코어 수에 맞춘 워커 프로세스
+worker_processes auto;
 
-3. **보안 설정**
-   - HTTPS 강제 적용
-   - 보안 헤더 설정
-   - 요청 제한 설정
+# 워커당 연결 수 최적화
+events {
+    worker_connections 1024;
+    use epoll;
+    multi_accept on;
+}
 
-### 모니터링 및 로깅
-```javascript
-// Nginx 로그 분석 예시
-const logAnalyzer = {
-    // 접속 로그 분석
-    analyzeAccessLog: (logData) => {
-        const stats = {
-            totalRequests: 0,
-            uniqueIPs: new Set(),
-            topPages: {},
-            errorCount: 0
-        };
-        
-        logData.forEach(line => {
-            const parts = line.split(' ');
-            stats.totalRequests++;
-            stats.uniqueIPs.add(parts[0]);
-            
-            const statusCode = parseInt(parts[8]);
-            if (statusCode >= 400) {
-                stats.errorCount++;
-            }
-            
-            const page = parts[6];
-            stats.topPages[page] = (stats.topPages[page] || 0) + 1;
-        });
-        
-        return stats;
-    },
-    
-    // 실시간 모니터링
-    realTimeMonitoring: () => {
-        setInterval(() => {
-            // CPU, 메모리, 연결 수 등 모니터링
-            console.log('현재 연결 수:', getCurrentConnections());
-            console.log('메모리 사용량:', getMemoryUsage());
-        }, 5000);
-    }
-};
+# 버퍼 크기 최적화
+http {
+    client_body_buffer_size 128k;
+    client_max_body_size 10m;
+    client_header_buffer_size 1k;
+    large_client_header_buffers 4 4k;
+}
+```
+
+#### gzip 압축 설정
+```nginx
+# gzip 압축 최적화
+gzip on;
+gzip_vary on;
+gzip_min_length 1024;
+gzip_proxied any;
+gzip_comp_level 6;
+gzip_types
+    text/plain
+    text/css
+    text/xml
+    text/javascript
+    application/json
+    application/javascript
+    application/xml+rss
+    application/atom+xml
+    image/svg+xml;
+```
+
+### 보안 설정
+
+#### 기본 보안 헤더
+```nginx
+# 보안 헤더 추가
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "no-referrer-when-downgrade" always;
+add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+```
+
+#### 접근 제어
+```nginx
+# IP 기반 접근 제어
+location /admin/ {
+    allow 192.168.1.0/24;
+    allow 10.0.0.0/8;
+    deny all;
+}
+
+# 기본 인증
+location /private/ {
+    auth_basic "Restricted Area";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+}
+```
+
+### 모니터링
+
+#### 로그 설정
+```nginx
+# 상세한 로그 형식
+log_format detailed '$remote_addr - $remote_user [$time_local] '
+                    '"$request" $status $body_bytes_sent '
+                    '"$http_referer" "$http_user_agent" '
+                    'rt=$request_time uct="$upstream_connect_time" '
+                    'uht="$upstream_header_time" urt="$upstream_response_time"';
+
+access_log /var/log/nginx/access.log detailed;
+error_log /var/log/nginx/error.log warn;
 ```
 
 ## 참고
 
 ### Nginx vs Apache 비교
-| 특징 | Nginx | Apache |
-|------|-------|--------|
-| 성능 | 높음 (이벤트 기반) | 보통 (프로세스 기반) |
-| 메모리 사용량 | 낮음 | 높음 |
-| 동적 모듈 | 제한적 | 풍부함 |
-| 설정 복잡도 | 간단 | 복잡 |
 
-### 웹서버 아키텍처 패턴
-1. **단일 서버**: 개발 환경
-2. **로드 밸런서 + 웹서버**: 소규모 운영
-3. **CDN + 로드 밸런서 + 웹서버**: 대규모 운영
+| 측면 | Nginx | Apache |
+|------|-------|--------|
+| **아키텍처** | 이벤트 기반 | 프로세스/스레드 기반 |
+| **메모리 사용량** | 낮음 | 높음 |
+| **동시 연결 처리** | 우수 | 제한적 |
+| **정적 파일 처리** | 매우 빠름 | 빠름 |
+| **동적 콘텐츠** | 외부 프로세스 필요 | 내장 모듈 |
+| **설정 복잡도** | 중간 | 높음 |
+| **모듈 생태계** | 제한적 | 풍부 |
+
+### Nginx 사용 권장사항
+
+| 사용 사례 | 권장도 | 이유 |
+|----------|--------|------|
+| **정적 파일 서빙** | ⭐⭐⭐⭐⭐ | 매우 빠른 성능 |
+| **리버스 프록시** | ⭐⭐⭐⭐⭐ | 효율적인 로드 밸런싱 |
+| **API 게이트웨이** | ⭐⭐⭐⭐⭐ | 라우팅과 캐싱 |
+| **웹 애플리케이션** | ⭐⭐⭐⭐ | 설정이 간단 |
+| **마이크로서비스** | ⭐⭐⭐⭐⭐ | 서비스 디스커버리 |
+| **레거시 시스템** | ⭐⭐⭐ | 마이그레이션 필요 |
 
 ### 결론
-Nginx는 현대 웹 애플리케이션에서 필수적인 웹서버입니다.
-고성능, 낮은 리소스 사용량, 그리고 다양한 기능을 제공하여
-웹 서비스의 안정성과 성능을 크게 향상시킬 수 있습니다.
+Nginx는 고성능 웹 서버이자 강력한 리버스 프록시로, 현대적인 웹 아키텍처의 핵심 구성 요소입니다.
+이벤트 기반 비동기 처리로 높은 동시 접속을 효율적으로 처리할 수 있습니다.
+정적 콘텐츠 캐싱과 gzip 압축을 통해 성능을 최적화하세요.
+보안 헤더와 접근 제어를 통해 안전한 웹 서비스를 제공하세요.

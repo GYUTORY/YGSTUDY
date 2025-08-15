@@ -1,3 +1,8 @@
+---
+title: Java IoC Inversion of Control DI Dependency Injection
+tags: [language, java, 자바-디자인-패턴-및-원칙, ioc-inversion-of-control]
+updated: 2025-08-10
+---
 
 # Java IoC (Inversion of Control) 및 DI (Dependency Injection)
 
@@ -111,6 +116,16 @@ Hello, Spring DI!
 - 객체 간의 의존 관계를 명확히 정의하고 싶을 때.
 - 단위 테스트 및 유지보수성을 강화하고자 할 때.
 
-## 결론
+## 배경
 IoC와 DI는 현대 Java 애플리케이션 개발에서 필수적인 개념입니다.  
 Spring Framework와 같은 도구를 활용하면 의존성 관리와 객체 생성을 손쉽게 처리할 수 있어 개발 생산성과 코드 품질을 동시에 높일 수 있습니다.
+
+
+
+
+
+
+
+
+
+

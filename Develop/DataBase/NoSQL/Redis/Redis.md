@@ -1,3 +1,8 @@
+---
+title: Redis Remote Dictionary Server
+tags: [database, nosql, redis]
+updated: 2025-08-10
+---
 # Redis (Remote Dictionary Server)
 
 ## 1. Redis 소개
@@ -56,41 +61,16 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 
 - **실제 사용 예시**
   ```redis
-  # 사용자 세션 관리
+
+## 배경
   SET user:session:123 "user_data" EX 3600
   
-  # 페이지뷰 카운터
   INCR page:views:homepage
   
-  # 캐시된 API 응답
-  SET api:users:123 '{"name":"John","age":30}' EX 300
-  ```
-
-### 2.2 Hash
-- **특징**
-  - 필드와 값으로 구성된 객체 저장
-  - 최대 2^32 - 1개의 필드-값 쌍 저장 가능
-  - 메모리 효율적인 저장 방식
-  - 부분 업데이트 가능
-
-- **주요 명령어**
-  ```redis
-  HSET key field value
-  HGET key field
-  HGETALL key
-  HMSET key field1 value1 field2 value2
-  HDEL key field
-  ```
-
-- **실제 사용 예시**
-  ```redis
-  # 사용자 프로필 저장
   HSET user:1000 name "John" email "john@example.com" age "30"
   
-  # 상품 정보 관리
   HSET product:123 name "iPhone" price "999" stock "50"
   
-  # 설정 관리
   HSET config:app theme "dark" language "ko" notifications "on"
   ```
 
@@ -113,14 +93,12 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 
 - **실제 사용 예시**
   ```redis
-  # 최근 활동 로그
+
   LPUSH user:1000:activity "Logged in" "Viewed profile" "Posted comment"
   
-  # 작업 큐
   LPUSH job:queue "process_image_123"
   RPOP job:queue
   
-  # 타임라인
   LPUSH user:1000:timeline "New post: Hello World!"
   ```
 
@@ -142,13 +120,11 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 
 - **실제 사용 예시**
   ```redis
-  # 사용자 태그 관리
+
   SADD user:1000:tags "redis" "database" "nosql"
   
-  # 친구 관계
   SADD user:1000:friends "user:2000" "user:3000"
   
-  # 고유 방문자 추적
   SADD daily:visitors:2024-03-20 "192.168.1.1"
   ```
 
@@ -169,17 +145,29 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 
 - **실제 사용 예시**
   ```redis
-  # 리더보드
+
   ZADD leaderboard 100 "player1" 200 "player2" 150 "player3"
   
-  # 실시간 랭킹
   ZADD game:ranking 1000 "user:1" 2000 "user:2"
   
-  # 시간 기반 정렬
   ZADD events 1647830400 "event1" 1647834000 "event2"
   ```
 
 ![Redis-DataType.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FDataBase%2FNoSQL%2FRedis%2FRedis-DataType.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 3. 주요 기능
 
@@ -259,96 +247,78 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 ### 4.1 캐싱
 - **웹 페이지 캐싱**
   ```redis
-  # HTML 페이지 캐싱
-  SET page:home "<html>...</html>" EX 3600
-  
-  # API 응답 캐싱
-  SET api:users:123 '{"name":"John"}' EX 300
-  ```
 
-- **데이터베이스 쿼리 캐싱**
-  ```redis
-  # 쿼리 결과 캐싱
   SET query:users:active '["user1","user2"]' EX 600
   
-  # 집계 결과 캐싱
   SET stats:daily:2024-03-20 '{"visits":1000}' EX 86400
   ```
 
 ### 4.2 세션 관리
 - **사용자 세션**
   ```redis
-  # 세션 데이터 저장
+
   HSET session:123 user_id "1000" last_access "2024-03-20"
   EXPIRE session:123 3600
   
-  # 세션 검증
   EXISTS session:123
   ```
 
 - **분산 세션**
   ```redis
-  # 세션 공유
+
   SET session:123:data '{"user_id":1000,"preferences":{}}' EX 3600
   
-  # 세션 갱신
   EXPIRE session:123 3600
   ```
 
 ### 4.3 실시간 분석
 - **페이지뷰 추적**
   ```redis
-  # 일일 방문자 수
+
   INCR stats:visitors:2024-03-20
   
-  # 페이지별 조회수
   INCR page:views:homepage
   ```
 
 - **사용자 행동 분석**
   ```redis
-  # 사용자 활동 로그
+
   LPUSH user:1000:activity "viewed_product:123"
   
-  # 실시간 통계
   ZINCRBY realtime:stats 1 "product:123"
   ```
 
 ### 4.4 메시지 큐
 - **작업 큐**
   ```redis
-  # 작업 추가
+
   LPUSH job:queue "process_image_123"
   
-  # 작업 처리
   RPOP job:queue
   ```
 
 - **이벤트 발행/구독**
   ```redis
-  # 이벤트 발행
+
   PUBLISH notifications "New message from user:1000"
   
-  # 이벤트 구독
   SUBSCRIBE notifications
   ```
 
 ### 4.5 게임 서비스
 - **리더보드**
   ```redis
-  # 점수 업데이트
+
   ZADD leaderboard 1000 "player1"
   
-  # 상위 플레이어 조회
   ZREVRANGE leaderboard 0 9 WITHSCORES
   ```
 
 - **실시간 매칭**
   ```redis
-  # 대기열 관리
+
   LPUSH matchmaking:queue "player1"
   
-  # 매치 생성
   RPOPLPUSH matchmaking:queue matchmaking:active
   ```
 
@@ -357,10 +327,9 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 ### 5.1 메모리 관리
 - **모니터링**
   ```redis
-  # 메모리 사용량 확인
+
   INFO memory
   
-  # 키 개수 확인
   DBSIZE
   ```
 
@@ -372,17 +341,16 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 
 - **TTL 설정**
   ```redis
-  # 키 만료 시간 설정
+
   EXPIRE key 3600
   
-  # 만료 시간 확인
   TTL key
   ```
 
 ### 5.2 성능 최적화
 - **파이프라이닝**
   ```redis
-  # 여러 명령어 한 번에 실행
+
   MULTI
   SET key1 value1
   SET key2 value2
@@ -418,13 +386,11 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 ### 5.4 모니터링
 - **성능 지표**
   ```redis
-  # 서버 상태 확인
+
   INFO
   
-  # 명령어 통계
   INFO commandstats
   
-  # 클라이언트 연결
   CLIENT LIST
   ```
 
@@ -460,15 +426,7 @@ Redis는 5가지 주요 데이터 타입을 지원합니다:
 ### 6.3 권장 사항
 - **하이브리드 백업**
   ```conf
-  # RDB + AOF 조합
-  save 900 1
-  appendonly yes
-  appendfsync everysec
-  ```
 
-- **백업 스케줄링**
-  ```bash
-  # 자동 백업 스크립트
   0 0 * * * /path/to/backup.sh
   ```
 
@@ -562,3 +520,44 @@ https://redis.io/documentation
 https://aws.amazon.com/ko/elasticache/redis/
 https://redis.com/redis-enterprise/redis-enterprise-cloud/overview/
 https://redis.io/topics/clients
+
+  # 캐시된 API 응답
+  SET api:users:123 '{"name":"John","age":30}' EX 300
+  ```
+
+### 2.2 Hash
+- **특징**
+  - 필드와 값으로 구성된 객체 저장
+  - 최대 2^32 - 1개의 필드-값 쌍 저장 가능
+  - 메모리 효율적인 저장 방식
+  - 부분 업데이트 가능
+
+- **주요 명령어**
+  ```redis
+  HSET key field value
+  HGET key field
+  HGETALL key
+  HMSET key field1 value1 field2 value2
+  HDEL key field
+  ```
+
+- **실제 사용 예시**
+  ```redis
+  # HTML 페이지 캐싱
+  SET page:home "<html>...</html>" EX 3600
+  
+  # API 응답 캐싱
+  SET api:users:123 '{"name":"John"}' EX 300
+  ```
+
+- **데이터베이스 쿼리 캐싱**
+  ```redis
+  # RDB + AOF 조합
+  save 900 1
+  appendonly yes
+  appendfsync everysec
+  ```
+
+- **백업 스케줄링**
+  ```bash
+

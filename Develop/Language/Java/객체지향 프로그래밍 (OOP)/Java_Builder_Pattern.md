@@ -1,13 +1,17 @@
+---
+title: Java Builder
+tags: [language, java, 객체지향-프로그래밍-oop, javabuilderpattern]
+updated: 2025-08-10
+---
 
 # Java Builder 패턴
 
-## 개요
+## 배경
 Builder 패턴은 객체 생성에 관련된 디자인 패턴 중 하나로, 복잡한 객체를 단계별로 구성하고 그 결과로 객체를 생성할 수 있도록 돕습니다.  
 특히, **매개변수가 많은 생성자**를 대체하거나 **불변 객체**를 생성할 때 유용합니다.
 
 ---
 
-## 장점
 1. **가독성 향상**  
    빌더 메서드 체이닝을 사용해 객체 생성 코드를 읽기 쉽게 만듭니다.
 
@@ -22,7 +26,6 @@ Builder 패턴은 객체 생성에 관련된 디자인 패턴 중 하나로, 복
 
 ---
 
-## 구현 방법
 
 ### 1. Builder 클래스 정의
 Builder 클래스는 생성 대상 객체의 모든 필드와 동일한 필드를 갖고 있으며, 각 필드를 설정하기 위한 메서드가 포함됩니다.
@@ -35,7 +38,6 @@ Builder 클래스 내부에 `build()` 메서드를 추가하여 최종적으로 
 
 ---
 
-## 코드 예제
 
 ```java
 // Product 클래스
@@ -90,7 +92,6 @@ public class Product {
 
 ---
 
-## 사용 예제
 
 ```java
 public class Main {
@@ -113,7 +114,6 @@ Product{name='Laptop', price=1500, description='High-end gaming laptop'}
 
 ---
 
-## 추가 팁
 
 - **필수 필드 관리**  
   필수 필드가 있다면 Builder 생성자에서 설정하도록 강제할 수 있습니다.
@@ -130,7 +130,6 @@ Product{name='Laptop', price=1500, description='High-end gaming laptop'}
 
 ---
 
-## 장점 요약
 
 | 장점                | 설명                                                    |
 |---------------------|-------------------------------------------------------|
@@ -140,6 +139,15 @@ Product{name='Laptop', price=1500, description='High-end gaming laptop'}
 
 ---
 
-## 결론
 Builder 패턴은 객체 생성이 복잡하거나, 필드가 많은 경우에 가장 적합한 디자인 패턴 중 하나입니다.  
 이를 통해 유지보수성과 가독성을 동시에 향상시킬 수 있습니다.
+
+
+
+
+
+
+
+
+
+

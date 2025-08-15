@@ -1,6 +1,11 @@
+---
+title: RabbitMQ Message Broker
+tags: [network, 7-layer, transport-layer, tcp, mqtt]
+updated: 2025-08-10
+---
 # RabbitMQ (Message Broker)
 
-## 📋 목차
+## 배경
 - [RabbitMQ란?](#rabbitmq란)
 - [메시지 브로커란?](#메시지-브로커란)
 - [RabbitMQ의 주요 특징](#rabbitmq의-주요-특징)
@@ -13,13 +18,6 @@
 
 ---
 
-## 🐰 RabbitMQ란?
-
-**RabbitMQ**는 **메시지 브로커(Message Broker) 서비스**입니다.
-
-쉽게 말해서, 서로 다른 애플리케이션들이 **메시지를 주고받을 수 있도록 중간에서 연결해주는 역할**을 하는 소프트웨어입니다.
-
-### 💡 메시지 브로커란?
 
 메시지 브로커는 **메시지 큐(Message Queue) 시스템**의 핵심 구성 요소입니다.
 
@@ -40,6 +38,213 @@
 ```
 
 ---
+
+
+| 구성 요소 | 설명 | 역할 |
+|----------|------|------|
+| **Producer (생산자)** | 메시지를 생성하는 애플리케이션 | 메시지를 큐에 보내는 역할 |
+| **Exchange (교환기)** | 메시지를 올바른 큐로 라우팅 | 우체국의 분류 센터 같은 역할 |
+| **Queue (큐)** | 메시지가 저장되는 공간 | 우체국의 사서함 같은 역할 |
+| **Consumer (소비자)** | 메시지를 처리하는 애플리케이션 | 큐에서 메시지를 가져와 처리 |
+
+```
+Producer → Exchange → Queue → Consumer
+   ↓         ↓         ↓        ↓
+  메시지    라우팅    저장     처리
+  생성      규칙      공간
+```
+
+**Exchange의 종류:**
+- **Direct Exchange**: 정확한 라우팅 키 매칭
+- **Fanout Exchange**: 모든 큐에 브로드캐스트
+- **Topic Exchange**: 패턴 기반 라우팅
+- **Headers Exchange**: 헤더 값 기반 라우팅
+
+---
+
+
+### Docker로 RabbitMQ 설치
+
+```bash
+
+
+1. 웹 브라우저에서 `http://localhost:15672` 접속
+2. 기본 로그인 정보:
+   - **사용자명**: `guest`
+   - **비밀번호**: `guest`
+
+**관리 콘솔에서 확인할 수 있는 것:**
+- 큐 상태 및 메시지 개수
+- Exchange 설정
+- 연결된 Producer/Consumer 정보
+- 시스템 성능 지표
+
+---
+
+
+### 1. 기본 큐 (Simple Queue)
+가장 기본적인 패턴으로, **하나의 Producer가 하나의 Consumer에게 메시지 전송**
+
+```javascript
+// Producer
+channel.sendToQueue('simple_queue', Buffer.from('Hello'));
+
+// Consumer
+channel.consume('simple_queue', (msg) => {
+    console.log(msg.content.toString());
+    channel.ack(msg);
+});
+```
+
+### 2. 게시/구독 (Fanout Exchange)
+**하나의 메시지를 여러 Consumer가 동시에 받는 패턴**
+
+```javascript
+// Producer
+await channel.assertExchange('broadcast', 'fanout');
+channel.publish('broadcast', '', Buffer.from('공지사항'));
+
+// Consumer 1
+const q1 = await channel.assertQueue('', { exclusive: true });
+await channel.bindQueue(q1.queue, 'broadcast', '');
+
+// Consumer 2
+const q2 = await channel.assertQueue('', { exclusive: true });
+await channel.bindQueue(q2.queue, 'broadcast', '');
+```
+
+### 3. 라우팅 (Direct Exchange)
+**특정 조건에 따라 메시지를 다른 큐로 라우팅**
+
+```javascript
+// Producer
+await channel.assertExchange('direct_logs', 'direct');
+channel.publish('direct_logs', 'error', Buffer.from('에러 발생'));
+channel.publish('direct_logs', 'info', Buffer.from('정보 메시지'));
+
+// Error Consumer
+const errorQueue = await channel.assertQueue('error_queue');
+await channel.bindQueue(errorQueue.queue, 'direct_logs', 'error');
+
+// Info Consumer
+const infoQueue = await channel.assertQueue('info_queue');
+await channel.bindQueue(infoQueue.queue, 'direct_logs', 'info');
+```
+
+### 4. 토픽 (Topic Exchange)
+**패턴 매칭을 통한 유연한 라우팅**
+
+```javascript
+// Producer
+await channel.assertExchange('topic_logs', 'topic');
+channel.publish('topic_logs', 'user.login', Buffer.from('로그인'));
+channel.publish('topic_logs', 'user.logout', Buffer.from('로그아웃'));
+channel.publish('topic_logs', 'system.error', Buffer.from('시스템 에러'));
+
+// Consumer (user.* 패턴 구독)
+const userQueue = await channel.assertQueue('user_queue');
+await channel.bindQueue(userQueue.queue, 'topic_logs', 'user.*');
+
+// Consumer (*.error 패턴 구독)
+const errorQueue = await channel.assertQueue('error_queue');
+await channel.bindQueue(errorQueue.queue, 'topic_logs', '*.error');
+```
+
+---
+
+
+### 1. **마이크로서비스 간 통신**
+```javascript
+// 주문 서비스 → 결제 서비스
+async function processOrder(orderData) {
+    const connection = await amqp.connect('amqp://localhost');
+    const channel = await connection.createChannel();
+    
+    await channel.assertQueue('payment_queue');
+    channel.sendToQueue('payment_queue', Buffer.from(JSON.stringify(orderData)));
+    
+    console.log('결제 요청 전송 완료');
+}
+```
+
+### 2. **이메일 발송 시스템**
+```javascript
+// 사용자 가입 시 이메일 발송
+async function sendWelcomeEmail(userData) {
+    const connection = await amqp.connect('amqp://localhost');
+    const channel = await connection.createChannel();
+    
+    await channel.assertQueue('email_queue');
+    channel.sendToQueue('email_queue', Buffer.from(JSON.stringify({
+        type: 'welcome',
+        email: userData.email,
+        name: userData.name
+    })));
+}
+```
+
+### 3. **로그 수집 시스템**
+```javascript
+// 애플리케이션 로그 수집
+async function logMessage(level, message) {
+    const connection = await amqp.connect('amqp://localhost');
+    const channel = await connection.createChannel();
+    
+    await channel.assertExchange('logs', 'topic');
+    channel.publish('logs', `app.${level}`, Buffer.from(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: level,
+        message: message
+    })));
+}
+```
+
+### 4. **실시간 알림 시스템**
+```javascript
+// 푸시 알림 발송
+async function sendNotification(userId, message) {
+    const connection = await amqp.connect('amqp://localhost');
+    const channel = await connection.createChannel();
+    
+    await channel.assertQueue('notification_queue');
+    channel.sendToQueue('notification_queue', Buffer.from(JSON.stringify({
+        userId: userId,
+        message: message,
+        timestamp: new Date().toISOString()
+    })));
+}
+```
+
+---
+
+
+| 용어 | 설명 |
+|------|------|
+| **AMQP** | Advanced Message Queuing Protocol, RabbitMQ가 사용하는 메시징 프로토콜 |
+| **Producer** | 메시지를 생성하고 큐에 전송하는 애플리케이션 |
+| **Consumer** | 큐에서 메시지를 가져와 처리하는 애플리케이션 |
+| **Exchange** | 메시지를 큐로 라우팅하는 구성 요소 |
+| **Queue** | 메시지가 저장되는 공간 |
+| **Binding** | Exchange와 Queue를 연결하는 규칙 |
+| **Routing Key** | 메시지를 특정 큐로 라우팅하기 위한 키 |
+| **ACK** | Acknowledgment, 메시지 처리 완료 확인 |
+| **Durable** | 서버 재시작 시에도 큐/Exchange가 유지되는지 여부 |
+| **Exclusive** | 하나의 연결에서만 사용할 수 있는 큐 |
+
+
+
+
+
+
+
+
+
+
+## 🐰 RabbitMQ란?
+
+**RabbitMQ**는 **메시지 브로커(Message Broker) 서비스**입니다.
+
+쉽게 말해서, 서로 다른 애플리케이션들이 **메시지를 주고받을 수 있도록 중간에서 연결해주는 역할**을 하는 소프트웨어입니다.
 
 ## ✨ RabbitMQ의 주요 특징
 
@@ -69,36 +274,6 @@
 
 ## 🏗️ RabbitMQ 아키텍처
 
-### 핵심 구성 요소
-
-| 구성 요소 | 설명 | 역할 |
-|----------|------|------|
-| **Producer (생산자)** | 메시지를 생성하는 애플리케이션 | 메시지를 큐에 보내는 역할 |
-| **Exchange (교환기)** | 메시지를 올바른 큐로 라우팅 | 우체국의 분류 센터 같은 역할 |
-| **Queue (큐)** | 메시지가 저장되는 공간 | 우체국의 사서함 같은 역할 |
-| **Consumer (소비자)** | 메시지를 처리하는 애플리케이션 | 큐에서 메시지를 가져와 처리 |
-
-### 메시지 흐름
-```
-Producer → Exchange → Queue → Consumer
-   ↓         ↓         ↓        ↓
-  메시지    라우팅    저장     처리
-  생성      규칙      공간
-```
-
-**Exchange의 종류:**
-- **Direct Exchange**: 정확한 라우팅 키 매칭
-- **Fanout Exchange**: 모든 큐에 브로드캐스트
-- **Topic Exchange**: 패턴 기반 라우팅
-- **Headers Exchange**: 헤더 값 기반 라우팅
-
----
-
-## 🚀 설치 및 실행
-
-### Docker로 RabbitMQ 설치
-
-```bash
 # RabbitMQ 컨테이너 실행
 docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
 ```
@@ -106,21 +281,6 @@ docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
 **포트 설명:**
 - **5672**: AMQP 프로토콜 포트 (메시지 전송용)
 - **15672**: 웹 관리 콘솔 포트
-
-### 웹 관리 콘솔 접속
-
-1. 웹 브라우저에서 `http://localhost:15672` 접속
-2. 기본 로그인 정보:
-   - **사용자명**: `guest`
-   - **비밀번호**: `guest`
-
-**관리 콘솔에서 확인할 수 있는 것:**
-- 큐 상태 및 메시지 개수
-- Exchange 설정
-- 연결된 Producer/Consumer 정보
-- 시스템 성능 지표
-
----
 
 ## 💻 JavaScript로 RabbitMQ 사용하기
 
@@ -255,78 +415,6 @@ async function subscribeToLogs() {
 
 ---
 
-## 🔄 메시징 패턴
-
-### 1. 기본 큐 (Simple Queue)
-가장 기본적인 패턴으로, **하나의 Producer가 하나의 Consumer에게 메시지 전송**
-
-```javascript
-// Producer
-channel.sendToQueue('simple_queue', Buffer.from('Hello'));
-
-// Consumer
-channel.consume('simple_queue', (msg) => {
-    console.log(msg.content.toString());
-    channel.ack(msg);
-});
-```
-
-### 2. 게시/구독 (Fanout Exchange)
-**하나의 메시지를 여러 Consumer가 동시에 받는 패턴**
-
-```javascript
-// Producer
-await channel.assertExchange('broadcast', 'fanout');
-channel.publish('broadcast', '', Buffer.from('공지사항'));
-
-// Consumer 1
-const q1 = await channel.assertQueue('', { exclusive: true });
-await channel.bindQueue(q1.queue, 'broadcast', '');
-
-// Consumer 2
-const q2 = await channel.assertQueue('', { exclusive: true });
-await channel.bindQueue(q2.queue, 'broadcast', '');
-```
-
-### 3. 라우팅 (Direct Exchange)
-**특정 조건에 따라 메시지를 다른 큐로 라우팅**
-
-```javascript
-// Producer
-await channel.assertExchange('direct_logs', 'direct');
-channel.publish('direct_logs', 'error', Buffer.from('에러 발생'));
-channel.publish('direct_logs', 'info', Buffer.from('정보 메시지'));
-
-// Error Consumer
-const errorQueue = await channel.assertQueue('error_queue');
-await channel.bindQueue(errorQueue.queue, 'direct_logs', 'error');
-
-// Info Consumer
-const infoQueue = await channel.assertQueue('info_queue');
-await channel.bindQueue(infoQueue.queue, 'direct_logs', 'info');
-```
-
-### 4. 토픽 (Topic Exchange)
-**패턴 매칭을 통한 유연한 라우팅**
-
-```javascript
-// Producer
-await channel.assertExchange('topic_logs', 'topic');
-channel.publish('topic_logs', 'user.login', Buffer.from('로그인'));
-channel.publish('topic_logs', 'user.logout', Buffer.from('로그아웃'));
-channel.publish('topic_logs', 'system.error', Buffer.from('시스템 에러'));
-
-// Consumer (user.* 패턴 구독)
-const userQueue = await channel.assertQueue('user_queue');
-await channel.bindQueue(userQueue.queue, 'topic_logs', 'user.*');
-
-// Consumer (*.error 패턴 구독)
-const errorQueue = await channel.assertQueue('error_queue');
-await channel.bindQueue(errorQueue.queue, 'topic_logs', '*.error');
-```
-
----
-
 ## 🔍 RabbitMQ vs MQTT 비교
 
 | 비교 항목 | RabbitMQ | MQTT |
@@ -340,85 +428,4 @@ await channel.bindQueue(errorQueue.queue, 'topic_logs', '*.error');
 | **사용 사례** | 마이크로서비스, 이벤트 드리븐 | IoT, 실시간 데이터 |
 
 ---
-
-## 🎯 실제 활용 사례
-
-### 1. **마이크로서비스 간 통신**
-```javascript
-// 주문 서비스 → 결제 서비스
-async function processOrder(orderData) {
-    const connection = await amqp.connect('amqp://localhost');
-    const channel = await connection.createChannel();
-    
-    await channel.assertQueue('payment_queue');
-    channel.sendToQueue('payment_queue', Buffer.from(JSON.stringify(orderData)));
-    
-    console.log('결제 요청 전송 완료');
-}
-```
-
-### 2. **이메일 발송 시스템**
-```javascript
-// 사용자 가입 시 이메일 발송
-async function sendWelcomeEmail(userData) {
-    const connection = await amqp.connect('amqp://localhost');
-    const channel = await connection.createChannel();
-    
-    await channel.assertQueue('email_queue');
-    channel.sendToQueue('email_queue', Buffer.from(JSON.stringify({
-        type: 'welcome',
-        email: userData.email,
-        name: userData.name
-    })));
-}
-```
-
-### 3. **로그 수집 시스템**
-```javascript
-// 애플리케이션 로그 수집
-async function logMessage(level, message) {
-    const connection = await amqp.connect('amqp://localhost');
-    const channel = await connection.createChannel();
-    
-    await channel.assertExchange('logs', 'topic');
-    channel.publish('logs', `app.${level}`, Buffer.from(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: level,
-        message: message
-    })));
-}
-```
-
-### 4. **실시간 알림 시스템**
-```javascript
-// 푸시 알림 발송
-async function sendNotification(userId, message) {
-    const connection = await amqp.connect('amqp://localhost');
-    const channel = await connection.createChannel();
-    
-    await channel.assertQueue('notification_queue');
-    channel.sendToQueue('notification_queue', Buffer.from(JSON.stringify({
-        userId: userId,
-        message: message,
-        timestamp: new Date().toISOString()
-    })));
-}
-```
-
----
-
-## 📚 주요 용어 정리
-
-| 용어 | 설명 |
-|------|------|
-| **AMQP** | Advanced Message Queuing Protocol, RabbitMQ가 사용하는 메시징 프로토콜 |
-| **Producer** | 메시지를 생성하고 큐에 전송하는 애플리케이션 |
-| **Consumer** | 큐에서 메시지를 가져와 처리하는 애플리케이션 |
-| **Exchange** | 메시지를 큐로 라우팅하는 구성 요소 |
-| **Queue** | 메시지가 저장되는 공간 |
-| **Binding** | Exchange와 Queue를 연결하는 규칙 |
-| **Routing Key** | 메시지를 특정 큐로 라우팅하기 위한 키 |
-| **ACK** | Acknowledgment, 메시지 처리 완료 확인 |
-| **Durable** | 서버 재시작 시에도 큐/Exchange가 유지되는지 여부 |
-| **Exclusive** | 하나의 연결에서만 사용할 수 있는 큐 |
 

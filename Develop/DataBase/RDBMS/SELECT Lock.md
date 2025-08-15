@@ -1,4 +1,118 @@
-# 개요
+---
+title: SELECT Lock
+tags: [database, rdbms, select-lock]
+updated: 2025-08-10
+---
+
+## 배경
+- [Lock](Lock.md) 에 이어서, 일반적으로 SELECT에서는 락이 안걸리는 것으로 알고있다.
+- 그러나 실제로는 다양한 상황에서 SELECT 문에서도 락이 발생할 수 있으며, 이는 데이터베이스의 일관성과 동시성 제어에 중요한 역할을 한다.
+- 본 문서에서는 SELECT 문에서 락이 발생하는 다양한 상황과 그에 따른 영향, 그리고 최적의 사용 방법에 대해 자세히 알아본다.
+
+---
+
+1. **명시적 커밋**
+```sql
+BEGIN;
+-- 트랜잭션 작업 수행
+COMMIT; -- 모든 락 해제
+```
+
+2. **롤백**
+```sql
+BEGIN;
+-- 트랜잭션 작업 수행
+ROLLBACK; -- 모든 락 해제
+```
+
+3. **세션 종료**
+- 세션이 종료되면 모든 락이 자동으로 해제됨
+
+1. **트랜잭션 최적화**
+   - 트랜잭션을 최대한 짧게 유지
+   - 불필요한 락 사용 피하기
+   - 적절한 격리 수준 선택
+
+2. **인덱스 최적화**
+```sql
+-- 적절한 인덱스 생성
+CREATE INDEX idx_department ON employees(department);
+CREATE INDEX idx_product_category ON products(category);
+```
+
+3. **락 타임아웃 설정**
+```sql
+-- 락 대기 시간 설정
+SET innodb_lock_wait_timeout = 30;
+```
+
+4. **배치 처리 최적화**
+```sql
+-- 대량 업데이트 시 배치 처리
+UPDATE employees 
+SET salary = salary * 1.1 
+WHERE department = 'IT' 
+LIMIT 1000;
+```
+
+---
+
+
+
+
+
+
+1. **명시적 커밋**
+```sql
+BEGIN;
+-- 트랜잭션 작업 수행
+COMMIT; -- 모든 락 해제
+```
+
+2. **롤백**
+```sql
+BEGIN;
+-- 트랜잭션 작업 수행
+ROLLBACK; -- 모든 락 해제
+```
+
+3. **세션 종료**
+- 세션이 종료되면 모든 락이 자동으로 해제됨
+
+1. **트랜잭션 최적화**
+   - 트랜잭션을 최대한 짧게 유지
+   - 불필요한 락 사용 피하기
+   - 적절한 격리 수준 선택
+
+2. **인덱스 최적화**
+```sql
+-- 적절한 인덱스 생성
+CREATE INDEX idx_department ON employees(department);
+CREATE INDEX idx_product_category ON products(category);
+```
+
+3. **락 타임아웃 설정**
+```sql
+-- 락 대기 시간 설정
+SET innodb_lock_wait_timeout = 30;
+```
+
+4. **배치 처리 최적화**
+```sql
+-- 대량 업데이트 시 배치 처리
+UPDATE employees 
+SET salary = salary * 1.1 
+WHERE department = 'IT' 
+LIMIT 1000;
+```
+
+---
+
+
+
+
+
+
 - [Lock](Lock.md) 에 이어서, 일반적으로 SELECT에서는 락이 안걸리는 것으로 알고있다.
 - 그러나 실제로는 다양한 상황에서 SELECT 문에서도 락이 발생할 수 있으며, 이는 데이터베이스의 일관성과 동시성 제어에 중요한 역할을 한다.
 - 본 문서에서는 SELECT 문에서 락이 발생하는 다양한 상황과 그에 따른 영향, 그리고 최적의 사용 방법에 대해 자세히 알아본다.
@@ -293,54 +407,6 @@ FOR UPDATE SKIP LOCKED;
 ---
 
 ## 3. 락 해제와 방지 🛡️
-### 🔓 락 해제 방법
-1. **명시적 커밋**
-```sql
-BEGIN;
--- 트랜잭션 작업 수행
-COMMIT; -- 모든 락 해제
-```
-
-2. **롤백**
-```sql
-BEGIN;
--- 트랜잭션 작업 수행
-ROLLBACK; -- 모든 락 해제
-```
-
-3. **세션 종료**
-- 세션이 종료되면 모든 락이 자동으로 해제됨
-
-### 🛡️ 락 방지 모범 사례
-1. **트랜잭션 최적화**
-   - 트랜잭션을 최대한 짧게 유지
-   - 불필요한 락 사용 피하기
-   - 적절한 격리 수준 선택
-
-2. **인덱스 최적화**
-```sql
--- 적절한 인덱스 생성
-CREATE INDEX idx_department ON employees(department);
-CREATE INDEX idx_product_category ON products(category);
-```
-
-3. **락 타임아웃 설정**
-```sql
--- 락 대기 시간 설정
-SET innodb_lock_wait_timeout = 30;
-```
-
-4. **배치 처리 최적화**
-```sql
--- 대량 업데이트 시 배치 처리
-UPDATE employees 
-SET salary = salary * 1.1 
-WHERE department = 'IT' 
-LIMIT 1000;
-```
-
----
-
 ## 4. SELECT 락의 장단점
 | **구분**             | **장점**                          | **단점**                        | **사용 시나리오**                |
 |----------------------|---------------------------------|---------------------------------|----------------------------------|
@@ -362,3 +428,4 @@ LIMIT 1000;
    - 락 획득 순서 통일
    - 타임아웃 설정
    - 에러 처리 구현
+

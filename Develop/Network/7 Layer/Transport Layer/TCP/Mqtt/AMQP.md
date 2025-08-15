@@ -1,6 +1,11 @@
+---
+title: AMQP Advanced Message Queuing Protocol
+tags: [network, 7-layer, transport-layer, tcp, mqtt]
+updated: 2025-08-10
+---
 # AMQP (Advanced Message Queuing Protocol)
 
-## 📋 목차
+## 배경
 - [AMQP란?](#amqp란)
 - [메시지 큐의 기본 개념](#메시지-큐의-기본-개념)
 - [AMQP의 핵심 구성 요소](#amqp의-핵심-구성-요소)
@@ -11,21 +16,8 @@
 
 ---
 
-## 🤔 AMQP란?
-
-**AMQP (Advanced Message Queuing Protocol)**는 **메시지 브로커를 위한 개방형 표준 프로토콜**입니다.
-
-### 💡 메시지 브로커란?
 메시지 브로커는 **메시지를 중간에서 받아서 적절한 곳으로 전달해주는 중개자**입니다. 마치 우체부가 편지를 받아서 각 집으로 배달하는 것과 같습니다.
 
-### 🎯 AMQP의 역할
-- **메시지의 안전한 전달** 보장
-- **여러 시스템 간의 비동기 통신** 지원
-- **메시지의 우선순위와 라우팅** 관리
-
----
-
-## 📬 메시지 큐의 기본 개념
 
 ### 🔄 동기 vs 비동기 통신
 
@@ -54,18 +46,12 @@ function sendMessageAsync(message) {
 
 ---
 
-## 🏗️ AMQP의 핵심 구성 요소
+- **시스템 부하 분산**: 메시지를 즉시 처리하지 않고 큐에 저장
+- **신뢰성**: 메시지 손실 방지
+- **확장성**: 여러 소비자가 동시에 메시지 처리 가능
 
-### 📊 AMQP 아키텍처
+---
 
-```plaintext
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  Producer   │───▶│   Exchange  │───▶│    Queue    │───▶│  Consumer   │
-│ (생산자)     │    │  (교환기)    │    │   (큐)      │    │ (소비자)     │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-```
-
-### 🔧 각 구성 요소 상세 설명
 
 #### 1️⃣ Producer (생산자)
 메시지를 생성하고 보내는 역할
@@ -135,7 +121,6 @@ const consumer = {
 
 ---
 
-## 🔄 메시징 패턴 이해하기
 
 ### 1️⃣ 단순 큐 (Simple Queue)
 가장 기본적인 패턴 - 하나의 생산자가 하나의 소비자에게 메시지 전달
@@ -237,7 +222,6 @@ const topicExchange = {
 
 ---
 
-## 💻 실제 사용 예제
 
 ### 🚀 RabbitMQ와 Node.js 연동
 
@@ -365,9 +349,6 @@ async function setupExchange() {
 
 ---
 
-## ⚖️ AMQP vs MQTT
-
-### 📊 비교표
 
 | 특징 | AMQP | MQTT |
 |------|------|------|
@@ -377,7 +358,6 @@ async function setupExchange() {
 | **라우팅** | 복잡한 라우팅 지원 | 단순한 토픽 기반 |
 | **QoS** | 기본 제공 | QoS 0, 1, 2 레벨 |
 
-### 🎯 언제 어떤 것을 사용할까?
 
 **AMQP 사용 시기:**
 - 복잡한 메시지 라우팅이 필요할 때
@@ -391,7 +371,6 @@ async function setupExchange() {
 
 ---
 
-## 🏢 활용 사례
 
 ### 🏪 온라인 쇼핑몰 시스템
 ```javascript
@@ -458,7 +437,68 @@ const logSystem = {
 
 ---
 
-## 📝 정리
+```javascript
+// 주문 처리 시스템 예시
+const orderSystem = {
+    // 주문 생성
+    createOrder: async function(orderData) {
+        await sendMessage('order_queue', JSON.stringify(orderData));
+        console.log('주문이 큐에 등록되었습니다.');
+    },
+    
+    // 재고 확인
+    checkInventory: async function(orderData) {
+        await sendMessage('inventory_queue', JSON.stringify(orderData));
+    },
+    
+    // 결제 처리
+    processPayment: async function(orderData) {
+        await sendMessage('payment_queue', JSON.stringify(orderData));
+    }
+};
+```
+
+```javascript
+// 이메일 발송 시스템 예시
+const emailSystem = {
+    // 이메일 발송 요청
+    sendEmail: async function(emailData) {
+        await sendMessage('email_queue', JSON.stringify(emailData));
+    },
+    
+    // 이메일 템플릿별 라우팅
+    sendWelcomeEmail: async function(userData) {
+        const emailData = {
+            type: 'welcome',
+            to: userData.email,
+            template: 'welcome',
+            data: userData
+        };
+        await sendMessage('email_queue', JSON.stringify(emailData));
+    }
+};
+```
+
+```javascript
+// 로그 처리 시스템 예시
+const logSystem = {
+    // 로그 레벨별 처리
+    logError: async function(error) {
+        await sendMessage('error_log_queue', JSON.stringify(error));
+    },
+    
+    logInfo: async function(info) {
+        await sendMessage('info_log_queue', JSON.stringify(info));
+    },
+    
+    logWarning: async function(warning) {
+        await sendMessage('warning_log_queue', JSON.stringify(warning));
+    }
+};
+```
+
+---
+
 
 ### ✅ AMQP의 핵심 포인트
 - **메시지 브로커를 위한 표준 프로토콜**
@@ -472,4 +512,267 @@ const logSystem = {
 - **대용량 데이터 처리**
 - **시스템 간 느슨한 결합**
 
+
+- **마이크로서비스 간 통신**
+- **이벤트 기반 아키텍처**
+- **대용량 데이터 처리**
+- **시스템 간 느슨한 결합**
+
+
+
+
+
+
+
+- **시스템 부하 분산**: 메시지를 즉시 처리하지 않고 큐에 저장
+- **신뢰성**: 메시지 손실 방지
+- **확장성**: 여러 소비자가 동시에 메시지 처리 가능
+
+---
+
+- **시스템 부하 분산**: 메시지를 즉시 처리하지 않고 큐에 저장
+- **신뢰성**: 메시지 손실 방지
+- **확장성**: 여러 소비자가 동시에 메시지 처리 가능
+
+---
+
+
+#### 1️⃣ Producer (생산자)
+메시지를 생성하고 보내는 역할
+```javascript
+// Producer 예시
+const producer = {
+    sendMessage: function(message) {
+        // Exchange로 메시지 전송
+        exchange.receive(message);
+    }
+};
+```
+
+#### 2️⃣ Exchange (교환기)
+메시지를 받아서 적절한 큐로 분배하는 역할
+```javascript
+// Exchange의 기본 동작
+const exchange = {
+    receive: function(message) {
+        const targetQueue = this.routeMessage(message);
+        targetQueue.add(message);
+    },
+    
+    routeMessage: function(message) {
+        // 메시지 타입에 따라 적절한 큐 선택
+        if (message.type === 'error') {
+            return errorQueue;
+        } else if (message.type === 'info') {
+            return infoQueue;
+        }
+    }
+};
+```
+
+#### 3️⃣ Queue (큐)
+메시지가 저장되는 공간
+```javascript
+// Queue의 기본 구조
+const queue = {
+    messages: [],
+    
+    add: function(message) {
+        this.messages.push(message);
+        console.log(`메시지 추가됨: ${message.content}`);
+    },
+    
+    get: function() {
+        return this.messages.shift(); // 가장 오래된 메시지 반환
+    }
+};
+```
+
+#### 4️⃣ Consumer (소비자)
+큐에서 메시지를 가져와서 처리하는 역할
+```javascript
+// Consumer 예시
+const consumer = {
+    processMessage: function() {
+        const message = queue.get();
+        if (message) {
+            console.log(`메시지 처리 중: ${message.content}`);
+            // 실제 비즈니스 로직 처리
+        }
+    }
+};
+```
+
+---
+
+
+```javascript
+// 주문 처리 시스템 예시
+const orderSystem = {
+    // 주문 생성
+    createOrder: async function(orderData) {
+        await sendMessage('order_queue', JSON.stringify(orderData));
+        console.log('주문이 큐에 등록되었습니다.');
+    },
+    
+    // 재고 확인
+    checkInventory: async function(orderData) {
+        await sendMessage('inventory_queue', JSON.stringify(orderData));
+    },
+    
+    // 결제 처리
+    processPayment: async function(orderData) {
+        await sendMessage('payment_queue', JSON.stringify(orderData));
+    }
+};
+```
+
+```javascript
+// 이메일 발송 시스템 예시
+const emailSystem = {
+    // 이메일 발송 요청
+    sendEmail: async function(emailData) {
+        await sendMessage('email_queue', JSON.stringify(emailData));
+    },
+    
+    // 이메일 템플릿별 라우팅
+    sendWelcomeEmail: async function(userData) {
+        const emailData = {
+            type: 'welcome',
+            to: userData.email,
+            template: 'welcome',
+            data: userData
+        };
+        await sendMessage('email_queue', JSON.stringify(emailData));
+    }
+};
+```
+
+```javascript
+// 로그 처리 시스템 예시
+const logSystem = {
+    // 로그 레벨별 처리
+    logError: async function(error) {
+        await sendMessage('error_log_queue', JSON.stringify(error));
+    },
+    
+    logInfo: async function(info) {
+        await sendMessage('info_log_queue', JSON.stringify(info));
+    },
+    
+    logWarning: async function(warning) {
+        await sendMessage('warning_log_queue', JSON.stringify(warning));
+    }
+};
+```
+
+---
+
+```javascript
+// 주문 처리 시스템 예시
+const orderSystem = {
+    // 주문 생성
+    createOrder: async function(orderData) {
+        await sendMessage('order_queue', JSON.stringify(orderData));
+        console.log('주문이 큐에 등록되었습니다.');
+    },
+    
+    // 재고 확인
+    checkInventory: async function(orderData) {
+        await sendMessage('inventory_queue', JSON.stringify(orderData));
+    },
+    
+    // 결제 처리
+    processPayment: async function(orderData) {
+        await sendMessage('payment_queue', JSON.stringify(orderData));
+    }
+};
+```
+
+```javascript
+// 이메일 발송 시스템 예시
+const emailSystem = {
+    // 이메일 발송 요청
+    sendEmail: async function(emailData) {
+        await sendMessage('email_queue', JSON.stringify(emailData));
+    },
+    
+    // 이메일 템플릿별 라우팅
+    sendWelcomeEmail: async function(userData) {
+        const emailData = {
+            type: 'welcome',
+            to: userData.email,
+            template: 'welcome',
+            data: userData
+        };
+        await sendMessage('email_queue', JSON.stringify(emailData));
+    }
+};
+```
+
+```javascript
+// 로그 처리 시스템 예시
+const logSystem = {
+    // 로그 레벨별 처리
+    logError: async function(error) {
+        await sendMessage('error_log_queue', JSON.stringify(error));
+    },
+    
+    logInfo: async function(info) {
+        await sendMessage('info_log_queue', JSON.stringify(info));
+    },
+    
+    logWarning: async function(warning) {
+        await sendMessage('warning_log_queue', JSON.stringify(warning));
+    }
+};
+```
+
+---
+
+
+- **마이크로서비스 간 통신**
+- **이벤트 기반 아키텍처**
+- **대용량 데이터 처리**
+- **시스템 간 느슨한 결합**
+
+
+- **마이크로서비스 간 통신**
+- **이벤트 기반 아키텍처**
+- **대용량 데이터 처리**
+- **시스템 간 느슨한 결합**
+
+
+
+
+
+
+
+
+
+
+
+## 🤔 AMQP란?
+
+**AMQP (Advanced Message Queuing Protocol)**는 **메시지 브로커를 위한 개방형 표준 프로토콜**입니다.
+
+### 🎯 AMQP의 역할
+- **메시지의 안전한 전달** 보장
+- **여러 시스템 간의 비동기 통신** 지원
+- **메시지의 우선순위와 라우팅** 관리
+
+---
+
+## 🏗️ AMQP의 핵심 구성 요소
+
+### 📊 AMQP 아키텍처
+
+```plaintext
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Producer   │───▶│   Exchange  │───▶│    Queue    │───▶│  Consumer   │
+│ (생산자)     │    │  (교환기)    │    │   (큐)      │    │ (소비자)     │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+## ⚖️ AMQP vs MQTT
 

@@ -1,7 +1,12 @@
+---
+title: Java Queue
+tags: [language, java, 컬렉션-및-데이터-처리, collectionframework, queue]
+updated: 2025-08-10
+---
 
 # Java Queue
 
-## 개념
+## 배경
 
 **Queue(큐)** 는 FIFO(First-In-First-Out, 선입선출) 구조를 따르는 데이터 구조입니다.  
 먼저 들어온 데이터가 먼저 나가며, 줄을 서서 기다리는 것과 유사한 개념입니다.
@@ -11,7 +16,6 @@ Java 컬렉션 프레임워크에서는 `Queue` 인터페이스로 정의되며,
 
 ---
 
-## 주요 구현 클래스
 
 1. **PriorityQueue**
     - 우선순위에 따라 요소를 정렬하며, 기본적으로 자연 순서를 따릅니다.
@@ -27,7 +31,6 @@ Java 컬렉션 프레임워크에서는 `Queue` 인터페이스로 정의되며,
 
 ---
 
-## 주요 메서드
 
 - **`offer(E e)`**: 큐의 끝에 요소 추가 (성공 여부를 반환).
 - **`poll()`**: 큐의 맨 앞 요소 제거 및 반환. 큐가 비어 있으면 `null` 반환.
@@ -35,7 +38,6 @@ Java 컬렉션 프레임워크에서는 `Queue` 인터페이스로 정의되며,
 
 ---
 
-## 예시
 
 ### 1. PriorityQueue 예제
 
@@ -124,7 +126,6 @@ public class ArrayDequeExample {
 
 ---
 
-## 큐의 활용 예시
 
 1. **프로세스 스케줄링**  
    운영체제에서 프로세스를 순서대로 실행하는 데 사용됩니다.
@@ -137,7 +138,16 @@ public class ArrayDequeExample {
 
 ---
 
-## 결론
 
 Java에서 `Queue`는 데이터를 순차적으로 처리해야 할 때 매우 유용한 데이터 구조입니다.  
 `PriorityQueue`, `LinkedList`, `ArrayDeque`와 같은 다양한 구현체를 상황에 맞게 선택하여 사용하면 효율적인 프로그램을 작성할 수 있습니다.
+
+
+
+
+
+
+
+
+
+

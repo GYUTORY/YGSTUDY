@@ -1,3 +1,8 @@
+---
+title: Optional
+tags: [language, java, 컬렉션-및-데이터-처리, optionalconcept]
+updated: 2025-08-10
+---
 
 # Optional (옵셔널)
 
@@ -6,12 +11,42 @@
 ### Optional이란?
 `Optional`은 Java 8에서 도입된 클래스이며, `null`로 인해 발생할 수 있는 `NullPointerException` 문제를 해결하기 위한 도구입니다. 객체의 존재 여부를 명시적으로 표현할 수 있어 코드의 가독성과 안정성을 높이는 데 도움을 줍니다.
 
-### 주요 특징
+## 배경
 - **`null`을 직접 사용하지 않도록 지원**: 안전한 대체제 제공
 - **명시적 표현**: 값이 있거나 없는 상태를 명확히 표현
 - **함수형 프로그래밍 지원**: `map`, `flatMap`, `filter` 등의 메서드를 제공
 
 ---
+
+```java
+import java.util.Optional;
+
+public class OptionalExample {
+    public static void main(String[] args) {
+        Optional<String> optional = Optional.of("Hello Optional");
+
+        optional.ifPresent(System.out::println);
+
+        String value = optional.orElse("Default Value");
+        System.out.println("Optional 값: " + value);
+
+        String transformed = optional.map(String::toUpperCase).orElse("EMPTY");
+        System.out.println("변환된 값: " + transformed);
+    }
+}
+```
+
+
+`Optional`은 값의 부재를 안전하고 명시적으로 표현할 수 있는 도구입니다. 이를 통해 `null`로 인한 문제를 줄이고, 더 명확하고 안전한 코드를 작성할 수 있습니다. 하지만 Optional의 사용 목적과 한계를 이해하고 적절히 사용하는 것이 중요합니다.
+
+
+
+
+
+
+
+
+
 
 ## Optional 생성 방법
 
@@ -88,25 +123,6 @@
 
 ## Optional 예제
 
-### 기본 사용 예제
-```java
-import java.util.Optional;
-
-public class OptionalExample {
-    public static void main(String[] args) {
-        Optional<String> optional = Optional.of("Hello Optional");
-
-        optional.ifPresent(System.out::println);
-
-        String value = optional.orElse("Default Value");
-        System.out.println("Optional 값: " + value);
-
-        String transformed = optional.map(String::toUpperCase).orElse("EMPTY");
-        System.out.println("변환된 값: " + transformed);
-    }
-}
-```
-
 ### NullPointerException 방지
 ```java
 import java.util.Optional;
@@ -143,6 +159,3 @@ public class NullSafeExample {
 
 ---
 
-## 결론
-
-`Optional`은 값의 부재를 안전하고 명시적으로 표현할 수 있는 도구입니다. 이를 통해 `null`로 인한 문제를 줄이고, 더 명확하고 안전한 코드를 작성할 수 있습니다. 하지만 Optional의 사용 목적과 한계를 이해하고 적절히 사용하는 것이 중요합니다.

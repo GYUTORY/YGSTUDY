@@ -1,167 +1,395 @@
-
-# 📦 TypeScript `tsconfig.json` 파일 완벽 가이드
-
-## 👉🏻 `tsconfig.json`이란?
-`tsconfig.json`은 **TypeScript 프로젝트의 구성 파일**로, TypeScript 컴파일러(`tsc`)가 코드를 어떻게 변환하고 검사할지를 정의하는 설정 파일입니다.
-
-이 파일을 사용하면 프로젝트의 **컴파일 옵션, 경로 설정, 출력 폴더** 등을 구성할 수 있습니다.
-
+---
+title: TypeScript tsconfig.json 설정 가이드
+tags: [language, typescript, 프로젝트-설정-및-컴파일러, tsconfig, configuration]
+updated: 2025-08-10
 ---
 
-## 🎯 `tsconfig.json` 파일의 필요성
-TypeScript는 **정적 타입 검사**와 **JavaScript로 변환**을 제공하는 언어입니다.  
-이를 효과적으로 사용하기 위해 `tsconfig.json`을 통해 프로젝트의 설정을 명시적으로 관리합니다.
+# TypeScript tsconfig.json 설정 가이드
 
-### 📌 주요 기능:
+## 배경
+
+`tsconfig.json`은 TypeScript 프로젝트의 구성 파일로, TypeScript 컴파일러(`tsc`)가 코드를 어떻게 변환하고 검사할지를 정의하는 설정 파일입니다. 프로젝트의 타입 검사 규칙과 컴파일 옵션을 중앙에서 관리할 수 있게 해줍니다.
+
+### tsconfig.json의 필요성
 - **컴파일 옵션 설정**: 코드의 변환 방식 정의
 - **타입 검사 설정**: 코드의 엄격성 설정
 - **출력 경로 설정**: 컴파일 결과 파일 위치 정의
 - **모듈 해석 설정**: 외부 모듈과의 경로 연결 설정
 
----
+### 기본 개념
+- **정적 타입 검사**: 컴파일 타임에 타입 오류 감지
+- **JavaScript 변환**: TypeScript를 JavaScript로 변환
+- **프로젝트 설정**: 일관된 개발 환경 구축
 
-## ✅ `tsconfig.json` 파일 생성하기
-프로젝트 루트에서 다음 명령어를 실행하면 자동으로 `tsconfig.json` 파일을 생성할 수 있습니다:
+## 핵심
 
+### 1. 프로젝트 초기화
+
+#### tsconfig.json 생성
 ```bash
 npx tsc --init
 ```
 
-기본적으로 생성되는 `tsconfig.json` 파일의 예제:
-
+#### 기본 tsconfig.json
 ```json
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2022",
     "module": "CommonJS",
     "outDir": "./dist",
-    "strict": true
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
 ```
 
----
+### 2. 주요 컴파일러 옵션
 
-## 📦 `tsconfig.json`의 주요 옵션 설명
-### **1. `compilerOptions` (컴파일러 옵션)**
-`compilerOptions`는 TypeScript 컴파일러가 코드를 어떻게 해석하고 변환할지를 정의합니다.
-
-| 옵션                   | 설명                                           | 예제                  |
-|-----------------------|---------------------------------|--------------------|
-| `target`             | 컴파일 대상 JavaScript 버전 설정 | `"ES6"` |
-| `module`             | 모듈 시스템 설정                   | `"CommonJS"` |
-| `strict`             | 엄격한 타입 검사 모드 활성화       | `true` |
-| `outDir`             | 컴파일 결과물 저장 폴더             | `"./dist"` |
-| `sourceMap`          | 디버깅을 위한 소스맵 생성            | `true` |
-
----
-
-### **2. `include`와 `exclude` (포함 및 제외 설정)**
-- **`include`**: 컴파일할 파일의 경로를 설정합니다.
-- **`exclude`**: 컴파일에서 제외할 파일을 설정합니다.
-
+#### 기본 컴파일 옵션
 ```json
 {
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "compilerOptions": {
+    "target": "ES2022",           // 컴파일 대상 JavaScript 버전
+    "module": "CommonJS",         // 모듈 시스템
+    "outDir": "./dist",           // 출력 디렉토리
+    "rootDir": "./src",           // 소스 루트 디렉토리
+    "strict": true,               // 엄격한 타입 검사
+    "sourceMap": true,            // 소스맵 생성
+    "declaration": true,          // 타입 선언 파일 생성
+    "declarationMap": true        // 타입 선언 소스맵 생성
+  }
 }
 ```
 
----
+#### 타입 검사 옵션
+```json
+{
+  "compilerOptions": {
+    "strict": true,                    // 모든 엄격한 타입 검사 활성화
+    "noImplicitAny": true,            // 암시적 any 타입 금지
+    "strictNullChecks": true,         // null/undefined 엄격 검사
+    "strictFunctionTypes": true,      // 함수 타입 엄격 검사
+    "strictBindCallApply": true,      // bind/call/apply 엄격 검사
+    "strictPropertyInitialization": true, // 클래스 속성 초기화 검사
+    "noImplicitThis": true,           // 암시적 this 타입 금지
+    "useUnknownInCatchVariables": true // catch 변수를 unknown으로
+  }
+}
+```
 
-### **3. `baseUrl`와 `paths` (경로 별칭 설정)**
-- **`baseUrl`**: 모듈 경로의 기준점을 설정합니다.
-- **`paths`**: 별칭을 정의하여 모듈 경로를 짧게 만듭니다.
+### 3. 파일 포함 및 제외 설정
 
+#### include와 exclude
+```json
+{
+  "include": [
+    "src/**/*",           // src 폴더의 모든 TypeScript 파일
+    "tests/**/*"          // tests 폴더의 모든 TypeScript 파일
+  ],
+  "exclude": [
+    "node_modules",       // node_modules 제외
+    "dist",               // 빌드 결과물 제외
+    "**/*.test.ts",       // 테스트 파일 제외
+    "**/*.spec.ts"        // 스펙 파일 제외
+  ]
+}
+```
+
+### 4. 모듈 해석 설정
+
+#### 경로 매핑
 ```json
 {
   "compilerOptions": {
     "baseUrl": "./src",
     "paths": {
+      "@/*": ["*"],
       "@components/*": ["components/*"],
-      "@utils/*": ["utils/*"]
+      "@utils/*": ["utils/*"],
+      "@types/*": ["types/*"]
     }
   }
 }
 ```
 
-사용 예제:
-
-```typescript
-import { Button } from "@components/Button";
-import { formatDate } from "@utils/dateFormatter";
-```
-
----
-
-### **4. `strict` 모드 (엄격한 타입 검사)**
-- **`strict`**: 엄격 모드를 활성화합니다.
-- **`noImplicitAny`**: `any` 타입을 명시적으로 지정해야 합니다.
-- **`strictNullChecks`**: `null`과 `undefined`를 더욱 엄격하게 검사합니다.
-
+#### 모듈 해석 옵션
 ```json
 {
   "compilerOptions": {
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
   }
 }
 ```
 
----
+## 예시
 
-## 🛠️ 실전 예제: TypeScript 프로젝트 설정하기
-### **1. 프로젝트 초기화**
-```bash
-mkdir my-ts-project
-cd my-ts-project
-npm init -y
-npx tsc --init
-```
+### 1. 실제 사용 사례
 
-### **2. `tsconfig.json` 설정**
+#### Node.js 프로젝트 설정
 ```json
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2022",
     "module": "CommonJS",
+    "lib": ["ES2022"],
     "outDir": "./dist",
-    "strict": true
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true,
+    "removeComments": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }
 ```
 
-### **3. `src/index.ts` 파일 생성**
-```typescript
-const message: string = "Hello, TypeScript!";
-console.log(message);
+#### React 프로젝트 설정
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src"
+  ]
+}
 ```
 
-### **4. 컴파일 및 실행**
-```bash
-npx tsc
-node dist/index.js
+#### 라이브러리 프로젝트 설정
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}
 ```
 
----
+### 2. 고급 패턴
 
-## 📊 `tsconfig.json` vs `jsconfig.json` 비교
+#### 다중 설정 파일 사용
+```json
+// tsconfig.base.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
 
-| 특징                     | `tsconfig.json`         | `jsconfig.json`         |
-|-------------------------|-----------------------|-----------------------|
-| **언어 지원**            | TypeScript 전용       | JavaScript 전용      |
-| **타입 검사**            | 타입 검사 지원         | 제한적 타입 검사     |
-| **사용 환경**            | TypeScript 프로젝트 | Vanilla JS 프로젝트 |
+// tsconfig.json
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
 
----
+// tsconfig.test.json
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist-test",
+    "rootDir": "tests"
+  },
+  "include": ["tests/**/*"],
+  "exclude": ["node_modules", "dist-test"]
+}
+```
 
-## 🎯 결론
-`tsconfig.json`은 TypeScript 프로젝트의 핵심 구성 요소로, **컴파일 설정, 타입 검사, 모듈 해석** 등을 체계적으로 관리할 수 있습니다.  
-효율적인 TypeScript 개발 환경을 구축하기 위해, 프로젝트에 맞는 `tsconfig.json`을 구성해 보세요!
+#### 모노레포 설정
+```json
+// packages/app/tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "paths": {
+      "@app/*": ["*"],
+      "@shared/*": ["../../packages/shared/src/*"],
+      "@ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../shared" },
+    { "path": "../ui" }
+  ]
+}
+```
 
-> **🚀 지금 바로 TypeScript를 사용하여 강력한 애플리케이션을 개발해보세요!**
+#### 개발/프로덕션 환경별 설정
+```json
+// tsconfig.dev.json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": true,
+    "declaration": false,
+    "removeComments": false
+  }
+}
+
+// tsconfig.prod.json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": false,
+    "declaration": true,
+    "removeComments": true,
+    "noEmitOnError": true
+  }
+}
+```
+
+## 운영 팁
+
+### 성능 최적화
+
+#### 빌드 성능 최적화
+```json
+{
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+```
+
+#### 타입 검사 최적화
+```json
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true
+  }
+}
+```
+
+### 에러 처리
+
+#### 타입 오류 해결
+```json
+{
+  "compilerOptions": {
+    "noImplicitAny": false,        // 암시적 any 허용
+    "strictNullChecks": false,     // null/undefined 엄격 검사 비활성화
+    "noImplicitReturns": false,    // 암시적 반환 허용
+    "suppressImplicitAnyIndexErrors": true  // 인덱스 오류 억제
+  }
+}
+```
+
+#### 일반적인 문제 해결
+```json
+{
+  "compilerOptions": {
+    "allowJs": true,               // JavaScript 파일 허용
+    "checkJs": false,              // JavaScript 파일 타입 검사 비활성화
+    "resolveJsonModule": true,     // JSON 모듈 해석 허용
+    "esModuleInterop": true,       // ES 모듈 호환성
+    "allowSyntheticDefaultImports": true  // 합성 기본 import 허용
+  }
+}
+```
+
+## 참고
+
+### 주요 컴파일러 옵션 비교표
+
+| 옵션 | 설명 | 기본값 | 권장값 |
+|------|------|--------|--------|
+| `target` | JavaScript 버전 | ES3 | ES2022 |
+| `module` | 모듈 시스템 | CommonJS | CommonJS/ESNext |
+| `strict` | 엄격 모드 | false | true |
+| `sourceMap` | 소스맵 생성 | false | true |
+| `declaration` | 선언 파일 생성 | false | true |
+
+### 환경별 권장 설정
+
+| 환경 | target | module | strict | sourceMap |
+|------|--------|--------|--------|-----------|
+| **Node.js** | ES2022 | CommonJS | true | true |
+| **React** | ES2022 | ESNext | true | true |
+| **라이브러리** | ES2022 | ESNext | true | true |
+| **레거시** | ES5 | CommonJS | false | false |
+
+### 결론
+tsconfig.json은 TypeScript 프로젝트의 핵심 설정 파일입니다.
+프로젝트 요구사항에 맞는 적절한 컴파일러 옵션을 설정하세요.
+엄격한 타입 검사를 통해 코드 품질을 향상시키세요.
+성능 최적화 옵션을 활용하여 빌드 속도를 개선하세요.
+다중 설정 파일을 활용하여 다양한 환경에 대응하세요.
+모듈 해석 설정으로 외부 라이브러리와의 호환성을 확보하세요.
+

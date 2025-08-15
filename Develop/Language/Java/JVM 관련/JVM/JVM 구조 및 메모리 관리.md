@@ -1,3 +1,8 @@
+---
+title: JVM
+tags: [language, java, jvm-관련, jvm, jvm-구조-및-메모리-관리]
+updated: 2025-08-10
+---
 # JVM 구조 및 메모리 관리 🚀
 
 ## 1. JVM(Java Virtual Machine)이란? 🤔
@@ -181,7 +186,7 @@ public class GCExample {
 
 ---
 
-## 📌 결론
+## 배경
 
 - **JVM은 Java 프로그램을 실행하는 가상 머신으로, 메모리 관리와 실행 환경을 제공**
 - **JVM 메모리는 Heap, Stack, Method Area 등으로 구성되며, Garbage Collector(GC)가 자동 관리**
@@ -189,4 +194,13 @@ public class GCExample {
 - **Garbage Collection을 통해 불필요한 객체를 자동으로 제거하여 메모리를 최적화**
 
 > **👉🏻 JVM 구조와 메모리 관리를 이해하면, Java 애플리케이션의 성능 최적화에 도움이 됨!**  
+
+
+
+
+
+
+
+
+
 

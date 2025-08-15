@@ -1,6 +1,11 @@
+---
+title: AWS Route 53
+tags: [aws, networking-and-content-delivery, route-53]
+updated: 2025-08-10
+---
 # AWS Route 53
 
-## 📖 개요
+## 배경
 
 ### Route 53이란?
 AWS Route 53은 **인터넷의 주소록 역할을 하는 DNS(Domain Name System) 서비스**입니다.
@@ -14,7 +19,12 @@ AWS Route 53은 **인터넷의 주소록 역할을 하는 DNS(Domain Name System
 
 ---
 
-## 🔧 핵심 개념 이해하기
+- **Route**: 경로를 찾아주는 역할
+- **53**: DNS 프로토콜이 사용하는 포트 번호
+- 즉, "53번 포트로 경로를 찾아주는 서비스"
+
+---
+
 
 ### DNS (Domain Name System)란?
 **인터넷의 전화번호부**라고 생각하면 됩니다.
@@ -43,12 +53,16 @@ www.example.com
 
 ---
 
-## 🎯 Route 53의 주요 기능
+```
+www.example.com
+│   │      │
+│   │      └── TLD (Top Level Domain): .com, .net, .org
+│   └────────── Second Level Domain: example
+└────────────── Subdomain: www
+```
 
-### 1. 도메인 등록 및 관리
-**인터넷에서 사용할 주소를 구매하고 관리**하는 기능
+---
 
-#### 도메인 등록 과정
 ```javascript
 const domainRegistration = {
   step1: "도메인 이름 검색 (예: mywebsite.com)",
@@ -59,7 +73,6 @@ const domainRegistration = {
 };
 ```
 
-#### 도메인 가격 예시
 ```javascript
 const domainPrices = {
   ".com": "$12.00/년",
@@ -70,49 +83,6 @@ const domainPrices = {
 };
 ```
 
-### 2. DNS 레코드 관리
-**도메인과 실제 서버를 연결**하는 설정
-
-#### 주요 DNS 레코드 타입
-
-| 레코드 타입 | 설명 | 예시 |
-|------------|------|------|
-| **A 레코드** | 도메인 → IPv4 주소 | `example.com → 192.168.1.1` |
-| **AAAA 레코드** | 도메인 → IPv6 주소 | `example.com → 2001:db8::1` |
-| **CNAME 레코드** | 도메인 → 다른 도메인 | `www.example.com → example.com` |
-| **MX 레코드** | 메일 서버 지정 | `example.com → mail.example.com` |
-| **TXT 레코드** | 도메인 검증 정보 | `example.com → "v=spf1 include:_spf.google.com ~all"` |
-
-#### JavaScript로 DNS 레코드 표현
-```javascript
-const dnsRecords = {
-  aRecord: {
-    name: "example.com",
-    type: "A",
-    value: "192.168.1.1",
-    ttl: 300 // 5분
-  },
-  
-  cnameRecord: {
-    name: "www.example.com", 
-    type: "CNAME",
-    value: "example.com",
-    ttl: 300
-  },
-  
-  mxRecord: {
-    name: "example.com",
-    type: "MX", 
-    value: "10 mail.example.com",
-    ttl: 3600 // 1시간
-  }
-};
-```
-
-### 3. 트래픽 라우팅
-**사용자 요청을 적절한 서버로 분배**하는 기능
-
-#### 라우팅 정책 종류
 
 **1. 단순 라우팅 (Simple)**
 ```javascript
@@ -164,10 +134,6 @@ const latencyRouting = {
 };
 ```
 
-### 4. 헬스 체크
-**서버가 정상 작동하는지 모니터링**하는 기능
-
-#### 헬스 체크 유형
 ```javascript
 const healthCheckTypes = {
   http: {
@@ -193,7 +159,6 @@ const healthCheckTypes = {
 };
 ```
 
-#### 헬스 체크 설정 예시
 ```javascript
 const healthCheckConfig = {
   interval: 30, // 30초마다 체크
@@ -207,7 +172,6 @@ const healthCheckConfig = {
 
 ---
 
-## 🛠️ 실제 설정 방법
 
 ### 1. 도메인 등록하기
 
@@ -280,7 +244,6 @@ const mxRecord = {
 
 ---
 
-## 💰 비용 구조
 
 ### 도메인 등록 비용
 ```javascript
@@ -312,7 +275,33 @@ const queryCosts = {
 
 ---
 
-## 🔍 모니터링 및 로깅
+```javascript
+const domainCosts = {
+  ".com": 12.00,    // $12.00/년
+  ".net": 12.00,    // $12.00/년  
+  ".org": 15.00,    // $15.00/년
+  ".io": 40.00,     // $40.00/년
+  ".co.kr": 15.00   // $15.00/년
+};
+```
+
+```javascript
+const hostedZoneCosts = {
+  public: 0.50,  // $0.50/월
+  private: 0.50  // $0.50/월
+};
+```
+
+```javascript
+const queryCosts = {
+  standard: 0.40,        // $0.40/백만 쿼리
+  latencyBased: 0.60,    // $0.60/백만 쿼리
+  geolocation: 0.70      // $0.70/백만 쿼리
+};
+```
+
+---
+
 
 ### CloudWatch 통합
 ```javascript
@@ -335,7 +324,6 @@ const cloudTrailLogs = {
 
 ---
 
-## 🚀 실제 사용 시나리오
 
 ### 1. 단일 웹사이트 운영
 ```javascript
@@ -382,7 +370,6 @@ const failoverSetup = {
 
 ---
 
-## 📚 추가 학습 포인트
 
 ### DNS 프로토콜 이해
 - DNS 쿼리 타입 (A, AAAA, CNAME, MX 등)
@@ -401,6 +388,296 @@ const failoverSetup = {
 
 ---
 
+- DNSSEC 활성화
+- IAM 정책 설정
+- 도메인 도용 방지
+
+---
+
+- VPC Endpoint: VPC 내부에서 퍼블릭 인터넷을 거치지 않고 AWS 서비스에 사설로 연결하는 엔드포인트.
+  - Gateway형: 라우팅 테이블에 목적지로 붙는 타입. 대표적으로 S3, DynamoDB.
+  - Interface형: ENI(네트워크 인터페이스)로 붙는 타입. 대부분의 서비스, 그리고 PrivateLink에 사용.
+- PrivateLink: 서비스 제공자 VPC의 NLB를 고객 VPC의 인터페이스 엔드포인트로 노출해 사설로 통신하는 방식.
+
+
+
+
+
+
+- **Route**: 경로를 찾아주는 역할
+- **53**: DNS 프로토콜이 사용하는 포트 번호
+- 즉, "53번 포트로 경로를 찾아주는 서비스"
+
+---
+
+- **Route**: 경로를 찾아주는 역할
+- **53**: DNS 프로토콜이 사용하는 포트 번호
+- 즉, "53번 포트로 경로를 찾아주는 서비스"
+
+---
+
+
+```
+www.example.com
+│   │      │
+│   │      └── TLD (Top Level Domain): .com, .net, .org
+│   └────────── Second Level Domain: example
+└────────────── Subdomain: www
+```
+
+---
+
+```
+www.example.com
+│   │      │
+│   │      └── TLD (Top Level Domain): .com, .net, .org
+│   └────────── Second Level Domain: example
+└────────────── Subdomain: www
+```
+
+---
+
+```javascript
+const domainRegistration = {
+  step1: "도메인 이름 검색 (예: mywebsite.com)",
+  step2: "가용성 확인 (이미 사용 중인지 체크)",
+  step3: "등록 기간 선택 (1-10년)",
+  step4: "개인정보 보호 설정",
+  step5: "결제 및 등록 완료"
+};
+```
+
+```javascript
+const domainPrices = {
+  ".com": "$12.00/년",
+  ".net": "$12.00/년", 
+  ".org": "$15.00/년",
+  ".io": "$40.00/년",
+  ".co.kr": "$15.00/년"
+};
+```
+
+
+**1. 단순 라우팅 (Simple)**
+```javascript
+const simpleRouting = {
+  description: "가장 기본적인 라우팅 방식",
+  useCase: "단일 서버로 운영하는 웹사이트",
+  example: {
+    domain: "example.com",
+    target: "192.168.1.1"
+  }
+};
+```
+
+**2. 가중치 라우팅 (Weighted)**
+```javascript
+const weightedRouting = {
+  description: "트래픽을 비율에 따라 분배",
+  useCase: "A/B 테스트, 점진적 배포",
+  example: {
+    "server1.example.com": { weight: 70, ip: "192.168.1.1" },
+    "server2.example.com": { weight: 30, ip: "192.168.1.2" }
+  }
+};
+```
+
+**3. 지리적 라우팅 (Geolocation)**
+```javascript
+const geolocationRouting = {
+  description: "사용자 위치에 따라 서버 선택",
+  useCase: "지역별 콘텐츠 제공",
+  example: {
+    "US": { server: "us-server.example.com", ip: "192.168.1.1" },
+    "Asia": { server: "asia-server.example.com", ip: "192.168.1.2" },
+    "Europe": { server: "eu-server.example.com", ip: "192.168.1.3" }
+  }
+};
+```
+
+**4. 지연 시간 라우팅 (Latency-based)**
+```javascript
+const latencyRouting = {
+  description: "가장 빠른 응답 시간을 제공하는 서버 선택",
+  useCase: "글로벌 서비스 최적화",
+  example: {
+    "us-east-1": { latency: 50, server: "us-east.example.com" },
+    "ap-northeast-1": { latency: 30, server: "ap-northeast.example.com" },
+    "eu-west-1": { latency: 80, server: "eu-west.example.com" }
+  }
+};
+```
+
+```javascript
+const healthCheckTypes = {
+  http: {
+    description: "웹 서버 상태 확인",
+    method: "GET",
+    path: "/health",
+    expectedStatus: 200
+  },
+  
+  https: {
+    description: "보안 웹 서버 상태 확인", 
+    method: "GET",
+    path: "/health",
+    expectedStatus: 200,
+    ssl: true
+  },
+  
+  tcp: {
+    description: "포트 연결성 확인",
+    port: 80,
+    timeout: 5
+  }
+};
+```
+
+```javascript
+const healthCheckConfig = {
+  interval: 30, // 30초마다 체크
+  timeout: 5,   // 5초 타임아웃
+  failureThreshold: 3, // 3번 연속 실패 시 비정상 판정
+  successThreshold: 3, // 3번 연속 성공 시 정상 판정
+  path: "/health",
+  port: 80
+};
+```
+
+---
+
+
+```javascript
+const domainCosts = {
+  ".com": 12.00,    // $12.00/년
+  ".net": 12.00,    // $12.00/년  
+  ".org": 15.00,    // $15.00/년
+  ".io": 40.00,     // $40.00/년
+  ".co.kr": 15.00   // $15.00/년
+};
+```
+
+```javascript
+const hostedZoneCosts = {
+  public: 0.50,  // $0.50/월
+  private: 0.50  // $0.50/월
+};
+```
+
+```javascript
+const queryCosts = {
+  standard: 0.40,        // $0.40/백만 쿼리
+  latencyBased: 0.60,    // $0.60/백만 쿼리
+  geolocation: 0.70      // $0.70/백만 쿼리
+};
+```
+
+---
+
+```javascript
+const domainCosts = {
+  ".com": 12.00,    // $12.00/년
+  ".net": 12.00,    // $12.00/년  
+  ".org": 15.00,    // $15.00/년
+  ".io": 40.00,     // $40.00/년
+  ".co.kr": 15.00   // $15.00/년
+};
+```
+
+```javascript
+const hostedZoneCosts = {
+  public: 0.50,  // $0.50/월
+  private: 0.50  // $0.50/월
+};
+```
+
+```javascript
+const queryCosts = {
+  standard: 0.40,        // $0.40/백만 쿼리
+  latencyBased: 0.60,    // $0.60/백만 쿼리
+  geolocation: 0.70      // $0.70/백만 쿼리
+};
+```
+
+---
+
+
+- DNSSEC 활성화
+- IAM 정책 설정
+- 도메인 도용 방지
+
+---
+
+- DNSSEC 활성화
+- IAM 정책 설정
+- 도메인 도용 방지
+
+---
+
+- VPC Endpoint: VPC 내부에서 퍼블릭 인터넷을 거치지 않고 AWS 서비스에 사설로 연결하는 엔드포인트.
+  - Gateway형: 라우팅 테이블에 목적지로 붙는 타입. 대표적으로 S3, DynamoDB.
+  - Interface형: ENI(네트워크 인터페이스)로 붙는 타입. 대부분의 서비스, 그리고 PrivateLink에 사용.
+- PrivateLink: 서비스 제공자 VPC의 NLB를 고객 VPC의 인터페이스 엔드포인트로 노출해 사설로 통신하는 방식.
+
+
+
+
+
+
+
+
+
+
+## 🎯 Route 53의 주요 기능
+
+### 1. 도메인 등록 및 관리
+**인터넷에서 사용할 주소를 구매하고 관리**하는 기능
+
+### 2. DNS 레코드 관리
+**도메인과 실제 서버를 연결**하는 설정
+
+#### 주요 DNS 레코드 타입
+
+| 레코드 타입 | 설명 | 예시 |
+|------------|------|------|
+| **A 레코드** | 도메인 → IPv4 주소 | `example.com → 192.168.1.1` |
+| **AAAA 레코드** | 도메인 → IPv6 주소 | `example.com → 2001:db8::1` |
+| **CNAME 레코드** | 도메인 → 다른 도메인 | `www.example.com → example.com` |
+| **MX 레코드** | 메일 서버 지정 | `example.com → mail.example.com` |
+| **TXT 레코드** | 도메인 검증 정보 | `example.com → "v=spf1 include:_spf.google.com ~all"` |
+
+#### JavaScript로 DNS 레코드 표현
+```javascript
+const dnsRecords = {
+  aRecord: {
+    name: "example.com",
+    type: "A",
+    value: "192.168.1.1",
+    ttl: 300 // 5분
+  },
+  
+  cnameRecord: {
+    name: "www.example.com", 
+    type: "CNAME",
+    value: "example.com",
+    ttl: 300
+  },
+  
+  mxRecord: {
+    name: "example.com",
+    type: "MX", 
+    value: "10 mail.example.com",
+    ttl: 3600 // 1시간
+  }
+};
+```
+
+### 3. 트래픽 라우팅
+**사용자 요청을 적절한 서버로 분배**하는 기능
+
+### 4. 헬스 체크
+**서버가 정상 작동하는지 모니터링**하는 기능
+
 ## 🔗 관련 AWS 서비스
 
 - **CloudFront**: CDN 서비스와 연동
@@ -408,4 +685,42 @@ const failoverSetup = {
 - **ACM**: SSL 인증서 자동 관리
 - **CloudWatch**: 모니터링 및 알림
 - **CloudTrail**: API 호출 로깅
+
+---
+
+## VPC Endpoint / PrivateLink와 프라이빗 액세스
+
+### S3 프라이빗 액세스 구성 개요
+- 방법 1) Gateway VPC Endpoint(S3) + 버킷 정책으로 VPC 엔드포인트 프린시펄만 허용
+- 방법 2) S3 프라이빗 액세스 포인트(Access Point)와 VPC 엔드포인트를 조합
+
+버킷 정책(요지)
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": ["arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket/*"],
+      "Condition": { "StringNotEquals": { "aws:SourceVpce": "vpce-0123456789abcdef" } }
+    }
+  ]
+}
+```
+
+### ECR 프라이빗 액세스 구성 개요
+- ECR API: Interface VPC Endpoint로 사설 연결(`com.amazonaws.<region>.ecr.api`).
+- 이미지 레지스트리: Interface VPC Endpoint(`...ecr.dkr`).
+- S3: 레이어 저장소로 쓰이므로 S3 Gateway VPC Endpoint도 함께 구성.
+
+엔드포인트 예시 체크리스트
+- com.amazonaws.ap-northeast-2.ecr.api (Interface)
+- com.amazonaws.ap-northeast-2.ecr.dkr (Interface)
+- com.amazonaws.ap-northeast-2.s3 (Gateway)
+
+메모
+- DNS 옵션에서 `enableDnsHostnames`/`enableDnsSupport` 활성화가 필요.
+- 엔드포인트 SG에 필요한 포트(HTTPS 443)만 최소 허용.
 

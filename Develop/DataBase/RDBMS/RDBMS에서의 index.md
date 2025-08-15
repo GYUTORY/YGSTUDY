@@ -1,12 +1,20 @@
-## RDBMS에서의 Index
+---
+title: RDBMS에서의 Index
+tags: [database, rdbms, index, performance, optimization, b-tree]
+updated: 2024-12-19
+---
 
-### 인덱스의 정의와 목적
-- 인덱스는 데이터베이스 테이블의 검색 성능을 향상시키기 위한 자료구조입니다.
-- 책의 목차와 같이 특정 컬럼의 값을 기준으로 데이터를 빠르게 찾을 수 있게 해줍니다.
-- 인덱스는 테이블과 별도의 저장 공간에 저장되며, 데이터의 물리적 위치를 가리키는 포인터를 포함합니다.
-- 데이터베이스의 성능 최적화에서 가장 중요한 요소 중 하나입니다.
+# RDBMS에서의 Index
 
-### 인덱스의 기본 원리
+## 배경
+
+### 인덱스란?
+인덱스는 데이터베이스 테이블의 검색 성능을 향상시키기 위한 자료구조입니다.
+책의 목차와 같이 특정 컬럼의 값을 기준으로 데이터를 빠르게 찾을 수 있게 해줍니다.
+인덱스는 테이블과 별도의 저장 공간에 저장되며, 데이터의 물리적 위치를 가리키는 포인터를 포함합니다.
+데이터베이스의 성능 최적화에서 가장 중요한 요소 중 하나입니다.
+
+### 인덱스의 필요성
 1. **데이터 접근 방식**
    - Table Full Scan: 테이블의 모든 데이터를 순차적으로 읽는 방식
    - Index Scan: 인덱스를 통해 필요한 데이터만 선택적으로 읽는 방식
@@ -16,6 +24,8 @@
    - 데이터 페이지: 실제 데이터가 저장되는 공간
    - 인덱스 페이지: 인덱스 데이터가 저장되는 공간
    - 페이지 링크: 페이지 간의 연결 정보
+
+## 핵심
 
 ### 인덱스의 종류
 1. **B-Tree 인덱스**
@@ -47,6 +57,274 @@
    - 공간 데이터를 위한 특수 인덱스
    - R-Tree 구조 사용
    - 위치 기반 검색에 최적화
+
+### 인덱스의 장점
+- **검색 성능 향상**
+  - O(log n)의 시간 복잡도로 데이터 접근
+  - 대용량 데이터에서 효과적
+  - 특정 조건의 데이터 검색이 빠름
+
+- **정렬 작업 최적화**
+  - 인덱스는 이미 정렬된 상태
+  - ORDER BY 작업이 인덱스 순서로 처리
+  - 정렬 작업의 부하 감소
+
+- **조인 연산 가속화**
+  - 조인 조건의 컬럼에 인덱스가 있으면 효율적
+  - Nested Loop Join에서 특히 효과적
+  - 조인 성능 향상
+
+- **유니크 제약 조건 강제**
+  - 중복 데이터 방지
+  - 데이터 무결성 보장
+  - 유니크 인덱스로 구현
+
+### 인덱스의 단점
+- **저장 공간 증가**
+  - 인덱스는 별도의 저장 공간 필요
+  - 대용량 데이터에서는 상당한 공간 차지
+  - 디스크 I/O 증가 가능성
+
+- **삽입/수정/삭제 성능 저하**
+  - 인덱스 구조 유지를 위한 추가 작업
+  - B-Tree 재구성 비용
+  - 동시성 제어 복잡성
+
+- **관리 오버헤드**
+  - 인덱스 유지보수 필요
+  - 통계 정보 업데이트
+  - 인덱스 조각화 관리
+
+## 예시
+
+### B-Tree 인덱스 스캔 과정
+```javascript
+// 인덱스 스캔 시뮬레이션
+class BTreeIndex {
+  constructor() {
+    this.root = null;
+  }
+  
+  // 인덱스 스캔 과정
+  search(key) {
+    console.log('1. 루트 노드 접근');
+    let current = this.root;
+    
+    while (current) {
+      console.log('2. 키 값 비교:', key, 'vs', current.key);
+      
+      if (key === current.key) {
+        console.log('3. 리프 노드 도달 - 데이터 위치:', current.dataPointer);
+        console.log('4. 데이터 읽기 완료');
+        return current.dataPointer;
+      } else if (key < current.key) {
+        current = current.left;
+      } else {
+        current = current.right;
+      }
+    }
+    
+    console.log('데이터를 찾을 수 없습니다');
+    return null;
+  }
+}
+
+// 사용 예시
+const index = new BTreeIndex();
+index.search(42);
+```
+
+### 인덱스 생성 및 사용 예시
+```sql
+-- 사용자 테이블 생성
+CREATE TABLE users (
+  id INT PRIMARY KEY,
+  name VARCHAR(100),
+  email VARCHAR(100),
+  age INT,
+  created_at TIMESTAMP
+);
+
+-- 단일 컬럼 인덱스 생성
+CREATE INDEX idx_users_name ON users(name);
+CREATE INDEX idx_users_email ON users(email);
+
+-- 복합 인덱스 생성
+CREATE INDEX idx_users_age_created ON users(age, created_at);
+
+-- 부분 인덱스 (PostgreSQL)
+CREATE INDEX idx_users_active ON users(email) WHERE active = true;
+
+-- 유니크 인덱스
+CREATE UNIQUE INDEX idx_users_email_unique ON users(email);
+
+-- 인덱스 사용 예시
+-- 인덱스 스캔이 발생하는 쿼리
+SELECT * FROM users WHERE name = 'John Doe';
+SELECT * FROM users WHERE age BETWEEN 20 AND 30;
+SELECT * FROM users WHERE email LIKE 'john%';
+
+-- 복합 인덱스 활용
+SELECT * FROM users WHERE age = 25 ORDER BY created_at DESC;
+```
+
+### I/O 작업의 종류
+```javascript
+// 순차 I/O vs 랜덤 I/O 시뮬레이션
+class IOOperation {
+  // 순차 I/O (인덱스 범위 스캔)
+  sequentialRead(startBlock, endBlock) {
+    console.log('순차 I/O 시작');
+    for (let i = startBlock; i <= endBlock; i++) {
+      console.log(`블록 ${i} 읽기 - 연속된 데이터`);
+    }
+    console.log('순차 I/O 완료 - 효율적');
+  }
+  
+  // 랜덤 I/O (인덱스를 통한 단일 레코드 조회)
+  randomRead(blockNumbers) {
+    console.log('랜덤 I/O 시작');
+    blockNumbers.forEach(block => {
+      console.log(`블록 ${block} 읽기 - 디스크 헤드 이동 필요`);
+    });
+    console.log('랜덤 I/O 완료 - 상대적으로 느림');
+  }
+}
+
+// 사용 예시
+const io = new IOOperation();
+io.sequentialRead(1, 10);  // 연속된 블록 읽기
+io.randomRead([1, 15, 7, 23, 4]);  // 불연속된 블록 읽기
+```
+
+### 인덱스 성능 비교
+```javascript
+// 인덱스 유무에 따른 성능 비교
+class PerformanceTest {
+  constructor() {
+    this.data = this.generateTestData(1000000);
+  }
+  
+  generateTestData(size) {
+    const data = [];
+    for (let i = 0; i < size; i++) {
+      data.push({
+        id: i,
+        name: `User${i}`,
+        email: `user${i}@example.com`,
+        age: Math.floor(Math.random() * 50) + 18
+      });
+    }
+    return data;
+  }
+  
+  // 인덱스 없는 검색 (Table Full Scan)
+  searchWithoutIndex(targetId) {
+    console.time('인덱스 없는 검색');
+    const result = this.data.find(item => item.id === targetId);
+    console.timeEnd('인덱스 없는 검색');
+    return result;
+  }
+  
+  // 인덱스 있는 검색 (Index Scan)
+  searchWithIndex(targetId) {
+    console.time('인덱스 있는 검색');
+    // B-Tree 인덱스 시뮬레이션 (실제로는 O(log n))
+    const result = this.data[targetId]; // 단순화된 예시
+    console.timeEnd('인덱스 있는 검색');
+    return result;
+  }
+}
+
+// 성능 테스트
+const test = new PerformanceTest();
+test.searchWithoutIndex(500000);  // 느림
+test.searchWithIndex(500000);     // 빠름
+```
+
+## 운영 팁
+
+### 인덱스 설계 원칙
+1. **선택도(Selectivity) 고려**
+   - 높은 선택도를 가진 컬럼을 인덱스로 선정
+   - 예: 성별(2개 값)보다는 나이(다양한 값)가 더 좋은 인덱스
+
+2. **복합 인덱스 설계**
+   - 자주 함께 사용되는 컬럼들을 복합 인덱스로 구성
+   - 등호 조건이 있는 컬럼을 앞에 배치
+
+3. **인덱스 컬럼 순서**
+   - 가장 자주 사용되는 조건을 앞에 배치
+   - 범위 검색이 있는 컬럼은 뒤에 배치
+
+### 인덱스 모니터링
+```sql
+-- MySQL 인덱스 사용 현황 확인
+SHOW INDEX FROM users;
+SELECT * FROM information_schema.statistics WHERE table_name = 'users';
+
+-- PostgreSQL 인덱스 사용 현황 확인
+SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read, idx_tup_fetch
+FROM pg_stat_user_indexes
+WHERE tablename = 'users';
+
+-- 인덱스 크기 확인
+SELECT 
+  table_name,
+  index_name,
+  ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)'
+FROM information_schema.tables 
+WHERE table_schema = 'your_database';
+```
+
+### 인덱스 최적화
+```sql
+-- 불필요한 인덱스 제거
+DROP INDEX idx_unused_index ON users;
+
+-- 인덱스 재구성 (MySQL)
+OPTIMIZE TABLE users;
+
+-- 인덱스 통계 업데이트 (PostgreSQL)
+ANALYZE users;
+
+-- 인덱스 조각화 확인
+SELECT 
+  table_name,
+  index_name,
+  cardinality,
+  sub_part,
+  packed,
+  null,
+  index_type
+FROM information_schema.statistics 
+WHERE table_schema = 'your_database';
+```
+
+## 참고
+
+### 인덱스 관련 용어
+- **Cardinality**: 인덱스에서 고유한 값의 개수
+- **Selectivity**: 선택도, 인덱스의 효율성을 나타내는 지표
+- **Covering Index**: 쿼리에서 필요한 모든 컬럼이 인덱스에 포함된 경우
+- **Index Fragmentation**: 인덱스 조각화, 성능 저하의 원인
+
+### 실제 사용 사례
+1. **웹 애플리케이션**: 사용자 검색, 상품 검색
+2. **로그 분석**: 날짜별, 시간별 데이터 조회
+3. **게시판**: 제목, 작성자, 날짜별 검색
+4. **쇼핑몰**: 카테고리, 가격, 브랜드별 상품 검색
+
+### 결론
+인덱스는 데이터베이스 성능 최적화의 핵심 요소입니다.
+적절한 인덱스 설계와 관리를 통해 검색 성능을 크게 향상시킬 수 있습니다.
+하지만 과도한 인덱스는 오히려 성능을 저하시킬 수 있으므로, 
+실제 쿼리 패턴을 분석하여 필요한 인덱스만 생성하는 것이 중요합니다.
+
+
+
+
+
 
 ### B-Tree 인덱스의 상세 구조
 
@@ -98,223 +376,7 @@
   - 트랜잭션 ID, 롤백 포인터
   - 삭제 마커 등
 
-### 인덱스의 동작 방식
 
-#### 1. 인덱스 스캔 과정
-1. **루트 노드 접근**
-   - 루트 노드는 메모리에 캐시되어 있어 빠른 접근
-   - 키 값 비교를 통해 다음 노드 결정
 
-2. **브랜치 노드 탐색**
-   - 키 값의 범위에 따라 적절한 브랜치 선택
-   - 여러 단계의 브랜치 노드를 거칠 수 있음
 
-3. **리프 노드 도달**
-   - 실제 데이터의 위치 정보 확인
-   - 필요한 경우 추가 데이터 페이지 접근
 
-4. **데이터 읽기**
-   - 포인터를 통해 실제 데이터 페이지 접근
-   - 필요한 컬럼만 선택적으로 읽기
-
-#### 2. I/O 작업의 종류
-- **순차 I/O**
-  - 연속된 데이터 블록을 순서대로 읽는 방식
-  - 디스크 헤드의 이동이 최소화되어 효율적
-  - 예: 인덱스 범위 스캔, 테이블 풀 스캔
-  - 대용량 데이터 처리에 적합
-
-- **랜덤 I/O**
-  - 불연속적인 데이터 블록을 읽는 방식
-  - 디스크 헤드의 이동이 많아 성능 저하
-  - 예: 인덱스를 통한 단일 레코드 조회
-  - SSD에서는 상대적으로 영향이 적음
-
-### 인덱스 사용 시 고려사항
-
-#### 1. 인덱스의 장점
-- **검색 성능 향상**
-  - O(log n)의 시간 복잡도로 데이터 접근
-  - 대용량 데이터에서 효과적
-  - 특정 조건의 데이터 검색이 빠름
-
-- **정렬 작업 최적화**
-  - 인덱스는 이미 정렬된 상태
-  - ORDER BY 작업이 인덱스 순서로 처리
-  - 정렬 작업의 부하 감소
-
-- **조인 연산 가속화**
-  - 조인 조건의 컬럼에 인덱스가 있으면 효율적
-  - Nested Loop Join에서 특히 효과적
-  - 조인 성능 향상
-
-- **유니크 제약 조건 강제**
-  - 중복 데이터 방지
-  - 데이터 무결성 보장
-  - 유니크 인덱스로 구현
-
-#### 2. 인덱스의 단점
-- **저장 공간 증가**
-  - 인덱스 데이터의 추가 저장 필요
-  - 대용량 데이터베이스에서 중요한 고려사항
-  - 디스크 공간 비용 발생
-
-- **데이터 변경 작업 성능 저하**
-  - INSERT: 인덱스 업데이트 필요
-  - UPDATE: 인덱스 키 변경 시 재정렬
-  - DELETE: 인덱스 엔트리 제거
-
-- **인덱스 관리 오버헤드**
-  - 인덱스 재구성 필요
-  - 통계 정보 업데이트
-  - 페이지 분할/병합 작업
-
-#### 3. 인덱스 설계 시 고려 요소
-- **카디널리티**
-  - 컬럼의 고유한 값의 수
-  - 높은 카디널리티가 좋음
-  - 예: 성별(2) vs 이메일(수천)
-
-- **선택성**
-  - 특정 값을 가진 레코드의 비율
-  - 낮은 선택성이 좋음
-  - 예: 100만 건 중 10건 vs 100만 건 중 50만 건
-
-- **쿼리 패턴**
-  - 자주 사용되는 WHERE 조건
-  - 정렬이나 그룹화 조건
-  - 조인 조건
-
-- **데이터 변경 빈도**
-  - 읽기/쓰기 비율
-  - 배치 작업의 존재
-  - 실시간 처리 요구사항
-
-### 실무적 예시
-
-#### 1. 복합 인덱스 설계
-```sql
--- 주문 테이블 예시
-CREATE TABLE orders (
-    order_id INT PRIMARY KEY,
-    customer_id INT,
-    order_date DATETIME,
-    status VARCHAR(20),
-    amount DECIMAL(10,2),
-    INDEX idx_customer_date (customer_id, order_date)
-);
-
--- 효율적인 쿼리
-SELECT * FROM orders 
-WHERE customer_id = 100 
-AND order_date BETWEEN '2024-01-01' AND '2024-12-31';
-
--- 비효율적인 쿼리 (인덱스 사용 불가)
-SELECT * FROM orders 
-WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31';
-```
-
-#### 2. 커버링 인덱스
-```sql
--- 커버링 인덱스 예시
-CREATE INDEX idx_covering ON orders (customer_id, order_date, status);
-
--- 인덱스만으로 처리되는 쿼리
-SELECT customer_id, order_date, status 
-FROM orders 
-WHERE customer_id = 100;
-
--- 테이블 접근이 필요한 쿼리
-SELECT * FROM orders 
-WHERE customer_id = 100;
-```
-
-#### 3. 부분 인덱스
-```sql
--- 활성 주문만 인덱싱
-CREATE INDEX idx_active_orders ON orders (customer_id) 
-WHERE status = 'ACTIVE';
-
--- 특정 기간의 주문만 인덱싱
-CREATE INDEX idx_recent_orders ON orders (order_date) 
-WHERE order_date > '2024-01-01';
-```
-
-### 성능 최적화 팁
-
-1. **인덱스 선택성 최적화**
-   - 높은 선택성을 가진 컬럼을 선행 컬럼으로
-   - 낮은 선택성의 컬럼은 후행 컬럼으로
-   - 카디널리티가 높은 컬럼 우선
-
-2. **인덱스 크기 관리**
-   - 불필요한 컬럼 제외
-   - 문자열 인덱스의 경우 길이 제한
-   - 부분 인덱스 활용
-
-3. **인덱스 통계 정보 관리**
-   - 주기적인 ANALYZE TABLE 실행
-   - 통계 정보 갱신으로 실행 계획 최적화
-   - 히스토그램 정보 활용
-
-4. **인덱스 조각화 관리**
-   - 주기적인 인덱스 재구성
-   - 페이지 분할/병합 모니터링
-   - 조각화율 체크
-
-### 모니터링과 유지보수
-
-1. **인덱스 사용 현황 모니터링**
-```sql
--- MySQL에서 인덱스 사용 통계 확인
-SHOW INDEX FROM table_name;
-
--- 인덱스 사용 통계 확인
-SELECT * FROM information_schema.statistics 
-WHERE table_schema = 'your_database' 
-AND table_name = 'your_table';
-```
-
-2. **인덱스 조각화 관리**
-```sql
--- 인덱스 재구성
-OPTIMIZE TABLE table_name;
-
--- 인덱스 통계 업데이트
-ANALYZE TABLE table_name;
-```
-
-3. **불필요한 인덱스 제거**
-- 사용되지 않는 인덱스 모니터링
-- 주기적인 인덱스 사용 통계 분석
-- 인덱스 유지 비용 고려
-
-### 실제 운영 시나리오
-
-1. **대용량 데이터 마이그레이션**
-   - 인덱스 일시 비활성화
-   - 데이터 로드 후 인덱스 재생성
-   - 배치 작업 최적화
-
-2. **실시간 트랜잭션 처리**
-   - 핫스팟 방지
-   - 인덱스 분할
-   - 동시성 제어
-
-3. **데이터 웨어하우스**
-   - 비트맵 인덱스 활용
-   - 부분 인덱스 전략
-   - 배치 작업 최적화
-
-### 결론
-- 인덱스는 데이터베이스 성능에 중요한 영향을 미치는 요소
-- 적절한 인덱스 설계와 관리는 시스템 성능 향상의 핵심
-- 실제 사용 패턴을 고려한 인덱스 전략 수립 필요
-- 지속적인 모니터링과 최적화가 중요
-
-### 참고 자료
-- https://mangkyu.tistory.com/286
-- https://dev.mysql.com/doc/refman/8.0/en/optimization-indexes.html
-- https://use-the-index-luke.com/
-- https://www.percona.com/blog/
-- https://www.mysqlperformanceblog.com/

@@ -1,3 +1,8 @@
+---
+title: Getter Setter
+tags: [language, java, 객체지향-프로그래밍-oop, getter-and-setter]
+updated: 2025-08-10
+---
 # Getter와 Setter 개념 및 활용 🚀
 
 ## 1. Getter와 Setter란? 🤔
@@ -17,7 +22,7 @@
 
 ### 2.1 기본적인 Getter와 Setter
 
-#### ✅ 예제
+## 배경
 ```java
 class Person {
     private String name;  // private 변수 (직접 접근 불가)
@@ -62,12 +67,6 @@ public class GetterSetterExample {
 
 ---
 
-### 2.2 Setter에서 데이터 검증 적용
-
-✔ `setAge(int age)` 메서드에서 나이가 **0 이하인 경우 설정하지 않도록 예외 처리**  
-✔ **Setter를 통해 데이터 유효성을 검증할 수 있음**
-
-#### ✅ 예제
 ```java
 class Product {
     private String name;
@@ -114,12 +113,6 @@ public class ProductExample {
 
 ---
 
-### 2.3 읽기 전용(Read-Only) 및 쓰기 전용(Write-Only) 속성 만들기
-
-✔ **읽기 전용 (Read-Only) 속성** → `Getter`만 제공하고, `Setter`는 제공하지 않음  
-✔ **쓰기 전용 (Write-Only) 속성** → `Setter`만 제공하고, `Getter`는 제공하지 않음
-
-#### ✅ 예제 (읽기 전용 & 쓰기 전용 속성)
 ```java
 class BankAccount {
     private String owner;
@@ -165,6 +158,35 @@ public class BankAccountExample {
 
 ---
 
+- **Getter** → `private` 변수 값을 안전하게 조회할 때 사용
+- **Setter** → `private` 변수 값을 안전하게 변경할 때 사용
+- **데이터 무결성을 유지**하기 위해 Setter에서 검증 로직을 추가할 수 있음
+- **읽기 전용(Read-Only) 및 쓰기 전용(Write-Only) 속성도 설정 가능**
+- **Lombok을 활용하면 Getter/Setter 자동 생성 가능**
+
+> **👉🏻 Getter/Setter를 적절히 사용하여 객체의 데이터 보호와 조작을 효과적으로 관리하자!**
+
+
+
+
+
+
+
+
+### 2.2 Setter에서 데이터 검증 적용
+
+✔ `setAge(int age)` 메서드에서 나이가 **0 이하인 경우 설정하지 않도록 예외 처리**  
+✔ **Setter를 통해 데이터 유효성을 검증할 수 있음**
+
+### 2.3 읽기 전용(Read-Only) 및 쓰기 전용(Write-Only) 속성 만들기
+
+✔ **읽기 전용 (Read-Only) 속성** → `Getter`만 제공하고, `Setter`는 제공하지 않음  
+✔ **쓰기 전용 (Write-Only) 속성** → `Setter`만 제공하고, `Getter`는 제공하지 않음
+
+
+
+
+
 ## 3. Lombok을 활용한 Getter와 Setter 자동 생성 ✨
 
 **Lombok** 라이브러리를 사용하면, **별도의 `get`/`set` 메서드를 작성하지 않고도 자동으로 생성**할 수 있습니다.
@@ -208,15 +230,4 @@ public class LombokExample {
 ✔ **Lombok을 활용하면 불필요한 코드 작성을 줄일 수 있음**
 
 ---
-
-## 📌 결론
-- **Getter** → `private` 변수 값을 안전하게 조회할 때 사용
-- **Setter** → `private` 변수 값을 안전하게 변경할 때 사용
-- **데이터 무결성을 유지**하기 위해 Setter에서 검증 로직을 추가할 수 있음
-- **읽기 전용(Read-Only) 및 쓰기 전용(Write-Only) 속성도 설정 가능**
-- **Lombok을 활용하면 Getter/Setter 자동 생성 가능**
-
-> **👉🏻 Getter/Setter를 적절히 사용하여 객체의 데이터 보호와 조작을 효과적으로 관리하자!**
-
-
 

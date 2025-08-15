@@ -1,182 +1,506 @@
-
-
-최종 업데이트 2025-08-08, 버전 v1.0
-
-## 암호화에 사용하는 요소들에 대해 알아보자
-
-### Padding
-- 암호화 함수에 입력되는 데이터의 크기를 일정한 블록 크기로 맞추기 위해 사용되는 방법입니다. 패딩은 데이터의 크기를 블록 크기에 맞게 조정하는 역할을 합니다. 예를 들어, 블록 크기가 64비트인 경우, 데이터의 크기가 50비트라면 14비트의 패딩이 추가되어 블록 크기에 맞게 조정됩니다.
-
-- 가장 일반적인 패딩 방식 중 하나는 PKCS#7입니다. 
-- 예를 들어, 블록 크기가 8바이트(64비트)인 경우, 데이터의 크기가 10바이트라면 6바이트의 패딩이 추가되어야 합니다. 
-- 이를 PKCS#7 방식으로 패딩하면 다음과 같습니다:
-
-    - 원래 데이터: 10 20 30 40 50 60 70 80 90 A0
-    - 패딩 데이터: 10 20 30 40 50 60 70 80 90 A0 06 06 06 06 06 06
-
-### Code Example
-```typescript
-    const crypto = require('crypto');
-    
-    // PKCS#7 패딩을 적용하는 함수
-    function applyPKCS7Padding(data, blockSize) {
-    // 패딩 길이 계산
-    const paddingLength = blockSize - (data.length % blockSize);
-    
-    // 패딩 값 생성
-    const paddingValue = Buffer.from([paddingLength]);
-    
-    // 패딩된 데이터를 저장할 버퍼 생성
-    const paddedData = Buffer.alloc(data.length + paddingLength);
-    
-    // 기존 데이터를 패딩된 데이터로 복사
-    data.copy(paddedData);
-    
-    // 패딩 값을 추가하여 패딩 적용
-    paddingValue.fill(paddingLength, data.length);
-    
-    // 패딩된 데이터 반환
-    return paddedData;
-    }
-    
-    // 예시 데이터와 블록 크기
-    const data = Buffer.from('Hello, world!', 'utf8');
-    const blockSize = 16; // AES의 블록 크기는 16바이트입니다.
-    
-    // PKCS#7 패딩 적용
-    const paddedData = applyPKCS7Padding(data, blockSize);
-    console.log(paddedData);
-```
-
+---
+title: 보안 기본 개념 완벽 가이드
+tags: [security, cryptography, padding, salt, iteration, digest, hash, encryption]
+updated: 2025-08-10
 ---
 
-# Salt
-- Salt는 암호화 과정에서 추가되는 임의의 데이터입니다. Salt를 사용하면 동일한 비밀번호에 대해 항상 동일한 암호화 결과가 나오지 않기 때문에 레인보우 테이블 등의 공격을 방지할 수 있습니다. Salt는 보안성을 높이기 위해 사용자마다 다른 값을 가지며, 일반적으로 무작위로 생성됩니다.
+# 보안 기본 개념 완벽 가이드
 
-## Salt를 적용한 비밀번호 저장 과정
-- 사용자가 비밀번호를 생성 또는 변경할 때, 무작위로 Salt 값을 생성합니다. 이 Salt 값은 각 사용자마다 다르게 생성됩니다.
-- Salt 값과 사용자의 비밀번호를 결합하여 하나의 문자열로 만듭니다.
-- 결합된 문자열을 해시 함수에 입력으로 제공하여 해시 값을 생성합니다.
-- Salt 값과 생성된 해시 값을 함께 저장합니다.
+## 배경
 
-```typescript
+보안은 현대 디지털 시스템의 핵심 요소로, 데이터의 기밀성, 무결성, 가용성을 보장하는 중요한 역할을 합니다. 암호화와 해시 함수에서 사용되는 기본적인 개념들을 이해하는 것은 안전한 시스템을 구축하는 데 필수적입니다.
+
+### 보안의 필요성
+- **데이터 기밀성**: 민감한 정보의 무단 접근 방지
+- **데이터 무결성**: 데이터의 변경이나 손상 방지
+- **인증 및 인가**: 사용자 신원 확인 및 권한 관리
+- **안전한 통신**: 네트워크를 통한 안전한 데이터 전송
+- **규정 준수**: 개인정보보호법, GDPR 등 법적 요구사항 충족
+
+### 기본 개념
+- **암호화**: 평문을 암호문으로 변환하는 과정
+- **해시**: 데이터를 고정 길이의 값으로 변환하는 일방향 함수
+- **패딩**: 블록 암호화에서 데이터 크기를 맞추는 기법
+- **솔트**: 해시 함수에 추가하는 랜덤 데이터
+- **다이제스트**: 해시 함수의 출력값
+
+## 핵심
+
+### 1. Padding (패딩)
+
+패딩은 블록 암호화에서 데이터의 크기를 블록 크기에 맞추기 위해 사용되는 방법입니다.
+
+#### PKCS#7 패딩
+가장 일반적인 패딩 방식으로, 블록 크기가 16바이트(128비트)인 경우를 예로 들면:
+
+```javascript
+// PKCS#7 패딩 예시
+const originalData = Buffer.from('Hello, World!', 'utf8');
+// 길이: 13바이트
+
+// 패딩 적용 후 (16바이트로 맞춤)
+// 원본: 48 65 6C 6C 6F 2C 20 57 6F 72 6C 64 21
+// 패딩: 48 65 6C 6C 6F 2C 20 57 6F 72 6C 64 21 03 03 03
+// 마지막 3바이트에 패딩 길이(3)를 채움
+```
+
+#### 패딩 구현
+```javascript
 const crypto = require('crypto');
 
-// 사용자 정보를 저장할 객체
-const users = {};
-
-// 비밀번호 설정 함수
-function setPassword(username, password) {
-  // Salt 생성
-  const salt = crypto.randomBytes(16).toString('hex');
-  
-  // Salt와 비밀번호를 결합하여 해시 값 생성
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  
-  // 사용자 정보에 Salt와 해시 값을 저장
-  users[username] = {
-    salt,
-    hash
-  };
+// PKCS#7 패딩을 적용하는 함수
+function addPKCS7Padding(data, blockSize = 16) {
+    const paddingLength = blockSize - (data.length % blockSize);
+    const padding = Buffer.alloc(paddingLength, paddingLength);
+    return Buffer.concat([data, padding]);
 }
 
-// 로그인 함수
-function login(username, password) {
-  const user = users[username];
-  
-  if (user) {
-    // 입력된 비밀번호와 저장된 Salt를 사용하여 해시 값 생성
-    const hash = crypto.pbkdf2Sync(password, user.salt, 1000, 64, 'sha512').toString('hex');
+// PKCS#7 패딩을 제거하는 함수
+function removePKCS7Padding(data) {
+    const paddingLength = data[data.length - 1];
     
-    // 저장된 해시 값과 비교
-    if (hash === user.hash) {
-      console.log('로그인 성공!');
-    } else {
-      console.log('잘못된 비밀번호입니다.');
+    // 패딩 유효성 검사
+    if (paddingLength > data.length) {
+        throw new Error('Invalid padding');
     }
-  } else {
-    console.log('사용자를 찾을 수 없습니다.');
-  }
+    
+    for (let i = data.length - paddingLength; i < data.length; i++) {
+        if (data[i] !== paddingLength) {
+            throw new Error('Invalid padding');
+        }
+    }
+    
+    return data.slice(0, data.length - paddingLength);
 }
 
-// 사용자 비밀번호 설정 예시
-setPassword('alice', 'p@ssw0rd');
-setPassword('bob', '123456');
+// 사용 예시
+const originalData = Buffer.from('Hello, World!', 'utf8');
+console.log('원본 데이터:', originalData.toString());
 
-// 사용자 로그인 예시
-login('alice', 'p@ssw0rd');
-login('bob', 'password');
+const paddedData = addPKCS7Padding(originalData);
+console.log('패딩된 데이터:', paddedData);
 
+const unpaddedData = removePKCS7Padding(paddedData);
+console.log('패딩 제거된 데이터:', unpaddedData.toString());
 ```
 
-# Iteration
-- Iteration은 암호화 함수를 몇 번 반복할지를 결정하는 값입니다. 높은 iteration 값을 사용할수록 암호화에 소요되는 시간이 증가하므로, 암호를 해독하려는 공격자에게 시간적인 부담을 주는 역할을 합니다. 즉, iteration 값이 높을수록 보안성이 향상됩니다.
+### 2. Salt (솔트)
 
+솔트는 해시 함수에 추가되는 랜덤 데이터로, 동일한 입력에 대해 항상 다른 출력을 생성하도록 합니다.
 
-# Digest
-- Digest는 암호화 결과로 출력되는 해시 함수의 크기를 말합니다. 
-- 더 긴 digest 값은 더 많은 비트를 가지므로 해독하기 어렵습니다. 일반적으로 안전한 해시 함수인 SHA-256 등이 사용됩니다.
+#### 솔트의 필요성
+```javascript
+// 솔트 없이 해시 (위험)
+const password1 = 'password123';
+const hash1 = crypto.createHash('sha256').update(password1).digest('hex');
+// 항상 같은 해시값 생성
 
+// 솔트를 사용한 해시 (안전)
+const salt = crypto.randomBytes(16);
+const hash2 = crypto.pbkdf2Sync(password1, salt, 10000, 64, 'sha512').toString('hex');
+// 매번 다른 해시값 생성
+```
 
-## Digest를 왜 해야될까?
-### 가독성
-- 16진수는 0부터 9까지의 숫자와 A부터 F까지의 문자로 표현되기 때문에 사람이 읽기 쉬운 형태입니다. 
-- 이진 데이터는 일반적으로 표현이 어렵고 복잡하므로, 16진수로 변환하면 가독성이 향상됩니다. 
-- 이를 통해 해시값을 쉽게 확인하고 비교할 수 있습니다.
-### 일관성
-- 해시 함수의 출력은 고정된 길이를 가지는 이진 데이터입니다.
-- 이진 데이터를 그대로 사용하면 길이가 길고 복잡한 문자열이 될 수 있으며, 서로 다른 플랫폼이나 시스템에서 이진 데이터를 처리하는 방식이 다를 수 있습니다. 
-- 그러나 16진수로 변환하면 일관된 길이와 형식을 가지기 때문에 데이터의 호환성과 일관성을 보장할 수 있습니다.
-### 편의성
-- 16진수는 많은 프로그래밍 언어에서 내장된 기능을 통해 쉽게 처리할 수 있습니다. 
-- 예를 들어, 문자열 비교, 검색, 저장 등의 작업을 수행할 때 16진수 형식을 사용하면 간단하게 구현할 수 있습니다. 
-- 또한, 다이제스트를 파일 이름이나 URL 파라미터 등으로 사용할 때도 편리합니다.
-
-```typescript
-    const crypto = require('crypto');
-    
-    function generateDigest(data) {
-      const algorithm = 'sha256';
-      
-      // 지정된 알고리즘으로 해시 객체를 생성합니다.
-      // sha256 알고리즘으로 해시 객체를 생성하면 생성되는 해시 객체는 256비트(32바이트) 길이의 이진 데이터입니다.
-      const hash = crypto.createHash(algorithm);
-      
-      // 데이터로 해시 객체를 업데이트합니다.
-      hash.update(data);
-  
-      // hash.digest('hex') 메서드를 사용하여 해시 객체의 다이제스트를 16진수 형식으로 생성합니다.
-      const digest = hash.digest('hex');
-      
-      return digest;
+#### 솔트 구현
+```javascript
+class SaltGenerator {
+    // 암호학적으로 안전한 솔트 생성
+    static generateSalt(length = 16) {
+        return crypto.randomBytes(length);
     }
     
-    // 예시 사용법
-    const data = '안녕하세요, 세계!';
+    // 솔트와 해시를 결합하여 저장
+    static combineSaltAndHash(salt, hash) {
+        return salt.toString('hex') + ':' + hash;
+    }
     
-    // 데이터의 다이제스트를 생성합니다.
-    const digest = generateDigest(data);
-    
-    // 다이제스트를 출력합니다.
-    console.log('다이제스트:', digest);
+    // 저장된 값에서 솔트와 해시 분리
+    static separateSaltAndHash(combined) {
+        const parts = combined.split(':');
+        return {
+            salt: Buffer.from(parts[0], 'hex'),
+            hash: parts[1]
+        };
+    }
+}
 ```
 
+### 3. Iteration (반복)
 
+해시 함수를 여러 번 반복 적용하여 무차별 대입 공격에 대한 저항성을 높입니다.
 
----
+#### 반복의 효과
+```javascript
+// 반복 횟수에 따른 보안성 증가
+const password = 'weakpassword';
+const salt = crypto.randomBytes(16);
 
-## OWASP Top 10 (요약 체크리스트)
-- A01 Broken Access Control: 엔드포인트 권한 검증, 서버측 권한 필수
-- A02 Cryptographic Failures: TLS 강제, 시크릿 노출 방지, 안전한 설정
-- A03 Injection: ORM 파라미터 바인딩, 입력 검증, WAF 룰
-- A04 Insecure Design: 보안 요구사항/위협모델링 수립
-- A05 Security Misconfiguration: 기본 비번/포트/디버그 비활성화
-- A07 Identification and Authentication Failures: MFA/세션 관리 강화
-- A08 Software and Data Integrity Failures: 서플라이체인(SBOM/서명)
-- A09 Security Logging and Monitoring Failures: 중앙 로깅/알림
-- A10 Server-Side Request Forgery: 아웃바운드 제한, 메타데이터 보호
+// 1회 반복 (약함)
+const hash1 = crypto.pbkdf2Sync(password, salt, 1, 64, 'sha512');
 
-보안 헤더 심화(CSP 예)
-```http
-Content-Security-Policy: default-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'
+// 10,000회 반복 (권장)
+const hash2 = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512');
+
+// 100,000회 반복 (강함, 느림)
+const hash3 = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512');
 ```
+
+#### 적응형 반복
+```javascript
+class AdaptiveIteration {
+    // 시스템 성능에 따른 반복 횟수 조정
+    static calculateOptimalIterations() {
+        const startTime = Date.now();
+        crypto.pbkdf2Sync('test', Buffer.alloc(16), 1000, 64, 'sha512');
+        const endTime = Date.now();
+        
+        // 1초에 1000회 실행되는 경우, 1초에 100회가 되도록 조정
+        const targetTime = 1000; // 1초
+        const currentTime = endTime - startTime;
+        const optimalIterations = Math.floor((1000 * targetTime) / currentTime);
+        
+        return Math.max(10000, Math.min(optimalIterations, 100000));
+    }
+}
+```
+
+### 4. Digest (다이제스트)
+
+해시 함수의 출력으로, 고정된 길이의 이진 데이터를 16진수로 표현합니다.
+
+#### 다이제스트 생성
+```javascript
+// 다양한 해시 알고리즘
+const data = 'Hello, World!';
+
+// MD5 (취약, 사용 금지)
+const md5Hash = crypto.createHash('md5').update(data).digest('hex');
+
+// SHA-1 (취약, 사용 금지)
+const sha1Hash = crypto.createHash('sha1').update(data).digest('hex');
+
+// SHA-256 (안전)
+const sha256Hash = crypto.createHash('sha256').update(data).digest('hex');
+
+// SHA-512 (더 안전)
+const sha512Hash = crypto.createHash('sha512').update(data).digest('hex');
+```
+
+## 예시
+
+### 1. 실제 사용 사례
+
+#### 비밀번호 해시 시스템
+```javascript
+class PasswordManager {
+    constructor(iterations = 10000) {
+        this.iterations = iterations;
+    }
+    
+    // 비밀번호 해시 생성
+    hashPassword(password) {
+        const salt = crypto.randomBytes(16);
+        const hash = crypto.pbkdf2Sync(
+            password, 
+            salt, 
+            this.iterations, 
+            64, 
+            'sha512'
+        );
+        
+        return {
+            hash: hash.toString('hex'),
+            salt: salt.toString('hex'),
+            iterations: this.iterations
+        };
+    }
+    
+    // 비밀번호 검증
+    verifyPassword(password, storedHash, storedSalt, storedIterations) {
+        const saltBuffer = Buffer.from(storedSalt, 'hex');
+        const testHash = crypto.pbkdf2Sync(
+            password, 
+            saltBuffer, 
+            storedIterations, 
+            64, 
+            'sha512'
+        );
+        
+        return crypto.timingSafeEqual(
+            Buffer.from(storedHash, 'hex'), 
+            testHash
+        );
+    }
+    
+    // 해시 정보를 문자열로 저장
+    serializeHash(hashInfo) {
+        return `${hashInfo.iterations}:${hashInfo.salt}:${hashInfo.hash}`;
+    }
+    
+    // 저장된 문자열에서 해시 정보 추출
+    deserializeHash(serialized) {
+        const [iterations, salt, hash] = serialized.split(':');
+        return {
+            iterations: parseInt(iterations),
+            salt: salt,
+            hash: hash
+        };
+    }
+}
+
+// 사용 예시
+const passwordManager = new PasswordManager();
+
+// 비밀번호 등록
+const password = 'mySecurePassword123';
+const hashInfo = passwordManager.hashPassword(password);
+const serialized = passwordManager.serializeHash(hashInfo);
+
+console.log('저장할 해시 정보:', serialized);
+
+// 비밀번호 검증
+const isValid = passwordManager.verifyPassword(
+    password, 
+    hashInfo.hash, 
+    hashInfo.salt, 
+    hashInfo.iterations
+);
+
+console.log('비밀번호 검증 결과:', isValid);
+```
+
+#### 데이터 암호화 시스템
+```javascript
+class DataEncryptor {
+    constructor(key) {
+        this.key = crypto.scryptSync(key, 'salt', 32);
+    }
+    
+    // 데이터 암호화
+    encrypt(data) {
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipher('aes-256-cbc', this.key);
+        
+        let encrypted = cipher.update(data, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        
+        return {
+            iv: iv.toString('hex'),
+            encrypted: encrypted
+        };
+    }
+    
+    // 데이터 복호화
+    decrypt(encryptedData) {
+        const iv = Buffer.from(encryptedData.iv, 'hex');
+        const decipher = crypto.createDecipher('aes-256-cbc', this.key);
+        
+        let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        return decrypted;
+    }
+    
+    // 파일 암호화
+    async encryptFile(inputPath, outputPath) {
+        const fs = require('fs').promises;
+        const data = await fs.readFile(inputPath);
+        const encrypted = this.encrypt(data.toString());
+        
+        await fs.writeFile(outputPath, JSON.stringify(encrypted));
+    }
+    
+    // 파일 복호화
+    async decryptFile(inputPath, outputPath) {
+        const fs = require('fs').promises;
+        const encryptedData = JSON.parse(await fs.readFile(inputPath, 'utf8'));
+        const decrypted = this.decrypt(encryptedData);
+        
+        await fs.writeFile(outputPath, decrypted);
+    }
+}
+
+// 사용 예시
+const encryptor = new DataEncryptor('mySecretKey');
+
+const sensitiveData = 'This is sensitive information that needs to be encrypted.';
+const encrypted = encryptor.encrypt(sensitiveData);
+console.log('암호화된 데이터:', encrypted);
+
+const decrypted = encryptor.decrypt(encrypted);
+console.log('복호화된 데이터:', decrypted);
+```
+
+### 2. 고급 패턴
+
+#### 키 파생 함수 (KDF)
+```javascript
+class KeyDerivation {
+    // PBKDF2를 사용한 키 파생
+    static deriveKey(password, salt, iterations = 100000, keyLength = 32) {
+        return crypto.pbkdf2Sync(password, salt, iterations, keyLength, 'sha512');
+    }
+    
+    // Argon2 시뮬레이션 (Node.js에서는 argon2 모듈 사용 권장)
+    static deriveKeyWithArgon2(password, salt, timeCost = 3, memoryCost = 65536, parallelism = 4) {
+        // 실제로는 argon2 모듈 사용
+        return crypto.pbkdf2Sync(password, salt, timeCost * 1000, 32, 'sha512');
+    }
+    
+    // 키 스트레칭
+    static stretchKey(key, salt, rounds = 1000) {
+        let stretchedKey = key;
+        for (let i = 0; i < rounds; i++) {
+            stretchedKey = crypto.createHash('sha256')
+                .update(stretchedKey)
+                .update(salt)
+                .digest();
+        }
+        return stretchedKey;
+    }
+}
+```
+
+#### 보안 토큰 생성
+```javascript
+class SecureTokenGenerator {
+    // 암호학적으로 안전한 토큰 생성
+    static generateToken(length = 32) {
+        return crypto.randomBytes(length).toString('hex');
+    }
+    
+    // URL 안전한 토큰 생성
+    static generateUrlSafeToken(length = 32) {
+        return crypto.randomBytes(length).toString('base64url');
+    }
+    
+    // 시간 기반 토큰 (TOTP 시뮬레이션)
+    static generateTimeBasedToken(secret, timeStep = 30) {
+        const time = Math.floor(Date.now() / 1000 / timeStep);
+        const timeBuffer = Buffer.alloc(8);
+        timeBuffer.writeBigUInt64BE(BigInt(time), 0);
+        
+        const hmac = crypto.createHmac('sha1', secret);
+        hmac.update(timeBuffer);
+        const hash = hmac.digest();
+        
+        const offset = hash[hash.length - 1] & 0xf;
+        const code = ((hash[offset] & 0x7f) << 24) |
+                    ((hash[offset + 1] & 0xff) << 16) |
+                    ((hash[offset + 2] & 0xff) << 8) |
+                    (hash[offset + 3] & 0xff);
+        
+        return (code % 1000000).toString().padStart(6, '0');
+    }
+}
+```
+
+## 운영 팁
+
+### 성능 최적화
+
+#### 비동기 해시 처리
+```javascript
+// 동기 처리 (블로킹)
+const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512');
+
+// 비동기 처리 (논블로킹)
+crypto.pbkdf2(password, salt, 10000, 64, 'sha512', (err, hash) => {
+    if (err) {
+        console.error('해시 생성 오류:', err);
+        return;
+    }
+    console.log('해시 생성 완료:', hash.toString('hex'));
+});
+
+// Promise 기반 비동기 처리
+const hashAsync = util.promisify(crypto.pbkdf2);
+const hash = await hashAsync(password, salt, 10000, 64, 'sha512');
+```
+
+#### 메모리 효율성
+```javascript
+// 스트림을 사용한 대용량 파일 해시
+const fs = require('fs');
+const hash = crypto.createHash('sha256');
+
+fs.createReadStream('large-file.txt')
+    .on('data', (data) => {
+        hash.update(data);
+    })
+    .on('end', () => {
+        console.log('파일 해시:', hash.digest('hex'));
+    });
+```
+
+### 에러 처리
+
+#### 보안 예외 처리
+```javascript
+class SecurityException extends Error {
+    constructor(message, code) {
+        super(message);
+        this.name = 'SecurityException';
+        this.code = code;
+    }
+}
+
+class SecureValidator {
+    static validatePassword(password) {
+        if (password.length < 8) {
+            throw new SecurityException('비밀번호는 최소 8자 이상이어야 합니다.', 'PASSWORD_TOO_SHORT');
+        }
+        
+        if (!/[A-Z]/.test(password)) {
+            throw new SecurityException('비밀번호는 대문자를 포함해야 합니다.', 'PASSWORD_NO_UPPERCASE');
+        }
+        
+        if (!/[a-z]/.test(password)) {
+            throw new SecurityException('비밀번호는 소문자를 포함해야 합니다.', 'PASSWORD_NO_LOWERCASE');
+        }
+        
+        if (!/\d/.test(password)) {
+            throw new SecurityException('비밀번호는 숫자를 포함해야 합니다.', 'PASSWORD_NO_NUMBER');
+        }
+        
+        return true;
+    }
+    
+    static validateSalt(salt) {
+        if (salt.length < 16) {
+            throw new SecurityException('솔트는 최소 16바이트 이상이어야 합니다.', 'SALT_TOO_SHORT');
+        }
+        
+        return true;
+    }
+}
+```
+
+## 참고
+
+### 해시 알고리즘 비교
+
+| 알고리즘 | 출력 길이 | 보안 수준 | 권장도 |
+|----------|-----------|-----------|--------|
+| **MD5** | 128비트 | 취약 | ❌ 사용 금지 |
+| **SHA-1** | 160비트 | 취약 | ❌ 사용 금지 |
+| **SHA-256** | 256비트 | 안전 | ⭐⭐⭐⭐ |
+| **SHA-512** | 512비트 | 매우 안전 | ⭐⭐⭐⭐⭐ |
+| **bcrypt** | 60문자 | 안전 | ⭐⭐⭐⭐⭐ |
+| **Argon2** | 가변 | 매우 안전 | ⭐⭐⭐⭐⭐ |
+
+### 보안 모범 사례
+
+| 항목 | 권장사항 | 이유 |
+|------|----------|------|
+| **비밀번호 해시** | bcrypt, Argon2, PBKDF2 | 전용 비밀번호 해시 알고리즘 |
+| **솔트 길이** | 최소 16바이트 | 무차별 대입 공격 방지 |
+| **반복 횟수** | 최소 10,000회 | 계산 비용 증가 |
+| **키 길이** | AES-256 이상 | 충분한 보안 강도 |
+| **랜덤 생성** | crypto.randomBytes() | 암호학적으로 안전한 난수 |
+
+### 결론
+보안은 시스템 설계의 핵심 요소로, 기본 개념을 정확히 이해하는 것이 중요합니다.
+패딩, 솔트, 반복, 다이제스트를 적절히 조합하여 강력한 보안 시스템을 구축하세요.
+최신 보안 알고리즘과 모범 사례를 따라 안전한 시스템을 구현하세요.
+정기적인 보안 감사와 업데이트를 통해 시스템의 보안성을 유지하세요.

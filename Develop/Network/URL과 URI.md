@@ -1,24 +1,94 @@
-# URL과 URI 
-
-<div align="center">
-    <img src="../../etc/image/Network_image/URL.png" alt="URL" width="50%">
-</div>
-
+---
+title: URL URI
+tags: [network, url과-uri]
+updated: 2025-08-10
+---
 ## 📍 URL이란?
 
 **URL(Uniform Resource Locator)**은 인터넷에서 웹페이지, 이미지, 파일 등 각종 자원의 위치를 알려주는 주소입니다.
 
-### 🏠 실생활 비유
+## 배경
 - 집 주소처럼 웹에서 특정 자원을 찾아가는 주소
 - 도서관에서 책의 위치를 알려주는 책장 번호와 같은 역할
 - 네비게이션에서 목적지까지 가는 경로와 같은 개념
 
-### 💡 기본 개념
 - 브라우저 주소창에 입력하는 것이 바로 URL
 - 서버에 있는 파일이나 폴더의 위치를 정확히 가리킴
 - 슬래시(/)를 사용해 폴더 구조를 표현 (윈도우 탐색기와 비슷)
 
 ---
+
+```
+https://www.example.com/index.html
+```
+- **프로토콜**: `https://`
+- **호스트**: `www.example.com`
+- **경로**: `/index.html`
+
+```
+https://shop.example.com/products/123?color=red&size=L#reviews
+```
+- **프로토콜**: `https://`
+- **호스트**: `shop.example.com`
+- **경로**: `/products/123`
+- **쿼리**: `color=red&size=L`
+- **프래그먼트**: `#reviews`
+
+
+### 1. **웹 개발**
+```javascript
+// URL에서 정보 추출
+const url = new URL('https://example.com/path?param=value');
+console.log(url.hostname);    // example.com
+console.log(url.pathname);    // /path
+console.log(url.searchParams.get('param')); // value
+```
+
+### 2. **API 설계**
+```
+GET /api/users          ← 사용자 목록
+GET /api/users/123      ← 특정 사용자
+POST /api/users         ← 새 사용자 생성
+PUT /api/users/123      ← 사용자 정보 수정
+DELETE /api/users/123   ← 사용자 삭제
+```
+
+### 3. **라우팅**
+```
+/                    ← 홈페이지
+/about              ← 회사 소개
+/products           ← 상품 목록
+/products/123       ← 특정 상품
+/contact            ← 문의하기
+```
+
+---
+
+1. **프로토콜 확인**: 어떤 방식으로 접속할지
+2. **호스트 확인**: 어느 서버에 접속할지
+3. **경로 확인**: 서버 내에서 어느 파일/폴더인지
+4. **쿼리 확인**: 추가로 전달할 정보가 있는지
+5. **프래그먼트 확인**: 페이지 내 특정 부분인지
+
+- URL은 대소문자를 구분할 수 있음
+- 특수문자는 인코딩이 필요할 수 있음
+- 길이 제한이 있음 (브라우저마다 다름)
+- 보안을 위해 민감한 정보는 포함하지 않기
+
+
+
+
+
+
+<div align="center">
+    <img src="../../etc/image/Network_image/URL.png" alt="URL" width="50%">
+</div>
+
+
+
+
+
+# URL과 URI 
 
 ## 🔧 URL의 구성 요소
 
@@ -105,24 +175,6 @@ URI (자원 식별자)
 
 ## 📝 실제 URL 분석 예시
 
-### 기본 웹페이지
-```
-https://www.example.com/index.html
-```
-- **프로토콜**: `https://`
-- **호스트**: `www.example.com`
-- **경로**: `/index.html`
-
-### 쇼핑몰 상품 페이지
-```
-https://shop.example.com/products/123?color=red&size=L#reviews
-```
-- **프로토콜**: `https://`
-- **호스트**: `shop.example.com`
-- **경로**: `/products/123`
-- **쿼리**: `color=red&size=L`
-- **프래그먼트**: `#reviews`
-
 ### API 호출
 ```
 https://api.example.com/users?page=1&limit=10&sort=name
@@ -150,48 +202,5 @@ urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66  ← 고유 식별자
 
 ---
 
-## 💻 개발에서의 활용
-
-### 1. **웹 개발**
-```javascript
-// URL에서 정보 추출
-const url = new URL('https://example.com/path?param=value');
-console.log(url.hostname);    // example.com
-console.log(url.pathname);    // /path
-console.log(url.searchParams.get('param')); // value
-```
-
-### 2. **API 설계**
-```
-GET /api/users          ← 사용자 목록
-GET /api/users/123      ← 특정 사용자
-POST /api/users         ← 새 사용자 생성
-PUT /api/users/123      ← 사용자 정보 수정
-DELETE /api/users/123   ← 사용자 삭제
-```
-
-### 3. **라우팅**
-```
-/                    ← 홈페이지
-/about              ← 회사 소개
-/products           ← 상품 목록
-/products/123       ← 특정 상품
-/contact            ← 문의하기
-```
-
----
-
 ## 🔍 URL 구조 이해하기
 
-### 단계별 분석
-1. **프로토콜 확인**: 어떤 방식으로 접속할지
-2. **호스트 확인**: 어느 서버에 접속할지
-3. **경로 확인**: 서버 내에서 어느 파일/폴더인지
-4. **쿼리 확인**: 추가로 전달할 정보가 있는지
-5. **프래그먼트 확인**: 페이지 내 특정 부분인지
-
-### 주의사항
-- URL은 대소문자를 구분할 수 있음
-- 특수문자는 인코딩이 필요할 수 있음
-- 길이 제한이 있음 (브라우저마다 다름)
-- 보안을 위해 민감한 정보는 포함하지 않기

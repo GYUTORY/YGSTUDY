@@ -1,8 +1,11 @@
+---
+title: Protocol
+tags: [network, protocol]
+updated: 2025-08-10
+---
 # 📡 네트워크 프로토콜(Protocol) 이해하기
 
----
-
-## 🎯 프로토콜이란?
+## 배경
 
 **프로토콜**은 컴퓨터들이 서로 대화할 때 사용하는 **공통 언어**라고 생각하면 됩니다.
 
@@ -16,104 +19,13 @@
 
 ---
 
-## 🏗️ 프로토콜의 3가지 핵심 요소
 
-### 1️⃣ 구문(Syntax) - "어떻게 말할까?"
-
-**데이터를 어떤 형태로 만들지 정하는 규칙**입니다.
-
-예를 들어, HTTP 요청을 보낼 때는 이런 형식을 따라야 합니다:
-
-```javascript
-// 올바른 HTTP 요청 형식
-const httpRequest = {
-  method: 'GET',
-  url: '/api/users',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer token123'
-  },
-  body: null
-};
-
-// 실제 HTTP 메시지 형태
-const rawHttpMessage = 
-`GET /api/users HTTP/1.1
-Host: example.com
-Content-Type: application/json
-Authorization: Bearer token123
-
-`;
-```
-
-### 2️⃣ 의미론(Semantics) - "무엇을 말할까?"
-
-**데이터가 어떤 뜻을 가지고 있는지, 어떻게 해석해야 하는지**를 정의합니다.
-
-```javascript
-// HTTP 상태 코드의 의미
-const httpStatusCodes = {
-  200: '성공 - 요청이 정상적으로 처리됨',
-  404: '실패 - 요청한 리소스를 찾을 수 없음',
-  500: '오류 - 서버 내부 오류가 발생함'
-};
-
-// API 응답의 의미
-const apiResponse = {
-  status: 200,           // 성공을 의미
-  data: {                // 실제 데이터
-    users: [
-      { id: 1, name: '김철수' },
-      { id: 2, name: '이영희' }
-    ]
-  },
-  message: '사용자 목록을 성공적으로 가져왔습니다'
-};
-```
-
-### 3️⃣ 타이밍(Timing) - "언제 말할까?"
-
-**데이터를 언제, 얼마나 빠르게 보낼지**를 결정합니다.
-
-```javascript
-// 웹소켓 연결에서의 타이밍 제어
-class WebSocketClient {
-  constructor(url) {
-    this.url = url;
-    this.reconnectInterval = 1000; // 1초마다 재연결 시도
-    this.heartbeatInterval = 30000; // 30초마다 연결 상태 확인
-  }
-
-  connect() {
-    this.ws = new WebSocket(this.url);
-    
-    // 연결 성공 시
-    this.ws.onopen = () => {
-      console.log('연결됨!');
-      this.startHeartbeat();
-    };
-
-    // 연결 끊어짐 시
-    this.ws.onclose = () => {
-      console.log('연결 끊어짐, 재연결 시도...');
-      setTimeout(() => this.connect(), this.reconnectInterval);
-    };
-  }
-
-  startHeartbeat() {
-    // 주기적으로 연결 상태 확인
-    setInterval(() => {
-      if (this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send('ping');
-      }
-    }, this.heartbeatInterval);
-  }
-}
-```
+- **다른 기기끼리도 소통 가능**: 애플 맥과 윈도우 PC가 서로 파일을 주고받을 수 있는 이유
+- **데이터가 올바르게 전달**: 메시지가 중간에 깨지지 않고 온전히 전달
+- **보안과 안정성**: 중요한 정보를 안전하게 주고받기
 
 ---
 
-## 🌐 주요 프로토콜 살펴보기
 
 ### HTTP (HyperText Transfer Protocol)
 
@@ -282,7 +194,6 @@ server.bind(3001, () => {
 
 ---
 
-## 🔧 실제 개발에서 프로토콜 활용하기
 
 ### REST API 설계
 
@@ -388,7 +299,58 @@ server.listen(3000, () => {
 
 ---
 
-## 💡 프로토콜 선택 가이드
+
+```javascript
+// Socket.IO로 실시간 채팅 구현
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+// 연결된 사용자들 관리
+const connectedUsers = new Map();
+
+io.on('connection', (socket) => {
+  console.log('새로운 사용자 연결:', socket.id);
+
+  // 사용자 입장
+  socket.on('join', (username) => {
+    connectedUsers.set(socket.id, username);
+    socket.broadcast.emit('userJoined', username);
+    console.log(`${username}님이 입장했습니다`);
+  });
+
+  // 메시지 전송
+  socket.on('message', (message) => {
+    const username = connectedUsers.get(socket.id);
+    const messageData = {
+      user: username,
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+    
+    io.emit('message', messageData);
+  });
+
+  // 연결 해제
+  socket.on('disconnect', () => {
+    const username = connectedUsers.get(socket.id);
+    connectedUsers.delete(socket.id);
+    socket.broadcast.emit('userLeft', username);
+    console.log(`${username}님이 퇴장했습니다`);
+  });
+});
+
+server.listen(3000, () => {
+  console.log('실시간 채팅 서버 실행 중');
+});
+```
+
+---
+
 
 ### 언제 HTTP를 사용할까?
 - ✅ 웹페이지 로딩
@@ -413,3 +375,232 @@ server.listen(3000, () => {
 - ✅ 온라인 게임
 - ✅ VoIP (음성 통화)
 - ✅ 빠른 응답이 필요한 경우
+
+
+
+
+
+
+---
+
+
+- **다른 기기끼리도 소통 가능**: 애플 맥과 윈도우 PC가 서로 파일을 주고받을 수 있는 이유
+- **데이터가 올바르게 전달**: 메시지가 중간에 깨지지 않고 온전히 전달
+- **보안과 안정성**: 중요한 정보를 안전하게 주고받기
+
+---
+
+
+- **다른 기기끼리도 소통 가능**: 애플 맥과 윈도우 PC가 서로 파일을 주고받을 수 있는 이유
+- **데이터가 올바르게 전달**: 메시지가 중간에 깨지지 않고 온전히 전달
+- **보안과 안정성**: 중요한 정보를 안전하게 주고받기
+
+---
+
+
+
+```javascript
+// Socket.IO로 실시간 채팅 구현
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+// 연결된 사용자들 관리
+const connectedUsers = new Map();
+
+io.on('connection', (socket) => {
+  console.log('새로운 사용자 연결:', socket.id);
+
+  // 사용자 입장
+  socket.on('join', (username) => {
+    connectedUsers.set(socket.id, username);
+    socket.broadcast.emit('userJoined', username);
+    console.log(`${username}님이 입장했습니다`);
+  });
+
+  // 메시지 전송
+  socket.on('message', (message) => {
+    const username = connectedUsers.get(socket.id);
+    const messageData = {
+      user: username,
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+    
+    io.emit('message', messageData);
+  });
+
+  // 연결 해제
+  socket.on('disconnect', () => {
+    const username = connectedUsers.get(socket.id);
+    connectedUsers.delete(socket.id);
+    socket.broadcast.emit('userLeft', username);
+    console.log(`${username}님이 퇴장했습니다`);
+  });
+});
+
+server.listen(3000, () => {
+  console.log('실시간 채팅 서버 실행 중');
+});
+```
+
+---
+
+
+```javascript
+// Socket.IO로 실시간 채팅 구현
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+// 연결된 사용자들 관리
+const connectedUsers = new Map();
+
+io.on('connection', (socket) => {
+  console.log('새로운 사용자 연결:', socket.id);
+
+  // 사용자 입장
+  socket.on('join', (username) => {
+    connectedUsers.set(socket.id, username);
+    socket.broadcast.emit('userJoined', username);
+    console.log(`${username}님이 입장했습니다`);
+  });
+
+  // 메시지 전송
+  socket.on('message', (message) => {
+    const username = connectedUsers.get(socket.id);
+    const messageData = {
+      user: username,
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+    
+    io.emit('message', messageData);
+  });
+
+  // 연결 해제
+  socket.on('disconnect', () => {
+    const username = connectedUsers.get(socket.id);
+    connectedUsers.delete(socket.id);
+    socket.broadcast.emit('userLeft', username);
+    console.log(`${username}님이 퇴장했습니다`);
+  });
+});
+
+server.listen(3000, () => {
+  console.log('실시간 채팅 서버 실행 중');
+});
+```
+
+---
+
+
+
+
+
+
+## 🏗️ 프로토콜의 3가지 핵심 요소
+
+### 1️⃣ 구문(Syntax) - "어떻게 말할까?"
+
+**데이터를 어떤 형태로 만들지 정하는 규칙**입니다.
+
+예를 들어, HTTP 요청을 보낼 때는 이런 형식을 따라야 합니다:
+
+```javascript
+// 올바른 HTTP 요청 형식
+const httpRequest = {
+  method: 'GET',
+  url: '/api/users',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer token123'
+  },
+  body: null
+};
+
+// 실제 HTTP 메시지 형태
+const rawHttpMessage = 
+`GET /api/users HTTP/1.1
+Host: example.com
+Content-Type: application/json
+Authorization: Bearer token123
+
+`;
+```
+
+### 2️⃣ 의미론(Semantics) - "무엇을 말할까?"
+
+**데이터가 어떤 뜻을 가지고 있는지, 어떻게 해석해야 하는지**를 정의합니다.
+
+```javascript
+// HTTP 상태 코드의 의미
+const httpStatusCodes = {
+  200: '성공 - 요청이 정상적으로 처리됨',
+  404: '실패 - 요청한 리소스를 찾을 수 없음',
+  500: '오류 - 서버 내부 오류가 발생함'
+};
+
+// API 응답의 의미
+const apiResponse = {
+  status: 200,           // 성공을 의미
+  data: {                // 실제 데이터
+    users: [
+      { id: 1, name: '김철수' },
+      { id: 2, name: '이영희' }
+    ]
+  },
+  message: '사용자 목록을 성공적으로 가져왔습니다'
+};
+```
+
+### 3️⃣ 타이밍(Timing) - "언제 말할까?"
+
+**데이터를 언제, 얼마나 빠르게 보낼지**를 결정합니다.
+
+```javascript
+// 웹소켓 연결에서의 타이밍 제어
+class WebSocketClient {
+  constructor(url) {
+    this.url = url;
+    this.reconnectInterval = 1000; // 1초마다 재연결 시도
+    this.heartbeatInterval = 30000; // 30초마다 연결 상태 확인
+  }
+
+  connect() {
+    this.ws = new WebSocket(this.url);
+    
+    // 연결 성공 시
+    this.ws.onopen = () => {
+      console.log('연결됨!');
+      this.startHeartbeat();
+    };
+
+    // 연결 끊어짐 시
+    this.ws.onclose = () => {
+      console.log('연결 끊어짐, 재연결 시도...');
+      setTimeout(() => this.connect(), this.reconnectInterval);
+    };
+  }
+
+  startHeartbeat() {
+    // 주기적으로 연결 상태 확인
+    setInterval(() => {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send('ping');
+      }
+    }, this.heartbeatInterval);
+  }
+}
+```
+
+---
+

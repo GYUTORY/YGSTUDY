@@ -1,6 +1,7 @@
-
-# Java EE (Jakarta EE)
-
+---
+title: Java EE Jakarta EE
+tags: [language, java, 애플리케이션-서버, java-ee]
+updated: 2025-08-10
 ---
 
 ## 1️⃣ Java EE란?
@@ -8,12 +9,89 @@
 Java EE는 **Java Platform, Enterprise Edition**의 약자로, 대규모 **엔터프라이즈 애플리케이션** 개발을 지원하는 Java 플랫폼입니다.  
 2020년부터는 **Jakarta EE**라는 이름으로 변경되어 계속 발전하고 있습니다.
 
-### 👉🏻 주요 목적
+## 배경
 - 안정적이고 확장 가능한 대규모 애플리케이션 개발 지원.
 - 다양한 표준 API와 컴포넌트 제공.
 - 플랫폼 독립성과 높은 생산성.
 
 ---
+
+1. **표준화**: 표준 API로 구현되어 코드 이식성이 높음.
+2. **확장성**: 대규모 애플리케이션에 적합.
+3. **다양한 기술 스택**: Servlet, JSP, EJB, JPA 등 풍부한 기능 제공.
+
+1. 복잡한 구조로 인한 학습 곡선.
+2. 경량 프레임워크(Spring 등)에 비해 초기 설정이 다소 어려움.
+
+---
+
+- **Servlet**: HTTP 요청 처리.
+- **JPA**: 데이터베이스 연동.
+- **JAX-RS**: RESTful API 제공.
+
+```java
+// User 엔티티
+@Entity
+public class User {
+    @Id @GeneratedValue
+    private Long id;
+    private String name;
+
+    // Getter와 Setter 생략
+}
+
+// JPA를 이용한 데이터베이스 액세스
+@Stateless
+public class UserService {
+    @PersistenceContext
+    private EntityManager em;
+
+    public void addUser(String name) {
+        User user = new User();
+        user.setName(name);
+        em.persist(user);
+    }
+
+    public List<User> getUsers() {
+        return em.createQuery("SELECT u FROM User u", User.class).getResultList();
+    }
+}
+
+// RESTful 웹 서비스
+@Path("/users")
+public class UserResource {
+    @Inject
+    private UserService userService;
+
+    @POST
+    public void addUser(String name) {
+        userService.addUser(name);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<User> getUsers() {
+        return userService.getUsers();
+    }
+}
+```
+
+---
+
+💡 **참고**: Java EE는 대규모 애플리케이션 개발에 강력한 도구를 제공하지만, 최근에는 Spring Framework와 같은 경량 프레임워크와 함께 사용하거나 대체하는 경우도 많습니다.
+
+
+
+
+
+
+---
+
+
+
+
+
+# Java EE (Jakarta EE)
 
 ## ✨ Java EE의 주요 구성 요소
 
@@ -117,71 +195,5 @@ Java EE는 다음과 같은 서버에서 실행됩니다:
 
 ## 🎯 Java EE의 장단점
 
-### 장점
-1. **표준화**: 표준 API로 구현되어 코드 이식성이 높음.
-2. **확장성**: 대규모 애플리케이션에 적합.
-3. **다양한 기술 스택**: Servlet, JSP, EJB, JPA 등 풍부한 기능 제공.
-
-### 단점
-1. 복잡한 구조로 인한 학습 곡선.
-2. 경량 프레임워크(Spring 등)에 비해 초기 설정이 다소 어려움.
-
----
-
 ## 📜 전체 예제: 간단한 Java EE 애플리케이션
 
-### 프로젝트 구성
-- **Servlet**: HTTP 요청 처리.
-- **JPA**: 데이터베이스 연동.
-- **JAX-RS**: RESTful API 제공.
-
-```java
-// User 엔티티
-@Entity
-public class User {
-    @Id @GeneratedValue
-    private Long id;
-    private String name;
-
-    // Getter와 Setter 생략
-}
-
-// JPA를 이용한 데이터베이스 액세스
-@Stateless
-public class UserService {
-    @PersistenceContext
-    private EntityManager em;
-
-    public void addUser(String name) {
-        User user = new User();
-        user.setName(name);
-        em.persist(user);
-    }
-
-    public List<User> getUsers() {
-        return em.createQuery("SELECT u FROM User u", User.class).getResultList();
-    }
-}
-
-// RESTful 웹 서비스
-@Path("/users")
-public class UserResource {
-    @Inject
-    private UserService userService;
-
-    @POST
-    public void addUser(String name) {
-        userService.addUser(name);
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<User> getUsers() {
-        return userService.getUsers();
-    }
-}
-```
-
----
-
-💡 **참고**: Java EE는 대규모 애플리케이션 개발에 강력한 도구를 제공하지만, 최근에는 Spring Framework와 같은 경량 프레임워크와 함께 사용하거나 대체하는 경우도 많습니다.

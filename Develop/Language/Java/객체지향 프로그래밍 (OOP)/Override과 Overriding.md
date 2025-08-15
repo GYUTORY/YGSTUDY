@@ -1,3 +1,8 @@
+---
+title: Override Overriding
+tags: [language, java, 객체지향-프로그래밍-oop, override과-overriding]
+updated: 2025-08-10
+---
 # 오버라이드(Override)와 오버라이딩(Overriding)의 차이 🚀
 
 ## 1. 오버라이드(Override) vs. 오버라이딩(Overriding) 🤔
@@ -9,19 +14,12 @@ Java에서 `Override`와 `Overriding`은 자주 혼용되지만, 정확한 의�
 > - **Override (오버라이드)** → "재정의"의 개념 (동작 자체를 의미)
 > - **Overriding (오버라이딩)** → "재정의하는 행위" (Override를 수행하는 과정)
 
-### 📌 쉽게 이해하기
+## 배경
 - "Override"는 **오버라이딩된 메서드 자체**
 - "Overriding"은 **Override를 적용하는 과정**
 
 ---
 
-## 2. 오버라이딩(Overriding) 이란? 🔄
-
-✔ 부모 클래스의 **메서드를 자식 클래스에서 재정의**하는 것  
-✔ **메서드의 이름, 매개변수, 반환 타입이 동일해야 함**  
-✔ **`@Override` 어노테이션을 사용하여 의도를 명확히 할 수 있음**
-
-#### ✅ 예제 (오버라이딩)
 ```java
 class Animal {
     public void makeSound() {
@@ -46,6 +44,77 @@ public class OverridingExample {
 > **📌 `makeSound()` 메서드는 부모 클래스에서 정의되었지만, `Dog` 클래스에서 오버라이딩하여 다르게 동작!**
 
 ---
+
+```java
+class Parent {
+    public void display() {
+        System.out.println("부모 클래스의 메서드");
+    }
+}
+
+class Child extends Parent {
+    @Override
+    public void display() { // 여기서 'Override' 발생
+        System.out.println("자식 클래스에서 오버라이드된 메서드");
+    }
+}
+
+public class OverrideExample {
+    public static void main(String[] args) {
+        Parent obj = new Child();
+        obj.display(); // 자식 클래스에서 오버라이드된 메서드
+    }
+}
+```
+> **👉🏻 `display()` 메서드는 오버라이딩되었고, 이 메서드 자체를 'Override'라고 부름!**
+
+---
+
+```java
+class MathUtil {
+    public int add(int a, int b) { // 첫 번째 add 메서드
+        return a + b;
+    }
+
+    public double add(double a, double b) { // 두 번째 add 메서드 (오버로딩)
+        return a + b;
+    }
+}
+
+public class OverloadingExample {
+    public static void main(String[] args) {
+        MathUtil util = new MathUtil();
+        System.out.println(util.add(5, 10));      // int 버전 호출
+        System.out.println(util.add(3.5, 2.2));  // double 버전 호출
+    }
+}
+```
+> **📌 오버로딩은 같은 메서드 이름을 유지하면서, 매개변수를 다르게 설정하는 기법!**
+
+---
+
+
+- **Override (오버라이드)** → "재정의된 메서드" 자체를 의미
+- **Overriding (오버라이딩)** → 부모 메서드를 자식 클래스에서 "재정의하는 행위"
+- **`@Override` 어노테이션을 사용하여 실수를 방지할 것**
+- **오버라이딩과 오버로딩은 완전히 다른 개념**
+
+> **👉🏻 오버라이딩을 활용하면 상속받은 메서드를 재정의하여 다형성을 구현할 수 있음!**
+
+
+
+
+
+
+
+
+
+
+## 2. 오버라이딩(Overriding) 이란? 🔄
+
+✔ 부모 클래스의 **메서드를 자식 클래스에서 재정의**하는 것  
+✔ **메서드의 이름, 매개변수, 반환 타입이 동일해야 함**  
+✔ **`@Override` 어노테이션을 사용하여 의도를 명확히 할 수 있음**
 
 ## 3. `@Override` 어노테이션의 역할 ✨
 
@@ -107,32 +176,6 @@ public class OverrideExample {
 ✔ **오버라이딩된 메서드 자체를 의미**  
 ✔ 즉, **재정의된 메서드의 결과물**을 지칭하는 용어
 
-#### ✅ 예제
-```java
-class Parent {
-    public void display() {
-        System.out.println("부모 클래스의 메서드");
-    }
-}
-
-class Child extends Parent {
-    @Override
-    public void display() { // 여기서 'Override' 발생
-        System.out.println("자식 클래스에서 오버라이드된 메서드");
-    }
-}
-
-public class OverrideExample {
-    public static void main(String[] args) {
-        Parent obj = new Child();
-        obj.display(); // 자식 클래스에서 오버라이드된 메서드
-    }
-}
-```
-> **👉🏻 `display()` 메서드는 오버라이딩되었고, 이 메서드 자체를 'Override'라고 부름!**
-
----
-
 ## 5. 오버로딩(Overloading)과의 차이 🚨
 
 **오버라이딩(Overriding)과 오버로딩(Overloading)은 완전히 다른 개념!**
@@ -145,37 +188,4 @@ public class OverrideExample {
 | 매개변수 | **동일해야 함** | **다르게 설정 가능** |
 | 반환 타입 | **동일해야 함** | **다를 수도 있음** |
 | 어노테이션 | `@Override` 사용 가능 | 사용하지 않음 |
-
-#### ✅ 오버로딩 예제
-```java
-class MathUtil {
-    public int add(int a, int b) { // 첫 번째 add 메서드
-        return a + b;
-    }
-
-    public double add(double a, double b) { // 두 번째 add 메서드 (오버로딩)
-        return a + b;
-    }
-}
-
-public class OverloadingExample {
-    public static void main(String[] args) {
-        MathUtil util = new MathUtil();
-        System.out.println(util.add(5, 10));      // int 버전 호출
-        System.out.println(util.add(3.5, 2.2));  // double 버전 호출
-    }
-}
-```
-> **📌 오버로딩은 같은 메서드 이름을 유지하면서, 매개변수를 다르게 설정하는 기법!**
-
----
-
-## 📌 결론
-
-- **Override (오버라이드)** → "재정의된 메서드" 자체를 의미
-- **Overriding (오버라이딩)** → 부모 메서드를 자식 클래스에서 "재정의하는 행위"
-- **`@Override` 어노테이션을 사용하여 실수를 방지할 것**
-- **오버라이딩과 오버로딩은 완전히 다른 개념**
-
-> **👉🏻 오버라이딩을 활용하면 상속받은 메서드를 재정의하여 다형성을 구현할 수 있음!**
 

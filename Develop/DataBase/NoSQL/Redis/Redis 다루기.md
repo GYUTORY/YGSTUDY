@@ -1,3 +1,8 @@
+---
+title: Redis Node.js Redis
+tags: [database, nosql, redis, redis-다루기]
+updated: 2025-08-10
+---
 # Redis 완벽 가이드: Node.js에서 Redis 활용하기
 
 ## Redis란?
@@ -291,7 +296,7 @@ client.client('list', (err, clients) => {
 });
 ```
 
-## 결론
+## 배경
 Redis는 다양한 데이터 타입과 기능을 제공하는 강력한 인메모리 데이터 저장소입니다. Node.js와 함께 사용하면 빠른 성능과 유연한 데이터 처리가 가능합니다. 적절한 데이터 타입 선택과 모범 사례를 따르면 더욱 효율적인 Redis 활용이 가능합니다.
 
 ```javascript
@@ -493,6 +498,15 @@ client.hset("user:1", "age", 30, (err, reply) => {
 });
 
 ```
+
+
+
+
+
+
+
+
+
 
 
 

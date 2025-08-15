@@ -1,6 +1,11 @@
+---
+title: RPC Remote Procedure Call
+tags: [network, 7-layer, transport-layer, tcp, rpc]
+updated: 2025-08-10
+---
 # RPC (Remote Procedure Call)
 
-## 📋 개요
+## 배경
 
 RPC는 **Remote Procedure Call**의 약자로, **원격 프로시저 호출**을 의미합니다. 
 
@@ -13,10 +18,278 @@ RPC는 **Remote Procedure Call**의 약자로, **원격 프로시저 호출**을
 
 ---
 
-## 🔍 RPC란 무엇인가?
+- **로컬 함수 호출**: 같은 컴퓨터 내에서 함수를 호출하는 것
+- **원격 함수 호출**: 다른 컴퓨터에 있는 함수를 네트워크를 통해 호출하는 것
+- **투명성**: 원격 호출이지만 로컬 호출처럼 사용할 수 있는 것
 
-### 기본 개념
+---
+
 RPC는 분산 시스템에서 프로그램 간 통신을 위한 프로토콜입니다. 이를 통해 클라이언트 애플리케이션은 서버에 있는 함수를 원격으로 호출할 수 있습니다.
+
+- 함수 단위로 기능을 분리하여 개발
+- 다른 애플리케이션에서 쉽게 재사용 가능
+
+- 원격 호출이지만 로컬 호출처럼 사용
+- 복잡한 네트워크 통신을 숨겨줌
+
+- 여러 서버에 분산된 서비스를 통합 관리
+- 마이크로서비스 아키텍처에 적합
+
+- JavaScript, Python, Java 등 다양한 언어 지원
+- 서로 다른 언어로 작성된 서비스 간 통신 가능
+
+---
+
+
+### 🏢 마이크로서비스 아키텍처
+여러 개의 작은 서비스로 나누어진 시스템에서 서비스 간 통신에 사용됩니다.
+
+```javascript
+// 사용자 서비스
+const userService = new RPCClient('user-service:3001');
+
+// 주문 서비스
+const orderService = new RPCClient('order-service:3002');
+
+// 주문 생성 시 사용자 정보 조회
+async function createOrder(userId, orderData) {
+  const user = await userService.getUserById(userId);
+  const order = await orderService.createOrder({
+    userId,
+    userInfo: user,
+    ...orderData
+  });
+  return order;
+}
+```
+
+### 💾 원격 데이터 접근
+분산 데이터베이스나 원격 서비스에 접근할 때 사용됩니다.
+
+```javascript
+// 원격 데이터베이스 서비스
+const dbService = new RPCClient('database-service:3003');
+
+async function getUserData(userId) {
+  const user = await dbService.query('SELECT * FROM users WHERE id = ?', [userId]);
+  const orders = await dbService.query('SELECT * FROM orders WHERE user_id = ?', [userId]);
+  
+  return { user, orders };
+}
+```
+
+---
+
+여러 개의 작은 서비스로 나누어진 시스템에서 서비스 간 통신에 사용됩니다.
+
+```javascript
+// 사용자 서비스
+const userService = new RPCClient('user-service:3001');
+
+// 주문 서비스
+const orderService = new RPCClient('order-service:3002');
+
+// 주문 생성 시 사용자 정보 조회
+async function createOrder(userId, orderData) {
+  const user = await userService.getUserById(userId);
+  const order = await orderService.createOrder({
+    userId,
+    userInfo: user,
+    ...orderData
+  });
+  return order;
+}
+```
+
+분산 데이터베이스나 원격 서비스에 접근할 때 사용됩니다.
+
+```javascript
+// 원격 데이터베이스 서비스
+const dbService = new RPCClient('database-service:3003');
+
+async function getUserData(userId) {
+  const user = await dbService.query('SELECT * FROM users WHERE id = ?', [userId]);
+  const orders = await dbService.query('SELECT * FROM orders WHERE user_id = ?', [userId]);
+  
+  return { user, orders };
+}
+```
+
+---
+
+
+### gRPC
+Google에서 개발한 고성능 RPC 프레임워크
+- Protocol Buffers를 사용한 효율적인 직렬화
+- HTTP/2 기반의 양방향 스트리밍 지원
+
+### JSON-RPC
+JSON을 사용하는 경량 RPC 프로토콜
+- 간단하고 가독성이 좋음
+- 웹 브라우저에서도 사용 가능
+
+### GraphQL
+Facebook에서 개발한 쿼리 언어 및 런타임
+- RPC와 유사하지만 더 유연한 데이터 요청 가능
+- 단일 엔드포인트로 다양한 데이터 조회
+
+---
+
+
+RPC는 분산 시스템에서 프로그램 간 통신을 위한 강력한 기술입니다. 복잡한 네트워크 통신을 추상화하여 개발자가 원격 함수를 로컬 함수처럼 쉽게 호출할 수 있게 해줍니다.
+
+### 핵심 포인트
+- **투명성**: 원격 호출을 로컬 호출처럼 사용
+- **모듈성**: 함수 단위로 서비스를 분리
+- **재사용성**: 다양한 애플리케이션에서 공통 기능 재사용
+- **확장성**: 마이크로서비스 아키텍처에 적합
+
+RPC를 이해하고 활용하면 분산 시스템을 더 효율적으로 구축하고 관리할 수 있습니다.
+
+
+- **투명성**: 원격 호출을 로컬 호출처럼 사용
+- **모듈성**: 함수 단위로 서비스를 분리
+- **재사용성**: 다양한 애플리케이션에서 공통 기능 재사용
+- **확장성**: 마이크로서비스 아키텍처에 적합
+
+RPC를 이해하고 활용하면 분산 시스템을 더 효율적으로 구축하고 관리할 수 있습니다.
+
+
+
+
+
+
+
+- **로컬 함수 호출**: 같은 컴퓨터 내에서 함수를 호출하는 것
+- **원격 함수 호출**: 다른 컴퓨터에 있는 함수를 네트워크를 통해 호출하는 것
+- **투명성**: 원격 호출이지만 로컬 호출처럼 사용할 수 있는 것
+
+---
+
+- **로컬 함수 호출**: 같은 컴퓨터 내에서 함수를 호출하는 것
+- **원격 함수 호출**: 다른 컴퓨터에 있는 함수를 네트워크를 통해 호출하는 것
+- **투명성**: 원격 호출이지만 로컬 호출처럼 사용할 수 있는 것
+
+---
+
+RPC는 분산 시스템에서 프로그램 간 통신을 위한 프로토콜입니다. 이를 통해 클라이언트 애플리케이션은 서버에 있는 함수를 원격으로 호출할 수 있습니다.
+
+- 함수 단위로 기능을 분리하여 개발
+- 다른 애플리케이션에서 쉽게 재사용 가능
+
+- 원격 호출이지만 로컬 호출처럼 사용
+- 복잡한 네트워크 통신을 숨겨줌
+
+- 여러 서버에 분산된 서비스를 통합 관리
+- 마이크로서비스 아키텍처에 적합
+
+- JavaScript, Python, Java 등 다양한 언어 지원
+- 서로 다른 언어로 작성된 서비스 간 통신 가능
+
+---
+
+
+여러 개의 작은 서비스로 나누어진 시스템에서 서비스 간 통신에 사용됩니다.
+
+```javascript
+// 사용자 서비스
+const userService = new RPCClient('user-service:3001');
+
+// 주문 서비스
+const orderService = new RPCClient('order-service:3002');
+
+// 주문 생성 시 사용자 정보 조회
+async function createOrder(userId, orderData) {
+  const user = await userService.getUserById(userId);
+  const order = await orderService.createOrder({
+    userId,
+    userInfo: user,
+    ...orderData
+  });
+  return order;
+}
+```
+
+분산 데이터베이스나 원격 서비스에 접근할 때 사용됩니다.
+
+```javascript
+// 원격 데이터베이스 서비스
+const dbService = new RPCClient('database-service:3003');
+
+async function getUserData(userId) {
+  const user = await dbService.query('SELECT * FROM users WHERE id = ?', [userId]);
+  const orders = await dbService.query('SELECT * FROM orders WHERE user_id = ?', [userId]);
+  
+  return { user, orders };
+}
+```
+
+---
+
+여러 개의 작은 서비스로 나누어진 시스템에서 서비스 간 통신에 사용됩니다.
+
+```javascript
+// 사용자 서비스
+const userService = new RPCClient('user-service:3001');
+
+// 주문 서비스
+const orderService = new RPCClient('order-service:3002');
+
+// 주문 생성 시 사용자 정보 조회
+async function createOrder(userId, orderData) {
+  const user = await userService.getUserById(userId);
+  const order = await orderService.createOrder({
+    userId,
+    userInfo: user,
+    ...orderData
+  });
+  return order;
+}
+```
+
+분산 데이터베이스나 원격 서비스에 접근할 때 사용됩니다.
+
+```javascript
+// 원격 데이터베이스 서비스
+const dbService = new RPCClient('database-service:3003');
+
+async function getUserData(userId) {
+  const user = await dbService.query('SELECT * FROM users WHERE id = ?', [userId]);
+  const orders = await dbService.query('SELECT * FROM orders WHERE user_id = ?', [userId]);
+  
+  return { user, orders };
+}
+```
+
+---
+
+
+- **투명성**: 원격 호출을 로컬 호출처럼 사용
+- **모듈성**: 함수 단위로 서비스를 분리
+- **재사용성**: 다양한 애플리케이션에서 공통 기능 재사용
+- **확장성**: 마이크로서비스 아키텍처에 적합
+
+RPC를 이해하고 활용하면 분산 시스템을 더 효율적으로 구축하고 관리할 수 있습니다.
+
+
+- **투명성**: 원격 호출을 로컬 호출처럼 사용
+- **모듈성**: 함수 단위로 서비스를 분리
+- **재사용성**: 다양한 애플리케이션에서 공통 기능 재사용
+- **확장성**: 마이크로서비스 아키텍처에 적합
+
+RPC를 이해하고 활용하면 분산 시스템을 더 효율적으로 구축하고 관리할 수 있습니다.
+
+
+
+
+
+
+
+
+
+
+
+## 🔍 RPC란 무엇인가?
 
 ### 🤔 왜 RPC가 필요한가?
 
@@ -170,65 +443,6 @@ function deserialize(data) {
 
 ## ✅ RPC의 장점
 
-### 🔄 모듈성과 재사용성
-- 함수 단위로 기능을 분리하여 개발
-- 다른 애플리케이션에서 쉽게 재사용 가능
-
-### 👁️ 투명성
-- 원격 호출이지만 로컬 호출처럼 사용
-- 복잡한 네트워크 통신을 숨겨줌
-
-### 🌐 분산 시스템 관리
-- 여러 서버에 분산된 서비스를 통합 관리
-- 마이크로서비스 아키텍처에 적합
-
-### 🔧 다양한 언어/플랫폼 지원
-- JavaScript, Python, Java 등 다양한 언어 지원
-- 서로 다른 언어로 작성된 서비스 간 통신 가능
-
----
-
-## 🎯 실제 사용 사례
-
-### 🏢 마이크로서비스 아키텍처
-여러 개의 작은 서비스로 나누어진 시스템에서 서비스 간 통신에 사용됩니다.
-
-```javascript
-// 사용자 서비스
-const userService = new RPCClient('user-service:3001');
-
-// 주문 서비스
-const orderService = new RPCClient('order-service:3002');
-
-// 주문 생성 시 사용자 정보 조회
-async function createOrder(userId, orderData) {
-  const user = await userService.getUserById(userId);
-  const order = await orderService.createOrder({
-    userId,
-    userInfo: user,
-    ...orderData
-  });
-  return order;
-}
-```
-
-### 💾 원격 데이터 접근
-분산 데이터베이스나 원격 서비스에 접근할 때 사용됩니다.
-
-```javascript
-// 원격 데이터베이스 서비스
-const dbService = new RPCClient('database-service:3003');
-
-async function getUserData(userId) {
-  const user = await dbService.query('SELECT * FROM users WHERE id = ?', [userId]);
-  const orders = await dbService.query('SELECT * FROM orders WHERE user_id = ?', [userId]);
-  
-  return { user, orders };
-}
-```
-
----
-
 ## 🔧 JavaScript에서 RPC 구현 예시
 
 ### 간단한 RPC 클라이언트 구현
@@ -336,36 +550,4 @@ app.post('/rpc', async (req, res) => {
 ```
 
 ---
-
-## 📚 관련 기술들
-
-### gRPC
-Google에서 개발한 고성능 RPC 프레임워크
-- Protocol Buffers를 사용한 효율적인 직렬화
-- HTTP/2 기반의 양방향 스트리밍 지원
-
-### JSON-RPC
-JSON을 사용하는 경량 RPC 프로토콜
-- 간단하고 가독성이 좋음
-- 웹 브라우저에서도 사용 가능
-
-### GraphQL
-Facebook에서 개발한 쿼리 언어 및 런타임
-- RPC와 유사하지만 더 유연한 데이터 요청 가능
-- 단일 엔드포인트로 다양한 데이터 조회
-
----
-
-## 💡 결론
-
-RPC는 분산 시스템에서 프로그램 간 통신을 위한 강력한 기술입니다. 복잡한 네트워크 통신을 추상화하여 개발자가 원격 함수를 로컬 함수처럼 쉽게 호출할 수 있게 해줍니다.
-
-### 핵심 포인트
-- **투명성**: 원격 호출을 로컬 호출처럼 사용
-- **모듈성**: 함수 단위로 서비스를 분리
-- **재사용성**: 다양한 애플리케이션에서 공통 기능 재사용
-- **확장성**: 마이크로서비스 아키텍처에 적합
-
-RPC를 이해하고 활용하면 분산 시스템을 더 효율적으로 구축하고 관리할 수 있습니다.
-
 

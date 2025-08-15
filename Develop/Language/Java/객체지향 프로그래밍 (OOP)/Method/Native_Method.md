@@ -1,3 +1,8 @@
+---
+title: Native Method
+tags: [language, java, 객체지향-프로그래밍-oop, method, nativemethod]
+updated: 2025-08-10
+---
 # 네이티브 메서드(Native Method) 개념 및 활용 🚀
 
 ## 1. 네이티브 메서드(Native Method)란? 🤔
@@ -19,7 +24,7 @@
 ✔ **플랫폼 종속적인 기능 활용** → OS별 API 호출 가능  
 ✔ **기존 라이브러리와 연동** → Java에서 C/C++ 기반의 기존 코드를 재사용 가능
 
-### 📌 예제: 네이티브 메서드를 활용한 시스템 호출
+## 배경
 ```java
 class SystemCall {
     public native void printNativeMessage(); // 네이티브 메서드 선언
@@ -36,6 +41,23 @@ class SystemCall {
 > **📌 `native` 키워드가 붙은 메서드는 Java가 아닌 다른 언어에서 구현됨!**
 
 ---
+
+
+- **네이티브 메서드(Native Method)**는 Java가 아닌 C/C++로 구현된 메서드를 호출하는 기능
+- **JNI(Java Native Interface)**를 통해 네이티브 코드와 Java 간 상호작용 가능
+- **고성능 연산, OS API 호출, 하드웨어 제어 등에 유용하게 사용**
+- **플랫폼 종속성이 있으므로 필요한 경우에만 사용해야 함**
+
+> **👉🏻 네이티브 메서드는 Java만으로 해결할 수 없는 고성능 작업이 필요할 때 유용함!**
+
+
+
+
+
+
+
+
+
 
 ## 3. 네이티브 메서드 구현 과정 🛠️
 
@@ -133,13 +155,4 @@ Hello from C!
 ❌ **디버깅이 복잡함**
 
 ---
-
-## 📌 결론
-
-- **네이티브 메서드(Native Method)**는 Java가 아닌 C/C++로 구현된 메서드를 호출하는 기능
-- **JNI(Java Native Interface)**를 통해 네이티브 코드와 Java 간 상호작용 가능
-- **고성능 연산, OS API 호출, 하드웨어 제어 등에 유용하게 사용**
-- **플랫폼 종속성이 있으므로 필요한 경우에만 사용해야 함**
-
-> **👉🏻 네이티브 메서드는 Java만으로 해결할 수 없는 고성능 작업이 필요할 때 유용함!**
 

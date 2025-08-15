@@ -1,3 +1,8 @@
+---
+title: AWS DB Proxy
+tags: [aws, database, dbproxy]
+updated: 2025-08-10
+---
 # AWS DB Proxy (데이터베이스 프록시)
 
 ## 1. AWS DB Proxy 소개
@@ -148,3 +153,4 @@ AWS DB Proxy는 Amazon RDS 및 Aurora 데이터베이스와 애플리케이션 �
 - 활동 모니터링
 - 보안 이벤트 추적
 - 규정 준수 요구사항
+

@@ -1,7 +1,8 @@
-# Abstract Class와 Interface의 차이점
-
-Java의 `Abstract Class`와 `Interface`는 둘 다 추상화를 제공하여 객체 지향 프로그래밍의 중요한 요소를 구성합니다. 하지만 두 개념은 서로 다른 목적과 사용 사례를 가지고 있습니다.
-
+---
+title: Abstract Class Interface
+tags: [language, java, 객체지향-프로그래밍-oop, interface, abstract-class-vs-interface]
+updated: 2025-08-10
+---
 ## 1. Abstract Class와 Interface란?
 ### Abstract Class
 `Abstract Class`는 **공통된 기능을 정의하고 이를 확장하는** 데 사용되는 클래스입니다. 하나 이상의 **추상 메서드**(구현되지 않은 메서드)를 포함할 수 있으며, 구현된 메서드도 포함할 수 있습니다.
@@ -184,4 +185,18 @@ Abstract Class와 Interface는 각각의 장단점이 있으며, 상황에 따�
 
 
 
+
+## 배경
+
+
+
+
+
+Java의 `Abstract Class`와 `Interface`는 둘 다 추상화를 제공하여 객체 지향 프로그래밍의 중요한 요소를 구성합니다. 하지만 두 개념은 서로 다른 목적과 사용 사례를 가지고 있습니다.
+
+
+
+
+
+# Abstract Class와 Interface의 차이점
 

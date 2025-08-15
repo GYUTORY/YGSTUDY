@@ -1,3 +1,21 @@
+---
+title: Rest
+tags: [network, 7-layer, application-layer, http, restful]
+updated: 2025-08-10
+---
+## PUT 
+- 리소스의 모든 것을 업데이트 한다.
+
+## PATCH 
+- 리소스의 일부를 업데이트 한다.
+
+
+
+```
+출처
+ https://aws.amazon.com/ko/what-is/restful-api/
+```
+
 # Rest
 - 자원을 이름으로 구분하여 해당 자원의 상태를 주고 받는 모든 것을 의미합니다.
    - 즉, 자원의 표현에 의한 상태 전달을 말합니다.
@@ -20,15 +38,3 @@
 - 리소스의 업데이트를 의미한다.
 - 리소스를 업데이트 한다는 점에서는 같은 역할을 하는 메소드처럼 보이지만 두개의 요청에는 약간의 차이가 있다.
 
-## PUT 
-- 리소스의 모든 것을 업데이트 한다.
-
-## PATCH 
-- 리소스의 일부를 업데이트 한다.
-
-
-
-```
-출처
- https://aws.amazon.com/ko/what-is/restful-api/
-```

@@ -1,18 +1,79 @@
-
-# 🎯 Java - 의존성 주입 (Dependency Injection) 완벽 가이드
-
+---
+title: Java - Dependency Injection
+tags: [language, java, 자바-디자인-패턴-및-원칙, dependencyinjection]
+updated: 2025-08-10
 ---
 
 ## ✅ 의존성 주입 (Dependency Injection, DI)이란?
 **의존성 주입(Dependency Injection, DI)** 은 **객체가 필요한 다른 객체를 직접 생성하지 않고 외부에서 주입받는 프로그래밍 기법**입니다.
 
-### 💡 **쉽게 설명하자면:**
+## 배경
 - **의존성 주입 없이:** `QuoteController`가 `QuoteService`를 직접 생성
 - **의존성 주입 사용:** `QuoteService`를 외부에서 전달받아 사용
 
 ---
 
 
+
+- `@Service`: `QuoteService` 클래스를 **빈(Bean)**으로 등록합니다.
+- `@Autowired`: `QuoteService` 객체를 **자동으로 주입**합니다.
+- `@RestController`: `QuoteController`가 RESTful 웹 서비스임을 선언.
+
+---
+
+```java
+package com.example.dependencyinjection.controller;
+
+import com.example.dependencyinjection.service.QuoteService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+// @RestController: 이 클래스가 REST API를 제공하는 컨트롤러임을 나타냅니다.
+@RestController
+public class QuoteController {
+
+    private final QuoteService quoteService;
+
+    // 생성자 기반 의존성 주입 (권장 방식)
+    @Autowired
+    public QuoteController(QuoteService quoteService) {
+        this.quoteService = quoteService;
+    }
+
+    // HTTP GET 요청을 처리하는 엔드포인트
+    @GetMapping("/quote")
+    public ResponseEntity<String> getQuote() {
+        // 비즈니스 로직 호출 후 결과 반환
+        return ResponseEntity.ok(quoteService.getQuote());
+    }
+}
+```
+
+---
+
+1. **생성자 기반 주입을 사용하세요.**
+2. **필드 주입과 세터 주입은 지양하세요.**
+3. **`@Autowired`는 생성자 주입에서는 생략 가능하지만 명시적으로 사용하는 것도 가능.**
+4. **`@Service`, `@Repository`와 같은 스프링 어노테이션을 이해하고 사용하세요.**
+
+---
+
+📩 **질문이나 추가 예제 요청이 있으시면 언제든 문의 주세요!** 😊
+
+
+
+
+
+
+---
+
+
+
+
+
+# 🎯 Java - 의존성 주입 (Dependency Injection) 완벽 가이드
 
 ## ✅ 의존성 주입을 사용하지 않은 경우 (Bad Case)
 - 아래 코드는 의존성 주입을 사용하지 않은 경우입니다.
@@ -141,13 +202,6 @@ public class QuoteController {
 }
 ```
 
-### **📌 설명:**
-- `@Service`: `QuoteService` 클래스를 **빈(Bean)**으로 등록합니다.
-- `@Autowired`: `QuoteService` 객체를 **자동으로 주입**합니다.
-- `@RestController`: `QuoteController`가 RESTful 웹 서비스임을 선언.
-
----
-
 ## ✅ `@Component` vs. `@Service` vs. `@Repository`의 차이
 | 어노테이션         | 역할                                      | 사용 예 |
 |--------------------|------------------------------------------|---------|
@@ -157,45 +211,3 @@ public class QuoteController {
 
 ---
 
-## ✅ 예제 코드
-```java
-package com.example.dependencyinjection.controller;
-
-import com.example.dependencyinjection.service.QuoteService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-// @RestController: 이 클래스가 REST API를 제공하는 컨트롤러임을 나타냅니다.
-@RestController
-public class QuoteController {
-
-    private final QuoteService quoteService;
-
-    // 생성자 기반 의존성 주입 (권장 방식)
-    @Autowired
-    public QuoteController(QuoteService quoteService) {
-        this.quoteService = quoteService;
-    }
-
-    // HTTP GET 요청을 처리하는 엔드포인트
-    @GetMapping("/quote")
-    public ResponseEntity<String> getQuote() {
-        // 비즈니스 로직 호출 후 결과 반환
-        return ResponseEntity.ok(quoteService.getQuote());
-    }
-}
-```
-
----
-
-## ✅ 결론: **의존성 주입 베스트 프랙티스**
-1. **생성자 기반 주입을 사용하세요.**
-2. **필드 주입과 세터 주입은 지양하세요.**
-3. **`@Autowired`는 생성자 주입에서는 생략 가능하지만 명시적으로 사용하는 것도 가능.**
-4. **`@Service`, `@Repository`와 같은 스프링 어노테이션을 이해하고 사용하세요.**
-
----
-
-📩 **질문이나 추가 예제 요청이 있으시면 언제든 문의 주세요!** 😊

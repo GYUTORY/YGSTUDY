@@ -1,11 +1,29 @@
+---
+title: Project Lombok Java
+tags: [framework, java, spring, lombok]
+updated: 2025-08-10
+---
 # 🚀 Project Lombok: Java 개발자의 필수 도구
 
-## 📚 목차
+## 배경
 1. [Lombok 소개](#1-lombok-소개)
 2. [환경 설정](#2-환경-설정)
 3. [핵심 어노테이션](#3-핵심-어노테이션)
 4. [실전 활용](#4-실전-활용)
 5. [모범 사례와 주의사항](#5-모범-사례와-주의사항)
+
+- [Project Lombok 공식 문서](https://projectlombok.org/features/all)
+- [Spring Boot with Lombok](https://spring.io/blog/2018/12/12/spring-boot-with-lombok)
+- [Lombok Best Practices](https://www.baeldung.com/lombok-ide)
+
+
+
+
+
+
+
+
+
 
 ## 1. Lombok 소개
 
@@ -187,7 +205,3 @@ public class OptimizedEntity {
 }
 ```
 
-## 📚 참고 자료
-- [Project Lombok 공식 문서](https://projectlombok.org/features/all)
-- [Spring Boot with Lombok](https://spring.io/blog/2018/12/12/spring-boot-with-lombok)
-- [Lombok Best Practices](https://www.baeldung.com/lombok-ide)
