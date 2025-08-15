@@ -1,30 +1,31 @@
-# 서버를 클러스터로 분산 처리하는 방법 🚀
-
-## 1. Node.js에서 클러스터란? 🤔
-
-**클러스터(Cluster)**는 **Node.js가 싱글 스레드(Single Thread) 기반이라는 한계를 극복하기 위해 여러 개의 프로세스를 활용하여 부하를 분산시키는 방식**입니다.  
-이를 통해 **CPU의 모든 코어를 활용**하여 **고성능 서버 운영이 가능**해집니다.
-
-> **✨ 클러스터의 주요 특징**
-> - 기본적으로 **싱글 스레드 기반이지만, 멀티코어 활용 가능**
-> - **Worker 프로세스**를 여러 개 생성하여 요청을 분산 처리
-> - **마스터 프로세스**가 Worker 프로세스를 관리하고 조정
-> - Worker 프로세스가 다운되면 자동으로 재시작하여 **고가용성 유지**
-> - **Node.js 내장 모듈인 `cluster`를 활용하여 쉽게 구현 가능**
-
-✅ **즉, 클러스터를 사용하면 하나의 Node.js 서버에서 여러 개의 프로세스를 실행하여 부하를 분산할 수 있습니다.**
-
+---
+title: Node.js Cluster (클러스터)
+tags: [framework, node, nodejs의-구조-및-작동-원리, cluster, nodejs, multi-process]
+updated: 2025-08-15
 ---
 
-## 2. Node.js에서 클러스터로 서버 실행하는 방법
+# Node.js Cluster (클러스터)
 
-### 2.1 `cluster` 모듈을 사용한 기본 클러스터 처리
+## 배경
 
-✔ **`cluster` 모듈을 활용하여 마스터(관리) 프로세스와 워커(실행) 프로세스를 생성**  
-✔ **CPU 코어 개수만큼 워커 프로세스를 생성하여 성능 최적화**  
-✔ **워커 프로세스가 종료되면 자동으로 재시작**
+Node.js의 Cluster 모듈은 단일 프로세스에서 여러 개의 워커 프로세스를 생성하여 멀티코어 CPU를 활용할 수 있게 해주는 기능입니다. Node.js는 기본적으로 싱글 스레드이지만, Cluster를 사용하면 여러 프로세스를 통해 병렬 처리가 가능합니다.
 
-#### ✅ 기본 클러스터 예제
+### Cluster의 필요성
+- **CPU 활용**: 멀티코어 시스템의 모든 코어를 활용
+- **성능 향상**: 동시 요청 처리 능력 증가
+- **고가용성**: 하나의 프로세스가 죽어도 다른 프로세스가 계속 동작
+- **부하 분산**: 요청을 여러 프로세스에 분산 처리
+
+### Cluster의 동작 원리
+- **마스터 프로세스**: 워커 프로세스를 생성하고 관리
+- **워커 프로세스**: 실제 요청을 처리하는 프로세스
+- **로드 밸런싱**: 운영체제가 요청을 워커 프로세스에 분산
+
+## 핵심
+
+### 기본 Cluster 구조
+
+#### 마스터-워커 패턴
 ```javascript
 const cluster = require('cluster');
 const http = require('http');
@@ -53,127 +54,946 @@ if (cluster.isMaster) {
 
     console.log(`워커 프로세스 ${process.pid} 실행 중`);
 }
-```  
+```
 
-📌 **실행 결과:**
+#### 실행 결과
 ```
 마스터 프로세스 12345 실행 중
 워커 프로세스 12346 실행 중
 워커 프로세스 12347 실행 중
-...
-```  
+워커 프로세스 12348 실행 중
+워커 프로세스 12349 실행 중
+```
 
-> **📌 클러스터를 사용하면 각 요청이 여러 개의 워커 프로세스로 분산 처리됨!**
+### Cluster 모듈의 주요 기능
 
----
-
-## 3. Express에서 클러스터 활용하기
-
-✔ Express 애플리케이션도 **클러스터를 활용하여 부하를 분산 가능**  
-✔ 클러스터를 활용하면 **다중 요청 처리 성능을 향상**시킬 수 있음
-
-#### ✅ Express 클러스터 예제
+#### 워커 프로세스 관리
 ```javascript
 const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
-const express = require('express');
 
 if (cluster.isMaster) {
-    console.log(`마스터 프로세스 ${process.pid} 실행 중`);
+    // 워커 생성
+    const worker1 = cluster.fork();
+    const worker2 = cluster.fork();
+    
+    // 워커 이벤트 리스너
+    worker1.on('message', (msg) => {
+        console.log('워커1로부터 메시지:', msg);
+    });
+    
+    worker2.on('message', (msg) => {
+        console.log('워커2로부터 메시지:', msg);
+    });
+    
+    // 워커 종료 처리
+    cluster.on('exit', (worker, code, signal) => {
+        console.log(`워커 ${worker.process.pid} 종료됨 (코드: ${code}, 시그널: ${signal})`);
+        
+        // 새로운 워커 생성
+        const newWorker = cluster.fork();
+        console.log(`새 워커 ${newWorker.process.pid} 생성됨`);
+    });
+    
+    // 모든 워커 종료 시 마스터도 종료
+    cluster.on('exit', (worker, code, signal) => {
+        if (Object.keys(cluster.workers).length === 0) {
+            console.log('모든 워커가 종료되었습니다.');
+            process.exit(0);
+        }
+    });
+} else {
+    // 워커 프로세스에서 실행할 코드
+    console.log(`워커 ${process.pid} 시작됨`);
+    
+    // 마스터에게 메시지 전송
+    process.send({ type: 'ready', pid: process.pid });
+}
+```
 
-    // CPU 코어 개수만큼 워커 프로세스 생성
+## 예시
+
+### Express 애플리케이션에서 Cluster 사용
+
+#### 기본 Express Cluster 설정
+```javascript
+const cluster = require('cluster');
+const express = require('express');
+const os = require('os');
+
+if (cluster.isMaster) {
+    const numCPUs = os.cpus().length;
+    console.log(`마스터 프로세스 ${process.pid} 시작`);
+    console.log(`${numCPUs}개의 CPU 코어 감지됨`);
+
+    // CPU 코어 개수만큼 워커 생성
     for (let i = 0; i < numCPUs; i++) {
         cluster.fork();
     }
 
-    // 워커 종료 시 다시 생성
+    // 워커 이벤트 처리
+    cluster.on('fork', (worker) => {
+        console.log(`워커 ${worker.process.pid} 생성됨`);
+    });
+
     cluster.on('exit', (worker, code, signal) => {
-        console.log(`워커 ${worker.process.pid} 종료됨`);
-        cluster.fork();
+        console.log(`워커 ${worker.process.pid} 종료됨 (코드: ${code}, 시그널: ${signal})`);
+        
+        // 새로운 워커 생성 (고가용성 유지)
+        const newWorker = cluster.fork();
+        console.log(`새 워커 ${newWorker.process.pid} 생성됨`);
     });
+
+    // 클러스터 상태 모니터링
+    setInterval(() => {
+        const workers = Object.keys(cluster.workers);
+        console.log(`활성 워커 수: ${workers.length}`);
+    }, 10000);
+
 } else {
-    // Express 서버 실행 (워커 프로세스에서 실행됨)
+    // 워커 프로세스에서 Express 서버 실행
     const app = express();
+    const port = process.env.PORT || 3000;
 
+    // 미들웨어 설정
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
+    // 라우트 설정
     app.get('/', (req, res) => {
-        res.send('Hello, Express with Cluster!');
+        res.json({
+            message: 'Hello from Cluster!',
+            workerId: process.pid,
+            timestamp: new Date().toISOString()
+        });
     });
 
-    app.listen(3000, () => {
-        console.log(`워커 ${process.pid}에서 Express 서버 실행 중`);
+    app.get('/health', (req, res) => {
+        res.json({
+            status: 'healthy',
+            workerId: process.pid,
+            uptime: process.uptime(),
+            memory: process.memoryUsage()
+        });
+    });
+
+    app.get('/heavy-task', (req, res) => {
+        // CPU 집약적인 작업 시뮬레이션
+        const start = Date.now();
+        let result = 0;
+        
+        for (let i = 0; i < 1000000; i++) {
+            result += Math.sqrt(i);
+        }
+        
+        const duration = Date.now() - start;
+        
+        res.json({
+            result: result,
+            duration: duration,
+            workerId: process.pid
+        });
+    });
+
+    // 서버 시작
+    app.listen(port, () => {
+        console.log(`워커 ${process.pid}가 포트 ${port}에서 실행 중`);
+    });
+
+    // 워커 종료 처리
+    process.on('SIGTERM', () => {
+        console.log(`워커 ${process.pid} 종료 신호 수신`);
+        process.exit(0);
     });
 }
-```  
-
-> **📌 여러 개의 워커 프로세스가 동일한 Express 서버를 실행하여 요청을 분산 처리!**
-
----
-
-## 4. PM2를 활용한 클러스터 모드 실행
-
-Node.js의 `cluster` 모듈을 직접 사용하는 것도 가능하지만, **PM2(Process Manager 2)를 활용하면 더욱 쉽게 클러스터를 운영할 수 있습니다.**
-
-### 4.1 PM2 설치
-```sh
-npm install pm2 -g
 ```
 
-### 4.2 애플리케이션 폴더로 이동
-```sh
-cd /path/to/your/app
-```
+### 실전 애플리케이션 예제
 
-### 4.3 PM2 설정 파일 생성 및 편집
-
-📌 **`pm2.config.js` 생성:**
+#### 고급 Cluster 설정
 ```javascript
+const cluster = require('cluster');
+const express = require('express');
+const os = require('os');
+const path = require('path');
+
+class ClusterManager {
+    constructor() {
+        this.numCPUs = os.cpus().length;
+        this.workers = new Map();
+        this.restartCount = new Map();
+        this.maxRestarts = 5;
+        this.restartDelay = 1000;
+    }
+
+    start() {
+        if (cluster.isMaster) {
+            this.startMaster();
+        } else {
+            this.startWorker();
+        }
+    }
+
+    startMaster() {
+        console.log(`마스터 프로세스 ${process.pid} 시작`);
+        console.log(`CPU 코어 수: ${this.numCPUs}`);
+
+        // 워커 생성
+        for (let i = 0; i < this.numCPUs; i++) {
+            this.createWorker();
+        }
+
+        // 이벤트 리스너 설정
+        this.setupEventListeners();
+
+        // 모니터링 시작
+        this.startMonitoring();
+
+        // Graceful shutdown 처리
+        this.setupGracefulShutdown();
+    }
+
+    createWorker() {
+        const worker = cluster.fork();
+        
+        this.workerStats.set(worker.id, {
+            pid: worker.process.pid,
+            connections: 0,
+            requests: 0,
+            startTime: Date.now(),
+            status: 'active'
+        });
+
+        console.log(`워커 ${worker.process.pid} 생성됨 (ID: ${worker.id})`);
+    }
+
+    setupEventListeners() {
+        cluster.on('exit', (worker, code, signal) => {
+            const workerId = worker.id;
+            const restartCount = this.restartCount.get(workerId) || 0;
+
+            console.log(`워커 ${worker.process.pid} 종료됨 (코드: ${code}, 시그널: ${signal})`);
+
+            if (restartCount < this.maxRestarts) {
+                console.log(`워커 ${workerId} 재시작 중... (${restartCount + 1}/${this.maxRestarts})`);
+                
+                setTimeout(() => {
+                    const newWorker = cluster.fork();
+                    this.workers.set(newWorker.id, workerId);
+                    this.restartCount.set(newWorker.id, restartCount + 1);
+                }, this.restartDelay);
+            } else {
+                console.error(`워커 ${workerId} 최대 재시작 횟수 초과`);
+            }
+
+            this.workers.delete(workerId);
+        });
+
+        cluster.on('message', (worker, message) => {
+            console.log(`워커 ${worker.process.pid}로부터 메시지:`, message);
+            
+            if (message.type === 'ready') {
+                console.log(`워커 ${worker.process.pid} 준비 완료`);
+            }
+        });
+    }
+
+    updateWorkerStats(workerId, stats) {
+        const workerStat = this.workerStats.get(workerId);
+        if (workerStat) {
+            Object.assign(workerStat, stats);
+        }
+    }
+
+    handleWorkerRequest(workerId, message) {
+        const workerStat = this.workerStats.get(workerId);
+        if (workerStat) {
+            workerStat.requests++;
+            workerStat.connections = message.connections || workerStat.connections;
+        }
+    }
+
+    startMonitoring() {
+        setInterval(() => {
+            const activeWorkers = Object.keys(cluster.workers).length;
+            const totalMemory = process.memoryUsage();
+            
+            console.log(`=== 클러스터 상태 ===`);
+            console.log(`활성 워커 수: ${activeWorkers}`);
+            console.log(`마스터 메모리 사용량: ${Math.round(totalMemory.heapUsed / 1024 / 1024)}MB`);
+            console.log(`========================`);
+        }, 30000);
+    }
+
+    setupGracefulShutdown() {
+        const shutdown = (signal) => {
+            console.log(`\n${signal} 신호 수신. Graceful shutdown 시작...`);
+            
+            // 모든 워커에게 종료 신호 전송
+            for (const [id, worker] of cluster.workers) {
+                console.log(`워커 ${worker.process.pid} 종료 신호 전송`);
+                worker.send({ type: 'shutdown' });
+            }
+
+            // 일정 시간 후 강제 종료
+            setTimeout(() => {
+                console.log('강제 종료 실행');
+                process.exit(1);
+            }, 10000);
+        };
+
+        process.on('SIGTERM', () => shutdown('SIGTERM'));
+        process.on('SIGINT', () => shutdown('SIGINT'));
+    }
+
+    startWorker() {
+        const app = express();
+        const port = process.env.PORT || 3000;
+
+        // 미들웨어 설정
+        app.use(express.json());
+        app.use(express.urlencoded({ extended: true }));
+
+        // 로깅 미들웨어
+        app.use((req, res, next) => {
+            console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Worker ${process.pid}`);
+            next();
+        });
+
+        // 라우트 설정
+        app.get('/', (req, res) => {
+            res.json({
+                message: 'Hello from Cluster!',
+                workerId: process.pid,
+                connections: connections,
+                requests: requests,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        app.get('/api/data', async (req, res) => {
+            try {
+                // 비동기 작업 시뮬레이션
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                res.json({
+                    data: 'Sample data',
+                    workerId: process.pid,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        app.post('/api/process', (req, res) => {
+            const { data } = req.body;
+            
+            // CPU 집약적인 작업
+            let result = 0;
+            for (let i = 0; i < 100000; i++) {
+                result += Math.sqrt(i);
+            }
+            
+            res.json({
+                result: result,
+                processedData: data,
+                workerId: process.pid
+            });
+        });
+
+        // 서버 시작
+        const server = app.listen(port, () => {
+            console.log(`워커 ${process.pid}가 포트 ${port}에서 실행 중`);
+            
+            // 마스터에게 준비 완료 신호 전송
+            process.send({ type: 'ready', pid: process.pid });
+        });
+
+        // 주기적 통계 전송
+        setInterval(() => {
+            process.send({
+                type: 'stats',
+                stats: { connections, requests }
+            });
+        }, 5000);
+
+        // Graceful shutdown
+        process.on('message', (message) => {
+            if (message.type === 'shutdown') {
+                console.log(`워커 ${process.pid} 종료 신호 수신`);
+                server.close(() => {
+                    console.log(`워커 ${process.pid} 정상 종료`);
+                    process.exit(0);
+                });
+            }
+        });
+
+        process.on('SIGTERM', () => {
+            console.log(`워커 ${process.pid} SIGTERM 신호 수신`);
+            server.close(() => {
+                process.exit(0);
+            });
+        });
+    }
+}
+
+// 클러스터 매니저 시작
+const clusterManager = new ClusterManager();
+clusterManager.start();
+```
+
+### 고급 Cluster 예제
+
+#### 로드 밸런싱 및 상태 관리
+```javascript
+const cluster = require('cluster');
+const express = require('express');
+const os = require('os');
+
+class AdvancedClusterManager {
+    constructor() {
+        this.numCPUs = os.cpus().length;
+        this.workerStats = new Map();
+        this.loadBalancer = {
+            strategy: 'round-robin', // 'round-robin', 'least-connections', 'weighted'
+            currentIndex: 0
+        };
+    }
+
+    start() {
+        if (cluster.isMaster) {
+            this.startMaster();
+        } else {
+            this.startWorker();
+        }
+    }
+
+    startMaster() {
+        console.log(`고급 클러스터 마스터 시작 (PID: ${process.pid})`);
+
+        // 워커 생성
+        for (let i = 0; i < this.numCPUs; i++) {
+            this.createWorker();
+        }
+
+        // 이벤트 리스너 설정
+        this.setupMasterEventListeners();
+
+        // 상태 모니터링
+        this.startStatusMonitoring();
+
+        // 로드 밸런서 시작
+        this.startLoadBalancer();
+    }
+
+    createWorker() {
+        const worker = cluster.fork();
+        
+        this.workerStats.set(worker.id, {
+            pid: worker.process.pid,
+            connections: 0,
+            requests: 0,
+            startTime: Date.now(),
+            status: 'active'
+        });
+
+        console.log(`워커 ${worker.process.pid} 생성됨 (ID: ${worker.id})`);
+    }
+
+    setupMasterEventListeners() {
+        cluster.on('exit', (worker, code, signal) => {
+            console.log(`워커 ${worker.process.pid} 종료됨 (코드: ${code}, 시그널: ${signal})`);
+            
+            // 통계에서 제거
+            this.workerStats.delete(worker.id);
+            
+            // 새로운 워커 생성
+            setTimeout(() => {
+                this.createWorker();
+            }, 1000);
+        });
+
+        cluster.on('message', (worker, message) => {
+            if (message.type === 'stats') {
+                this.updateWorkerStats(worker.id, message.stats);
+            } else if (message.type === 'request') {
+                this.handleWorkerRequest(worker.id, message);
+            }
+        });
+    }
+
+    updateWorkerStats(workerId, stats) {
+        const workerStat = this.workerStats.get(workerId);
+        if (workerStat) {
+            Object.assign(workerStat, stats);
+        }
+    }
+
+    handleWorkerRequest(workerId, message) {
+        const workerStat = this.workerStats.get(workerId);
+        if (workerStat) {
+            workerStat.requests++;
+            workerStat.connections = message.connections || workerStat.connections;
+        }
+    }
+
+    startStatusMonitoring() {
+        setInterval(() => {
+            console.log('\n=== 클러스터 상태 리포트 ===');
+            
+            for (const [workerId, stats] of this.workerStats) {
+                const uptime = Math.floor((Date.now() - stats.startTime) / 1000);
+                console.log(`워커 ${stats.pid}: ${stats.requests} 요청, ${stats.connections} 연결, ${uptime}s 실행`);
+            }
+            
+            const totalRequests = Array.from(this.workerStats.values())
+                .reduce((sum, stats) => sum + stats.requests, 0);
+            
+            console.log(`총 요청 수: ${totalRequests}`);
+            console.log('=============================\n');
+        }, 10000);
+    }
+
+    startLoadBalancer() {
+        // 로드 밸런서는 실제로는 별도의 프로세스나 서비스로 구현
+        console.log('로드 밸런서 시작됨');
+    }
+
+    startWorker() {
+        const app = express();
+        const port = process.env.PORT || 3000;
+        let connections = 0;
+        let requests = 0;
+
+        // 연결 수 추적
+        app.use((req, res, next) => {
+            connections++;
+            requests++;
+            
+            res.on('close', () => {
+                connections--;
+            });
+            
+            // 주기적으로 마스터에게 통계 전송
+            if (requests % 10 === 0) {
+                process.send({
+                    type: 'stats',
+                    stats: { connections, requests }
+                });
+            }
+            
+            next();
+        });
+
+        // 라우트 설정
+        app.get('/', (req, res) => {
+            res.json({
+                message: 'Advanced Cluster Response',
+                workerId: process.pid,
+                connections: connections,
+                requests: requests,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        app.get('/api/worker-info', (req, res) => {
+            res.json({
+                pid: process.pid,
+                connections: connections,
+                requests: requests,
+                uptime: process.uptime(),
+                memory: process.memoryUsage()
+            });
+        });
+
+        app.get('/api/heavy-task', (req, res) => {
+            const start = Date.now();
+            
+            // CPU 집약적인 작업
+            let result = 0;
+            for (let i = 0; i < 500000; i++) {
+                result += Math.sqrt(i);
+            }
+            
+            const duration = Date.now() - start;
+            
+            res.json({
+                result: result,
+                duration: duration,
+                workerId: process.pid,
+                connections: connections
+            });
+        });
+
+        // 서버 시작
+        const server = app.listen(port, () => {
+            console.log(`고급 워커 ${process.pid}가 포트 ${port}에서 실행 중`);
+        });
+
+        // 주기적 통계 전송
+        setInterval(() => {
+            process.send({
+                type: 'stats',
+                stats: { connections, requests }
+            });
+        }, 5000);
+
+        // Graceful shutdown
+        process.on('SIGTERM', () => {
+            console.log(`워커 ${process.pid} 종료 신호 수신`);
+            server.close(() => {
+                console.log(`워커 ${process.pid} 정상 종료`);
+                process.exit(0);
+            });
+        });
+    }
+}
+
+// 고급 클러스터 매니저 시작
+const advancedClusterManager = new AdvancedClusterManager();
+advancedClusterManager.start();
+```
+
+## 운영 팁
+
+### 성능 최적화
+
+#### Cluster 성능 최적화 기법
+```javascript
+// 1. 워커 수 최적화
+class OptimizedClusterManager {
+    constructor() {
+        this.numCPUs = require('os').cpus().length;
+        this.optimalWorkerCount = this.calculateOptimalWorkerCount();
+    }
+
+    calculateOptimalWorkerCount() {
+        // I/O 집약적인 애플리케이션: CPU 코어 수보다 많은 워커
+        // CPU 집약적인 애플리케이션: CPU 코어 수만큼 워커
+        const isIOIntensive = process.env.IO_INTENSIVE === 'true';
+        return isIOIntensive ? this.numCPUs * 2 : this.numCPUs;
+    }
+
+    start() {
+        if (cluster.isMaster) {
+            console.log(`최적화된 워커 수: ${this.optimalWorkerCount}`);
+            
+            for (let i = 0; i < this.optimalWorkerCount; i++) {
+                cluster.fork();
+            }
+        } else {
+            this.startOptimizedWorker();
+        }
+    }
+
+    startOptimizedWorker() {
+        const app = express();
+        
+        // 메모리 사용량 모니터링
+        setInterval(() => {
+            const memUsage = process.memoryUsage();
+            if (memUsage.heapUsed > 100 * 1024 * 1024) { // 100MB
+                console.warn(`워커 ${process.pid} 메모리 사용량 높음: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
+            }
+        }, 30000);
+
+        // 라우트 설정...
+        app.get('/', (req, res) => {
+            res.json({ workerId: process.pid, optimized: true });
+        });
+    }
+}
+
+// 2. 워커 간 통신 최적화
+class InterWorkerCommunication {
+    constructor() {
+        this.messageQueue = new Map();
+    }
+
+    setupWorkerCommunication() {
+        if (cluster.isMaster) {
+            // 마스터에서 메시지 라우팅
+            cluster.on('message', (worker, message) => {
+                if (message.targetWorker) {
+                    const targetWorker = cluster.workers[message.targetWorker];
+                    if (targetWorker) {
+                        targetWorker.send(message);
+                    }
+                }
+            });
+        } else {
+            // 워커에서 메시지 처리
+            process.on('message', (message) => {
+                this.handleMessage(message);
+            });
+        }
+    }
+
+    handleMessage(message) {
+        switch (message.type) {
+            case 'cache-update':
+                this.updateCache(message.data);
+                break;
+            case 'config-change':
+                this.updateConfig(message.data);
+                break;
+            case 'health-check':
+                this.sendHealthStatus();
+                break;
+        }
+    }
+
+    sendMessage(targetWorker, type, data) {
+        process.send({
+            targetWorker: targetWorker,
+            type: type,
+            data: data,
+            fromWorker: process.pid
+        });
+    }
+}
+```
+
+### 모니터링 및 로깅
+
+#### Cluster 모니터링 시스템
+```javascript
+class ClusterMonitor {
+    constructor() {
+        this.metrics = {
+            startTime: Date.now(),
+            totalRequests: 0,
+            totalErrors: 0,
+            workerStats: new Map()
+        };
+    }
+
+    startMonitoring() {
+        if (cluster.isMaster) {
+            this.startMasterMonitoring();
+        } else {
+            this.startWorkerMonitoring();
+        }
+    }
+
+    startMasterMonitoring() {
+        // 워커 상태 모니터링
+        cluster.on('online', (worker) => {
+            console.log(`워커 ${worker.process.pid} 온라인`);
+        });
+
+        cluster.on('exit', (worker, code, signal) => {
+            console.log(`워커 ${worker.process.pid} 종료 (코드: ${code}, 시그널: ${signal})`);
+        });
+
+        // 주기적 상태 리포트
+        setInterval(() => {
+            this.generateStatusReport();
+        }, 30000);
+    }
+
+    startWorkerMonitoring() {
+        // 요청 수 추적
+        let requestCount = 0;
+        let errorCount = 0;
+
+        // 미들웨어로 요청 추적
+        const trackRequest = (req, res, next) => {
+            requestCount++;
+            
+            res.on('finish', () => {
+                if (res.statusCode >= 400) {
+                    errorCount++;
+                }
+            });
+            
+            next();
+        };
+
+        // 주기적으로 마스터에게 통계 전송
+        setInterval(() => {
+            process.send({
+                type: 'metrics',
+                data: {
+                    pid: process.pid,
+                    requests: requestCount,
+                    errors: errorCount,
+                    memory: process.memoryUsage(),
+                    uptime: process.uptime()
+                }
+            });
+        }, 10000);
+
+        return trackRequest;
+    }
+
+    generateStatusReport() {
+        const uptime = Date.now() - this.metrics.startTime;
+        const activeWorkers = Object.keys(cluster.workers).length;
+        
+        console.log('\n=== 클러스터 상태 리포트 ===');
+        console.log(`실행 시간: ${Math.floor(uptime / 1000)}초`);
+        console.log(`활성 워커 수: ${activeWorkers}`);
+        console.log(`총 요청 수: ${this.metrics.totalRequests}`);
+        console.log(`총 오류 수: ${this.metrics.totalErrors}`);
+        console.log(`오류율: ${((this.metrics.totalErrors / this.metrics.totalRequests) * 100).toFixed(2)}%`);
+        console.log('=============================\n');
+    }
+}
+```
+
+### 오류 처리
+
+#### Cluster 오류 처리 패턴
+```javascript
+class ClusterErrorHandler {
+    constructor() {
+        this.errorCounts = new Map();
+        this.maxErrors = 10;
+        this.errorWindow = 60000; // 1분
+    }
+
+    setupErrorHandling() {
+        if (cluster.isMaster) {
+            this.setupMasterErrorHandling();
+        } else {
+            this.setupWorkerErrorHandling();
+        }
+    }
+
+    setupMasterErrorHandling() {
+        cluster.on('exit', (worker, code, signal) => {
+            const workerId = worker.id;
+            const errorCount = this.errorCounts.get(workerId) || 0;
+            
+            if (code !== 0) {
+                this.errorCounts.set(workerId, errorCount + 1);
+                console.error(`워커 ${worker.process.pid} 비정상 종료 (코드: ${code})`);
+                
+                if (errorCount >= this.maxErrors) {
+                    console.error(`워커 ${worker.process.pid} 최대 오류 횟수 초과. 재시작 중단.`);
+                    return;
+                }
+            }
+            
+            // 새로운 워커 생성
+            setTimeout(() => {
+                const newWorker = cluster.fork();
+                console.log(`새 워커 ${newWorker.process.pid} 생성됨`);
+            }, 1000);
+        });
+    }
+
+    setupWorkerErrorHandling() {
+        // 처리되지 않은 예외 처리
+        process.on('uncaughtException', (error) => {
+            console.error(`워커 ${process.pid} 처리되지 않은 예외:`, error);
+            
+            // 마스터에게 오류 보고
+            process.send({
+                type: 'error',
+                error: error.message,
+                stack: error.stack
+            });
+            
+            // Graceful shutdown
+            process.exit(1);
+        });
+
+        // 처리되지 않은 Promise 거부 처리
+        process.on('unhandledRejection', (reason, promise) => {
+            console.error(`워커 ${process.pid} 처리되지 않은 Promise 거부:`, reason);
+            
+            process.send({
+                type: 'error',
+                error: 'Unhandled Promise Rejection',
+                reason: reason
+            });
+        });
+
+        // 메모리 부족 처리
+        process.on('warning', (warning) => {
+            if (warning.name === 'MaxListenersExceededWarning') {
+                console.warn(`워커 ${process.pid} 이벤트 리스너 수 초과`);
+            }
+        });
+    }
+}
+```
+
+## 참고
+
+### Cluster vs Worker Threads
+
+#### Cluster와 Worker Threads 비교
+```javascript
+// Cluster 사용 예시 (프로세스 기반)
+const cluster = require('cluster');
+const express = require('express');
+
+if (cluster.isMaster) {
+    // 마스터 프로세스
+    for (let i = 0; i < 4; i++) {
+        cluster.fork();
+    }
+} else {
+    // 워커 프로세스
+    const app = express();
+    app.get('/', (req, res) => {
+        res.json({ workerId: process.pid });
+    });
+    app.listen(3000);
+}
+
+// Worker Threads 사용 예시 (스레드 기반)
+const { Worker, isMainThread, parentPort } = require('worker_threads');
+
+if (isMainThread) {
+    // 메인 스레드
+    const worker = new Worker(__filename);
+    worker.on('message', (result) => {
+        console.log('Worker 결과:', result);
+    });
+} else {
+    // 워커 스레드
+    const result = performHeavyCalculation();
+    parentPort.postMessage(result);
+}
+```
+
+### PM2와 함께 사용
+
+#### PM2 Cluster 모드 설정
+```javascript
+// ecosystem.config.js
 module.exports = {
     apps: [{
-        name: "my-app",        // 애플리케이션 이름
-        script: "server.js",   // 실행할 파일
-        instances: "max",      // CPU 개수만큼 워커 생성 (또는 직접 숫자 지정 가능)
-        exec_mode: "cluster"   // 클러스터 모드 활성화
+        name: 'cluster-app',
+        script: 'app.js',
+        instances: 'max', // CPU 코어 수만큼
+        exec_mode: 'cluster',
+        watch: false,
+        max_memory_restart: '1G',
+        env: {
+            NODE_ENV: 'development'
+        },
+        env_production: {
+            NODE_ENV: 'production'
+        },
+        // 클러스터 관련 설정
+        kill_timeout: 5000,
+        wait_ready: true,
+        listen_timeout: 3000,
+        max_restarts: 10,
+        min_uptime: '10s'
     }]
 };
 ```
 
-### 4.4 PM2로 애플리케이션 실행
-```sh
-pm2 start pm2.config.js
-```  
-
-📌 **출력 결과:**
-```
-[PM2] Starting server.js in cluster mode (instances: max)
-[PM2] Started my-app with process ID 1001, 1002, 1003, ...
-```  
-
-> **📌 PM2는 자동으로 클러스터를 관리하며, 장애 발생 시 자동 복구 기능도 제공!**
-
----
-
-## 5. PM2 클러스터 관리 명령어
-
-| 명령어 | 설명 |
-|--------|------|
-| `pm2 list` | 실행 중인 애플리케이션 목록 확인 |
-| `pm2 status` | 프로세스 상태 확인 |
-| `pm2 logs` | 로그 확인 |
-| `pm2 restart my-app` | 애플리케이션 재시작 |
-| `pm2 stop my-app` | 애플리케이션 중지 |
-| `pm2 delete my-app` | 애플리케이션 삭제 |
-| `pm2 scale my-app 4` | 4개의 인스턴스로 확장 |
-
-✅ **PM2를 사용하면 클러스터 기반의 Node.js 서버를 쉽고 안정적으로 운영 가능!**
-
----
-
-## 📌 결론
-
-- **Node.js의 기본 실행 방식은 싱글 스레드이지만, `cluster` 모듈을 활용하면 멀티코어를 활용하여 성능을 최적화할 수 있음**
-- **CPU 코어 개수만큼 워커 프로세스를 실행하여 요청을 병렬로 처리 가능**
-- **Express 서버에서도 클러스터 기능을 적용하여 고성능 API 서버 운영 가능**
-- **PM2를 활용하면 클러스터 관리를 더욱 쉽게 할 수 있으며, 자동 복구 및 확장 기능을 제공**
-
-> **👉🏻 클러스터를 활용하면 대규모 트래픽을 처리할 수 있는 강력한 Node.js 서버를 구축할 수 있음!**  
+### 결론
+Cluster는 Node.js에서 멀티코어 CPU를 활용하는 강력한 방법입니다.
+적절한 Cluster 설정으로 성능과 고가용성을 동시에 확보할 수 있습니다.
+워커 프로세스 관리와 오류 처리를 통해 안정적인 클러스터를 구축해야 합니다.
+모니터링과 로깅을 통해 클러스터 상태를 지속적으로 관리해야 합니다.
+Cluster와 Worker Threads의 차이점을 이해하여 적절한 상황에 맞는 기술을 선택해야 합니다.
 
