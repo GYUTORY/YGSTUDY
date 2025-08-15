@@ -1,778 +1,684 @@
-# JavaScript try-catch 
+---
+title: JavaScript try-catch 에러 처리
+tags: [language, javascript, 01기본javascript, object, try-catch, error-handling]
+updated: 2025-08-10
+---
 
-## 목차
-1. [try-catch란?](#try-catch란)
-2. [기본 문법](#기본-문법)
-3. [에러 객체](#에러-객체)
-4. [throw new Error vs throw err](#throw-new-error-vs-throw-err)
-5. [finally 블록](#finally-블록)
-6. [중첩된 try-catch](#중첩된-try-catch)
-7. [실제 사용 사례](#실제-사용-사례)
-8. [모범 사례](#모범-사례)
+# JavaScript try-catch 에러 처리
 
-## try-catch란?
+## 배경
 
-try-catch는 JavaScript에서 예외 처리를 위한 구문입니다. 코드 실행 중 발생할 수 있는 오류를 처리하고 프로그램이 중단되지 않도록 하는 중요한 메커니즘입니다.
+JavaScript에서 try-catch는 예외 처리를 위한 핵심 구문입니다. 프로그램 실행 중 발생할 수 있는 오류를 안전하게 처리하고, 애플리케이션의 안정성을 보장하는 데 사용됩니다.
+
+### try-catch의 필요성
+- **오류 처리**: 예상치 못한 오류로 인한 프로그램 중단 방지
+- **사용자 경험**: 오류 발생 시에도 애플리케이션이 계속 동작
+- **디버깅**: 오류 정보를 수집하여 문제 해결 지원
+- **리소스 정리**: finally 블록을 통한 정리 작업 보장
 
 ### 기본 개념
-- `try` 블록: 오류가 발생할 수 있는 코드를 포함
-- `catch` 블록: 오류가 발생했을 때 실행될 코드를 포함
-- `finally` 블록: 오류 발생 여부와 관계없이 항상 실행되는 코드를 포함
+- **try 블록**: 오류가 발생할 수 있는 코드를 포함
+- **catch 블록**: 오류가 발생했을 때 실행될 코드를 포함
+- **finally 블록**: 오류 발생 여부와 관계없이 항상 실행되는 코드를 포함
+- **throw**: 의도적으로 오류를 발생시키는 구문
 
-## 기본 문법
+## 핵심
 
+### 1. 기본 문법
+
+#### try-catch 기본 구조
 ```javascript
 try {
     // 오류가 발생할 수 있는 코드
+    const result = riskyOperation();
+    console.log(result);
 } catch (error) {
     // 오류 처리
+    console.error('오류가 발생했습니다:', error.message);
 } finally {
-    // 항상 실행되는 코드
+    // 항상 실행되는 코드 (선택사항)
+    console.log('작업이 완료되었습니다.');
 }
 ```
 
-### 간단한 예제
-
+#### 간단한 예제
 ```javascript
 try {
     const result = 10 / 0;
     console.log(result);
 } catch (error) {
     console.log('오류가 발생했습니다:', error.message);
+    // "오류가 발생했습니다: Infinity"
 }
 ```
 
-## 에러 객체
+#### 변수 접근 오류 처리
+```javascript
+try {
+    console.log(undefinedVariable);
+} catch (error) {
+    console.log('변수 오류:', error.message);
+    // "변수 오류: undefinedVariable is not defined"
+}
+```
 
-JavaScript의 에러 객체는 다양한 속성과 메서드를 가지고 있습니다.
+### 2. 에러 객체
 
-### 주요 에러 타입
+#### 주요 에러 타입
+```javascript
+// 1. Error: 기본 에러 객체
+throw new Error('기본 오류');
 
-1. **Error**: 기본 에러 객체
-2. **SyntaxError**: 구문 오류
-3. **TypeError**: 타입 오류
-4. **ReferenceError**: 참조 오류
-5. **RangeError**: 범위 오류
-6. **URIError**: URI 처리 오류
-7. **EvalError**: eval() 함수 관련 오류
+// 2. SyntaxError: 구문 오류
+// throw new SyntaxError('구문 오류');
 
-### 에러 객체의 주요 속성
+// 3. TypeError: 타입 오류
+const obj = null;
+obj.property; // TypeError: Cannot read property 'property' of null
 
+// 4. ReferenceError: 참조 오류
+console.log(undefinedVariable); // ReferenceError: undefinedVariable is not defined
+
+// 5. RangeError: 범위 오류
+const arr = new Array(-1); // RangeError: Invalid array length
+
+// 6. URIError: URI 처리 오류
+decodeURIComponent('%'); // URIError: URI malformed
+
+// 7. EvalError: eval() 함수 관련 오류 (현재는 거의 사용되지 않음)
+```
+
+#### 에러 객체의 주요 속성
 ```javascript
 try {
     throw new Error('테스트 에러');
 } catch (error) {
-    console.log('에러 이름:', error.name);
-    console.log('에러 메시지:', error.message);
-    console.log('스택 트레이스:', error.stack);
+    console.log('에러 이름:', error.name); // "Error"
+    console.log('에러 메시지:', error.message); // "테스트 에러"
+    console.log('스택 트레이스:', error.stack); // 호출 스택 정보
+    console.log('에러 타입:', error.constructor.name); // "Error"
 }
 ```
 
-### 커스텀 에러 생성
-
+#### 커스텀 에러 생성
 ```javascript
 class CustomError extends Error {
-    constructor(message) {
+    constructor(message, code) {
         super(message);
         this.name = 'CustomError';
+        this.code = code;
+        this.timestamp = new Date();
     }
 }
 
 try {
-    throw new CustomError('커스텀 에러 발생!');
+    throw new CustomError('커스텀 에러 발생!', 'CUSTOM_001');
 } catch (error) {
     if (error instanceof CustomError) {
         console.log('커스텀 에러 처리:', error.message);
+        console.log('에러 코드:', error.code);
+        console.log('발생 시간:', error.timestamp);
     } else {
         console.log('일반 에러 처리:', error.message);
     }
 }
 ```
 
-## throw new Error vs throw err
+### 3. throw 문
 
-JavaScript에서 에러를 발생시키는 두 가지 주요 방법인 `throw new Error()`와 `throw err`의 사용 시나리오와 차이점에 대해 알아보겠습니다.
-
-### throw new Error()
-
-`throw new Error()`는 새로운 에러 객체를 생성하여 발생시킬 때 사용합니다.
-
-#### 사용 시나리오
-
-1. **새로운 에러 상황 발생 시**
+#### throw new Error vs throw err
 ```javascript
-function validateAge(age) {
-    if (age < 0) {
-        throw new Error('나이는 0보다 커야 합니다.');
+// 1. 새로운 에러 생성
+function processData(data) {
+    if (!data) {
+        throw new Error('데이터가 없습니다.');
     }
-    if (age > 150) {
-        throw new Error('유효하지 않은 나이입니다.');
-    }
-    return true;
+    return data.toUpperCase();
 }
-```
 
-2. **비즈니스 로직 검증 시**
-```javascript
-function processOrder(order) {
-    if (!order.items || order.items.length === 0) {
-        throw new Error('주문 항목이 비어있습니다.');
-    }
-    if (!order.customerId) {
-        throw new Error('고객 ID가 필요합니다.');
-    }
-    // 주문 처리 로직
-}
-```
-
-3. **API 응답 검증 시**
-```javascript
-async function fetchUserData(userId) {
-    const response = await fetch(`/api/users/${userId}`);
-    if (!response.ok) {
-        throw new Error(`사용자 데이터를 가져오는데 실패했습니다. 상태 코드: ${response.status}`);
-    }
-    return response.json();
-}
-```
-
-### throw err
-
-`throw err`는 이미 발생한 에러를 다시 던질 때 사용합니다.
-
-#### 사용 시나리오
-
-1. **에러를 상위 레벨로 전파할 때**
-```javascript
-async function processUserData(userId) {
+// 2. 기존 에러를 다시 던지기
+function validateUser(user) {
     try {
-        const userData = await fetchUserData(userId);
-        return userData;
-    } catch (err) {
-        // 에러 로깅 후 상위로 전파
-        console.error('사용자 데이터 처리 중 오류:', err);
-        throw err;  // 원본 에러를 그대로 전파
-    }
-}
-```
-
-2. **에러를 변환하지 않고 전달할 때**
-```javascript
-function readConfigFile() {
-    try {
-        const config = fs.readFileSync('config.json', 'utf8');
-        return JSON.parse(config);
-    } catch (err) {
-        // 파일 읽기 실패나 JSON 파싱 실패 시 원본 에러 전파
-        throw err;
-    }
-}
-```
-
-3. **중첩된 try-catch에서 에러 전파 시**
-```javascript
-async function complexOperation() {
-    try {
-        try {
-            await someAsyncOperation();
-        } catch (innerErr) {
-            // 내부 에러를 로깅하고 외부로 전파
-            console.error('내부 작업 실패:', innerErr);
-            throw innerErr;
+        if (!user.name) {
+            throw new Error('사용자 이름이 필요합니다.');
         }
-    } catch (outerErr) {
-        // 외부 에러 처리
-        console.error('전체 작업 실패:', outerErr);
-    }
-}
-```
-
-### 두 방식의 주요 차이점
-
-1. **에러 스택 트레이스**
-   - `throw new Error()`: 새로운 스택 트레이스가 생성됨
-   - `throw err`: 기존 에러의 스택 트레이스가 유지됨
-
-2. **에러 정보 보존**
-   - `throw new Error()`: 새로운 에러 객체이므로 원본 에러 정보가 손실될 수 있음
-   - `throw err`: 원본 에러의 모든 정보가 보존됨
-
-3. **디버깅 용이성**
-   - `throw new Error()`: 새로운 에러 메시지로 상황을 명확히 설명 가능
-   - `throw err`: 원본 에러의 컨텍스트가 유지되어 디버깅이 용이
-
-### 모범 사례
-
-1. **새로운 에러 생성이 필요한 경우**
-```javascript
-function validateInput(input) {
-    if (!input) {
-        throw new Error('입력값이 필요합니다.');
-    }
-    if (typeof input !== 'string') {
-        throw new Error('문자열 입력이 필요합니다.');
-    }
-}
-```
-
-2. **에러 전파가 필요한 경우**
-```javascript
-async function handleUserRequest(userId) {
-    try {
-        const userData = await fetchUserData(userId);
-        return userData;
-    } catch (err) {
-        // 에러 로깅
-        console.error('사용자 요청 처리 실패:', err);
-        // 원본 에러 전파
-        throw err;
-    }
-}
-```
-
-3. **에러 변환이 필요한 경우**
-```javascript
-async function processData() {
-    try {
-        await someOperation();
-    } catch (err) {
-        // 원본 에러 정보를 포함한 새로운 에러 생성
-        throw new Error(`데이터 처리 실패: ${err.message}`);
-    }
-}
-```
-
-### 결론
-
-- `throw new Error()`: 새로운 에러 상황을 정의하거나, 사용자 정의 에러 메시지가 필요할 때 사용
-- `throw err`: 기존 에러를 그대로 전파하거나, 에러 정보를 보존해야 할 때 사용
-
-적절한 상황에 맞는 방식을 선택하여 사용하는 것이 중요합니다. 에러 처리의 일관성과 디버깅 용이성을 고려하여 선택하세요.
-
-## finally 블록
-
-finally 블록은 try-catch 구문에서 선택적으로 사용할 수 있으며, 오류 발생 여부와 관계없이 항상 실행됩니다.
-
-```javascript
-function divideNumbers(a, b) {
-    try {
-        if (b === 0) {
-            throw new Error('0으로 나눌 수 없습니다.');
+        if (!user.email) {
+            throw new Error('이메일이 필요합니다.');
         }
-        return a / b;
     } catch (error) {
-        console.log('에러 발생:', error.message);
-        return null;
-    } finally {
-        console.log('계산 완료');
+        // 에러 정보를 추가하여 다시 던지기
+        error.message = `사용자 검증 실패: ${error.message}`;
+        throw error; // 기존 에러를 다시 던지기
     }
 }
 
-console.log(divideNumbers(10, 2));  // 5
-console.log(divideNumbers(10, 0));  // null
-```
-
-## 중첩된 try-catch
-
-try-catch 블록은 중첩하여 사용할 수 있습니다. 이는 복잡한 에러 처리 시나리오에서 유용합니다.
-
-### 기본 중첩 구조
-
-```javascript
+// 사용 예시
 try {
-    // 외부 try 블록
-    try {
-        // 내부 try 블록
-        throw new Error('내부 에러');
-    } catch (innerError) {
-        console.log('내부 에러 처리:', innerError.message);
-        throw new Error('외부로 전파되는 에러');
-    }
-} catch (outerError) {
-    console.log('외부 에러 처리:', outerError.message);
+    validateUser({});
+} catch (error) {
+    console.log(error.message); // "사용자 검증 실패: 사용자 이름이 필요합니다."
 }
 ```
 
-### 실제 사용 예제
-
+#### 조건부 에러 발생
 ```javascript
-async function processUserData(userId) {
-    try {
-        // 사용자 데이터 가져오기
-        const userData = await fetchUserData(userId);
-        
-        try {
-            // 사용자 데이터 처리
-            const processedData = await processData(userData);
-            return processedData;
-        } catch (processingError) {
-            console.log('데이터 처리 중 오류:', processingError.message);
-            throw new Error('데이터 처리 실패');
-        }
-    } catch (fetchError) {
-        console.log('데이터 가져오기 실패:', fetchError.message);
-        throw new Error('사용자 데이터 처리 실패');
+function divide(a, b) {
+    if (typeof a !== 'number' || typeof b !== 'number') {
+        throw new TypeError('두 인수 모두 숫자여야 합니다.');
     }
-}
-```
-
-## 실제 사용 사례
-
-### 1. API 호출 처리
-
-```javascript
-async function fetchData(url) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('데이터 가져오기 실패:', error);
-        throw error;
+    
+    if (b === 0) {
+        throw new Error('0으로 나눌 수 없습니다.');
     }
+    
+    return a / b;
 }
-```
 
-### 2. 파일 처리
-
-```javascript
-function readFile(filePath) {
-    try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        return content;
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            console.log('파일을 찾을 수 없습니다.');
-        } else {
-            console.log('파일 읽기 오류:', error.message);
-        }
-        throw error;
-    }
-}
-```
-
-### 3. 데이터 유효성 검사
-
-```javascript
-function validateUserData(userData) {
-    try {
-        if (!userData.name) {
-            throw new Error('이름이 필요합니다.');
-        }
-        
-        try {
-            if (userData.age < 0) {
-                throw new Error('나이는 0보다 커야 합니다.');
-            }
-        } catch (ageError) {
-            console.log('나이 검증 실패:', ageError.message);
-            throw new Error('나이 데이터가 유효하지 않습니다.');
-        }
-        
-        return true;
-    } catch (error) {
-        console.log('사용자 데이터 검증 실패:', error.message);
-        return false;
-    }
-}
-```
-
-## 모범 사례
-
-### 1. 구체적인 에러 처리
-
-```javascript
 try {
-    // 코드 실행
+    const result = divide(10, 0);
+    console.log(result);
 } catch (error) {
     if (error instanceof TypeError) {
-        // 타입 에러 처리
-    } else if (error instanceof ReferenceError) {
-        // 참조 에러 처리
+        console.log('타입 오류:', error.message);
     } else {
-        // 기타 에러 처리
+        console.log('일반 오류:', error.message);
     }
 }
 ```
 
-### 2. 비동기 코드에서의 에러 처리
+### 4. finally 블록
 
+#### finally 블록의 특징
 ```javascript
-async function asyncOperation() {
+function riskyOperation() {
+    let resource = null;
+    
     try {
-        const result = await someAsyncFunction();
+        resource = acquireResource();
+        const result = processResource(resource);
         return result;
     } catch (error) {
-        console.error('비동기 작업 실패:', error);
+        console.error('오류 발생:', error.message);
+        throw error; // 에러를 다시 던져도 finally는 실행됨
+    } finally {
+        // 리소스 정리 (항상 실행됨)
+        if (resource) {
+            releaseResource(resource);
+            console.log('리소스가 정리되었습니다.');
+        }
+    }
+}
+
+// 가상의 함수들
+function acquireResource() {
+    console.log('리소스 획득');
+    return { id: 1, data: 'test' };
+}
+
+function processResource(resource) {
+    // 가끔 오류 발생
+    if (Math.random() > 0.5) {
+        throw new Error('처리 중 오류 발생');
+    }
+    return `처리된 ${resource.data}`;
+}
+
+function releaseResource(resource) {
+    console.log(`리소스 ${resource.id} 해제`);
+}
+```
+
+#### finally와 return의 관계
+```javascript
+function testFinally() {
+    try {
+        console.log('try 블록 실행');
+        return 'try에서 반환';
+    } catch (error) {
+        console.log('catch 블록 실행');
+        return 'catch에서 반환';
+    } finally {
+        console.log('finally 블록 실행');
+        // finally에서 return하면 try/catch의 return을 덮어씀
+        // return 'finally에서 반환';
+    }
+}
+
+console.log(testFinally());
+// 출력:
+// "try 블록 실행"
+// "finally 블록 실행"
+// "try에서 반환"
+```
+
+### 5. 중첩된 try-catch
+
+#### 중첩 구조
+```javascript
+function outerFunction() {
+    try {
+        console.log('외부 함수 시작');
+        innerFunction();
+    } catch (error) {
+        console.log('외부 함수에서 오류 처리:', error.message);
+    }
+}
+
+function innerFunction() {
+    try {
+        console.log('내부 함수 시작');
+        riskyOperation();
+    } catch (error) {
+        console.log('내부 함수에서 오류 처리:', error.message);
+        // 내부에서 처리하지 않고 외부로 전파
         throw error;
     }
 }
+
+function riskyOperation() {
+    throw new Error('위험한 작업에서 오류 발생');
+}
+
+outerFunction();
 ```
 
-### 3. 에러 로깅
-
+#### 특정 오류만 처리
 ```javascript
-function logError(error, context) {
-    console.error({
+function processUserData(userData) {
+    try {
+        // 데이터 파싱
+        const parsedData = JSON.parse(userData);
+        
+        try {
+            // 데이터 검증
+            validateUserData(parsedData);
+        } catch (validationError) {
+            console.log('검증 오류:', validationError.message);
+            // 검증 오류는 복구 가능하므로 기본값 사용
+            return getDefaultUserData();
+        }
+        
+        return parsedData;
+    } catch (parseError) {
+        console.log('파싱 오류:', parseError.message);
+        // 파싱 오류는 복구 불가능하므로 에러 전파
+        throw new Error('사용자 데이터를 처리할 수 없습니다.');
+    }
+}
+
+function validateUserData(data) {
+    if (!data.name || !data.email) {
+        throw new Error('필수 필드가 누락되었습니다.');
+    }
+}
+
+function getDefaultUserData() {
+    return { name: 'Unknown', email: 'unknown@example.com' };
+}
+```
+
+## 예시
+
+### 1. 실제 사용 사례
+
+#### API 호출 에러 처리
+```javascript
+async function fetchUserData(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const userData = await response.json();
+        return userData;
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.error('네트워크 오류:', error.message);
+            throw new Error('서버에 연결할 수 없습니다.');
+        } else if (error.message.includes('HTTP 404')) {
+            console.error('사용자를 찾을 수 없습니다.');
+            throw new Error('존재하지 않는 사용자입니다.');
+        } else {
+            console.error('알 수 없는 오류:', error.message);
+            throw new Error('사용자 정보를 가져오는 중 오류가 발생했습니다.');
+        }
+    }
+}
+
+// 사용 예시
+fetchUserData(123)
+    .then(user => console.log('사용자 정보:', user))
+    .catch(error => console.error('오류:', error.message));
+```
+
+#### 파일 처리 에러 처리
+```javascript
+function readFileContent(filePath) {
+    let fileHandle = null;
+    
+    try {
+        // 파일 열기 시도
+        fileHandle = openFile(filePath);
+        
+        if (!fileHandle) {
+            throw new Error('파일을 열 수 없습니다.');
+        }
+        
+        const content = readFromHandle(fileHandle);
+        return content;
+    } catch (error) {
+        if (error.message.includes('파일을 찾을 수 없습니다')) {
+            console.error('파일이 존재하지 않습니다:', filePath);
+            throw new Error(`파일을 찾을 수 없습니다: ${filePath}`);
+        } else if (error.message.includes('권한이 없습니다')) {
+            console.error('파일 접근 권한이 없습니다:', filePath);
+            throw new Error('파일 접근 권한이 없습니다.');
+        } else {
+            console.error('파일 읽기 오류:', error.message);
+            throw new Error('파일을 읽는 중 오류가 발생했습니다.');
+        }
+    } finally {
+        // 파일 핸들 정리
+        if (fileHandle) {
+            closeFile(fileHandle);
+            console.log('파일이 닫혔습니다.');
+        }
+    }
+}
+
+// 가상의 파일 처리 함수들
+function openFile(path) {
+    if (path.includes('nonexistent')) {
+        throw new Error('파일을 찾을 수 없습니다.');
+    }
+    if (path.includes('restricted')) {
+        throw new Error('권한이 없습니다.');
+    }
+    return { path, isOpen: true };
+}
+
+function readFromHandle(handle) {
+    return `파일 내용: ${handle.path}`;
+}
+
+function closeFile(handle) {
+    handle.isOpen = false;
+}
+```
+
+### 2. 고급 패턴
+
+#### 에러 래핑 패턴
+```javascript
+class DatabaseError extends Error {
+    constructor(message, originalError, query) {
+        super(message);
+        this.name = 'DatabaseError';
+        this.originalError = originalError;
+        this.query = query;
+        this.timestamp = new Date();
+    }
+}
+
+class ValidationError extends Error {
+    constructor(message, field, value) {
+        super(message);
+        this.name = 'ValidationError';
+        this.field = field;
+        this.value = value;
+    }
+}
+
+function executeQuery(query) {
+    try {
+        // 데이터베이스 쿼리 실행
+        const result = performDatabaseQuery(query);
+        return result;
+    } catch (error) {
+        // 데이터베이스 오류를 래핑
+        throw new DatabaseError(
+            '데이터베이스 쿼리 실행 중 오류가 발생했습니다.',
+            error,
+            query
+        );
+    }
+}
+
+function validateUser(user) {
+    const errors = [];
+    
+    if (!user.name || user.name.trim().length === 0) {
+        errors.push(new ValidationError('이름은 필수입니다.', 'name', user.name));
+    }
+    
+    if (!user.email || !user.email.includes('@')) {
+        errors.push(new ValidationError('유효한 이메일이 필요합니다.', 'email', user.email));
+    }
+    
+    if (errors.length > 0) {
+        const errorMessage = errors.map(e => e.message).join(', ');
+        const combinedError = new Error(errorMessage);
+        combinedError.errors = errors;
+        throw combinedError;
+    }
+}
+
+// 사용 예시
+try {
+    const user = { name: '', email: 'invalid-email' };
+    validateUser(user);
+    
+    const query = 'SELECT * FROM users WHERE id = 1';
+    const result = executeQuery(query);
+    console.log('결과:', result);
+} catch (error) {
+    if (error instanceof DatabaseError) {
+        console.error('데이터베이스 오류:', error.message);
+        console.error('원본 오류:', error.originalError.message);
+        console.error('쿼리:', error.query);
+    } else if (error.errors) {
+        console.error('검증 오류들:');
+        error.errors.forEach(err => {
+            console.error(`- ${err.field}: ${err.message} (값: ${err.value})`);
+        });
+    } else {
+        console.error('일반 오류:', error.message);
+    }
+}
+```
+
+#### 비동기 에러 처리
+```javascript
+// Promise 기반 에러 처리
+function asyncOperation() {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            const random = Math.random();
+            if (random > 0.7) {
+                reject(new Error('비동기 작업 실패'));
+            } else {
+                resolve('비동기 작업 성공');
+            }
+        }, 1000);
+    });
+}
+
+// async/await와 try-catch 사용
+async function handleAsyncOperation() {
+    try {
+        const result = await asyncOperation();
+        console.log('성공:', result);
+        return result;
+    } catch (error) {
+        console.error('비동기 오류:', error.message);
+        throw error;
+    }
+}
+
+// Promise 체인에서 에러 처리
+asyncOperation()
+    .then(result => {
+        console.log('성공:', result);
+        return result;
+    })
+    .catch(error => {
+        console.error('오류:', error.message);
+        // 기본값 반환
+        return '기본값';
+    })
+    .then(finalResult => {
+        console.log('최종 결과:', finalResult);
+    });
+
+// 여러 비동기 작업의 에러 처리
+async function processMultipleOperations() {
+    const operations = [
+        asyncOperation(),
+        asyncOperation(),
+        asyncOperation()
+    ];
+    
+    try {
+        const results = await Promise.all(operations);
+        console.log('모든 작업 성공:', results);
+        return results;
+    } catch (error) {
+        console.error('일부 작업 실패:', error.message);
+        // 실패한 작업들을 개별적으로 처리
+        const results = await Promise.allSettled(operations);
+        const successful = results.filter(r => r.status === 'fulfilled');
+        const failed = results.filter(r => r.status === 'rejected');
+        
+        console.log('성공한 작업:', successful.length);
+        console.log('실패한 작업:', failed.length);
+        
+        return successful.map(r => r.value);
+    }
+}
+```
+
+## 운영 팁
+
+### 성능 최적화
+
+#### 에러 처리 성능 고려사항
+```javascript
+// 비효율적인 방법: try-catch를 너무 자주 사용
+function inefficientFunction() {
+    try {
+        const result = simpleOperation();
+        return result;
+    } catch (error) {
+        // 단순한 연산에서 오류가 발생할 가능성이 낮음
+        console.error(error);
+        return null;
+    }
+}
+
+// 효율적인 방법: 예측 가능한 오류만 처리
+function efficientFunction() {
+    const result = simpleOperation();
+    return result;
+}
+
+// 예측 가능한 오류가 있는 경우에만 try-catch 사용
+function riskyFunction(data) {
+    try {
+        return JSON.parse(data);
+    } catch (error) {
+        // JSON 파싱은 실패할 가능성이 있음
+        console.error('JSON 파싱 오류:', error.message);
+        return null;
+    }
+}
+```
+
+### 에러 처리
+
+#### 일반적인 에러 처리 패턴
+```javascript
+// 1. 오류 로깅
+function logError(error, context = {}) {
+    console.error('오류 발생:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
         timestamp: new Date().toISOString(),
-        error: {
-            name: error.name,
-            message: error.message,
-            stack: error.stack
-        },
         context: context
     });
 }
 
+// 2. 오류 복구
+function recoverFromError(error) {
+    if (error instanceof NetworkError) {
+        return retryOperation();
+    } else if (error instanceof ValidationError) {
+        return useDefaultValue();
+    } else {
+        throw error; // 복구 불가능한 오류는 다시 던지기
+    }
+}
+
+// 3. 사용자 친화적 오류 메시지
+function getUserFriendlyMessage(error) {
+    const errorMessages = {
+        'NetworkError': '네트워크 연결을 확인해주세요.',
+        'ValidationError': '입력한 정보를 다시 확인해주세요.',
+        'PermissionError': '권한이 없습니다. 관리자에게 문의하세요.',
+        'default': '오류가 발생했습니다. 다시 시도해주세요.'
+    };
+    
+    return errorMessages[error.name] || errorMessages.default;
+}
+
+// 사용 예시
 try {
-    // 코드 실행
+    const result = riskyOperation();
+    console.log('결과:', result);
 } catch (error) {
-    logError(error, { operation: '데이터 처리' });
-}
-```
-
-## 결론
-
-try-catch는 JavaScript에서 예외 처리를 위한 강력한 도구입니다. 적절한 에러 처리는 애플리케이션의 안정성과 사용자 경험을 크게 향상시킬 수 있습니다. 구체적인 에러 처리, 적절한 로깅, 그리고 명확한 에러 메시지를 통해 더 나은 디버깅과 유지보수가 가능해집니다.
-
-## 참고 자료
-- MDN Web Docs: Error
-- JavaScript.info: Error handling
-- ECMAScript 2021 Specification
-
-## JavaScript 심화 개념
-
-JavaScript의 고급 개념들을 이해하면 더 효율적이고 견고한 코드를 작성할 수 있습니다.
-
-### 1. 프로토타입과 상속
-
-JavaScript는 프로토타입 기반의 객체지향 언어입니다.
-
-```javascript
-// 프로토타입 체인 예제
-function Animal(name) {
-    this.name = name;
-}
-
-Animal.prototype.speak = function() {
-    console.log(`${this.name}이(가) 소리를 냅니다.`);
-};
-
-function Dog(name, breed) {
-    Animal.call(this, name);
-    this.breed = breed;
-}
-
-// 프로토타입 상속 설정
-Dog.prototype = Object.create(Animal.prototype);
-Dog.prototype.constructor = Dog;
-
-// 메서드 오버라이딩
-Dog.prototype.speak = function() {
-    console.log(`${this.name}이(가) 멍멍!`);
-};
-
-const dog = new Dog('바둑이', '진돗개');
-dog.speak(); // "바둑이이(가) 멍멍!"
-```
-
-### 2. 클로저(Closure)
-
-클로저는 함수와 그 함수가 선언된 렉시컬 환경의 조합입니다.
-
-```javascript
-function createCounter() {
-    let count = 0;  // private 변수
+    logError(error, { operation: 'riskyOperation' });
     
-    return {
-        increment() {
-            count++;
-            return count;
-        },
-        decrement() {
-            count--;
-            return count;
-        },
-        getCount() {
-            return count;
-        }
-    };
-}
-
-const counter = createCounter();
-console.log(counter.increment()); // 1
-console.log(counter.increment()); // 2
-console.log(counter.getCount());  // 2
-```
-
-### 3. Promise와 비동기 처리
-
-Promise는 비동기 작업의 최종 완료(또는 실패)와 그 결과값을 나타냅니다.
-
-```javascript
-// Promise 체이닝
-function fetchUserData(userId) {
-    return fetch(`/api/users/${userId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(userData => {
-            return processUserData(userData);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            throw error;
-        });
-}
-
-// async/await 사용
-async function getUserData(userId) {
     try {
-        const response = await fetch(`/api/users/${userId}`);
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        const userData = await response.json();
-        return await processUserData(userData);
-    } catch (error) {
-        console.error('Error:', error);
-        throw error;
+        const recovered = recoverFromError(error);
+        console.log('복구된 결과:', recovered);
+    } catch (recoveryError) {
+        const message = getUserFriendlyMessage(recoveryError);
+        console.error('사용자 메시지:', message);
     }
 }
 ```
 
-### 4. 이벤트 루프와 비동기 실행
+## 참고
 
-JavaScript의 이벤트 루프는 비동기 작업을 처리하는 핵심 메커니즘입니다.
+### 에러 타입별 처리 방법
 
-```javascript
-console.log('1. 시작');
+| 에러 타입 | 발생 원인 | 처리 방법 |
+|-----------|-----------|-----------|
+| **SyntaxError** | 구문 오류 | 코드 수정 필요 |
+| **TypeError** | 타입 불일치 | 타입 검증 추가 |
+| **ReferenceError** | 변수 미정의 | 변수 선언 확인 |
+| **RangeError** | 범위 초과 | 입력값 검증 |
+| **URIError** | URI 형식 오류 | URI 인코딩 확인 |
+| **NetworkError** | 네트워크 오류 | 재시도 로직 |
+| **ValidationError** | 데이터 검증 실패 | 기본값 사용 |
 
-setTimeout(() => {
-    console.log('4. 타이머 완료');
-}, 0);
+### try-catch 사용 권장사항
 
-Promise.resolve().then(() => {
-    console.log('3. Promise 완료');
-});
+| 상황 | 권장사항 | 이유 |
+|------|----------|------|
+| **외부 API 호출** | 항상 사용 | 네트워크 오류 가능성 |
+| **파일/데이터베이스 작업** | 항상 사용 | 리소스 오류 가능성 |
+| **사용자 입력 처리** | 권장 | 예상치 못한 입력 |
+| **단순한 연산** | 불필요 | 오류 발생 가능성 낮음 |
+| **성능이 중요한 부분** | 최소화 | 오버헤드 발생 |
 
-console.log('2. 끝');
+### 결론
+try-catch는 JavaScript에서 예외 처리를 위한 핵심 구문입니다.
+적절한 에러 타입을 사용하여 구체적인 오류 정보를 제공하세요.
+finally 블록을 활용하여 리소스 정리를 보장하세요.
+중첩된 try-catch를 사용하여 세분화된 오류 처리를 구현하세요.
+비동기 작업에서는 async/await와 함께 사용하여 깔끔한 에러 처리를 하세요.
+오류 로깅과 사용자 친화적 메시지를 제공하여 디버깅과 사용자 경험을 개선하세요.
 
-// 출력 순서:
-// 1. 시작
-// 2. 끝
-// 3. Promise 완료
-// 4. 타이머 완료
-```
-
-### 5. 제너레이터와 이터레이터
-
-제너레이터는 함수의 실행을 일시 중지하고 재개할 수 있는 특별한 함수입니다.
-
-```javascript
-function* numberGenerator() {
-    yield 1;
-    yield 2;
-    yield 3;
-}
-
-const generator = numberGenerator();
-console.log(generator.next().value); // 1
-console.log(generator.next().value); // 2
-console.log(generator.next().value); // 3
-console.log(generator.next().done);  // true
-
-// 무한 시퀀스 생성
-function* infiniteSequence() {
-    let i = 0;
-    while (true) {
-        yield i++;
-    }
-}
-
-const infinite = infiniteSequence();
-console.log(infinite.next().value); // 0
-console.log(infinite.next().value); // 1
-console.log(infinite.next().value); // 2
-```
-
-### 6. 프록시와 리플렉션
-
-프록시는 객체의 기본 동작을 가로채고 재정의할 수 있는 객체입니다.
-
-```javascript
-const handler = {
-    get(target, prop) {
-        console.log(`속성 ${prop}에 접근`);
-        return target[prop];
-    },
-    set(target, prop, value) {
-        console.log(`속성 ${prop}을(를) ${value}로 설정`);
-        target[prop] = value;
-        return true;
-    }
-};
-
-const person = new Proxy({}, handler);
-person.name = 'John';  // "속성 name을(를) John으로 설정"
-console.log(person.name);  // "속성 name에 접근" "John"
-```
-
-### 7. 모듈 시스템
-
-ES6 모듈 시스템은 코드를 모듈화하고 재사용할 수 있게 해줍니다.
-
-```javascript
-// math.js
-export const add = (a, b) => a + b;
-export const subtract = (a, b) => a - b;
-export default class Calculator {
-    multiply(a, b) {
-        return a * b;
-    }
-}
-
-// main.js
-import Calculator, { add, subtract } from './math.js';
-
-const calc = new Calculator();
-console.log(add(5, 3));      // 8
-console.log(subtract(5, 3)); // 2
-console.log(calc.multiply(5, 3)); // 15
-```
-
-### 8. 메모리 관리와 가비지 컬렉션
-
-JavaScript의 메모리 관리와 가비지 컬렉션에 대한 이해는 중요합니다.
-
-```javascript
-// 메모리 누수 예제
-function createClosure() {
-    const largeArray = new Array(1000000).fill('data');
-    
-    return function() {
-        console.log(largeArray.length);
-    };
-}
-
-// 올바른 메모리 관리
-function createOptimizedClosure() {
-    const largeArray = new Array(1000000).fill('data');
-    
-    return function() {
-        console.log(largeArray.length);
-        // 사용이 끝난 후 참조 제거
-        largeArray.length = 0;
-    };
-}
-```
-
-### 9. 디자인 패턴
-
-자주 사용되는 JavaScript 디자인 패턴들입니다.
-
-```javascript
-// 싱글톤 패턴
-class Singleton {
-    static instance;
-    
-    constructor() {
-        if (Singleton.instance) {
-            return Singleton.instance;
-        }
-        Singleton.instance = this;
-    }
-}
-
-// 팩토리 패턴
-class UserFactory {
-    static createUser(type) {
-        switch(type) {
-            case 'admin':
-                return new AdminUser();
-            case 'regular':
-                return new RegularUser();
-            default:
-                throw new Error('Invalid user type');
-        }
-    }
-}
-
-// 옵저버 패턴
-class EventEmitter {
-    constructor() {
-        this.events = {};
-    }
-    
-    on(event, callback) {
-        if (!this.events[event]) {
-            this.events[event] = [];
-        }
-        this.events[event].push(callback);
-    }
-    
-    emit(event, data) {
-        if (this.events[event]) {
-            this.events[event].forEach(callback => callback(data));
-        }
-    }
-}
-```
-
-### 10. 성능 최적화
-
-JavaScript 코드의 성능을 최적화하는 방법들입니다.
-
-```javascript
-// 메모이제이션
-function memoize(fn) {
-    const cache = new Map();
-    
-    return function(...args) {
-        const key = JSON.stringify(args);
-        if (cache.has(key)) {
-            return cache.get(key);
-        }
-        
-        const result = fn.apply(this, args);
-        cache.set(key, result);
-        return result;
-    };
-}
-
-// 디바운싱
-function debounce(func, wait) {
-    let timeout;
-    
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// 쓰로틀링
-function throttle(func, limit) {
-    let inThrottle;
-    
-    return function(...args) {
-        if (!inThrottle) {
-            func.apply(this, args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        }
-    };
-}
-```
-
-이러한 고급 개념들을 이해하고 적절히 활용하면 더 효율적이고 유지보수가 용이한 코드를 작성할 수 있습니다. 각 개념은 실제 프로젝트에서 자주 사용되며, JavaScript 개발자로서 반드시 알아야 하는 중요한 내용들입니다.

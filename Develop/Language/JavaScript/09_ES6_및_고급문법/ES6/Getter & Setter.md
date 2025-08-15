@@ -1,6 +1,11 @@
+---
+title: JavaScript Getter Setter
+tags: [language, javascript, 09es6및고급문법, es6, getter-and-setter]
+updated: 2025-08-10
+---
 # JavaScript Getter & Setter
 
-## 📖 기본 개념 이해하기
+## 배경
 
 ### Getter & Setter란?
 - **Getter**: 객체의 속성 값을 안전하게 가져오는 메서드
@@ -46,9 +51,17 @@ console.log(user.getName()); // 김철수
 user.setAge(999); // 나이는 0~150 사이여야 합니다.
 ```
 
-## 🔧 ES6 Getter & Setter 문법
+```javascript
+const user = {
+    name: '김철수',
+    age: 25
+}
 
-### 기본 문법
+// 직접 접근 - 위험!
+console.log(user.name); // 김철수
+user.age = 999; // 나이에 999를 넣어도 아무 제한이 없음
+```
+
 ```javascript
 const 객체명 = {
     // 기존 속성들...
@@ -65,7 +78,6 @@ const 객체명 = {
 }
 ```
 
-### 실제 예제
 ```javascript
 const user = {
     _name: '김철수',    // 언더스코어(_)는 내부 속성임을 나타냄
@@ -101,7 +113,6 @@ const user = {
 }
 ```
 
-### 사용 방법
 ```javascript
 // Getter 사용 - 함수 호출이 아닌 속성처럼 접근
 console.log(user.name); // 김철수
@@ -115,7 +126,6 @@ user.name = 'A';        // 이름은 2글자 이상의 문자열이어야 합니
 user.age = 999;         // 나이는 0~150 사이여야 합니다.
 ```
 
-## 🎯 주요 특징과 장점
 
 ### 1. 가상 속성 (Virtual Property)
 - `name`과 `age`는 실제로는 존재하지 않는 가상의 속성
@@ -163,7 +173,6 @@ console.log(rectangle.area);      // 50
 console.log(rectangle.perimeter); // 30
 ```
 
-## ⚠️ 주의사항
 
 ### 1. 무한 루프 방지
 ```javascript
@@ -198,7 +207,6 @@ user.name = '박영희';    // 에러는 발생하지 않지만 값이 변경되
 console.log(user.name); // 여전히 김철수
 ```
 
-## 🚀 실전 활용 예제
 
 ### 사용자 프로필 관리
 ```javascript
@@ -263,3 +271,220 @@ console.log(userProfile.age);      // 25
 ---
 
 **참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+
+```javascript
+const userProfile = {
+    _email: '',
+    _password: '',
+    _age: 0,
+    
+    // 이메일 getter/setter
+    get email() {
+        return this._email;
+    },
+    
+    set email(newEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            console.error('올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+        this._email = newEmail;
+    },
+    
+    // 비밀번호 getter/setter
+    get password() {
+        return '*'.repeat(this._password.length); // 보안을 위해 마스킹
+    },
+    
+    set password(newPassword) {
+        if (newPassword.length < 8) {
+            console.error('비밀번호는 8자 이상이어야 합니다.');
+            return;
+        }
+        this._password = newPassword;
+    },
+    
+    // 나이 getter/setter
+    get age() {
+        return this._age;
+    },
+    
+    set age(newAge) {
+        if (newAge < 0 || newAge > 150) {
+            console.error('나이는 0~150 사이여야 합니다.');
+            return;
+        }
+        this._age = newAge;
+    }
+}
+
+// 사용 예시
+userProfile.email = 'test@example.com';     // 정상
+userProfile.email = 'invalid-email';        // 올바른 이메일 형식이 아닙니다.
+userProfile.password = '12345678';          // 정상
+userProfile.password = '123';               // 비밀번호는 8자 이상이어야 합니다.
+userProfile.age = 25;                       // 정상
+
+console.log(userProfile.email);    // test@example.com
+console.log(userProfile.password); // ********
+console.log(userProfile.age);      // 25
+```
+
+---
+
+**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+
+
+
+
+
+
+```javascript
+const user = {
+    name: '김철수',
+    age: 25
+}
+
+// 직접 접근 - 위험!
+console.log(user.name); // 김철수
+user.age = 999; // 나이에 999를 넣어도 아무 제한이 없음
+```
+
+```javascript
+const userProfile = {
+    _email: '',
+    _password: '',
+    _age: 0,
+    
+    // 이메일 getter/setter
+    get email() {
+        return this._email;
+    },
+    
+    set email(newEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            console.error('올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+        this._email = newEmail;
+    },
+    
+    // 비밀번호 getter/setter
+    get password() {
+        return '*'.repeat(this._password.length); // 보안을 위해 마스킹
+    },
+    
+    set password(newPassword) {
+        if (newPassword.length < 8) {
+            console.error('비밀번호는 8자 이상이어야 합니다.');
+            return;
+        }
+        this._password = newPassword;
+    },
+    
+    // 나이 getter/setter
+    get age() {
+        return this._age;
+    },
+    
+    set age(newAge) {
+        if (newAge < 0 || newAge > 150) {
+            console.error('나이는 0~150 사이여야 합니다.');
+            return;
+        }
+        this._age = newAge;
+    }
+}
+
+// 사용 예시
+userProfile.email = 'test@example.com';     // 정상
+userProfile.email = 'invalid-email';        // 올바른 이메일 형식이 아닙니다.
+userProfile.password = '12345678';          // 정상
+userProfile.password = '123';               // 비밀번호는 8자 이상이어야 합니다.
+userProfile.age = 25;                       // 정상
+
+console.log(userProfile.email);    // test@example.com
+console.log(userProfile.password); // ********
+console.log(userProfile.age);      // 25
+```
+
+---
+
+**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+
+```javascript
+const userProfile = {
+    _email: '',
+    _password: '',
+    _age: 0,
+    
+    // 이메일 getter/setter
+    get email() {
+        return this._email;
+    },
+    
+    set email(newEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            console.error('올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+        this._email = newEmail;
+    },
+    
+    // 비밀번호 getter/setter
+    get password() {
+        return '*'.repeat(this._password.length); // 보안을 위해 마스킹
+    },
+    
+    set password(newPassword) {
+        if (newPassword.length < 8) {
+            console.error('비밀번호는 8자 이상이어야 합니다.');
+            return;
+        }
+        this._password = newPassword;
+    },
+    
+    // 나이 getter/setter
+    get age() {
+        return this._age;
+    },
+    
+    set age(newAge) {
+        if (newAge < 0 || newAge > 150) {
+            console.error('나이는 0~150 사이여야 합니다.');
+            return;
+        }
+        this._age = newAge;
+    }
+}
+
+// 사용 예시
+userProfile.email = 'test@example.com';     // 정상
+userProfile.email = 'invalid-email';        // 올바른 이메일 형식이 아닙니다.
+userProfile.password = '12345678';          // 정상
+userProfile.password = '123';               // 비밀번호는 8자 이상이어야 합니다.
+userProfile.age = 25;                       // 정상
+
+console.log(userProfile.email);    // test@example.com
+console.log(userProfile.password); // ********
+console.log(userProfile.age);      // 25
+```
+
+---
+
+**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+
+
+
+
+
+
+
+
+
+
+## 🔧 ES6 Getter & Setter 문법
+

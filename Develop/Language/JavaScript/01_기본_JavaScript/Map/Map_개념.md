@@ -1,683 +1,767 @@
-# JavaScript Map
-
-## 📋 목차
-- [Map이란 무엇인가?](#map이란-무엇인가)
-- [기본 문법과 사용법](#기본-문법과-사용법)
-- [Map vs 일반 객체 비교](#map-vs-일반-객체-비교)
-- [실제 사용 예시](#실제-사용-예시)
-- [직렬화와 역직렬화](#직렬화와-역직렬화)
-- [주의사항과 팁](#주의사항과-팁)
-
+---
+title: JavaScript Map 개념과 사용법
+tags: [language, javascript, 01기본javascript, map, map개념, data-structure]
+updated: 2025-08-10
 ---
 
-## Map이란 무엇인가?
+# JavaScript Map 개념과 사용법
 
-### 🔍 Map의 정의
-`Map`은 **키(key)와 값(value)의 쌍으로 데이터를 저장하는 자료구조**입니다. 
+## 배경
 
-### 💡 왜 Map을 사용할까?
-일반 객체(`{}`)와 달리 Map은:
-- **어떤 타입이든 키로 사용 가능** (객체, 함수, 숫자 등)
-- **삽입 순서가 보장됨**
-- **키-값 쌍의 개수를 쉽게 알 수 있음**
+JavaScript의 Map은 키-값 쌍을 저장하는 컬렉션 자료구조입니다. 일반 객체와 달리 Map은 다양한 타입의 키를 사용할 수 있고, 삽입 순서를 보장하며, 더 나은 성능을 제공합니다.
 
-### 🎯 언제 Map을 사용해야 할까?
-- 키가 문자열이 아닌 경우 (객체를 키로 사용하고 싶을 때)
-- 키-값 쌍을 자주 추가/삭제하는 경우
-- 데이터의 순서가 중요한 경우
+### Map의 필요성
+- **다양한 키 타입**: 문자열뿐만 아니라 객체, 함수 등도 키로 사용 가능
+- **삽입 순서 보장**: 요소가 추가된 순서대로 순회 가능
+- **성능 최적화**: 키-값 쌍의 추가/삭제가 빈번한 경우 효율적
+- **크기 추적**: 내장된 size 속성으로 요소 개수 확인 가능
 
----
+### 기본 개념
+- **키-값 쌍**: Map의 기본 데이터 단위
+- **해시 테이블**: 내부적으로 해시 테이블을 사용하여 빠른 검색
+- **이터러블**: for...of 루프로 순회 가능
+- **메서드 기반**: get, set, has, delete 등의 메서드 제공
 
-## 기본 문법과 사용법
+## 핵심
 
-### 📝 Map 생성하기
+### 1. Map 생성과 기본 사용법
+
+#### Map 생성하기
 ```javascript
 // 1. 빈 Map 생성
 const emptyMap = new Map();
 
 // 2. 초기값과 함께 생성
 const map = new Map([
-  ['name', '김철수'],
-  ['age', 25],
-  [1, '숫자 키'],
-  [{id: 1}, '객체 키']
+    ['name', '김철수'],
+    ['age', 25],
+    [1, '숫자 키'],
+    [{id: 1}, '객체 키']
 ]);
+
+// 3. 배열로부터 Map 생성
+const entries = [['a', 1], ['b', 2], ['c', 3]];
+const mapFromArray = new Map(entries);
+
+console.log(mapFromArray); // Map(3) {'a' => 1, 'b' => 2, 'c' => 3}
 ```
 
-### 🛠️ 주요 메서드
+#### 기본 메서드 사용법
+```javascript
+const userMap = new Map();
 
-#### 데이터 추가/수정
+// 데이터 추가
+userMap.set('id', 1);
+userMap.set('name', 'Alice');
+userMap.set('age', 25);
+
+// 데이터 조회
+console.log(userMap.get('name')); // 'Alice'
+console.log(userMap.get('email')); // undefined
+
+// 존재 여부 확인
+console.log(userMap.has('age')); // true
+console.log(userMap.has('email')); // false
+
+// 데이터 삭제
+userMap.delete('age');
+console.log(userMap.has('age')); // false
+
+// 크기 확인
+console.log(userMap.size); // 2
+
+// 모든 데이터 삭제
+userMap.clear();
+console.log(userMap.size); // 0
+```
+
+### 2. Map vs 일반 객체 비교
+
+#### 키 타입의 유연성
 ```javascript
 const map = new Map();
-
-// set(key, value): 키-값 쌍 추가 또는 수정
-map.set('name', '김철수');
-map.set('age', 25);
-map.set('age', 26); // 기존 값 덮어쓰기
-
-console.log(map); // Map(2) {'name' => '김철수', 'age' => 26}
-```
-
-#### 데이터 조회
-```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25]
-]);
-
-// get(key): 키에 해당하는 값 반환
-console.log(map.get('name')); // '김철수'
-console.log(map.get('height')); // undefined (존재하지 않는 키)
-
-// has(key): 키 존재 여부 확인 (boolean 반환)
-console.log(map.has('name')); // true
-console.log(map.has('height')); // false
-```
-
-#### 데이터 삭제
-```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25],
-  ['city', '서울']
-]);
-
-// delete(key): 특정 키-값 쌍 삭제
-map.delete('age');
-console.log(map.has('age')); // false
-
-// clear(): 모든 데이터 삭제
-map.clear();
-console.log(map.size); // 0
-```
-
-#### 크기 확인
-```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25]
-]);
-
-// size: 키-값 쌍의 개수
-console.log(map.size); // 2
-```
-
-### 🔄 반복과 순회
-
-#### forEach 사용
-```javascript
-const userMap = new Map([
-  ['name', '김철수'],
-  ['age', 25],
-  ['city', '서울']
-]);
-
-// forEach(callback): 각 요소에 대해 함수 실행
-userMap.forEach((value, key) => {
-  console.log(`${key}: ${value}`);
-});
-// 출력:
-// name: 김철수
-// age: 25
-// city: 서울
-```
-
-#### for...of 사용
-```javascript
-const userMap = new Map([
-  ['name', '김철수'],
-  ['age', 25]
-]);
-
-// 전체 Map 순회
-for (const [key, value] of userMap) {
-  console.log(`${key}: ${value}`);
-}
-
-// 키만 순회
-for (const key of userMap.keys()) {
-  console.log(key);
-}
-
-// 값만 순회
-for (const value of userMap.values()) {
-  console.log(value);
-}
-```
-
-#### 반복 메서드들
-```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25]
-]);
-
-// keys(): 모든 키를 반환
-console.log([...map.keys()]); // ['name', 'age']
-
-// values(): 모든 값을 반환
-console.log([...map.values()]); // ['김철수', 25]
-
-// entries(): 모든 [키, 값] 쌍을 반환
-console.log([...map.entries()]); // [['name', '김철수'], ['age', 25]]
-```
-
----
-
-## Map vs 일반 객체 비교
-
-### 📊 비교표
-
-| 특징 | Map | 일반 객체 |
-|------|-----|-----------|
-| **키 타입** | 모든 타입 가능 | 문자열, 심볼만 가능 |
-| **순서** | 삽입 순서 보장 | ES2015 이후 삽입 순서 보장 |
-| **크기 확인** | `map.size` | `Object.keys(obj).length` |
-| **반복** | 내장 반복 메서드 | `for...in`, `Object.keys()` 등 |
-| **성능** | 키-값 추가/삭제 최적화 | 일반적인 사용에 최적화 |
-
-### 🔍 실제 비교 예시
-
-#### 키 타입의 차이
-```javascript
-// Map: 다양한 타입을 키로 사용 가능
-const map = new Map();
-map.set('문자열', '값1');
-map.set(123, '값2');
-map.set({id: 1}, '값3');
-map.set(() => {}, '값4');
-
-// 일반 객체: 문자열과 심볼만 키로 사용 가능
 const obj = {};
-obj['문자열'] = '값1';
-obj[123] = '값2'; // 숫자는 문자열로 변환됨
-// obj[{id: 1}] = '값3'; // 객체는 문자열로 변환되어 '[object Object]'가 됨
+
+// Map: 다양한 타입의 키 사용 가능
+map.set(1, 'number key');
+map.set('1', 'string key');
+map.set({}, 'object key');
+map.set(() => {}, 'function key');
+
+// 객체: 키가 문자열로 변환됨
+obj[1] = 'number key';
+obj['1'] = 'string key'; // 위와 동일한 키로 덮어씀
+obj[{}] = 'object key'; // '[object Object]'로 변환됨
+
+console.log(map.size); // 4
+console.log(Object.keys(obj).length); // 2
+console.log(obj); // { '1': 'string key', '[object Object]': 'object key' }
 ```
 
-#### 크기 확인의 차이
+#### 삽입 순서 보장
 ```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25]
+const map = new Map();
+const obj = {};
+
+// Map: 삽입 순서 보장
+map.set('first', 1);
+map.set('second', 2);
+map.set('third', 3);
+
+// 객체: ES2015 이후 삽입 순서 보장 (하지만 숫자 키는 정렬됨)
+obj.first = 1;
+obj.second = 2;
+obj.third = 3;
+
+// 순회 비교
+console.log('Map 순회:');
+for (const [key, value] of map) {
+    console.log(`${key}: ${value}`);
+}
+
+console.log('객체 순회:');
+for (const key in obj) {
+    console.log(`${key}: ${obj[key]}`);
+}
+```
+
+#### 성능 비교
+```javascript
+const size = 10000;
+const map = new Map();
+const obj = {};
+
+// 데이터 추가 성능 비교
+console.time('Map 추가');
+for (let i = 0; i < size; i++) {
+    map.set(i, `value${i}`);
+}
+console.timeEnd('Map 추가');
+
+console.time('객체 추가');
+for (let i = 0; i < size; i++) {
+    obj[i] = `value${i}`;
+}
+console.timeEnd('객체 추가');
+
+// 검색 성능 비교
+console.time('Map 검색');
+for (let i = 0; i < size; i++) {
+    map.get(i);
+}
+console.timeEnd('Map 검색');
+
+console.time('객체 검색');
+for (let i = 0; i < size; i++) {
+    obj[i];
+}
+console.timeEnd('객체 검색');
+```
+
+### 3. Map 순회 방법
+
+#### 다양한 순회 방법
+```javascript
+const userMap = new Map([
+    ['id', 1],
+    ['name', 'Alice'],
+    ['age', 25],
+    ['email', 'alice@example.com']
 ]);
 
-const obj = {
-  name: '김철수',
-  age: 25
-};
-
-// Map: 간단하게 크기 확인
-console.log(map.size); // 2
-
-// 객체: 메서드를 통해 크기 확인
-console.log(Object.keys(obj).length); // 2
-```
-
----
-
-## 실제 사용 예시
-
-### 🏪 쇼핑몰 장바구니 구현
-```javascript
-class ShoppingCart {
-  constructor() {
-    this.items = new Map(); // 상품ID를 키로, 수량을 값으로
-  }
-
-  addItem(productId, quantity = 1) {
-    const currentQuantity = this.items.get(productId) || 0;
-    this.items.set(productId, currentQuantity + quantity);
-  }
-
-  removeItem(productId) {
-    this.items.delete(productId);
-  }
-
-  getQuantity(productId) {
-    return this.items.get(productId) || 0;
-  }
-
-  getTotalItems() {
-    let total = 0;
-    for (const quantity of this.items.values()) {
-      total += quantity;
-    }
-    return total;
-  }
-
-  clear() {
-    this.items.clear();
-  }
+// 1. for...of 루프
+console.log('for...of 루프:');
+for (const [key, value] of userMap) {
+    console.log(`${key}: ${value}`);
 }
 
-// 사용 예시
-const cart = new ShoppingCart();
-cart.addItem('P001', 2); // 상품 P001을 2개 추가
-cart.addItem('P002', 1); // 상품 P002를 1개 추가
-cart.addItem('P001', 1); // 상품 P001을 1개 더 추가
-
-console.log(cart.getQuantity('P001')); // 3
-console.log(cart.getTotalItems()); // 4
-```
-
-### 🎮 게임 캐릭터 스킬 관리
-```javascript
-class Character {
-  constructor(name) {
-    this.name = name;
-    this.skills = new Map(); // 스킬명을 키로, 레벨을 값으로
-  }
-
-  learnSkill(skillName, level = 1) {
-    this.skills.set(skillName, level);
-  }
-
-  upgradeSkill(skillName) {
-    const currentLevel = this.skills.get(skillName);
-    if (currentLevel) {
-      this.skills.set(skillName, currentLevel + 1);
-    }
-  }
-
-  getSkillLevel(skillName) {
-    return this.skills.get(skillName) || 0;
-  }
-
-  getAllSkills() {
-    return Array.from(this.skills.entries());
-  }
-}
-
-// 사용 예시
-const warrior = new Character('전사');
-warrior.learnSkill('검술', 3);
-warrior.learnSkill('방어술', 2);
-warrior.upgradeSkill('검술');
-
-console.log(warrior.getSkillLevel('검술')); // 4
-console.log(warrior.getAllSkills()); // [['검술', 4], ['방어술', 2]]
-```
-
-### 📊 사용자 세션 관리
-```javascript
-class SessionManager {
-  constructor() {
-    this.sessions = new Map(); // 세션ID를 키로, 사용자 정보를 값으로
-  }
-
-  createSession(sessionId, userInfo) {
-    this.sessions.set(sessionId, {
-      ...userInfo,
-      createdAt: new Date(),
-      lastAccess: new Date()
-    });
-  }
-
-  getSession(sessionId) {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.lastAccess = new Date();
-    }
-    return session;
-  }
-
-  removeSession(sessionId) {
-    this.sessions.delete(sessionId);
-  }
-
-  getActiveSessions() {
-    return this.sessions.size;
-  }
-}
-
-// 사용 예시
-const sessionManager = new SessionManager();
-sessionManager.createSession('sess_123', {
-  userId: 'user_001',
-  username: '김철수',
-  role: 'admin'
+// 2. forEach 메서드
+console.log('forEach 메서드:');
+userMap.forEach((value, key) => {
+    console.log(`${key}: ${value}`);
 });
 
-const session = sessionManager.getSession('sess_123');
-console.log(session.username); // '김철수'
+// 3. entries() 메서드
+console.log('entries() 메서드:');
+for (const entry of userMap.entries()) {
+    console.log(`${entry[0]}: ${entry[1]}`);
+}
+
+// 4. keys() 메서드
+console.log('keys() 메서드:');
+for (const key of userMap.keys()) {
+    console.log(`키: ${key}`);
+}
+
+// 5. values() 메서드
+console.log('values() 메서드:');
+for (const value of userMap.values()) {
+    console.log(`값: ${value}`);
+}
 ```
 
----
-
-## 직렬화와 역직렬화
-
-### 🔄 직렬화란?
-**직렬화(Serialization)**는 데이터 구조를 문자열로 변환하는 과정입니다. 주로 데이터를 저장하거나 네트워크로 전송할 때 사용됩니다.
-
-### ⚠️ Map의 직렬화 문제
-Map 객체는 `JSON.stringify()`로 직접 직렬화할 수 없습니다:
-
+#### Map을 배열로 변환
 ```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25]
-]);
-
-// ❌ 이렇게 하면 빈 객체가 됨
-console.log(JSON.stringify(map)); // {}
-```
-
-### ✅ 올바른 직렬화 방법
-
-#### 1. 배열로 변환 후 직렬화
-```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25],
-  ['city', '서울']
+const userMap = new Map([
+    ['id', 1],
+    ['name', 'Alice'],
+    ['age', 25]
 ]);
 
 // Map을 배열로 변환
-const array = Array.from(map);
-console.log(array); // [['name', '김철수'], ['age', 25], ['city', '서울']]
+const entriesArray = Array.from(userMap.entries());
+console.log('entries 배열:', entriesArray);
+// [['id', 1], ['name', 'Alice'], ['age', 25]]
 
-// JSON으로 직렬화
-const jsonString = JSON.stringify(array);
-console.log(jsonString); // '[["name","김철수"],["age",25],["city","서울"]]'
+const keysArray = Array.from(userMap.keys());
+console.log('keys 배열:', keysArray);
+// ['id', 'name', 'age']
+
+const valuesArray = Array.from(userMap.values());
+console.log('values 배열:', valuesArray);
+// [1, 'Alice', 25]
+
+// 스프레드 연산자 사용
+const spreadEntries = [...userMap.entries()];
+const spreadKeys = [...userMap.keys()];
+const spreadValues = [...userMap.values()];
 ```
 
-#### 2. 객체로 변환 후 직렬화
+### 4. 실제 사용 예시
+
+#### 사용자 관리 시스템
 ```javascript
-const map = new Map([
-  ['name', '김철수'],
-  ['age', 25]
-]);
-
-// Map을 객체로 변환
-const obj = Object.fromEntries(map);
-console.log(obj); // {name: '김철수', age: 25}
-
-// JSON으로 직렬화
-const jsonString = JSON.stringify(obj);
-console.log(jsonString); // '{"name":"김철수","age":25}'
-```
-
-### 🔄 역직렬화 (JSON에서 Map으로 변환)
-
-#### 배열 형태에서 복원
-```javascript
-const jsonString = '[["name","김철수"],["age",25]]';
-
-// JSON을 배열로 파싱
-const array = JSON.parse(jsonString);
-
-// 배열을 Map으로 변환
-const map = new Map(array);
-console.log(map.get('name')); // '김철수'
-```
-
-#### 객체 형태에서 복원
-```javascript
-const jsonString = '{"name":"김철수","age":25}';
-
-// JSON을 객체로 파싱
-const obj = JSON.parse(jsonString);
-
-// 객체를 Map으로 변환
-const map = new Map(Object.entries(obj));
-console.log(map.get('name')); // '김철수'
-```
-
-### 🎯 실용적인 직렬화 유틸리티
-```javascript
-class MapSerializer {
-  // Map을 JSON 문자열로 변환
-  static toJSON(map) {
-    return JSON.stringify(Array.from(map));
-  }
-
-  // JSON 문자열을 Map으로 변환
-  static fromJSON(jsonString) {
-    const array = JSON.parse(jsonString);
-    return new Map(array);
-  }
-
-  // Map을 객체로 변환
-  static toObject(map) {
-    return Object.fromEntries(map);
-  }
-
-  // 객체를 Map으로 변환
-  static fromObject(obj) {
-    return new Map(Object.entries(obj));
-  }
+class UserManager {
+    constructor() {
+        this.users = new Map();
+        this.nextId = 1;
+    }
+    
+    addUser(name, email, age) {
+        const user = {
+            id: this.nextId++,
+            name,
+            email,
+            age,
+            createdAt: new Date()
+        };
+        
+        this.users.set(user.id, user);
+        return user;
+    }
+    
+    getUserById(id) {
+        return this.users.get(id);
+    }
+    
+    updateUser(id, updates) {
+        const user = this.users.get(id);
+        if (user) {
+            Object.assign(user, updates);
+            this.users.set(id, user);
+            return user;
+        }
+        return null;
+    }
+    
+    deleteUser(id) {
+        return this.users.delete(id);
+    }
+    
+    getAllUsers() {
+        return Array.from(this.users.values());
+    }
+    
+    getUsersByAge(minAge, maxAge) {
+        return Array.from(this.users.values())
+            .filter(user => user.age >= minAge && user.age <= maxAge);
+    }
+    
+    getUserCount() {
+        return this.users.size;
+    }
 }
 
 // 사용 예시
-const userMap = new Map([
-  ['name', '김철수'],
-  ['age', 25]
-]);
+const userManager = new UserManager();
 
-// 직렬화
-const jsonString = MapSerializer.toJSON(userMap);
-console.log(jsonString); // '[["name","김철수"],["age",25]]'
+userManager.addUser('Alice', 'alice@example.com', 25);
+userManager.addUser('Bob', 'bob@example.com', 30);
+userManager.addUser('Charlie', 'charlie@example.com', 35);
 
-// 역직렬화
-const restoredMap = MapSerializer.fromJSON(jsonString);
-console.log(restoredMap.get('name')); // '김철수'
+console.log('사용자 수:', userManager.getUserCount()); // 3
+
+const user = userManager.getUserById(1);
+console.log('사용자 정보:', user);
+
+userManager.updateUser(1, { age: 26 });
+console.log('업데이트된 사용자:', userManager.getUserById(1));
+
+const youngUsers = userManager.getUsersByAge(20, 30);
+console.log('젊은 사용자들:', youngUsers);
 ```
 
----
-
-## 주의사항과 팁
-
-### ⚠️ 주요 주의사항
-
-#### 1. NaN 키의 특별한 동작
+#### 캐시 시스템
 ```javascript
-const map = new Map();
-
-// NaN은 키로 사용 가능하지만, 모든 NaN이 같은 키로 취급됨
-map.set(NaN, '값1');
-map.set(NaN, '값2'); // 이전 값 덮어쓰기
-
-console.log(map.get(NaN)); // '값2'
-console.log(map.size); // 1 (NaN 키는 하나로 취급)
-```
-
-#### 2. 객체 키의 참조 비교
-```javascript
-const map = new Map();
-
-const obj1 = {id: 1};
-const obj2 = {id: 1};
-
-map.set(obj1, '값1');
-map.set(obj2, '값2');
-
-console.log(map.get(obj1)); // '값1'
-console.log(map.get(obj2)); // '값2'
-console.log(map.size); // 2 (다른 객체 참조)
-
-// 하지만 같은 내용의 객체라도 다른 참조이므로 다른 키로 취급됨
-console.log(map.get({id: 1})); // undefined
-```
-
-#### 3. 직렬화 시 데이터 손실
-```javascript
-const map = new Map();
-map.set({id: 1}, '객체 키');
-map.set(() => {}, '함수 키');
-
-// 직렬화하면 객체나 함수 키는 문자열로 변환되어 정보 손실
-const array = Array.from(map);
-console.log(array); // [['[object Object]', '객체 키'], ['() => {}', '함수 키']]
-```
-
-### 💡 성능 팁
-
-#### 1. Map vs Object 성능 비교
-```javascript
-// Map: 키-값 추가/삭제가 빠름
-const map = new Map();
-const start1 = performance.now();
-
-for (let i = 0; i < 10000; i++) {
-  map.set(`key${i}`, `value${i}`);
-}
-
-const end1 = performance.now();
-console.log(`Map 시간: ${end1 - start1}ms`);
-
-// Object: 일반적인 접근이 빠름
-const obj = {};
-const start2 = performance.now();
-
-for (let i = 0; i < 10000; i++) {
-  obj[`key${i}`] = `value${i}`;
-}
-
-const end2 = performance.now();
-console.log(`Object 시간: ${end2 - start2}ms`);
-```
-
-#### 2. 메모리 효율성
-```javascript
-// Map은 키-값 쌍을 자주 추가/삭제할 때 메모리 효율적
-const map = new Map();
-
-// 많은 데이터 추가
-for (let i = 0; i < 1000; i++) {
-  map.set(`key${i}`, `value${i}`);
-}
-
-// 일부 데이터 삭제
-for (let i = 0; i < 500; i++) {
-  map.delete(`key${i}`);
-}
-
-// Map은 삭제된 공간을 효율적으로 관리
-console.log(map.size); // 500
-```
-
-### 🎯 실무에서 자주 사용하는 패턴
-
-#### 1. 중복 제거
-```javascript
-const numbers = [1, 2, 2, 3, 3, 4, 5, 5];
-
-// Set을 사용한 중복 제거
-const uniqueNumbers = [...new Set(numbers)];
-console.log(uniqueNumbers); // [1, 2, 3, 4, 5]
-
-// Map을 사용한 중복 제거 (값이 중요한 경우)
-const items = [
-  {id: 1, name: '상품1'},
-  {id: 2, name: '상품2'},
-  {id: 1, name: '상품1'} // 중복
-];
-
-const uniqueItems = new Map();
-items.forEach(item => {
-  uniqueItems.set(item.id, item);
-});
-
-console.log([...uniqueItems.values()]); // 중복 제거된 상품들
-```
-
-#### 2. 캐싱 (메모이제이션)
-```javascript
-class Calculator {
-  constructor() {
-    this.cache = new Map();
-  }
-
-  factorial(n) {
-    // 캐시에 있으면 반환
-    if (this.cache.has(n)) {
-      console.log(`캐시에서 반환: ${n}!`);
-      return this.cache.get(n);
+class Cache {
+    constructor(maxSize = 100) {
+        this.cache = new Map();
+        this.maxSize = maxSize;
     }
-
-    // 계산 수행
-    let result = 1;
-    for (let i = 2; i <= n; i++) {
-      result *= i;
-    }
-
-    // 캐시에 저장
-    this.cache.set(n, result);
-    console.log(`계산 후 캐시 저장: ${n}! = ${result}`);
     
-    return result;
-  }
+    set(key, value, ttl = 60000) { // 기본 TTL: 1분
+        // 캐시 크기 제한 확인
+        if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+        
+        const expiry = Date.now() + ttl;
+        this.cache.set(key, { value, expiry });
+    }
+    
+    get(key) {
+        const item = this.cache.get(key);
+        
+        if (!item) {
+            return null;
+        }
+        
+        // 만료 확인
+        if (Date.now() > item.expiry) {
+            this.cache.delete(key);
+            return null;
+        }
+        
+        return item.value;
+    }
+    
+    has(key) {
+        const item = this.cache.get(key);
+        if (!item) return false;
+        
+        if (Date.now() > item.expiry) {
+            this.cache.delete(key);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    delete(key) {
+        return this.cache.delete(key);
+    }
+    
+    clear() {
+        this.cache.clear();
+    }
+    
+    size() {
+        return this.cache.size;
+    }
+    
+    // 만료된 항목 정리
+    cleanup() {
+        const now = Date.now();
+        for (const [key, item] of this.cache.entries()) {
+            if (now > item.expiry) {
+                this.cache.delete(key);
+            }
+        }
+    }
 }
 
-const calc = new Calculator();
-console.log(calc.factorial(5)); // 계산 후 캐시 저장: 5! = 120
-console.log(calc.factorial(5)); // 캐시에서 반환: 5!
+// 사용 예시
+const cache = new Cache(5);
+
+cache.set('user:1', { id: 1, name: 'Alice' }, 5000); // 5초 TTL
+cache.set('user:2', { id: 2, name: 'Bob' }, 10000); // 10초 TTL
+
+console.log('캐시 크기:', cache.size()); // 2
+console.log('사용자 1:', cache.get('user:1')); // { id: 1, name: 'Alice' }
+
+// 6초 후
+setTimeout(() => {
+    console.log('사용자 1 (만료 후):', cache.get('user:1')); // null
+    console.log('사용자 2:', cache.get('user:2')); // { id: 2, name: 'Bob' }
+    cache.cleanup();
+    console.log('정리 후 캐시 크기:', cache.size()); // 1
+}, 6000);
 ```
 
-#### 3. 이벤트 리스너 관리
+## 예시
+
+### 1. 고급 패턴
+
+#### WeakMap 활용
+```javascript
+// WeakMap은 키가 약한 참조를 가짐 (가비지 컬렉션 대상)
+const privateData = new WeakMap();
+
+class User {
+    constructor(name, email) {
+        // privateData에 인스턴스별 데이터 저장
+        privateData.set(this, {
+            name,
+            email,
+            createdAt: new Date()
+        });
+    }
+    
+    getName() {
+        return privateData.get(this).name;
+    }
+    
+    getEmail() {
+        return privateData.get(this).email;
+    }
+    
+    updateEmail(newEmail) {
+        const data = privateData.get(this);
+        data.email = newEmail;
+        privateData.set(this, data);
+    }
+}
+
+const user1 = new User('Alice', 'alice@example.com');
+const user2 = new User('Bob', 'bob@example.com');
+
+console.log(user1.getName()); // 'Alice'
+console.log(user2.getEmail()); // 'bob@example.com'
+
+user1.updateEmail('alice.new@example.com');
+console.log(user1.getEmail()); // 'alice.new@example.com'
+```
+
+#### 이벤트 리스너 관리
 ```javascript
 class EventManager {
-  constructor() {
-    this.listeners = new Map(); // 이벤트명을 키로, 리스너 배열을 값으로
-  }
-
-  on(eventName, listener) {
-    if (!this.listeners.has(eventName)) {
-      this.listeners.set(eventName, []);
+    constructor() {
+        this.listeners = new Map();
     }
-    this.listeners.get(eventName).push(listener);
-  }
-
-  off(eventName, listener) {
-    if (this.listeners.has(eventName)) {
-      const listeners = this.listeners.get(eventName);
-      const index = listeners.indexOf(listener);
-      if (index > -1) {
-        listeners.splice(index, 1);
-      }
+    
+    on(event, callback) {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, []);
+        }
+        this.listeners.get(event).push(callback);
     }
-  }
-
-  emit(eventName, data) {
-    if (this.listeners.has(eventName)) {
-      this.listeners.get(eventName).forEach(listener => {
-        listener(data);
-      });
+    
+    off(event, callback) {
+        if (!this.listeners.has(event)) return;
+        
+        const callbacks = this.listeners.get(event);
+        const index = callbacks.indexOf(callback);
+        if (index > -1) {
+            callbacks.splice(index, 1);
+        }
+        
+        if (callbacks.length === 0) {
+            this.listeners.delete(event);
+        }
     }
-  }
+    
+    emit(event, ...args) {
+        if (!this.listeners.has(event)) return;
+        
+        const callbacks = this.listeners.get(event);
+        callbacks.forEach(callback => {
+            try {
+                callback(...args);
+            } catch (error) {
+                console.error('이벤트 리스너 오류:', error);
+            }
+        });
+    }
+    
+    getEventCount(event) {
+        return this.listeners.has(event) ? this.listeners.get(event).length : 0;
+    }
+    
+    clearEvent(event) {
+        this.listeners.delete(event);
+    }
+    
+    clearAll() {
+        this.listeners.clear();
+    }
 }
 
 // 사용 예시
 const eventManager = new EventManager();
 
-const handleClick = (data) => console.log('클릭됨:', data);
-const handleHover = (data) => console.log('호버됨:', data);
+const userLoginHandler = (user) => {
+    console.log(`사용자 로그인: ${user.name}`);
+};
 
-eventManager.on('click', handleClick);
-eventManager.on('hover', handleHover);
+const userLogoutHandler = (user) => {
+    console.log(`사용자 로그아웃: ${user.name}`);
+};
 
-eventManager.emit('click', {x: 100, y: 200}); // 클릭됨: {x: 100, y: 200}
-eventManager.emit('hover', {x: 150, y: 250}); // 호버됨: {x: 150, y: 250}
+eventManager.on('user:login', userLoginHandler);
+eventManager.on('user:logout', userLogoutHandler);
+
+console.log('로그인 이벤트 리스너 수:', eventManager.getEventCount('user:login')); // 1
+
+eventManager.emit('user:login', { id: 1, name: 'Alice' });
+eventManager.emit('user:logout', { id: 1, name: 'Alice' });
+
+eventManager.off('user:login', userLoginHandler);
+console.log('로그인 이벤트 리스너 수:', eventManager.getEventCount('user:login')); // 0
 ```
 
----
+### 2. 직렬화와 역직렬화
 
-## 📚 정리
+#### Map 직렬화
+```javascript
+const userMap = new Map([
+    ['id', 1],
+    ['name', 'Alice'],
+    ['age', 25],
+    ['hobbies', ['reading', 'swimming']]
+]);
 
-### Map의 핵심 특징
-- ✅ **다양한 타입의 키 지원**: 문자열, 숫자, 객체, 함수 등
-- ✅ **순서 보장**: 삽입된 순서대로 순회 가능
-- ✅ **효율적인 추가/삭제**: 키-값 쌍의 동적 관리에 최적화
-- ✅ **내장 메서드**: size, has, delete, clear 등 편리한 메서드 제공
+// Map을 JSON으로 직렬화
+function mapToJSON(map) {
+    return JSON.stringify(Array.from(map.entries()));
+}
 
-### 언제 Map을 사용할까?
-- 🔑 키가 문자열이 아닌 경우
-- 📊 데이터의 순서가 중요한 경우
-- ⚡ 키-값 쌍을 자주 추가/삭제하는 경우
-- 🎯 특정 키의 존재 여부를 자주 확인하는 경우
+// JSON을 Map으로 역직렬화
+function jsonToMap(jsonString) {
+    const entries = JSON.parse(jsonString);
+    return new Map(entries);
+}
 
-### 언제 일반 객체를 사용할까?
-- 🔑 키가 항상 문자열인 경우
-- 📝 간단한 데이터 저장
-- 🚀 최대 성능이 필요한 경우
-- �� JSON과의 호환성이 중요한 경우 
+// 사용 예시
+const jsonString = mapToJSON(userMap);
+console.log('직렬화된 JSON:', jsonString);
+// '[["id",1],["name","Alice"],["age",25],["hobbies",["reading","swimming"]]]'
+
+const restoredMap = jsonToMap(jsonString);
+console.log('복원된 Map:', restoredMap);
+console.log('복원된 사용자 이름:', restoredMap.get('name')); // 'Alice'
+```
+
+#### 복잡한 객체 직렬화
+```javascript
+class DataManager {
+    constructor() {
+        this.data = new Map();
+    }
+    
+    set(key, value) {
+        this.data.set(key, value);
+    }
+    
+    get(key) {
+        return this.data.get(key);
+    }
+    
+    // 복잡한 Map을 JSON으로 직렬화
+    toJSON() {
+        const serialized = {};
+        
+        for (const [key, value] of this.data.entries()) {
+            // 키를 문자열로 변환
+            const keyStr = typeof key === 'object' ? JSON.stringify(key) : String(key);
+            
+            // 값이 Map인 경우 재귀적으로 처리
+            if (value instanceof Map) {
+                serialized[keyStr] = Array.from(value.entries());
+            } else {
+                serialized[keyStr] = value;
+            }
+        }
+        
+        return serialized;
+    }
+    
+    // JSON에서 Map으로 역직렬화
+    fromJSON(jsonData) {
+        this.data.clear();
+        
+        for (const [keyStr, value] of Object.entries(jsonData)) {
+            let key;
+            
+            // 키 파싱
+            try {
+                key = JSON.parse(keyStr);
+            } catch {
+                key = keyStr;
+            }
+            
+            // 값이 배열이고 Map으로 보이는 경우
+            if (Array.isArray(value) && value.length > 0 && Array.isArray(value[0])) {
+                this.data.set(key, new Map(value));
+            } else {
+                this.data.set(key, value);
+            }
+        }
+    }
+}
+
+// 사용 예시
+const manager = new DataManager();
+
+// 중첩된 Map 구조
+const userPreferences = new Map([
+    ['theme', 'dark'],
+    ['language', 'ko']
+]);
+
+manager.set('user:1', { name: 'Alice', age: 25 });
+manager.set('user:2', { name: 'Bob', age: 30 });
+manager.set('preferences:1', userPreferences);
+
+const jsonData = manager.toJSON();
+console.log('직렬화된 데이터:', jsonData);
+
+const newManager = new DataManager();
+newManager.fromJSON(jsonData);
+
+console.log('복원된 사용자 1:', newManager.get('user:1'));
+console.log('복원된 설정:', newManager.get('preferences:1'));
+```
+
+## 운영 팁
+
+### 성능 최적화
+
+#### Map 성능 최적화
+```javascript
+// 1. 초기 크기 설정 (대용량 데이터)
+const largeMap = new Map();
+const size = 100000;
+
+console.time('기본 추가');
+for (let i = 0; i < size; i++) {
+    largeMap.set(i, `value${i}`);
+}
+console.timeEnd('기본 추가');
+
+// 2. 배치 처리
+function batchSet(map, entries) {
+    for (const [key, value] of entries) {
+        map.set(key, value);
+    }
+}
+
+const entries = Array.from({ length: 10000 }, (_, i) => [i, `value${i}`]);
+const batchMap = new Map();
+
+console.time('배치 추가');
+batchSet(batchMap, entries);
+console.timeEnd('배치 추가');
+
+// 3. 메모리 효율적인 키 사용
+const efficientMap = new Map();
+
+// 효율적인 키 (문자열, 숫자)
+efficientMap.set('user:1', { name: 'Alice' });
+efficientMap.set(123, { name: 'Bob' });
+
+// 비효율적인 키 (객체, 함수) - 가능하면 피하기
+const objKey = { id: 1 };
+efficientMap.set(objKey, { name: 'Charlie' });
+```
+
+### 에러 처리
+
+#### 안전한 Map 조작
+```javascript
+// 안전한 Map 조작 함수들
+class SafeMap extends Map {
+    safeGet(key, defaultValue = null) {
+        try {
+            return this.has(key) ? this.get(key) : defaultValue;
+        } catch (error) {
+            console.error('Map 조회 오류:', error);
+            return defaultValue;
+        }
+    }
+    
+    safeSet(key, value) {
+        try {
+            this.set(key, value);
+            return true;
+        } catch (error) {
+            console.error('Map 설정 오류:', error);
+            return false;
+        }
+    }
+    
+    safeDelete(key) {
+        try {
+            return this.delete(key);
+        } catch (error) {
+            console.error('Map 삭제 오류:', error);
+            return false;
+        }
+    }
+    
+    // 조건부 업데이트
+    updateIfExists(key, updater) {
+        if (this.has(key)) {
+            const currentValue = this.get(key);
+            const newValue = updater(currentValue);
+            this.set(key, newValue);
+            return true;
+        }
+        return false;
+    }
+    
+    // 기본값과 함께 가져오기
+    getOrDefault(key, defaultValue) {
+        return this.has(key) ? this.get(key) : defaultValue;
+    }
+}
+
+// 사용 예시
+const safeMap = new SafeMap();
+
+safeMap.set('user:1', { name: 'Alice', age: 25 });
+
+// 안전한 조회
+const user = safeMap.safeGet('user:1', { name: 'Unknown', age: 0 });
+console.log('사용자:', user);
+
+// 조건부 업데이트
+safeMap.updateIfExists('user:1', (user) => {
+    user.age += 1;
+    return user;
+});
+
+console.log('업데이트된 사용자:', safeMap.get('user:1'));
+```
+
+## 참고
+
+### Map vs Object vs Array 비교표
+
+| 특성 | Map | Object | Array |
+|------|-----|--------|-------|
+| **키 타입** | 모든 타입 | 문자열, Symbol | 숫자 인덱스 |
+| **삽입 순서** | 보장됨 | ES2015+ 보장 | 보장됨 |
+| **크기 확인** | size 속성 | Object.keys().length | length 속성 |
+| **성능** | O(1) 검색 | O(1) 검색 | O(n) 검색 |
+| **메모리** | 높음 | 중간 | 낮음 |
+| **직렬화** | 복잡함 | 간단함 | 간단함 |
+
+### Map 사용 권장사항
+
+| 상황 | 권장사항 | 이유 |
+|------|----------|------|
+| **빈번한 키-값 조작** | Map 사용 | 성능 최적화 |
+| **다양한 키 타입** | Map 사용 | 유연성 |
+| **순서가 중요한 경우** | Map 사용 | 삽입 순서 보장 |
+| **JSON 직렬화 필요** | Object 사용 | 간단한 직렬화 |
+| **숫자 인덱스** | Array 사용 | 최적화된 성능 |
+| **메모리 제약** | Object 사용 | 메모리 효율성 |
+
+### 결론
+Map은 키-값 쌍을 효율적으로 관리하는 강력한 자료구조입니다.
+다양한 키 타입과 삽입 순서 보장으로 유연성을 제공합니다.
+성능이 중요한 키-값 조작에는 Map을 사용하세요.
+메모리 사용량과 직렬화 요구사항을 고려하여 선택하세요.
+WeakMap을 활용하여 메모리 누수를 방지하세요.
+안전한 Map 조작을 위해 적절한 에러 처리를 구현하세요.

@@ -1,9 +1,13 @@
+---
+title: async await
+tags: [language, javascript, 04심화javascript, async-and-await, java]
+updated: 2025-08-10
+---
 # async/await
 
-## 개요
+## 배경
 async/await는 JavaScript에서 비동기 작업을 더 쉽게 다루기 위한 문법입니다. Promise를 기반으로 하지만, Promise의 복잡한 체이닝(.then(), .catch()) 없이도 비동기 코드를 동기 코드처럼 작성할 수 있게 해줍니다.
 
-## 기본 개념
 
 ### async 함수
 - 함수 앞에 `async` 키워드를 붙이면 해당 함수는 비동기 함수가 됩니다
@@ -15,7 +19,6 @@ async/await는 JavaScript에서 비동기 작업을 더 쉽게 다루기 위한 
 - await는 오직 async 함수 내부에서만 사용할 수 있습니다
 - await를 만나면 해당 Promise가 완료될 때까지 함수 실행을 일시 중지합니다
 
-## 기본 사용법
 
 ```javascript
 // 기본적인 async 함수 선언
@@ -32,7 +35,6 @@ const myAsyncArrowFunction = async () => {
 };
 ```
 
-## 실제 예시
 
 ### 1. 간단한 비동기 함수
 
@@ -117,7 +119,6 @@ async function parallelExecution() {
 }
 ```
 
-## 에러 처리
 
 ### try-catch 사용
 
@@ -146,38 +147,6 @@ async function handleErrorsWithCatch() {
 }
 ```
 
-## Promise와의 관계
-
-### async/await는 Promise의 문법적 설탕
-
-```javascript
-// Promise 방식
-function oldWay() {
-    return fetchData()
-        .then(data => {
-            return processData(data);
-        })
-        .then(result => {
-            console.log(result);
-        })
-        .catch(error => {
-            console.error(error);
-        });
-}
-
-// async/await 방식
-async function newWay() {
-    try {
-        const data = await fetchData();
-        const result = await processData(data);
-        console.log(result);
-    } catch (error) {
-        console.error(error);
-    }
-}
-```
-
-## 주의사항
 
 ### 1. await는 async 함수 내에서만 사용 가능
 
@@ -215,7 +184,6 @@ async function handleNonPromise() {
 }
 ```
 
-## 실제 활용 예시
 
 ### 파일 읽기 (Node.js 환경)
 
@@ -253,7 +221,24 @@ async function getUserPosts(userId) {
 }
 ```
 
-## 요약
+
+```javascript
+async function getUserPosts(userId) {
+    try {
+        const user = await db.users.findById(userId);
+        const posts = await db.posts.findByUserId(userId);
+        
+        return {
+            user: user,
+            posts: posts
+        };
+    } catch (error) {
+        console.error('데이터베이스 조회 실패:', error);
+        throw error;
+    }
+}
+```
+
 
 - **async**: 함수를 비동기 함수로 만드는 키워드
 - **await**: Promise가 완료될 때까지 기다리는 키워드
@@ -301,3 +286,133 @@ process();
 
 > process 함수에서는 fetchData 함수를 호출하여 데이터를 가져오고, 가져온 데이터를 처리합니다. 
 - 이때 await 키워드를 사용하여 fetchData 함수의 비동기 처리를 기다립니다.
+
+
+
+
+
+
+
+```javascript
+async function getUserPosts(userId) {
+    try {
+        const user = await db.users.findById(userId);
+        const posts = await db.posts.findByUserId(userId);
+        
+        return {
+            user: user,
+            posts: posts
+        };
+    } catch (error) {
+        console.error('데이터베이스 조회 실패:', error);
+        throw error;
+    }
+}
+```
+
+
+```javascript
+async function getUserPosts(userId) {
+    try {
+        const user = await db.users.findById(userId);
+        const posts = await db.posts.findByUserId(userId);
+        
+        return {
+            user: user,
+            posts: posts
+        };
+    } catch (error) {
+        console.error('데이터베이스 조회 실패:', error);
+        throw error;
+    }
+}
+```
+
+
+- **async**: 함수를 비동기 함수로 만드는 키워드
+- **await**: Promise가 완료될 때까지 기다리는 키워드
+- **장점**: 비동기 코드를 동기 코드처럼 읽기 쉽게 작성 가능
+- **주의**: await는 async 함수 내에서만 사용 가능
+- **반환값**: async 함수는 항상 Promise를 반환
+
+async/await를 사용하면 복잡한 비동기 로직도 깔끔하고 이해하기 쉬운 코드로 작성할 수 있습니다.
+
+
+```javascript
+// 비동기적으로 데이터를 가져오는 함수
+async function fetchData(url) {
+    try {
+        const response = await fetch(url); // 비동기적으로 데이터를 가져옴
+        const data = await response.json(); // 비동기적으로 데이터를 JSON 형식으로 변환
+        return data; // 데이터 반환
+    } catch (error) {
+        console.log('Error:', error);
+        throw error;
+    }
+}
+
+// 비동기 함수를 사용하여 데이터 처리
+async function process() {
+    try {
+        const url = 'https://api.example.com/data';
+        const data = await fetchData(url); // 비동기적으로 데이터를 가져옴
+
+        // 데이터 처리
+        console.log('Data:', data);
+        // 추가 작업 수행 가능
+    } catch (error) {
+        console.log('Error:', error);
+    }
+}
+
+// 비동기 함수 실행
+process();
+```
+
+
+> 위의 예시에서 fetchData 함수는 비동기 함수로, fetch를 사용하여 데이터를 가져오고 response.json()을 사용하여 응답 데이터를 JSON 형식으로 변환합니다.
+- 이 함수는 Promise를 반환하므로 await를 사용하여 비동기적으로 데이터를 기다릴 수 있습니다.
+
+> process 함수에서는 fetchData 함수를 호출하여 데이터를 가져오고, 가져온 데이터를 처리합니다. 
+- 이때 await 키워드를 사용하여 fetchData 함수의 비동기 처리를 기다립니다.
+
+
+
+
+
+
+
+
+
+
+## Promise와의 관계
+
+### async/await는 Promise의 문법적 설탕
+
+```javascript
+// Promise 방식
+function oldWay() {
+    return fetchData()
+        .then(data => {
+            return processData(data);
+        })
+        .then(result => {
+            console.log(result);
+        })
+        .catch(error => {
+            console.error(error);
+        });
+}
+
+// async/await 방식
+async function newWay() {
+    try {
+        const data = await fetchData();
+        const result = await processData(data);
+        console.log(result);
+    } catch (error) {
+        console.error(error);
+    }
+}
+```
+

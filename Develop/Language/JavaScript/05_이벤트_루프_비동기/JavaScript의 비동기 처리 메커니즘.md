@@ -1,10 +1,15 @@
+---
+title: JavaScript
+tags: [language, javascript, 05이벤트루프비동기, javascript의-비동기-처리-메커니즘, java]
+updated: 2025-08-10
+---
 # JavaScript의 비동기 처리 메커니즘
 
 ## 1. 동기(Synchronous) vs 비동기(Asynchronous)
 
 JavaScript는 기본적으로 싱글 스레드 언어입니다. 즉, 한 번에 하나의 작업만 수행할 수 있습니다. 하지만 웹 애플리케이션에서는 네트워크 요청, 파일 읽기, 타이머 등 여러 작업을 동시에 처리해야 할 필요가 있습니다. 이를 위해 JavaScript는 비동기 처리 메커니즘을 제공합니다.
 
-### 동기 처리의 예시
+## 배경
 ```javascript
 console.log('1. 시작');
 console.log('2. 중간');
@@ -15,7 +20,6 @@ console.log('3. 끝');
 // 3. 끝
 ```
 
-### 비동기 처리의 예시
 ```javascript
 console.log('1. 시작');
 
@@ -30,15 +34,6 @@ console.log('3. 끝');
 // 2. 비동기 작업 (1초 후)
 ```
 
-## 2. 이벤트 루프(Event Loop)
-
-이벤트 루프는 JavaScript의 비동기 처리를 가능하게 하는 핵심 메커니즘입니다. 이벤트 루프는 다음과 같은 구성요소로 이루어져 있습니다:
-
-1. **콜 스택(Call Stack)**: 실행 중인 코드의 위치를 추적
-2. **태스크 큐(Task Queue)**: 비동기 작업의 콜백 함수들이 대기하는 곳
-3. **마이크로태스크 큐(Microtask Queue)**: Promise의 콜백 함수들이 대기하는 곳
-
-### 이벤트 루프 동작 예시
 ```javascript
 console.log('1. 스크립트 시작');
 
@@ -59,11 +54,6 @@ console.log('4. 스크립트 끝');
 // 2. setTimeout 콜백
 ```
 
-## 3. 콜백(Callback)
-
-콜백은 비동기 작업이 완료된 후 실행될 함수를 지정하는 방식입니다.
-
-### 콜백 예시
 ```javascript
 function fetchData(callback) {
     setTimeout(() => {
@@ -76,6 +66,47 @@ fetchData((data) => {
     console.log('받은 데이터:', data);
 });
 ```
+
+```javascript
+async function fetchMultipleResources() {
+    // 순차 처리
+    console.time('순차 처리');
+    const result1 = await fetch('/api/resource1');
+    const result2 = await fetch('/api/resource2');
+    const result3 = await fetch('/api/resource3');
+    console.timeEnd('순차 처리');
+
+    // 병렬 처리
+    console.time('병렬 처리');
+    const [result4, result5, result6] = await Promise.all([
+        fetch('/api/resource1'),
+        fetch('/api/resource2'),
+        fetch('/api/resource3')
+    ]);
+    console.timeEnd('병렬 처리');
+}
+```
+
+
+
+
+
+
+
+
+
+
+## 2. 이벤트 루프(Event Loop)
+
+이벤트 루프는 JavaScript의 비동기 처리를 가능하게 하는 핵심 메커니즘입니다. 이벤트 루프는 다음과 같은 구성요소로 이루어져 있습니다:
+
+1. **콜 스택(Call Stack)**: 실행 중인 코드의 위치를 추적
+2. **태스크 큐(Task Queue)**: 비동기 작업의 콜백 함수들이 대기하는 곳
+3. **마이크로태스크 큐(Microtask Queue)**: Promise의 콜백 함수들이 대기하는 곳
+
+## 3. 콜백(Callback)
+
+콜백은 비동기 작업이 완료된 후 실행될 함수를 지정하는 방식입니다.
 
 ### 콜백 지옥(Callback Hell)
 콜백을 중첩해서 사용하면 코드가 복잡해지고 가독성이 떨어집니다.
@@ -263,27 +294,6 @@ function handleError2() {
 
 ## 8. 성능 최적화
 
-### 병렬 처리
-```javascript
-async function fetchMultipleResources() {
-    // 순차 처리
-    console.time('순차 처리');
-    const result1 = await fetch('/api/resource1');
-    const result2 = await fetch('/api/resource2');
-    const result3 = await fetch('/api/resource3');
-    console.timeEnd('순차 처리');
-
-    // 병렬 처리
-    console.time('병렬 처리');
-    const [result4, result5, result6] = await Promise.all([
-        fetch('/api/resource1'),
-        fetch('/api/resource2'),
-        fetch('/api/resource3')
-    ]);
-    console.timeEnd('병렬 처리');
-}
-```
-
 ## 9. 실전 팁
 
 1. **Promise.all vs Promise.allSettled**
@@ -337,3 +347,4 @@ JavaScript의 비동기 처리 메커니즘은 현대 웹 개발에서 필수적
 - async/await: 가독성이 좋고 에러 처리가 쉬움
 
 이러한 비동기 처리 메커니즘을 잘 이해하고 활용하면, 더 효율적이고 유지보수가 용이한 코드를 작성할 수 있습니다.
+

@@ -1,6 +1,11 @@
+---
+title: Promise
+tags: [language, javascript, 04심화javascript, promise-내부-동작-과정, java]
+updated: 2025-08-10
+---
 # Promise 내부 동작 과정
 
-## 📋 목차
+## 배경
 - [기본 개념](#기본-개념)
 - [Task Queue와 Microtask Queue](#task-queue와-microtask-queue)
 - [실행 순서 이해하기](#실행-순서-이해하기)
@@ -9,7 +14,6 @@
 
 ---
 
-## 기본 개념
 
 ### 비동기 처리란?
 JavaScript에서 비동기 처리는 코드가 순차적으로 실행되지 않고, 특정 작업이 완료될 때까지 기다리지 않고 다음 작업을 진행하는 방식을 의미합니다.
@@ -19,27 +23,8 @@ JavaScript에서 비동기 처리는 코드가 순차적으로 실행되지 않�
 
 ---
 
-## Task Queue와 Microtask Queue
+JavaScript에서 비동기 처리는 코드가 순차적으로 실행되지 않고, 특정 작업이 완료될 때까지 기다리지 않고 다음 작업을 진행하는 방식을 의미합니다.
 
-### Callback Queue (콜백 큐)
-- **정의**: Web API가 수행한 비동기 함수의 콜백을 임시로 저장하는 대기열
-- **역할**: Event Loop가 Call Stack이 비어있을 때 이 큐에서 콜백을 가져와 실행
-
-### Task Queue (태스크 큐)
-- **정의**: 일반적인 비동기 콜백들이 저장되는 큐
-- **포함되는 것들**: `setTimeout`, `setInterval`, `setImmediate` 등의 콜백
-
-### Microtask Queue (마이크로태스크 큐)
-- **정의**: Promise의 콜백들이 저장되는 특별한 큐
-- **특징**: Task Queue보다 **우선순위가 높음**
-- **포함되는 것들**: 
-  - Promise의 `.then()`, `.catch()`, `.finally()` 콜백
-  - `queueMicrotask()` 함수
-  - `process.nextTick()` (Node.js)
-
----
-
-## 실행 순서 이해하기
 
 ### 우선순위 규칙
 1. **동기 코드** (Call Stack에서 즉시 실행)
@@ -52,7 +37,15 @@ JavaScript에서 비동기 처리는 코드가 순차적으로 실행되지 않�
 
 ---
 
-## 실제 예제로 살펴보기
+1. **동기 코드** (Call Stack에서 즉시 실행)
+2. **Microtask Queue** (Promise 콜백들)
+3. **Task Queue** (setTimeout, setInterval 등)
+
+- Microtask Queue는 Task Queue보다 **항상 먼저** 처리됩니다
+- Microtask Queue가 비어있어야 Task Queue의 콜백이 실행됩니다
+
+---
+
 
 ```javascript
 console.log('Start!');
@@ -90,7 +83,28 @@ Timeout!
 
 ---
 
-## 상세한 실행 과정
+```
+Start!
+End!
+Promise!
+Timeout!
+```
+
+
+1. **동기 코드 실행**
+   - `console.log('Start!')` → 즉시 실행
+   - `setTimeout()` → Web API로 전달 (0초 대기)
+   - `Promise.resolve()` → 즉시 resolved 상태가 됨
+   - `console.log('End!')` → 즉시 실행
+
+2. **비동기 콜백 처리**
+   - Promise의 `.then()` 콜백이 Microtask Queue에 추가
+   - setTimeout의 콜백이 Task Queue에 추가
+   - **Microtask Queue가 먼저 처리**되어 "Promise!" 출력
+   - 그 다음 Task Queue 처리되어 "Timeout!" 출력
+
+---
+
 
 ### 1단계: 초기 실행
 ```javascript
@@ -116,7 +130,6 @@ Task Queue: [setTimeout 콜백]
 
 ---
 
-## 추가 예제로 이해하기
 
 ### 예제 1: 중첩된 Promise
 ```javascript
@@ -178,7 +191,6 @@ console.log('끝');
 
 ---
 
-## 정리
 
 - **Microtask Queue**는 Promise 콜백들이 저장되는 특별한 큐
 - **Task Queue**보다 우선순위가 높아서 항상 먼저 처리됨
@@ -206,4 +218,137 @@ console.log('End!');
 </div>
 
 
+
+
+<div align="center">
+    <img src="../../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
+</div>
+
+
+
+
+
+
+
+
+JavaScript에서 비동기 처리는 코드가 순차적으로 실행되지 않고, 특정 작업이 완료될 때까지 기다리지 않고 다음 작업을 진행하는 방식을 의미합니다.
+
+1. **동기 코드** (Call Stack에서 즉시 실행)
+2. **Microtask Queue** (Promise 콜백들)
+3. **Task Queue** (setTimeout, setInterval 등)
+
+- Microtask Queue는 Task Queue보다 **항상 먼저** 처리됩니다
+- Microtask Queue가 비어있어야 Task Queue의 콜백이 실행됩니다
+
+---
+
+1. **동기 코드** (Call Stack에서 즉시 실행)
+2. **Microtask Queue** (Promise 콜백들)
+3. **Task Queue** (setTimeout, setInterval 등)
+
+- Microtask Queue는 Task Queue보다 **항상 먼저** 처리됩니다
+- Microtask Queue가 비어있어야 Task Queue의 콜백이 실행됩니다
+
+---
+
+
+```javascript
+console.log('Start!');
+
+setTimeout(() => {
+	console.log('Timeout!');
+}, 0);
+
+Promise.resolve('Promise!').then(res => console.log(res));
+
+console.log('End!');
+```
+
+```
+Start!
+End!
+Promise!
+Timeout!
+```
+
+
+1. **동기 코드 실행**
+   - `console.log('Start!')` → 즉시 실행
+   - `setTimeout()` → Web API로 전달 (0초 대기)
+   - `Promise.resolve()` → 즉시 resolved 상태가 됨
+   - `console.log('End!')` → 즉시 실행
+
+2. **비동기 콜백 처리**
+   - Promise의 `.then()` 콜백이 Microtask Queue에 추가
+   - setTimeout의 콜백이 Task Queue에 추가
+   - **Microtask Queue가 먼저 처리**되어 "Promise!" 출력
+   - 그 다음 Task Queue 처리되어 "Timeout!" 출력
+
+---
+
+```
+Start!
+End!
+Promise!
+Timeout!
+```
+
+
+1. **동기 코드 실행**
+   - `console.log('Start!')` → 즉시 실행
+   - `setTimeout()` → Web API로 전달 (0초 대기)
+   - `Promise.resolve()` → 즉시 resolved 상태가 됨
+   - `console.log('End!')` → 즉시 실행
+
+2. **비동기 콜백 처리**
+   - Promise의 `.then()` 콜백이 Microtask Queue에 추가
+   - setTimeout의 콜백이 Task Queue에 추가
+   - **Microtask Queue가 먼저 처리**되어 "Promise!" 출력
+   - 그 다음 Task Queue 처리되어 "Timeout!" 출력
+
+---
+
+
+
+<div align="center">
+    <img src="../../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
+</div>
+
+
+
+
+<div align="center">
+    <img src="../../../../etc/image/Framework/Node/Worker_Threads.png" alt="Worker_Threads Image" width="50%">
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+## Task Queue와 Microtask Queue
+
+### Callback Queue (콜백 큐)
+- **정의**: Web API가 수행한 비동기 함수의 콜백을 임시로 저장하는 대기열
+- **역할**: Event Loop가 Call Stack이 비어있을 때 이 큐에서 콜백을 가져와 실행
+
+### Task Queue (태스크 큐)
+- **정의**: 일반적인 비동기 콜백들이 저장되는 큐
+- **포함되는 것들**: `setTimeout`, `setInterval`, `setImmediate` 등의 콜백
+
+### Microtask Queue (마이크로태스크 큐)
+- **정의**: Promise의 콜백들이 저장되는 특별한 큐
+- **특징**: Task Queue보다 **우선순위가 높음**
+- **포함되는 것들**: 
+  - Promise의 `.then()`, `.catch()`, `.finally()` 콜백
+  - `queueMicrotask()` 함수
+  - `process.nextTick()` (Node.js)
+
+---
 

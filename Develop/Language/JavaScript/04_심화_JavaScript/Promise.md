@@ -1,6 +1,11 @@
+---
+title: JavaScript Promise
+tags: [language, javascript, 04심화javascript, promise, java]
+updated: 2025-08-10
+---
 # JavaScript Promise
 
-## 📋 목차
+## 배경
 - [Promise란 무엇인가?](#promise란-무엇인가)
 - [Promise의 3가지 상태](#promise의-3가지-상태)
 - [Promise 기본 사용법](#promise-기본-사용법)
@@ -9,6 +14,434 @@
 - [실제 사용 예시](#실제-사용-예시)
 
 ---
+
+
+```javascript
+// 파일 읽기 Promise
+function readFileAsync(filename) {
+    return new Promise((resolve, reject) => {
+        // 실제 파일 읽기 작업 시뮬레이션
+        setTimeout(() => {
+            if (filename === 'data.txt') {
+                resolve('파일 내용: Hello World!');
+            } else {
+                reject(new Error('파일을 찾을 수 없습니다.'));
+            }
+        }, 1000);
+    });
+}
+
+// 사용하기
+async function processFile() {
+    try {
+        const content = await readFileAsync('data.txt');
+        console.log('파일 내용:', content);
+    } catch (error) {
+        console.error('파일 읽기 실패:', error.message);
+    }
+}
+```
+
+---
+
+
+### 🏗️ API 클라이언트 만들기
+
+```javascript
+class ApiClient {
+    constructor(baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    async request(endpoint, options = {}) {
+        try {
+            const response = await fetch(`${this.baseUrl}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP 에러! 상태: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API 요청 실패:', error);
+            throw error;
+        }
+    }
+
+    async get(endpoint) {
+        return this.request(endpoint);
+    }
+
+    async post(endpoint, data) {
+        return this.request(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async put(endpoint, data) {
+        return this.request(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async delete(endpoint) {
+        return this.request(endpoint, {
+            method: 'DELETE'
+        });
+    }
+}
+
+// 사용 예시
+const api = new ApiClient('https://api.example.com');
+
+async function main() {
+    try {
+        // 여러 API 호출을 병렬로 처리
+        const [users, posts] = await Promise.all([
+            api.get('/users'),
+            api.get('/posts')
+        ]);
+
+        // 새로운 게시물 작성
+        const newPost = await api.post('/posts', {
+            title: '새 게시물',
+            content: '내용...'
+        });
+
+        console.log('사용자:', users);
+        console.log('게시물:', posts);
+        console.log('새 게시물:', newPost);
+    } catch (error) {
+        console.error('작업 실패:', error);
+    }
+}
+```
+
+### 🔄 재시도 로직 구현
+
+```javascript
+async function fetchWithRetry(url, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.log(`시도 ${i + 1}/${maxRetries} 실패:`, error.message);
+            
+            if (i === maxRetries - 1) {
+                throw new Error(`최대 재시도 횟수 초과: ${error.message}`);
+            }
+            
+            // 지수 백오프 (1초, 2초, 4초...)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+        }
+    }
+}
+
+// 사용 예시
+fetchWithRetry('https://api.example.com/data')
+    .then(data => console.log('성공:', data))
+    .catch(error => console.error('최종 실패:', error));
+```
+
+### 🎨 에러 처리 패턴
+
+```javascript
+// 에러 복구 패턴
+async function fetchWithFallback() {
+    try {
+        const response = await fetch('https://api.example.com/data');
+        return await response.json();
+    } catch (error) {
+        console.warn('기본 API 실패, 대체 API 시도:', error.message);
+        
+        // 대체 API 호출
+        const fallbackResponse = await fetch('https://backup-api.example.com/data');
+        return await fallbackResponse.json();
+    }
+}
+
+// 에러 전파 패턴
+async function processData() {
+    try {
+        const data = await fetchData();
+        const processed = await processData(data);
+        const result = await saveData(processed);
+        return result;
+    } catch (error) {
+        console.error('처리 중 에러 발생:', error);
+        throw error; // 상위로 에러 전파
+    }
+}
+```
+
+---
+
+
+```javascript
+async function fetchWithRetry(url, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.log(`시도 ${i + 1}/${maxRetries} 실패:`, error.message);
+            
+            if (i === maxRetries - 1) {
+                throw new Error(`최대 재시도 횟수 초과: ${error.message}`);
+            }
+            
+            // 지수 백오프 (1초, 2초, 4초...)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+        }
+    }
+}
+
+// 사용 예시
+fetchWithRetry('https://api.example.com/data')
+    .then(data => console.log('성공:', data))
+    .catch(error => console.error('최종 실패:', error));
+```
+
+
+```javascript
+// 에러 복구 패턴
+async function fetchWithFallback() {
+    try {
+        const response = await fetch('https://api.example.com/data');
+        return await response.json();
+    } catch (error) {
+        console.warn('기본 API 실패, 대체 API 시도:', error.message);
+        
+        // 대체 API 호출
+        const fallbackResponse = await fetch('https://backup-api.example.com/data');
+        return await fallbackResponse.json();
+    }
+}
+
+// 에러 전파 패턴
+async function processData() {
+    try {
+        const data = await fetchData();
+        const processed = await processData(data);
+        const result = await saveData(processed);
+        return result;
+    } catch (error) {
+        console.error('처리 중 에러 발생:', error);
+        throw error; // 상위로 에러 전파
+    }
+}
+```
+
+---
+
+
+### ✅ Promise의 핵심 개념
+1. **Promise는 비동기 작업의 결과를 담는 상자**
+2. **3가지 상태**: Pending → Fulfilled/Rejected
+3. **async/await**로 더 쉽게 사용 가능
+4. **await 없이 Promise 사용하면 에러 처리 불가**
+
+### 🛠️ 자주 사용하는 패턴
+- `Promise.all()`: 모든 Promise 완료 대기
+- `Promise.race()`: 가장 빠른 Promise 결과
+- `Promise.allSettled()`: 모든 결과 확인
+- `Promise.any()`: 하나라도 성공하면 OK
+
+### 💡 실무 팁
+- 항상 `await`과 함께 사용하기
+- `try-catch`로 에러 처리하기
+- `Promise.all()`로 병렬 처리하기
+- 재시도 로직 구현하기 
+
+- `Promise.all()`: 모든 Promise 완료 대기
+- `Promise.race()`: 가장 빠른 Promise 결과
+- `Promise.allSettled()`: 모든 결과 확인
+- `Promise.any()`: 하나라도 성공하면 OK
+
+- 항상 `await`과 함께 사용하기
+- `try-catch`로 에러 처리하기
+- `Promise.all()`로 병렬 처리하기
+- 재시도 로직 구현하기 
+
+
+
+
+
+
+
+```javascript
+async function fetchWithRetry(url, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.log(`시도 ${i + 1}/${maxRetries} 실패:`, error.message);
+            
+            if (i === maxRetries - 1) {
+                throw new Error(`최대 재시도 횟수 초과: ${error.message}`);
+            }
+            
+            // 지수 백오프 (1초, 2초, 4초...)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+        }
+    }
+}
+
+// 사용 예시
+fetchWithRetry('https://api.example.com/data')
+    .then(data => console.log('성공:', data))
+    .catch(error => console.error('최종 실패:', error));
+```
+
+
+```javascript
+// 에러 복구 패턴
+async function fetchWithFallback() {
+    try {
+        const response = await fetch('https://api.example.com/data');
+        return await response.json();
+    } catch (error) {
+        console.warn('기본 API 실패, 대체 API 시도:', error.message);
+        
+        // 대체 API 호출
+        const fallbackResponse = await fetch('https://backup-api.example.com/data');
+        return await fallbackResponse.json();
+    }
+}
+
+// 에러 전파 패턴
+async function processData() {
+    try {
+        const data = await fetchData();
+        const processed = await processData(data);
+        const result = await saveData(processed);
+        return result;
+    } catch (error) {
+        console.error('처리 중 에러 발생:', error);
+        throw error; // 상위로 에러 전파
+    }
+}
+```
+
+---
+
+
+```javascript
+async function fetchWithRetry(url, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.log(`시도 ${i + 1}/${maxRetries} 실패:`, error.message);
+            
+            if (i === maxRetries - 1) {
+                throw new Error(`최대 재시도 횟수 초과: ${error.message}`);
+            }
+            
+            // 지수 백오프 (1초, 2초, 4초...)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+        }
+    }
+}
+
+// 사용 예시
+fetchWithRetry('https://api.example.com/data')
+    .then(data => console.log('성공:', data))
+    .catch(error => console.error('최종 실패:', error));
+```
+
+
+```javascript
+// 에러 복구 패턴
+async function fetchWithFallback() {
+    try {
+        const response = await fetch('https://api.example.com/data');
+        return await response.json();
+    } catch (error) {
+        console.warn('기본 API 실패, 대체 API 시도:', error.message);
+        
+        // 대체 API 호출
+        const fallbackResponse = await fetch('https://backup-api.example.com/data');
+        return await fallbackResponse.json();
+    }
+}
+
+// 에러 전파 패턴
+async function processData() {
+    try {
+        const data = await fetchData();
+        const processed = await processData(data);
+        const result = await saveData(processed);
+        return result;
+    } catch (error) {
+        console.error('처리 중 에러 발생:', error);
+        throw error; // 상위로 에러 전파
+    }
+}
+```
+
+---
+
+
+- `Promise.all()`: 모든 Promise 완료 대기
+- `Promise.race()`: 가장 빠른 Promise 결과
+- `Promise.allSettled()`: 모든 결과 확인
+- `Promise.any()`: 하나라도 성공하면 OK
+
+- 항상 `await`과 함께 사용하기
+- `try-catch`로 에러 처리하기
+- `Promise.all()`로 병렬 처리하기
+- 재시도 로직 구현하기 
+
+- `Promise.all()`: 모든 Promise 완료 대기
+- `Promise.race()`: 가장 빠른 Promise 결과
+- `Promise.allSettled()`: 모든 결과 확인
+- `Promise.any()`: 하나라도 성공하면 OK
+
+- 항상 `await`과 함께 사용하기
+- `try-catch`로 에러 처리하기
+- `Promise.all()`로 병렬 처리하기
+- 재시도 로직 구현하기 
+
+
+
+
+
+
+
+
+
 
 ## Promise란 무엇인가?
 
@@ -141,36 +574,6 @@ async function handlePromise() {
     }
 }
 ```
-
-### 🎯 실제 사용 예시
-
-```javascript
-// 파일 읽기 Promise
-function readFileAsync(filename) {
-    return new Promise((resolve, reject) => {
-        // 실제 파일 읽기 작업 시뮬레이션
-        setTimeout(() => {
-            if (filename === 'data.txt') {
-                resolve('파일 내용: Hello World!');
-            } else {
-                reject(new Error('파일을 찾을 수 없습니다.'));
-            }
-        }, 1000);
-    });
-}
-
-// 사용하기
-async function processFile() {
-    try {
-        const content = await readFileAsync('data.txt');
-        console.log('파일 내용:', content);
-    } catch (error) {
-        console.error('파일 읽기 실패:', error.message);
-    }
-}
-```
-
----
 
 ## async/await 이해하기
 
@@ -388,169 +791,3 @@ async function fetchFromAnyServer() {
 
 ---
 
-## 실제 사용 예시
-
-### 🏗️ API 클라이언트 만들기
-
-```javascript
-class ApiClient {
-    constructor(baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-    async request(endpoint, options = {}) {
-        try {
-            const response = await fetch(`${this.baseUrl}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP 에러! 상태: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('API 요청 실패:', error);
-            throw error;
-        }
-    }
-
-    async get(endpoint) {
-        return this.request(endpoint);
-    }
-
-    async post(endpoint, data) {
-        return this.request(endpoint, {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    }
-
-    async put(endpoint, data) {
-        return this.request(endpoint, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        });
-    }
-
-    async delete(endpoint) {
-        return this.request(endpoint, {
-            method: 'DELETE'
-        });
-    }
-}
-
-// 사용 예시
-const api = new ApiClient('https://api.example.com');
-
-async function main() {
-    try {
-        // 여러 API 호출을 병렬로 처리
-        const [users, posts] = await Promise.all([
-            api.get('/users'),
-            api.get('/posts')
-        ]);
-
-        // 새로운 게시물 작성
-        const newPost = await api.post('/posts', {
-            title: '새 게시물',
-            content: '내용...'
-        });
-
-        console.log('사용자:', users);
-        console.log('게시물:', posts);
-        console.log('새 게시물:', newPost);
-    } catch (error) {
-        console.error('작업 실패:', error);
-    }
-}
-```
-
-### 🔄 재시도 로직 구현
-
-```javascript
-async function fetchWithRetry(url, maxRetries = 3) {
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.log(`시도 ${i + 1}/${maxRetries} 실패:`, error.message);
-            
-            if (i === maxRetries - 1) {
-                throw new Error(`최대 재시도 횟수 초과: ${error.message}`);
-            }
-            
-            // 지수 백오프 (1초, 2초, 4초...)
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
-        }
-    }
-}
-
-// 사용 예시
-fetchWithRetry('https://api.example.com/data')
-    .then(data => console.log('성공:', data))
-    .catch(error => console.error('최종 실패:', error));
-```
-
-### 🎨 에러 처리 패턴
-
-```javascript
-// 에러 복구 패턴
-async function fetchWithFallback() {
-    try {
-        const response = await fetch('https://api.example.com/data');
-        return await response.json();
-    } catch (error) {
-        console.warn('기본 API 실패, 대체 API 시도:', error.message);
-        
-        // 대체 API 호출
-        const fallbackResponse = await fetch('https://backup-api.example.com/data');
-        return await fallbackResponse.json();
-    }
-}
-
-// 에러 전파 패턴
-async function processData() {
-    try {
-        const data = await fetchData();
-        const processed = await processData(data);
-        const result = await saveData(processed);
-        return result;
-    } catch (error) {
-        console.error('처리 중 에러 발생:', error);
-        throw error; // 상위로 에러 전파
-    }
-}
-```
-
----
-
-## 📝 정리
-
-### ✅ Promise의 핵심 개념
-1. **Promise는 비동기 작업의 결과를 담는 상자**
-2. **3가지 상태**: Pending → Fulfilled/Rejected
-3. **async/await**로 더 쉽게 사용 가능
-4. **await 없이 Promise 사용하면 에러 처리 불가**
-
-### 🛠️ 자주 사용하는 패턴
-- `Promise.all()`: 모든 Promise 완료 대기
-- `Promise.race()`: 가장 빠른 Promise 결과
-- `Promise.allSettled()`: 모든 결과 확인
-- `Promise.any()`: 하나라도 성공하면 OK
-
-### 💡 실무 팁
-- 항상 `await`과 함께 사용하기
-- `try-catch`로 에러 처리하기
-- `Promise.all()`로 병렬 처리하기
-- 재시도 로직 구현하기 
