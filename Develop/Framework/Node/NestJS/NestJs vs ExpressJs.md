@@ -1,6 +1,12 @@
+---
+title: NestJS vs Express.js
+tags: [framework, node, nestjs, nestjs-vs-expressjs, nodejs]
+updated: 2025-08-15
+---
+
 # NestJS vs Express.js: 심층 비교 분석
 
-## 목차
+## 배경
 1. [소개](#소개)
 2. [아키텍처 비교](#아키텍처-비교)
 3. [주요 기능 비교](#주요-기능-비교)
@@ -10,7 +16,6 @@
 7. [생태계 및 커뮤니티](#생태계-및-커뮤니티)
 8. [결론](#결론)
 
-## 소개
 
 ### Express.js
 Express.js는 Node.js의 가장 인기 있는 웹 프레임워크 중 하나로, 2010년에 출시되었습니다. 미니멀리즘과 유연성을 강조하는 경량 프레임워크입니다.
@@ -18,7 +23,6 @@ Express.js는 Node.js의 가장 인기 있는 웹 프레임워크 중 하나로,
 ### NestJS
 NestJS는 2017년에 출시된 비교적 새로운 프레임워크로, Angular의 영향을 받아 TypeScript를 기반으로 구축되었습니다. 엔터프라이즈급 애플리케이션을 위한 구조화된 아키텍처를 제공합니다.
 
-## 아키텍처 비교
 
 ### Express.js 아키텍처
 - **미들웨어 기반**: 요청-응답 사이클을 처리하는 미들웨어 함수 체인
@@ -32,7 +36,6 @@ NestJS는 2017년에 출시된 비교적 새로운 프레임워크로, Angular�
 - **데코레이터**: TypeScript 데코레이터를 활용한 선언적 프로그래밍
 - **계층 구조**: Controller, Service, Module 등 명확한 계층 분리
 
-## 주요 기능 비교
 
 ### 1. 타입 시스템
 #### Express.js
@@ -108,7 +111,6 @@ export class UsersController {
 - Repository 패턴 구현 용이
 - 데이터베이스 마이그레이션 도구 내장
 
-## 성능 및 확장성
 
 ### Express.js
 - **장점**
@@ -128,7 +130,6 @@ export class UsersController {
   - 상대적으로 높은 초기 오버헤드
   - 더 많은 보일러플레이트 코드
 
-## 학습 곡선
 
 ### Express.js
 - **장점**
@@ -149,7 +150,6 @@ export class UsersController {
   - 데코레이터 개념 이해 필요
   - 초기 설정 복잡
 
-## 사용 사례
 
 ### Express.js 적합한 경우
 1. 소규모 프로젝트
@@ -165,7 +165,6 @@ export class UsersController {
 4. Angular와 통합된 풀스택 애플리케이션
 5. 복잡한 비즈니스 로직
 
-## 생태계 및 커뮤니티
 
 ### Express.js
 - **장점**
@@ -185,7 +184,6 @@ export class UsersController {
   - 상대적으로 작은 커뮤니티
   - 제한된 서드파티 패키지
 
-## 결론
 
 ### Express.js 선택 시기
 - 빠른 개발이 필요한 경우
@@ -207,3 +205,42 @@ export class UsersController {
 5. **빠른 개발**: Express.js
 
 각 프레임워크는 자신만의 장단점이 있으며, 프로젝트의 요구사항과 팀의 역량에 따라 적절한 선택을 해야 합니다. Express.js는 유연성과 간단함을, NestJS는 구조화와 확장성을 제공합니다.
+
+1. **소규모 프로젝트**: Express.js
+2. **대규모 프로젝트**: NestJS
+3. **마이크로서비스**: 둘 다 적합하나, 팀의 경험에 따라 선택
+4. **TypeScript 사용**: NestJS
+5. **빠른 개발**: Express.js
+
+각 프레임워크는 자신만의 장단점이 있으며, 프로젝트의 요구사항과 팀의 역량에 따라 적절한 선택을 해야 합니다. Express.js는 유연성과 간단함을, NestJS는 구조화와 확장성을 제공합니다.
+
+
+
+
+
+
+1. **소규모 프로젝트**: Express.js
+2. **대규모 프로젝트**: NestJS
+3. **마이크로서비스**: 둘 다 적합하나, 팀의 경험에 따라 선택
+4. **TypeScript 사용**: NestJS
+5. **빠른 개발**: Express.js
+
+각 프레임워크는 자신만의 장단점이 있으며, 프로젝트의 요구사항과 팀의 역량에 따라 적절한 선택을 해야 합니다. Express.js는 유연성과 간단함을, NestJS는 구조화와 확장성을 제공합니다.
+
+1. **소규모 프로젝트**: Express.js
+2. **대규모 프로젝트**: NestJS
+3. **마이크로서비스**: 둘 다 적합하나, 팀의 경험에 따라 선택
+4. **TypeScript 사용**: NestJS
+5. **빠른 개발**: Express.js
+
+각 프레임워크는 자신만의 장단점이 있으며, 프로젝트의 요구사항과 팀의 역량에 따라 적절한 선택을 해야 합니다. Express.js는 유연성과 간단함을, NestJS는 구조화와 확장성을 제공합니다.
+
+
+
+
+
+
+
+
+
+

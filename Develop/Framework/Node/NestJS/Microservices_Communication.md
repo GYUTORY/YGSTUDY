@@ -1,9 +1,7 @@
-# NestJS 마이크로서비스 (gRPC / RabbitMQ)
-
-NestJS로 서비스를 나누다 보면 “이건 동기 호출이 깔끔하겠다” 싶은 것과 “메시지로 흘려보내는 게 안전하겠다” 싶은 게 명확히 갈린다. 일반적으로 조회·간단한 계산은 gRPC 같은 RPC가 잘 맞고, 상태 변경·이벤트 브로드캐스트·버퍼링이 필요한 작업은 RabbitMQ 같은 메시지 브로커가 잘 맞는다. 대다수 실무 시스템은 둘을 섞는다.
-
-아래는 통신 패턴, 스키마(프로토/메시지) 버저닝, 멱등 처리까지 한 번에 정리한 내용이다. 용어가 낯설다면 각 섹션의 “용어 풀기”를 참고하면 된다.
-
+---
+title: NestJS gRPC RabbitMQ
+tags: [framework, node, nestjs, microservicescommunication, nodejs]
+updated: 2025-08-15
 ---
 
 ## gRPC 통신 패턴
@@ -26,7 +24,7 @@ message StreamUsersRequest { repeated string ids = 1; }
 message GetUserResponse { string id = 1; string name = 2; }
 ```
 
-### 서버 부트스트랩
+## 배경
 
 ```ts
 // main.ts
@@ -49,22 +47,6 @@ async function bootstrap() {
 bootstrap();
 ```
 
-### gRPC 핸들러
-
-```ts
-import { Controller } from '@nestjs/common';
-import { GrpcMethod } from '@nestjs/microservices';
-
-@Controller()
-export class UserController {
-  @GrpcMethod('UserService', 'GetUser')
-  getUser({ id }: { id: string }) {
-    return { id, name: 'Alice' };
-  }
-}
-```
-
-### 클라이언트 모듈/사용
 
 ```ts
 import { Module, Inject, OnModuleInit } from '@nestjs/common';
@@ -94,7 +76,6 @@ export class ApiModule implements OnModuleInit {
 }
 ```
 
-### 에러/타임아웃/메타데이터
 
 - 타임아웃(Deadline): 호출 단위로 마감시간을 정해 지연 누적을 방지한다.
 - 에러 매핑: gRPC Status(Code) ↔ 도메인 에러를 인터셉터에서 일관되게 매핑한다.
@@ -112,16 +93,6 @@ export class ApiModule implements OnModuleInit {
 
 ---
 
-## RabbitMQ(AMQP) 통신 패턴
-
-RabbitMQ는 AMQP 프로토콜 기반 메시지 브로커다. 발행/구독 모델로 느슨한 결합, 버퍼링, 재시도를 쉽게 구현할 수 있다.
-
-핵심 구성 요소
-- Exchange: 메시지를 라우팅하는 허브. 종류로는 direct, topic, fanout, headers가 있다.
-- Queue: 메시지가 쌓였다가 소비되는 버퍼.
-- Binding: Exchange와 Queue 사이의 라우팅 규칙.
-
-### 연결/클라이언트 등록
 
 ```ts
 import { Module } from '@nestjs/common';
@@ -146,7 +117,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 export class MessagingModule {}
 ```
 
-### 발행과 소비
 
 ```ts
 // publisher
@@ -181,23 +151,6 @@ export class UserConsumer {
 }
 ```
 
-### 재시도/DLQ(Dead Letter Queue)
-
-- 큐에 `x-dead-letter-exchange`, `x-message-ttl`을 설정해 지연 재시도나 실패 격리를 구성한다.
-- 소비자는 반드시 수동 `ack/nack`로 처리 성공/실패를 명확히 표기한다.
-
-용어 풀기
-- QoS(prefetch): 소비자가 한 번에 끌어오는 처리량 상한. 폭주를 막는다.
-- DLX: 실패 메시지가 이동하는 교환기. 원인 분석 및 지연 재처리에 쓴다.
-- Routing Key: 메시지 라우팅에 사용하는 문자열. topic 교환기에서 와일드카드를 지원한다.
-
-운영 팁
-- 순서 보장을 원하면 파티션 키(예: userId)로 큐를 나누거나, 메시지에 순번을 붙여 검증한다.
-- RPC가 꼭 필요하면 `client.send()`와 `@MessagePattern` 조합으로 요청/응답을 구현할 수 있지만, 큐 점유와 타임아웃 관리에 신경 써야 한다.
-
----
-
-## 메시지 스키마 버저닝
 
 시간이 지나면 이벤트의 필드가 늘거나 의미가 바뀐다. 생산자와 소비자가 독립적으로 배포되기 때문에 “하위 호환”을 우선시하는 규칙이 필요하다.
 
@@ -222,6 +175,78 @@ message User { string id = 1; string name = 2; }
 package user.v2;
 message User { string id = 1; string name = 2; string nickname = 3; }
 ```
+
+---
+
+
+- 상관관계 ID(correlationId)를 gRPC 메타데이터/메시지 헤더에 항상 실어 로그/트레이싱을 잇는다.
+- OpenTelemetry 인터셉터를 붙여 분산 추적을 기본값으로 둔다.
+- 재시도는 지수 백오프로 하되, 멱등 설계가 먼저다. 재시도만으로 일관성은 보장되지 않는다.
+- 소비자 `prefetch`와 처리 시간(슬로우 컨슈머)을 꾸준히 모니터링한다. 지연이 커지면 파티션을 늘리거나 소비자를 수평 확장한다.
+
+---
+
+
+- 동기 RPC 스타일(즉시 응답 필요, 강한 타입) → gRPC
+- 느슨한 결합/버퍼링/비동기 이벤트 흐름 → RabbitMQ
+
+현실에선 두 방식을 섞는다. 중요한 건 “스키마 버저닝”과 “멱등성”을 초기 설계부터 포함시키는 것이다. 이 두 가지가 통신 방식의 선택보다 시스템 안정성에 더 큰 영향을 준다.
+
+
+
+
+
+
+
+NestJS로 서비스를 나누다 보면 “이건 동기 호출이 깔끔하겠다” 싶은 것과 “메시지로 흘려보내는 게 안전하겠다” 싶은 게 명확히 갈린다. 일반적으로 조회·간단한 계산은 gRPC 같은 RPC가 잘 맞고, 상태 변경·이벤트 브로드캐스트·버퍼링이 필요한 작업은 RabbitMQ 같은 메시지 브로커가 잘 맞는다. 대다수 실무 시스템은 둘을 섞는다.
+
+아래는 통신 패턴, 스키마(프로토/메시지) 버저닝, 멱등 처리까지 한 번에 정리한 내용이다. 용어가 낯설다면 각 섹션의 “용어 풀기”를 참고하면 된다.
+
+---
+
+### gRPC 핸들러
+
+```ts
+import { Controller } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
+
+@Controller()
+export class UserController {
+  @GrpcMethod('UserService', 'GetUser')
+  getUser({ id }: { id: string }) {
+    return { id, name: 'Alice' };
+  }
+}
+```
+
+
+
+
+
+# NestJS 마이크로서비스 (gRPC / RabbitMQ)
+
+## RabbitMQ(AMQP) 통신 패턴
+
+RabbitMQ는 AMQP 프로토콜 기반 메시지 브로커다. 발행/구독 모델로 느슨한 결합, 버퍼링, 재시도를 쉽게 구현할 수 있다.
+
+핵심 구성 요소
+- Exchange: 메시지를 라우팅하는 허브. 종류로는 direct, topic, fanout, headers가 있다.
+- Queue: 메시지가 쌓였다가 소비되는 버퍼.
+- Binding: Exchange와 Queue 사이의 라우팅 규칙.
+
+### 재시도/DLQ(Dead Letter Queue)
+
+- 큐에 `x-dead-letter-exchange`, `x-message-ttl`을 설정해 지연 재시도나 실패 격리를 구성한다.
+- 소비자는 반드시 수동 `ack/nack`로 처리 성공/실패를 명확히 표기한다.
+
+용어 풀기
+- QoS(prefetch): 소비자가 한 번에 끌어오는 처리량 상한. 폭주를 막는다.
+- DLX: 실패 메시지가 이동하는 교환기. 원인 분석 및 지연 재처리에 쓴다.
+- Routing Key: 메시지 라우팅에 사용하는 문자열. topic 교환기에서 와일드카드를 지원한다.
+
+운영 팁
+- 순서 보장을 원하면 파티션 키(예: userId)로 큐를 나누거나, 메시지에 순번을 붙여 검증한다.
+- RPC가 꼭 필요하면 `client.send()`와 `@MessagePattern` 조합으로 요청/응답을 구현할 수 있지만, 큐 점유와 타임아웃 관리에 신경 써야 한다.
 
 ---
 
@@ -271,21 +296,4 @@ gRPC에서의 멱등성
 - Outbox/Inbox 패턴: 서비스 경계를 넘는 통신을 로컬 트랜잭션으로 안전하게 만들기 위한 비동기 합의 패턴.
 
 ---
-
-## 관찰성/운영 팁 한 묶음
-
-- 상관관계 ID(correlationId)를 gRPC 메타데이터/메시지 헤더에 항상 실어 로그/트레이싱을 잇는다.
-- OpenTelemetry 인터셉터를 붙여 분산 추적을 기본값으로 둔다.
-- 재시도는 지수 백오프로 하되, 멱등 설계가 먼저다. 재시도만으로 일관성은 보장되지 않는다.
-- 소비자 `prefetch`와 처리 시간(슬로우 컨슈머)을 꾸준히 모니터링한다. 지연이 커지면 파티션을 늘리거나 소비자를 수평 확장한다.
-
----
-
-## 무엇을 언제 고를까
-
-- 동기 RPC 스타일(즉시 응답 필요, 강한 타입) → gRPC
-- 느슨한 결합/버퍼링/비동기 이벤트 흐름 → RabbitMQ
-
-현실에선 두 방식을 섞는다. 중요한 건 “스키마 버저닝”과 “멱등성”을 초기 설계부터 포함시키는 것이다. 이 두 가지가 통신 방식의 선택보다 시스템 안정성에 더 큰 영향을 준다.
-
 
