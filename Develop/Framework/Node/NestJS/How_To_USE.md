@@ -6,21 +6,421 @@ updated: 2025-08-15
 
 # NestJS 사용법 가이드
 
-## 배경
-1. [NestJS 소개](#nestjs-소개)
-2. [설치 및 설정](#설치-및-설정)
-3. [기본 명령어](#기본-명령어)
-4. [프로젝트 구조](#프로젝트-구조)
-5. [핵심 개념](#핵심-개념)
-6. [실제 사용 예제](#실제-사용-예제)
-7. [배포 및 운영](#배포-및-운영)
+> **📌 통합된 기존 파일들**: 이 가이드는 다음 기존 파일들의 내용을 통합하여 더 체계적으로 정리한 것입니다.
+> - NestJS 기본 개념과 Express와의 차이점
+> - 핵심 데코레이터 가이드 (@Module, @Controller, @Injectable, @Get, @Post 등)
+> - 의존성 주입 시스템
+> - 모듈, 컨트롤러, 서비스 구조
+> - 실제 프로젝트 예제
 
+## 목차
+1. [NestJS 소개](#nestjs-소개)
+2. [NestJS 기본 개념](#nestjs-기본-개념)
+3. [핵심 데코레이터 가이드](#핵심-데코레이터-가이드)
+4. [설치 및 설정](#설치-및-설정)
+5. [기본 명령어](#기본-명령어)
+6. [프로젝트 구조](#프로젝트-구조)
+7. [핵심 개념](#핵심-개념)
+8. [실제 사용 예제](#실제-사용-예제)
+9. [배포 및 운영](#배포-및-운영)
+
+## NestJS 소개
+
+NestJS는 현대적인 Node.js 애플리케이션 개발을 위한 강력한 프레임워크입니다. Express의 단순함을 유지하면서도, 엔터프라이즈급 애플리케이션 개발에 필요한 구조와 기능을 제공합니다.
+
+### NestJS의 특징
 - **TypeScript 우선**: 완전한 TypeScript 지원
 - **의존성 주입**: 강력한 DI 컨테이너
 - **모듈화**: 모듈 기반 아키텍처
 - **데코레이터**: 메타데이터 기반 프로그래밍
 - **OpenAPI**: 자동 API 문서 생성
 - **테스트**: Jest 기반 테스트 지원
+
+### NestJS의 필요성
+- **구조화된 아키텍처**: 명확한 모듈, 컨트롤러, 서비스 구조 제공
+- **타입 안정성**: TypeScript 기반으로 컴파일 타임 오류 방지
+- **의존성 주입**: 객체 간의 결합도를 낮추고 테스트 용이성 확보
+- **엔터프라이즈급 기능**: 대규모 프로젝트에 적합한 구조와 기능
+
+## NestJS 기본 개념
+
+### Express와 NestJS의 차이점
+
+#### 아키텍처 패턴
+```typescript
+// Express 방식
+const express = require('express');
+const app = express();
+
+app.get('/users', (req, res) => {
+    res.json({ users: [] });
+});
+
+app.post('/users', (req, res) => {
+    // 비즈니스 로직이 컨트롤러에 혼재
+    res.json({ message: 'User created' });
+});
+
+// NestJS 방식
+@Controller('users')
+export class UsersController {
+    constructor(private readonly usersService: UsersService) {}
+    
+    @Get()
+    findAll(): User[] {
+        return this.usersService.findAll();
+    }
+    
+    @Post()
+    create(@Body() createUserDto: CreateUserDto): User {
+        return this.usersService.create(createUserDto);
+    }
+}
+```
+
+#### 개발 생산성 비교
+| 측면 | Express | NestJS |
+|------|---------|--------|
+| **구조화** | 개발자가 직접 설계 | 명확한 구조 제공 |
+| **타입 안정성** | JavaScript 기반 | TypeScript 기반 |
+| **의존성 관리** | 수동 관리 | 자동 의존성 주입 |
+| **테스트** | 수동 Mock 설정 | 자동 Mock 생성 |
+| **확장성** | 작은 프로젝트에 적합 | 대규모 프로젝트에 적합 |
+
+### NestJS의 핵심 개념
+
+#### 모듈 (Modules)
+모듈은 NestJS 애플리케이션의 기본 구성 단위입니다.
+
+```typescript
+@Module({
+    imports: [], // 다른 모듈 가져오기
+    controllers: [], // 컨트롤러 선언
+    providers: [], // 서비스, 팩토리 등 선언
+    exports: [] // 다른 모듈에서 사용할 수 있도록 내보내기
+})
+export class AppModule {}
+```
+
+#### 모듈의 특징
+- **캡슐화**: 각 모듈은 독립적인 기능 단위
+- **재사용성**: 다른 모듈에서 import하여 재사용 가능
+- **의존성 관리**: 모듈 간의 의존성을 명확히 정의
+- **구조화**: 애플리케이션을 논리적 단위로 분리
+
+#### 컨트롤러 (Controllers)
+컨트롤러는 들어오는 HTTP 요청을 처리하고 클라이언트에 응답을 반환하는 역할을 합니다.
+
+```typescript
+@Controller('users')
+export class UsersController {
+    constructor(private readonly usersService: UsersService) {}
+    
+    @Get()
+    findAll(): User[] {
+        return this.usersService.findAll();
+    }
+    
+    @Get(':id')
+    findOne(@Param('id') id: string): User {
+        return this.usersService.findOne(id);
+    }
+    
+    @Post()
+    create(@Body() createUserDto: CreateUserDto): User {
+        return this.usersService.create(createUserDto);
+    }
+    
+    @Put(':id')
+    update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): User {
+        return this.usersService.update(id, updateUserDto);
+    }
+    
+    @Delete(':id')
+    remove(@Param('id') id: string): void {
+        return this.usersService.remove(id);
+    }
+}
+```
+
+#### 서비스 (Services)
+서비스는 비즈니스 로직을 담당하는 클래스입니다.
+
+```typescript
+@Injectable()
+export class UsersService {
+    private readonly users: User[] = [];
+    
+    create(createUserDto: CreateUserDto): User {
+        const user = {
+            id: Date.now().toString(),
+            ...createUserDto
+        };
+        this.users.push(user);
+        return user;
+    }
+    
+    findAll(): User[] {
+        return this.users;
+    }
+    
+    findOne(id: string): User {
+        const user = this.users.find(user => user.id === id);
+        if (!user) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        return user;
+    }
+    
+    update(id: string, updateUserDto: UpdateUserDto): User {
+        const userIndex = this.users.findIndex(user => user.id === id);
+        if (userIndex === -1) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        
+        this.users[userIndex] = { ...this.users[userIndex], ...updateUserDto };
+        return this.users[userIndex];
+    }
+    
+    remove(id: string): void {
+        const userIndex = this.users.findIndex(user => user.id === id);
+        if (userIndex === -1) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        
+        this.users.splice(userIndex, 1);
+    }
+}
+```
+
+#### 서비스의 특징
+- `@Injectable()` 데코레이터로 표시
+- 의존성 주입 시스템의 핵심
+- 싱글톤으로 관리됨
+- 테스트 용이성 제공
+
+## 핵심 데코레이터 가이드
+
+### 기본 데코레이터
+
+#### @Module()
+모듈은 NestJS 애플리케이션의 기본 구성 단위입니다. 관련된 기능들을 하나의 단위로 묶어주는 역할을 합니다.
+
+```typescript
+@Module({
+  imports: [], // 다른 모듈을 가져올 때 사용
+  controllers: [], // 컨트롤러 선언
+  providers: [], // 프로바이더(서비스 등) 선언
+  exports: [] // 다른 모듈에서 사용할 프로바이더 선언
+})
+export class AppModule {}
+```
+
+#### @Injectable()
+서비스나 프로바이더 클래스를 선언할 때 사용하는 데코레이터입니다.
+
+```typescript
+@Injectable()
+export class UsersService {
+  constructor() {}
+}
+```
+
+### 컨트롤러 데코레이터
+
+#### @Controller()
+HTTP 요청을 처리하는 컨트롤러를 선언합니다.
+
+```typescript
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+}
+```
+
+#### HTTP 메서드 데코레이터
+- @Get()
+- @Post()
+- @Put()
+- @Delete()
+- @Patch()
+- @Options()
+- @Head()
+
+```typescript
+@Controller('users')
+export class UsersController {
+  @Get()
+  findAll(): User[] {
+    return this.usersService.findAll();
+  }
+
+  @Post()
+  create(@Body() createUserDto: CreateUserDto): User {
+    return this.usersService.create(createUserDto);
+  }
+}
+```
+
+#### 요청 객체 데코레이터
+- @Body() - 요청 본문
+- @Param() - URL 파라미터
+- @Query() - 쿼리 파라미터
+- @Headers() - HTTP 헤더
+- @Ip() - 요청 IP
+- @Session() - 세션 객체
+
+```typescript
+@Get(':id')
+findOne(
+  @Param('id') id: string,
+  @Query('include') include: string,
+  @Headers('authorization') auth: string
+) {
+  return this.usersService.findOne(id);
+}
+```
+
+### 프로바이더 데코레이터
+
+#### @Injectable()
+서비스나 프로바이더를 선언할 때 사용합니다.
+
+```typescript
+@Injectable()
+export class UsersService {
+  constructor(
+    @Inject('DATABASE_CONNECTION')
+    private readonly connection: Connection
+  ) {}
+}
+```
+
+#### @Inject()
+의존성 주입 시 특정 토큰을 사용하여 주입할 때 사용합니다.
+
+```typescript
+@Injectable()
+export class ConfigService {
+  constructor(
+    @Inject('CONFIG_OPTIONS')
+    private readonly options: ConfigOptions
+  ) {}
+}
+```
+
+### 미들웨어 데코레이터
+
+#### @Injectable()
+미들웨어 클래스를 선언할 때 사용합니다.
+
+```typescript
+@Injectable()
+export class LoggerMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: Function) {
+    console.log('Request...');
+    next();
+  }
+}
+```
+
+### 예외 필터 데코레이터
+
+#### @Catch()
+예외 필터를 선언할 때 사용합니다.
+
+```typescript
+@Catch(HttpException)
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const status = exception.getStatus();
+
+    response
+      .status(status)
+      .json({
+        statusCode: status,
+        timestamp: new Date().toISOString(),
+        message: exception.message,
+      });
+  }
+}
+```
+
+### 파이프 데코레이터
+
+#### @UsePipes()
+컨트롤러나 라우트 핸들러에 파이프를 적용할 때 사용합니다.
+
+```typescript
+@Post()
+@UsePipes(new ValidationPipe())
+create(@Body() createUserDto: CreateUserDto) {
+  return this.usersService.create(createUserDto);
+}
+```
+
+### 가드 데코레이터
+
+#### @UseGuards()
+인증이나 권한 검사를 위한 가드를 적용할 때 사용합니다.
+
+```typescript
+@Get('profile')
+@UseGuards(AuthGuard)
+getProfile(@Request() req) {
+  return req.user;
+}
+```
+
+### 인터셉터 데코레이터
+
+#### @UseInterceptors()
+요청/응답을 가로채서 변환하거나 로깅하는 인터셉터를 적용할 때 사용합니다.
+
+```typescript
+@Get()
+@UseInterceptors(LoggingInterceptor)
+findAll() {
+  return this.usersService.findAll();
+}
+```
+
+### 사용자 정의 데코레이터
+
+#### 커스텀 데코레이터 생성
+필요에 따라 사용자 정의 데코레이터를 만들 수 있습니다.
+
+```typescript
+export const User = createParamDecorator(
+  (data: string, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user;
+
+    return data ? user?.[data] : user;
+  },
+);
+
+// 사용 예시
+@Get('profile')
+getProfile(@User() user: UserEntity) {
+  return user;
+}
+```
+
+#### @SetMetadata()
+커스텀 메타데이터를 설정할 때 사용합니다.
+
+```typescript
+export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+
+@Get()
+@Roles('admin')
+findAll() {
+  return this.usersService.findAll();
+}
+```
 
 
 
@@ -1483,4 +1883,294 @@ import { CacheModule } from '@nestjs/cache-manager';
 })
 export class AppModule {}
 ```
+
+## 실제 프로젝트 예제
+
+### 1. 완전한 사용자 관리 시스템
+
+#### DTO (Data Transfer Object)
+```typescript
+// dto/create-user.dto.ts
+import { IsEmail, IsString, MinLength } from 'class-validator';
+
+export class CreateUserDto {
+  @IsString()
+  @MinLength(2)
+  name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  password: string;
+}
+
+// dto/update-user.dto.ts
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateUserDto } from './create-user.dto';
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
+```
+
+#### Entity
+```typescript
+// entities/user.entity.ts
+export class User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### Repository
+```typescript
+// repositories/users.repository.ts
+@Injectable()
+export class UsersRepository {
+  private users: User[] = [];
+  
+  async create(userData: CreateUserDto): Promise<User> {
+    const user = {
+      id: Date.now().toString(),
+      ...userData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.users.push(user);
+    return user;
+  }
+  
+  async findAll(): Promise<User[]> {
+    return this.users;
+  }
+  
+  async findById(id: string): Promise<User | null> {
+    return this.users.find(user => user.id === id) || null;
+  }
+  
+  async update(id: string, userData: UpdateUserDto): Promise<User | null> {
+    const userIndex = this.users.findIndex(user => user.id === id);
+    if (userIndex === -1) return null;
+    
+    this.users[userIndex] = {
+      ...this.users[userIndex],
+      ...userData,
+      updatedAt: new Date()
+    };
+    return this.users[userIndex];
+  }
+  
+  async delete(id: string): Promise<boolean> {
+    const userIndex = this.users.findIndex(user => user.id === id);
+    if (userIndex === -1) return false;
+    
+    this.users.splice(userIndex, 1);
+    return true;
+  }
+}
+```
+
+#### Service
+```typescript
+// services/users.service.ts
+@Injectable()
+export class UsersService {
+  constructor(private readonly usersRepository: UsersRepository) {}
+  
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    return this.usersRepository.create(createUserDto);
+  }
+  
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.findAll();
+  }
+  
+  async findOne(id: string): Promise<User> {
+    const user = await this.usersRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
+  }
+  
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.usersRepository.update(id, updateUserDto);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
+  }
+  
+  async remove(id: string): Promise<void> {
+    const deleted = await this.usersRepository.delete(id);
+    if (!deleted) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+  }
+}
+```
+
+#### Controller
+```typescript
+// controllers/users.controller.ts
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+  
+  @Post()
+  async create(@Body(ValidationPipe) createUserDto: CreateUserDto): Promise<User> {
+    return this.usersService.create(createUserDto);
+  }
+  
+  @Get()
+  async findAll(): Promise<User[]> {
+    return this.usersService.findAll();
+  }
+  
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<User> {
+    return this.usersService.findOne(id);
+  }
+  
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body(ValidationPipe) updateUserDto: UpdateUserDto
+  ): Promise<User> {
+    return this.usersService.update(id, updateUserDto);
+  }
+  
+  @Delete(':id')
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.usersService.remove(id);
+  }
+}
+```
+
+#### Module
+```typescript
+// modules/users.module.ts
+@Module({
+  controllers: [UsersController],
+  providers: [UsersService, UsersRepository],
+  exports: [UsersService]
+})
+export class UsersModule {}
+```
+
+### 2. 고급 패턴 예제
+
+#### 인터셉터 (Interceptors)
+```typescript
+// interceptors/transform.interceptor.ts
+@Injectable()
+export class TransformInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    return next.handle().pipe(
+      map(data => ({
+        data,
+        timestamp: new Date().toISOString(),
+        success: true
+      }))
+    );
+  }
+}
+
+// 컨트롤러에서 사용
+@Controller('users')
+@UseInterceptors(TransformInterceptor)
+export class UsersController {
+  // ...
+}
+```
+
+#### 가드 (Guards)
+```typescript
+// guards/auth.guard.ts
+@Injectable()
+export class AuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers.authorization;
+    
+    if (!token) {
+      throw new UnauthorizedException('No token provided');
+    }
+    
+    // 토큰 검증 로직
+    return true;
+  }
+}
+
+// 컨트롤러에서 사용
+@Controller('users')
+@UseGuards(AuthGuard)
+export class UsersController {
+  // ...
+}
+```
+
+#### 미들웨어와 파이프
+```typescript
+// middleware/logger.middleware.ts
+@Injectable()
+export class LoggerMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: Function) {
+    console.log(`Request: ${req.method} ${req.url}`);
+    next();
+  }
+}
+
+// 모듈에서 미들웨어 등록
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('users');
+  }
+}
+
+// 파이프 사용
+@Get(':id')
+findOne(@Param('id', ParseIntPipe) id: number) {
+  return this.usersService.findOne(id);
+}
+
+@Post()
+create(@Body(ValidationPipe) createUserDto: CreateUserDto) {
+  return this.usersService.create(createUserDto);
+}
+```
+
+### 3. NestJS vs Express 비교
+
+| 측면 | Express | NestJS |
+|------|---------|--------|
+| **학습 곡선** | 낮음 | 중간 |
+| **구조화** | 수동 | 자동 |
+| **타입 안정성** | 없음 | TypeScript |
+| **의존성 주입** | 없음 | 내장 |
+| **테스트** | 수동 설정 | 자동 Mock |
+| **확장성** | 작은 프로젝트 | 대규모 프로젝트 |
+
+### 4. NestJS 사용 권장사항
+
+| 상황 | 권장사항 | 이유 |
+|------|----------|------|
+| **소규모 프로젝트** | Express 고려 | 빠른 개발 |
+| **대규모 프로젝트** | NestJS 사용 | 구조화된 개발 |
+| **팀 개발** | NestJS 사용 | 일관된 구조 |
+| **타입 안정성** | NestJS 사용 | TypeScript 지원 |
+| **마이크로서비스** | NestJS 사용 | 내장 지원 |
+
+### 5. 결론
+
+NestJS는 현대적인 Node.js 애플리케이션 개발을 위한 강력한 프레임워크입니다.
+TypeScript와 의존성 주입을 통해 타입 안정성과 테스트 용이성을 확보하세요.
+모듈, 컨트롤러, 서비스의 명확한 구조를 활용하여 유지보수하기 쉬운 코드를 작성하세요.
+대규모 프로젝트나 팀 개발에서 특히 유용하며, 엔터프라이즈급 기능을 제공합니다.
 
