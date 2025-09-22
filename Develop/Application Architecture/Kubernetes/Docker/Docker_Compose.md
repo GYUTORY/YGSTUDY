@@ -1,193 +1,734 @@
 
-## 1. Docker Compose 개념 ✨
+# Docker Compose 완전 가이드
 
-Docker Compose는 **docker-compose.yml** 파일을 사용하여 여러 개의 컨테이너를 한 번에 정의하고 실행할 수 있습니다.
+**작성일**: 2025-09-22
+**목적**: Docker Compose의 개념, 사용법, 고급 활용법에 대한 종합적인 이해
 
-✅ **Docker Compose를 사용하면 좋은 이유**
-- 여러 개의 컨테이너를 **하나의 설정 파일**로 관리 가능
-- **docker-compose up** 한 줄 명령어로 모든 컨테이너 실행 🚀
-- 네트워크 설정, 볼륨 마운트, 환경 변수 관리가 쉬움
-- **개발 환경과 배포 환경을 동일하게 유지**할 수 있음
+## 1. Docker Compose 개념
+
+Docker Compose는 다중 컨테이너 Docker 애플리케이션을 정의하고 실행하기 위한 도구입니다. YAML 파일을 사용하여 애플리케이션의 서비스, 네트워크, 볼륨을 구성하고, 단일 명령어로 모든 서비스를 관리할 수 있습니다.
+
+### Docker Compose의 핵심 가치
+
+**1. 선언적 구성 관리**
+- docker-compose.yml 파일을 통해 인프라를 코드로 관리
+- 버전 관리 시스템을 통한 구성 변경 추적 가능
+- 재현 가능한 환경 구축
+
+**2. 서비스 오케스트레이션**
+- 여러 컨테이너 간의 의존성 관리
+- 서비스 간 통신 및 네트워킹 자동화
+- 로드 밸런싱 및 스케일링 지원
+
+**3. 개발 생산성 향상**
+- 복잡한 멀티 컨테이너 환경을 단순화
+- 개발, 테스트, 프로덕션 환경의 일관성 보장
+- 로컬 개발 환경과 프로덕션 환경의 차이 최소화
 
 ---
 
-## 2. Docker Compose 주요 개념 📌
+## 2. Docker Compose 파일 구조 및 주요 구성 요소
 
-| 키워드 | 설명 |
-|--------|------|
-| **version** | Docker Compose 파일의 버전을 지정 |
-| **services** | 여러 개의 컨테이너를 정의하는 섹션 |
-| **image** | 컨테이너가 사용할 Docker 이미지를 지정 |
-| **build** | Dockerfile을 이용해 이미지를 직접 빌드 |
-| **ports** | 컨테이너 내부와 외부 포트 매핑 |
-| **volumes** | 데이터를 지속적으로 유지하기 위한 볼륨 |
-| **environment** | 환경 변수를 설정 |
-| **depends_on** | 컨테이너 간 실행 순서를 설정 |
+### 2.1 기본 파일 구조
 
----
+Docker Compose는 YAML 형식의 구성 파일을 사용하며, 다음과 같은 계층적 구조를 가집니다:
 
-## 3. 예제: Node.js + MongoDB 애플리케이션 🛠️
-
-아래는 **Node.js 웹 서버와 MongoDB 데이터베이스**를 함께 실행하는 Docker Compose 파일 예제입니다.
-
-📌 **파일명: docker-compose.yml**
 ```yaml
-version: '3.8'  # ✅ 사용 가능한 최신 Docker Compose 버전 지정
+version: '3.8'  # Compose 파일 형식 버전
+services:       # 서비스 정의 섹션
+  service1:     # 개별 서비스 정의
+  service2:
+networks:       # 네트워크 정의 (선택사항)
+volumes:        # 볼륨 정의 (선택사항)
+secrets:        # 시크릿 정의 (선택사항)
+configs:        # 설정 파일 정의 (선택사항)
+```
+
+### 2.2 핵심 구성 요소 상세 분석
+
+**Services (서비스)**
+- Docker Compose의 핵심 구성 요소
+- 각 서비스는 하나의 컨테이너를 나타냄
+- 서비스 간 의존성, 네트워킹, 볼륨 마운트 등을 정의
+
+**Networks (네트워크)**
+- 서비스 간 통신을 위한 네트워크 정의
+- 기본적으로 모든 서비스는 동일한 네트워크에 연결
+- 사용자 정의 네트워크를 통한 세밀한 네트워킹 제어
+
+**Volumes (볼륨)**
+- 컨테이너 간 데이터 공유 및 영구 저장
+- 호스트 파일시스템과 컨테이너 간 데이터 바인딩
+- 데이터베이스 데이터, 로그 파일, 설정 파일 등에 활용
+
+### 2.3 주요 설정 옵션
+
+| 구성 요소 | 설명 | 주요 옵션 |
+|-----------|------|-----------|
+| **version** | Compose 파일 형식 버전 | 3.8, 3.9, 3.10 |
+| **services** | 컨테이너 서비스 정의 | image, build, ports, volumes |
+| **image** | 사용할 Docker 이미지 | 공식 이미지명 또는 커스텀 이미지 |
+| **build** | Dockerfile 기반 이미지 빌드 | context, dockerfile, args |
+| **ports** | 포트 매핑 | "호스트포트:컨테이너포트" |
+| **volumes** | 볼륨 마운트 | 호스트경로:컨테이너경로 |
+| **environment** | 환경 변수 설정 | KEY=VALUE 형식 |
+| **depends_on** | 서비스 의존성 | 서비스 시작 순서 제어 |
+| **networks** | 네트워크 연결 | 사용자 정의 네트워크 지정 |
+| **restart** | 재시작 정책 | no, always, on-failure |
+
+---
+
+## 3. 실전 예제: Node.js + MongoDB + Redis 스택
+
+### 3.1 기본 웹 애플리케이션 스택
+
+다음은 Node.js 웹 애플리케이션, MongoDB 데이터베이스, Redis 캐시를 포함한 완전한 스택을 구성하는 예제입니다.
+
+**파일명: docker-compose.yml**
+```yaml
+version: '3.8'
 
 services:
-  app:  # ✅ Node.js 애플리케이션 서비스 정의
-    build: .  # 현재 디렉토리의 Dockerfile을 사용하여 빌드
+  # Node.js 웹 애플리케이션
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
     ports:
-      - "3000:3000"  # 호스트의 3000 포트를 컨테이너의 3000 포트에 연결
-    depends_on:
-      - mongodb  # MongoDB 컨테이너가 먼저 실행된 후 app 실행
+      - "3000:3000"
     environment:
-      MONGO_URL: "mongodb://mongodb:27017/mydatabase"  # MongoDB 연결 URL
-
-  mongodb:  # ✅ MongoDB 서비스 정의
-    image: "mongo:latest"  # 공식 MongoDB 최신 이미지 사용
-    ports:
-      - "27017:27017"  # 호스트의 27017 포트를 컨테이너의 27017 포트에 연결
+      - NODE_ENV=production
+      - MONGO_URL=mongodb://mongodb:27017/myapp
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+    depends_on:
+      - mongodb
+      - redis
     volumes:
-      - mongo-data:/data/db  # 데이터 저장을 위한 볼륨 설정
+      - ./logs:/app/logs
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MongoDB 데이터베이스
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_DATABASE=myapp
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Redis 캐시
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redis123
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Nginx 리버스 프록시
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - app
+    networks:
+      - app-network
+    restart: unless-stopped
 
 volumes:
-  mongo-data:  # ✅ MongoDB 데이터를 유지할 볼륨 설정
+  mongo-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 ```
 
-✅ **설명**:
-- `services` 아래 `app`과 `mongodb` 두 개의 컨테이너를 정의
-- `app` 서비스는 현재 디렉터리의 `Dockerfile`을 사용하여 빌드
-- `depends_on`을 이용하여 **MongoDB가 먼저 실행된 후 Node.js 애플리케이션이 실행**됨
-- `environment`를 사용하여 **MongoDB 연결 주소**를 환경 변수로 설정
-- `volumes`를 이용하여 **MongoDB 데이터를 영구적으로 저장**
+### 3.2 구성 요소 상세 분석
+
+**애플리케이션 서비스 (app)**
+- `build` 섹션에서 Dockerfile을 사용한 이미지 빌드
+- `args`를 통한 빌드 시점 환경 변수 전달
+- `healthcheck`를 통한 서비스 상태 모니터링
+- `restart: unless-stopped`로 자동 재시작 정책 설정
+
+**데이터베이스 서비스 (mongodb)**
+- 초기 사용자 및 데이터베이스 설정
+- 볼륨을 통한 데이터 영구 저장
+- 초기화 스크립트 마운트를 통한 데이터베이스 설정
+
+**캐시 서비스 (redis)**
+- AOF(Append Only File) 활성화로 데이터 지속성 보장
+- 인증 비밀번호 설정으로 보안 강화
+
+**리버스 프록시 (nginx)**
+- SSL/TLS 종료 및 로드 밸런싱
+- 정적 파일 서빙 및 압축
 
 ---
 
-## 4. Docker Compose 사용 방법 🏗️
+## 4. Docker Compose 명령어 및 운영 방법
 
-### ✅ **1) Docker Compose 실행**
-```sh
+### 4.1 기본 명령어
+
+**서비스 시작 및 실행**
+```bash
+# 모든 서비스 백그라운드 실행
 docker-compose up -d
+
+# 특정 서비스만 실행
+docker-compose up -d app mongodb
+
+# 이미지 재빌드 후 실행
+docker-compose up -d --build
+
+# 강제 재생성 후 실행
+docker-compose up -d --force-recreate
 ```
-> `-d` 옵션을 추가하면 **백그라운드에서 실행**됩니다.
 
----
-
-### ✅ **2) 실행 중인 컨테이너 확인**
-```sh
+**서비스 상태 관리**
+```bash
+# 실행 중인 서비스 상태 확인
 docker-compose ps
-```
-> 실행 중인 모든 서비스의 상태를 확인할 수 있습니다.
 
----
+# 서비스 로그 확인
+docker-compose logs -f app
 
-### ✅ **3) 컨테이너 로그 확인**
-```sh
-docker-compose logs -f
-```
-> `-f` 옵션을 사용하면 **실시간 로그를 확인**할 수 있습니다.
+# 특정 서비스 재시작
+docker-compose restart app
 
----
+# 서비스 중지
+docker-compose stop
 
-### ✅ **4) 실행 중인 컨테이너 중지**
-```sh
+# 서비스 중지 및 리소스 정리
 docker-compose down
+
+# 볼륨까지 포함하여 완전 정리
+docker-compose down -v
 ```
-> 모든 컨테이너를 중지하고 네트워크, 볼륨을 삭제합니다.
+
+### 4.2 고급 운영 명령어
+
+**스케일링 및 확장**
+```bash
+# 특정 서비스의 인스턴스 수 조정
+docker-compose up -d --scale app=3
+
+# 서비스 실행 순서 제어
+docker-compose up -d --no-deps app
+```
+
+**디버깅 및 모니터링**
+```bash
+# 서비스 내부 쉘 접근
+docker-compose exec app /bin/bash
+
+# 실시간 리소스 사용량 모니터링
+docker-compose top
+
+# 서비스 간 네트워크 연결 테스트
+docker-compose exec app ping mongodb
+```
+
+### 4.3 환경별 구성 관리
+
+**개발 환경 실행**
+```bash
+# 개발용 compose 파일 사용
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+**프로덕션 환경 실행**
+```bash
+# 프로덕션용 compose 파일 사용
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
 
 ---
 
-## 5. Docker Compose 활용 꿀팁 🎯
+## 5. 고급 활용 기법 및 모범 사례
 
-### ✅ **1) 환경 변수 파일 (.env) 사용**
-- **docker-compose.yml** 파일 내에서 환경 변수 파일을 사용할 수 있습니다.
+### 5.1 환경 변수 관리
 
-📌 **파일명: .env**
-```
+**환경 변수 파일 (.env) 활용**
+```bash
+# .env 파일
 MONGO_USER=admin
-MONGO_PASSWORD=secret
+MONGO_PASSWORD=secure_password_123
+REDIS_PASSWORD=redis_secure_456
+NODE_ENV=production
 ```
 
-📌 **docker-compose.yml 수정**
+**docker-compose.yml에서 환경 변수 사용**
 ```yaml
 version: '3.8'
 
 services:
   mongodb:
-    image: "mongo:latest"
+    image: mongo:6.0
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+
+volumes:
+  mongo-data:
+  redis-data:
 ```
 
-✅ **장점**:
-- 환경 변수를 **별도의 파일로 관리 가능**
-- **보안 강화** (비밀번호나 API 키를 직접 docker-compose.yml에 저장하지 않음)
+### 5.2 다중 환경 구성
 
----
-
-### ✅ **2) 특정 서비스만 실행**
-```sh
-docker-compose up app
-```
-> 특정 서비스(`app`)만 실행할 수 있습니다.
-
----
-
-### ✅ **3) 볼륨 데이터 유지하면서 컨테이너 재시작**
-```sh
-docker-compose down
-docker-compose up -d
-```
-> `down` 명령어를 사용하면 **컨테이너만 삭제되고 볼륨 데이터는 유지됨**
-
----
-
-## 6. Docker Compose를 이용한 CI/CD 연동
-
-Docker Compose는 CI/CD 환경에서도 유용하게 활용됩니다.  
-예를 들어, GitHub Actions에서 다음과 같이 자동화할 수 있습니다.
-
-📌 **.github/workflows/deploy.yml**
+**기본 docker-compose.yml**
 ```yaml
-name: Deploy
+version: '3.8'
+
+services:
+  app:
+    build: .
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:6.0
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+```
+
+**개발 환경 오버라이드 (docker-compose.dev.yml)**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+
+  mongodb:
+    ports:
+      - "27017:27017"
+```
+
+**프로덕션 환경 오버라이드 (docker-compose.prod.yml)**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    restart: always
+    environment:
+      - NODE_ENV=production
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  mongodb:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+```
+
+### 5.3 보안 및 시크릿 관리
+
+**Docker Secrets 활용**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: myapp:latest
+    secrets:
+      - db_password
+      - api_key
+    environment:
+      - DB_PASSWORD_FILE=/run/secrets/db_password
+      - API_KEY_FILE=/run/secrets/api_key
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  api_key:
+    file: ./secrets/api_key.txt
+```
+
+### 5.4 네트워킹 및 서비스 디스커버리
+
+**사용자 정의 네트워크 구성**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: myapp:latest
+    networks:
+      - frontend
+      - backend
+
+  mongodb:
+    image: mongo:6.0
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    networks:
+      - frontend
+    depends_on:
+      - app
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+```
+
+### 5.5 모니터링 및 로깅
+
+**로그 드라이버 설정**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: myapp:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.example.service=web"
+      - "com.example.version=1.0"
+
+  mongodb:
+    image: mongo:6.0
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://logserver:514"
+```
+
+---
+
+## 6. CI/CD 파이프라인 통합
+
+### 6.1 GitHub Actions를 활용한 자동 배포
+
+**기본 배포 워크플로우**
+```yaml
+name: Deploy Application
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout 코드
-        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Docker Compose 실행
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Run tests with Docker Compose
         run: |
-          docker-compose down
-          docker-compose up -d --build
+          docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+          docker-compose -f docker-compose.test.yml down
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to production
+        run: |
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-✅ **이점**:
-- GitHub에 코드가 푸시되면 **자동으로 컨테이너를 재시작**
-- `--build` 옵션을 추가하여 최신 코드로 이미지 빌드
+### 6.2 테스트 환경 구성
+
+**테스트용 docker-compose.test.yml**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    environment:
+      - NODE_ENV=test
+      - MONGO_URL=mongodb://test-mongodb:27017/testdb
+    depends_on:
+      - test-mongodb
+    command: npm test
+
+  test-mongodb:
+    image: mongo:6.0
+    environment:
+      - MONGO_INITDB_DATABASE=testdb
+    tmpfs:
+      - /data/db
+
+  test-redis:
+    image: redis:7-alpine
+    command: redis-server --save ""
+```
+
+### 6.3 Blue-Green 배포 전략
+
+**배포 스크립트 (deploy.sh)**
+```bash
+#!/bin/bash
+
+# 현재 실행 중인 스택 확인
+CURRENT_STACK=$(docker-compose ps -q | wc -l)
+
+if [ $CURRENT_STACK -gt 0 ]; then
+    echo "Blue-Green 배포 시작..."
+    
+    # Green 환경 구축
+    docker-compose -f docker-compose.yml -f docker-compose.green.yml up -d --build
+    
+    # Health check
+    sleep 30
+    if curl -f http://localhost:8080/health; then
+        echo "Green 환경 배포 성공"
+        
+        # Blue 환경 중지
+        docker-compose -f docker-compose.yml -f docker-compose.blue.yml down
+        
+        # Green을 Blue로 변경
+        mv docker-compose.green.yml docker-compose.blue.yml
+    else
+        echo "Green 환경 배포 실패, 롤백"
+        docker-compose -f docker-compose.yml -f docker-compose.green.yml down
+    fi
+else
+    echo "초기 배포"
+    docker-compose -f docker-compose.yml -f docker-compose.blue.yml up -d --build
+fi
+```
 
 ---
 
-## 7. 결론
+## 7. 성능 최적화 및 트러블슈팅
 
-Docker Compose를 사용하면 여러 개의 컨테이너를 쉽게 **정의하고 실행**할 수 있습니다.  
-또한, 환경 변수를 활용하여 **유지보수가 쉽고 유연한 설정이 가능**합니다.
+### 7.1 성능 최적화 기법
 
-✅ **이 문서에서 배운 핵심 사항**
-1. Docker Compose를 사용하면 **여러 개의 컨테이너를 쉽게 실행**할 수 있음
-2. **`docker-compose.yml` 파일을 사용하여 컨테이너 설정**
-3. **볼륨, 네트워크, 환경 변수를 활용하여 효율적인 컨테이너 관리**
-4. **실전에서 Docker Compose를 활용하는 방법과 CI/CD 연동** 🚀
+**리소스 제한 및 예약**
+```yaml
+version: '3.8'
 
-이제 Docker Compose를 활용하여 **효율적인 컨테이너 환경을 구성**해보세요!
+services:
+  app:
+    image: myapp:latest
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+```
+
+**볼륨 최적화**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: myapp:latest
+    volumes:
+      # 성능 향상을 위한 tmpfs 사용
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 100M
+      # 바인드 마운트 최적화
+      - type: bind
+        source: ./app
+        target: /app
+        consistency: cached
+```
+
+### 7.2 일반적인 문제 해결
+
+**서비스 시작 순서 문제**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: myapp:latest
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mongodb:
+    image: mongo:6.0
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+**네트워크 연결 문제**
+```bash
+# 네트워크 상태 확인
+docker network ls
+docker network inspect <network_name>
+
+# 서비스 간 연결 테스트
+docker-compose exec app ping mongodb
+docker-compose exec app nslookup mongodb
+```
+
+### 7.3 모니터링 및 로그 관리
+
+**통합 모니터링 스택**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: myapp:latest
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=3000"
+      - "prometheus.path=/metrics"
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+```
+
+## 8. 결론
+
+Docker Compose는 현대적인 애플리케이션 개발과 배포에 필수적인 도구입니다. 이 가이드를 통해 다음과 같은 핵심 개념들을 다뤘습니다:
+
+### 주요 학습 내용
+
+1. **선언적 구성 관리**: YAML 파일을 통한 인프라 코드화
+2. **서비스 오케스트레이션**: 다중 컨테이너 환경의 효율적 관리
+3. **환경별 구성**: 개발, 테스트, 프로덕션 환경의 일관성 유지
+4. **보안 및 시크릿 관리**: 민감한 정보의 안전한 처리
+5. **CI/CD 통합**: 자동화된 배포 파이프라인 구축
+6. **성능 최적화**: 리소스 관리 및 모니터링
+
+### 실무 적용 가이드
+
+- **개발 단계**: 로컬 개발 환경의 빠른 구축과 일관성 유지
+- **테스트 단계**: 격리된 테스트 환경에서의 안정적인 검증
+- **배포 단계**: Blue-Green 배포를 통한 무중단 서비스 제공
+- **운영 단계**: 모니터링과 로깅을 통한 지속적인 서비스 품질 관리
+
+Docker Compose를 효과적으로 활용하면 복잡한 멀티 컨테이너 애플리케이션을 간단하고 안정적으로 관리할 수 있으며, 팀의 개발 생산성과 서비스의 안정성을 크게 향상시킬 수 있습니다.
+
+---
+
+## 참조
+
+### 공식 문서
+- [Docker Compose 공식 문서](https://docs.docker.com/compose/)
+- [Docker Compose 파일 참조](https://docs.docker.com/compose/compose-file/)
+- [Docker Compose 명령어 참조](https://docs.docker.com/compose/reference/)
+
+### 관련 기술 문서
+- [Docker 공식 문서](https://docs.docker.com/)
+- [Dockerfile 모범 사례](https://docs.docker.com/develop/dev-best-practices/)
+- [Docker 보안 모범 사례](https://docs.docker.com/engine/security/)
+
+### 추가 학습 자료
+- [Docker Compose 네트워킹 가이드](https://docs.docker.com/compose/networking/)
+- [Docker Compose 볼륨 가이드](https://docs.docker.com/compose/compose-file/compose-file-v3/#volumes)
+- [Docker Compose 환경 변수 가이드](https://docs.docker.com/compose/environment-variables/)
+
+### 도구 및 플러그인
+- [Docker Compose VSCode 확장](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Portainer - Docker 관리 UI](https://www.portainer.io/)
 
