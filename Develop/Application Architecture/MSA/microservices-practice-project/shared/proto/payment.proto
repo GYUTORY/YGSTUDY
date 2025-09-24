@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+package payment;
+
+// 결제 서비스 정의
+service PaymentService {
+  // 결제 처리
+  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
+  
+  // 결제 조회
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
+  
+  // 사용자 결제 내역 조회
+  rpc GetUserPayments(GetUserPaymentsRequest) returns (GetUserPaymentsResponse);
+  
+  // 결제 상태 업데이트
+  rpc UpdatePaymentStatus(UpdatePaymentStatusRequest) returns (UpdatePaymentStatusResponse);
+  
+  // 결제 취소/환불
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+  
+  // 결제 검증
+  rpc VerifyPayment(VerifyPaymentRequest) returns (VerifyPaymentResponse);
+}
+
+// 요청 메시지들
+message ProcessPaymentRequest {
+  string order_id = 1;
+  string user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  PaymentMethod payment_method = 5;
+  string description = 6;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+message GetUserPaymentsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  string status = 4;
+}
+
+message UpdatePaymentStatusRequest {
+  string payment_id = 1;
+  PaymentStatus status = 2;
+  string notes = 3;
+}
+
+message RefundPaymentRequest {
+  string payment_id = 1;
+  double amount = 2;
+  string reason = 3;
+}
+
+message VerifyPaymentRequest {
+  string payment_id = 1;
+  string transaction_id = 2;
+}
+
+// 응답 메시지들
+message ProcessPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  Payment payment = 3;
+}
+
+message GetPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  Payment payment = 3;
+}
+
+message GetUserPaymentsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated Payment payments = 3;
+  PaginationInfo pagination = 4;
+}
+
+message UpdatePaymentStatusResponse {
+  bool success = 1;
+  string message = 2;
+  Payment payment = 3;
+}
+
+message RefundPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  Payment payment = 3;
+  Refund refund = 4;
+}
+
+message VerifyPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  bool is_valid = 3;
+  Payment payment = 4;
+}
+
+// 데이터 모델들
+message Payment {
+  string id = 1;
+  string order_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  string currency = 5;
+  PaymentStatus status = 6;
+  PaymentMethod payment_method = 7;
+  string transaction_id = 8;
+  string gateway_response = 9;
+  string description = 10;
+  string created_at = 11;
+  string updated_at = 12;
+  string processed_at = 13;
+  string failed_at = 14;
+  string failure_reason = 15;
+}
+
+message PaymentMethod {
+  string type = 1; // credit_card, debit_card, bank_transfer, digital_wallet
+  CreditCardDetails card_details = 2;
+  BankTransferDetails bank_details = 3;
+  DigitalWalletDetails wallet_details = 4;
+}
+
+message CreditCardDetails {
+  string number = 1;
+  string expiry_month = 2;
+  string expiry_year = 3;
+  string cvv = 4;
+  string holder_name = 5;
+  string brand = 6; // visa, mastercard, amex, etc.
+}
+
+message BankTransferDetails {
+  string bank_name = 1;
+  string account_number = 2;
+  string routing_number = 3;
+  string account_holder_name = 4;
+}
+
+message DigitalWalletDetails {
+  string wallet_type = 1; // paypal, apple_pay, google_pay, etc.
+  string wallet_id = 2;
+}
+
+message Refund {
+  string id = 1;
+  string payment_id = 2;
+  double amount = 3;
+  string reason = 4;
+  RefundStatus status = 5;
+  string transaction_id = 6;
+  string created_at = 7;
+  string processed_at = 8;
+}
+
+enum PaymentStatus {
+  PENDING = 0;
+  PROCESSING = 1;
+  COMPLETED = 2;
+  FAILED = 3;
+  CANCELLED = 4;
+  REFUNDED = 5;
+  PARTIALLY_REFUNDED = 6;
+}
+
+enum RefundStatus {
+  PENDING = 0;
+  PROCESSING = 1;
+  COMPLETED = 2;
+  FAILED = 3;
+  CANCELLED = 4;
+}
+
+message PaginationInfo {
+  int32 page = 1;
+  int32 limit = 2;
+  int32 total = 3;
+  int32 total_pages = 4;
+}
