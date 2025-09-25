@@ -1,700 +1,224 @@
 ---
 title: AWS Application Load Balancer (ALB)
 tags: [aws, loadbalancer, alb, networking, http]
-updated: 2024-12-19
+updated: 2025-09-23
 ---
 
 # AWS Application Load Balancer (ALB)
 
-## 배경
-
-AWS Application Load Balancer(ALB)는 OSI 7계층(애플리케이션 계층)에서 동작하는 로드 밸런서로, HTTP/HTTPS 트래픽을 여러 대상(EC2 인스턴스, 컨테이너, Lambda 함수 등)에 분산시킵니다. 고급 라우팅 기능과 마이크로서비스 아키텍처에 최적화된 기능을 제공하여 현대적인 웹 애플리케이션의 요구사항을 충족합니다.
-
-## 핵심
-
-### ALB의 기본 개념
-
-#### 애플리케이션 계층 로드 밸런싱
-- HTTP/HTTPS 트래픽을 기반으로 한 지능적인 라우팅
-- URL 경로, 호스트 헤더, HTTP 메서드 등을 기반으로 트래픽 분산
-- 세션 기반이 아닌 요청 기반 로드 밸런싱
-
-#### 마이크로서비스 지원
-- 경로 기반 라우팅으로 서비스별 트래픽 분리
-- 컨테이너 기반 애플리케이션 지원
-- 서버리스 아키텍처와의 통합
-
-### ALB의 주요 특징
-
-| 특징 | 설명 | 장점 |
-|------|------|------|
-| **고급 라우팅** | URL 경로, 호스트 헤더 기반 라우팅 | 마이크로서비스 아키텍처 지원 |
-| **SSL/TLS 종료** | 클라이언트와 ALB 간 HTTPS 통신 | 백엔드 서버 부하 감소 |
-| **헬스 체크** | 대상 그룹의 상태 모니터링 | 자동 장애 복구 |
-| **자동 스케일링** | 트래픽에 따른 자동 확장 | 성능 최적화 |
-| **WAF 통합** | 웹 애플리케이션 방화벽 지원 | 보안 강화 |
-
-### ALB 구성 요소
-
-#### 리스너 (Listener)
-- 클라이언트 요청을 받는 엔드포인트
-- 프로토콜(HTTP/HTTPS)과 포트 설정
-- SSL/TLS 인증서 관리
-
-#### 대상 그룹 (Target Group)
-- 트래픽을 받을 대상들의 그룹
-- EC2 인스턴스, IP 주소, Lambda 함수, 컨테이너 등 지원
-- 헬스 체크 설정
-
-#### 라우팅 규칙 (Routing Rules)
-- 요청을 어떤 대상 그룹으로 전달할지 결정
-- 조건(경로, 호스트, 헤더 등)과 액션 정의
-- 우선순위 기반 규칙 적용
-
-## 예시
-
-### 기본 ALB 생성
-
-```python
-import boto3
-
-# AWS ELB 클라이언트 생성
-elbv2 = boto3.client('elbv2', region_name='ap-northeast-2')
-
-# ALB 생성
-response = elbv2.create_load_balancer(
-    Name='my-alb',
-    Subnets=[
-        'subnet-12345678',
-        'subnet-87654321'
-    ],
-    SecurityGroups=[
-        'sg-12345678'
-    ],
-    Scheme='internet-facing',
-    Type='application',
-    IpAddressType='ipv4'
-)
-
-alb_arn = response['LoadBalancers'][0]['LoadBalancerArn']
-alb_dns = response['LoadBalancers'][0]['DNSName']
-
-print(f"ALB 생성 완료: {alb_dns}")
-```
-
-### 대상 그룹 생성
-
-```python
-# 대상 그룹 생성 (EC2 인스턴스용)
-response = elbv2.create_target_group(
-    Name='web-target-group',
-    Protocol='HTTP',
-    Port=80,
-    VpcId='vpc-12345678',
-    HealthCheckProtocol='HTTP',
-    HealthCheckPath='/health',
-    HealthCheckIntervalSeconds=30,
-    HealthCheckTimeoutSeconds=5,
-    HealthyThresholdCount=2,
-    UnhealthyThresholdCount=2,
-    TargetType='instance'
-)
-
-target_group_arn = response['TargetGroups'][0]['TargetGroupArn']
-print(f"대상 그룹 생성 완료: {target_group_arn}")
-
-# 대상 그룹에 인스턴스 등록
-elbv2.register_targets(
-    TargetGroupArn=target_group_arn,
-    Targets=[
-        {
-            'Id': 'i-1234567890abcdef0',
-            'Port': 80
-        },
-        {
-            'Id': 'i-0987654321fedcba0',
-            'Port': 80
-        }
-    ]
-)
-```
-
-### 리스너 및 라우팅 규칙 설정
-
-```python
-# HTTPS 리스너 생성
-response = elbv2.create_listener(
-    LoadBalancerArn=alb_arn,
-    Protocol='HTTPS',
-    Port=443,
-    Certificates=[
-        {
-            'CertificateArn': 'arn:aws:acm:ap-northeast-2:123456789012:certificate/abcd1234-5678-90ef-ghij-klmnopqrstuv'
-        }
-    ],
-    DefaultActions=[
-        {
-            'Type': 'forward',
-            'TargetGroupArn': target_group_arn
-        }
-    ]
-)
-
-listener_arn = response['Listeners'][0]['ListenerArn']
-
-# 경로 기반 라우팅 규칙 추가
-elbv2.create_rule(
-    ListenerArn=listener_arn,
-    Priority=1,
-    Conditions=[
-        {
-            'Field': 'path-pattern',
-            'Values': ['/api/*']
-        }
-    ],
-    Actions=[
-        {
-            'Type': 'forward',
-            'TargetGroupArn': 'arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/api-target-group/abcdef1234567890'
-        }
-    ]
-)
-```
-
-### Python을 사용한 ALB 관리
-
-```python
-class ALBManager:
-    def __init__(self, region='ap-northeast-2'):
-        self.elbv2_client = boto3.client('elbv2', region_name=region)
-    
-    def create_alb_with_targets(self, name, subnets, security_groups, target_instances):
-        """ALB와 대상 그룹을 함께 생성"""
-        try:
-            # ALB 생성
-            alb_response = self.elbv2_client.create_load_balancer(
-                Name=name,
-                Subnets=subnets,
-                SecurityGroups=security_groups,
-                Scheme='internet-facing',
-                Type='application'
-            )
-            
-            alb_arn = alb_response['LoadBalancers'][0]['LoadBalancerArn']
-            alb_dns = alb_response['LoadBalancers'][0]['DNSName']
-            
-            # 대상 그룹 생성
-            tg_response = self.elbv2_client.create_target_group(
-                Name=f'{name}-target-group',
-                Protocol='HTTP',
-                Port=80,
-                VpcId='vpc-12345678',
-                HealthCheckProtocol='HTTP',
-                HealthCheckPath='/health',
-                TargetType='instance'
-            )
-            
-            target_group_arn = tg_response['TargetGroups'][0]['TargetGroupArn']
-            
-            # 대상 등록
-            targets = [{'Id': instance_id, 'Port': 80} for instance_id in target_instances]
-            self.elbv2_client.register_targets(
-                TargetGroupArn=target_group_arn,
-                Targets=targets
-            )
-            
-            # 리스너 생성
-            listener_response = self.elbv2_client.create_listener(
-                LoadBalancerArn=alb_arn,
-                Protocol='HTTP',
-                Port=80,
-                DefaultActions=[
-                    {
-                        'Type': 'forward',
-                        'TargetGroupArn': target_group_arn
-                    }
-                ]
-            )
-            
-            return {
-                'alb_arn': alb_arn,
-                'alb_dns': alb_dns,
-                'target_group_arn': target_group_arn,
-                'listener_arn': listener_response['Listeners'][0]['ListenerArn']
-            }
-            
-        except Exception as e:
-            print(f"ALB 생성 실패: {e}")
-            return None
-    
-    def add_path_rule(self, listener_arn, path_pattern, target_group_arn, priority):
-        """경로 기반 라우팅 규칙 추가"""
-        try:
-            response = self.elbv2_client.create_rule(
-                ListenerArn=listener_arn,
-                Priority=priority,
-                Conditions=[
-                    {
-                        'Field': 'path-pattern',
-                        'Values': [path_pattern]
-                    }
-                ],
-                Actions=[
-                    {
-                        'Type': 'forward',
-                        'TargetGroupArn': target_group_arn
-                    }
-                ]
-            )
-            return response['Rules'][0]['RuleArn']
-        except Exception as e:
-            print(f"라우팅 규칙 추가 실패: {e}")
-            return None
-    
-    def get_alb_health(self, alb_arn):
-        """ALB 상태 조회"""
-        try:
-            response = self.elbv2_client.describe_target_health(
-                TargetGroupArn=alb_arn
-            )
-            return response['TargetHealthDescriptions']
-        except Exception as e:
-            print(f"ALB 상태 조회 실패: {e}")
-            return []
-
-# 사용 예시
-alb_manager = ALBManager()
-
-# ALB 생성
-result = alb_manager.create_alb_with_targets(
-    name='my-web-alb',
-    subnets=['subnet-12345678', 'subnet-87654321'],
-    security_groups=['sg-12345678'],
-    target_instances=['i-1234567890abcdef0', 'i-0987654321fedcba0']
-)
-
-if result:
-    print(f"ALB DNS: {result['alb_dns']}")
-    
-    # API 경로 규칙 추가
-    alb_manager.add_path_rule(
-        listener_arn=result['listener_arn'],
-        path_pattern='/api/*',
-        target_group_arn='arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/api-tg/abcdef1234567890',
-        priority=1
-    )
-```
-
-### CloudFormation 템플릿
-
-```yaml
-# alb-template.yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Application Load Balancer with Target Groups'
-
-Parameters:
-  VpcId:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC ID
-  
-  PublicSubnets:
-    Type: List<AWS::EC2::Subnet::Id>
-    Description: Public subnet IDs
-
-Resources:
-  ALBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for ALB
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-
-  WebTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: web-target-group
-      Protocol: HTTP
-      Port: 80
-      VpcId: !Ref VpcId
-      HealthCheckProtocol: HTTP
-      HealthCheckPath: /health
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-      TargetType: instance
-
-  ApiTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: api-target-group
-      Protocol: HTTP
-      Port: 8080
-      VpcId: !Ref VpcId
-      HealthCheckProtocol: HTTP
-      HealthCheckPath: /api/health
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-      TargetType: instance
-
-  ApplicationLoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: my-application-lb
-      Scheme: internet-facing
-      Type: application
-      Subnets: !Ref PublicSubnets
-      SecurityGroups:
-        - !Ref ALBSecurityGroup
-
-  ALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
-      Protocol: HTTP
-      Port: 80
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref WebTargetGroup
-
-  ApiPathRule:
-    Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Properties:
-      ListenerArn: !Ref ALBListener
-      Priority: 1
-      Conditions:
-        - Field: path-pattern
-          Values: ['/api/*']
-      Actions:
-        - Type: forward
-          TargetGroupArn: !Ref ApiTargetGroup
-
-Outputs:
-  ALBDNSName:
-    Description: DNS name of the load balancer
-    Value: !GetAtt ApplicationLoadBalancer.DNSName
-  
-  WebTargetGroupArn:
-    Description: ARN of the web target group
-    Value: !Ref WebTargetGroup
-  
-  ApiTargetGroupArn:
-    Description: ARN of the API target group
-    Value: !Ref ApiTargetGroup
-```
-
-## 운영 팁
-
-### 1. 고가용성 구성
-
-#### Multi-AZ 배포
-```python
-# 여러 가용영역에 서브넷 배포
-subnets = [
-    'subnet-12345678',  # ap-northeast-2a
-    'subnet-87654321',  # ap-northeast-2c
-    'subnet-abcdef12'   # ap-northeast-2d
-]
-
-response = elbv2.create_load_balancer(
-    Name='high-availability-alb',
-    Subnets=subnets,
-    SecurityGroups=['sg-12345678'],
-    Scheme='internet-facing',
-    Type='application'
-)
-```
-
-#### 크로스 존 로드 밸런싱
-```python
-# 크로스 존 로드 밸런싱 활성화
-elbv2.modify_load_balancer_attributes(
-    LoadBalancerArn=alb_arn,
-    Attributes=[
-        {
-            'Key': 'load_balancing.cross_zone.enabled',
-            'Value': 'true'
-        }
-    ]
-)
-```
-
-### 2. 보안 설정
-
-#### HTTPS 리스너 구성
-```python
-# HTTPS 리스너 생성
-response = elbv2.create_listener(
-    LoadBalancerArn=alb_arn,
-    Protocol='HTTPS',
-    Port=443,
-    Certificates=[
-        {
-            'CertificateArn': 'arn:aws:acm:ap-northeast-2:123456789012:certificate/abcd1234-5678-90ef-ghij-klmnopqrstuv'
-        }
-    ],
-    DefaultActions=[
-        {
-            'Type': 'forward',
-            'TargetGroupArn': target_group_arn
-        }
-    ]
-)
-
-# HTTP에서 HTTPS로 리다이렉션
-elbv2.create_listener(
-    LoadBalancerArn=alb_arn,
-    Protocol='HTTP',
-    Port=80,
-    DefaultActions=[
-        {
-            'Type': 'redirect',
-            'RedirectConfig': {
-                'Protocol': 'HTTPS',
-                'Port': '443',
-                'StatusCode': 'HTTP_301'
-            }
-        }
-    ]
-)
-```
-
-#### WAF 연동
-```python
-import boto3
-
-wafv2 = boto3.client('wafv2')
-
-# WAF 웹 ACL 생성
-response = wafv2.create_web_acl(
-    Name='alb-web-acl',
-    Scope='REGIONAL',
-    DefaultAction={
-        'Allow': {}
-    },
-    Rules=[
-        {
-            'Name': 'RateLimitRule',
-            'Priority': 1,
-            'Statement': {
-                'RateBasedStatement': {
-                    'Limit': 2000,
-                    'AggregateKeyType': 'IP'
-                }
-            },
-            'Action': {
-                'Block': {}
-            },
-            'VisibilityConfig': {
-                'SampledRequestsEnabled': True,
-                'CloudWatchMetricsEnabled': True,
-                'MetricName': 'RateLimitRule'
-            }
-        }
-    ],
-    VisibilityConfig={
-        'SampledRequestsEnabled': True,
-        'CloudWatchMetricsEnabled': True,
-        'MetricName': 'ALBWebACL'
-    }
-)
-
-web_acl_arn = response['Summary']['ARN']
-
-# ALB에 WAF 연동
-elbv2.set_web_acl(
-    ResourceArn=alb_arn,
-    WebACLArn=web_acl_arn
-)
-```
-
-### 3. 성능 최적화
-
-#### 연결 드레이닝 설정
-```python
-# 대상 그룹에 연결 드레이닝 설정
-elbv2.modify_target_group_attributes(
-    TargetGroupArn=target_group_arn,
-    Attributes=[
-        {
-            'Key': 'deregistration_delay.timeout_seconds',
-            'Value': '30'
-        }
-    ]
-)
-```
-
-#### 압축 활성화
-```python
-# ALB 압축 설정
-elbv2.modify_load_balancer_attributes(
-    LoadBalancerArn=alb_arn,
-    Attributes=[
-        {
-            'Key': 'routing.http.compression.enabled',
-            'Value': 'true'
-        },
-        {
-            'Key': 'routing.http.compression.types',
-            'Value': 'text/html,text/css,application/javascript,application/json'
-        }
-    ]
-)
-```
-
-### 4. 모니터링 및 로깅
-
-#### 액세스 로그 활성화
-```python
-# S3 버킷에 액세스 로그 저장
-elbv2.modify_load_balancer_attributes(
-    LoadBalancerArn=alb_arn,
-    Attributes=[
-        {
-            'Key': 'access_logs.s3.enabled',
-            'Value': 'true'
-        },
-        {
-            'Key': 'access_logs.s3.bucket',
-            'Value': 'my-alb-logs-bucket'
-        },
-        {
-            'Key': 'access_logs.s3.prefix',
-            'Value': 'alb-logs'
-        }
-    ]
-)
-```
-
-#### CloudWatch 메트릭 모니터링
-```python
-import boto3
-from datetime import datetime, timedelta
-
-cloudwatch = boto3.client('cloudwatch')
-
-def get_alb_metrics(alb_name):
-    """ALB 메트릭 조회"""
-    
-    # 요청 수
-    request_response = cloudwatch.get_metric_statistics(
-        Namespace='AWS/ApplicationELB',
-        MetricName='RequestCount',
-        Dimensions=[
-            {
-                'Name': 'LoadBalancer',
-                'Value': alb_name
-            }
-        ],
-        StartTime=datetime.utcnow() - timedelta(hours=1),
-        EndTime=datetime.utcnow(),
-        Period=300,
-        Statistics=['Sum']
-    )
-    
-    # 대상 응답 시간
-    latency_response = cloudwatch.get_metric_statistics(
-        Namespace='AWS/ApplicationELB',
-        MetricName='TargetResponseTime',
-        Dimensions=[
-            {
-                'Name': 'LoadBalancer',
-                'Value': alb_name
-            }
-        ],
-        StartTime=datetime.utcnow() - timedelta(hours=1),
-        EndTime=datetime.utcnow(),
-        Period=300,
-        Statistics=['Average']
-    )
-    
-    return {
-        'request_count': request_response['Datapoints'],
-        'target_response_time': latency_response['Datapoints']
-    }
-
-# 메트릭 조회
-metrics = get_alb_metrics('app/my-alb/1234567890abcdef0')
-print(f"요청 수: {metrics['request_count']}")
-print(f"대상 응답 시간: {metrics['target_response_time']}")
-```
-
-### 5. 마이크로서비스 라우팅
-
-#### 서비스별 라우팅 규칙
-```python
-# 서비스별 대상 그룹 생성
-services = {
-    'api': {'port': 8080, 'path': '/api/*'},
-    'web': {'port': 80, 'path': '/*'},
-    'admin': {'port': 8081, 'path': '/admin/*'}
-}
-
-for service_name, config in services.items():
-    # 대상 그룹 생성
-    tg_response = elbv2.create_target_group(
-        Name=f'{service_name}-target-group',
-        Protocol='HTTP',
-        Port=config['port'],
-        VpcId='vpc-12345678',
-        HealthCheckProtocol='HTTP',
-        HealthCheckPath=f'{config["path"].replace("/*", "")}/health',
-        TargetType='instance'
-    )
-    
-    # 라우팅 규칙 추가
-    elbv2.create_rule(
-        ListenerArn=listener_arn,
-        Priority=len(services) - list(services.keys()).index(service_name),
-        Conditions=[
-            {
-                'Field': 'path-pattern',
-                'Values': [config['path']]
-            }
-        ],
-        Actions=[
-            {
-                'Type': 'forward',
-                'TargetGroupArn': tg_response['TargetGroups'][0]['TargetGroupArn']
-            }
-        ]
-    )
-```
-
-## 참고
-
-### ALB vs 다른 로드 밸런서 비교
-
-| 기능 | ALB | NLB | CLB | Gateway Load Balancer |
-|------|-----|-----|-----|----------------------|
-| **계층** | 7계층 (애플리케이션) | 4계층 (전송) | 4계층 (전송) | 3계층 (네트워크) |
-| **프로토콜** | HTTP/HTTPS | TCP/UDP/TLS | TCP/SSL/TLS | IP |
-| **라우팅** | 경로, 호스트 기반 | IP 기반 | IP 기반 | IP 기반 |
-| **대상** | EC2, 컨테이너, Lambda | EC2, 컨테이너 | EC2 | EC2, 컨테이너 |
-| **SSL 종료** | 지원 | 지원 | 지원 | 미지원 |
-
-### ALB 사용 사례
-
-| 사용 사례 | 설명 | 구성 |
-|-----------|------|------|
-| **웹 애플리케이션** | 일반적인 웹 서비스 | HTTP/HTTPS 리스너, 경로 기반 라우팅 |
-| **마이크로서비스** | 서비스별 트래픽 분리 | 경로 기반 라우팅, 서비스별 대상 그룹 |
-| **API 게이트웨이** | API 요청 라우팅 | 경로 기반 라우팅, Lambda 통합 |
-| **컨테이너 오케스트레이션** | ECS/EKS 연동 | 컨테이너 대상 그룹, 서비스 디스커버리 |
-
-### 관련 링크
-
-- [AWS ALB 공식 문서](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/)
-- [AWS ALB 가격](https://aws.amazon.com/elasticloadbalancing/pricing/)
-- [ALB Best Practices](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/best-practices.html)
-- [AWS Well-Architected Framework - 로드 밸런싱](https://aws.amazon.com/architecture/well-architected/)
+## 개요
+
+AWS Application Load Balancer(ALB)는 OSI 7계층인 애플리케이션 계층에서 동작하는 고급 로드 밸런서입니다. HTTP와 HTTPS 트래픽을 처리하며, 단순한 트래픽 분산을 넘어서 지능적인 라우팅 기능을 제공합니다. 마이크로서비스 아키텍처의 등장과 함께 복잡해진 웹 애플리케이션의 요구사항을 충족하기 위해 설계되었습니다.
+
+ALB는 전통적인 로드 밸런서의 한계를 극복하고, 현대적인 웹 서비스가 요구하는 세밀한 트래픽 제어와 서비스 분리를 가능하게 합니다. 특히 컨테이너 기반 애플리케이션과 서버리스 아키텍처와의 통합을 통해 클라우드 네이티브 환경에서 필수적인 인프라 구성 요소로 자리잡았습니다.
+
+## 핵심 개념
+
+### 애플리케이션 계층 로드 밸런싱의 특성
+
+ALB는 OSI 7계층 모델의 최상위 계층인 애플리케이션 계층에서 동작합니다. 이는 네트워크 계층이나 전송 계층에서 동작하는 전통적인 로드 밸런서와는 근본적으로 다른 접근 방식을 의미합니다.
+
+애플리케이션 계층에서의 로드 밸런싱은 HTTP 요청의 내용을 분석하여 라우팅 결정을 내릴 수 있습니다. URL 경로, 호스트 헤더, HTTP 메서드, 쿼리 파라미터, 요청 헤더 등 다양한 HTTP 프로토콜 요소를 기반으로 트래픽을 분산시킬 수 있습니다. 이러한 세밀한 제어는 마이크로서비스 아키텍처에서 각 서비스별로 다른 엔드포인트를 제공해야 하는 현대적인 웹 애플리케이션에 필수적입니다.
+
+### 요청 기반 로드 밸런싱
+
+ALB는 세션 기반이 아닌 요청 기반 로드 밸런싱을 수행합니다. 이는 각 HTTP 요청이 독립적으로 처리되며, 이전 요청의 상태나 세션 정보에 의존하지 않는다는 의미입니다. 이러한 특성은 무상태(stateless) 아키텍처를 지향하는 클라우드 네이티브 애플리케이션에 적합합니다.
+
+요청 기반 로드 밸런싱은 또한 더 나은 가용성과 확장성을 제공합니다. 특정 인스턴스에 장애가 발생하더라도 다른 인스턴스로 요청을 즉시 전달할 수 있으며, 새로운 인스턴스가 추가되면 즉시 트래픽 분산에 참여할 수 있습니다.
+
+### 마이크로서비스 아키텍처 지원
+
+ALB는 마이크로서비스 아키텍처의 핵심 요구사항인 서비스 분리와 독립적 배포를 지원합니다. 경로 기반 라우팅을 통해 단일 도메인에서 여러 마이크로서비스를 호스팅할 수 있으며, 각 서비스는 독립적인 대상 그룹으로 관리됩니다.
+
+예를 들어, `/api/users/*` 경로는 사용자 서비스로, `/api/orders/*` 경로는 주문 서비스로 라우팅할 수 있습니다. 이러한 방식은 클라이언트에게는 단일 엔드포인트를 제공하면서도, 백엔드에서는 각 서비스를 독립적으로 개발, 배포, 확장할 수 있게 합니다.
+
+## 주요 기능과 특징
+
+### 고급 라우팅 기능
+
+ALB의 가장 중요한 특징은 고급 라우팅 기능입니다. 이는 단순한 라운드 로빈이나 가중치 기반 분산을 넘어서 HTTP 요청의 내용을 분석하여 지능적인 라우팅을 수행합니다.
+
+**경로 기반 라우팅**: URL 경로를 분석하여 서로 다른 대상 그룹으로 요청을 전달합니다. 예를 들어 `/api/*` 경로는 API 서버로, `/static/*` 경로는 정적 파일 서버로 라우팅할 수 있습니다.
+
+**호스트 기반 라우팅**: HTTP Host 헤더를 기반으로 라우팅합니다. `api.example.com`과 `admin.example.com`을 같은 ALB에서 처리하면서 서로 다른 백엔드로 전달할 수 있습니다.
+
+**헤더 기반 라우팅**: 사용자 정의 HTTP 헤더나 쿼리 파라미터를 기반으로 라우팅할 수 있습니다. 이를 통해 A/B 테스트나 카나리 배포를 구현할 수 있습니다.
+
+### SSL/TLS 종료
+
+ALB는 SSL/TLS 종료 기능을 제공하여 클라이언트와 ALB 간의 암호화된 통신을 처리합니다. 이는 백엔드 서버의 부하를 크게 줄이는 중요한 기능입니다.
+
+SSL/TLS 종료를 통해 백엔드 서버는 복잡한 암호화/복호화 작업을 수행할 필요가 없어집니다. 또한 ALB에서 SSL 인증서를 중앙 집중식으로 관리할 수 있어 인증서 갱신과 관리가 용이해집니다.
+
+### 헬스 체크와 자동 장애 복구
+
+ALB는 대상 그룹의 각 대상에 대해 정기적인 헬스 체크를 수행합니다. 헬스 체크는 HTTP 또는 HTTPS 요청을 통해 대상의 상태를 확인하며, 설정 가능한 간격과 임계값을 가집니다.
+
+헬스 체크에 실패한 대상은 자동으로 트래픽 분산에서 제외되며, 다시 정상 상태로 복구되면 자동으로 트래픽 분산에 다시 참여합니다. 이러한 자동 장애 복구 기능은 고가용성을 보장하는 핵심 요소입니다.
+
+### 자동 스케일링과 성능 최적화
+
+ALB는 AWS Auto Scaling과 통합되어 트래픽 증가에 따라 자동으로 인스턴스를 확장할 수 있습니다. 또한 ALB 자체도 트래픽에 따라 자동으로 확장되므로 성능 병목 없이 대량의 트래픽을 처리할 수 있습니다.
+
+연결 드레이닝(Connection Draining) 기능을 통해 인스턴스 제거 시 기존 연결을 안전하게 종료할 수 있으며, 압축 기능을 통해 네트워크 대역폭을 절약할 수 있습니다.
+
+## ALB 구성 요소
+
+### 리스너 (Listener)
+
+리스너는 ALB의 진입점 역할을 하는 구성 요소입니다. 클라이언트의 요청을 받아들이는 엔드포인트로, 특정 프로토콜과 포트에서 대기합니다.
+
+**프로토콜 지원**: HTTP(80번 포트)와 HTTPS(443번 포트)를 지원합니다. HTTPS 리스너의 경우 SSL/TLS 인증서를 설정해야 하며, AWS Certificate Manager(ACM)를 통해 인증서를 관리할 수 있습니다.
+
+**기본 액션**: 리스너는 기본 액션을 가져야 하며, 이는 모든 라우팅 규칙에 매치되지 않는 요청에 대해 수행될 동작을 정의합니다. 일반적으로 기본 대상 그룹으로 포워딩하거나 HTTP에서 HTTPS로 리다이렉션하는 용도로 사용됩니다.
+
+### 대상 그룹 (Target Group)
+
+대상 그룹은 실제로 트래픽을 처리할 백엔드 리소스들의 논리적 그룹입니다. ALB는 대상 그룹 단위로 트래픽을 분산시키며, 각 대상 그룹은 독립적인 헬스 체크 설정을 가집니다.
+
+**지원 대상 타입**:
+- **인스턴스**: EC2 인스턴스 ID를 기반으로 등록
+- **IP**: 특정 IP 주소와 포트를 기반으로 등록
+- **Lambda**: AWS Lambda 함수를 대상으로 설정
+- **ALB**: 다른 ALB를 대상으로 설정 (중첩 로드 밸런싱)
+
+**헬스 체크 설정**: 각 대상 그룹은 독립적인 헬스 체크 설정을 가집니다. 프로토콜, 경로, 간격, 타임아웃, 성공/실패 임계값 등을 설정할 수 있습니다.
+
+### 라우팅 규칙 (Routing Rules)
+
+라우팅 규칙은 들어오는 요청을 분석하여 적절한 대상 그룹으로 전달하는 로직을 정의합니다. 각 규칙은 조건과 액션으로 구성됩니다.
+
+**조건 (Conditions)**:
+- **경로 패턴**: URL 경로를 기반으로 매칭 (`/api/*`, `/admin/*` 등)
+- **호스트 헤더**: HTTP Host 헤더를 기반으로 매칭
+- **HTTP 헤더**: 특정 HTTP 헤더의 값에 따른 매칭
+- **HTTP 메서드**: GET, POST, PUT 등의 HTTP 메서드에 따른 매칭
+- **쿼리 파라미터**: URL 쿼리 파라미터에 따른 매칭
+- **소스 IP**: 클라이언트 IP 주소에 따른 매칭
+
+**액션 (Actions)**:
+- **포워드**: 요청을 특정 대상 그룹으로 전달
+- **리다이렉트**: 클라이언트를 다른 URL로 리다이렉트
+- **고정 응답**: 미리 정의된 응답을 반환
+
+**우선순위**: 여러 규칙이 동일한 요청에 매치될 수 있으므로, 각 규칙은 우선순위를 가집니다. 낮은 숫자가 높은 우선순위를 의미하며, 첫 번째로 매치되는 규칙이 적용됩니다.
+
+## 실제 사용 사례와 아키텍처 패턴
+
+### 마이크로서비스 아키텍처에서의 ALB 활용
+
+현대적인 마이크로서비스 아키텍처에서 ALB는 API 게이트웨이 역할을 수행합니다. 단일 도메인에서 여러 마이크로서비스를 호스팅하면서 각 서비스별로 독립적인 라우팅을 제공합니다.
+
+**서비스 분리 패턴**: 
+- 사용자 서비스: `/api/users/*`
+- 주문 서비스: `/api/orders/*`  
+- 결제 서비스: `/api/payments/*`
+- 관리자 서비스: `/admin/*`
+
+이러한 패턴을 통해 클라이언트는 단일 엔드포인트를 통해 모든 서비스에 접근할 수 있으면서도, 백엔드에서는 각 서비스를 독립적으로 개발, 배포, 확장할 수 있습니다.
+
+### 컨테이너 기반 애플리케이션과의 통합
+
+ALB는 AWS ECS(Elastic Container Service)와 EKS(Elastic Kubernetes Service)와 완벽하게 통합됩니다. 컨테이너 기반 애플리케이션의 경우 동적으로 생성되고 제거되는 컨테이너 인스턴스들을 자동으로 대상 그룹에 등록하고 해제합니다.
+
+**서비스 디스커버리**: ECS 서비스나 Kubernetes 서비스와 연동하여 컨테이너의 상태 변화를 자동으로 감지하고 라우팅 테이블을 업데이트합니다. 이는 컨테이너 오케스트레이션의 핵심 요구사항인 동적 서비스 관리와 완벽하게 부합합니다.
+
+### 서버리스 아키텍처 지원
+
+ALB는 AWS Lambda 함수를 직접 대상으로 설정할 수 있어 서버리스 아키텍처를 지원합니다. 이를 통해 전통적인 서버 기반 애플리케이션과 서버리스 함수를 동일한 ALB에서 통합 관리할 수 있습니다.
+
+**하이브리드 아키텍처**: 일부 경로는 EC2 인스턴스로, 다른 경로는 Lambda 함수로 라우팅하여 점진적인 서버리스 마이그레이션을 수행할 수 있습니다.
+
+## 운영 고려사항
+
+### 고가용성 설계
+
+ALB는 기본적으로 다중 가용영역에 배포되어 고가용성을 제공합니다. 최소 2개 이상의 가용영역에 서브넷을 배치하여 단일 가용영역 장애에 대비해야 합니다.
+
+**크로스 존 로드 밸런싱**: ALB는 크로스 존 로드 밸런싱을 지원하여 가용영역 간 트래픽 분산을 최적화합니다. 이를 통해 특정 가용영역의 인스턴스가 다른 가용영역보다 많더라도 균등한 트래픽 분산이 가능합니다.
+
+### 보안 고려사항
+
+**SSL/TLS 종료**: ALB에서 SSL/TLS 종료를 수행하여 백엔드 서버의 부하를 줄이고 인증서 관리를 중앙화할 수 있습니다. AWS Certificate Manager를 통해 인증서를 자동 갱신할 수 있습니다.
+
+**WAF 통합**: AWS WAF(Web Application Firewall)와 통합하여 SQL 인젝션, XSS 공격 등 웹 애플리케이션 공격을 차단할 수 있습니다. WAF는 ALB 앞단에서 동작하여 악성 트래픽을 사전에 차단합니다.
+
+**보안 그룹**: ALB의 보안 그룹은 클라이언트로부터의 인바운드 트래픽만 허용하고, 백엔드 대상 그룹의 보안 그룹은 ALB로부터의 트래픽만 허용하는 방화벽 규칙을 설정해야 합니다.
+
+### 성능 최적화
+
+**연결 드레이닝**: 인스턴스 제거 시 기존 연결을 안전하게 종료하는 연결 드레이닝 기능을 활용하여 서비스 중단 없이 인스턴스를 교체할 수 있습니다.
+
+**압축**: ALB의 압축 기능을 활성화하여 네트워크 대역폭을 절약하고 응답 시간을 개선할 수 있습니다. 텍스트 기반 콘텐츠(HTML, CSS, JavaScript, JSON 등)에 대해 압축을 적용할 수 있습니다.
+
+**HTTP/2 지원**: ALB는 HTTP/2 프로토콜을 지원하여 멀티플렉싱과 헤더 압축을 통해 성능을 향상시킵니다.
+
+### 모니터링과 로깅
+
+**액세스 로그**: ALB의 액세스 로그를 S3에 저장하여 요청 패턴, 응답 시간, 오류율 등을 분석할 수 있습니다. 이를 통해 성능 병목 지점을 식별하고 최적화할 수 있습니다.
+
+**CloudWatch 메트릭**: ALB는 CloudWatch와 통합되어 요청 수, 응답 시간, 오류율, 대상 상태 등의 메트릭을 제공합니다. 이러한 메트릭을 기반으로 알람을 설정하고 자동 스케일링 정책을 구성할 수 있습니다.
+
+**X-Ray 통합**: AWS X-Ray와 통합하여 분산 추적을 수행할 수 있습니다. 이를 통해 요청이 ALB를 거쳐 여러 백엔드 서비스를 호출하는 전체 경로를 추적할 수 있습니다.
+
+## ALB와 다른 로드 밸런서 비교
+
+### AWS 로드 밸런서 유형별 특성
+
+AWS는 다양한 로드 밸런서 유형을 제공하며, 각각 다른 계층에서 동작하고 특정 사용 사례에 최적화되어 있습니다.
+
+**Application Load Balancer (ALB)**:
+- OSI 7계층(애플리케이션 계층)에서 동작
+- HTTP/HTTPS 트래픽 처리
+- 고급 라우팅 기능 (경로, 호스트, 헤더 기반)
+- 마이크로서비스 아키텍처에 최적화
+- Lambda 함수 직접 지원
+
+**Network Load Balancer (NLB)**:
+- OSI 4계층(전송 계층)에서 동작
+- TCP/UDP/TLS 트래픽 처리
+- 초고성능과 낮은 지연시간
+- 정적 IP 주소 지원
+- 게임 서버나 실시간 애플리케이션에 적합
+
+**Classic Load Balancer (CLB)**:
+- 레거시 로드 밸런서
+- 4계층과 7계층 모두 지원하지만 기능이 제한적
+- 새로운 프로젝트에서는 권장하지 않음
+
+**Gateway Load Balancer**:
+- OSI 3계층(네트워크 계층)에서 동작
+- IP 트래픽 처리
+- 보안 어플라이언스와의 통합에 특화
+
+### ALB 선택 기준
+
+ALB는 다음과 같은 상황에서 가장 적합합니다:
+
+1. **마이크로서비스 아키텍처**: 경로 기반 라우팅이 필요한 경우
+2. **웹 애플리케이션**: HTTP/HTTPS 트래픽을 처리하는 웹 서비스
+3. **컨테이너 기반 애플리케이션**: ECS나 EKS와 통합이 필요한 경우
+4. **서버리스 통합**: Lambda 함수와의 직접 통합이 필요한 경우
+5. **고급 라우팅**: 복잡한 라우팅 규칙이 필요한 경우
+
+## 참조
+
+### 공식 문서
+- AWS Application Load Balancer 사용자 가이드: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/
+- AWS Well-Architected Framework - 로드 밸런싱: https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/load-balancing.html
+- ALB 모범 사례: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/best-practices.html
+
+### 기술 자료
+- AWS 블로그 - ALB 고급 기능: https://aws.amazon.com/blogs/aws/new-advanced-request-routing-for-aws-application-load-balancers/
+- 마이크로서비스 아키텍처에서의 ALB 활용: https://aws.amazon.com/architecture/microservices/
+- 컨테이너 서비스와 ALB 통합: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html
+
+### 가격 정보
+- AWS ELB 가격: https://aws.amazon.com/elasticloadbalancing/pricing/
+- ALB 요금 계산기: https://calculator.aws/
+
+### 관련 서비스
+- AWS Certificate Manager: https://aws.amazon.com/certificate-manager/
+- AWS WAF: https://aws.amazon.com/waf/
+- AWS CloudWatch: https://aws.amazon.com/cloudwatch/
+- AWS X-Ray: https://aws.amazon.com/xray/
