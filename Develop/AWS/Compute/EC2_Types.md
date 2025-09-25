@@ -1,7 +1,7 @@
 ---
 title: AWS EC2 인스턴스 유형
 tags: [aws, compute, ec2, instance-types, cloud-computing]
-updated: 2024-12-19
+updated: 2025-09-23
 ---
 
 # AWS EC2 인스턴스 유형
@@ -101,624 +101,166 @@ GPU 또는 FPGA를 사용하여 머신러닝, AI, 그래픽 처리 등에 최적
 
 ## 예시
 
-### 인스턴스 선택 예시
+### 실제 사용 사례별 인스턴스 선택
 
-#### AWS SDK를 사용한 인스턴스 생성
-```javascript
-const AWS = require('aws-sdk');
+#### 웹 애플리케이션 서버
+- **권장 인스턴스**: T3, M5 시리즈
+- **선택 이유**: CPU, 메모리, 네트워크 성능이 균형 있게 제공되어 웹 요청 처리에 최적화
+- **구체적 사례**: 
+  - 소규모 웹사이트: t3.micro (월 $7.5)
+  - 중간 규모 웹사이트: t3.medium (월 $30)
+  - 대규모 웹사이트: m5.large (월 $70)
 
-// AWS EC2 클라이언트 생성
-const ec2 = new AWS.EC2({
-    region: 'ap-northeast-2',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-});
+#### 데이터베이스 서버
+- **권장 인스턴스**: R5, R6g 시리즈
+- **선택 이유**: 높은 메모리 용량으로 데이터 캐싱과 빠른 쿼리 처리 가능
+- **구체적 사례**:
+  - MySQL/PostgreSQL: r5.large (16GB RAM, 월 $90)
+  - Redis/Memcached: r5.xlarge (32GB RAM, 월 $180)
+  - SAP HANA: x1e.32xlarge (3.8TB RAM, 월 $26,688)
 
-// 웹 서버용 범용 인스턴스 생성 (T3.micro)
-async function createWebServer() {
-    const params = {
-        ImageId: 'ami-12345678',
-        InstanceType: 't3.micro',  // 범용 인스턴스
-        MinCount: 1,
-        MaxCount: 1,
-        KeyName: 'my-key-pair',
-        SecurityGroupIds: ['sg-12345678'],
-        TagSpecifications: [{
-            ResourceType: 'instance',
-            Tags: [{
-                Key: 'Name',
-                Value: 'WebServer'
-            }]
-        }]
-    };
+#### 빅데이터 분석
+- **권장 인스턴스**: I3, D2 시리즈
+- **선택 이유**: 고속 스토리지 I/O로 대용량 데이터 처리 최적화
+- **구체적 사례**:
+  - 로그 분석: i3.large (475GB NVMe SSD, 월 $156)
+  - 데이터 웨어하우스: d2.xlarge (6TB HDD, 월 $690)
 
-    try {
-        const result = await ec2.runInstances(params).promise();
-        console.log('웹 서버 인스턴스 생성 완료:', result.Instances[0].InstanceId);
-        return result.Instances[0];
-    } catch (error) {
-        console.error('인스턴스 생성 실패:', error);
-        throw error;
-    }
-}
+#### 머신러닝/AI
+- **권장 인스턴스**: P3, P4, G4 시리즈
+- **선택 이유**: GPU 가속으로 딥러닝 모델 학습 및 추론 성능 향상
+- **구체적 사례**:
+  - 모델 학습: p3.2xlarge (V100 GPU, 월 $3,060)
+  - 추론 서비스: g4dn.xlarge (T4 GPU, 월 $526)
+  - 대규모 학습: p4d.24xlarge (8x A100 GPU, 월 $32.77/시간)
 
-// 고성능 연산용 컴퓨팅 최적화 인스턴스 생성 (C5.large)
-async function createComputeInstance() {
-    const params = {
-        ImageId: 'ami-12345678',
-        InstanceType: 'c5.large',  // 컴퓨팅 최적화 인스턴스
-        MinCount: 1,
-        MaxCount: 1,
-        KeyName: 'my-key-pair',
-        SecurityGroupIds: ['sg-12345678'],
-        TagSpecifications: [{
-            ResourceType: 'instance',
-            Tags: [{
-                Key: 'Name',
-                Value: 'ComputeServer'
-            }]
-        }]
-    };
+### 비용 최적화 전략
 
-    try {
-        const result = await ec2.runInstances(params).promise();
-        console.log('컴퓨팅 인스턴스 생성 완료:', result.Instances[0].InstanceId);
-        return result.Instances[0];
-    } catch (error) {
-        console.error('인스턴스 생성 실패:', error);
-        throw error;
-    }
-}
+#### Reserved Instances 활용
+- **1년 약정**: 최대 40% 할인
+- **3년 약정**: 최대 60% 할인
+- **전체 선불**: 추가 5% 할인
+- **적용 대상**: 안정적인 워크로드, 24/7 운영 서비스
 
-// 인메모리 데이터베이스용 메모리 최적화 인스턴스 생성 (R5.large)
-async function createMemoryInstance() {
-    const params = {
-        ImageId: 'ami-12345678',
-        InstanceType: 'r5.large',  // 메모리 최적화 인스턴스
-        MinCount: 1,
-        MaxCount: 1,
-        KeyName: 'my-key-pair',
-        SecurityGroupIds: ['sg-12345678'],
-        TagSpecifications: [{
-            ResourceType: 'instance',
-            Tags: [{
-                Key: 'Name',
-                Value: 'DatabaseServer'
-            }]
-        }]
-    };
+#### Spot Instances 활용
+- **할인율**: 최대 90% 할인
+- **적용 대상**: 배치 작업, 개발/테스트 환경, 중단 가능한 워크로드
+- **주의사항**: AWS가 언제든 인스턴스 종료 가능
 
-    try {
-        const result = await ec2.runInstances(params).promise();
-        console.log('메모리 최적화 인스턴스 생성 완료:', result.Instances[0].InstanceId);
-        return result.Instances[0];
-    } catch (error) {
-        console.error('인스턴스 생성 실패:', error);
-        throw error;
-    }
-}
-```
-
-#### 인스턴스 유형별 비용 계산
-```javascript
-// 인스턴스 유형별 비용 정보
-const instanceCosts = {
-    't3.micro': {
-        vCPU: 2,
-        memory: '1GB',
-        hourlyCost: 0.0104,
-        monthlyCost: 0.0104 * 24 * 30,
-        useCase: '개발/테스트'
-    },
-    'c5.large': {
-        vCPU: 2,
-        memory: '4GB',
-        hourlyCost: 0.085,
-        monthlyCost: 0.085 * 24 * 30,
-        useCase: '고성능 연산'
-    },
-    'r5.large': {
-        vCPU: 2,
-        memory: '16GB',
-        hourlyCost: 0.126,
-        monthlyCost: 0.126 * 24 * 30,
-        useCase: '메모리 집약적'
-    },
-    'i3.large': {
-        vCPU: 2,
-        memory: '15GB',
-        hourlyCost: 0.156,
-        monthlyCost: 0.156 * 24 * 30,
-        useCase: '스토리지 최적화'
-    },
-    'g4dn.xlarge': {
-        vCPU: 4,
-        memory: '16GB',
-        hourlyCost: 0.526,
-        monthlyCost: 0.526 * 24 * 30,
-        useCase: 'GPU 컴퓨팅'
-    }
-};
-
-// 비용 계산 함수
-function calculateCost(instanceType, hours = 1) {
-    const instance = instanceCosts[instanceType];
-    if (!instance) {
-        throw new Error(`알 수 없는 인스턴스 유형: ${instanceType}`);
-    }
-    
-    return {
-        instanceType,
-        hourlyCost: instance.hourlyCost,
-        totalCost: instance.hourlyCost * hours,
-        monthlyCost: instance.monthlyCost,
-        specs: {
-            vCPU: instance.vCPU,
-            memory: instance.memory
-        },
-        useCase: instance.useCase
-    };
-}
-
-// 사용 예시
-console.log(calculateCost('t3.micro', 24));  // 24시간 사용 비용
-console.log(calculateCost('c5.large', 168)); // 1주일 사용 비용
-```
-
-#### 워크로드별 인스턴스 추천 시스템
-```javascript
-class InstanceRecommender {
-    constructor() {
-        this.workloadTypes = {
-            webServer: {
-                recommended: ['t3.micro', 't3.small', 'm5.large'],
-                criteria: ['CPU', 'Memory', 'Network'],
-                description: '웹 서버 및 애플리케이션 서버'
-            },
-            database: {
-                recommended: ['r5.large', 'r5.xlarge', 'r6g.large'],
-                criteria: ['Memory', 'Storage', 'Network'],
-                description: '데이터베이스 서버'
-            },
-            compute: {
-                recommended: ['c5.large', 'c5.xlarge', 'c6g.large'],
-                criteria: ['CPU', 'Network'],
-                description: '고성능 컴퓨팅 작업'
-            },
-            storage: {
-                recommended: ['i3.large', 'i3.xlarge', 'd2.xlarge'],
-                criteria: ['Storage', 'I/O'],
-                description: '대용량 스토리지 및 분석'
-            },
-            gpu: {
-                recommended: ['g4dn.xlarge', 'p3.2xlarge', 'p4d.24xlarge'],
-                criteria: ['GPU', 'Memory'],
-                description: '머신러닝 및 그래픽 처리'
-            }
-        };
-    }
-    
-    recommendInstance(workloadType, budget = null) {
-        const workload = this.workloadTypes[workloadType];
-        if (!workload) {
-            throw new Error(`지원하지 않는 워크로드 유형: ${workloadType}`);
-        }
-        
-        let recommendations = workload.recommended;
-        
-        // 예산 제약이 있는 경우 필터링
-        if (budget) {
-            recommendations = recommendations.filter(instanceType => {
-                const cost = instanceCosts[instanceType];
-                return cost && cost.monthlyCost <= budget;
-            });
-        }
-        
-        return {
-            workloadType,
-            description: workload.description,
-            criteria: workload.criteria,
-            recommendations: recommendations.map(instanceType => ({
-                instanceType,
-                ...instanceCosts[instanceType]
-            }))
-        };
-    }
-    
-    compareInstances(instanceTypes) {
-        return instanceTypes.map(instanceType => ({
-            instanceType,
-            ...instanceCosts[instanceType]
-        }));
-    }
-}
-
-// 사용 예시
-const recommender = new InstanceRecommender();
-
-console.log(recommender.recommendInstance('webServer'));
-console.log(recommender.recommendInstance('database', 100)); // 월 100달러 이하
-console.log(recommender.compareInstances(['t3.micro', 'c5.large', 'r5.large']));
-```
+#### Auto Scaling과의 연계
+- **수평 확장**: 트래픽 증가 시 인스턴스 자동 추가
+- **수직 확장**: 인스턴스 타입 자동 변경
+- **비용 절약**: 필요할 때만 리소스 사용
 
 ## 운영 팁
 
 ### 인스턴스 선택 가이드라인
 
 #### 워크로드별 선택 기준
-```javascript
-const workloadGuidelines = {
-    cpuIntensive: {
-        recommendation: 'C 시리즈 선택',
-        examples: ['c5.large', 'c5.xlarge', 'c6g.large'],
-        useCases: ['배치 처리', '게임 서버', '과학 계산']
-    },
-    memoryIntensive: {
-        recommendation: 'R 시리즈 선택',
-        examples: ['r5.large', 'r5.xlarge', 'r6g.large'],
-        useCases: ['Redis', 'SAP HANA', '대용량 데이터 분석']
-    },
-    storageIntensive: {
-        recommendation: 'I 시리즈 선택',
-        examples: ['i3.large', 'i3.xlarge', 'i4.large'],
-        useCases: ['빅데이터', '로그 분석', '데이터 웨어하우스']
-    },
-    gpuRequired: {
-        recommendation: 'P, G 시리즈 선택',
-        examples: ['g4dn.xlarge', 'p3.2xlarge', 'p4d.24xlarge'],
-        useCases: ['머신러닝', '그래픽 렌더링', 'AI 모델 학습']
-    },
-    generalPurpose: {
-        recommendation: 'T, M 시리즈 선택',
-        examples: ['t3.micro', 'm5.large', 'm6g.large'],
-        useCases: ['웹 서버', '애플리케이션 서버', '개발 환경']
-    }
-};
-```
 
-### 비용 최적화
+**CPU 집약적 워크로드**
+- 권장 시리즈: C 시리즈 (C5, C6g)
+- 특징: 고성능 CPU, 높은 네트워크 성능
+- 적용 사례: 배치 처리, 게임 서버, 과학 계산, 고성능 웹 서버
 
-#### Reserved Instances 관리
-```javascript
-class ReservedInstanceManager {
-    constructor() {
-        this.reservedInstances = new Map();
-    }
-    
-    // Reserved Instance 구매
-    purchaseReservedInstance(instanceType, term = 1, paymentOption = 'all') {
-        const baseCost = instanceCosts[instanceType].monthlyCost;
-        let discount = 0;
-        
-        switch (term) {
-            case 1:
-                discount = paymentOption === 'all' ? 0.40 : 0.30;
-                break;
-            case 3:
-                discount = paymentOption === 'all' ? 0.60 : 0.50;
-                break;
-            default:
-                discount = 0.30;
-        }
-        
-        const reservedCost = baseCost * (1 - discount);
-        
-        this.reservedInstances.set(instanceType, {
-            term,
-            paymentOption,
-            originalCost: baseCost,
-            reservedCost,
-            savings: baseCost - reservedCost,
-            savingsPercentage: discount * 100
-        });
-        
-        return this.reservedInstances.get(instanceType);
-    }
-    
-    // 비용 절약 계산
-    calculateSavings(instanceType, usageHours = 730) { // 730시간 = 1개월
-        const onDemandCost = instanceCosts[instanceType].hourlyCost * usageHours;
-        const reserved = this.reservedInstances.get(instanceType);
-        
-        if (!reserved) {
-            return { onDemandCost, reservedCost: onDemandCost, savings: 0 };
-        }
-        
-        const reservedCost = reserved.reservedCost;
-        const savings = onDemandCost - reservedCost;
-        
-        return {
-            onDemandCost,
-            reservedCost,
-            savings,
-            savingsPercentage: (savings / onDemandCost) * 100
-        };
-    }
-}
+**메모리 집약적 워크로드**
+- 권장 시리즈: R 시리즈 (R5, R6g), X 시리즈 (X1, X2)
+- 특징: 높은 메모리 대역폭, 대용량 RAM
+- 적용 사례: Redis, Memcached, SAP HANA, 대용량 데이터 분석
 
-// 사용 예시
-const riManager = new ReservedInstanceManager();
-riManager.purchaseReservedInstance('c5.large', 1, 'all');
-console.log(riManager.calculateSavings('c5.large'));
-```
+**스토리지 집약적 워크로드**
+- 권장 시리즈: I 시리즈 (I3, I4), D 시리즈 (D2)
+- 특징: 고속 NVMe SSD, 높은 I/O 성능
+- 적용 사례: 빅데이터, 로그 분석, 데이터 웨어하우스, 고성능 데이터베이스
 
-#### Spot Instances 활용
-```javascript
-class SpotInstanceManager {
-    constructor() {
-        this.spotPrices = new Map();
-    }
-    
-    // Spot Instance 요청
-    async requestSpotInstance(instanceType, maxPrice = null) {
-        const onDemandPrice = instanceCosts[instanceType].hourlyCost;
-        const spotPrice = maxPrice || (onDemandPrice * 0.7); // 기본 30% 할인
-        
-        return {
-            instanceType,
-            onDemandPrice,
-            spotPrice,
-            savings: onDemandPrice - spotPrice,
-            savingsPercentage: ((onDemandPrice - spotPrice) / onDemandPrice) * 100,
-            risk: 'Spot Instance는 가용성에 따라 중단될 수 있습니다.'
-        };
-    }
-    
-    // Spot Instance 모니터링
-    monitorSpotInstance(instanceId) {
-        return {
-            instanceId,
-            status: 'running',
-            currentPrice: 0.05,
-            maxPrice: 0.08,
-            uptime: '2 hours',
-            risk: 'low'
-        };
-    }
-}
-```
+**GPU 가속 워크로드**
+- 권장 시리즈: P 시리즈 (P3, P4), G 시리즈 (G4, G5)
+- 특징: NVIDIA GPU, 높은 메모리 대역폭
+- 적용 사례: 머신러닝, 딥러닝, 그래픽 렌더링, AI 모델 학습
 
-### 성능 모니터링
+**범용 워크로드**
+- 권장 시리즈: T 시리즈 (T3, T4), M 시리즈 (M5, M6g)
+- 특징: CPU, 메모리, 네트워크 성능 균형
+- 적용 사례: 웹 서버, 애플리케이션 서버, 개발 환경, 마이크로서비스
 
-#### CloudWatch 메트릭 수집
-```javascript
-const AWS = require('aws-sdk');
-const cloudwatch = new AWS.CloudWatch();
+### 성능 모니터링 및 최적화
 
-class InstanceMonitor {
-    constructor(instanceId) {
-        this.instanceId = instanceId;
-    }
-    
-    // CPU 사용률 모니터링
-    async getCPUUtilization(duration = 3600) {
-        const params = {
-            MetricDataQueries: [{
-                Id: 'cpu',
-                MetricStat: {
-                    Metric: {
-                        Namespace: 'AWS/EC2',
-                        MetricName: 'CPUUtilization',
-                        Dimensions: [{
-                            Name: 'InstanceId',
-                            Value: this.instanceId
-                        }]
-                    },
-                    Period: 300,
-                    Stat: 'Average'
-                }
-            }],
-            StartTime: new Date(Date.now() - duration * 1000),
-            EndTime: new Date()
-        };
-        
-        try {
-            const result = await cloudwatch.getMetricData(params).promise();
-            return result.MetricDataResults[0];
-        } catch (error) {
-            console.error('CPU 사용률 조회 실패:', error);
-            throw error;
-        }
-    }
-    
-    // 메모리 사용률 모니터링
-    async getMemoryUtilization() {
-        // CloudWatch Agent가 설치되어 있어야 함
-        const params = {
-            MetricDataQueries: [{
-                Id: 'memory',
-                MetricStat: {
-                    Metric: {
-                        Namespace: 'System/Linux',
-                        MetricName: 'MemoryUtilization',
-                        Dimensions: [{
-                            Name: 'InstanceId',
-                            Value: this.instanceId
-                        }]
-                    },
-                    Period: 300,
-                    Stat: 'Average'
-                }
-            }],
-            StartTime: new Date(Date.now() - 3600 * 1000),
-            EndTime: new Date()
-        };
-        
-        try {
-            const result = await cloudwatch.getMetricData(params).promise();
-            return result.MetricDataResults[0];
-        } catch (error) {
-            console.error('메모리 사용률 조회 실패:', error);
-            throw error;
-        }
-    }
-    
-    // 인스턴스 성능 분석
-    async analyzePerformance() {
-        const cpuData = await this.getCPUUtilization();
-        const memoryData = await this.getMemoryUtilization();
-        
-        const avgCPU = cpuData.Values.reduce((sum, val) => sum + val, 0) / cpuData.Values.length;
-        const avgMemory = memoryData.Values.reduce((sum, val) => sum + val, 0) / memoryData.Values.length;
-        
-        return {
-            instanceId: this.instanceId,
-            averageCPU: avgCPU,
-            averageMemory: avgMemory,
-            recommendation: this.getRecommendation(avgCPU, avgMemory)
-        };
-    }
-    
-    getRecommendation(cpu, memory) {
-        if (cpu > 80) {
-            return 'CPU 사용률이 높습니다. 더 큰 인스턴스로 업그레이드를 고려하세요.';
-        } else if (memory > 80) {
-            return '메모리 사용률이 높습니다. 메모리 최적화 인스턴스로 변경을 고려하세요.';
-        } else if (cpu < 20 && memory < 20) {
-            return '리소스 사용률이 낮습니다. 더 작은 인스턴스로 다운사이징을 고려하세요.';
-        } else {
-            return '현재 인스턴스 크기가 적절합니다.';
-        }
-    }
-}
+#### CloudWatch를 활용한 모니터링
+- **CPU 사용률**: 80% 이상 지속 시 업그레이드 고려
+- **메모리 사용률**: 80% 이상 지속 시 메모리 최적화 인스턴스 검토
+- **네트워크 I/O**: 대역폭 한계 도달 시 더 큰 인스턴스 고려
+- **디스크 I/O**: IOPS 한계 도달 시 스토리지 최적화 인스턴스 검토
 
-// 사용 예시
-const monitor = new InstanceMonitor('i-1234567890abcdef0');
-monitor.analyzePerformance().then(result => {
-    console.log('성능 분석 결과:', result);
-});
-```
+#### 성능 최적화 전략
+- **수직 확장**: 인스턴스 타입 업그레이드
+- **수평 확장**: Auto Scaling을 통한 인스턴스 추가
+- **로드 밸런싱**: 트래픽 분산으로 단일 인스턴스 부하 감소
+- **캐싱**: ElastiCache를 통한 데이터베이스 부하 감소
 
 ### 보안 고려사항
 
-#### 보안 그룹 설정
-```javascript
-class SecurityGroupManager {
-    constructor() {
-        this.ec2 = new AWS.EC2();
-    }
-    
-    // 웹 서버용 보안 그룹 생성
-    async createWebServerSecurityGroup() {
-        const params = {
-            GroupName: 'WebServerSG',
-            Description: '웹 서버용 보안 그룹',
-            VpcId: 'vpc-12345678',
-            IpPermissions: [
-                {
-                    IpProtocol: 'tcp',
-                    FromPort: 80,
-                    ToPort: 80,
-                    IpRanges: [{ CidrIp: '0.0.0.0/0' }]
-                },
-                {
-                    IpProtocol: 'tcp',
-                    FromPort: 443,
-                    ToPort: 443,
-                    IpRanges: [{ CidrIp: '0.0.0.0/0' }]
-                },
-                {
-                    IpProtocol: 'tcp',
-                    FromPort: 22,
-                    ToPort: 22,
-                    IpRanges: [{ CidrIp: '10.0.0.0/16' }] // SSH는 내부 네트워크에서만
-                }
-            ]
-        };
-        
-        try {
-            const result = await this.ec2.createSecurityGroup(params).promise();
-            console.log('보안 그룹 생성 완료:', result.GroupId);
-            return result.GroupId;
-        } catch (error) {
-            console.error('보안 그룹 생성 실패:', error);
-            throw error;
-        }
-    }
-    
-    // 데이터베이스용 보안 그룹 생성
-    async createDatabaseSecurityGroup() {
-        const params = {
-            GroupName: 'DatabaseSG',
-            Description: '데이터베이스용 보안 그룹',
-            VpcId: 'vpc-12345678',
-            IpPermissions: [
-                {
-                    IpProtocol: 'tcp',
-                    FromPort: 3306, // MySQL
-                    ToPort: 3306,
-                    IpRanges: [{ CidrIp: '10.0.0.0/16' }] // 내부 네트워크에서만
-                },
-                {
-                    IpProtocol: 'tcp',
-                    FromPort: 5432, // PostgreSQL
-                    ToPort: 5432,
-                    IpRanges: [{ CidrIp: '10.0.0.0/16' }]
-                }
-            ]
-        };
-        
-        try {
-            const result = await this.ec2.createSecurityGroup(params).promise();
-            console.log('데이터베이스 보안 그룹 생성 완료:', result.GroupId);
-            return result.GroupId;
-        } catch (error) {
-            console.error('보안 그룹 생성 실패:', error);
-            throw error;
-        }
-    }
-}
-```
+#### 네트워크 보안
+- **보안 그룹**: 최소 권한 원칙 적용
+- **VPC**: 프라이빗 서브넷 활용
+- **NACL**: 서브넷 레벨 보안 강화
+- **WAF**: 웹 애플리케이션 방화벽 적용
+
+#### 인스턴스 보안
+- **IAM 역할**: 인스턴스별 최소 권한 부여
+- **시스템 패치**: 정기적인 보안 업데이트
+- **모니터링**: CloudTrail, GuardDuty를 통한 이상 행위 탐지
+- **암호화**: EBS 볼륨 암호화, 전송 중 데이터 암호화
 
 ## 참고
 
 ### 인스턴스 유형별 상세 사양
 
-#### 최신 인스턴스 유형 비교
-```javascript
-const detailedSpecs = {
-    't3.micro': {
-        vCPU: 2,
-        memory: '1GB',
-        network: 'Up to 5 Gbps',
-        storage: 'EBS only',
-        architecture: 'x86_64',
-        generation: '3rd'
-    },
-    'c5.large': {
-        vCPU: 2,
-        memory: '4GB',
-        network: 'Up to 10 Gbps',
-        storage: 'EBS only',
-        architecture: 'x86_64',
-        generation: '5th'
-    },
-    'r5.large': {
-        vCPU: 2,
-        memory: '16GB',
-        network: 'Up to 10 Gbps',
-        storage: 'EBS only',
-        architecture: 'x86_64',
-        generation: '5th'
-    },
-    'g4dn.xlarge': {
-        vCPU: 4,
-        memory: '16GB',
-        network: 'Up to 25 Gbps',
-        storage: '1x 125 NVMe SSD',
-        architecture: 'x86_64',
-        generation: '4th',
-        gpu: '1x NVIDIA T4'
-    }
-};
-```
+#### 주요 인스턴스 시리즈 비교
+
+| 시리즈 | vCPU | 메모리 | 네트워크 | 스토리지 | 주요 특징 |
+|--------|------|--------|----------|----------|-----------|
+| T3.micro | 2 | 1GB | 최대 5 Gbps | EBS only | 버스트 가능, 비용 효율적 |
+| C5.large | 2 | 4GB | 최대 10 Gbps | EBS only | 고성능 CPU, 컴퓨팅 최적화 |
+| R5.large | 2 | 16GB | 최대 10 Gbps | EBS only | 높은 메모리, 메모리 최적화 |
+| I3.large | 2 | 15GB | 최대 10 Gbps | 475GB NVMe SSD | 고속 스토리지, I/O 최적화 |
+| G4dn.xlarge | 4 | 16GB | 최대 25 Gbps | 125GB NVMe SSD | NVIDIA T4 GPU, AI/ML 최적화 |
+
+### 인스턴스 선택 체크리스트
+
+#### 워크로드 분석
+- [ ] CPU 집약적인 작업인가?
+- [ ] 메모리 집약적인 작업인가?
+- [ ] 스토리지 I/O가 중요한가?
+- [ ] GPU 가속이 필요한가?
+- [ ] 네트워크 대역폭이 중요한가?
+
+#### 비용 고려사항
+- [ ] 예상 사용 시간은?
+- [ ] 24/7 운영인가?
+- [ ] 중단 가능한 워크로드인가?
+- [ ] 예산 제약이 있는가?
+
+#### 성능 요구사항
+- [ ] 최소 성능 보장이 필요한가?
+- [ ] 버스트 성능으로 충분한가?
+- [ ] 지속적인 고성능이 필요한가?
 
 ### 결론
-AWS EC2 인스턴스 유형은 다양한 워크로드에 최적화된 선택지를 제공합니다.
-애플리케이션의 특성과 요구사항을 정확히 분석하여 적절한 인스턴스 유형을 선택하는 것이 중요합니다.
-비용 최적화를 위해 Reserved Instances와 Spot Instances를 적절히 활용하고,
-CloudWatch를 통한 지속적인 모니터링으로 성능을 최적화할 수 있습니다.
-보안 설정과 함께 안정적이고 효율적인 클라우드 인프라를 구축할 수 있습니다.
+
+AWS EC2 인스턴스 유형 선택은 애플리케이션의 성능 요구사항, 비용 제약, 그리고 워크로드 특성을 종합적으로 고려해야 하는 중요한 결정입니다. 
+
+각 인스턴스 시리즈는 특정 워크로드에 최적화되어 있으므로, 애플리케이션의 특성을 정확히 분석하여 적절한 인스턴스 유형을 선택하는 것이 핵심입니다. 또한 비용 최적화를 위해 Reserved Instances와 Spot Instances를 적절히 활용하고, CloudWatch를 통한 지속적인 모니터링으로 성능을 최적화할 수 있습니다.
+
+보안 설정과 함께 안정적이고 효율적인 클라우드 인프라를 구축하여 비즈니스 요구사항을 충족시킬 수 있습니다.
+
+## 참조
+
+- [AWS EC2 인스턴스 유형](https://aws.amazon.com/ec2/instance-types/)
+- [AWS EC2 가격 정책](https://aws.amazon.com/ec2/pricing/)
+- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
+- [AWS EC2 사용자 가이드](https://docs.aws.amazon.com/ec2/)
+- [AWS CloudWatch 모니터링 가이드](https://docs.aws.amazon.com/cloudwatch/)
+- [AWS 보안 모범 사례](https://aws.amazon.com/security/security-resources/)
 
 
 
