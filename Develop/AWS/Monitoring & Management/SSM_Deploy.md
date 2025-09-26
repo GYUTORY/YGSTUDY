@@ -1,571 +1,242 @@
 ---
-title: 1.
-tags: [aws, monitoring-and-management, ssmdeploy]
-updated: 2025-08-10
----
-## 1. 사전 준비 및 설계
-- **EC2 인스턴스**: SSM Agent가 설치 및 활성화되어 있어야 하며, 인스턴스에 SSM, KMS, S3 등 필요한 권한이 부여된 IAM Role을 할당합니다. SSM Agent가 정상 동작하는지 반드시 사전 점검이 필요합니다.
-- **IAM Role/Policy**: EC2 인스턴스에는 SSM, KMS, S3 등 필요한 최소 권한만 부여합니다. 예를 들어, `ssm:SendCommand`, `kms:Decrypt`, `ec2:DescribeInstances` 등이 있습니다.
-- **KMS**: 배포에 필요한 민감 정보(예: DB 비밀번호, API Key 등)는 SSM Parameter Store에 KMS로 암호화해 저장합니다.
-- **Bitbucket 환경 변수**: AWS 자격증명(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION 등)과 배포에 필요한 변수(INSTANCE_ID, DEPLOY_ENV 등)는 Bitbucket 환경변수로 등록해 코드에 노출되지 않도록 합니다.
-
-## 2. Pipeline 작성 예시 및 설명
-```yaml
-image: amazonlinux:2
-pipelines:
-  default:
-    - step:
-        name: Deploy via SSM
-        script:
-          - yum install -y awscli
-          # SSM Parameter Store에서 민감 정보 안전하게 가져오기
-          - export DB_PASSWORD=$(aws ssm get-parameter --name "/deploy/db_password" --with-decryption --region $AWS_DEFAULT_REGION --query 'Parameter.Value' --output text)
-          # SSM을 통해 EC2에 배포 스크립트 실행
-          - aws ssm send-command \
-              --instance-ids "$INSTANCE_ID" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands="sh /home/ec2-user/deploy.sh $DB_PASSWORD $DEPLOY_ENV"
-```
-- `INSTANCE_ID`, `DEPLOY_ENV` 등은 Bitbucket 환경변수로 관리합니다.
-- 민감 정보는 SSM Parameter Store에서 KMS로 복호화하여 안전하게 전달합니다.
-- 실제 배포 스크립트(`deploy.sh`)는 EC2에 미리 준비되어 있어야 하며, 필요시 S3에서 다운로드하도록 구성할 수도 있습니다.
-
-## 3. 실무 적용 팁 및 경험
-- **배포 이력 관리**: 모든 배포 내역은 Bitbucket과 AWS CloudTrail, SSM 콘솔에서 추적 및 감사가 가능합니다.
-- **오류 대응**: 배포 실패 시 SSM 콘솔 또는 CloudWatch Logs에서 명령 결과를 상세히 확인해 원인 분석이 가능합니다. IAM 권한 부족, KMS 접근 오류 등은 사전에 충분히 테스트하여 배포 중단을 방지하세요.
-- **보안 강화**: IAM 최소 권한 원칙을 반드시 적용하고, 모든 민감 정보는 환경변수 또는 SSM Parameter Store(암호화)로만 관리합니다.
-- **유지보수**: 배포 스크립트는 버전 관리하며, 필요시 롤백이 가능하도록 설계합니다.
-- **실제 적용 예시**: 신규 서비스 배포 시, 개발/운영 환경을 분리해 각각 다른 SSM 파라미터와 환경변수를 사용함으로써, 환경별 배포 자동화와 보안성을 동시에 확보했습니다.
-
----
-이와 같이 Bitbucket Pipeline과 AWS SSM을 연동하면, 안전하고 효율적인 자동화 배포 환경을 구축할 수 있습니다. 실무에서 직접 적용한 경험을 바탕으로 작성하였으니, DevOps 자동화에 바로 활용해보세요!
-
-# 2. 전체 아키텍처 및 배포 흐름도
-
-## 2.1 아키텍처 다이어그램
-
-```mermaid
-flowchart TD
-    A["Bitbucket Pipeline"] -->|AWS CLI, 환경변수| B["AWS SSM (Parameter Store, Run Command)"]
-    B -->|SendCommand| C["EC2 (Node.js 20, SSM Agent)"]
-    C -->|실행 로그| D["CloudWatch Logs"]
-    B -->|KMS 복호화| E["KMS"]
-    C -->|배포 스크립트 실행| F["/home/ec2-user/deploy.sh"]
-    F -->|애플리케이션 배포| G["Node.js 20 App"]
-```
-
-## 2.2 전체 배포 흐름 설명
-
-1. **개발자가 Bitbucket에 코드를 Push**  
-   - PR/Merge 시점에 Pipeline이 자동으로 실행됨.
-2. **Pipeline에서 AWS CLI로 SSM Parameter Store 접근**  
-   - 민감 정보(예: DB 비밀번호, API Key 등)는 KMS로 암호화된 상태로 SSM에 저장되어 있음.
-   - Pipeline은 환경변수로 AWS 자격증명, 인스턴스ID, 배포 환경(DEV/STG/PRD) 등 전달.
-3. **SSM Run Command로 EC2에 배포 명령 전송**  
-   - EC2에는 SSM Agent가 설치되어 있어야 하며, IAM Role을 통해 SSM, KMS, S3 등 권한을 부여.
-   - 배포 스크립트(deploy.sh)는 미리 EC2에 준비되어 있거나, S3에서 다운로드.
-4. **EC2에서 배포 스크립트 실행**  
-   - Node.js 20 기반 애플리케이션을 빌드 및 재시작.
-   - 실행 결과 및 로그는 CloudWatch Logs로 전송.
-5. **배포 결과 확인 및 롤백**  
-   - Pipeline, SSM, CloudWatch, Bitbucket에서 배포 이력 및 로그 확인.
-   - 필요시 롤백 스크립트 실행.
-
-## 2.3 실전 아키텍처 적용 시 유의사항
-
-- SSM Agent가 정상 동작하는지, EC2와 SSM/KMS 권한이 충분한지 사전 점검 필수.
-- 환경별(DEV/STG/PRD)로 SSM 파라미터, IAM Role, KMS 키를 분리해 보안성 강화.
-- 배포 스크립트는 반드시 버전 관리(Git/S3) 및 롤백 기능 포함.
-- CloudWatch Logs, SSM 명령 이력, Bitbucket 배포 로그를 통해 전체 추적 및 감사 가능.
-
+title: AWS SSM을 활용한 자동화 배포 실전 가이드
+tags: [aws, monitoring-and-management, ssm, deployment, automation]
+updated: 2025-09-23
 ---
 
-# 3. 기존 레거시 문제점 분석
+# AWS SSM을 활용한 자동화 배포 실전 가이드
 
-## 3.1 레거시 배포 방식의 한계
+## 개요
 
-- **수동 배포**: 개발자가 직접 서버에 접속해 git pull, npm install, pm2 restart 등 명령을 일일이 실행. 배포 과정에서 실수 발생 빈번.
-- **권한 관리 미흡**: 모든 개발자에게 동일한 SSH 접근 권한 부여, 보안 사고 위험.
-- **배포 이력 추적 불가**: 누가 언제 어떤 버전을 배포했는지 명확히 알 수 없음. 장애 발생 시 원인 파악 어려움.
-- **민감 정보 노출**: 환경변수, DB 비밀번호 등이 코드나 서버에 평문으로 저장되어 유출 위험.
-- **롤백 불가**: 배포 실패 시 신속한 롤백이 어려워 서비스 장애로 이어짐.
-- **운영 환경 불일치**: 개발/운영 환경이 달라 배포 후 예상치 못한 오류 발생.
+최근 많은 기업들이 레거시 시스템의 한계를 극복하고자 DevOps 문화를 도입하고 있습니다. 특히 배포 과정에서 발생하는 수동 작업의 비효율성, 보안 취약점, 그리고 운영 안정성 문제를 해결하기 위해 자동화 도구들을 적극 활용하고 있습니다.
 
-## 3.2 실제 경험 기반 문제 사례
+이 문서는 실제 프로덕션 환경에서 Bitbucket Pipeline과 AWS SSM(Systems Manager)을 연동하여 Node.js 20 기반 애플리케이션의 자동화 배포 시스템을 구축한 경험을 바탕으로 작성되었습니다. 단순한 설정 방법을 나열하는 것이 아니라, 왜 이런 구조가 필요한지, 어떤 문제를 해결하는지에 대한 개념적 이해를 중심으로 다룹니다.
 
-- 신규 입사자가 배포 과정 숙지에 오랜 시간 소요, 문서화 미흡으로 인한 실수 다발.
-- 배포 중 SSH 세션 끊김, 서버 다운 등으로 인해 배포가 중단되고 서비스 장애 발생.
-- 환경변수 관리가 체계적이지 않아, 운영 환경에서 잘못된 값이 적용되어 장애 발생.
-- 배포 후 장애 발생 시, 원인 추적 및 롤백에 수십 분~수 시간 소요.
+## 1. 기존 배포 방식의 문제점과 개선 필요성
 
-## 3.3 개선 필요성
+### 1.1 레거시 배포 방식의 한계
 
-- 배포 자동화, 권한 최소화, 이력 추적, 보안 강화, 신속한 롤백 등 DevOps 원칙에 부합하는 체계적 배포 시스템 필요.
+기존의 수동 배포 방식은 여러 가지 구조적 문제를 가지고 있었습니다. 가장 큰 문제는 **인적 의존성**이었다. 개발자가 직접 서버에 SSH로 접속하여 git pull, npm install, pm2 restart 등의 명령을 순차적으로 실행하는 방식은 다음과 같은 문제점들을 야기했습니다.
 
----
+**일관성 부족**: 개발자마다 배포 절차가 미묘하게 달랐습니다. 어떤 개발자는 npm install을 먼저 실행하고, 어떤 개발자는 git pull 후 바로 pm2 restart를 실행했습니다. 이런 불일치는 예측하기 어려운 배포 실패로 이어졌습니다.
 
-# 4. 신규 Node.js 20 서버 환경 설계
-
-## 4.1 Node.js 20 도입 배경
-
-- 최신 LTS 버전(Node.js 20) 도입으로 보안성, 성능, 최신 패키지 호환성 확보.
-- 레거시 Node.js 12/14 대비, async/await, ES 모듈, 최신 npm 등 지원 강화.
-- 신규 서버는 Amazon Linux 2 기반, EC2 인스턴스에 Node.js 20, pm2, SSM Agent, AWS CLI 등 설치.
+**권한 관리의 복잡성**: 모든 개발자에게 동일한 SSH 접근 권한을 부여해야 했습니다. 이는 보안상 위험할 뿐만 아니라, 누가 언제 어떤 작업을 했는지 추적하기 어려웠습니다. 특히 장애 발생 시 원인 파악에 상당한 시간이 소요되었습니다.
 
-## 4.2 서버 환경 표준화
-
-- 모든 서버는 동일한 AMI, 동일한 Node.js 20, 동일한 패키지 버전 사용.
-- 배포 스크립트, 환경변수, 로그 경로 등 표준화.
-- SSM Agent, CloudWatch Logs, pm2 등 운영 도구 사전 설치 및 설정.
+**배포 이력의 부재**: 수동 배포는 추적 가능한 이력이 남지 않았습니다. 어떤 버전이 언제 배포되었는지, 누가 배포했는지에 대한 기록이 없어 롤백이나 문제 해결이 어려웠습니다.
 
-## 4.3 서버 보안 및 네트워크 설계
+**민감 정보 노출**: 데이터베이스 비밀번호, API 키 등의 민감한 정보가 코드나 서버 설정 파일에 평문으로 저장되어 있었습니다. 이는 보안 사고의 주요 원인이 될 수 있었습니다.
 
-- EC2는 VPC 내부 서브넷에 위치, 외부 접근은 Bastion Host 또는 SSM Session Manager로 제한.
-- 보안 그룹, NACL 등으로 인바운드/아웃바운드 트래픽 최소화.
-- SSM, KMS, S3 등 AWS 서비스 접근을 위한 IAM Role 부여.
+### 1.2 자동화 배포의 필요성
 
----
+이러한 문제들을 해결하기 위해 자동화 배포 시스템이 필요했습니다. 자동화 배포의 핵심 목표는 다음과 같았습니다:
 
-# 5. AWS 계정 및 네트워크 준비
+**일관성 확보**: 모든 배포가 동일한 절차를 거치도록 하여 예측 가능한 결과를 보장합니다.
 
-## 5.1 AWS 계정 구조
+**보안 강화**: 최소 권한 원칙을 적용하고, 민감 정보는 암호화하여 안전하게 관리합니다.
 
-- 운영/개발/테스트 등 환경별로 AWS 계정 또는 리소스 분리.
-- 각 계정별로 IAM 정책, SSM 파라미터, KMS 키, S3 버킷 등 별도 관리.
+**추적성 확보**: 모든 배포 과정이 로그로 남아 감사와 문제 해결이 가능합니다.
 
-## 5.2 네트워크 설계
+**효율성 증대**: 수동 작업을 최소화하여 개발팀의 생산성을 높입니다.
 
-- VPC, 서브넷, 라우팅 테이블, NAT Gateway, 보안 그룹 등 설계.
-- EC2는 프라이빗 서브넷에 위치, SSM Agent를 통한 관리.
-- S3, KMS, SSM 등 AWS 서비스는 VPC 엔드포인트를 통해 내부 통신.
+## 2. AWS SSM의 핵심 개념과 역할
 
-## 5.3 실전 네트워크 구성 예시
+### 2.1 SSM(Systems Manager)이란?
 
-- VPC: 10.0.0.0/16
-- Public Subnet: 10.0.1.0/24 (Bastion Host)
-- Private Subnet: 10.0.2.0/24 (App Server)
-- NAT Gateway: Public Subnet에 위치, Private Subnet에서 외부 접근 시 사용
-- SSM, S3, KMS VPC 엔드포인트 구성
+AWS Systems Manager는 AWS 리소스를 관리하고 운영 작업을 자동화할 수 있는 서비스입니다. SSM의 핵심 기능 중 하나가 **Run Command**인데, 이는 EC2 인스턴스에 원격으로 명령을 실행할 수 있게 해줍니다.
 
----
+SSM의 가장 큰 장점은 **에이전트 기반 관리**입니다. EC2 인스턴스에 SSM Agent가 설치되어 있으면, SSH 접속 없이도 AWS 콘솔이나 CLI를 통해 인스턴스에 명령을 실행할 수 있습니다. 이는 보안상 매우 중요한 의미를 가집니다.
 
-# 6. IAM 정책/Role 설계 및 실전 예시
+### 2.2 SSM Agent의 동작 원리
 
-## 6.1 IAM 정책 설계 원칙
+SSM Agent는 EC2 인스턴스에서 실행되는 소프트웨어입니다. 이 에이전트는 AWS SSM 서비스와 지속적으로 통신하여 대기 중인 명령이 있는지 확인합니다. 명령이 있으면 해당 명령을 실행하고 결과를 SSM 서비스로 전송합니다.
 
-- 최소 권한 원칙(Least Privilege Principle) 적용
-- SSM, KMS, S3, CloudWatch 등 필요한 서비스만 명시적으로 허용
-- 환경별(DEV/STG/PRD)로 Role/Policy 분리
+이 과정에서 중요한 것은 **역방향 연결**입니다. 일반적인 SSH는 클라이언트가 서버에 직접 연결하는 방식이지만, SSM Agent는 서버(EC2)에서 AWS 서비스로 연결을 시작합니다. 이는 방화벽 설정을 단순화하고 보안을 강화하는 효과가 있습니다.
 
-## 6.2 EC2용 IAM Role 예시
+### 2.3 Parameter Store의 역할
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ssm:SendCommand",
-        "ssm:ListCommands",
-        "ssm:GetCommandInvocation",
-        "ssm:GetParameters",
-        "ssm:GetParameter",
-        "ssm:DescribeInstanceInformation",
-        "kms:Decrypt",
-        "s3:GetObject",
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+SSM Parameter Store는 설정 데이터와 민감한 정보를 안전하게 저장할 수 있는 서비스입니다. 특히 **SecureString** 타입을 사용하면 KMS(Key Management Service)를 통해 자동으로 암호화됩니다.
 
-## 6.3 Bitbucket Pipeline용 IAM User/Policy 예시
+Parameter Store의 장점은 **중앙 집중식 관리**입니다. 여러 서버에서 동일한 설정값을 사용해야 할 때, 각 서버에 개별적으로 설정하지 않고 Parameter Store에서 중앙 관리할 수 있습니다. 또한 설정값 변경 시 모든 서버에 즉시 반영할 수 있습니다.
 
-- Bitbucket에서 AWS CLI를 사용해 SSM, EC2, KMS 등에 접근할 수 있도록 별도 IAM User 생성
-- Access Key/Secret Key는 Bitbucket 환경변수로만 관리
+## 3. 보안 아키텍처 설계
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ssm:SendCommand",
-        "ssm:GetParameters",
-        "ssm:GetParameter",
-        "ec2:DescribeInstances",
-        "kms:Decrypt"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+### 3.1 IAM 최소 권한 원칙
 
-## 6.4 IAM 정책 적용 실전 팁
+자동화 배포 시스템에서 가장 중요한 보안 원칙은 **최소 권한 원칙(Principle of Least Privilege)**입니다. 이는 각 구성 요소가 자신의 역할을 수행하는 데 필요한 최소한의 권한만을 부여하는 것입니다.
 
-- 정책은 반드시 최소 권한만 부여, 필요시 CloudTrail로 접근 이력 모니터링
-- 환경별로 정책/Role을 분리해 실수로 인한 권한 오남용 방지
-- 정책 변경 시, 배포 전 사전 테스트 필수
+EC2 인스턴스에 부여되는 IAM Role은 다음과 같은 권한만을 포함해야 합니다:
+- `ssm:SendCommand`: SSM을 통해 명령 실행
+- `ssm:GetParameters`: Parameter Store에서 설정값 조회
+- `kms:Decrypt`: 암호화된 파라미터 복호화
+- `logs:CreateLogGroup`, `logs:PutLogEvents`: CloudWatch Logs에 로그 전송
 
----
+이러한 세분화된 권한 부여는 보안 사고 발생 시 피해 범위를 최소화하고, 감사 시에도 어떤 권한이 사용되었는지 명확히 파악할 수 있게 합니다.
 
-# 7. SSM Agent 설치 및 점검
+### 3.2 KMS를 활용한 암호화
 
-## 7.1 SSM Agent 설치 방법
+민감한 정보는 반드시 암호화되어야 합니다. AWS에서는 KMS(Key Management Service)를 통해 강력한 암호화를 제공합니다. KMS의 핵심 특징은 다음과 같습니다:
 
-- Amazon Linux 2 기준, 기본적으로 SSM Agent가 설치되어 있으나, 최신 버전으로 업데이트 권장
+**고객 관리 키**: AWS가 제공하는 기본 키 대신 고객이 직접 생성하고 관리하는 키를 사용할 수 있습니다. 이를 통해 키의 생성, 삭제, 권한 관리에 대한 완전한 제어가 가능합니다.
 
-```bash
-sudo yum install -y amazon-ssm-agent
-sudo systemctl enable amazon-ssm-agent
-sudo systemctl start amazon-ssm-agent
-sudo systemctl status amazon-ssm-agent
-```
+**키 정책**: KMS 키는 정책을 통해 어떤 주체가 어떤 작업을 수행할 수 있는지 세밀하게 제어할 수 있습니다. 예를 들어, 특정 IAM Role만 복호화를 수행할 수 있도록 제한할 수 있습니다.
 
-## 7.2 SSM Agent 정상 동작 점검
+**감사 추적**: KMS는 모든 키 사용에 대한 상세한 로그를 CloudTrail을 통해 제공합니다. 이를 통해 누가 언제 어떤 키를 사용했는지 완전히 추적할 수 있습니다.
 
-- SSM 콘솔에서 해당 인스턴스가 "Managed Instances"로 표시되는지 확인
-- 아래 명령어로 상태 점검
+### 3.3 네트워크 보안 설계
 
-```bash
-sudo systemctl status amazon-ssm-agent
-```
+EC2 인스턴스는 가능한 한 **프라이빗 서브넷**에 배치해야 합니다. 프라이빗 서브넷은 인터넷에서 직접 접근할 수 없으며, NAT Gateway를 통해서만 외부와 통신할 수 있습니다.
 
-- SSM Agent 로그 확인
+이러한 설계의 장점은 다음과 같습니다:
+- **공격 표면 최소화**: 외부에서 직접 접근할 수 없어 공격 가능성이 크게 줄어듭니다.
+- **SSM을 통한 관리**: SSH 접속이 불가능하더라도 SSM을 통해 모든 관리 작업이 가능합니다.
+- **VPC 엔드포인트 활용**: AWS 서비스와의 통신을 VPC 내부에서 처리할 수 있어 보안과 성능을 동시에 확보할 수 있습니다.
 
-```bash
-sudo tail -f /var/log/amazon/ssm/amazon-ssm-agent.log
-```
+## 4. CI/CD 파이프라인 설계
 
-## 7.3 SSM Agent 장애/오류 실전 사례
+### 4.1 Bitbucket Pipeline의 역할
 
-- IAM Role 미부여, 네트워크 차단, SSM Agent 비활성화 등으로 인해 SSM 명령이 실패하는 경우 다수
-- SSM Agent가 비정상 종료되면, 배포 자동화가 중단되므로 CloudWatch Alarm 등으로 모니터링 필요
+Bitbucket Pipeline은 코드 저장소와 연동된 CI/CD 서비스입니다. 코드가 저장소에 푸시되거나 특정 브랜치에 머지될 때 자동으로 파이프라인이 실행됩니다.
 
----
+파이프라인의 핵심 역할은 다음과 같습니다:
+- **코드 품질 검증**: 테스트 실행, 코드 스타일 검사 등
+- **빌드 및 패키징**: 애플리케이션 빌드, 의존성 설치 등
+- **배포 자동화**: AWS SSM을 통한 원격 배포 실행
 
-# 8. KMS 키 생성 및 파라미터 암호화
+### 4.2 환경 변수 관리
 
-## 8.1 KMS 키 생성
+Bitbucket Pipeline에서는 **환경 변수**를 통해 민감한 정보를 안전하게 관리할 수 있습니다. 환경 변수는 코드에 직접 노출되지 않으며, 파이프라인 실행 시에만 사용됩니다.
 
-- AWS 콘솔에서 KMS(Key Management Service)로 이동, 신규 Customer Managed Key 생성
-- 환경별(DEV/STG/PRD)로 별도 키 생성 권장
-- 키 정책에 SSM, EC2, Bitbucket IAM User 등 필요한 주체만 추가
+주요 환경 변수들:
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`: AWS 자격 증명
+- `AWS_DEFAULT_REGION`: AWS 리전 정보
+- `INSTANCE_ID`: 배포 대상 EC2 인스턴스 ID
+- `DEPLOY_ENV`: 배포 환경 (dev, staging, production)
 
-## 8.2 SSM Parameter Store에 암호화 파라미터 저장
+### 4.3 배포 스크립트 설계
 
-```bash
-aws ssm put-parameter \
-  --name "/deploy/db_password" \
-  --value "실제비밀번호" \
-  --type "SecureString" \
-  --key-id "arn:aws:kms:ap-northeast-2:123456789012:key/abcd-efgh-ijkl" \
-  --region ap-northeast-2
-```
+배포 스크립트는 실제 애플리케이션 배포를 담당하는 핵심 구성 요소입니다. 좋은 배포 스크립트는 다음과 같은 특징을 가져야 합니다:
 
-## 8.3 KMS/SSM 연동 실전 팁
+**멱등성(Idempotency)**: 동일한 스크립트를 여러 번 실행해도 동일한 결과를 보장해야 합니다. 이를 위해 현재 상태를 확인하고 필요한 작업만 수행해야 합니다.
 
-- KMS 키 정책에 SSM, EC2, Bitbucket IAM User 등 필요한 주체만 명시
-- 파라미터 이름은 환경별로 구분(/deploy/dev/db_password, /deploy/prod/db_password 등)
-- 파라미터 값은 반드시 SecureString(암호화) 타입으로 저장
+**오류 처리**: 각 단계에서 발생할 수 있는 오류를 적절히 처리하고, 실패 시 명확한 오류 메시지를 제공해야 합니다.
 
----
+**롤백 지원**: 배포 실패 시 이전 상태로 복구할 수 있는 메커니즘을 포함해야 합니다.
 
-# 9. SSM Parameter Store 실전 활용
+## 5. 모니터링 및 로깅
 
-## 9.1 파라미터 구조 설계
+### 5.1 CloudWatch Logs 활용
 
-- /deploy/{env}/{key} 형태로 환경별, 서비스별로 파라미터 구분
-- 예시: /deploy/prod/db_password, /deploy/dev/api_key 등
+모든 배포 과정과 애플리케이션 로그는 CloudWatch Logs에 중앙 집중식으로 수집됩니다. 이를 통해 다음과 같은 이점을 얻을 수 있습니다:
 
-## 9.2 파라미터 등록/조회 예시
+**통합 로그 관리**: 여러 서버의 로그를 하나의 곳에서 관리할 수 있습니다.
 
-```bash
+**실시간 모니터링**: CloudWatch 알람을 설정하여 특정 조건이 발생했을 때 즉시 알림을 받을 수 있습니다.
 
-## 배경
-aws ssm put-parameter --name "/deploy/prod/db_password" --value "비밀번호" --type "SecureString" --key-id "KMS키ARN"
+**로그 분석**: CloudWatch Insights를 사용하여 로그 데이터를 분석하고 문제를 진단할 수 있습니다.
 
-aws ssm get-parameter --name "/deploy/prod/db_password" --with-decryption
-```
+### 5.2 배포 이력 추적
 
+모든 배포는 추적 가능한 이력을 남겨야 합니다. 이를 위해 다음과 같은 정보를 기록합니다:
 
+- 배포 시작/완료 시간
+- 배포한 사용자 (Git 커밋 정보)
+- 배포된 코드 버전 (Git 커밋 해시)
+- 배포 결과 (성공/실패)
+- 배포 과정에서 발생한 오류
 
+이러한 정보는 Bitbucket, SSM, CloudWatch Logs 등 여러 곳에 분산되어 기록되며, 필요 시 통합하여 조회할 수 있습니다.
 
+## 6. 환경별 분리 전략
 
-# 1. 개요 및 도입 배경
+### 6.1 환경 분리의 필요성
 
-## 9.3 실전 활용 팁
+개발, 스테이징, 프로덕션 환경은 서로 다른 목적과 요구사항을 가지고 있습니다. 따라서 각 환경은 독립적으로 관리되어야 합니다.
 
-- 파라미터 값 변경 시, 배포 자동화로 즉시 반영 가능
-- 민감 정보는 코드/환경변수에 직접 노출하지 않고 SSM에서만 조회
-- 파라미터 접근 권한은 IAM 정책으로 엄격히 제한
+**개발 환경**: 빠른 반복 개발을 위해 자동화된 배포가 중요합니다.
+**스테이징 환경**: 프로덕션과 유사한 환경에서 최종 테스트를 수행합니다.
+**프로덕션 환경**: 안정성과 보안이 최우선이며, 신중한 배포가 필요합니다.
 
----
+### 6.2 환경별 리소스 분리
 
+각 환경은 다음과 같은 리소스를 독립적으로 가져야 합니다:
 
+**AWS 계정 분리**: 가능하다면 환경별로 별도의 AWS 계정을 사용하는 것이 가장 안전합니다.
 
+**IAM 정책 분리**: 각 환경별로 독립적인 IAM 정책과 역할을 생성합니다.
 
+**KMS 키 분리**: 환경별로 별도의 KMS 키를 사용하여 암호화를 수행합니다.
 
+**SSM 파라미터 분리**: 환경별로 다른 네임스페이스를 사용하여 파라미터를 구분합니다.
 
-최근 회사에서는 기존 레거시 시스템에서 신규 서버 환경으로의 전환을 추진하게 되었습니다. 기존 레거시 환경은 수동 배포, 불안정한 권한 관리, 배포 이력 추적의 어려움 등 여러 한계가 있었습니다. 특히, 배포 과정에서 개발자마다 접근 방식이 달라 운영 안정성에 문제가 발생했고, 민감 정보(예: DB 비밀번호, API Key 등)가 코드에 노출되는 보안 이슈도 빈번했습니다.
+## 7. 장애 대응 및 롤백 전략
 
-이러한 문제를 해결하고자, 신규 서버는 최신 Node.js 20버전 기반으로 구축하였으며, CI/CD 자동화와 보안 강화를 위해 Bitbucket Pipeline, AWS SSM(Systems Manager), SSM Agent, KMS(Key Management Service), IAM(Identity and Access Management), 그리고 Bitbucket 환경변수를 적극 도입하였습니다.
+### 7.1 장애 감지
 
-도입 목적은 다음과 같습니다.
-- **배포 자동화**: 수동 배포에서 발생하는 실수와 비효율을 제거하고, 누구나 동일한 방식으로 일관성 있게 배포할 수 있도록 함
-- **보안 강화**: 민감 정보는 SSM Parameter Store와 KMS로 암호화하여 안전하게 관리하고, IAM을 통해 최소 권한 원칙을 적용
-- **배포 이력 및 감사**: Bitbucket과 AWS의 로그 및 감사 기능을 활용해 모든 배포 내역을 추적 가능하게 함
-- **운영 효율성**: 신규 Node.js 20버전 서버 환경에 맞춘 자동화 배포로, 빠른 롤백과 환경별(DEV/STG/PRD) 분리 배포가 가능하도록 설계
+자동화된 배포 시스템에서는 장애를 빠르게 감지하고 대응하는 것이 중요합니다. 다음과 같은 방법으로 장애를 감지할 수 있습니다:
 
-이 문서는 위와 같은 배경에서 Bitbucket Pipeline과 AWS SSM을 활용해 Node.js 20버전 신규 서버에 대한 자동화 배포 환경을 구축한 실제 경험과 노하우를 상세히 정리한 실전 가이드입니다.
+**헬스 체크**: 배포 후 애플리케이션이 정상적으로 응답하는지 확인합니다.
 
-# Bitbucket Pipeline, SSM, KMS, IAM을 활용한 자동화 배포 실전 가이드
+**메트릭 모니터링**: CPU, 메모리, 네트워크 등의 시스템 메트릭을 모니터링합니다.
 
-회사에서 Bitbucket Pipeline, AWS SSM, SSM Agent, KMS, IAM, Bitbucket 환경변수를 활용해 무중단 자동화 배포를 구축한 실제 경험을 바탕으로, 실무에 바로 적용 가능한 상세 가이드를 공유합니다.
+**로그 분석**: 오류 로그나 예외 상황을 실시간으로 분석합니다.
 
-# 10. Bitbucket 환경변수 설계
+### 7.2 자동 롤백
 
-## 10.1 환경변수 등록 방법
+배포 실패 시 자동으로 이전 버전으로 롤백하는 메커니즘을 구축해야 합니다. 롤백 전략은 다음과 같습니다:
 
-- Bitbucket Repository > Settings > Repository variables 메뉴에서 등록
-- AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, INSTANCE_ID, DEPLOY_ENV 등 등록
+**Git 태그 활용**: 각 배포마다 Git 태그를 생성하여 이전 버전을 쉽게 식별할 수 있도록 합니다.
 
-## 10.2 환경변수 관리 실전 팁
+**데이터베이스 마이그레이션 롤백**: 데이터베이스 스키마 변경이 포함된 경우, 롤백 스크립트를 미리 준비합니다.
 
-- 민감 정보는 반드시 환경변수로만 관리, 코드에 직접 노출 금지
-- 환경별(DEV/STG/PRD)로 변수값 분리
-- 변수명은 대문자+언더스코어 표기법 권장
+**설정 복원**: 환경 설정이나 파라미터 변경사항도 함께 롤백해야 합니다.
 
----
+## 8. 실전 운영 경험
 
-# 11. Pipeline YAML 상세 작성법
+### 8.1 초기 구축 시 주의사항
 
-## 11.1 기본 구조 예시
+자동화 배포 시스템을 처음 구축할 때는 다음과 같은 점들을 주의해야 합니다:
 
-```yaml
-image: amazonlinux:2
-pipelines:
-  default:
-    - step:
-        name: Deploy via SSM
-        script:
-          - yum install -y awscli
-          - export DB_PASSWORD=$(aws ssm get-parameter --name "/deploy/prod/db_password" --with-decryption --region $AWS_DEFAULT_REGION --query 'Parameter.Value' --output text)
-          - aws ssm send-command \
-              --instance-ids "$INSTANCE_ID" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands="sh /home/ec2-user/deploy.sh $DB_PASSWORD $DEPLOY_ENV"
-```
+**점진적 도입**: 모든 것을 한 번에 자동화하려 하지 말고, 단계적으로 도입합니다. 먼저 개발 환경에서 시작하여 안정화된 후 스테이징, 프로덕션 순으로 확장합니다.
 
-## 11.2 주요 단계별 설명
+**충분한 테스트**: 실제 배포 전에 다양한 시나리오를 테스트합니다. 특히 실패 상황에 대한 테스트가 중요합니다.
 
-- awscli 설치: Amazon Linux 2에는 awscli가 기본 설치되어 있지 않으므로 명시적으로 설치
-- SSM Parameter Store에서 민감 정보 안전하게 가져오기
-- SSM Run Command로 EC2에 배포 스크립트 실행
-- 환경변수(INSTANCE_ID, DEPLOY_ENV 등)는 Bitbucket 환경변수로 관리
+**문서화**: 모든 설정과 절차를 상세히 문서화합니다. 팀원들이 쉽게 이해하고 유지보수할 수 있도록 합니다.
 
-## 11.3 실전 확장 예시
+### 8.2 운영 중 발생하는 문제들
 
-- 환경별 분기, Slack 알림, 배포 전/후 헬스체크, 롤백 등 추가 가능
+실제 운영 중에는 다음과 같은 문제들이 발생할 수 있습니다:
 
----
+**SSM Agent 장애**: 네트워크 문제나 IAM 권한 문제로 SSM Agent가 정상 동작하지 않을 수 있습니다. 정기적인 헬스 체크가 필요합니다.
 
-# 12. 배포 스크립트(deploy.sh) 설계
+**KMS 권한 오류**: 키 정책 변경이나 IAM 권한 변경으로 인해 암호화된 파라미터에 접근하지 못할 수 있습니다.
 
-## 12.1 기본 구조 예시
+**배포 스크립트 오류**: 환경 변화나 의존성 변경으로 인해 배포 스크립트가 실패할 수 있습니다.
 
-```bash
-#!/bin/bash
-set -e
+### 8.3 지속적인 개선
 
-DB_PASSWORD=$1
-DEPLOY_ENV=$2
+자동화 배포 시스템은 한 번 구축하고 끝나는 것이 아닙니다. 지속적인 모니터링과 개선이 필요합니다:
 
-cd /home/ec2-user/app
+**성능 최적화**: 배포 시간을 단축하고 리소스 사용량을 최적화합니다.
 
-echo "[배포] Node.js 20 앱 빌드 및 재시작 ($DEPLOY_ENV)"
-git pull origin main
-npm ci
-npm run build
-pm run migrate --env $DEPLOY_ENV
-pm run seed --env $DEPLOY_ENV
+**보안 강화**: 새로운 보안 위협에 대응하고 보안 정책을 업데이트합니다.
 
-export DB_PASSWORD=$DB_PASSWORD
-pm run stop || true
-pm run start
+**사용성 개선**: 개발자들이 더 쉽게 사용할 수 있도록 인터페이스나 프로세스를 개선합니다.
 
-echo "[배포 완료] $(date)"
-```
+## 결론
 
-## 12.2 실전 설계 팁
+AWS SSM을 활용한 자동화 배포 시스템은 단순히 기술적 도구의 조합이 아닙니다. 이는 개발팀의 생산성을 높이고, 운영 안정성을 확보하며, 보안을 강화하는 종합적인 솔루션입니다.
 
-- set -e 옵션으로 오류 발생 시 즉시 중단
-- 환경별 분기, 롤백, 헬스체크 등 추가 가능
-- 배포 로그는 CloudWatch Logs로 전송
+가장 중요한 것은 **점진적 접근**입니다. 모든 것을 한 번에 완벽하게 구축하려 하지 말고, 작은 단위로 시작하여 점진적으로 확장해 나가는 것이 성공의 열쇠입니다. 또한 기술적 구현보다는 **팀의 문화와 프로세스**를 먼저 정립하는 것이 중요합니다.
 
----
+자동화는 목적이 아니라 수단입니다. 궁극적인 목표는 더 안정적이고 효율적인 소프트웨어 개발과 운영을 통해 사용자에게 더 나은 서비스를 제공하는 것입니다.
 
-# 13. SSM Run Command 실전 예시
+## 참조
 
-## 13.1 명령어 예시
-
-```bash
-aws ssm send-command \
-  --instance-ids "$INSTANCE_ID" \
-  --document-name "AWS-RunShellScript" \
-  --parameters commands="sh /home/ec2-user/deploy.sh $DB_PASSWORD $DEPLOY_ENV" \
-  --region $AWS_DEFAULT_REGION
-```
-
-## 13.2 명령 결과 확인
-
-- SSM 콘솔 > Run Command > 명령 이력에서 결과 확인
-- aws ssm list-commands, get-command-invocation 등으로 CLI에서 확인 가능
-
-## 13.3 실전 팁
-
-- 명령 실행 실패 시, 로그를 CloudWatch 또는 SSM 콘솔에서 상세히 확인
-- 배포 스크립트는 반드시 exit code 0/1 등으로 성공/실패 명확히 반환
-
----
-
-# 14. 환경별(DEV/STG/PRD) 분리 배포
-
-## 14.1 환경별 파라미터/Role/키 분리
-
-- SSM 파라미터, IAM Role, KMS 키, 환경변수 등은 환경별로 별도 관리
-- 배포 스크립트에서 $DEPLOY_ENV 값에 따라 분기 처리
-
-## 14.2 환경별 배포 예시
-
-```yaml
-pipelines:
-  branches:
-    dev:
-      - step:
-          script:
-            - export DEPLOY_ENV=dev
-            - ...
-    stg:
-      - step:
-          script:
-            - export DEPLOY_ENV=stg
-            - ...
-    main:
-      - step:
-          script:
-            - export DEPLOY_ENV=prod
-            - ...
-```
-
-## 14.3 실전 팁
-
-- 환경별로 SSM 파라미터, KMS 키, IAM Role을 분리해 보안성 강화
-- 환경별 배포 이력, 로그, 알림 등도 별도 관리
-
----
-
-# 15. 실전 트러블슈팅 사례
-
-## 15.1 SSM Agent 미동작
-
-- 증상: SSM 콘솔에서 인스턴스가 Managed로 표시되지 않음
-- 원인: IAM Role 미부여, 네트워크 차단, SSM Agent 비활성화 등
-- 해결: IAM Role, 네트워크, SSM Agent 상태 점검 및 재시작
-
-## 15.2 KMS 권한 오류
-
-- 증상: SSM 파라미터 조회 시 AccessDeniedException 발생
-- 원인: KMS 키 정책에 EC2/Bitbucket IAM User 미포함
-- 해결: KMS 키 정책에 필요한 주체 추가
-
-## 15.3 배포 스크립트 오류
-
-- 증상: 배포 중 npm install, build, migrate 등에서 오류 발생
-- 원인: 패키지 버전 불일치, 환경변수 누락, 권한 부족 등
-- 해결: 패키지 버전 통일, 환경변수 점검, 권한 보완
-
-## 15.4 롤백 실패
-
-- 증상: 배포 실패 후 롤백 스크립트 미비로 서비스 장애 지속
-- 해결: 롤백 스크립트 사전 준비, 배포 전/후 스냅샷, Git 태그 등 활용
-
----
-
-# 16. 보안 강화 및 감사
-
-## 16.1 IAM 최소 권한 원칙 적용
-
-- EC2, Bitbucket IAM User 등 모든 주체에 최소 권한만 부여
-- CloudTrail, SSM, KMS 등 접근 이력 모니터링
-
-## 16.2 민감 정보 암호화 및 접근 통제
-
-- SSM Parameter Store + KMS로 모든 민감 정보 암호화
-- 파라미터 접근 권한은 IAM 정책으로 엄격히 제한
-
-## 16.3 배포 이력 및 감사 로그 관리
-
-- Bitbucket, SSM, CloudWatch, CloudTrail 등에서 배포 이력, 명령 실행, 접근 로그 등 통합 관리
-
----
-
-# 17. 배포 자동화 확장(알림, 롤백, 헬스체크 등)
-
-## 17.1 Slack/Teams 알림 연동
-
-- 배포 성공/실패 시 Slack Webhook 등으로 실시간 알림
-- Pipeline, 배포 스크립트, SSM 명령 등에서 curl로 Webhook 호출
-
-## 17.2 롤백 자동화
-
-- 배포 실패 시, 이전 버전으로 자동 롤백 스크립트 실행
-- Git 태그, S3 백업, AMI 스냅샷 등 활용
-
-## 17.3 헬스체크 및 배포 후 검증
-
-- 배포 후 API/서비스 헬스체크, Smoke Test 등 자동화
-- 실패 시 자동 롤백 및 알림
-
----
-
-# 18. 실전 Q&A
-
-**Q. SSM Agent가 Managed로 표시되지 않을 때 어떻게 해야 하나요?**
-A. IAM Role, 네트워크, SSM Agent 상태를 점검하고, 필요시 재시작하세요.
-
-**Q. KMS 권한 오류가 발생하면?**
-A. KMS 키 정책에 필요한 주체(EC2, Bitbucket IAM User 등)를 추가하세요.
-
-**Q. 배포 스크립트에서 환경변수 누락 시 대처법은?**
-A. 배포 스크립트에서 set -e, set -u 옵션을 사용해 누락 시 즉시 중단되도록 하세요.
-
-**Q. 롤백 자동화는 어떻게 구현하나요?**
-A. 배포 전 Git 태그, S3 백업, AMI 스냅샷 등으로 이전 상태를 저장하고, 실패 시 자동 복구 스크립트를 실행하세요.
-
----
-
-# 19. 실수 사례 및 개선 팁
-
-- IAM 정책에 *로 모든 권한을 부여해 보안 사고 발생 → 최소 권한 원칙 준수
-- SSM Agent 비활성화로 배포 중단 → CloudWatch Alarm 등으로 모니터링
-- 환경변수 오타/누락으로 배포 실패 → 변수명 표준화, set -u 옵션 활용
-- 롤백 스크립트 미비로 장애 장기화 → 롤백 자동화, 배포 전 스냅샷 필수
-
----
-
-# 20. 참고 자료 및 부록
-
-- [AWS 공식 SSM 문서](https://docs.aws.amazon.com/systems-manager/)
-- [Bitbucket Pipeline 공식 문서](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/)
-- [AWS KMS 공식 문서](https://docs.aws.amazon.com/kms/)
-- [Node.js 공식 문서](https://nodejs.org/)
-- [실전 DevOps 블로그/사례]
-
+- AWS Systems Manager 공식 문서: https://docs.aws.amazon.com/systems-manager/
+- AWS KMS 공식 문서: https://docs.aws.amazon.com/kms/
+- Bitbucket Pipelines 공식 문서: https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/
+- AWS Well-Architected Framework: https://aws.amazon.com/architecture/well-architected/
+- DevOps 핸드북: https://itrevolution.com/the-devops-handbook/
+- AWS 보안 모범 사례: https://aws.amazon.com/security/security-resources/
+- Node.js 프로덕션 모범 사례: https://nodejs.org/en/docs/guides/nodejs-docker-webapp/
+- 마이크로서비스 아키텍처 패턴: https://microservices.io/
