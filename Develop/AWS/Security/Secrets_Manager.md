@@ -1,52 +1,96 @@
-최종 업데이트 2025-08-08, 버전 v1.0
+최종 업데이트 2025-09-23, 버전 v2.0
 
-> 이전 명칭 안내: 과거 표기 Secret_Mangager/Secret Manager → AWS Secrets Manager로 통일했습니다.
 ---
 title: AWS Secrets Manager
-tags: [aws, security, secretsmanager]
-updated: 2025-08-10
+tags: [aws, security, secretsmanager, 암호화, 시크릿관리]
+updated: 2025-09-23
 ---
 
-## 왜 Secrets Manager인가?
-- 중앙집중형 관리, 자동 로테이션, 세밀한 접근제어(IAM), CloudTrail 연동, KMS 암호화
+# AWS Secrets Manager 개요
 
-## 배경
-- 시크릿 저장/검색(API/SDK)
-- 자동 로테이션(Lambda)
-- IAM 기반 접근제어
-- CloudTrail 감사
-- KMS 암호화
+AWS Secrets Manager는 민감한 정보를 안전하게 저장하고 관리하는 완전관리형 서비스입니다. 데이터베이스 자격 증명, API 키, OAuth 토큰, 암호화 키 등 애플리케이션에서 사용하는 모든 종류의 시크릿을 중앙에서 관리할 수 있습니다.
 
-- AWS Secrets Manager — AWS Docs, `https://docs.aws.amazon.com/secretsmanager/`
-- Rotate secrets — AWS Docs, `https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotating-secrets.html`
+## 핵심 개념과 특징
+
+### 1. 중앙집중형 시크릿 관리
+기존에는 각 애플리케이션마다 시크릿을 별도로 관리하거나 환경변수, 설정 파일에 하드코딩하는 경우가 많았습니다. 이는 보안상 위험하고 관리가 어려운 구조였습니다. Secrets Manager는 모든 시크릿을 AWS 클라우드의 중앙 저장소에서 관리하여 일관성과 보안성을 확보합니다.
+
+### 2. 자동 로테이션 (Rotation)
+시크릿의 가장 중요한 보안 원칙 중 하나는 정기적인 교체입니다. Secrets Manager는 데이터베이스 비밀번호, API 키 등을 자동으로 주기적으로 교체할 수 있습니다. 이는 보안 위협을 최소화하고 컴플라이언스 요구사항을 충족하는 데 필수적입니다.
+
+### 3. 세밀한 접근 제어
+IAM(Identity and Access Management)과 통합되어 누가 어떤 시크릿에 접근할 수 있는지 세밀하게 제어할 수 있습니다. 최소 권한 원칙을 적용하여 필요한 권한만 부여할 수 있습니다.
+
+### 4. 암호화 및 보안
+모든 시크릿은 AWS KMS(Key Management Service)를 사용하여 암호화됩니다. 전송 중과 저장 중 모든 단계에서 암호화가 적용되어 데이터 보호를 보장합니다.
+
+### 5. 감사 및 모니터링
+CloudTrail과 연동하여 시크릿에 대한 모든 접근과 변경 사항을 추적할 수 있습니다. 이는 보안 감사와 컴플라이언스 요구사항 충족에 필수적입니다.
+
+## 주요 구성 요소
+
+### 시크릿 (Secret)
+시크릿은 암호, API 키, 데이터베이스 연결 문자열 등 민감한 정보를 포함하는 객체입니다. 각 시크릿은 고유한 이름과 메타데이터를 가지며, 버전 관리가 가능합니다.
+
+### 시크릿 값 (Secret Value)
+실제 민감한 데이터가 저장되는 부분입니다. JSON 형태로 여러 키-값 쌍을 저장할 수 있어 복잡한 자격 증명도 하나의 시크릿으로 관리할 수 있습니다.
+
+### 로테이션 설정 (Rotation Configuration)
+시크릿을 자동으로 교체하기 위한 설정입니다. 로테이션 주기, Lambda 함수, 대상 서비스 등을 구성할 수 있습니다.
+
+## 다른 AWS 서비스와의 관계
+
+### KMS (Key Management Service)와의 관계
+- **Secrets Manager**: 시크릿의 수명주기, 로테이션, 접근 제어를 담당
+- **KMS**: 암호화 키의 생성, 보관, 암복호화 작업을 담당
+- Secrets Manager는 내부적으로 KMS를 사용하여 시크릿을 암호화합니다.
+
+### Parameter Store와의 차이점
+| 구분 | Secrets Manager | Parameter Store |
+|------|----------------|-----------------|
+| **주요 목적** | 민감한 시크릿 관리 | 일반적인 설정값 관리 |
+| **자동 로테이션** | 지원 (핵심 기능) | 기본적으로 미지원 |
+| **암호화** | 항상 암호화됨 | 선택적 암호화 |
+| **비용** | 유료 서비스 | 기본 무료 (고급 기능은 유료) |
+| **사용 사례** | DB 자격증명, API 키 | 애플리케이션 설정, 환경변수 |
+
+## 보안 모범 사례
+
+### 1. 최소 권한 원칙
+IAM 정책을 통해 각 사용자나 서비스가 필요한 시크릿에만 접근할 수 있도록 제한합니다.
+
+### 2. 정기적인 로테이션
+보안 정책에 따라 시크릿을 정기적으로 교체합니다. 특히 데이터베이스 자격 증명은 30-90일 주기로 교체하는 것이 권장됩니다.
+
+### 3. 네트워크 보안
+VPC 엔드포인트를 사용하여 시크릿 접근을 프라이빗 네트워크로 제한할 수 있습니다.
+
+### 4. 모니터링 및 알림
+CloudWatch와 연동하여 시크릿 접근 패턴을 모니터링하고 이상 활동에 대한 알림을 설정합니다.
+
+## 실제 사용 시나리오
+
+### 데이터베이스 연결 관리
+애플리케이션에서 데이터베이스에 연결할 때 자격 증명을 하드코딩하는 대신 Secrets Manager에서 동적으로 가져옵니다. 로테이션을 통해 비밀번호가 변경되어도 애플리케이션은 자동으로 새로운 자격 증명을 사용합니다.
+
+### 마이크로서비스 간 인증
+여러 마이크로서비스가 공유하는 API 키나 토큰을 중앙에서 관리하여 일관성과 보안성을 확보합니다.
+
+### 외부 서비스 연동
+AWS 외부의 서비스(예: GitHub, Slack, 외부 API)와 연동할 때 필요한 자격 증명을 안전하게 관리합니다.
+
+## 비용 고려사항
+
+Secrets Manager는 시크릿 저장과 API 호출에 대해 비용이 발생합니다. 대량의 시크릿을 관리하거나 빈번한 API 호출이 예상되는 경우 비용을 고려하여 설계해야 합니다. Parameter Store의 고급 기능과 비교하여 적절한 서비스를 선택하는 것이 중요합니다.
 
 ---
 
+## 관련 문서
 - [IAM](./IAM.md) — 최소 권한 설계의 기반
-- [KMS](./KMS.md) — 암호화 키 관리 배경
+- [KMS](./KMS.md) — 암호화 키 관리 배경  
 - [CloudTrail](../Monitoring & Management/CloudTrail.md) — 접근 감사 연계
 
-
-
-
-
-
-AWS Secrets Manager는 완전관리형 시크릿 관리 서비스로, 애플리케이션/서비스에서 사용하는 민감 정보를 안전하게 저장·관리·조회할 수 있게 해줍니다. (DB 자격 증명, API 키, OAuth 토큰 등)
-
-
-
-
-
-# AWS Secrets Manager란 무엇인가?
-
-## KMS와의 관계(차이 간단 정리)
-- Secrets Manager: 시크릿의 수명주기/로테이션/접근 제어
-- KMS: 암호화 키 생성/보관/암복호화 (Secrets Manager 내부적으로 KMS 사용)
-
-## Parameter Store와 비교(요약)
-| 항목 | Secrets Manager | Parameter Store |
-|---|---|---|
-| 목적 | 시크릿 관리 | 설정/파라미터 관리 |
-| 로테이션 | 지원 | 기본 미지원 |
-| 비용 | 유료 | 기본 무료(고급은 유료) |
-
+## 참조
+- AWS Secrets Manager 공식 문서: https://docs.aws.amazon.com/secretsmanager/
+- AWS Secrets Manager 로테이션 가이드: https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotating-secrets.html
+- AWS 보안 모범 사례: https://docs.aws.amazon.com/security/
