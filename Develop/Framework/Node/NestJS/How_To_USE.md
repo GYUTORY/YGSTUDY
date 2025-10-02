@@ -1,12 +1,12 @@
 ---
-title: NestJS 완전 가이드
+title: NestJS 사용법
 tags: [framework, node, nestjs, typescript, backend]
-updated: 2025-09-23
+updated: 2025-10-02
 ---
 
-# NestJS 완전 가이드
+# NestJS
 
-> **📌 이 가이드의 목적**: NestJS의 핵심 개념과 실제 개발에서의 활용법을 체계적으로 정리한 종합 가이드입니다.
+> **📌 목적**: NestJS의 핵심 개념과 실제 개발에서의 활용법을 체계적으로 정리한 종합 가이드입니다.
 
 ## 목차
 1. [NestJS란 무엇인가](#nestjs란-무엇인가)
@@ -315,6 +315,7 @@ NestJS를 효과적으로 활용하려면 **아키텍처 패턴을 이해하고 
 - [OWASP Node.js Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Nodejs_Security_Cheat_Sheet.html)
 - [Node.js Performance Best Practices](https://nodejs.org/en/docs/guides/simple-profiling/)
 - [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
+
 
 
 
