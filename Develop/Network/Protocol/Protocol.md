@@ -1,606 +1,316 @@
 ---
 title: Protocol
 tags: [network, protocol]
-updated: 2025-08-10
----
-# 📡 네트워크 프로토콜(Protocol) 이해하기
-
-## 배경
-
-**프로토콜**은 컴퓨터들이 서로 대화할 때 사용하는 **공통 언어**라고 생각하면 됩니다.
-
-마치 사람들이 대화할 때 문법과 예의가 있듯이, 컴퓨터들도 서로 통신할 때 정해진 규칙을 따라야 합니다.
-
-### 왜 프로토콜이 필요한가?
-
-- **다른 기기끼리도 소통 가능**: 애플 맥과 윈도우 PC가 서로 파일을 주고받을 수 있는 이유
-- **데이터가 올바르게 전달**: 메시지가 중간에 깨지지 않고 온전히 전달
-- **보안과 안정성**: 중요한 정보를 안전하게 주고받기
-
+updated: 2025-10-07
 ---
 
+# 네트워크 프로토콜(Protocol)
 
-- **다른 기기끼리도 소통 가능**: 애플 맥과 윈도우 PC가 서로 파일을 주고받을 수 있는 이유
-- **데이터가 올바르게 전달**: 메시지가 중간에 깨지지 않고 온전히 전달
-- **보안과 안정성**: 중요한 정보를 안전하게 주고받기
+## 프로토콜이란 무엇인가?
 
----
+**프로토콜(Protocol)**은 컴퓨터 네트워크에서 서로 다른 시스템 간에 데이터를 주고받기 위해 정해진 **통신 규칙의 집합**입니다. 
 
+마치 사람들이 대화할 때 문법과 예의, 대화 순서가 있듯이, 컴퓨터들도 서로 통신할 때 정해진 규칙을 따라야 합니다. 이 규칙이 바로 프로토콜입니다.
 
-### HTTP (HyperText Transfer Protocol)
+### 프로토콜이 필요한 이유
 
-**웹에서 가장 많이 사용하는 프로토콜**입니다. 브라우저가 웹사이트를 볼 때 사용합니다.
+#### 1. 상호 운용성 (Interoperability)
+- **다양한 기기 간 통신**: 애플 맥과 윈도우 PC, 안드로이드와 iOS가 서로 파일을 주고받을 수 있는 이유
+- **플랫폼 독립성**: 서로 다른 운영체제나 하드웨어를 사용해도 동일한 방식으로 통신 가능
+- **표준화된 인터페이스**: 모든 시스템이 동일한 규칙을 따르므로 예측 가능한 통신
 
-```javascript
-// 브라우저에서 HTTP 요청 보내기
-async function fetchUserData() {
-  try {
-    const response = await fetch('https://api.example.com/users', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer your-token-here'
-      }
-    });
+#### 2. 데이터 무결성 (Data Integrity)
+- **전송 오류 감지**: 데이터가 전송 중에 손상되었는지 확인
+- **순서 보장**: 여러 개의 데이터 패킷이 올바른 순서로 도착
+- **중복 제거**: 같은 데이터가 여러 번 전송되는 것을 방지
 
-    if (!response.ok) {
-      throw new Error(`HTTP 오류! 상태: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('받은 데이터:', data);
-    return data;
-  } catch (error) {
-    console.error('요청 실패:', error);
-  }
-}
-
-// POST 요청으로 데이터 보내기
-async function createUser(userData) {
-  const response = await fetch('https://api.example.com/users', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(userData)
-  });
-
-  return response.json();
-}
-```
-
-### WebSocket
-
-**실시간 양방향 통신**을 위한 프로토콜입니다. 채팅, 게임, 실시간 알림에 사용됩니다.
-
-```javascript
-// WebSocket 클라이언트 예제
-class ChatClient {
-  constructor(serverUrl) {
-    this.serverUrl = serverUrl;
-    this.ws = null;
-    this.messageQueue = [];
-  }
-
-  connect() {
-    this.ws = new WebSocket(this.serverUrl);
-
-    this.ws.onopen = () => {
-      console.log('채팅 서버에 연결됨');
-      // 연결 후 대기 중이던 메시지들 전송
-      this.sendQueuedMessages();
-    };
-
-    this.ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      this.handleMessage(message);
-    };
-
-    this.ws.onclose = () => {
-      console.log('연결이 끊어졌습니다');
-    };
-  }
-
-  sendMessage(text) {
-    const message = {
-      type: 'chat',
-      content: text,
-      timestamp: new Date().toISOString()
-    };
-
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
-    } else {
-      // 연결이 안 되어 있으면 대기열에 추가
-      this.messageQueue.push(message);
-    }
-  }
-
-  sendQueuedMessages() {
-    while (this.messageQueue.length > 0) {
-      const message = this.messageQueue.shift();
-      this.ws.send(JSON.stringify(message));
-    }
-  }
-
-  handleMessage(message) {
-    switch (message.type) {
-      case 'chat':
-        console.log(`${message.sender}: ${message.content}`);
-        break;
-      case 'notification':
-        console.log(`알림: ${message.content}`);
-        break;
-    }
-  }
-}
-
-// 사용 예시
-const chat = new ChatClient('ws://localhost:8080');
-chat.connect();
-chat.sendMessage('안녕하세요!');
-```
-
-### TCP vs UDP 이해하기
-
-#### TCP (Transmission Control Protocol)
-**신뢰성이 중요한 데이터**에 사용됩니다. 이메일, 파일 다운로드, 웹페이지 로딩 등
-
-```javascript
-// Node.js에서 TCP 서버 만들기
-const net = require('net');
-
-const server = net.createServer((socket) => {
-  console.log('클라이언트가 연결됨');
-
-  // 데이터 받기
-  socket.on('data', (data) => {
-    console.log('받은 데이터:', data.toString());
-    
-    // 응답 보내기
-    socket.write('서버에서 응답: 데이터를 받았습니다!');
-  });
-
-  socket.on('end', () => {
-    console.log('클라이언트 연결 종료');
-  });
-});
-
-server.listen(3000, () => {
-  console.log('TCP 서버가 포트 3000에서 실행 중');
-});
-```
-
-#### UDP (User Datagram Protocol)
-**빠른 전송이 중요한 데이터**에 사용됩니다. 실시간 스트리밍, 온라인 게임 등
-
-```javascript
-// Node.js에서 UDP 서버 만들기
-const dgram = require('dgram');
-const server = dgram.createSocket('udp4');
-
-server.on('message', (msg, rinfo) => {
-  console.log(`UDP 메시지 받음: ${msg} from ${rinfo.address}:${rinfo.port}`);
-  
-  // 응답 보내기
-  const response = Buffer.from('UDP 응답 메시지');
-  server.send(response, rinfo.port, rinfo.address);
-});
-
-server.bind(3001, () => {
-  console.log('UDP 서버가 포트 3001에서 실행 중');
-});
-```
+#### 3. 보안과 안정성
+- **암호화**: 중요한 정보를 안전하게 전송
+- **인증**: 통신 상대방이 진짜인지 확인
+- **오류 복구**: 전송 실패 시 자동으로 재시도
 
 ---
 
-
-### REST API 설계
-
-```javascript
-// Express.js로 REST API 서버 만들기
-const express = require('express');
-const app = express();
-
-app.use(express.json());
-
-// GET - 데이터 조회
-app.get('/api/users', (req, res) => {
-  const users = [
-    { id: 1, name: '김철수', email: 'kim@example.com' },
-    { id: 2, name: '이영희', email: 'lee@example.com' }
-  ];
-  res.json(users);
-});
-
-// POST - 데이터 생성
-app.post('/api/users', (req, res) => {
-  const { name, email } = req.body;
-  const newUser = { id: Date.now(), name, email };
-  
-  // 실제로는 데이터베이스에 저장
-  console.log('새 사용자 생성:', newUser);
-  
-  res.status(201).json(newUser);
-});
-
-// PUT - 데이터 수정
-app.put('/api/users/:id', (req, res) => {
-  const { id } = req.params;
-  const { name, email } = req.body;
-  
-  console.log(`사용자 ${id} 정보 수정:`, { name, email });
-  res.json({ id, name, email });
-});
-
-// DELETE - 데이터 삭제
-app.delete('/api/users/:id', (req, res) => {
-  const { id } = req.params;
-  
-  console.log(`사용자 ${id} 삭제`);
-  res.status(204).send();
-});
-
-app.listen(3000, () => {
-  console.log('서버가 포트 3000에서 실행 중');
-});
-```
-
-### 실시간 통신 구현
-
-```javascript
-// Socket.IO로 실시간 채팅 구현
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
-
-// 연결된 사용자들 관리
-const connectedUsers = new Map();
-
-io.on('connection', (socket) => {
-  console.log('새로운 사용자 연결:', socket.id);
-
-  // 사용자 입장
-  socket.on('join', (username) => {
-    connectedUsers.set(socket.id, username);
-    socket.broadcast.emit('userJoined', username);
-    console.log(`${username}님이 입장했습니다`);
-  });
-
-  // 메시지 전송
-  socket.on('message', (message) => {
-    const username = connectedUsers.get(socket.id);
-    const messageData = {
-      user: username,
-      content: message,
-      timestamp: new Date().toISOString()
-    };
-    
-    io.emit('message', messageData);
-  });
-
-  // 연결 해제
-  socket.on('disconnect', () => {
-    const username = connectedUsers.get(socket.id);
-    connectedUsers.delete(socket.id);
-    socket.broadcast.emit('userLeft', username);
-    console.log(`${username}님이 퇴장했습니다`);
-  });
-});
-
-server.listen(3000, () => {
-  console.log('실시간 채팅 서버 실행 중');
-});
-```
-
----
-
-
-```javascript
-// Socket.IO로 실시간 채팅 구현
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
-
-// 연결된 사용자들 관리
-const connectedUsers = new Map();
-
-io.on('connection', (socket) => {
-  console.log('새로운 사용자 연결:', socket.id);
-
-  // 사용자 입장
-  socket.on('join', (username) => {
-    connectedUsers.set(socket.id, username);
-    socket.broadcast.emit('userJoined', username);
-    console.log(`${username}님이 입장했습니다`);
-  });
-
-  // 메시지 전송
-  socket.on('message', (message) => {
-    const username = connectedUsers.get(socket.id);
-    const messageData = {
-      user: username,
-      content: message,
-      timestamp: new Date().toISOString()
-    };
-    
-    io.emit('message', messageData);
-  });
-
-  // 연결 해제
-  socket.on('disconnect', () => {
-    const username = connectedUsers.get(socket.id);
-    connectedUsers.delete(socket.id);
-    socket.broadcast.emit('userLeft', username);
-    console.log(`${username}님이 퇴장했습니다`);
-  });
-});
-
-server.listen(3000, () => {
-  console.log('실시간 채팅 서버 실행 중');
-});
-```
-
----
-
-
-### 언제 HTTP를 사용할까?
-- ✅ 웹페이지 로딩
-- ✅ API 호출
-- ✅ 파일 업로드/다운로드
-- ✅ 폼 제출
-
-### 언제 WebSocket을 사용할까?
-- ✅ 실시간 채팅
-- ✅ 실시간 알림
-- ✅ 온라인 게임
-- ✅ 실시간 대시보드
-
-### 언제 TCP를 사용할까?
-- ✅ 중요한 데이터 전송
-- ✅ 파일 전송
-- ✅ 이메일 전송
-- ✅ 데이터베이스 연결
-
-### 언제 UDP를 사용할까?
-- ✅ 실시간 스트리밍
-- ✅ 온라인 게임
-- ✅ VoIP (음성 통화)
-- ✅ 빠른 응답이 필요한 경우
-
-
-
-
-
-
----
-
-
-- **다른 기기끼리도 소통 가능**: 애플 맥과 윈도우 PC가 서로 파일을 주고받을 수 있는 이유
-- **데이터가 올바르게 전달**: 메시지가 중간에 깨지지 않고 온전히 전달
-- **보안과 안정성**: 중요한 정보를 안전하게 주고받기
-
----
-
-
-- **다른 기기끼리도 소통 가능**: 애플 맥과 윈도우 PC가 서로 파일을 주고받을 수 있는 이유
-- **데이터가 올바르게 전달**: 메시지가 중간에 깨지지 않고 온전히 전달
-- **보안과 안정성**: 중요한 정보를 안전하게 주고받기
-
----
-
-
-
-```javascript
-// Socket.IO로 실시간 채팅 구현
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
-
-// 연결된 사용자들 관리
-const connectedUsers = new Map();
-
-io.on('connection', (socket) => {
-  console.log('새로운 사용자 연결:', socket.id);
-
-  // 사용자 입장
-  socket.on('join', (username) => {
-    connectedUsers.set(socket.id, username);
-    socket.broadcast.emit('userJoined', username);
-    console.log(`${username}님이 입장했습니다`);
-  });
-
-  // 메시지 전송
-  socket.on('message', (message) => {
-    const username = connectedUsers.get(socket.id);
-    const messageData = {
-      user: username,
-      content: message,
-      timestamp: new Date().toISOString()
-    };
-    
-    io.emit('message', messageData);
-  });
-
-  // 연결 해제
-  socket.on('disconnect', () => {
-    const username = connectedUsers.get(socket.id);
-    connectedUsers.delete(socket.id);
-    socket.broadcast.emit('userLeft', username);
-    console.log(`${username}님이 퇴장했습니다`);
-  });
-});
-
-server.listen(3000, () => {
-  console.log('실시간 채팅 서버 실행 중');
-});
-```
-
----
-
-
-```javascript
-// Socket.IO로 실시간 채팅 구현
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
-
-// 연결된 사용자들 관리
-const connectedUsers = new Map();
-
-io.on('connection', (socket) => {
-  console.log('새로운 사용자 연결:', socket.id);
-
-  // 사용자 입장
-  socket.on('join', (username) => {
-    connectedUsers.set(socket.id, username);
-    socket.broadcast.emit('userJoined', username);
-    console.log(`${username}님이 입장했습니다`);
-  });
-
-  // 메시지 전송
-  socket.on('message', (message) => {
-    const username = connectedUsers.get(socket.id);
-    const messageData = {
-      user: username,
-      content: message,
-      timestamp: new Date().toISOString()
-    };
-    
-    io.emit('message', messageData);
-  });
-
-  // 연결 해제
-  socket.on('disconnect', () => {
-    const username = connectedUsers.get(socket.id);
-    connectedUsers.delete(socket.id);
-    socket.broadcast.emit('userLeft', username);
-    console.log(`${username}님이 퇴장했습니다`);
-  });
-});
-
-server.listen(3000, () => {
-  console.log('실시간 채팅 서버 실행 중');
-});
-```
-
----
-
-
-
-
-
-
-## 🏗️ 프로토콜의 3가지 핵심 요소
+## 프로토콜의 3가지 핵심 요소
 
 ### 1️⃣ 구문(Syntax) - "어떻게 말할까?"
 
-**데이터를 어떤 형태로 만들지 정하는 규칙**입니다.
+**데이터를 어떤 형태로 만들지 정하는 규칙**입니다. 이는 마치 언어의 문법과 같습니다.
 
-예를 들어, HTTP 요청을 보낼 때는 이런 형식을 따라야 합니다:
-
-```javascript
-// 올바른 HTTP 요청 형식
-const httpRequest = {
-  method: 'GET',
-  url: '/api/users',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer token123'
-  },
-  body: null
-};
-
-// 실제 HTTP 메시지 형태
-const rawHttpMessage = 
-`GET /api/users HTTP/1.1
+#### HTTP의 구문 예시
+```
+GET /api/users HTTP/1.1
 Host: example.com
 Content-Type: application/json
 Authorization: Bearer token123
 
-`;
+```
+
+- **요청 라인**: `GET /api/users HTTP/1.1` (메서드, 경로, 버전)
+- **헤더**: `Host`, `Content-Type` 등 (메타데이터)
+- **본문**: 실제 데이터 (GET 요청에는 보통 없음)
+
+#### 이메일 프로토콜(SMTP)의 구문
+```
+MAIL FROM: sender@example.com
+RCPT TO: recipient@example.com
+DATA
+Subject: 안녕하세요
+From: sender@example.com
+To: recipient@example.com
+
+이것은 테스트 메일입니다.
+.
 ```
 
 ### 2️⃣ 의미론(Semantics) - "무엇을 말할까?"
 
 **데이터가 어떤 뜻을 가지고 있는지, 어떻게 해석해야 하는지**를 정의합니다.
 
-```javascript
-// HTTP 상태 코드의 의미
-const httpStatusCodes = {
-  200: '성공 - 요청이 정상적으로 처리됨',
-  404: '실패 - 요청한 리소스를 찾을 수 없음',
-  500: '오류 - 서버 내부 오류가 발생함'
-};
+#### HTTP 상태 코드의 의미
+- **200 OK**: 요청이 성공적으로 처리됨
+- **404 Not Found**: 요청한 리소스를 찾을 수 없음
+- **500 Internal Server Error**: 서버 내부 오류 발생
 
-// API 응답의 의미
-const apiResponse = {
-  status: 200,           // 성공을 의미
-  data: {                // 실제 데이터
-    users: [
-      { id: 1, name: '김철수' },
-      { id: 2, name: '이영희' }
-    ]
-  },
-  message: '사용자 목록을 성공적으로 가져왔습니다'
-};
-```
+#### TCP 플래그의 의미
+- **SYN**: 연결 시작을 요청
+- **ACK**: 데이터를 받았다는 확인
+- **FIN**: 연결 종료를 요청
+- **RST**: 연결을 강제로 중단
 
 ### 3️⃣ 타이밍(Timing) - "언제 말할까?"
 
 **데이터를 언제, 얼마나 빠르게 보낼지**를 결정합니다.
 
-```javascript
-// 웹소켓 연결에서의 타이밍 제어
-class WebSocketClient {
-  constructor(url) {
-    this.url = url;
-    this.reconnectInterval = 1000; // 1초마다 재연결 시도
-    this.heartbeatInterval = 30000; // 30초마다 연결 상태 확인
-  }
+#### 연결 지향 프로토콜의 타이밍
+1. **연결 설정**: 3-way handshake (SYN → SYN-ACK → ACK)
+2. **데이터 전송**: 순차적이고 신뢰성 있는 전송
+3. **연결 해제**: 4-way handshake (FIN → ACK → FIN → ACK)
 
-  connect() {
-    this.ws = new WebSocket(this.url);
-    
-    // 연결 성공 시
-    this.ws.onopen = () => {
-      console.log('연결됨!');
-      this.startHeartbeat();
-    };
-
-    // 연결 끊어짐 시
-    this.ws.onclose = () => {
-      console.log('연결 끊어짐, 재연결 시도...');
-      setTimeout(() => this.connect(), this.reconnectInterval);
-    };
-  }
-
-  startHeartbeat() {
-    // 주기적으로 연결 상태 확인
-    setInterval(() => {
-      if (this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send('ping');
-      }
-    }, this.heartbeatInterval);
-  }
-}
-```
+#### 비연결 프로토콜의 타이밍
+- **즉시 전송**: 연결 설정 없이 바로 데이터 전송
+- **타임아웃**: 일정 시간 후 응답이 없으면 재전송
+- **재시도 간격**: 지수 백오프(exponential backoff) 적용
 
 ---
 
+## 주요 네트워크 프로토콜 상세 분석
+
+### HTTP (HyperText Transfer Protocol)
+
+**웹의 기반이 되는 프로토콜**로, 클라이언트와 서버 간의 통신을 담당합니다.
+
+#### HTTP의 특징
+- **무상태(Stateless)**: 각 요청은 독립적이며 서버는 이전 요청을 기억하지 않음
+- **요청-응답 모델**: 클라이언트가 요청하면 서버가 응답하는 단방향 통신
+- **텍스트 기반**: 사람이 읽을 수 있는 형태의 메시지
+
+#### HTTP 메서드의 의미
+- **GET**: 데이터 조회 (읽기 전용, 안전함)
+- **POST**: 데이터 생성 (새로운 리소스 생성)
+- **PUT**: 데이터 수정 (전체 리소스 교체)
+- **PATCH**: 데이터 부분 수정 (일부 필드만 변경)
+- **DELETE**: 데이터 삭제
+
+#### HTTP 버전별 특징
+- **HTTP/1.0**: 기본적인 요청-응답 모델
+- **HTTP/1.1**: 지속 연결, 파이프라이닝, 청크 전송
+- **HTTP/2**: 멀티플렉싱, 서버 푸시, 헤더 압축
+- **HTTP/3**: QUIC 프로토콜 기반, 더 빠른 연결 설정
+
+### HTTPS (HTTP Secure)
+
+**HTTP에 보안 기능을 추가한 프로토콜**입니다.
+
+#### 보안 메커니즘
+- **TLS/SSL 암호화**: 전송 중인 데이터를 암호화
+- **인증서 검증**: 서버의 신원을 확인
+- **데이터 무결성**: 전송 중 데이터 변조 방지
+
+#### TLS 핸드셰이크 과정
+1. **Client Hello**: 클라이언트가 지원하는 암호화 방식 전송
+2. **Server Hello**: 서버가 선택한 암호화 방식과 인증서 전송
+3. **키 교환**: 대칭키를 안전하게 교환
+4. **암호화 통신 시작**: 교환된 키로 데이터 암호화
+
+### WebSocket
+
+**실시간 양방향 통신**을 위한 프로토콜입니다.
+
+#### WebSocket의 특징
+- **전이중 통신**: 클라이언트와 서버가 동시에 데이터 전송 가능
+- **지속 연결**: HTTP 핸드셰이크 후 연결 유지
+- **낮은 오버헤드**: HTTP 헤더 없이 데이터만 전송
+
+#### WebSocket vs HTTP 비교
+| 특징 | HTTP | WebSocket |
+|------|------|-----------|
+| 통신 방식 | 요청-응답 | 양방향 |
+| 연결 | 일시적 | 지속적 |
+| 오버헤드 | 높음 | 낮음 |
+| 실시간성 | 제한적 | 우수 |
+| 사용 사례 | 웹페이지, API | 채팅, 게임, 알림 |
+
+### TCP (Transmission Control Protocol)
+
+**신뢰성이 중요한 데이터 전송**에 사용되는 연결 지향 프로토콜입니다.
+
+#### TCP의 핵심 기능
+- **연결 지향**: 통신 전에 연결을 설정
+- **신뢰성**: 데이터 손실, 중복, 순서 보장
+- **흐름 제어**: 수신자의 처리 능력에 맞춰 전송 속도 조절
+- **혼잡 제어**: 네트워크 상황에 따라 전송 속도 조절
+
+#### TCP 연결 과정 (3-way Handshake)
+1. **SYN**: 클라이언트가 서버에 연결 요청
+2. **SYN-ACK**: 서버가 연결 수락하고 자신의 연결 요청
+3. **ACK**: 클라이언트가 서버의 연결 요청 수락
+
+#### TCP 연결 해제 과정 (4-way Handshake)
+1. **FIN**: 한쪽이 연결 종료 요청
+2. **ACK**: 상대방이 종료 요청 확인
+3. **FIN**: 상대방도 연결 종료 요청
+4. **ACK**: 마지막 확인
+
+### UDP (User Datagram Protocol)
+
+**빠른 전송이 중요한 데이터**에 사용되는 비연결 프로토콜입니다.
+
+#### UDP의 특징
+- **비연결**: 연결 설정 없이 바로 데이터 전송
+- **빠른 전송**: 오류 검사와 재전송 없이 즉시 전송
+- **낮은 오버헤드**: 최소한의 헤더만 사용
+- **순서 보장 없음**: 패킷 순서가 바뀔 수 있음
+
+#### TCP vs UDP 비교
+| 특징 | TCP | UDP |
+|------|-----|-----|
+| 연결 방식 | 연결 지향 | 비연결 |
+| 신뢰성 | 높음 | 낮음 |
+| 속도 | 상대적으로 느림 | 빠름 |
+| 오버헤드 | 높음 | 낮음 |
+| 순서 보장 | 보장 | 보장 안함 |
+| 사용 사례 | 웹, 이메일, 파일 전송 | 스트리밍, 게임, DNS |
+
+---
+
+## 프로토콜 계층 구조
+
+### OSI 7계층 모델
+
+네트워크 프로토콜은 계층적으로 구성되어 있으며, 각 계층은 특정한 역할을 담당합니다.
+
+#### 7계층 (응용 계층)
+- **역할**: 사용자 애플리케이션과 네트워크 서비스 간의 인터페이스
+- **프로토콜**: HTTP, HTTPS, FTP, SMTP, DNS
+- **예시**: 웹 브라우저가 웹 서버에 요청을 보내는 것
+
+#### 6계층 (표현 계층)
+- **역할**: 데이터의 형식 변환, 암호화, 압축
+- **기능**: ASCII ↔ EBCDIC 변환, JPEG, MPEG 압축
+- **예시**: 이미지 파일을 압축하여 전송
+
+#### 5계층 (세션 계층)
+- **역할**: 통신 세션의 설정, 관리, 해제
+- **기능**: 로그인, 로그아웃, 세션 복구
+- **예시**: 사용자가 웹사이트에 로그인한 상태 유지
+
+#### 4계층 (전송 계층)
+- **역할**: 종단 간 신뢰성 있는 데이터 전송
+- **프로토콜**: TCP, UDP
+- **기능**: 오류 검출, 흐름 제어, 혼잡 제어
+
+#### 3계층 (네트워크 계층)
+- **역할**: 패킷의 경로 설정과 라우팅
+- **프로토콜**: IP, ICMP, OSPF, BGP
+- **기능**: 논리적 주소 지정, 경로 선택
+
+#### 2계층 (데이터 링크 계층)
+- **역할**: 물리적 링크에서의 신뢰성 있는 데이터 전송
+- **프로토콜**: Ethernet, Wi-Fi, PPP
+- **기능**: 물리적 주소 지정, 오류 검출
+
+#### 1계층 (물리 계층)
+- **역할**: 실제 전기 신호의 전송
+- **기능**: 케이블, 허브, 리피터
+- **예시**: 이더넷 케이블을 통한 전기 신호 전송
+
+### TCP/IP 4계층 모델
+
+실제 인터넷에서 사용되는 간소화된 모델입니다.
+
+#### 4계층 (응용 계층)
+- HTTP, HTTPS, FTP, SMTP, DNS, SSH
+
+#### 3계층 (전송 계층)
+- TCP, UDP
+
+#### 2계층 (인터넷 계층)
+- IP, ICMP, ARP
+
+#### 1계층 (네트워크 액세스 계층)
+- Ethernet, Wi-Fi, PPP
+
+---
+
+## 프로토콜 선택 기준
+
+### 신뢰성이 중요한 경우 → TCP
+- **웹 페이지 로딩**: HTML, CSS, JavaScript 파일 전송
+- **이메일 전송**: SMTP를 통한 메일 전송
+- **파일 다운로드**: FTP를 통한 대용량 파일 전송
+- **데이터베이스 연결**: SQL 쿼리 결과 전송
+
+### 속도가 중요한 경우 → UDP
+- **실시간 스트리밍**: YouTube, Netflix 동영상 스트리밍
+- **온라인 게임**: 실시간 게임 데이터 전송
+- **VoIP 통화**: 음성 통화 데이터 전송
+- **DNS 조회**: 도메인 이름을 IP 주소로 변환
+
+### 실시간 양방향 통신 → WebSocket
+- **채팅 애플리케이션**: 카카오톡, 슬랙 등
+- **실시간 알림**: 주식 가격, 뉴스 알림
+- **협업 도구**: 구글 독스, 피그마 등
+- **온라인 게임**: 멀티플레이어 게임
+
+### 보안이 중요한 경우 → HTTPS
+- **온라인 쇼핑**: 결제 정보 전송
+- **인터넷 뱅킹**: 금융 거래 정보
+- **개인정보 처리**: 로그인, 회원가입
+- **API 통신**: 민감한 데이터를 포함한 API 호출
+
+---
+
+## 프로토콜의 미래와 발전 방향
+
+### HTTP/3의 등장
+- **QUIC 프로토콜**: UDP 기반의 새로운 전송 프로토콜
+- **빠른 연결 설정**: TLS와 연결 설정을 동시에 처리
+- **멀티플렉싱**: 패킷 손실이 다른 스트림에 영향 주지 않음
+- **모바일 최적화**: 네트워크 변경 시에도 연결 유지
+
+### 5G와 프로토콜
+- **초저지연**: 1ms 이하의 지연 시간
+- **대용량 전송**: 10Gbps 이상의 속도
+- **IoT 지원**: 수많은 기기 동시 연결
+- **새로운 프로토콜 필요**: 기존 프로토콜의 한계 극복
+
+### 양자 통신과 보안
+- **양자 암호화**: 물리 법칙 기반의 절대적 보안
+- **양자 키 분배**: 해킹이 불가능한 키 교환
+- **기존 프로토콜 대체**: HTTPS의 차세대 보안 솔루션
+
+---
+
+## 참조
+
+1. **RFC 2616** - Hypertext Transfer Protocol -- HTTP/1.1
+2. **RFC 6455** - The WebSocket Protocol
+3. **RFC 793** - Transmission Control Protocol
+4. **RFC 768** - User Datagram Protocol
+5. **RFC 8446** - The Transport Layer Security (TLS) Protocol Version 1.3
+6. **RFC 9000** - QUIC: A UDP-Based Multiplexed and Secure Transport
+7. **Computer Networks** - Andrew S. Tanenbaum, David J. Wetherall
+8. **TCP/IP Illustrated** - W. Richard Stevens
+9. **HTTP: The Definitive Guide** - David Gourley, Brian Totty
+10. **WebSocket API** - MDN Web Docs
