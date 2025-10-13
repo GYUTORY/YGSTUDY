@@ -1,10 +1,10 @@
 ---
 title: AES Advanced Encryption Standard
 tags: [security, aes, encryption, cryptography]
-updated: 2024-09-14
+updated: 2025-10-13
 ---
 
-# AES (Advanced Encryption Standard) 완전 가이드
+# AES (Advanced Encryption Standard)
 
 ## 📋 목차
 1. [AES 기본 개념](#aes-기본-개념)
@@ -965,17 +965,3 @@ def password_example():
 | **부채널 공격 저항성** | 보통 | 높음 |
 | **구현 복잡도** | 높음 | 낮음 |
 | **성능 (소프트웨어)** | 보통 | 빠름 |
-
----
-
-## 결론
-
-AES는 현대 암호화의 핵심이며, 올바른 구현과 사용을 위해서는:
-
-1. **적절한 키 관리**: 안전한 키 생성, 저장, 교체
-2. **IV/Salt 활용**: 보안성 향상을 위한 필수 요소
-3. **운영 모드 선택**: 용도에 맞는 모드 선택
-4. **보안 모범 사례**: 공격 방어 및 안전한 구현
-5. **지속적인 업데이트**: 보안 취약점 모니터링
-
-이 가이드를 통해 AES의 올바른 이해와 안전한 구현이 가능할 것입니다.
