@@ -33,6 +33,30 @@ updated: 2025-10-18
 - **인덱스 페이지**: 인덱스 정보가 저장되는 공간  
 - **페이지 링크**: 페이지들 간의 연결 정보로 순차 접근을 가능하게 함
 
+```mermaid
+graph TB
+    subgraph "디스크 저장 구조"
+        A[데이터 페이지 1<br/>실제 테이블 데이터] 
+        B[데이터 페이지 2<br/>실제 테이블 데이터]
+        C[데이터 페이지 3<br/>실제 테이블 데이터]
+        D[인덱스 페이지 1<br/>인덱스 정보]
+        E[인덱스 페이지 2<br/>인덱스 정보]
+    end
+    
+    A --> B
+    B --> C
+    D --> E
+    D -.-> A
+    E -.-> B
+    E -.-> C
+    
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style C fill:#e1f5fe
+    style D fill:#f3e5f5
+    style E fill:#f3e5f5
+```
+
 ## 인덱스의 다양한 형태
 
 ### B-Tree 인덱스 - 가장 널리 사용되는 구조
@@ -47,6 +71,59 @@ B-Tree 인덱스는 현재 대부분의 관계형 데이터베이스에서 기�
 **동작 원리:**
 루트 노드에서 시작해서 키 값을 비교하며 리프 노드까지 내려가면서 데이터의 위치를 찾습니다. 100만 개의 데이터가 있어도 최대 20번 정도의 비교만으로 원하는 데이터를 찾을 수 있습니다.
 
+```mermaid
+graph TD
+    subgraph "B-Tree 구조 예시"
+        Root[루트 노드<br/>[10, 20, 30]]
+        Branch1[브랜치 노드<br/>[5, 8, 12]]
+        Branch2[브랜치 노드<br/>[15, 18, 25]]
+        Branch3[브랜치 노드<br/>[35, 40, 45]]
+        
+        Leaf1[리프 노드<br/>[1,3,5,7,9]]
+        Leaf2[리프 노드<br/>[10,12,14,16,18]]
+        Leaf3[리프 노드<br/>[20,22,24,26,28]]
+        Leaf4[리프 노드<br/>[30,32,34,36,38]]
+        Leaf5[리프 노드<br/>[40,42,44,46,48]]
+        
+        Data1[데이터 페이지 1]
+        Data2[데이터 페이지 2]
+        Data3[데이터 페이지 3]
+        Data4[데이터 페이지 4]
+        Data5[데이터 페이지 5]
+    end
+    
+    Root --> Branch1
+    Root --> Branch2
+    Root --> Branch3
+    
+    Branch1 --> Leaf1
+    Branch1 --> Leaf2
+    Branch2 --> Leaf3
+    Branch2 --> Leaf4
+    Branch3 --> Leaf5
+    
+    Leaf1 -.-> Data1
+    Leaf2 -.-> Data2
+    Leaf3 -.-> Data3
+    Leaf4 -.-> Data4
+    Leaf5 -.-> Data5
+    
+    style Root fill:#ffeb3b
+    style Branch1 fill:#4caf50
+    style Branch2 fill:#4caf50
+    style Branch3 fill:#4caf50
+    style Leaf1 fill:#2196f3
+    style Leaf2 fill:#2196f3
+    style Leaf3 fill:#2196f3
+    style Leaf4 fill:#2196f3
+    style Leaf5 fill:#2196f3
+    style Data1 fill:#ff9800
+    style Data2 fill:#ff9800
+    style Data3 fill:#ff9800
+    style Data4 fill:#ff9800
+    style Data5 fill:#ff9800
+```
+
 ### Hash 인덱스 - 정확한 매칭에 특화
 해시 함수를 사용해서 데이터를 저장하는 방식입니다.
 
@@ -59,6 +136,40 @@ B-Tree 인덱스는 현재 대부분의 관계형 데이터베이스에서 기�
 - 해시 충돌 처리로 인한 추가 오버헤드
 - MySQL Memory 엔진에서만 지원
 
+```mermaid
+graph LR
+    subgraph "해시 인덱스 구조"
+        A[키: "John"] --> B[해시함수]
+        C[키: "Jane"] --> D[해시함수]
+        E[키: "Bob"] --> F[해시함수]
+        
+        B --> G[해시값: 1234]
+        D --> H[해시값: 5678]
+        F --> I[해시값: 9012]
+        
+        G --> J[버킷 1234<br/>데이터 포인터]
+        H --> K[버킷 5678<br/>데이터 포인터]
+        I --> L[버킷 9012<br/>데이터 포인터]
+        
+        J --> M[실제 데이터]
+        K --> N[실제 데이터]
+        L --> O[실제 데이터]
+    end
+    
+    style A fill:#e3f2fd
+    style C fill:#e3f2fd
+    style E fill:#e3f2fd
+    style G fill:#f3e5f5
+    style H fill:#f3e5f5
+    style I fill:#f3e5f5
+    style J fill:#e8f5e8
+    style K fill:#e8f5e8
+    style L fill:#e8f5e8
+    style M fill:#fff3e0
+    style N fill:#fff3e0
+    style O fill:#fff3e0
+```
+
 ### 인덱스의 실제 저장 방식 - 해시가 아닌 B-Tree 구조
 
 **중요한 오해 해결:**
@@ -67,18 +178,41 @@ B-Tree 인덱스는 현재 대부분의 관계형 데이터베이스에서 기�
 **B-Tree 인덱스의 물리적 저장 구조:**
 
 **1. 페이지 기반 저장**
-```
-디스크 저장 구조:
-┌─────────────────┐
-│   페이지 1      │ ← 루트 노드
-│   (16KB)        │
-├─────────────────┤
-│   페이지 2      │ ← 브랜치 노드
-│   (16KB)        │
-├─────────────────┤
-│   페이지 3      │ ← 리프 노드
-│   (16KB)        │
-└─────────────────┘
+
+```mermaid
+graph TB
+    subgraph "B-Tree 페이지 구조"
+        A[페이지 1<br/>루트 노드<br/>16KB]
+        B[페이지 2<br/>브랜치 노드<br/>16KB]
+        C[페이지 3<br/>브랜치 노드<br/>16KB]
+        D[페이지 4<br/>리프 노드<br/>16KB]
+        E[페이지 5<br/>리프 노드<br/>16KB]
+        F[페이지 6<br/>리프 노드<br/>16KB]
+        
+        G[데이터 페이지 1]
+        H[데이터 페이지 2]
+        I[데이터 페이지 3]
+    end
+    
+    A --> B
+    A --> C
+    B --> D
+    B --> E
+    C --> F
+    
+    D -.-> G
+    E -.-> H
+    F -.-> I
+    
+    style A fill:#ffeb3b
+    style B fill:#4caf50
+    style C fill:#4caf50
+    style D fill:#2196f3
+    style E fill:#2196f3
+    style F fill:#2196f3
+    style G fill:#ff9800
+    style H fill:#ff9800
+    style I fill:#ff9800
 ```
 
 **2. 인덱스 레코드의 실제 구조**
@@ -121,20 +255,38 @@ CREATE INDEX idx_name ON users(name);
 ```
 
 **B-Tree 인덱스의 물리적 저장:**
-```
-루트 페이지 (페이지 100):
-┌─────────────────────────────────────┐
-│ [Alice] → 페이지 200                │
-│ [Bob] → 페이지 201                  │
-│ [Charlie] → 페이지 202              │
-└─────────────────────────────────────┘
 
-리프 페이지 (페이지 200):
-┌─────────────────────────────────────┐
-│ [Alice, 1] → 데이터 페이지 1000     │
-│ [Alice, 5] → 데이터 페이지 1004     │
-│ [Alice, 8] → 데이터 페이지 1007     │
-└─────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph "실제 B-Tree 저장 예시"
+        Root[루트 페이지 100<br/>[Alice] → 페이지 200<br/>[Bob] → 페이지 201<br/>[Charlie] → 페이지 202]
+        
+        Leaf1[리프 페이지 200<br/>[Alice, 1] → 데이터 페이지 1000<br/>[Alice, 5] → 데이터 페이지 1004<br/>[Alice, 8] → 데이터 페이지 1007]
+        
+        Leaf2[리프 페이지 201<br/>[Bob, 2] → 데이터 페이지 1001<br/>[Bob, 6] → 데이터 페이지 1005<br/>[Bob, 9] → 데이터 페이지 1008]
+        
+        Leaf3[리프 페이지 202<br/>[Charlie, 3] → 데이터 페이지 1002<br/>[Charlie, 7] → 데이터 페이지 1006<br/>[Charlie, 10] → 데이터 페이지 1009]
+        
+        Data1[데이터 페이지 1000<br/>Alice의 실제 데이터]
+        Data2[데이터 페이지 1001<br/>Bob의 실제 데이터]
+        Data3[데이터 페이지 1002<br/>Charlie의 실제 데이터]
+    end
+    
+    Root --> Leaf1
+    Root --> Leaf2
+    Root --> Leaf3
+    
+    Leaf1 -.-> Data1
+    Leaf2 -.-> Data2
+    Leaf3 -.-> Data3
+    
+    style Root fill:#ffeb3b
+    style Leaf1 fill:#2196f3
+    style Leaf2 fill:#2196f3
+    style Leaf3 fill:#2196f3
+    style Data1 fill:#ff9800
+    style Data2 fill:#ff9800
+    style Data3 fill:#ff9800
 ```
 
 **5. 해시 인덱스의 실제 사용 사례**
@@ -150,14 +302,39 @@ CREATE INDEX idx_hash ON temp_data(id) USING HASH;
 ```
 
 **해시 인덱스의 물리적 저장:**
-```
-해시 테이블 구조:
-┌─────────────────────────────────────┐
-│ 해시 버킷 0: [1, 데이터포인터]      │
-│ 해시 버킷 1: [5, 데이터포인터]      │
-│ 해시 버킷 2: [9, 데이터포인터]      │
-│ ...                                 │
-└─────────────────────────────────────┘
+
+```mermaid
+graph LR
+    subgraph "해시 테이블 구조"
+        A[키: 1] --> B[해시함수]
+        C[키: 5] --> D[해시함수]
+        E[키: 9] --> F[해시함수]
+        
+        B --> G[해시값: 0]
+        D --> H[해시값: 1]
+        F --> I[해시값: 2]
+        
+        G --> J[버킷 0<br/>[1, 데이터포인터]]
+        H --> K[버킷 1<br/>[5, 데이터포인터]]
+        I --> L[버킷 2<br/>[9, 데이터포인터]]
+        
+        J --> M[실제 데이터]
+        K --> N[실제 데이터]
+        L --> O[실제 데이터]
+    end
+    
+    style A fill:#e3f2fd
+    style C fill:#e3f2fd
+    style E fill:#e3f2fd
+    style G fill:#f3e5f5
+    style H fill:#f3e5f5
+    style I fill:#f3e5f5
+    style J fill:#e8f5e8
+    style K fill:#e8f5e8
+    style L fill:#e8f5e8
+    style M fill:#fff3e0
+    style N fill:#fff3e0
+    style O fill:#fff3e0
 ```
 
 **6. 왜 B-Tree가 표준인가?**
@@ -358,6 +535,34 @@ DELETE FROM products WHERE id = 1;
 ### B-Tree 인덱스의 동작 과정
 B-Tree 인덱스가 데이터를 찾는 과정을 단계별로 살펴보면:
 
+```mermaid
+flowchart TD
+    A[1. 루트 노드 접근] --> B[2. 키 값 비교]
+    B --> C{찾는 값과 비교}
+    C -->|작음| D[3. 왼쪽 하위 노드 이동]
+    C -->|같음| E[4. 리프 노드 도달]
+    C -->|큼| F[3. 오른쪽 하위 노드 이동]
+    D --> G[2. 키 값 비교]
+    F --> G
+    G --> H{찾는 값과 비교}
+    H -->|작음| I[3. 왼쪽 하위 노드 이동]
+    H -->|같음| E
+    H -->|큼| J[3. 오른쪽 하위 노드 이동]
+    I --> K[2. 키 값 비교]
+    J --> K
+    K --> L{찾는 값과 비교}
+    L -->|찾음| E
+    L -->|계속| M[반복...]
+    E --> N[5. 데이터 읽기]
+    
+    style A fill:#e3f2fd
+    style B fill:#f3e5f5
+    style C fill:#ffeb3b
+    style E fill:#4caf50
+    style N fill:#2196f3
+```
+
+**단계별 설명:**
 1. **루트 노드 접근**: 인덱스의 최상위 노드에서 시작
 2. **키 값 비교**: 찾고자 하는 값과 노드의 키 값들을 비교
 3. **하위 노드 이동**: 비교 결과에 따라 적절한 하위 노드로 이동
@@ -413,6 +618,46 @@ SELECT * FROM users WHERE age = 25 AND created_at > '2023-01-01';
 
 ### I/O 패턴의 차이점
 
+```mermaid
+graph TB
+    subgraph "순차 I/O (Sequential I/O)"
+        A[디스크 블록 1] --> B[디스크 블록 2]
+        B --> C[디스크 블록 3]
+        C --> D[디스크 블록 4]
+        D --> E[디스크 블록 5]
+        F[연속된 블록 순서대로 읽기]
+        G[디스크 헤드 이동 최소화]
+        H[매우 효율적]
+    end
+    
+    subgraph "랜덤 I/O (Random I/O)"
+        I[디스크 블록 1] -.-> J[디스크 블록 5]
+        J -.-> K[디스크 블록 2]
+        K -.-> L[디스크 블록 8]
+        L -.-> M[디스크 블록 3]
+        N[불연속된 블록 읽기]
+        O[디스크 헤드 이동 많음]
+        P[상대적으로 느림]
+    end
+    
+    style A fill:#c8e6c9
+    style B fill:#c8e6c9
+    style C fill:#c8e6c9
+    style D fill:#c8e6c9
+    style E fill:#c8e6c9
+    style F fill:#4caf50
+    style G fill:#4caf50
+    style H fill:#4caf50
+    style I fill:#ffcdd2
+    style J fill:#ffcdd2
+    style K fill:#ffcdd2
+    style L fill:#ffcdd2
+    style M fill:#ffcdd2
+    style N fill:#f44336
+    style O fill:#f44336
+    style P fill:#f44336
+```
+
 **순차 I/O (Sequential I/O)**
 - 연속된 디스크 블록을 순서대로 읽는 방식
 - 디스크 헤드의 이동이 최소화되어 효율적
@@ -426,6 +671,34 @@ SELECT * FROM users WHERE age = 25 AND created_at > '2023-01-01';
 ### 성능 차이의 실제 예시
 
 100만 개의 사용자 데이터가 있는 테이블에서 특정 사용자를 찾는 경우:
+
+```mermaid
+graph LR
+    subgraph "인덱스 없는 경우"
+        A[전체 테이블 스캔] --> B[100만 개 레코드 순차 읽기]
+        B --> C[평균 50만 개 레코드 읽음]
+        C --> D[시간 복잡도: O(n)]
+        D --> E[매우 느림]
+    end
+    
+    subgraph "인덱스 있는 경우"
+        F[B-Tree 인덱스 스캔] --> G[최대 20번의 비교]
+        G --> H[3-4개 페이지만 읽음]
+        H --> I[시간 복잡도: O(log n)]
+        I --> J[매우 빠름]
+    end
+    
+    style A fill:#ffcdd2
+    style B fill:#ffcdd2
+    style C fill:#ffcdd2
+    style D fill:#ffcdd2
+    style E fill:#f44336
+    style F fill:#c8e6c9
+    style G fill:#c8e6c9
+    style H fill:#c8e6c9
+    style I fill:#c8e6c9
+    style J fill:#4caf50
+```
 
 **인덱스 없는 경우:**
 - 전체 테이블을 순차적으로 스캔
@@ -622,11 +895,383 @@ CREATE INDEX idx_poor ON users(active, age, created_at); -- active는 true/false
 -- active = true인 레코드가 전체의 50%라면, 인덱스 효과가 반감됨
 ```
 
+### 해시 인덱스의 실제 한계: A만 조회가 불가능한 이유
+
+**핵심 답변:**
+해시 인덱스에서는 **A만으로 조회가 불가능**합니다. 이것이 해시 인덱스의 근본적인 한계점입니다.
+
+### 해시 인덱스에서 복합 키 저장 방식
+
+**해시 인덱스의 실제 동작:**
+```sql
+-- 해시 인덱스 생성 (MySQL Memory 엔진에서만 지원)
+CREATE TABLE temp_users (
+  id INT,
+  age INT,
+  created_at DATE,
+  active BOOLEAN
+) ENGINE=MEMORY;
+
+-- 해시 인덱스 생성
+CREATE INDEX idx_hash ON temp_users(age, created_at, active) USING HASH;
+```
+
+**해시 테이블의 실제 저장:**
+
+```mermaid
+graph TD
+    subgraph "해시 인덱스 저장 구조"
+        A[복합 키: 25,2023-01-01,true] --> B[해시함수]
+        C[복합 키: 25,2023-01-02,false] --> D[해시함수]
+        E[복합 키: 25,2023-01-03,true] --> F[해시함수]
+        G[복합 키: 26,2023-01-01,true] --> H[해시함수]
+        I[복합 키: 26,2023-01-02,false] --> J[해시함수]
+        
+        B --> K[해시값: 1234]
+        D --> L[해시값: 5678]
+        F --> M[해시값: 9012]
+        H --> N[해시값: 3456]
+        J --> O[해시값: 7890]
+        
+        K --> P[버킷 0<br/>데이터1]
+        L --> Q[버킷 1<br/>데이터2]
+        M --> R[버킷 2<br/>데이터3]
+        N --> S[버킷 3<br/>데이터4]
+        O --> T[버킷 4<br/>데이터5]
+    end
+    
+    style A fill:#e3f2fd
+    style C fill:#e3f2fd
+    style E fill:#e3f2fd
+    style G fill:#e3f2fd
+    style I fill:#e3f2fd
+    style K fill:#f3e5f5
+    style L fill:#f3e5f5
+    style M fill:#f3e5f5
+    style N fill:#f3e5f5
+    style O fill:#f3e5f5
+    style P fill:#e8f5e8
+    style Q fill:#e8f5e8
+    style R fill:#e8f5e8
+    style S fill:#e8f5e8
+    style T fill:#e8f5e8
+```
+
+### 해시 인덱스에서 A만 검색 시도
+
+**시도해보는 쿼리:**
+```sql
+SELECT * FROM temp_users WHERE age = 25;
+```
+
+**실제로 일어나는 일:**
+
+```mermaid
+flowchart TD
+    A[검색 시도: age = 25] --> B[해시 함수 적용]
+    B --> C[hash("25") 계산]
+    C --> D[해시값: 9999]
+    D --> E[버킷 9999 탐색]
+    E --> F[버킷이 비어있음]
+    F --> G[결과: 아무것도 찾을 수 없음!]
+    
+    H[저장된 해시값들] --> I[hash("25,2023-01-01,true") = 1234]
+    H --> J[hash("25,2023-01-02,false") = 5678]
+    H --> K[hash("25,2023-01-03,true") = 9012]
+    
+    L[검색하는 해시값] --> M[hash("25") = 9999]
+    
+    style A fill:#e3f2fd
+    style C fill:#f3e5f5
+    style D fill:#f3e5f5
+    style E fill:#ffeb3b
+    style F fill:#ff9800
+    style G fill:#f44336
+    style I fill:#e8f5e8
+    style J fill:#e8f5e8
+    style K fill:#e8f5e8
+    style M fill:#ffcdd2
+```
+
+**왜 찾을 수 없는가?**
+- 저장된 해시값: `hash("25,2023-01-01,true")`, `hash("25,2023-01-02,false")` 등
+- 검색하는 해시값: `hash("25")`
+- **완전히 다른 해시값**이므로 매칭되지 않음
+
+### 해시 인덱스에서 가능한 검색들
+
+**1. 정확한 매칭만 가능:**
+```sql
+-- 가능: 모든 컬럼을 정확히 지정
+SELECT * FROM temp_users WHERE age = 25 AND created_at = '2023-01-01' AND active = true;
+
+-- 불가능: 일부 컬럼만 지정
+SELECT * FROM temp_users WHERE age = 25;                    -- ❌ 불가능
+SELECT * FROM temp_users WHERE age = 25 AND active = true;  -- ❌ 불가능
+```
+
+**2. 범위 검색 불가능:**
+```sql
+-- 모두 불가능:
+SELECT * FROM temp_users WHERE age > 25;                    -- ❌
+SELECT * FROM temp_users WHERE age BETWEEN 20 AND 30;      -- ❌
+SELECT * FROM temp_users WHERE created_at > '2023-01-01';  -- ❌
+```
+
+### 해시 인덱스의 근본적인 문제점
+
+**1. 부분 키 검색 불가능**
+- 복합 인덱스 `(A, B, C)`에서 A만으로 검색 불가
+- A, B만으로 검색도 불가
+- **모든 컬럼을 정확히 지정**해야만 검색 가능
+
+**2. 범위 검색 불가능**
+- `>`, `<`, `BETWEEN` 등의 범위 조건 사용 불가
+- 정렬된 데이터 접근 불가
+
+**3. 정렬 불가능**
+- `ORDER BY` 절과 함께 사용 시 추가 정렬 필요
+- 인덱스 자체가 정렬되지 않음
+
+### 실제 사용 사례와 한계
+
+**해시 인덱스가 적합한 경우:**
+```sql
+-- 정확한 매칭만 필요한 경우
+SELECT * FROM users WHERE email = 'john@example.com';  -- 단일 컬럼
+SELECT * FROM products WHERE id = 123;                 -- PRIMARY KEY
+```
+
+**해시 인덱스가 부적합한 경우:**
+```sql
+-- 복합 인덱스에서 부분 검색이 필요한 경우
+SELECT * FROM users WHERE age = 25;                    -- ❌ 불가능
+SELECT * FROM products WHERE category = 'Electronics'; -- ❌ 불가능
+
+-- 범위 검색이 필요한 경우
+SELECT * FROM users WHERE age BETWEEN 20 AND 30;      -- ❌ 불가능
+SELECT * FROM orders WHERE created_at > '2023-01-01'; -- ❌ 불가능
+```
+
+### 결론: 해시 인덱스의 한계
+
+**핵심 답변:**
+해시 인덱스에서는 **A, B, C를 통째로 저장하고, A만으로는 조회가 불가능**합니다. 이것이 해시 인덱스의 근본적인 한계점이며, 그래서 대부분의 관계형 데이터베이스에서 B-Tree 인덱스를 기본으로 사용하는 이유입니다.
+
+**해시 인덱스 사용 권장사항:**
+1. **단일 컬럼**에만 사용
+2. **정확한 매칭**만 필요한 경우
+3. **메모리 기반** 임시 테이블에서만 사용
+4. **범위 검색이나 부분 검색**이 필요하면 B-Tree 인덱스 사용
+
+### B-Tree 인덱스의 우수성
+
+**B-Tree에서 복합 키 저장:**
+```
+B-Tree 구조 (정렬된 상태):
+┌─────────────────────────────────────┐
+│ [25, 2023-01-01, true] → 데이터1    │
+│ [25, 2023-01-01, false] → 데이터2   │
+│ [25, 2023-01-02, true] → 데이터3    │
+│ [25, 2023-01-02, false] → 데이터4   │
+│ [25, 2023-01-03, true] → 데이터5    │
+│ [26, 2023-01-01, true] → 데이터6    │
+│ [26, 2023-01-02, false] → 데이터7   │
+└─────────────────────────────────────┘
+```
+
+**B-Tree의 장점:**
+- **정렬된 상태로 저장**: 첫 번째 컬럼(25)이 같은 모든 레코드가 **연속으로** 배치됨
+- A=25인 레코드들을 **범위 스캔**으로 빠르게 찾을 수 있음
+
+### 실제 동작 과정 비교
+
+**해시 인덱스에서 A=25 검색:**
+```
+1. hash("25,2023-01-01,true") 계산 → 해시값1
+2. hash("25,2023-01-02,false") 계산 → 해시값2 (완전히 다름!)
+3. hash("25,2023-01-03,true") 계산 → 해시값3 (또 다름!)
+4. ... 모든 가능한 조합을 시도해야 함
+5. 결국 전체 테이블 스캔 필요 → 비효율적
+```
+
+**B-Tree 인덱스에서 A=25 검색:**
+```
+1. B-Tree에서 [25, ...] 범위의 시작점 찾기
+2. [25, 2023-01-01, true]에서 시작
+3. [25, 2023-01-01, false] 읽기
+4. [25, 2023-01-02, true] 읽기
+5. [25, 2023-01-02, false] 읽기
+6. [25, 2023-01-03, true] 읽기
+7. [26, 2023-01-01, true]를 만나면 종료
+→ 연속된 범위 스캔으로 매우 효율적!
+```
+
+### 구체적인 예시로 이해하기
+
+**실제 데이터:**
+```sql
+CREATE TABLE products (
+  id INT,
+  category VARCHAR(50),
+  price DECIMAL(10,2),
+  brand VARCHAR(50)
+);
+
+INSERT INTO products VALUES
+(1, 'Electronics', 999.99, 'Apple'),
+(2, 'Electronics', 899.99, 'Samsung'),
+(3, 'Electronics', 799.99, 'LG'),
+(4, 'Clothing', 99.99, 'Nike'),
+(5, 'Clothing', 89.99, 'Adidas');
+
+-- 복합 인덱스 생성
+CREATE INDEX idx_category_price_brand ON products(category, price, brand);
+```
+
+**B-Tree 인덱스의 실제 저장:**
+
+```mermaid
+graph TD
+    subgraph "복합 인덱스 정렬 구조"
+        A[1. [Clothing, 89.99, Adidas] → 레코드5]
+        B[2. [Clothing, 99.99, Nike] → 레코드4]
+        C[3. [Electronics, 799.99, LG] → 레코드3]
+        D[4. [Electronics, 899.99, Samsung] → 레코드2]
+        E[5. [Electronics, 999.99, Apple] → 레코드1]
+        
+        F[실제 데이터<br/>레코드1: Apple iPhone]
+        G[실제 데이터<br/>레코드2: Samsung Galaxy]
+        H[실제 데이터<br/>레코드3: LG TV]
+        I[실제 데이터<br/>레코드4: Nike Shoes]
+        J[실제 데이터<br/>레코드5: Adidas Shoes]
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    
+    A -.-> J
+    B -.-> I
+    C -.-> H
+    D -.-> G
+    E -.-> F
+    
+    style A fill:#e8f5e8
+    style B fill:#e8f5e8
+    style C fill:#e3f2fd
+    style D fill:#e3f2fd
+    style E fill:#e3f2fd
+    style F fill:#fff3e0
+    style G fill:#fff3e0
+    style H fill:#fff3e0
+    style I fill:#fff3e0
+    style J fill:#fff3e0
+```
+
+**A만으로 검색 (category = 'Electronics'):**
+```sql
+SELECT * FROM products WHERE category = 'Electronics';
+```
+
+**B-Tree 검색 과정:**
+
+```mermaid
+flowchart TD
+    A[검색 시작: category = 'Electronics'] --> B[시작점 찾기]
+    B --> C[Electronics, 799.99, LG에서 시작]
+    C --> D[범위 스캔 시작]
+    D --> E[Electronics, 799.99, LG → 레코드3]
+    E --> F[Electronics, 899.99, Samsung → 레코드2]
+    F --> G[Electronics, 999.99, Apple → 레코드1]
+    G --> H[Clothing, ... 만남]
+    H --> I[스캔 종료]
+    
+    style A fill:#e3f2fd
+    style C fill:#4caf50
+    style E fill:#2196f3
+    style F fill:#2196f3
+    style G fill:#2196f3
+    style H fill:#ff9800
+    style I fill:#f44336
+```
+
+### 왜 B-Tree가 이렇게 동작하는가?
+
+**1. 사전식 정렬 (Lexicographic Order)**
+```
+문자열 정렬과 동일한 원리:
+"Apple" < "Banana" < "Cherry"
+
+복합 키 정렬:
+[25, 2023-01-01, true] < [25, 2023-01-02, false] < [26, 2023-01-01, true]
+```
+
+**2. 범위 스캔의 효율성**
+- 첫 번째 컬럼이 같은 모든 레코드가 **물리적으로 연속**으로 저장
+- 디스크 I/O 최소화 (연속된 페이지 읽기)
+- 메모리 캐시 효율성 극대화
+
+**3. 부분 키 검색 지원**
+```sql
+-- 모두 가능한 검색들:
+WHERE category = 'Electronics'                    -- A만 사용
+WHERE category = 'Electronics' AND price = 999.99 -- A, B 사용  
+WHERE category = 'Electronics' AND price = 999.99 AND brand = 'Apple' -- A, B, C 사용
+```
+
+### 해시 vs B-Tree 최종 비교
+
+```mermaid
+graph TB
+    subgraph "Hash 인덱스"
+        A1[복합 키 저장: 전체를 해시값으로 변환]
+        A2[A만 검색: 불가능]
+        A3[범위 검색: 불가능]
+        A4[정렬: 불가능]
+        A5[메모리 효율: 낮음]
+        A6[디스크 효율: 낮음]
+    end
+    
+    subgraph "B-Tree 인덱스"
+        B1[복합 키 저장: 사전식 정렬로 저장]
+        B2[A만 검색: 가능]
+        B3[범위 검색: 가능]
+        B4[정렬: 자동 정렬]
+        B5[메모리 효율: 높음]
+        B6[디스크 효율: 높음]
+    end
+    
+    style A1 fill:#ffcdd2
+    style A2 fill:#f44336
+    style A3 fill:#f44336
+    style A4 fill:#f44336
+    style A5 fill:#ffcdd2
+    style A6 fill:#ffcdd2
+    style B1 fill:#c8e6c9
+    style B2 fill:#4caf50
+    style B3 fill:#4caf50
+    style B4 fill:#4caf50
+    style B5 fill:#c8e6c9
+    style B6 fill:#c8e6c9
+```
+
+| 특성 | Hash 인덱스 | B-Tree 인덱스 |
+|------|-------------|---------------|
+| **복합 키 저장** | 전체를 해시값으로 변환 | 사전식 정렬로 저장 |
+| **A만 검색** | 불가능 (전체 스캔 필요) | 가능 (범위 스캔) |
+| **범위 검색** | 불가능 | 가능 |
+| **정렬** | 불가능 | 자동 정렬 |
+| **메모리 효율** | 낮음 (해시 충돌 처리) | 높음 |
+| **디스크 효율** | 낮음 | 높음 (연속 읽기) |
+
 **핵심 원리 정리:**
-1. **첫 번째 컬럼은 정렬되어 있음**: B-Tree의 사전식 정렬 특성
-2. **범위 스캔 가능**: 첫 번째 컬럼 값이 같은 모든 레코드를 연속으로 읽을 수 있음
-3. **선택도가 중요**: 첫 번째 컬럼의 선택도가 인덱스 효율성을 결정
-4. **순서가 중요**: 자주 사용되는 조건을 앞에 배치해야 함
+1. **B-Tree는 정렬된 구조**: 첫 번째 컬럼이 같은 레코드들이 연속으로 배치
+2. **범위 스캔 가능**: A=25인 모든 레코드를 연속으로 읽을 수 있음
+3. **해시는 정렬되지 않음**: A만으로 검색하려면 전체 스캔 필요
+4. **선택도가 중요**: 첫 번째 컬럼의 선택도가 인덱스 효율성을 결정
+5. **순서가 중요**: 자주 사용되는 조건을 앞에 배치해야 함
 
 **3. 쿼리 패턴 분석**
 - 실제 애플리케이션에서 사용되는 쿼리 패턴을 분석
