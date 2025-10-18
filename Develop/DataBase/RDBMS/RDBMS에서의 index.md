@@ -74,22 +74,22 @@ B-Tree 인덱스는 현재 대부분의 관계형 데이터베이스에서 기�
 ```mermaid
 graph TD
     subgraph "B-Tree 구조 예시"
-        Root[루트 노드<br/>[10, 20, 30]]
-        Branch1[브랜치 노드<br/>[5, 8, 12]]
-        Branch2[브랜치 노드<br/>[15, 18, 25]]
-        Branch3[브랜치 노드<br/>[35, 40, 45]]
+        Root["루트 노드<br/>(10, 20, 30)"]
+        Branch1["브랜치 노드<br/>(5, 8, 12)"]
+        Branch2["브랜치 노드<br/>(15, 18, 25)"]
+        Branch3["브랜치 노드<br/>(35, 40, 45)"]
         
-        Leaf1[리프 노드<br/>[1,3,5,7,9]]
-        Leaf2[리프 노드<br/>[10,12,14,16,18]]
-        Leaf3[리프 노드<br/>[20,22,24,26,28]]
-        Leaf4[리프 노드<br/>[30,32,34,36,38]]
-        Leaf5[리프 노드<br/>[40,42,44,46,48]]
+        Leaf1["리프 노드<br/>(1,3,5,7,9)"]
+        Leaf2["리프 노드<br/>(10,12,14,16,18)"]
+        Leaf3["리프 노드<br/>(20,22,24,26,28)"]
+        Leaf4["리프 노드<br/>(30,32,34,36,38)"]
+        Leaf5["리프 노드<br/>(40,42,44,46,48)"]
         
-        Data1[데이터 페이지 1]
-        Data2[데이터 페이지 2]
-        Data3[데이터 페이지 3]
-        Data4[데이터 페이지 4]
-        Data5[데이터 페이지 5]
+        Data1["데이터 페이지 1"]
+        Data2["데이터 페이지 2"]
+        Data3["데이터 페이지 3"]
+        Data4["데이터 페이지 4"]
+        Data5["데이터 페이지 5"]
     end
     
     Root --> Branch1
@@ -259,17 +259,17 @@ CREATE INDEX idx_name ON users(name);
 ```mermaid
 graph TD
     subgraph "실제 B-Tree 저장 예시"
-        Root[루트 페이지 100<br/>[Alice] → 페이지 200<br/>[Bob] → 페이지 201<br/>[Charlie] → 페이지 202]
+        Root["루트 페이지 100<br/>(Alice) → 페이지 200<br/>(Bob) → 페이지 201<br/>(Charlie) → 페이지 202"]
         
-        Leaf1[리프 페이지 200<br/>[Alice, 1] → 데이터 페이지 1000<br/>[Alice, 5] → 데이터 페이지 1004<br/>[Alice, 8] → 데이터 페이지 1007]
+        Leaf1["리프 페이지 200<br/>(Alice, 1) → 데이터 페이지 1000<br/>(Alice, 5) → 데이터 페이지 1004<br/>(Alice, 8) → 데이터 페이지 1007"]
         
-        Leaf2[리프 페이지 201<br/>[Bob, 2] → 데이터 페이지 1001<br/>[Bob, 6] → 데이터 페이지 1005<br/>[Bob, 9] → 데이터 페이지 1008]
+        Leaf2["리프 페이지 201<br/>(Bob, 2) → 데이터 페이지 1001<br/>(Bob, 6) → 데이터 페이지 1005<br/>(Bob, 9) → 데이터 페이지 1008"]
         
-        Leaf3[리프 페이지 202<br/>[Charlie, 3] → 데이터 페이지 1002<br/>[Charlie, 7] → 데이터 페이지 1006<br/>[Charlie, 10] → 데이터 페이지 1009]
+        Leaf3["리프 페이지 202<br/>(Charlie, 3) → 데이터 페이지 1002<br/>(Charlie, 7) → 데이터 페이지 1006<br/>(Charlie, 10) → 데이터 페이지 1009"]
         
-        Data1[데이터 페이지 1000<br/>Alice의 실제 데이터]
-        Data2[데이터 페이지 1001<br/>Bob의 실제 데이터]
-        Data3[데이터 페이지 1002<br/>Charlie의 실제 데이터]
+        Data1["데이터 페이지 1000<br/>Alice의 실제 데이터"]
+        Data2["데이터 페이지 1001<br/>Bob의 실제 데이터"]
+        Data3["데이터 페이지 1002<br/>Charlie의 실제 데이터"]
     end
     
     Root --> Leaf1
@@ -537,23 +537,23 @@ B-Tree 인덱스가 데이터를 찾는 과정을 단계별로 살펴보면:
 
 ```mermaid
 flowchart TD
-    A[1. 루트 노드 접근] --> B[2. 키 값 비교]
-    B --> C{찾는 값과 비교}
-    C -->|작음| D[3. 왼쪽 하위 노드 이동]
-    C -->|같음| E[4. 리프 노드 도달]
-    C -->|큼| F[3. 오른쪽 하위 노드 이동]
-    D --> G[2. 키 값 비교]
+    A["1. 루트 노드 접근"] --> B["2. 키 값 비교"]
+    B --> C{"찾는 값과 비교"}
+    C -->|작음| D["3. 왼쪽 하위 노드 이동"]
+    C -->|같음| E["4. 리프 노드 도달"]
+    C -->|큼| F["3. 오른쪽 하위 노드 이동"]
+    D --> G["2. 키 값 비교"]
     F --> G
-    G --> H{찾는 값과 비교}
-    H -->|작음| I[3. 왼쪽 하위 노드 이동]
+    G --> H{"찾는 값과 비교"}
+    H -->|작음| I["3. 왼쪽 하위 노드 이동"]
     H -->|같음| E
-    H -->|큼| J[3. 오른쪽 하위 노드 이동]
-    I --> K[2. 키 값 비교]
+    H -->|큼| J["3. 오른쪽 하위 노드 이동"]
+    I --> K["2. 키 값 비교"]
     J --> K
-    K --> L{찾는 값과 비교}
+    K --> L{"찾는 값과 비교"}
     L -->|찾음| E
-    L -->|계속| M[반복...]
-    E --> N[5. 데이터 읽기]
+    L -->|계속| M["반복..."]
+    E --> N["5. 데이터 읽기"]
     
     style A fill:#e3f2fd
     style B fill:#f3e5f5
@@ -621,23 +621,23 @@ SELECT * FROM users WHERE age = 25 AND created_at > '2023-01-01';
 ```mermaid
 graph TB
     subgraph "순차 I/O (Sequential I/O)"
-        A[디스크 블록 1] --> B[디스크 블록 2]
-        B --> C[디스크 블록 3]
-        C --> D[디스크 블록 4]
-        D --> E[디스크 블록 5]
-        F[연속된 블록 순서대로 읽기]
-        G[디스크 헤드 이동 최소화]
-        H[매우 효율적]
+        A["디스크 블록 1"] --> B["디스크 블록 2"]
+        B --> C["디스크 블록 3"]
+        C --> D["디스크 블록 4"]
+        D --> E["디스크 블록 5"]
+        F["연속된 블록 순서대로 읽기"]
+        G["디스크 헤드 이동 최소화"]
+        H["매우 효율적"]
     end
     
     subgraph "랜덤 I/O (Random I/O)"
-        I[디스크 블록 1] -.-> J[디스크 블록 5]
-        J -.-> K[디스크 블록 2]
-        K -.-> L[디스크 블록 8]
-        L -.-> M[디스크 블록 3]
-        N[불연속된 블록 읽기]
-        O[디스크 헤드 이동 많음]
-        P[상대적으로 느림]
+        I["디스크 블록 1"] -.-> J["디스크 블록 5"]
+        J -.-> K["디스크 블록 2"]
+        K -.-> L["디스크 블록 8"]
+        L -.-> M["디스크 블록 3"]
+        N["불연속된 블록 읽기"]
+        O["디스크 헤드 이동 많음"]
+        P["상대적으로 느림"]
     end
     
     style A fill:#c8e6c9
@@ -675,17 +675,17 @@ graph TB
 ```mermaid
 graph LR
     subgraph "인덱스 없는 경우"
-        A[전체 테이블 스캔] --> B[100만 개 레코드 순차 읽기]
-        B --> C[평균 50만 개 레코드 읽음]
-        C --> D[시간 복잡도: O(n)]
-        D --> E[매우 느림]
+        A["전체 테이블 스캔"] --> B["100만 개 레코드 순차 읽기"]
+        B --> C["평균 50만 개 레코드 읽음"]
+        C --> D["시간 복잡도: O(n)"]
+        D --> E["매우 느림"]
     end
     
     subgraph "인덱스 있는 경우"
-        F[B-Tree 인덱스 스캔] --> G[최대 20번의 비교]
-        G --> H[3-4개 페이지만 읽음]
-        H --> I[시간 복잡도: O(log n)]
-        I --> J[매우 빠름]
+        F["B-Tree 인덱스 스캔"] --> G["최대 20번의 비교"]
+        G --> H["3-4개 페이지만 읽음"]
+        H --> I["시간 복잡도: O(log n)"]
+        I --> J["매우 빠름"]
     end
     
     style A fill:#ffcdd2
@@ -968,18 +968,18 @@ SELECT * FROM temp_users WHERE age = 25;
 
 ```mermaid
 flowchart TD
-    A[검색 시도: age = 25] --> B[해시 함수 적용]
-    B --> C[hash("25") 계산]
-    C --> D[해시값: 9999]
-    D --> E[버킷 9999 탐색]
-    E --> F[버킷이 비어있음]
-    F --> G[결과: 아무것도 찾을 수 없음!]
+    A["검색 시도: age = 25"] --> B["해시 함수 적용"]
+    B --> C["hash('25') 계산"]
+    C --> D["해시값: 9999"]
+    D --> E["버킷 9999 탐색"]
+    E --> F["버킷이 비어있음"]
+    F --> G["결과: 아무것도 찾을 수 없음!"]
     
-    H[저장된 해시값들] --> I[hash("25,2023-01-01,true") = 1234]
-    H --> J[hash("25,2023-01-02,false") = 5678]
-    H --> K[hash("25,2023-01-03,true") = 9012]
+    H["저장된 해시값들"] --> I["hash('25,2023-01-01,true') = 1234"]
+    H --> J["hash('25,2023-01-02,false') = 5678"]
+    H --> K["hash('25,2023-01-03,true') = 9012"]
     
-    L[검색하는 해시값] --> M[hash("25") = 9999]
+    L["검색하는 해시값"] --> M["hash('25') = 9999"]
     
     style A fill:#e3f2fd
     style C fill:#f3e5f5
@@ -1134,17 +1134,17 @@ CREATE INDEX idx_category_price_brand ON products(category, price, brand);
 ```mermaid
 graph TD
     subgraph "복합 인덱스 정렬 구조"
-        A[1. [Clothing, 89.99, Adidas] → 레코드5]
-        B[2. [Clothing, 99.99, Nike] → 레코드4]
-        C[3. [Electronics, 799.99, LG] → 레코드3]
-        D[4. [Electronics, 899.99, Samsung] → 레코드2]
-        E[5. [Electronics, 999.99, Apple] → 레코드1]
+        A["1. (Clothing, 89.99, Adidas) → 레코드5"]
+        B["2. (Clothing, 99.99, Nike) → 레코드4"]
+        C["3. (Electronics, 799.99, LG) → 레코드3"]
+        D["4. (Electronics, 899.99, Samsung) → 레코드2"]
+        E["5. (Electronics, 999.99, Apple) → 레코드1"]
         
-        F[실제 데이터<br/>레코드1: Apple iPhone]
-        G[실제 데이터<br/>레코드2: Samsung Galaxy]
-        H[실제 데이터<br/>레코드3: LG TV]
-        I[실제 데이터<br/>레코드4: Nike Shoes]
-        J[실제 데이터<br/>레코드5: Adidas Shoes]
+        F["실제 데이터<br/>레코드1: Apple iPhone"]
+        G["실제 데이터<br/>레코드2: Samsung Galaxy"]
+        H["실제 데이터<br/>레코드3: LG TV"]
+        I["실제 데이터<br/>레코드4: Nike Shoes"]
+        J["실제 데이터<br/>레코드5: Adidas Shoes"]
     end
     
     A --> B
@@ -1179,14 +1179,14 @@ SELECT * FROM products WHERE category = 'Electronics';
 
 ```mermaid
 flowchart TD
-    A[검색 시작: category = 'Electronics'] --> B[시작점 찾기]
-    B --> C[Electronics, 799.99, LG에서 시작]
-    C --> D[범위 스캔 시작]
-    D --> E[Electronics, 799.99, LG → 레코드3]
-    E --> F[Electronics, 899.99, Samsung → 레코드2]
-    F --> G[Electronics, 999.99, Apple → 레코드1]
-    G --> H[Clothing, ... 만남]
-    H --> I[스캔 종료]
+    A["검색 시작: category = 'Electronics'"] --> B["시작점 찾기"]
+    B --> C["Electronics, 799.99, LG에서 시작"]
+    C --> D["범위 스캔 시작"]
+    D --> E["Electronics, 799.99, LG → 레코드3"]
+    E --> F["Electronics, 899.99, Samsung → 레코드2"]
+    F --> G["Electronics, 999.99, Apple → 레코드1"]
+    G --> H["Clothing, ... 만남"]
+    H --> I["스캔 종료"]
     
     style A fill:#e3f2fd
     style C fill:#4caf50
@@ -1226,21 +1226,21 @@ WHERE category = 'Electronics' AND price = 999.99 AND brand = 'Apple' -- A, B, C
 ```mermaid
 graph TB
     subgraph "Hash 인덱스"
-        A1[복합 키 저장: 전체를 해시값으로 변환]
-        A2[A만 검색: 불가능]
-        A3[범위 검색: 불가능]
-        A4[정렬: 불가능]
-        A5[메모리 효율: 낮음]
-        A6[디스크 효율: 낮음]
+        A1["복합 키 저장: 전체를 해시값으로 변환"]
+        A2["A만 검색: 불가능"]
+        A3["범위 검색: 불가능"]
+        A4["정렬: 불가능"]
+        A5["메모리 효율: 낮음"]
+        A6["디스크 효율: 낮음"]
     end
     
     subgraph "B-Tree 인덱스"
-        B1[복합 키 저장: 사전식 정렬로 저장]
-        B2[A만 검색: 가능]
-        B3[범위 검색: 가능]
-        B4[정렬: 자동 정렬]
-        B5[메모리 효율: 높음]
-        B6[디스크 효율: 높음]
+        B1["복합 키 저장: 사전식 정렬로 저장"]
+        B2["A만 검색: 가능"]
+        B3["범위 검색: 가능"]
+        B4["정렬: 자동 정렬"]
+        B5["메모리 효율: 높음"]
+        B6["디스크 효율: 높음"]
     end
     
     style A1 fill:#ffcdd2
