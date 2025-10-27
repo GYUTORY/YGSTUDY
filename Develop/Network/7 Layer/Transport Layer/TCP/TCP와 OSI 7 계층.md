@@ -33,6 +33,57 @@ updated: 2025-01-27
 
 이러한 복잡한 과정을 체계적으로 관리하기 위해 OSI 7 계층 모델이 만들어졌습니다.
 
+### OSI 7계층 모델 다이어그램
+
+```mermaid
+graph TB
+    subgraph "OSI 7계층 모델"
+        L7[7. 응용 계층<br/>Application Layer<br/>HTTP, HTTPS, FTP, SMTP<br/>사용자 인터페이스]
+        L6[6. 표현 계층<br/>Presentation Layer<br/>SSL, TLS, 암호화<br/>데이터 형식 변환]
+        L5[5. 세션 계층<br/>Session Layer<br/>세션 관리, 인증<br/>로그인/로그아웃]
+        L4[4. 전송 계층<br/>Transport Layer<br/>TCP, UDP<br/>신뢰성 있는 전송]
+        L3[3. 네트워크 계층<br/>Network Layer<br/>IP, 라우팅<br/>패킷 경로 설정]
+        L2[2. 데이터 링크 계층<br/>Data Link Layer<br/>Ethernet, WiFi<br/>프레임 전송]
+        L1[1. 물리 계층<br/>Physical Layer<br/>케이블, 신호<br/>비트 전송]
+    end
+    
+    subgraph "TCP/IP 4계층 모델"
+        T4[4. 응용 계층<br/>HTTP, FTP, SMTP]
+        T3[3. 전송 계층<br/>TCP, UDP]
+        T2[2. 인터넷 계층<br/>IP, ICMP, ARP]
+        T1[1. 네트워크 액세스 계층<br/>Ethernet, WiFi]
+    end
+    
+    subgraph "데이터 캡슐화 과정"
+        DATA[사용자 데이터]
+        SEGMENT[TCP 세그먼트<br/>+ TCP 헤더]
+        PACKET[IP 패킷<br/>+ IP 헤더]
+        FRAME[이더넷 프레임<br/>+ 이더넷 헤더]
+        BITS[비트 스트림]
+    end
+    
+    L7 --> L6
+    L6 --> L5
+    L5 --> L4
+    L4 --> L3
+    L3 --> L2
+    L2 --> L1
+    
+    T4 --> T3
+    T3 --> T2
+    T2 --> T1
+    
+    DATA --> SEGMENT
+    SEGMENT --> PACKET
+    PACKET --> FRAME
+    FRAME --> BITS
+    
+    style L7 fill:#ff9999
+    style L4 fill:#99ff99
+    style L3 fill:#99ccff
+    style L1 fill:#ffff99
+```
+
 ### 📊 OSI 7 계층 전체 구조
 
 | 계층 | 계층 이름 | 주요 역할 | 간단한 설명 |
