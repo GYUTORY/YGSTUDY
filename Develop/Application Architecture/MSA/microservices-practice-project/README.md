@@ -7,6 +7,56 @@
 
 ## 🏗️ 아키텍처 구성
 
+### 마이크로서비스 아키텍처 다이어그램
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Web[Web Client<br/>브라우저]
+        Mobile[Mobile App<br/>iOS/Android]
+    end
+    
+    subgraph "API Gateway Layer"
+        Gateway[API Gateway<br/>Port 3000<br/>라우팅, 인증, 로드밸런싱<br/>서킷 브레이커]
+    end
+    
+    subgraph "Microservices Layer"
+        User[User Service<br/>Port 3001<br/>사용자 관리<br/>JWT 인증]
+        Order[Order Service<br/>Port 3002<br/>주문 처리<br/>재고 관리]
+        Payment[Payment Service<br/>Port 3003<br/>결제 처리<br/>결제 검증]
+    end
+    
+    subgraph "Data Layer"
+        UserDB[(User DB<br/>MySQL)]
+        OrderDB[(Order DB<br/>MySQL)]
+        PaymentDB[(Payment DB<br/>MySQL)]
+        Cache[(Redis Cache<br/>세션 관리)]
+    end
+    
+    subgraph "Message Queue"
+        MQ[Message Queue<br/>서비스 간 통신]
+    end
+    
+    Web --> Gateway
+    Mobile --> Gateway
+    Gateway --> User
+    Gateway --> Order
+    Gateway --> Payment
+    User --> UserDB
+    Order --> OrderDB
+    Payment --> PaymentDB
+    User --> Cache
+    Order --> MQ
+    Payment --> MQ
+    
+    style Gateway fill:#ff9999
+    style User fill:#99ccff
+    style Order fill:#99ccff
+    style Payment fill:#99ccff
+```
+
+### 기존 ASCII 다이어그램
+
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   API Gateway   │    │   User Service  │    │  Order Service  │
