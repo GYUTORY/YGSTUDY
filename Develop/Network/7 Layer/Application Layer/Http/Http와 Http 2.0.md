@@ -28,13 +28,118 @@ HTTP 2.0은 HTTP 1.1의 성능 한계를 극복하기 위해 개발된 프로토
 - **Stream**을 통해 요청을 병렬로 처리
 - 순서에 상관없이 응답을 받을 수 있어 대기 시간 단축
 
+### HTTP/2 멀티플렉싱 구조
+
+```mermaid
+sequenceDiagram
+    participant Client as 클라이언트<br/>(브라우저)
+    participant Server as 웹 서버
+    
+    Note over Client,Server: HTTP/2 멀티플렉싱 통신 과정
+    
+    Client->>Server: 1. TCP 연결 수립<br/>🔗 단일 TCP 연결
+    Server-->>Client: 2. 연결 확인
+    
+    par 병렬 스트림 처리
+        Client->>Server: 3a. Stream 1: HTML 요청<br/>📄 GET /index.html<br/>🎯 우선순위: 높음
+        Client->>Server: 3b. Stream 2: CSS 요청<br/>🎨 GET /style.css<br/>🎯 우선순위: 중간
+        Client->>Server: 3c. Stream 3: JS 요청<br/>⚡ GET /script.js<br/>🎯 우선순위: 중간
+        Client->>Server: 3d. Stream 4: 이미지 요청<br/>🖼️ GET /image.jpg<br/>🎯 우선순위: 낮음
+    end
+    
+    par 병렬 응답 처리
+        Server-->>Client: 4a. Stream 1: HTML 응답<br/>📄 200 OK<br/>📊 HTML 데이터
+        Server-->>Client: 4b. Stream 2: CSS 응답<br/>🎨 200 OK<br/>📊 CSS 데이터
+        Server-->>Client: 4c. Stream 3: JS 응답<br/>⚡ 200 OK<br/>📊 JavaScript 데이터
+        Server-->>Client: 4d. Stream 4: 이미지 응답<br/>🖼️ 200 OK<br/>📊 이미지 데이터
+    end
+    
+    Note over Client,Server: 🚀 순서에 상관없이 응답 수신<br/>⚡ 대기 시간 최소화
+```
+
+### HTTP/1.1 vs HTTP/2 성능 비교
+
+```mermaid
+graph TB
+    subgraph "HTTP/1.1 (순차적 처리)"
+        A1[요청 1: HTML] --> B1[응답 1: HTML]
+        B1 --> A2[요청 2: CSS]
+        A2 --> B2[응답 2: CSS]
+        B2 --> A3[요청 3: JS]
+        A3 --> B3[응답 3: JS]
+        B3 --> A4[요청 4: 이미지]
+        A4 --> B4[응답 4: 이미지]
+        
+        C1[총 시간: 4 × RTT]
+        D1[Head-of-Line Blocking]
+    end
+    
+    subgraph "HTTP/2 (병렬 처리)"
+        E1[요청 1: HTML] --> F1[응답 1: HTML]
+        E2[요청 2: CSS] --> F2[응답 2: CSS]
+        E3[요청 3: JS] --> F3[응답 3: JS]
+        E4[요청 4: 이미지] --> F4[응답 4: 이미지]
+        
+        G1[총 시간: 1 × RTT]
+        H1[병렬 처리로 지연 최소화]
+    end
+    
+    subgraph "성능 개선 효과"
+        I1[로딩 시간: 15-30% 단축]
+        I2[대역폭 절약: 20-40%]
+        I3[연결 수: 1개로 통합]
+        I4[모바일 환경: 큰 성능 향상]
+    end
+    
+    style A1 fill:#ffcdd2
+    style A2 fill:#ffcdd2
+    style A3 fill:#ffcdd2
+    style A4 fill:#ffcdd2
+    
+    style E1 fill:#c8e6c9
+    style E2 fill:#c8e6c9
+    style E3 fill:#c8e6c9
+    style E4 fill:#c8e6c9
+```
+
+### 스트림 우선순위 처리
+
 ```mermaid
 graph TD
-    A[클라이언트] -->|단일 연결| B[서버]
-    B --> C[Stream 1: HTML]
-    B --> D[Stream 2: CSS]
-    B --> E[Stream 3: JS]
-    B --> F[Stream 4: Image]
+    subgraph "HTTP/2 스트림 우선순위"
+        A[HTML 문서<br/>우선순위: 높음] --> B[즉시 처리]
+        C[CSS 파일<br/>우선순위: 중간] --> D[HTML 완료 후 처리]
+        E[JavaScript<br/>우선순위: 중간] --> F[HTML 완료 후 처리]
+        G[이미지들<br/>우선순위: 낮음] --> H[다른 리소스 완료 후 처리]
+    end
+    
+    subgraph "처리 순서"
+        I[1. HTML 먼저 로드] --> J[2. CSS 로드]
+        J --> K[3. JavaScript 로드]
+        K --> L[4. 이미지 로드]
+    end
+    
+    subgraph "사용자 경험 개선"
+        M[페이지 렌더링 시작]
+        N[스타일 적용]
+        O[인터랙션 활성화]
+        P[이미지 표시]
+    end
+    
+    B --> I
+    D --> J
+    F --> K
+    H --> L
+    
+    I --> M
+    J --> N
+    K --> O
+    L --> P
+    
+    style A fill:#ff9999
+    style C fill:#ffcc99
+    style E fill:#ffcc99
+    style G fill:#ccffcc
 ```
 
 ### 2. Stream Prioritization (스트림 우선순위)
