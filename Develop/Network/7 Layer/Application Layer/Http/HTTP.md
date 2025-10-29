@@ -45,6 +45,145 @@ HTTP(HyperText Transfer Protocol)는 웹에서 정보를 주고받기 위한 프
 
 ## HTTP 통신 과정
 
+### HTTP 요청/응답 플로우
+
+```mermaid
+sequenceDiagram
+    participant Client as 클라이언트<br/>(브라우저)
+    participant DNS as DNS 서버
+    participant Server as 웹 서버
+    
+    Note over Client,Server: HTTP 요청/응답 전체 과정
+    
+    Client->>DNS: 1. DNS 조회<br/>(도메인 → IP 주소)<br/>⏱️ ~50ms
+    DNS-->>Client: 2. IP 주소 반환<br/>⏱️ ~10ms
+    
+    Client->>Server: 3. TCP 3-way Handshake<br/>⏱️ ~100ms
+    Note over Client,Server: SYN → SYN-ACK → ACK
+    
+    Client->>Server: 4. HTTP 요청 전송<br/>GET /index.html HTTP/1.1<br/>⏱️ ~20ms
+    Note over Client,Server: Keep-Alive: true<br/>(연결 재사용)
+    
+    Server->>Server: 5. 요청 처리<br/>파일 읽기, 동적 생성<br/>⏱️ ~50ms
+    
+    Server-->>Client: 6. HTTP 응답 전송<br/>HTTP/1.1 200 OK<br/>Content-Type: text/html<br/>⏱️ ~30ms
+    
+    Note over Client,Server: HTTP/1.1 Keep-Alive<br/>연결 유지 (재사용 가능)
+    
+    Client->>Client: 7. 응답 처리<br/>HTML 파싱, 렌더링<br/>⏱️ ~100ms
+    
+    Note over Client,Server: 추가 요청 시<br/>3-6단계 반복 (연결 재사용)
+```
+
+### HTTP/1.1 Keep-Alive 연결 재사용
+
+```mermaid
+graph TB
+    subgraph "HTTP/1.1 Keep-Alive 연결 재사용"
+        A[첫 번째 요청] --> B[TCP 연결 수립]
+        B --> C[HTTP 요청 1]
+        C --> D[HTTP 응답 1]
+        D --> E[연결 유지]
+        E --> F[HTTP 요청 2]
+        F --> G[HTTP 응답 2]
+        G --> H[연결 유지]
+        H --> I[HTTP 요청 3]
+        I --> J[HTTP 응답 3]
+        J --> K[연결 종료<br/>또는 타임아웃]
+    end
+    
+    subgraph "장점"
+        L[연결 설정 오버헤드 감소]
+        M[네트워크 지연 최소화]
+        N[서버 리소스 효율적 사용]
+    end
+    
+    subgraph "단점"
+        O[순차적 요청 처리]
+        P[Head-of-Line Blocking]
+        Q[연결 수 제한]
+    end
+    
+    style A fill:#e1f5fe
+    style E fill:#c8e6c9
+    style H fill:#c8e6c9
+    style K fill:#ffcdd2
+```
+
+### HTTP/2 멀티플렉싱 구조
+
+```mermaid
+sequenceDiagram
+    participant Client as 클라이언트<br/>(브라우저)
+    participant Server as 웹 서버
+    
+    Note over Client,Server: HTTP/2 멀티플렉싱 통신 과정
+    
+    Client->>Server: 1. TCP 연결 수립<br/>🔗 단일 TCP 연결
+    Server-->>Client: 2. 연결 확인
+    
+    par 병렬 스트림 처리
+        Client->>Server: 3a. Stream 1: HTML 요청<br/>📄 GET /index.html<br/>🎯 우선순위: 높음
+        Client->>Server: 3b. Stream 2: CSS 요청<br/>🎨 GET /style.css<br/>🎯 우선순위: 중간
+        Client->>Server: 3c. Stream 3: JS 요청<br/>⚡ GET /script.js<br/>🎯 우선순위: 중간
+        Client->>Server: 3d. Stream 4: 이미지 요청<br/>🖼️ GET /image.jpg<br/>🎯 우선순위: 낮음
+    end
+    
+    par 병렬 응답 처리
+        Server-->>Client: 4a. Stream 1: HTML 응답<br/>📄 200 OK<br/>📊 HTML 데이터
+        Server-->>Client: 4b. Stream 2: CSS 응답<br/>🎨 200 OK<br/>📊 CSS 데이터
+        Server-->>Client: 4c. Stream 3: JS 응답<br/>⚡ 200 OK<br/>📊 JavaScript 데이터
+        Server-->>Client: 4d. Stream 4: 이미지 응답<br/>🖼️ 200 OK<br/>📊 이미지 데이터
+    end
+    
+    Note over Client,Server: 🚀 순서에 상관없이 응답 수신<br/>⚡ 대기 시간 최소화
+```
+
+### HTTP/1.1 vs HTTP/2 성능 비교
+
+```mermaid
+graph TB
+    subgraph "HTTP/1.1 (순차적 처리)"
+        A1[요청 1: HTML] --> B1[응답 1: HTML]
+        B1 --> A2[요청 2: CSS]
+        A2 --> B2[응답 2: CSS]
+        B2 --> A3[요청 3: JS]
+        A3 --> B3[응답 3: JS]
+        B3 --> A4[요청 4: 이미지]
+        A4 --> B4[응답 4: 이미지]
+        
+        C1[총 시간: 4 × RTT]
+        D1[Head-of-Line Blocking]
+    end
+    
+    subgraph "HTTP/2 (병렬 처리)"
+        E1[요청 1: HTML] --> F1[응답 1: HTML]
+        E2[요청 2: CSS] --> F2[응답 2: CSS]
+        E3[요청 3: JS] --> F3[응답 3: JS]
+        E4[요청 4: 이미지] --> F4[응답 4: 이미지]
+        
+        G1[총 시간: 1 × RTT]
+        H1[병렬 처리로 지연 최소화]
+    end
+    
+    subgraph "성능 개선 효과"
+        I1[로딩 시간: 15-30% 단축]
+        I2[대역폭 절약: 20-40%]
+        I3[연결 수: 1개로 통합]
+        I4[모바일 환경: 큰 성능 향상]
+    end
+    
+    style A1 fill:#ffcdd2
+    style A2 fill:#ffcdd2
+    style A3 fill:#ffcdd2
+    style A4 fill:#ffcdd2
+    
+    style E1 fill:#c8e6c9
+    style E2 fill:#c8e6c9
+    style E3 fill:#c8e6c9
+    style E4 fill:#c8e6c9
+```
+
 ### 1. 연결 설정
 - 클라이언트가 서버와 TCP 연결 수립
 - HTTP/1.1: Keep-Alive로 연결 재사용
@@ -175,6 +314,73 @@ HTTPS는 HTTP에 SSL/TLS 암호화를 추가한 보안 프로토콜입니다. �
 - **사용**: TLS/SSL에서 실제 사용하는 방식
 
 ## TLS 핸드셰이크 과정
+
+### TLS 핸드셰이크 전체 과정
+
+```mermaid
+sequenceDiagram
+    participant Client as 클라이언트<br/>(브라우저)
+    participant Server as 웹 서버
+    
+    Note over Client,Server: TLS 핸드셰이크 과정
+    
+    Client->>Server: 1. Client Hello<br/>📋 지원 암호화 방식 목록<br/>🔢 클라이언트 랜덤 (32바이트)<br/>📝 TLS 버전, 압축 방식
+    Note over Client: 목적: 서버와 암호화 방식 협상
+    
+    Server->>Client: 2. Server Hello<br/>✅ 선택된 암호화 방식<br/>🔢 서버 랜덤 (32바이트)<br/>📜 SSL 인증서 전송
+    Note over Server: 목적: 암호화 방식 확정 및 신원 증명
+    
+    Client->>Client: 3. 인증서 검증<br/>🔍 CA(인증기관) 검증<br/>🔑 공개키 추출<br/>✅ 서버 신원 확인
+    Note over Client: 목적: 서버의 신뢰성 검증
+    
+    Client->>Server: 4. 키 교환<br/>🔐 예비 마스터 암호 생성<br/>🔒 서버 공개키로 암호화<br/>📤 암호화된 마스터 암호 전송
+    Note over Client: 목적: 안전한 키 교환
+    
+    Server->>Server: 5. 키 복호화<br/>🔓 개인키로 마스터 암호 복호화<br/>🔑 세션 키 생성
+    Note over Server: 목적: 공유 키 확보
+    
+    Client->>Client: 6. 세션 키 생성<br/>🔑 마스터 키 + 랜덤값<br/>🔐 세션 키 도출<br/>✅ 암호화 준비 완료
+    Note over Client: 목적: 대칭키 암호화 준비
+    
+    Client->>Server: 7. Finished<br/>✅ 암호화 설정 완료 알림
+    Server->>Client: 8. Finished<br/>✅ 암호화 설정 완료 확인
+    
+    Note over Client,Server: 🔐 HTTPS 암호화 통신 시작<br/>📊 대칭키로 데이터 암호화
+```
+
+### 대칭키/비대칭키 암호화 과정
+
+```mermaid
+graph TB
+    subgraph "TLS 핸드셰이크의 암호화 방식"
+        subgraph "1단계: 비대칭키 암호화"
+            A[클라이언트] --> B[예비 마스터 암호 생성]
+            B --> C[서버 공개키로 암호화]
+            C --> D[서버로 전송]
+            D --> E[서버 개인키로 복호화]
+            E --> F[마스터 암호 획득]
+        end
+        
+        subgraph "2단계: 대칭키 암호화"
+            G[마스터 암호] --> H[세션 키 생성]
+            H --> I[양측에서 동일한 세션 키]
+            I --> J[대칭키로 데이터 암호화]
+        end
+        
+        subgraph "장점"
+            K[비대칭키: 안전한 키 교환]
+            L[대칭키: 빠른 암호화/복호화]
+            M[하이브리드: 보안성 + 성능]
+        end
+    end
+    
+    F --> G
+    J --> N[HTTPS 데이터 전송]
+    
+    style A fill:#e3f2fd
+    style G fill:#f3e5f5
+    style N fill:#e8f5e8
+```
 
 ### 핸드셰이크의 목적
 - 클라이언트와 서버 간의 신원 확인
