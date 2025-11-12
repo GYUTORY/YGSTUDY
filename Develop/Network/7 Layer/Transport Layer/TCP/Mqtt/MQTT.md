@@ -1,7 +1,7 @@
 ---
 title: MQTT Message Queuing Telemetry Transport
 tags: [network, 7-layer, transport-layer, tcp, mqtt]
-updated: 2025-10-18
+updated: 2025-11-01
 ---
 
 # MQTT (Message Queuing Telemetry Transport)
@@ -18,7 +18,7 @@ updated: 2025-10-18
 - [실제 활용 사례](#실제-활용-사례)
 - [MQTT의 장단점](#mqtt의-장단점)
 - [성능 튜닝 및 최적화](#성능-튜닝-및-최적화)
-- [트러블슈팅 가이드](#트러블슈팅-가이드)
+- [문제 해결 및 디버깅](#문제-해결-및-디버깅)
 - [추가 학습 자료](#추가-학습-자료)
 
 ---
@@ -46,6 +46,513 @@ updated: 2025-10-18
 | **응답 주제** | ❌ | ❌ | ✅ |
 | **공유 구독** | ❌ | ❌ | ✅ |
 | **메시지 만료** | ❌ | ❌ | ✅ |
+
+### 🆕 MQTT 5.0의 주요 개선사항
+
+MQTT 5.0은 이전 버전의 한계를 극복하고 현대적인 IoT 환경의 요구사항을 충족하기 위해 많은 새로운 기능을 추가했습니다.
+
+#### 1. **세션 만료 간격 (Session Expiry Interval)**
+
+**문제점 (3.1.1):**
+Persistent Session은 클라이언트가 영원히 재연결하지 않아도 브로커에 남아 있어 메모리를 낭비했습니다.
+
+**해결 (5.0):**
+세션의 수명을 초 단위로 지정할 수 있습니다.
+
+```javascript
+const client = mqtt.connect('mqtt://broker', {
+  clientId: 'sensor001',
+  clean: false,
+  properties: {
+    sessionExpiryInterval: 3600  // 1시간 후 세션 만료
+  }
+});
+```
+
+**동작 방식:**
+```
+연결 → 정상 동작 → 연결 끊김 → 1시간 대기
+                                ↓
+                    세션 자동 삭제 (메모리 해제)
+```
+
+**사용 사례:**
+- 임시 기기 (1시간 만료)
+- 모바일 앱 (24시간 만료)
+- 영구 기기 (0 = 무제한)
+
+#### 2. **요청/응답 패턴 (Request/Response)**
+
+**문제점 (3.1.1):**
+요청-응답 패턴을 구현하려면 복잡한 주제 명명 규칙과 상관관계 ID가 필요했습니다.
+
+**해결 (5.0):**
+응답 주제(Response Topic)와 상관관계 데이터(Correlation Data)를 표준으로 지원합니다.
+
+```javascript
+// 요청 보내기
+client.publish('device/command', 'getData', {
+  properties: {
+    responseTopic: 'app/response/12345',  // 응답받을 주제
+    correlationData: Buffer.from('req-001')  // 요청 식별자
+  }
+});
+
+// 응답 구독
+client.subscribe('app/response/12345');
+
+client.on('message', (topic, message, packet) => {
+  if (packet.properties.correlationData) {
+    const reqId = packet.properties.correlationData.toString();
+    console.log(`요청 ${reqId}의 응답:`, message.toString());
+  }
+});
+```
+
+**동작 흐름:**
+```
+앱 → [요청 + responseTopic + correlationData] → 기기
+                                                  ↓
+                                             요청 처리
+                                                  ↓
+앱 ← [응답 + correlationData] ← responseTopic ← 기기
+```
+
+#### 3. **메시지 만료 (Message Expiry Interval)**
+
+**문제점 (3.1.1):**
+오래된 메시지도 영원히 큐에 남아 시간에 민감한 데이터가 무의미해질 수 있었습니다.
+
+**해결 (5.0):**
+메시지에 유효 시간을 설정할 수 있습니다.
+
+```javascript
+// 5분 후 만료되는 메시지
+client.publish('sensor/alert', '긴급 알림', {
+  qos: 1,
+  properties: {
+    messageExpiryInterval: 300  // 300초 = 5분
+  }
+});
+```
+
+**동작 방식:**
+```
+T=0: 메시지 발행 (만료 시간: 300초)
+T=60: 클라이언트 오프라인 (큐에 저장)
+T=240: 클라이언트 재연결 → 메시지 전달 (남은 시간: 60초)
+T=350: 만료되어 삭제 (미전달 시)
+```
+
+**사용 사례:**
+- 실시간 경고 (60초 만료)
+- 이벤트 알림 (300초 만료)
+- 긴급 명령 (30초 만료)
+
+#### 4. **공유 구독 (Shared Subscriptions)**
+
+**문제점 (3.1.1):**
+같은 주제를 구독하는 모든 클라이언트가 같은 메시지를 받아 중복 처리가 발생했습니다.
+
+**해결 (5.0):**
+메시지를 여러 구독자에게 분산하여 로드 밸런싱이 가능합니다.
+
+```javascript
+// 일반 구독 (모든 클라이언트가 메시지를 받음)
+client1.subscribe('sensor/data');
+client2.subscribe('sensor/data');
+client3.subscribe('sensor/data');
+// → 1개 메시지 발행 시, 3개 클라이언트 모두 받음
+
+// 공유 구독 (메시지가 분산됨)
+client1.subscribe('$share/workers/sensor/data');
+client2.subscribe('$share/workers/sensor/data');
+client3.subscribe('$share/workers/sensor/data');
+// → 1개 메시지 발행 시, 1개 클라이언트만 받음 (로드 밸런싱)
+```
+
+**주제 형식:**
+```
+$share/{그룹이름}/{실제주제}
+```
+
+**분산 방식:**
+```
+메시지 1 → 브로커 → Worker 1
+메시지 2 → 브로커 → Worker 2
+메시지 3 → 브로커 → Worker 3
+메시지 4 → 브로커 → Worker 1 (라운드 로빈)
+```
+
+**사용 사례:**
+```javascript
+// 작업 큐 패턴
+// 여러 워커가 작업을 분산 처리
+worker1.subscribe('$share/job-processors/jobs/new');
+worker2.subscribe('$share/job-processors/jobs/new');
+worker3.subscribe('$share/job-processors/jobs/new');
+
+// 메시지 발행
+publisher.publish('jobs/new', JSON.stringify({
+  taskId: 123,
+  type: 'process-image'
+}));
+// → 3개 워커 중 1개만 처리
+```
+
+**장점:**
+- 수평 확장 (워커 추가로 처리량 증가)
+- 자동 로드 밸런싱
+- 장애 허용 (워커 다운 시 다른 워커가 처리)
+
+#### 5. **사용자 속성 (User Properties)**
+
+**문제점 (3.1.1):**
+메타데이터를 페이로드에 포함시켜야 했고, 이는 애플리케이션 로직과 혼재되었습니다.
+
+**해결 (5.0):**
+키-값 쌍으로 임의의 메타데이터를 추가할 수 있습니다.
+
+```javascript
+client.publish('sensor/temperature', '25.5', {
+  properties: {
+    userProperties: {
+      deviceId: 'sensor-001',
+      location: 'building-A',
+      firmware: 'v2.1.0',
+      timestamp: Date.now().toString()
+    }
+  }
+});
+
+// 수신 측
+client.on('message', (topic, message, packet) => {
+  const temp = message.toString();
+  const props = packet.properties.userProperties;
+  
+  console.log(`${props.deviceId}의 온도: ${temp}°C`);
+  console.log(`위치: ${props.location}`);
+});
+```
+
+**장점:**
+- 페이로드와 메타데이터 분리
+- 표준화된 메타데이터 전달
+- 라우팅 및 필터링 용이
+
+#### 6. **이유 코드와 이유 문자열 (Reason Code & Reason String)**
+
+**문제점 (3.1.1):**
+연결 실패나 구독 거부 시 이유를 파악하기 어려웠습니다.
+
+**해결 (5.0):**
+모든 응답 패킷에 상세한 이유 코드와 설명이 포함됩니다.
+
+```javascript
+client.on('connect', (connack) => {
+  console.log('연결 성공');
+  console.log('Reason Code:', connack.reasonCode);
+  console.log('Session Present:', connack.sessionPresent);
+});
+
+client.on('error', (err) => {
+  console.error('오류:', err.message);
+  // Reason Codes:
+  // 0x00: Success
+  // 0x80: Unspecified error
+  // 0x81: Malformed Packet
+  // 0x82: Protocol Error
+  // 0x84: Unsupported Protocol Version
+  // 0x85: Client Identifier not valid
+  // 0x86: Bad User Name or Password
+  // 0x87: Not authorized
+  // 0x88: Server unavailable
+  // 0x89: Server busy
+  // 0x8A: Banned
+  // 0x8C: Bad authentication method
+});
+```
+
+**구독 실패 예시:**
+```javascript
+client.subscribe('forbidden/topic', (err, granted) => {
+  granted.forEach(g => {
+    console.log(`주제: ${g.topic}`);
+    console.log(`QoS: ${g.qos}`);
+    console.log(`Reason Code: ${g.reasonCode}`);
+    // 0x00: Success
+    // 0x80: Unspecified error
+    // 0x87: Not authorized
+    // 0x91: Topic Filter invalid
+  });
+});
+```
+
+#### 7. **서버 기능 알림 (Server Capabilities)**
+
+**문제점 (3.1.1):**
+클라이언트가 브로커의 제약사항을 알 수 없어 런타임 오류가 발생했습니다.
+
+**해결 (5.0):**
+브로커가 CONNACK에서 자신의 기능과 제한을 알려줍니다.
+
+```javascript
+client.on('connect', (connack) => {
+  const props = connack.properties || {};
+  
+  console.log('브로커 정보:');
+  console.log('- 최대 패킷 크기:', props.maximumPacketSize);
+  console.log('- 최대 QoS:', props.maximumQoS);
+  console.log('- Retain 지원:', props.retainAvailable);
+  console.log('- 공유 구독 지원:', props.sharedSubscriptionAvailable);
+  console.log('- 구독 ID 지원:', props.subscriptionIdentifiersAvailable);
+  console.log('- 와일드카드 구독 지원:', props.wildcardSubscriptionAvailable);
+});
+```
+
+**클라이언트는 이 정보로 동작을 조정:**
+```javascript
+if (connack.properties.maximumQoS < 2) {
+  // QoS 2를 사용할 수 없으므로 QoS 1로 대체
+  console.log('QoS 2 미지원, QoS 1 사용');
+  client.publish('topic', 'message', { qos: 1 });
+}
+```
+
+#### 8. **플로우 제어 (Flow Control)**
+
+**문제점 (3.1.1):**
+브로커나 클라이언트가 과부하 상태여도 메시지가 계속 전송되어 리소스가 고갈될 수 있었습니다.
+
+**해결 (5.0):**
+수신 최대값(Receive Maximum)으로 동시에 처리할 수 있는 QoS 1/2 메시지 수를 제한합니다.
+
+```javascript
+const client = mqtt.connect('mqtt://broker', {
+  properties: {
+    receiveMaximum: 10  // 최대 10개의 미확인 메시지만 수신
+  }
+});
+```
+
+**동작 방식:**
+```
+브로커가 receiveMaximum = 10 설정
+  ↓
+클라이언트는 최대 10개의 QoS 1/2 메시지만 전송
+  ↓
+클라이언트가 PUBACK/PUBCOMP를 받으면
+  ↓
+다음 메시지 전송 (슬라이딩 윈도우)
+```
+
+#### 9. **주제 별칭 (Topic Aliases)**
+
+**문제점 (3.1.1):**
+긴 주제 이름은 매번 전송되어 대역폭을 낭비했습니다.
+
+**해결 (5.0):**
+주제 이름을 짧은 정수로 매핑하여 대역폭을 절약합니다.
+
+```javascript
+// 첫 번째 메시지: 주제 이름과 별칭 설정
+client.publish('building/floor3/room301/sensor/temperature', '25', {
+  properties: {
+    topicAlias: 1
+  }
+});
+
+// 이후 메시지: 별칭만 사용 (주제 이름 생략)
+client.publish('', '26', {  // 빈 주제 이름
+  properties: {
+    topicAlias: 1  // 별칭 1 = 위 긴 주제
+  }
+});
+```
+
+**대역폭 절약:**
+```
+일반 방식:
+  메시지 1: 45바이트 주제 + 2바이트 데이터 = 47바이트
+  메시지 2: 45바이트 주제 + 2바이트 데이터 = 47바이트
+  총: 94바이트
+
+별칭 사용:
+  메시지 1: 45바이트 주제 + 2바이트 별칭 + 2바이트 데이터 = 49바이트
+  메시지 2: 2바이트 별칭 + 2바이트 데이터 = 4바이트
+  총: 53바이트 (43% 절약!)
+```
+
+#### 10. **구독 식별자 (Subscription Identifiers)**
+
+**문제점 (3.1.1):**
+여러 주제를 구독할 때 어떤 구독으로 메시지가 왔는지 알기 어려웠습니다.
+
+**해결 (5.0):**
+각 구독에 ID를 할당하여 추적할 수 있습니다.
+
+```javascript
+// 구독 1: 온도 센서
+client.subscribe('sensor/+/temperature', {
+  properties: {
+    subscriptionIdentifier: 100
+  }
+});
+
+// 구독 2: 모든 센서
+client.subscribe('sensor/#', {
+  properties: {
+    subscriptionIdentifier: 200
+  }
+});
+
+// 메시지 수신
+client.on('message', (topic, message, packet) => {
+  const subIds = packet.properties.subscriptionIdentifier;
+  
+  if (subIds.includes(100)) {
+    console.log('온도 센서 구독으로 수신');
+  }
+  if (subIds.includes(200)) {
+    console.log('전체 센서 구독으로 수신');
+  }
+});
+```
+
+### 🔧 Keep-Alive 메커니즘
+
+Keep-Alive는 TCP 연결이 살아있는지 확인하는 하트비트 메커니즘입니다.
+
+#### 📡 Keep-Alive의 필요성
+
+**문제 상황:**
+```
+센서 ─────────[정상 연결]────────► 브로커
+        (네트워크 케이블 뽑힘!)
+센서 X ─────────[끊어짐]────────X► 브로커
+```
+
+TCP는 데이터 전송이 없으면 연결이 끊어진 것을 감지하지 못합니다. Keep-Alive는 이를 해결합니다.
+
+#### 🔄 동작 원리
+
+**설정:**
+```javascript
+const client = mqtt.connect('mqtt://broker', {
+  keepalive: 60  // 60초마다 핑
+});
+```
+
+**타임라인:**
+```
+T=0:   CONNECT (Keep-Alive=60)
+T=0:   CONNACK
+T=30:  PUBLISH (일반 메시지)
+T=60:  (메시지 없음 → PINGREQ 전송)
+T=60:  PINGRESP 수신
+T=120: PINGREQ 전송
+T=120: PINGRESP 수신
+T=180: PINGREQ 전송
+T=180: (응답 없음!)
+T=270: 타임아웃 (60 × 1.5 = 90초) → 연결 끊김 감지
+```
+
+#### ⚙️ 상세 동작
+
+**클라이언트 측:**
+```
+마지막 패킷 전송 후 Keep-Alive 시간이 지나면
+  ↓
+아무 패킷도 보내지 않았다면
+  ↓
+PINGREQ 패킷 전송
+  ↓
+Keep-Alive × 1.5 시간 내에 PINGRESP를 받지 못하면
+  ↓
+연결 끊김으로 간주 → 재연결 시도
+```
+
+**브로커 측:**
+```
+클라이언트로부터 Keep-Alive × 1.5 시간 동안 패킷을 받지 못하면
+  ↓
+클라이언트 연결 끊김으로 간주
+  ↓
+Will Message 발행 (설정된 경우)
+  ↓
+세션 정리 (Clean Session인 경우)
+```
+
+#### 🎯 최적 Keep-Alive 값
+
+**네트워크 환경별 권장값:**
+
+| 환경 | Keep-Alive | 이유 |
+|------|-----------|------|
+| **LTE/5G** | 30-60초 | NAT 타임아웃 방지 |
+| **Wi-Fi** | 60-120초 | 안정적이므로 긴 간격 가능 |
+| **위성** | 300-600초 | 대역폭 절약 |
+| **유선** | 120-300초 | 가장 안정적 |
+
+**배터리 기기:**
+```javascript
+// 절전 모드
+const client = mqtt.connect('mqtt://broker', {
+  keepalive: 300  // 5분 (배터리 절약)
+});
+```
+
+**실시간 모니터링:**
+```javascript
+// 빠른 감지
+const client = mqtt.connect('mqtt://broker', {
+  keepalive: 15  // 15초 (빠른 장애 감지)
+});
+```
+
+#### ⚠️ 주의사항
+
+**너무 짧은 Keep-Alive:**
+- 불필요한 네트워크 트래픽
+- 배터리 소모 증가
+- 브로커 부하 증가
+
+**너무 긴 Keep-Alive:**
+- 장애 감지 지연
+- NAT 타임아웃으로 연결 끊김
+- Will Message 발행 지연
+
+**최적값 찾기:**
+```javascript
+// 테스트를 통해 최적값 찾기
+const keepaliveValues = [30, 60, 90, 120];
+
+for (const ka of keepaliveValues) {
+  const client = mqtt.connect('mqtt://broker', {
+    keepalive: ka
+  });
+  
+  // 연결 안정성과 배터리 소모 모니터링
+  monitorConnection(client);
+}
+```
+
+#### 🔍 Keep-Alive 비활성화
+
+Keep-Alive를 0으로 설정하면 비활성화됩니다:
+
+```javascript
+const client = mqtt.connect('mqtt://broker', {
+  keepalive: 0  // Keep-Alive 비활성화
+});
+```
+
+**사용 사례:**
+- 지속적으로 데이터를 전송하는 클라이언트
+- 다른 하트비트 메커니즘을 사용하는 경우
+- 테스트 및 디버깅
+
+**주의:** Keep-Alive를 비활성화하면 네트워크 장애를 감지할 수 없습니다.
 
 ### 🔍 MQTT의 핵심 특징
 
@@ -116,10 +623,35 @@ updated: 2025-10-18
 2. **브로커가 메시지 수신**: 발행된 메시지를 브로커가 받음
 3. **구독자에게 전달**: 해당 주제를 구독하는 모든 클라이언트에게 전달
 
+#### 🔍 발행/구독의 내부 동작
+
+발행/구독 패턴이 실제로 어떻게 동작하는지 더 자세히 살펴보면:
+
+**발행 단계:**
+1. 클라이언트가 PUBLISH 패킷을 브로커에 전송
+2. 패킷에는 주제(Topic), 메시지 내용(Payload), QoS 레벨, Retain 플래그 등이 포함
+3. 브로커는 패킷을 받으면 해당 주제를 구독하는 모든 클라이언트 목록을 확인
+4. 각 구독자의 QoS 레벨과 발행자의 QoS 레벨 중 낮은 것을 적용
+
+**구독 단계:**
+1. 클라이언트가 SUBSCRIBE 패킷을 브로커에 전송
+2. 패킷에는 구독하고자 하는 주제와 원하는 QoS 레벨이 포함
+3. 브로커는 해당 클라이언트를 주제의 구독자 목록에 추가
+4. 브로커가 SUBACK 패킷으로 구독 승인을 회신
+5. 이후부터 해당 주제로 발행되는 모든 메시지를 수신
+
+**메시지 전달 과정:**
+1. 브로커는 주제별로 구독자 맵(Map)을 관리
+2. 메시지가 발행되면 O(1) 시간 복잡도로 구독자 목록을 찾음
+3. 각 구독자에게 메시지를 복사하여 전달 (멀티캐스트 방식)
+4. 구독자가 오프라인이면 QoS 레벨에 따라 메시지를 큐에 저장
+
 #### 💡 장점
 - **느슨한 결합**: 발행자와 구독자가 서로를 모름
 - **확장성**: 새로운 구독자 추가가 쉬움
 - **유연성**: 동적으로 주제 구독/해제 가능
+- **다대다 통신**: 하나의 메시지를 여러 구독자가 동시에 받을 수 있음
+- **비동기 통신**: 발행자는 구독자의 응답을 기다리지 않음
 
 ### 2. **브로커 (Broker)의 역할**
 
@@ -127,15 +659,153 @@ updated: 2025-10-18
 브로커는 MQTT 시스템의 **심장**과 같은 역할을 합니다:
 
 #### 🔧 주요 기능
-- **메시지 라우팅**: 발행된 메시지를 적절한 구독자에게 전달
-- **연결 관리**: 클라이언트 연결 상태 관리
-- **세션 관리**: 클라이언트 세션 정보 유지
-- **QoS 처리**: 메시지 전달 신뢰성 보장
+
+**1. 메시지 라우팅:**
+브로커는 발행된 메시지를 적절한 구독자에게 전달하는 역할을 합니다.
+
+- **주제 매칭**: 발행된 메시지의 주제와 구독자의 주제 필터를 비교
+- **와일드카드 처리**: `+`, `#`를 사용한 복잡한 패턴 매칭
+- **멀티캐스트**: 하나의 메시지를 여러 구독자에게 동시에 전달
+- **메시지 복사**: 각 구독자에게 메시지의 독립적인 복사본 전달
+
+**내부 동작:**
+```
+1. PUBLISH 패킷 수신
+2. 주제를 파싱하여 구독자 맵(Topic Trie) 조회
+3. 매칭되는 모든 구독자 목록 가져오기
+4. 각 구독자의 QoS 레벨 확인
+5. 각 구독자에게 메시지 큐에 추가
+6. 메시지 전송 (QoS 프로토콜 수행)
+```
+
+**2. 연결 관리:**
+브로커는 수백, 수천 개의 클라이언트 연결을 효율적으로 관리합니다.
+
+- **연결 수락**: CONNECT 패킷 처리 및 인증
+- **Keep-Alive 모니터링**: 각 클라이언트의 활동 상태 추적
+- **연결 종료 감지**: 비정상 종료 감지 및 처리
+- **동시 연결 제한**: 리소스 보호를 위한 연결 수 제한
+
+**연결 상태 관리:**
+```
+Connected (연결됨)
+   ↓
+Active (활성) ←→ Idle (유휴)
+   ↓              ↓
+Keep-Alive     Keep-Alive
+타임아웃 체크    타임아웃 체크
+   ↓              ↓
+Disconnected (연결 끊김)
+```
+
+**3. 세션 관리:**
+클라이언트의 상태를 유지하고 복원합니다.
+
+- **세션 생성/복원**: Client ID 기반 세션 식별
+- **구독 정보 저장**: 클라이언트가 구독한 주제 목록
+- **메시지 큐 관리**: 오프라인 메시지 저장
+- **세션 만료**: 오래된 세션 정리
+
+**세션 데이터 구조:**
+```
+Session {
+  clientId: "sensor001",
+  subscriptions: [
+    { topic: "command/+", qos: 1 },
+    { topic: "config/#", qos: 2 }
+  ],
+  pendingMessages: Queue[Message],
+  inflight: Map[PacketId, Message],
+  connected: true,
+  lastActivity: timestamp
+}
+```
+
+**4. QoS 처리:**
+메시지 전달의 신뢰성을 보장합니다.
+
+- **QoS 0**: 즉시 전송, 확인 없음
+- **QoS 1**: ACK 받을 때까지 재전송
+- **QoS 2**: 4단계 핸드셰이크로 정확히 한 번 전달
+
+**5. 메시지 지속성 (Persistence):**
+중요한 데이터를 디스크에 저장합니다.
+
+- **Retained 메시지**: 주제별 마지막 메시지 저장
+- **세션 정보**: Persistent Session 데이터 저장
+- **QoS 메시지**: 미전달 메시지 저장
+
+**6. 보안 및 인증:**
+시스템 보안을 책임집니다.
+
+- **클라이언트 인증**: Username/Password, 인증서 검증
+- **권한 부여**: ACL 기반 주제 접근 제어
+- **TLS/SSL**: 암호화된 통신 지원
 
 #### 🏗️ 브로커 아키텍처
-- **단일 브로커**: 소규모 시스템에 적합
-- **브로커 클러스터**: 대규모 시스템의 고가용성
-- **브로커 브릿지**: 여러 브로커 간 메시지 전달
+
+**단일 브로커 아키텍처:**
+- **장점**: 간단한 설정, 낮은 복잡성
+- **단점**: 단일 장애점, 확장성 제한
+- **적합한 경우**: 소규모 시스템, 프로토타입
+
+```
+┌─────────────────┐
+│   클라이언트들   │
+└────────┬────────┘
+         │
+    ┌────▼────┐
+    │ 브로커  │
+    └─────────┘
+```
+
+**브로커 클러스터:**
+- **장점**: 고가용성, 부하 분산, 확장성
+- **단점**: 복잡한 설정, 세션 동기화 필요
+- **적합한 경우**: 대규모 시스템, 엔터프라이즈
+
+```
+┌─────────────────┐
+│   클라이언트들   │
+└───┬─────┬───┬───┘
+    │     │   │
+┌───▼─┐ ┌─▼──┐┌▼───┐
+│브로커1│ │브로커2││브로커3│
+└───┬─┘ └─┬──┘└┬───┘
+    └─────┴────┘
+    클러스터 동기화
+```
+
+**브로커 브릿지:**
+- **장점**: 지리적 분산, 네트워크 분리
+- **단점**: 메시지 지연, 설정 복잡성
+- **적합한 경우**: 다중 지역, 계층적 구조
+
+```
+┌──────┐      ┌──────┐
+│브로커A│◄────►│브로커B│
+└──────┘      └──────┘
+   ↑             ↑
+   │             │
+클라이언트A   클라이언트B
+```
+
+#### ⚡ 브로커 성능 고려사항
+
+**처리량 최적화:**
+- **연결 풀링**: TCP 연결 재사용
+- **메시지 배칭**: 여러 메시지를 한 번에 전송
+- **비동기 I/O**: Non-blocking I/O로 높은 동시성
+
+**메모리 관리:**
+- **메시지 큐 크기 제한**: 메모리 고갈 방지
+- **세션 만료**: 오래된 세션 자동 정리
+- **메시지 크기 제한**: 과도한 페이로드 방지
+
+**확장성 전략:**
+- **수평 확장**: 클러스터에 브로커 추가
+- **샤딩**: 클라이언트를 여러 브로커에 분산
+- **로드 밸런싱**: DNS 또는 L4 로드 밸런서 사용
 
 ### 3. **주제 (Topic) 시스템**
 
@@ -156,10 +826,498 @@ factory/machine/status        # 공장 기계 상태
 - **`#` (다중 레벨)**: 모든 하위 주제
   - `home/#` → `home`으로 시작하는 모든 주제
 
+#### 🔍 와일드카드 동작 원리
+
+**`+` 와일드카드 (Single Level):**
+- 정확히 한 레벨만 대체합니다
+- `building/+/floor1/room1`은 `building/A/floor1/room1`, `building/B/floor1/room1`과 매칭
+- `building/+/+`은 두 레벨을 건너뛰며, `building/A/B`와 매칭되지만 `building/A/B/C`는 매칭되지 않음
+- 주제의 시작이나 끝에도 사용 가능: `+/temperature`, `sensor/+`
+
+**`#` 와일드카드 (Multi Level):**
+- 해당 레벨부터 모든 하위 레벨을 대체합니다
+- 반드시 주제의 마지막에만 위치해야 함
+- `home/#`은 `home`, `home/livingroom`, `home/livingroom/temperature` 모두 매칭
+- `#` 단독 사용 시 모든 주제를 구독 (시스템 부하 주의)
+- `home/#/temperature`와 같은 형태는 불가능 (문법 오류)
+
+**와일드카드 사용 시 주의사항:**
+- 발행(Publish) 시에는 와일드카드를 사용할 수 없음 (구독에만 사용)
+- 과도한 `#` 사용은 브로커에 부하를 줄 수 있음
+- 보안상 클라이언트에게 제한된 와일드카드 권한을 부여하는 것이 좋음
+
 #### 💡 주제 설계 원칙
 - **의미 있는 이름**: 주제 이름만으로도 내용 파악 가능
 - **계층적 구조**: 관련 주제들을 그룹화
 - **일관성**: 전체 시스템에서 일관된 명명 규칙
+- **확장성**: 나중에 새로운 레벨을 추가할 수 있도록 설계
+- **명확한 범위**: 너무 일반적이거나 너무 구체적이지 않게
+
+#### 📝 주제 명명 규칙 예시
+
+**좋은 예:**
+```
+sensor/building1/floor3/room301/temperature
+sensor/building1/floor3/room301/humidity
+device/lighting/livingroom/status
+device/lighting/livingroom/brightness
+```
+
+**나쁜 예:**
+```
+temp                    # 너무 일반적
+sensor_building1_floor3 # 구분자로 밑줄 사용 (계층 구조 미사용)
+Building1/Floor3/Temp   # 대소문자 혼용 (일관성 없음)
+```
+
+### 4. **MQTT 패킷 구조**
+
+MQTT는 TCP 위에서 동작하며, 모든 통신은 패킷 단위로 이루어집니다.
+
+#### 📦 기본 패킷 구조
+
+모든 MQTT 패킷은 다음 세 부분으로 구성됩니다:
+
+```
+┌─────────────────────────────────┐
+│    Fixed Header (고정 헤더)      │  ← 2~5 바이트
+├─────────────────────────────────┤
+│   Variable Header (가변 헤더)    │  ← 0바이트 이상 (패킷 타입에 따라)
+├─────────────────────────────────┤
+│     Payload (페이로드)           │  ← 0바이트 이상
+└─────────────────────────────────┘
+```
+
+#### 🔧 고정 헤더 (Fixed Header)
+
+**바이트 1 (제어 패킷):**
+```
+  7  6  5  4    3  2  1  0
+┌──────────┬──────────────┐
+│ 패킷 타입  │  플래그      │
+└──────────┴──────────────┘
+```
+
+**패킷 타입 (Bit 7-4):**
+- 1: CONNECT - 클라이언트가 브로커에 연결 요청
+- 2: CONNACK - 브로커의 연결 승인
+- 3: PUBLISH - 메시지 발행
+- 4: PUBACK - QoS 1 발행 확인
+- 5: PUBREC - QoS 2 발행 수신 확인
+- 6: PUBREL - QoS 2 발행 릴리즈
+- 7: PUBCOMP - QoS 2 발행 완료
+- 8: SUBSCRIBE - 주제 구독
+- 9: SUBACK - 구독 확인
+- 10: UNSUBSCRIBE - 구독 해제
+- 11: UNSUBACK - 구독 해제 확인
+- 12: PINGREQ - Keep-Alive 요청
+- 13: PINGRESP - Keep-Alive 응답
+- 14: DISCONNECT - 연결 종료
+
+**플래그 (Bit 3-0):**
+- DUP: 중복 메시지 플래그 (재전송 시 1)
+- QoS: 메시지 품질 수준 (00, 01, 10)
+- RETAIN: 메시지 보유 플래그
+
+**바이트 2~ (남은 길이):**
+- 가변 헤더와 페이로드의 총 길이
+- 1~4 바이트로 인코딩 (가변 길이 인코딩)
+- 최대 268,435,455 바이트까지 표현 가능
+
+#### 🔍 주요 패킷 타입별 상세 구조
+
+**CONNECT 패킷:**
+```
+고정 헤더: 0x10
+가변 헤더:
+  - 프로토콜 이름 (MQTT)
+  - 프로토콜 레벨 (3.1.1 = 4, 5.0 = 5)
+  - 연결 플래그 (Clean Session, Will, Username, Password)
+  - Keep Alive 시간 (초 단위)
+페이로드:
+  - Client ID
+  - Will Topic, Will Message (플래그가 설정된 경우)
+  - Username, Password (플래그가 설정된 경우)
+```
+
+**PUBLISH 패킷:**
+```
+고정 헤더: 0x30 + (DUP << 3) + (QoS << 1) + RETAIN
+가변 헤더:
+  - 주제 이름 (Topic Name)
+  - 패킷 식별자 (QoS > 0인 경우에만)
+페이로드:
+  - 실제 메시지 내용 (바이너리 데이터 가능)
+```
+
+**SUBSCRIBE 패킷:**
+```
+고정 헤더: 0x82
+가변 헤더:
+  - 패킷 식별자
+페이로드:
+  - 주제 필터 리스트 (각각 원하는 QoS 레벨 포함)
+```
+
+#### ⚡ 패킷 크기 최적화
+
+MQTT가 경량 프로토콜인 이유를 패킷 크기로 살펴보면:
+
+**최소 PUBLISH 패킷 예시:**
+```
+고정 헤더: 2바이트
+주제 길이: 2바이트
+주제: "t" (1바이트)
+페이로드: "1" (1바이트)
+─────────────────
+총 크기: 6바이트
+```
+
+**HTTP POST 요청 비교:**
+```
+POST /topic HTTP/1.1
+Host: broker.example.com
+Content-Type: text/plain
+Content-Length: 1
+
+1
+─────────────────
+총 크기: 약 100바이트 이상
+```
+
+이러한 작은 패킷 크기 덕분에 MQTT는 제한된 대역폭 환경에서도 효율적으로 동작합니다.
+
+### 5. **세션 관리 (Session Management)**
+
+세션은 클라이언트와 브로커 간의 상태 정보를 유지하는 메커니즘입니다.
+
+#### 🔄 Clean Session vs Persistent Session
+
+**Clean Session (클린 세션) - 플래그 = 1:**
+
+클린 세션은 "깨끗한 상태에서 시작"하는 개념입니다.
+
+- **연결 시**: 브로커가 기존 세션 정보를 모두 삭제
+- **연결 중**: 구독 정보와 QoS 1/2 메시지를 메모리에 유지
+- **연결 종료 시**: 모든 세션 정보가 즉시 삭제됨
+- **사용 사례**: 
+  - 실시간 모니터링 (과거 데이터 불필요)
+  - 테스트 및 개발
+  - 일회성 통신
+
+**동작 흐름:**
+```
+1. 클라이언트 연결 (Clean Session = 1)
+2. 브로커가 새 세션 생성
+3. 클라이언트가 주제 구독
+4. 메시지 수신
+5. 연결 종료
+6. 세션 정보 완전히 삭제 ← 중요!
+```
+
+**Persistent Session (영속 세션) - 플래그 = 0:**
+
+영속 세션은 "이어서 하기"가 가능한 개념입니다.
+
+- **연결 시**: 브로커가 기존 세션 정보를 복원
+- **연결 중**: 모든 상태 정보를 디스크에 지속적으로 저장
+- **연결 종료 시**: 세션 정보가 브로커에 보관됨
+- **오프라인 중**: QoS 1/2 메시지를 큐에 저장
+- **재연결 시**: 저장된 메시지를 모두 전달받음
+
+**브로커가 저장하는 정보:**
+- 구독한 주제 목록
+- QoS 1, QoS 2로 전송했지만 확인되지 않은 메시지
+- QoS 1, QoS 2로 수신했지만 확인되지 않은 메시지
+- QoS 1, QoS 2로 수신 대기 중인 메시지
+
+**클라이언트가 저장하는 정보:**
+- QoS 1, QoS 2로 전송했지만 확인되지 않은 메시지
+- 브로커로부터 받았지만 확인되지 않은 QoS 2 메시지
+
+**동작 흐름:**
+```
+1. 클라이언트 연결 (Clean Session = 0, Client ID = "sensor001")
+2. 주제 구독: "command/sensor001"
+3. 메시지 수신 중...
+4. 네트워크 장애로 연결 끊김 ← 문제 발생!
+5. 브로커는 해당 주제의 메시지를 큐에 저장 ← 중요!
+6. 클라이언트 재연결 (같은 Client ID 사용)
+7. 브로커가 저장된 메시지를 모두 전달 ← 메시지 손실 없음!
+```
+
+**사용 사례:**
+- IoT 기기 (간헐적 연결)
+- 모바일 앱 (네트워크 전환 빈번)
+- 중요한 명령/알림 (손실 불가)
+- 구독 정보 유지 필요
+
+#### ⚠️ 세션 관리 주의사항
+
+**Client ID의 중요성:**
+- Persistent Session은 Client ID로 식별됩니다
+- 같은 Client ID로 재연결하면 이전 세션이 복원됩니다
+- Client ID가 다르면 완전히 새로운 세션이 생성됩니다
+
+**메모리 관리:**
+- Persistent Session은 브로커의 메모리/디스크를 사용합니다
+- 오랜 시간 연결하지 않는 클라이언트는 리소스를 낭비합니다
+- MQTT 5.0에서는 세션 만료 시간(Session Expiry Interval)을 설정 가능
+
+**브로커 설정 예시 (Mosquitto):**
+```conf
+# 영속 세션 저장 활성화
+persistence true
+persistence_location /var/lib/mosquitto/
+
+# 최대 큐 메시지 수
+max_queued_messages 1000
+
+# 자동 저장 간격 (초)
+autosave_interval 300
+```
+
+### 6. **Retained Messages (보유 메시지)**
+
+Retained Message는 주제의 "마지막 알려진 좋은 값"을 저장하는 기능입니다.
+
+#### 💾 보유 메시지의 개념
+
+일반적인 MQTT 메시지는 발행 시점에 구독 중인 클라이언트에게만 전달됩니다. 하지만 Retained Message는 브로커에 저장되어, **나중에 구독하는 클라이언트도** 즉시 받을 수 있습니다.
+
+**비유:**
+- 일반 메시지: 실시간 라디오 방송 (놓치면 다시 들을 수 없음)
+- Retained 메시지: 팟캐스트 (나중에 들어와도 최신 에피소드를 바로 들을 수 있음)
+
+#### 🔄 동작 방식
+
+**Retained 메시지 발행:**
+```
+발행자 → PUBLISH (Retain=1, Topic="home/temp", Payload="23°C")
+          ↓
+브로커 → 메시지를 주제에 저장 (이전 Retained 메시지 덮어쓰기)
+          ↓
+기존 구독자들에게 전달
+```
+
+**새로운 구독자:**
+```
+새 구독자 → SUBSCRIBE ("home/temp")
+            ↓
+브로커 → 저장된 Retained 메시지 즉시 전달 ("23°C")
+```
+
+#### 📝 사용 사례
+
+**상태 정보:**
+```javascript
+// 조명 상태 발행
+client.publish('home/livingroom/light', 'ON', { retain: true });
+
+// 나중에 구독한 클라이언트도 현재 조명 상태를 즉시 알 수 있음
+```
+
+**설정 값:**
+```javascript
+// 온도 설정값 발행
+client.publish('device/thermostat/setpoint', '22', { retain: true });
+
+// 재시작 후에도 설정값을 바로 확인 가능
+```
+
+**센서 초기값:**
+```javascript
+// 센서의 마지막 측정값
+client.publish('sensor/outdoor/temperature', '15.5', { retain: true });
+
+// 새로운 모니터링 앱이 구독하면 즉시 마지막 값을 받음
+```
+
+#### 🗑️ Retained 메시지 삭제
+
+Retained 메시지를 삭제하려면 빈 페이로드(empty payload)로 발행:
+
+```javascript
+// Retained 메시지 삭제
+client.publish('home/temp', '', { retain: true });
+// 또는
+client.publish('home/temp', null, { retain: true });
+```
+
+#### ⚠️ 주의사항
+
+**하나의 주제당 하나의 메시지:**
+- 각 주제는 최대 1개의 Retained 메시지만 가질 수 있습니다
+- 새로운 Retained 메시지는 이전 것을 덮어씁니다
+
+**브로커 재시작:**
+- 브로커가 재시작되면 Retained 메시지가 유지되는지는 브로커 설정에 따라 다릅니다
+- Mosquitto의 경우 `persistence true` 설정 필요
+
+**보안 고려사항:**
+- Retained 메시지는 오랫동안 남아있으므로 민감한 정보 저장 주의
+- 오래된 Retained 메시지는 정기적으로 삭제하는 것이 좋음
+
+**적합하지 않은 경우:**
+- 빠르게 변하는 데이터 (실시간 센서 스트림)
+- 일회성 이벤트 (알림, 경고)
+- 시간에 민감한 데이터 (타임스탬프 없이 사용 시)
+
+### 7. **Last Will and Testament (LWT, 유언 메시지)**
+
+Last Will은 클라이언트가 예기치 않게 연결이 끊어졌을 때, 브로커가 자동으로 발행하는 메시지입니다.
+
+#### 💀 유언 메시지의 개념
+
+**비유:**
+유언장과 같습니다. "내가 갑자기 사라지면, 이 메시지를 전해주세요"라고 미리 브로커에 등록해둡니다.
+
+#### 🔄 동작 방식
+
+**설정 단계 (CONNECT 시):**
+```
+클라이언트 → CONNECT {
+              Will Flag: 1,
+              Will Topic: "device/sensor001/status",
+              Will Message: "offline",
+              Will QoS: 1,
+              Will Retain: 1
+            }
+            ↓
+브로커 → 유언 정보를 세션에 저장
+```
+
+**정상 종료:**
+```
+클라이언트 → DISCONNECT 패킷 전송
+            ↓
+브로커 → 유언 메시지를 발행하지 않음 (정상 종료로 간주)
+       → 세션 정보 삭제
+```
+
+**비정상 종료:**
+```
+클라이언트 → 연결 끊김 (네트워크 장애, 기기 고장, 전원 차단 등)
+            ↓
+브로커 → Keep-Alive 타임아웃 감지
+       → 유언 메시지를 자동으로 발행
+       → "device/sensor001/status" 주제로 "offline" 메시지 전송
+```
+
+#### 📝 실제 사용 예시
+
+**온라인/오프라인 상태 추적:**
+```javascript
+const mqtt = require('mqtt');
+
+const options = {
+  clientId: 'sensor001',
+  clean: false,
+  will: {
+    topic: 'device/sensor001/status',
+    payload: 'offline',
+    qos: 1,
+    retain: true  // 마지막 상태를 유지
+  }
+};
+
+const client = mqtt.connect('mqtt://broker', options);
+
+client.on('connect', () => {
+  // 연결되면 즉시 온라인 상태 발행
+  client.publish('device/sensor001/status', 'online', { 
+    qos: 1, 
+    retain: true 
+  });
+});
+```
+
+**이 패턴의 동작:**
+1. 센서 연결 시: "online" 발행 (Retained)
+2. 센서 정상 동작 중: 구독자들은 "online" 상태 확인 가능
+3. 센서 갑자기 다운: 브로커가 자동으로 "offline" 발행 (Will Message)
+4. 나중에 구독한 클라이언트: Retained 메시지로 마지막 상태 확인 가능
+
+**경고 메시지:**
+```javascript
+const options = {
+  will: {
+    topic: 'alert/critical',
+    payload: JSON.stringify({
+      deviceId: 'pump-01',
+      message: '펌프가 예기치 않게 중단되었습니다',
+      timestamp: Date.now()
+    }),
+    qos: 2,
+    retain: false
+  }
+};
+```
+
+**하트비트 실패 알림:**
+```javascript
+const options = {
+  will: {
+    topic: 'monitoring/heartbeat/failed',
+    payload: 'gateway-north-01',
+    qos: 1,
+    retain: true
+  }
+};
+```
+
+#### ⚙️ Keep-Alive와의 관계
+
+Last Will은 Keep-Alive 메커니즘과 밀접하게 연관되어 있습니다.
+
+**Keep-Alive 동작:**
+```
+1. CONNECT 시 Keep-Alive 시간 설정 (예: 60초)
+2. 클라이언트는 60초 이내에 패킷을 전송해야 함
+3. 전송할 메시지가 없으면 PINGREQ 패킷 전송
+4. 브로커는 PINGRESP로 응답
+5. 1.5배 시간(90초) 동안 패킷이 없으면:
+   → 클라이언트를 연결 끊김으로 간주
+   → Will Message 발행
+```
+
+#### 💡 Best Practices
+
+**상태 관리 패턴:**
+```javascript
+// 연결 시
+client.on('connect', () => {
+  client.publish('status', 'online', { retain: true });
+});
+
+// 종료 시 (정상)
+process.on('SIGINT', () => {
+  client.publish('status', 'offline', { retain: true }, () => {
+    client.end();  // DISCONNECT 전송
+  });
+});
+
+// Will 설정 (비정상 종료)
+const options = {
+  will: {
+    topic: 'status',
+    payload: 'offline-unexpected',
+    retain: true
+  }
+};
+```
+
+**유언 메시지 설계 원칙:**
+- **명확한 메시지**: 문제를 명확히 알 수 있는 내용
+- **적절한 QoS**: 중요도에 따라 QoS 1 이상 권장
+- **Retain 활용**: 상태 정보는 Retain을 함께 사용
+- **타임스탬프**: 메시지에 시간 정보 포함 권장
+
+#### 🚫 유언 메시지가 발행되지 않는 경우
+
+1. **정상 종료**: DISCONNECT 패킷을 보내고 종료
+2. **Will Flag = 0**: 유언 설정을 하지 않음
+3. **새로운 연결**: 같은 Client ID로 새 연결 시 이전 Will은 취소됨
 
 ---
 
@@ -235,7 +1393,7 @@ graph TB
 - **Azure IoT Hub**: Microsoft의 IoT 플랫폼
 - **Google Cloud IoT Core**: Google의 IoT 서비스
 
-### 4. **브로커 선택 가이드**
+### 4. **브로커 선택하기**
 
 #### 🏢 오픈소스 브로커
 | 브로커 | 특징 | 장점 | 단점 | 사용 사례 |
@@ -268,24 +1426,262 @@ QoS는 **택배 배송 서비스**와 비슷한 개념입니다:
 ### 🔍 QoS 레벨별 상세 분석
 
 #### **QoS 0: At Most Once (최대 1회)**
-- **특징**: "Fire and Forget" 방식
-- **장점**: 가장 빠르고 효율적
-- **단점**: 메시지 손실 가능성
-- **사용 사례**: 실시간 센서 데이터, 온도/습도 등
+
+**개념:**
+"Fire and Forget" 방식으로, 발행자가 메시지를 보내면 끝입니다. TCP가 보장하는 수준의 신뢰성만 제공합니다.
+
+**프로토콜 흐름:**
+```
+발행자                브로커                구독자
+  │                    │                    │
+  │─── PUBLISH ──────► │                    │
+  │                    │─── PUBLISH ──────► │
+  │                    │                    │
+완료                  완료                  완료
+```
+
+**내부 동작:**
+1. 발행자가 PUBLISH 패킷을 브로커에 전송
+2. TCP가 패킷 전달을 보장 (네트워크 레벨)
+3. 브로커가 패킷을 받으면 즉시 구독자에게 전달
+4. 구독자가 받으면 끝 (어떤 확인 응답도 없음)
+5. 중간에 연결이 끊어지면 메시지 손실
+
+**장점:**
+- 가장 빠른 전송 속도
+- 최소한의 네트워크 오버헤드
+- 브로커의 메모리 사용 최소화
+- 대량의 메시지 스트리밍에 적합
+
+**단점:**
+- 메시지 손실 가능성
+- 재전송 메커니즘 없음
+- 전달 보장 없음
+
+**사용 사례:**
+- 실시간 센서 데이터 (온도, 습도)
+- 주기적으로 업데이트되는 데이터
+- 일부 손실이 허용되는 모니터링 데이터
+- 높은 처리량이 필요한 경우
 
 #### **QoS 1: At Least Once (최소 1회)**
-- **특징**: 메시지가 반드시 도착하지만 중복 가능
-- **장점**: 안정적인 전달 보장
-- **단점**: 중복 메시지 처리 필요
-- **사용 사례**: 중요한 알림, 상태 변경 등
+
+**개념:**
+메시지가 적어도 한 번은 전달되는 것을 보장합니다. 하지만 네트워크 재전송으로 인해 중복 가능합니다.
+
+**프로토콜 흐름:**
+```
+발행자                브로커                구독자
+  │                    │                    │
+  │─── PUBLISH ──────► │                    │
+  │                    │─── PUBLISH ──────► │
+  │                    │                    │
+  │                    │◄─── PUBACK ────────│
+  │◄─── PUBACK ────────│                    │
+완료                  완료                  완료
+```
+
+**상세 동작 과정:**
+
+1. **발행자 → 브로커:**
+   - 발행자가 PUBLISH 패킷 전송 (패킷 ID 포함)
+   - 패킷을 로컬에 저장 (확인 받을 때까지)
+   - 타이머 시작
+
+2. **브로커 수신:**
+   - PUBLISH 패킷 수신
+   - 메시지를 저장 (Persistent Session인 경우)
+   - 구독자에게 전달 준비
+   - PUBACK 패킷을 발행자에게 전송
+
+3. **브로커 → 구독자:**
+   - 각 구독자에게 PUBLISH 패킷 전송
+   - 구독자별 패킷 ID 할당
+   - 패킷을 메모리에 저장
+
+4. **구독자 응답:**
+   - PUBACK 패킷을 브로커에 전송
+   - 브로커가 저장된 패킷 삭제
+
+5. **재전송 시나리오:**
+   - PUBACK을 받지 못하면 타임아웃 후 재전송
+   - DUP 플래그를 1로 설정하여 재전송 표시
+   - 구독자는 같은 패킷 ID를 받으면 중복으로 간주 가능
+
+**중복 발생 시나리오:**
+```
+발행자                브로커                구독자
+  │                    │                    │
+  │─── PUBLISH(1) ────► │                    │
+  │                    │─── PUBLISH(1) ────► │
+  │                    │                    │
+  │                    │◄─── PUBACK ─── X   │ ← PUBACK 손실
+  │                    │                    │
+  │                    │─── PUBLISH(1) ────► │ ← 재전송 (중복!)
+  │                    │◄─── PUBACK ────────│
+```
+
+**장점:**
+- 메시지 전달 보장
+- 성능과 신뢰성의 균형
+- 대부분의 사용 사례에 적합
+
+**단점:**
+- 중복 메시지 가능성
+- 애플리케이션에서 중복 처리 필요
+- QoS 0보다 느림
+
+**중복 처리 방법:**
+```javascript
+// 메시지 ID를 추적하여 중복 제거
+const processedMessages = new Set();
+
+client.on('message', (topic, message) => {
+  const data = JSON.parse(message);
+  
+  // 메시지 ID로 중복 체크
+  if (processedMessages.has(data.messageId)) {
+    console.log('중복 메시지 무시:', data.messageId);
+    return;
+  }
+  
+  processedMessages.add(data.messageId);
+  // 메시지 처리...
+});
+```
+
+**사용 사례:**
+- 중요한 알림 및 경고
+- 상태 변경 명령
+- 설정 업데이트
+- 일반적인 IoT 통신
 
 #### **QoS 2: Exactly Once (정확히 1회)**
-- **특징**: 중복 없이 정확히 한 번만 전달
-- **장점**: 가장 안전한 전달
-- **단점**: 가장 느리고 복잡
-- **사용 사례**: 결제 정보, 중요한 명령 등
 
-### ⚖️ QoS 선택 가이드
+**개념:**
+4단계 핸드셰이크를 통해 메시지가 정확히 한 번만 전달되는 것을 보장합니다. 가장 안전하지만 가장 복잡하고 느립니다.
+
+**프로토콜 흐름 (4단계 핸드셰이크):**
+```
+발행자                브로커                구독자
+  │                    │                    │
+1 │─── PUBLISH ──────► │                    │ ← 1단계: 발행
+  │                    │─── PUBLISH ──────► │
+  │                    │                    │
+2 │◄─── PUBREC ────────│                    │ ← 2단계: 수신 확인
+  │                    │◄─── PUBREC ────────│
+  │                    │                    │
+3 │─── PUBREL ───────► │                    │ ← 3단계: 릴리즈
+  │                    │─── PUBREL ───────► │
+  │                    │                    │
+4 │◄─── PUBCOMP ───────│                    │ ← 4단계: 완료
+  │                    │◄─── PUBCOMP ───────│
+완료                  완료                  완료
+```
+
+**각 단계 상세 설명:**
+
+**1단계: PUBLISH (발행)**
+- 발행자가 메시지를 브로커에 전송
+- 패킷 ID 할당 및 메시지를 디스크에 저장
+- 상태: "전송됨, 확인 대기"
+
+**2단계: PUBREC (수신 확인)**
+- 브로커가 메시지를 받았음을 확인
+- 브로커는 메시지를 안전하게 저장
+- 발행자는 메시지 전송 성공을 인지
+- 상태: "수신 확인됨, 릴리즈 대기"
+
+**3단계: PUBREL (릴리즈)**
+- 발행자가 브로커에게 메시지 처리 요청
+- 브로커는 이제 구독자에게 전달 가능
+- 발행자는 원본 메시지 삭제 가능
+- 상태: "릴리즈됨, 완료 대기"
+
+**4단계: PUBCOMP (완료)**
+- 브로커가 최종 완료 확인
+- 모든 저장된 패킷 정보 삭제
+- 트랜잭션 완료
+- 상태: "완료"
+
+**왜 4단계가 필요한가?**
+
+단순히 ACK만으로는 중복을 완전히 방지할 수 없습니다. 예를 들어:
+
+```
+시나리오 1: PUBREC 손실
+발행자                브로커
+  │                    │
+  │─── PUBLISH(1) ────► │ ← 브로커 수신, 저장
+  │                    │
+  │     X ◄── PUBREC ───│ ← PUBREC 손실!
+  │                    │
+  │─── PUBLISH(1) ────► │ ← 재전송
+  │                    │
+  │◄─── PUBREC ─────────│ ← 이번엔 성공
+
+문제: 브로커가 메시지를 두 번 받았는가?
+해결: 브로커가 패킷 ID를 추적하여 중복 감지
+```
+
+**상태 머신:**
+
+발행자의 상태:
+```
+1. PUBLISH 전송 → "Published"
+2. PUBREC 수신 → "Received"
+3. PUBREL 전송 → "Released"
+4. PUBCOMP 수신 → "Completed" (삭제)
+```
+
+브로커의 상태:
+```
+1. PUBLISH 수신 → 패킷 ID 저장, PUBREC 전송
+2. PUBREL 수신 → 구독자에게 전달 시작
+3. 모든 구독자가 PUBCOMP 응답 → 발행자에게 PUBCOMP 전송
+4. 패킷 ID 삭제
+```
+
+**재전송 처리:**
+
+각 단계에서 응답이 없으면 재전송:
+```
+│─── PUBLISH ──────► │
+│   (타임아웃)        │
+│─── PUBLISH ──────► │ ← DUP=1 (재전송 표시)
+│◄─── PUBREC ────────│
+│                    │
+│─── PUBREL ───────► │
+│   (타임아웃)        │
+│─── PUBREL ───────► │ ← 재전송
+│◄─── PUBCOMP ───────│
+```
+
+**장점:**
+- 메시지 중복 완전 방지
+- 가장 높은 신뢰성
+- 트랜잭션 보장
+- 데이터 무결성 보장
+
+**단점:**
+- 가장 느린 전송 속도
+- 높은 네트워크 오버헤드 (4배의 패킷)
+- 브로커와 클라이언트 모두 복잡한 상태 관리
+- 더 많은 메모리와 디스크 사용
+
+**성능 영향:**
+- QoS 0 대비: 약 4배 느림
+- QoS 1 대비: 약 2배 느림
+- 처리량: 크게 감소
+
+**사용 사례:**
+- 금융 거래 데이터
+- 결제 정보
+- 중요한 명령 (공장 기계 제어)
+- 중복이 절대 허용되지 않는 시스템
+- 규정 준수가 필요한 데이터
+
+### ⚖️ QoS 레벨 선택하기
 
 #### 🚀 성능 우선 (QoS 0)
 - 실시간 센서 데이터
@@ -604,7 +2000,7 @@ IoT 기기 → MQTT Broker → Kafka Connect → Kafka Cluster
 - **MQTT**: IoT 기기와의 효율적인 통신
 - **Kafka**: 대용량 데이터 처리 및 분석
 
-### 🎯 Kafka vs MQTT 선택 가이드
+### 🎯 Kafka vs MQTT 선택하기
 
 #### **Kafka 선택 기준**
 - 대규모 데이터 스트리밍이 필요한 경우
@@ -749,7 +2145,7 @@ MQTT는 단순하면서도 강력한 프로토콜로, IoT 생태계의 성장과
 
 ## 🛠️ 성능 튜닝 및 최적화
 
-### ⚡ 성능 최적화 가이드
+### ⚡ 성능 최적화 방법
 
 #### 1. **브로커 최적화**
 ```bash
@@ -806,7 +2202,7 @@ setInterval(() => {
 
 ---
 
-## 🔧 트러블슈팅 가이드
+## 🔧 문제 해결 및 디버깅
 
 ### 🚨 일반적인 문제와 해결방법
 
