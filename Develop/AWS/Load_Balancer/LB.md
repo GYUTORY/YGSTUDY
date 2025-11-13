@@ -1,10 +1,10 @@
 ---
-title: AWS 로드 밸런서 완전 가이드: ALB vs NLB vs ELB
-tags: [aws, loadbalancer, lb, alb, nlb, elb]
-updated: 2025-09-23
+title: AWS 로드 밸런서: ALB vs NLB vs CLB
+tags: [aws, loadbalancer, lb, alb, nlb, elb, clb]
+updated: 2025-11-01
 ---
 
-# AWS 로드 밸런서 완전 가이드: ALB vs NLB vs ELB
+# AWS 로드 밸런서: ALB vs NLB vs CLB
 
 ## 목차
 - [1. 로드 밸런싱의 기본 개념](#1-로드-밸런싱의-기본-개념)
@@ -90,7 +90,83 @@ AWS는 현재 **4가지 유형**의 로드 밸런서를 제공합니다:
 1. **ALB (Application Load Balancer)** - 7계층 HTTP/HTTPS 로드 밸런서
 2. **NLB (Network Load Balancer)** - 4계층 TCP/UDP 로드 밸런서
 3. **GWLB (Gateway Load Balancer)** - 3계층 게이트웨이 로드 밸런서
-4. **ELB (Elastic Load Balancer)** - 레거시 로드 밸런서 (구 CLB)
+4. **CLB (Classic Load Balancer)** - 레거시 로드 밸런서 (구 ELB)
+
+### 2.4 AWS ELB 유형 간단 비교
+
+대부분의 웹 애플리케이션에서는 **ALB**를, 고성능 TCP/UDP 처리가 필요한 경우 **NLB**를 사용합니다.
+
+#### 1. ALB (Application Load Balancer)
+
+**핵심 특징:**
+- HTTP/HTTPS 트래픽 최적화
+- 경로(URL) 기반 라우팅 지원
+- 7계층 (Application Layer) 동작
+
+**사용 시나리오:**
+- 대부분의 웹 애플리케이션
+- 마이크로서비스 아키텍처
+- 경로/호스트 기반 라우팅이 필요한 경우
+
+```
+예시: 경로 기반 라우팅
+/api/users → User Service
+/api/orders → Order Service  
+/api/products → Product Service
+```
+
+#### 2. NLB (Network Load Balancer)
+
+**핵심 특징:**
+- TCP/UDP 트래픽 최적화
+- 고정 IP 지원
+- 4계층 (Transport Layer) 동작
+- 초저지연, 초고성능
+
+**사용 시나리오:**
+- 게임 서버 (고정 IP 필요)
+- 실시간 스트리밍
+- 데이터베이스 클러스터
+- 지연시간이 매우 중요한 애플리케이션
+
+```
+특징: 고정 IP 제공
+Client → 52.25.10.100 (고정 IP) → NLB → Backend Servers
+```
+
+#### 3. CLB (Classic Load Balancer)
+
+**핵심 특징:**
+- AWS의 초기 로드 밸런서 (레거시)
+- 4계층 및 7계층 기본 기능 제공
+- **새 프로젝트에서는 권장하지 않음**
+
+**사용 시나리오:**
+- 레거시 시스템 유지보수
+- EC2-Classic 환경
+- 마이그레이션 중간 단계
+
+**권장사항:**
+- 새로운 프로젝트: ALB 또는 NLB 사용
+- 기존 CLB 사용 중: ALB/NLB로 마이그레이션 검토
+
+#### 간단 선택 가이드
+
+```
+프로젝트 요구사항 분석
+│
+├─ HTTP/HTTPS 웹 애플리케이션?
+│  └─ 예 → ALB 선택
+│
+├─ 고정 IP가 필요한가?
+│  └─ 예 → NLB 선택
+│
+├─ 초저지연이 필요한가?
+│  └─ 예 → NLB 선택
+│
+└─ 레거시 시스템?
+   └─ 예 → CLB (마이그레이션 고려)
+```
 
 ---
 
@@ -746,4 +822,3 @@ NLB는 **소스 IP 기반**의 연결 유지를 제공합니다:
 
 ---
 
-*이 문서는 2025년 9월 23일 기준으로 작성되었으며, AWS 서비스의 지속적인 업데이트에 따라 일부 내용이 변경될 수 있습니다. 최신 정보는 AWS 공식 문서를 참조하시기 바랍니다.*

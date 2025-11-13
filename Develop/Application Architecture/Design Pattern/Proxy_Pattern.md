@@ -1,10 +1,10 @@
 ---
-title: Proxy Pattern (프록시 패턴) 완전 가이드
+title: Proxy Pattern (프록시 패턴)
 tags: [design-pattern, proxy-pattern, structural-pattern, javascript, architecture]
 updated: 2025-09-23
 ---
 
-# Proxy Pattern (프록시 패턴) 완전 가이드
+# Proxy Pattern (프록시 패턴)
 
 ## 개요
 

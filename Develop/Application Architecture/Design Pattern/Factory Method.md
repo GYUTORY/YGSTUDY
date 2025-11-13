@@ -1,10 +1,10 @@
 ---
-title: Factory Method(팩토리 메서드) 패턴 완전 가이드
+title: Factory Method(팩토리 메서드) 패턴
 tags: [design-pattern, factory-method, creational-pattern, javascript, architecture, oop]
 updated: 2025-09-21
 ---
 
-# Factory Method(팩토리 메서드) 패턴 완전 가이드
+# Factory Method(팩토리 메서드) 패턴
 
 ## Factory Method 패턴이란?
 

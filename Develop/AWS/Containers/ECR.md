@@ -1,116 +1,438 @@
 ---
 title: AWS ECR (Elastic Container Registry)
 tags: [aws, containers, ecr, docker, registry]
-updated: 2025-09-23
+updated: 2025-11-01
 ---
 
 # AWS ECR (Elastic Container Registry)
 
 ## 개요
 
-AWS ECR(Elastic Container Registry)은 클라우드 환경에서 컨테이너 이미지를 안전하게 저장하고 관리할 수 있는 완전 관리형 Docker 컨테이너 레지스트리 서비스입니다. 기존의 Docker Hub나 다른 레지스트리 서비스와 달리, AWS 생태계와 완벽하게 통합되어 있어 보안, 성능, 관리 측면에서 뛰어난 장점을 제공합니다.
+AWS ECR은 Docker 컨테이너 이미지를 저장하고 관리하는 완전 관리형 레지스트리 서비스입니다. AWS 생태계와 통합되어 ECS, EKS, Lambda 등에서 바로 사용할 수 있습니다.
 
-ECR은 컨테이너 기반 애플리케이션 개발과 배포 과정에서 핵심적인 역할을 담당하며, 특히 마이크로서비스 아키텍처나 DevOps 환경에서 필수적인 인프라 구성 요소로 자리잡고 있습니다.
+## 기본 구조
 
-## 핵심 개념
+```
+Registry (AWS 계정)
+  └── Repository (이미지 저장소)
+      └── Image (컨테이너 이미지)
+          └── Tag (버전 라벨)
+              └── Layer (이미지 레이어)
+```
 
-### 컨테이너 레지스트리의 역할
+## 기본 사용법
 
-컨테이너 레지스트리는 Docker 이미지를 중앙에서 저장하고 관리하는 저장소입니다. 개발팀이 빌드한 이미지를 안전하게 보관하고, 필요할 때 빠르게 배포할 수 있도록 도와주는 핵심 인프라입니다. ECR은 이러한 레지스트리 기능을 AWS 클라우드 환경에서 제공하며, 기존의 온프레미스 레지스트리나 공개 레지스트리 대비 보안성과 성능 면에서 우수한 특징을 보입니다.
+### 리포지토리 생성
 
-### AWS 생태계 통합
+```bash
+# AWS CLI로 리포지토리 생성
+aws ecr create-repository \
+  --repository-name my-app \
+  --region ap-northeast-2
 
-ECR의 가장 큰 장점은 AWS의 다른 서비스들과의 완벽한 통합입니다. IAM을 통한 세밀한 접근 제어, VPC 엔드포인트를 통한 네트워크 보안 강화, CloudWatch를 통한 실시간 모니터링, 그리고 CodePipeline과의 CI/CD 자동화 연동 등이 가능합니다. 이러한 통합을 통해 개발부터 배포까지의 전체 워크플로우를 AWS 환경 내에서 일관성 있게 관리할 수 있습니다.
+# 이미지 스캔 활성화
+aws ecr create-repository \
+  --repository-name my-app \
+  --image-scanning-configuration scanOnPush=true \
+  --encryption-configuration encryptionType=AES256
+```
 
-### ECR 아키텍처 구성 요소
+### 이미지 푸시
 
-ECR은 계층적 구조로 설계되어 있어 효율적인 이미지 관리가 가능합니다. 각 구성 요소는 서로 다른 역할을 담당하며, 전체적으로 통합된 컨테이너 이미지 관리 환경을 제공합니다.
+```bash
+# 1. ECR 로그인
+aws ecr get-login-password --region ap-northeast-2 | \
+  docker login --username AWS --password-stdin 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com
 
-| 구성 요소 | 설명 | 역할 |
-|-----------|------|------|
-| **Registry** | ECR 전체 서비스 | AWS 계정 내 모든 Docker 이미지 저장소를 관리하는 최상위 컨테이너 |
-| **Repository** | 이미지 저장 폴더 | 특정 애플리케이션의 이미지들을 논리적으로 그룹화하여 관리 |
-| **Image** | 실행 가능한 애플리케이션 | 컨테이너로 실행될 애플리케이션과 모든 의존성을 포함한 완전한 패키지 |
-| **Tag** | 이미지 버전 구분자 | 이미지의 특정 버전이나 환경을 식별하는 라벨 |
-| **Layer** | 이미지 구성 요소 | Docker 이미지를 구성하는 개별 레이어로, 효율적인 저장과 전송을 가능하게 함 |
+# 2. 이미지 빌드
+docker build -t my-app:latest .
 
-### ECR의 주요 장점
+# 3. 이미지 태깅
+docker tag my-app:latest \
+  123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest
 
-#### 보안성 강화
+# 4. 이미지 푸시
+docker push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest
+```
 
-ECR은 엔터프라이즈급 보안 기능을 제공합니다. AWS IAM과의 완전한 통합을 통해 사용자별, 역할별로 세밀한 접근 권한을 설정할 수 있으며, 이미지 스캔 기능을 통해 알려진 보안 취약점을 사전에 탐지할 수 있습니다. 또한 VPC 엔드포인트를 통한 프라이빗 네트워크 통신으로 외부 인터넷을 거치지 않고도 안전하게 이미지를 전송할 수 있습니다.
+### 이미지 풀
 
-#### 성능 최적화
+```bash
+# ECR에서 이미지 가져오기
+docker pull 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest
+```
 
-AWS의 글로벌 인프라를 활용하여 전 세계 어디서나 빠른 이미지 전송이 가능합니다. 같은 리전 내에서는 데이터 전송 비용이 무료이며, CloudFront CDN을 통한 전 세계 빠른 배포를 지원합니다. 또한 Docker 레이어 캐싱을 통해 중복된 레이어는 재사용하여 전송 시간과 비용을 절약할 수 있습니다.
+## 태깅 전략
 
-#### 운영 효율성
+### 시맨틱 버저닝
 
-AWS 서비스들과의 원활한 연동을 통해 CI/CD 파이프라인 자동화가 가능하며, CloudWatch를 통한 실시간 모니터링과 로깅을 제공합니다. 또한 AWS CLI, SDK, 그리고 다양한 개발 도구와의 통합을 통해 개발자 경험을 향상시킵니다.
+```bash
+# 메이저.마이너.패치 형식
+docker tag my-app:latest \
+  123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:1.2.3
 
-## 실제 활용 시나리오
+# 환경별 태그
+docker tag my-app:latest \
+  123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:prod-1.2.3
+```
 
-### 개발 워크플로우에서의 ECR 활용
+### Git 커밋 해시 태깅
 
-ECR은 일반적인 개발 워크플로우에서 다음과 같은 과정을 거쳐 활용됩니다. 먼저 개발자가 로컬에서 애플리케이션을 개발하고 Docker 이미지로 빌드한 후, ECR에 업로드합니다. 이 과정에서 적절한 태깅을 통해 버전 관리를 수행하며, 팀원들은 ECR에서 최신 이미지를 가져와 개발 환경에서 테스트할 수 있습니다.
+```bash
+# CI/CD 파이프라인에서 자동 태깅
+COMMIT_SHA=$(git rev-parse --short HEAD)
+docker tag my-app:latest \
+  123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:${COMMIT_SHA}
+```
 
-### 운영 환경 배포 과정
+### 빌드 번호 태깅
 
-운영 환경에서는 ECR에 저장된 이미지를 ECS, EKS, Lambda 등의 AWS 서비스에서 직접 참조하여 배포합니다. 이때 이미지 스캔 결과를 확인하여 보안 취약점이 없는 이미지만 배포하도록 하며, 롤백이 필요한 경우 이전 버전의 이미지를 빠르게 배포할 수 있습니다.
+```bash
+BUILD_NUMBER=123
+docker tag my-app:latest \
+  123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:build-${BUILD_NUMBER}
+```
 
-### 마이크로서비스 아키텍처에서의 ECR 활용
+## 이미지 관리
 
-마이크로서비스 환경에서는 각 서비스별로 별도의 ECR 리포지토리를 생성하여 관리하는 것이 일반적입니다. 이를 통해 서비스별 독립적인 배포와 버전 관리가 가능하며, 특정 서비스의 문제 발생 시 해당 서비스만 롤백할 수 있습니다. 또한 서비스 간 의존성을 명확히 관리할 수 있어 복잡한 마이크로서비스 환경에서도 체계적인 관리가 가능합니다.
+### 이미지 목록 조회
 
-### CI/CD 파이프라인 통합
+```bash
+# 리포지토리 목록
+aws ecr describe-repositories
 
-ECR은 CI/CD 파이프라인의 핵심 구성 요소로 활용됩니다. 소스 코드 변경 시 자동으로 이미지를 빌드하고 ECR에 푸시하며, 배포 단계에서는 ECR에서 최신 이미지를 가져와 운영 환경에 배포합니다. 이 과정에서 이미지 스캔, 테스트, 승인 등의 단계를 자동화하여 안전하고 신뢰할 수 있는 배포 프로세스를 구축할 수 있습니다.
+# 특정 리포지토리의 이미지 목록
+aws ecr list-images \
+  --repository-name my-app \
+  --region ap-northeast-2
+```
 
-## 운영 전략 및 모범 사례
+### 이미지 태그 조회
 
-### 보안 관리 전략
+```bash
+# 특정 이미지의 모든 태그
+aws ecr describe-images \
+  --repository-name my-app \
+  --image-ids imageTag=latest
+```
 
-ECR 운영에서 가장 중요한 요소 중 하나는 보안입니다. IAM 정책을 통해 최소 권한 원칙을 적용하여 각 사용자나 역할이 필요한 작업만 수행할 수 있도록 제한해야 합니다. 또한 이미지 스캔 기능을 활성화하여 알려진 보안 취약점을 사전에 탐지하고, VPC 엔드포인트를 활용하여 네트워크 레벨에서의 보안을 강화할 수 있습니다.
+### 이미지 삭제
 
-### 이미지 태깅 및 버전 관리
+```bash
+# 특정 태그 삭제
+aws ecr batch-delete-image \
+  --repository-name my-app \
+  --image-ids imageTag=old-version
 
-효과적인 이미지 관리를 위해서는 일관된 태깅 전략이 필요합니다. 시맨틱 버저닝을 통해 메이저, 마이너, 패치 버전을 명확히 구분하고, 환경별 태그를 사용하여 개발, 스테이징, 프로덕션 환경을 구분할 수 있습니다. 또한 Git 커밋 해시나 빌드 번호를 태그로 사용하여 특정 빌드를 추적할 수 있습니다.
+# 여러 이미지 일괄 삭제
+aws ecr batch-delete-image \
+  --repository-name my-app \
+  --image-ids \
+    imageTag=v1.0.0 \
+    imageTag=v1.0.1 \
+    imageTag=v1.0.2
+```
 
-### 이미지 최적화 방법
+## 수명 주기 정책
 
-이미지 크기를 최소화하고 빌드 시간을 단축하기 위해 멀티스테이지 빌드를 활용할 수 있습니다. 또한 불필요한 파일이나 패키지를 제거하고, 베이스 이미지를 최신 버전으로 유지하여 보안과 성능을 개선할 수 있습니다. 레이어 캐싱을 활용하여 빌드 효율성을 높이는 것도 중요합니다.
+### 자동 삭제 정책 설정
 
-### 자동화 및 CI/CD 통합
+```json
+{
+  "rules": [
+    {
+      "rulePriority": 1,
+      "description": "최신 10개 이미지만 유지",
+      "selection": {
+        "tagStatus": "any",
+        "countType": "imageCountMoreThan",
+        "countNumber": 10
+      },
+      "action": {
+        "type": "expire"
+      }
+    },
+    {
+      "rulePriority": 2,
+      "description": "30일 이상 된 이미지 삭제",
+      "selection": {
+        "tagStatus": "untagged",
+        "countType": "sinceImagePushed",
+        "countUnit": "days",
+        "countNumber": 30
+      },
+      "action": {
+        "type": "expire"
+      }
+    }
+  ]
+}
+```
 
-ECR은 다양한 CI/CD 도구와 연동이 가능합니다. GitHub Actions, Jenkins, GitLab CI 등의 도구를 통해 소스 코드 변경 시 자동으로 이미지를 빌드하고 ECR에 푸시하는 파이프라인을 구축할 수 있습니다. 이를 통해 개발자의 수동 작업을 최소화하고 배포 프로세스의 일관성을 보장할 수 있습니다.
+```bash
+# 정책 적용
+aws ecr put-lifecycle-policy \
+  --repository-name my-app \
+  --lifecycle-policy-text file://lifecycle-policy.json
+```
 
-### 비용 최적화 전략
+## 보안
 
-ECR 사용 비용을 최적화하기 위해 이미지 수명 주기 정책을 설정하여 오래된 이미지를 자동으로 삭제할 수 있습니다. 또한 크로스 리전 복제는 필요한 리전에만 설정하여 불필요한 비용을 절약할 수 있습니다. 이미지 레이어 공유를 통해 중복된 레이어의 저장 비용을 줄일 수 있습니다.
+### IAM 정책 예제
 
-## 다른 컨테이너 레지스트리와의 비교
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:PutImage",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload"
+      ],
+      "Resource": "arn:aws:ecr:ap-northeast-2:123456789012:repository/my-app"
+    }
+  ]
+}
+```
 
-### 주요 레지스트리 서비스 비교
+### 이미지 스캔
 
-ECR은 다른 클라우드 제공업체의 컨테이너 레지스트리 서비스와 비교했을 때 각각의 장단점이 있습니다. Docker Hub는 가장 널리 사용되는 공개 레지스트리이지만 보안과 관리 측면에서 제한이 있습니다. Google Container Registry와 Azure Container Registry는 각각 Google Cloud와 Microsoft Azure 생태계와 통합되어 있지만, AWS 환경에서는 ECR이 가장 적합한 선택입니다.
+```bash
+# 수동 스캔 시작
+aws ecr start-image-scan \
+  --repository-name my-app \
+  --image-id imageTag=latest
 
-| 기능 | AWS ECR | Docker Hub | Google Container Registry | Azure Container Registry |
-|------|---------|------------|---------------------------|--------------------------|
-| **무료 티어** | 500MB/월 | 1개 리포지토리 | 0.5GB/월 | 0.5GB/월 |
-| **클라우드 통합** | AWS 완전 통합 | 제한적 | Google Cloud 통합 | Azure 통합 |
-| **보안 기능** | IAM, VPC 엔드포인트, 이미지 스캔 | 기본 인증 | IAM, 이미지 스캔 | Azure AD, 이미지 스캔 |
-| **CI/CD 연동** | CodePipeline, CodeBuild | GitHub Actions | Cloud Build | Azure DevOps |
+# 스캔 결과 조회
+aws ecr describe-image-scan-findings \
+  --repository-name my-app \
+  --image-id imageTag=latest
+```
 
-### 선택 기준
+### VPC 엔드포인트 설정
 
-ECR을 선택해야 하는 경우는 주로 AWS 환경에서 운영되는 애플리케이션이거나, AWS 서비스들과의 통합이 중요한 경우입니다. 특히 ECS, EKS, Lambda 등의 AWS 컨테이너 서비스를 사용하는 경우 ECR이 가장 효율적인 선택이 됩니다. 반면, 멀티 클라우드 환경이나 특정 클라우드 제공업체에 종속되지 않으려는 경우에는 Docker Hub나 다른 중립적인 레지스트리를 고려할 수 있습니다.
+```bash
+# VPC 엔드포인트 생성 (프라이빗 네트워크 접근)
+aws ec2 create-vpc-endpoint \
+  --vpc-id vpc-12345678 \
+  --service-name com.amazonaws.ap-northeast-2.ecr.dkr \
+  --subnet-ids subnet-12345678 \
+  --security-group-ids sg-12345678
+```
 
-## 참조
+## CI/CD 통합
 
-- AWS ECR 공식 문서: https://docs.aws.amazon.com/ecr/
-- AWS ECR 가격 정책: https://aws.amazon.com/ecr/pricing/
-- Docker 공식 문서: https://docs.docker.com/
-- AWS Well-Architected Framework - 컨테이너: https://aws.amazon.com/architecture/well-architected/
-- AWS ECR 모범 사례 가이드: https://docs.aws.amazon.com/ecr/latest/userguide/best-practices.html
-- 컨테이너 보안 모범 사례: https://aws.amazon.com/blogs/containers/container-security-best-practices/
+### GitHub Actions 예제
 
+```yaml
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: my-app
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+```
+
+### Jenkins Pipeline 예제
+
+```groovy
+pipeline {
+    agent any
+    
+    environment {
+        AWS_REGION = 'ap-northeast-2'
+        ECR_REGISTRY = '123456789012.dkr.ecr.ap-northeast-2.amazonaws.com'
+        IMAGE_NAME = 'my-app'
+    }
+    
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    sh '''
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        
+                        docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} \
+                          ${ECR_REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} \
+                          ${ECR_REGISTRY}/${IMAGE_NAME}:latest
+                        
+                        docker push ${ECR_REGISTRY}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker push ${ECR_REGISTRY}/${IMAGE_NAME}:latest
+                    '''
+                }
+            }
+        }
+    }
+}
+```
+
+## ECS/EKS 연동
+
+### ECS Task Definition에서 사용
+
+```json
+{
+  "family": "my-app",
+  "containerDefinitions": [
+    {
+      "name": "my-app",
+      "image": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "protocol": "tcp"
+        }
+      ]
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512"
+}
+```
+
+### EKS Deployment에서 사용
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:latest
+        ports:
+        - containerPort: 80
+```
+
+## 비용 최적화
+
+### 이미지 레이어 최적화
+
+```dockerfile
+# 멀티스테이지 빌드로 이미지 크기 최소화
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
+EXPOSE 3000
+CMD ["node", "dist/index.js"]
+```
+
+### 크로스 리전 복제
+
+```bash
+# 리전 복제 설정 (필요한 리전에만)
+aws ecr create-repository \
+  --repository-name my-app \
+  --region us-east-1 \
+  --replication-configuration \
+    '{"rules":[{"destinations":[{"region":"us-west-2","registryId":"123456789012"}]}]}'
+```
+
+## 모니터링
+
+### CloudWatch 메트릭
+
+```bash
+# 리포지토리 메트릭 조회
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ECR \
+  --metric-name RepositorySize \
+  --dimensions Name=RepositoryName,Value=my-app \
+  --start-time 2025-11-01T00:00:00Z \
+  --end-time 2025-11-01T23:59:59Z \
+  --period 3600 \
+  --statistics Average
+```
+
+## 주요 명령어 정리
+
+```bash
+# 리포지토리 생성
+aws ecr create-repository --repository-name <name>
+
+# 로그인
+aws ecr get-login-password | docker login --username AWS --password-stdin <registry-url>
+
+# 이미지 목록
+aws ecr list-images --repository-name <name>
+
+# 이미지 삭제
+aws ecr batch-delete-image --repository-name <name> --image-ids imageTag=<tag>
+
+# 수명 주기 정책 설정
+aws ecr put-lifecycle-policy --repository-name <name> --lifecycle-policy-text file://policy.json
+
+# 이미지 스캔
+aws ecr start-image-scan --repository-name <name> --image-id imageTag=<tag>
+```
+
+## 참고 자료
+
+- **공식 문서**: https://docs.aws.amazon.com/ecr/
+- **가격**: https://aws.amazon.com/ecr/pricing/
+- **모범 사례**: https://docs.aws.amazon.com/ecr/latest/userguide/best-practices.html
