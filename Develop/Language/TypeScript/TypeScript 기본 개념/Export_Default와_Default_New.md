@@ -1,214 +1,151 @@
 ---
-title: TypeScript export default와 default new 완벽 가이드
+title: TypeScript export default와 default new
 tags: [language, typescript, typescript-기본-개념, export-default, default-new]
-updated: 2025-08-10
+updated: 2025-11-01
 ---
 
-# TypeScript export default와 default new 완벽 가이드
+# TypeScript export default와 default new
 
 ## 배경
 
-TypeScript에서 `export default`는 모듈에서 기본적으로 내보낼 값을 지정할 때 사용됩니다. `default new` 패턴은 클래스의 인스턴스를 바로 내보내는 방식입니다.
+모듈 시스템에서 내보내기(export)는 코드를 재사용 가능한 단위로 나누는 핵심 개념입니다. TypeScript는 ES6의 모듈 시스템을 그대로 사용하면서, 타입 정보를 추가로 제공합니다.
 
-### export default의 필요성
-- **단일 내보내기**: 모듈에서 하나의 주요 객체, 함수, 클래스를 내보낼 때
-- **간편한 import**: 중괄호 없이 임의의 이름으로 가져올 수 있음
-- **모듈 설계**: 명확한 모듈 인터페이스 제공
-- **코드 가독성**: 모듈의 주요 기능을 명확히 표현
+### export default란?
 
-### default new 패턴의 필요성
-- **싱글톤 패턴**: 클래스의 단일 인스턴스 제공
-- **즉시 사용**: 인스턴스화 없이 바로 사용 가능
-- **상태 관리**: 전역 상태나 설정 객체 관리
-- **의존성 주입**: 미리 구성된 객체 제공
+`export default`는 모듈에서 **하나의 주요 값**을 내보낼 때 사용하는 방식입니다. 일반적인 named export와 달리, 모듈당 하나만 존재할 수 있으며, 가져올 때 중괄호 없이 원하는 이름으로 사용할 수 있습니다.
+
+이는 모듈의 "기본값"이라는 개념으로, 해당 모듈이 무엇을 대표하는지 명확하게 표현합니다. 예를 들어 `Logger` 모듈이라면 Logger 클래스가, `config` 모듈이라면 설정 객체가 기본값이 되는 것이 자연스럽습니다.
+
+### default new 패턴이란?
+
+`default new`는 클래스의 인스턴스를 직접 내보내는 패턴입니다. 클래스 자체가 아니라 `new`로 생성된 객체를 export default하는 방식이죠. 이는 싱글톤 패턴을 간단하게 구현할 수 있게 해주며, 모듈을 가져오는 순간 이미 인스턴스화된 객체를 사용할 수 있습니다.
+
+이 패턴은 전역적으로 하나의 인스턴스만 필요한 경우에 유용합니다. 설정 관리자, 데이터베이스 연결, 이벤트 시스템처럼 애플리케이션 전체에서 동일한 상태를 공유해야 하는 객체에 적합합니다.
 
 ## 핵심
 
-### 1. export default 기본 사용법
+### 1. export default의 동작 원리
 
-#### 함수 내보내기
+#### 기본 메커니즘
+
+`export default`는 모듈의 기본 내보내기를 지정합니다. 내부적으로는 `default`라는 이름의 named export로 처리되지만, 사용자에게는 더 간결한 문법을 제공합니다.
+
 ```typescript
 // math.ts - 함수를 기본 내보내기
 export default function add(a: number, b: number): number {
     return a + b;
 }
 
-// main.ts - 기본 내보내기 가져오기
+// main.ts - 원하는 이름으로 가져오기
 import add from './math';
-console.log(add(2, 3)); // 5
-
-// 다른 이름으로 가져오기 가능
-import myAdd from './math';
-console.log(myAdd(5, 3)); // 8
+import calculate from './math'; // 다른 이름도 가능
 ```
 
-#### 클래스 내보내기
+named export와의 가장 큰 차이는 **이름의 자유도**입니다. named export는 내보낸 이름 그대로 가져와야 하지만(혹은 `as`로 별칭 지정), default export는 가져올 때 원하는 이름을 자유롭게 사용할 수 있습니다.
+
+#### 여러 형태의 값 내보내기
+
+함수, 클래스, 객체, 심지어 원시값까지 모든 JavaScript 값을 default로 내보낼 수 있습니다. 하지만 일반적으로는 모듈의 주요 기능을 나타내는 함수나 클래스를 내보냅니다.
+
 ```typescript
-// Logger.ts - 클래스를 기본 내보내기
+// 클래스 내보내기
 export default class Logger {
     log(message: string): void {
         console.log(`[LOG]: ${message}`);
     }
-    
-    error(message: string): void {
-        console.error(`[ERROR]: ${message}`);
-    }
 }
 
-// main.ts - 클래스 가져오기 및 인스턴스화
-import Logger from './Logger';
-const logger = new Logger();
-logger.log('Hello, TypeScript!'); // [LOG]: Hello, TypeScript!
-logger.error('Something went wrong!'); // [ERROR]: Something went wrong!
-```
-
-#### 객체 내보내기
-```typescript
-// config.ts - 객체를 기본 내보내기
+// 객체 내보내기
 export default {
     apiUrl: 'https://api.example.com',
-    timeout: 5000,
-    retries: 3
+    timeout: 5000
 };
-
-// main.ts - 설정 객체 가져오기
-import config from './config';
-console.log(config.apiUrl); // "https://api.example.com"
-console.log(config.timeout); // 5000
 ```
 
-### 2. default new 패턴
+### 2. default new 패턴의 이해
 
-#### 기본 default new 패턴
+#### 싱글톤 패턴과의 관계
+
+전통적인 싱글톤 패턴은 private 생성자와 static 메서드를 사용해 인스턴스를 하나로 제한합니다. default new는 이를 더 간단하게 구현한 형태입니다.
+
 ```typescript
-// Logger.ts - 클래스 인스턴스를 바로 내보내기
-export default new (class Logger {
-    log(message: string): void {
-        console.log(`[LOG]: ${message}`);
-    }
+// 전통적인 싱글톤
+class Database {
+    private static instance: Database;
+    private constructor() {}
     
-    error(message: string): void {
-        console.error(`[ERROR]: ${message}`);
-    }
-})();
-
-// main.ts - 인스턴스화된 객체 가져오기
-import logger from './Logger';
-logger.log('This is default new!'); // [LOG]: This is default new!
-logger.error('Error with default new!'); // [ERROR]: Error with default new!
-```
-
-#### 싱글톤 패턴 구현
-```typescript
-// Database.ts - 싱글톤 데이터베이스 연결
-export default new (class Database {
-    private connection: string = '';
-    
-    connect(url: string): void {
-        this.connection = url;
-        console.log(`데이터베이스 연결: ${url}`);
-    }
-    
-    query(sql: string): string {
-        if (!this.connection) {
-            throw new Error('데이터베이스가 연결되지 않았습니다.');
+    static getInstance(): Database {
+        if (!Database.instance) {
+            Database.instance = new Database();
         }
-        return `실행된 쿼리: ${sql}`;
+        return Database.instance;
     }
-    
-    disconnect(): void {
-        this.connection = '';
-        console.log('데이터베이스 연결 해제');
-    }
-})();
-
-// main.ts - 싱글톤 데이터베이스 사용
-import db from './Database';
-
-db.connect('mysql://localhost:3306/mydb');
-console.log(db.query('SELECT * FROM users')); // "실행된 쿼리: SELECT * FROM users"
-db.disconnect();
-```
-
-### 3. export default와 named export 혼용
-
-#### 기본 내보내기와 명명된 내보내기 함께 사용
-```typescript
-// utils.ts - 기본 내보내기와 명명된 내보내기 혼용
-export function multiply(a: number, b: number): number {
-    return a * b;
 }
 
-export function divide(a: number, b: number): number {
-    return a / b;
+// default new 방식
+export default new (class Database {
+    // ... 메서드들
+})();
+```
+
+default new 방식은 코드가 더 간결하고, 모듈 시스템이 자연스럽게 싱글톤을 보장합니다. 모듈은 한 번만 실행되므로, 해당 인스턴스도 한 번만 생성되기 때문입니다.
+
+#### 익명 클래스와 즉시 실행
+
+`new (class { ... })()`라는 문법이 낯설 수 있지만, 이는 다음과 같은 과정을 한 줄로 표현한 것입니다:
+
+1. 익명 클래스를 정의합니다
+2. 괄호로 묶어 표현식으로 만듭니다
+3. `new`로 인스턴스를 생성합니다
+4. `()`는 생성자에 전달할 인자입니다(없으면 빈 괄호)
+
+명명된 클래스를 사용하는 방식도 가능하며, 이쪽이 더 명확할 수 있습니다:
+
+```typescript
+class ConfigManager {
+    private config: Record<string, any> = {};
+    
+    set(key: string, value: any): void {
+        this.config[key] = value;
+    }
+    
+    get<T>(key: string): T | undefined {
+        return this.config[key];
+    }
+}
+
+export default new ConfigManager();
+```
+
+### 3. 혼용 패턴
+
+하나의 모듈에서 default export와 named export를 함께 사용할 수 있습니다. 이는 모듈의 주요 기능과 부가 기능을 구분할 때 유용합니다.
+
+```typescript
+// utils.ts
+export function multiply(a: number, b: number): number {
+    return a * b;
 }
 
 export default function add(a: number, b: number): number {
     return a + b;
 }
 
-// main.ts - 혼합 가져오기
-import add, { multiply, divide } from './utils';
-
-console.log(add(2, 3));      // 5
-console.log(multiply(4, 5)); // 20
-console.log(divide(10, 2));  // 5
-```
-
-## 예시
-
-### 1. 실제 사용 사례
-
-#### HTTP 클라이언트 (기본 클래스 내보내기)
-```typescript
-// HttpClient.ts
-export default class HttpClient {
-    private baseUrl: string;
-    
-    constructor(baseUrl: string = 'https://api.example.com') {
-        this.baseUrl = baseUrl;
-    }
-    
-    async get<T>(endpoint: string): Promise<T> {
-        const response = await fetch(`${this.baseUrl}${endpoint}`);
-        return response.json();
-    }
-    
-    async post<T>(endpoint: string, data: any): Promise<T> {
-        const response = await fetch(`${this.baseUrl}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        return response.json();
-    }
-}
-
 // main.ts
-import HttpClient from './HttpClient';
-
-const client = new HttpClient('https://jsonplaceholder.typicode.com');
-
-// 사용 예시
-client.get('/users/1').then(user => {
-    console.log('사용자 정보:', user);
-});
-
-client.post('/posts', {
-    title: '새 게시물',
-    body: '게시물 내용',
-    userId: 1
-}).then(post => {
-    console.log('생성된 게시물:', post);
-});
+import add, { multiply } from './utils';
 ```
 
-#### 설정 관리자 (default new 패턴)
+주요 기능은 default로, 보조 기능들은 named export로 내보내면 모듈의 구조가 명확해집니다.
+
+## 실제 활용 사례
+
+### 설정 관리
+
+애플리케이션 설정은 전역적으로 하나만 존재해야 하며, 어디서든 접근 가능해야 합니다. default new 패턴이 가장 유용한 경우입니다.
+
 ```typescript
 // ConfigManager.ts
-export default new (class ConfigManager {
+class ConfigManager {
     private config: Record<string, any> = {};
     
     set(key: string, value: any): void {
@@ -218,108 +155,18 @@ export default new (class ConfigManager {
     get<T>(key: string, defaultValue?: T): T | undefined {
         return this.config[key] ?? defaultValue;
     }
-    
-    has(key: string): boolean {
-        return key in this.config;
-    }
-    
-    remove(key: string): void {
-        delete this.config[key];
-    }
-    
-    getAll(): Record<string, any> {
-        return { ...this.config };
-    }
-})();
-
-// main.ts
-import config from './ConfigManager';
-
-// 설정 값 설정
-config.set('apiUrl', 'https://api.example.com');
-config.set('timeout', 5000);
-config.set('debug', true);
-
-// 설정 값 가져오기
-console.log(config.get('apiUrl')); // "https://api.example.com"
-console.log(config.get('timeout', 3000)); // 5000
-console.log(config.get('unknown', 'default')); // "default"
-
-// 설정 확인
-console.log(config.has('debug')); // true
-console.log(config.has('unknown')); // false
-
-// 전체 설정 가져오기
-console.log(config.getAll()); // { apiUrl: '...', timeout: 5000, debug: true }
-```
-
-### 2. 고급 패턴
-
-#### 팩토리 패턴과 default new
-```typescript
-// UserFactory.ts
-interface User {
-    id: number;
-    name: string;
-    email: string;
 }
 
-class UserFactory {
-    private users: User[] = [];
-    private nextId: number = 1;
-    
-    createUser(name: string, email: string): User {
-        const user: User = {
-            id: this.nextId++,
-            name,
-            email
-        };
-        this.users.push(user);
-        return user;
-    }
-    
-    getUser(id: number): User | undefined {
-        return this.users.find(user => user.id === id);
-    }
-    
-    getAllUsers(): User[] {
-        return [...this.users];
-    }
-    
-    deleteUser(id: number): boolean {
-        const index = this.users.findIndex(user => user.id === id);
-        if (index !== -1) {
-            this.users.splice(index, 1);
-            return true;
-        }
-        return false;
-    }
-}
-
-// 싱글톤 팩토리 인스턴스 내보내기
-export default new UserFactory();
-
-// main.ts
-import userFactory from './UserFactory';
-
-// 사용자 생성
-const user1 = userFactory.createUser('홍길동', 'hong@example.com');
-const user2 = userFactory.createUser('김철수', 'kim@example.com');
-
-console.log(user1); // { id: 1, name: '홍길동', email: 'hong@example.com' }
-console.log(user2); // { id: 2, name: '김철수', email: 'kim@example.com' }
-
-// 사용자 조회
-const foundUser = userFactory.getUser(1);
-console.log(foundUser); // { id: 1, name: '홍길동', email: 'hong@example.com' }
-
-// 모든 사용자 조회
-console.log(userFactory.getAllUsers()); // [user1, user2]
+export default new ConfigManager();
 ```
 
-#### 이벤트 시스템 (default new 패턴)
+이제 어떤 모듈에서든 같은 설정 객체에 접근할 수 있습니다. 상태가 자동으로 공유되므로, 한 곳에서 설정한 값을 다른 곳에서 바로 읽을 수 있습니다.
+
+### 이벤트 시스템
+
+전역 이벤트 버스는 애플리케이션의 여러 부분이 통신할 수 있게 해줍니다. 이 역시 하나의 인스턴스만 필요합니다.
+
 ```typescript
-// EventEmitter.ts
 type EventHandler = (...args: any[]) => void;
 
 class EventEmitter {
@@ -332,190 +179,108 @@ class EventEmitter {
         this.events[event].push(handler);
     }
     
-    off(event: string, handler: EventHandler): void {
-        if (this.events[event]) {
-            this.events[event] = this.events[event].filter(h => h !== handler);
-        }
-    }
-    
     emit(event: string, ...args: any[]): void {
         if (this.events[event]) {
             this.events[event].forEach(handler => handler(...args));
         }
     }
-    
-    once(event: string, handler: EventHandler): void {
-        const onceHandler = (...args: any[]) => {
-            handler(...args);
-            this.off(event, onceHandler);
-        };
-        this.on(event, onceHandler);
-    }
 }
 
-// 전역 이벤트 시스템으로 내보내기
 export default new EventEmitter();
-
-// main.ts
-import eventEmitter from './EventEmitter';
-
-// 이벤트 리스너 등록
-eventEmitter.on('userCreated', (user) => {
-    console.log('새 사용자가 생성되었습니다:', user);
-});
-
-eventEmitter.on('userDeleted', (userId) => {
-    console.log('사용자가 삭제되었습니다:', userId);
-});
-
-// 한 번만 실행되는 이벤트
-eventEmitter.once('appStarted', () => {
-    console.log('애플리케이션이 시작되었습니다!');
-});
-
-// 이벤트 발생
-eventEmitter.emit('appStarted'); // "애플리케이션이 시작되었습니다!"
-eventEmitter.emit('appStarted'); // 아무것도 출력되지 않음 (once)
-
-eventEmitter.emit('userCreated', { id: 1, name: '홍길동' });
-eventEmitter.emit('userDeleted', 1);
 ```
 
-## 운영 팁
+## 주의사항
 
-### 성능 최적화
+### 메모리와 성능
 
-#### default new 패턴 최적화
+default new 패턴은 모듈이 임포트되는 순간 인스턴스가 생성됩니다. 이는 즉시 사용할 수 있다는 장점이 있지만, 실제로 사용하지 않아도 메모리를 차지한다는 단점도 있습니다.
+
+큰 객체나 무거운 초기화가 필요한 경우, 지연 초기화를 고려해야 합니다:
+
 ```typescript
-// LazySingleton.ts - 지연 초기화 싱글톤
-class LazySingleton {
-    private static instance: LazySingleton | null = null;
-    private data: any[] = [];
+class HeavyResource {
+    private static instance: HeavyResource | null = null;
     
-    private constructor() {}
-    
-    static getInstance(): LazySingleton {
-        if (!LazySingleton.instance) {
-            LazySingleton.instance = new LazySingleton();
+    static getInstance(): HeavyResource {
+        if (!this.instance) {
+            this.instance = new HeavyResource();
         }
-        return LazySingleton.instance;
-    }
-    
-    addData(item: any): void {
-        this.data.push(item);
-    }
-    
-    getData(): any[] {
-        return [...this.data];
+        return this.instance;
     }
 }
 
-// 지연 초기화된 인스턴스 내보내기
-export default LazySingleton.getInstance();
-
-// main.ts
-import singleton from './LazySingleton';
-
-// 실제 사용할 때만 초기화됨
-singleton.addData('item1');
-singleton.addData('item2');
-console.log(singleton.getData()); // ['item1', 'item2']
+export default HeavyResource.getInstance();
 ```
 
-### 에러 처리
+하지만 이 경우에도 `getInstance()` 호출 자체가 모듈 로드 시점에 일어나므로, 진정한 지연 초기화를 위해서는 팩토리 함수를 제공하는 것이 좋습니다.
 
-#### 안전한 default new 사용
+### 테스트 가능성
+
+싱글톤 패턴의 고질적인 문제는 테스트가 어렵다는 것입니다. 전역 상태를 공유하므로, 테스트 간 독립성이 보장되지 않습니다.
+
+이를 해결하기 위해 리셋 메서드를 제공하거나, 의존성 주입을 고려할 수 있습니다:
+
 ```typescript
-// SafeConfig.ts - 안전한 설정 관리
-class SafeConfig {
+class ConfigManager {
     private config: Record<string, any> = {};
-    private validators: Record<string, (value: any) => boolean> = {};
     
-    set(key: string, value: any, validator?: (value: any) => boolean): boolean {
-        try {
-            if (validator && !validator(value)) {
-                console.error(`유효하지 않은 값: ${key} = ${value}`);
-                return false;
-            }
-            
-            this.config[key] = value;
-            if (validator) {
-                this.validators[key] = validator;
-            }
-            return true;
-        } catch (error) {
-            console.error(`설정 설정 오류: ${error}`);
-            return false;
-        }
-    }
-    
-    get<T>(key: string, defaultValue?: T): T | undefined {
-        try {
-            return this.config[key] ?? defaultValue;
-        } catch (error) {
-            console.error(`설정 가져오기 오류: ${error}`);
-            return defaultValue;
-        }
-    }
-    
-    validate(key: string): boolean {
-        const validator = this.validators[key];
-        const value = this.config[key];
-        
-        if (!validator) {
-            return true; // 검증기가 없으면 유효하다고 간주
-        }
-        
-        return validator(value);
+    // 테스트를 위한 리셋 메서드
+    reset(): void {
+        this.config = {};
     }
 }
-
-// 안전한 설정 인스턴스 내보내기
-export default new SafeConfig();
-
-// main.ts
-import config from './SafeConfig';
-
-// 유효성 검사와 함께 설정
-config.set('port', 3000, (value) => typeof value === 'number' && value > 0);
-config.set('host', 'localhost', (value) => typeof value === 'string' && value.length > 0);
-config.set('debug', 'invalid', (value) => typeof value === 'boolean'); // 실패
-
-console.log(config.get('port')); // 3000
-console.log(config.get('host')); // "localhost"
-console.log(config.get('debug')); // undefined
-
-console.log(config.validate('port')); // true
-console.log(config.validate('debug')); // false
 ```
+
+### 순환 의존성
+
+default new 패턴에서 모듈 간 순환 의존성이 발생하면, 초기화 순서 문제가 생길 수 있습니다. 모듈 A가 B를 임포트하고, B가 A를 임포트하는 경우, 어느 쪽의 인스턴스가 먼저 생성되느냐에 따라 undefined를 참조할 수 있습니다.
+
+이런 경우 구조를 다시 검토하거나, 지연 로딩을 사용해야 합니다.
+
+## 언제 무엇을 사용할까?
+
+### export default를 사용하는 경우
+
+- 모듈이 하나의 명확한 주요 기능을 가질 때
+- React 컴포넌트처럼 파일 하나가 하나의 개념을 나타낼 때
+- 외부에서 이름을 자유롭게 정하는 것이 자연스러울 때
+
+### named export를 사용하는 경우
+
+- 여러 관련 기능을 묶어 내보낼 때
+- 트리 쉐이킹이 중요한 라이브러리를 만들 때
+- 명시적인 이름이 중요한 유틸리티 함수들
+
+### default new를 사용하는 경우
+
+- 전역적으로 하나의 인스턴스만 필요할 때
+- 상태를 공유해야 하는 싱글톤 객체
+- 설정, 캐시, 이벤트 시스템 같은 전역 서비스
+
+### 일반 클래스를 사용하는 경우
+
+- 여러 인스턴스를 생성해야 할 때
+- 각 인스턴스가 독립적인 상태를 가져야 할 때
+- 테스트 가능성이 중요할 때
 
 ## 참고
 
-### export default vs named export 비교표
+### 비교
 
 | 구분 | export default | named export |
 |------|----------------|--------------|
-| **가져오기 방식** | `import name from './module'` | `import { name } from './module'` |
-| **이름 변경** | 가능 | 불가능 (as 사용 필요) |
-| **여러 개 내보내기** | 불가능 | 가능 |
-| **트리 쉐이킹** | 제한적 | 완전 지원 |
-| **사용 목적** | 주요 기능 하나 | 여러 기능 |
-
-### default new vs 일반 클래스 비교표
+| 가져오기 | `import X from './m'` | `import { X } from './m'` |
+| 이름 변경 | 자유롭게 가능 | `as` 키워드 필요 |
+| 개수 제한 | 모듈당 1개 | 제한 없음 |
+| 트리 쉐이킹 | 제한적 | 완전 지원 |
+| 적합한 경우 | 단일 주요 기능 | 여러 기능 묶음 |
 
 | 구분 | default new | 일반 클래스 |
 |------|-------------|-------------|
-| **인스턴스화** | 자동 | 수동 (`new` 키워드 필요) |
-| **싱글톤** | 자동 보장 | 별도 구현 필요 |
-| **메모리 사용** | 즉시 할당 | 사용 시 할당 |
-| **상태 공유** | 전역 | 인스턴스별 |
-| **사용 목적** | 전역 객체, 설정 | 재사용 가능한 클래스 |
+| 인스턴스화 | 자동 (모듈 로드 시) | 수동 (`new` 사용) |
+| 인스턴스 개수 | 1개 (싱글톤) | 필요한 만큼 |
+| 초기화 시점 | 즉시 | 필요할 때 |
+| 상태 공유 | 전역 공유 | 인스턴스별 독립 |
+| 테스트 | 어려움 | 쉬움 |
 
-### 결론
-TypeScript의 export default는 모듈의 주요 기능을 명확하게 표현합니다.
-default new 패턴은 싱글톤 객체를 쉽게 구현할 수 있게 해줍니다.
-적절한 패턴을 선택하여 모듈의 의도를 명확히 표현하세요.
-성능과 메모리 사용을 고려하여 default new 패턴을 사용하세요.
-안전한 에러 처리를 통해 런타임 오류를 방지하세요.
-export default와 named export를 적절히 조합하여 모듈을 설계하세요.
-
+TypeScript의 모듈 시스템은 코드를 구조화하는 강력한 도구입니다. export default는 모듈의 주요 목적을 명확히 하고, default new는 싱글톤을 쉽게 구현할 수 있게 해줍니다. 각 패턴의 특성을 이해하고 상황에 맞게 선택하는 것이 중요합니다.
