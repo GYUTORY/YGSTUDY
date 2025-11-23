@@ -1,13 +1,23 @@
-# Node.js 성능 최적화 및 프로파일링 가이드 (Node.js Performance Optimization and Profiling Guide)
+---
+title: Node.js 성능 최적화 및 프로파일링 전략
+tags: [framework, node, performance, optimization, profiling, memory, cpu, async]
+updated: 2025-11-23
+---
 
-## 목차 (Table of Contents)
-1. [Node.js 성능 최적화 개요 (Node.js Performance Optimization Overview)](#nodejs-성능-최적화-개요)
-2. [성능 프로파일링 도구 (Performance Profiling Tools)](#성능-프로파일링-도구)
-3. [메모리 누수 탐지 및 해결 (Memory Leak Detection and Resolution)](#메모리-누수-탐지-및-해결)
-4. [CPU 사용률 최적화 (CPU Usage Optimization)](#cpu-사용률-최적화)
-5. [비동기 처리 최적화 (Asynchronous Processing Optimization)](#비동기-처리-최적화) 📌 *기존 파일들 통합*
-6. [실제 성능 병목 지점 분석 및 해결 사례 (Real Performance Bottleneck Analysis and Solutions)](#실제-성능-병목-지점-분석-및-해결-사례)
-7. [성능 모니터링 및 알림 (Performance Monitoring and Alerting)](#성능-모니터링-및-알림)
+# ⚡ Node.js 성능 최적화 및 프로파일링 전략
+
+## 📌 개요
+
+> **성능 최적화**는 애플리케이션의 응답 시간, 처리량, 리소스 사용률을 개선하여 더 나은 사용자 경험과 비용 효율성을 달성하는 과정입니다.
+
+## 목차
+1. [Node.js 성능 최적화 개요](#nodejs-성능-최적화-개요)
+2. [성능 프로파일링 도구](#성능-프로파일링-도구)
+3. [메모리 누수 탐지 및 해결](#메모리-누수-탐지-및-해결)
+4. [CPU 사용률 최적화](#cpu-사용률-최적화)
+5. [비동기 처리 최적화](#비동기-처리-최적화) 📌 *기존 파일들 통합*
+6. [실제 성능 병목 지점 분석 및 해결 사례](#실제-성능-병목-지점-분석-및-해결-사례)
+7. [성능 모니터링 및 알림](#성능-모니터링-및-알림)
 
 ### 📌 통합된 기존 파일들
 이 문서는 다음 기존 파일들의 내용을 통합한 것입니다:
@@ -16,25 +26,166 @@
 - **async/await**: async/await 문법, 에러 처리, 실용적인 예제들
 - **Event Loop**: 이벤트 루프 동작 과정, 마이크로태스크/매크로태스크 큐, 실행 우선순위
 
-## Node.js 성능 최적화 개요 (Node.js Performance Optimization Overview)
+## Node.js 성능 최적화 개요
 
 Node.js 성능 최적화는 애플리케이션의 응답 시간, 처리량, 리소스 사용률을 개선하여 더 나은 사용자 경험과 비용 효율성을 달성하는 과정입니다.
 
-### 성능 최적화의 핵심 원칙 (Core Performance Optimization Principles)
+### 성능 최적화 프로세스
 
-1. **측정 우선 (Measure First)**: 최적화 전에 현재 성능을 정확히 측정
-2. **병목 지점 식별 (Identify Bottlenecks)**: 실제 성능 저하 원인 파악
-3. **점진적 개선 (Incremental Improvement)**: 한 번에 하나씩 최적화
-4. **지속적 모니터링 (Continuous Monitoring)**: 성능 변화 추적
+효과적인 성능 최적화를 위해서는 체계적인 프로세스를 따르는 것이 중요합니다. 다음 플로우차트는 성능 최적화의 전체 프로세스를 보여줍니다.
 
-### Node.js 성능 특성 (Node.js Performance Characteristics)
+```mermaid
+flowchart TD
+    START([성능 이슈 발견]) --> MEASURE[1. 현재 성능 측정]
+    MEASURE --> BASELINE[기준선 설정]
+    BASELINE --> PROFILE[2. 프로파일링 수행]
+    
+    PROFILE --> IDENTIFY{병목 지점 식별}
+    IDENTIFY -->|CPU 병목| CPU_OPT[CPU 최적화]
+    IDENTIFY -->|메모리 병목| MEM_OPT[메모리 최적화]
+    IDENTIFY -->|I/O 병목| IO_OPT[I/O 최적화]
+    IDENTIFY -->|네트워크 병목| NET_OPT[네트워크 최적화]
+    
+    CPU_OPT --> IMPLEMENT[3. 최적화 구현]
+    MEM_OPT --> IMPLEMENT
+    IO_OPT --> IMPLEMENT
+    NET_OPT --> IMPLEMENT
+    
+    IMPLEMENT --> TEST[4. 성능 테스트]
+    TEST --> COMPARE{개선 확인?}
+    COMPARE -->|개선됨| DEPLOY[5. 배포]
+    COMPARE -->|개선 안됨| ROLLBACK[롤백 및 재분석]
+    ROLLBACK --> PROFILE
+    
+    DEPLOY --> MONITOR[6. 지속적 모니터링]
+    MONITOR --> REVIEW[7. 정기적 검토]
+    REVIEW -->|추가 최적화 필요| PROFILE
+    REVIEW -->|유지| END([완료])
+    
+    style START fill:#4fc3f7
+    style PROFILE fill:#66bb6a
+    style IMPLEMENT fill:#ff9800
+    style DEPLOY fill:#9c27b0
+    style MONITOR fill:#ef5350,color:#fff
+```
+
+### 성능 최적화의 핵심 원칙
+
+1. **측정 우선**: 최적화 전에 현재 성능을 정확히 측정
+2. **병목 지점 식별**: 실제 성능 저하 원인 파악
+3. **점진적 개선**: 한 번에 하나씩 최적화
+4. **지속적 모니터링**: 성능 변화 추적
+
+### Node.js 성능 특성
 
 - **싱글 스레드 이벤트 루프**: CPU 집약적 작업에 취약
 - **비동기 I/O**: I/O 바운드 작업에 강점
 - **메모리 관리**: V8 엔진의 가비지 컬렉션 의존
 - **모듈 시스템**: CommonJS와 ES Modules의 성능 차이
 
-## 성능 프로파일링 도구 (Performance Profiling Tools)
+### 성능 병목 지점 분류
+
+성능 문제는 크게 네 가지 영역으로 분류할 수 있습니다:
+
+```mermaid
+mindmap
+  root((성능 병목))
+    CPU 병목
+      동기 작업
+      무거운 계산
+      이벤트 루프 블로킹
+    메모리 병목
+      메모리 누수
+      과도한 할당
+      GC 압력
+    I/O 병목
+      느린 디스크
+      데이터베이스 쿼리
+      파일 시스템
+    네트워크 병목
+      느린 API 호출
+      대역폭 제한
+      레이턴시
+```
+
+## 성능 프로파일링 도구
+
+### 프로파일링 도구 선택 가이드
+
+**의사결정 트리:**
+
+```mermaid
+flowchart TD
+    START([프로파일링 도구 선택]) --> Q1{종합 진단이<br/>필요한가?}
+    
+    Q1 -->|예| CLINIC[Clinic.js]
+    Q1 -->|아니오| Q2{CPU 프로파일링<br/>필요한가?}
+    
+    Q2 -->|예| ZEROX[0x 또는 --prof]
+    Q2 -->|아니오| Q3{메모리 분석<br/>필요한가?}
+    
+    Q3 -->|예| HEAPDUMP[heapdump]
+    Q3 -->|아니오| Q4{간단한 모니터링<br/>필요한가?}
+    
+    Q4 -->|예| BUILTIN[내장 프로파일링]
+    Q4 -->|아니오| Q5{Chrome DevTools<br/>사용 가능한가?}
+    
+    Q5 -->|예| INSPECT[--inspect]
+    Q5 -->|아니오| CLINIC
+    
+    CLINIC --> CLINIC_REASON[종합 진단<br/>병목 자동 식별<br/>시각화]
+    ZEROX --> ZEROX_REASON[CPU 핫스팟<br/>플레임 그래프<br/>상세 분석]
+    HEAPDUMP --> HEAPDUMP_REASON[메모리 스냅샷<br/>누수 분석<br/>Chrome DevTools]
+    BUILTIN --> BUILTIN_REASON[간단한 모니터링<br/>오버헤드 최소<br/>기본 기능]
+    INSPECT --> INSPECT_REASON[실시간 디버깅<br/>브레이크포인트<br/>메모리 프로파일링]
+    
+    style CLINIC fill:#66bb6a
+    style ZEROX fill:#4fc3f7
+    style HEAPDUMP fill:#ff9800
+    style BUILTIN fill:#9c27b0
+    style INSPECT fill:#ef5350,color:#fff
+```
+
+**프로파일링 도구 비교표:**
+
+| 도구 | 용도 | 장점 | 단점 | 사용 시기 |
+|------|------|------|------|----------|
+| **Clinic.js** | 종합 진단 | 자동 병목 식별, 시각화 | 설정 복잡 | 초기 성능 분석 |
+| **0x** | CPU 프로파일링 | 플레임 그래프, 상세 분석 | 결과 해석 필요 | CPU 병목 분석 |
+| **heapdump** | 메모리 분석 | 스냅샷 비교, 누수 탐지 | 오버헤드 있음 | 메모리 누수 조사 |
+| **--prof** | CPU 프로파일링 | 내장 도구, 무료 | 결과 해석 어려움 | 기본 CPU 분석 |
+| **--inspect** | 디버깅 | 실시간, 브레이크포인트 | 개발 환경용 | 개발 중 디버깅 |
+
+**트레이드오프 분석:**
+
+```mermaid
+graph LR
+    subgraph "종합 도구 (Clinic.js)"
+        C1[자동 분석] --> C2[설정 복잡]
+        C3[시각화] --> C4[학습 곡선]
+    end
+    
+    subgraph "전문 도구 (0x, heapdump)"
+        S1[상세 분석] --> S2[결과 해석 필요]
+        S3[특정 영역 집중] --> S4[도구 전환 필요]
+    end
+    
+    subgraph "내장 도구 (--prof, --inspect)"
+        B1[간단함] --> B2[기능 제한]
+        B3[무료] --> B4[해석 어려움]
+    end
+    
+    style C2 fill:#ffcdd2
+    style S1 fill:#c8e6c9
+    style B1 fill:#fff9c4
+```
+
+**실무 권장사항:**
+- **초기 분석**: Clinic.js로 전체적인 병목 지점 파악
+- **CPU 병목**: 0x로 상세한 CPU 사용 패턴 분석
+- **메모리 문제**: heapdump로 스냅샷 비교 분석
+- **개발 중**: --inspect로 실시간 디버깅
+- **프로덕션**: 내장 프로파일링으로 최소 오버헤드 모니터링
 
 ### 1. Clinic.js - 종합 성능 진단 도구
 
@@ -52,32 +203,29 @@ clinic flame -- node app.js       # CPU 사용률 분석
 clinic heapprofiler -- node app.js # 메모리 사용량 분석
 ```
 
-#### Clinic.js 설정 및 고급 사용법
-```javascript
-// clinic.config.js
-module.exports = {
-  // 진단 설정
-  doctor: {
-    duration: 30000,  // 30초간 진단
-    sampleInterval: 10, // 10ms 간격 샘플링
-    threshold: 100    // 100ms 이상 지연 시 경고
-  },
-  
-  // 메모리 프로파일링 설정
-  heapprofiler: {
-    duration: 60000,  // 60초간 메모리 추적
-    sampleInterval: 100, // 100ms 간격 샘플링
-    maxMemory: 512    // 512MB 메모리 제한
-  },
-  
-  // CPU 프로파일링 설정
-  flame: {
-    duration: 30000,  // 30초간 CPU 추적
-    sampleInterval: 1, // 1ms 간격 샘플링
-    threshold: 0.1    // 0.1% 이상 CPU 사용 시 추적
-  }
-};
-```
+#### Clinic.js 설정 전략
+
+Clinic.js는 설정 파일을 통해 세밀한 프로파일링을 수행할 수 있습니다. 주요 설정 항목은 다음과 같습니다:
+
+**진단 설정 (doctor)**:
+- **duration**: 프로파일링 지속 시간 (기본 30초)
+- **sampleInterval**: 샘플링 간격 (10ms 권장)
+- **threshold**: 경고를 발생시킬 지연 시간 임계값 (100ms 권장)
+
+**메모리 프로파일링 (heapprofiler)**:
+- **duration**: 메모리 추적 시간 (60초 이상 권장)
+- **sampleInterval**: 메모리 샘플링 간격 (100ms 권장)
+- **maxMemory**: 메모리 사용량 제한 설정
+
+**CPU 프로파일링 (flame)**:
+- **duration**: CPU 추적 시간 (30초 권장)
+- **sampleInterval**: CPU 샘플링 간격 (1ms 권장)
+- **threshold**: 추적할 최소 CPU 사용률 (0.1% 권장)
+
+**실무 활용 팁**:
+- 프로덕션 환경에서는 짧은 duration으로 시작하여 점진적으로 늘립니다
+- 샘플링 간격이 너무 짧으면 오버헤드가 발생할 수 있으므로 적절히 조정합니다
+- 메모리 프로파일링은 충분한 시간을 두고 실행하여 패턴을 파악합니다
 
 ### 2. 0x - V8 프로파일링 도구
 
@@ -94,52 +242,31 @@ npm install -g 0x
 0x --collect-only -- node app.js
 ```
 
-#### 0x 결과 분석
-```javascript
-// 0x 결과 해석을 위한 헬퍼 함수
-class ZeroXAnalyzer {
-  constructor() {
-    this.hotSpots = [];
-    this.memoryLeaks = [];
-  }
-  
-  // 핫스팟 분석
-  analyzeHotSpots(profileData) {
-    const functions = profileData.nodes;
-    const hotSpots = functions
-      .filter(node => node.selfTime > 100) // 100ms 이상 실행
-      .sort((a, b) => b.selfTime - a.selfTime)
-      .slice(0, 10); // 상위 10개
-      
-    return hotSpots.map(spot => ({
-      function: spot.functionName,
-      selfTime: spot.selfTime,
-      totalTime: spot.totalTime,
-      calls: spot.callCount,
-      location: spot.location
-    }));
-  }
-  
-  // 메모리 누수 패턴 감지
-  detectMemoryLeaks(profileData) {
-    const leaks = [];
-    
-    // 큰 객체 할당 패턴
-    const largeAllocations = profileData.nodes
-      .filter(node => node.selfSize > 1024 * 1024) // 1MB 이상
-      .map(node => ({
-        type: 'Large Allocation',
-        size: node.selfSize,
-        function: node.functionName,
-        location: node.location
-      }));
-      
-    leaks.push(...largeAllocations);
-    
-    return leaks;
-  }
-}
-```
+#### 0x 결과 분석 전략
+
+0x는 프로파일링 결과를 HTML 형식으로 제공하며, 다음 정보를 분석해야 합니다:
+
+**핫스팟(Hot Spots) 식별**:
+- **selfTime**: 함수 자체 실행 시간 (100ms 이상이면 주의)
+- **totalTime**: 함수와 하위 함수 포함 총 실행 시간
+- **callCount**: 함수 호출 횟수
+- **location**: 함수 위치 정보
+
+**메모리 누수 패턴 감지**:
+- **selfSize**: 함수에서 직접 할당한 메모리 크기 (1MB 이상이면 주의)
+- **할당 패턴**: 반복적으로 큰 메모리를 할당하는 함수 식별
+- **참조 유지**: 메모리를 해제하지 않는 패턴 확인
+
+**분석 우선순위**:
+1. 실행 시간이 가장 긴 함수 (selfTime 기준)
+2. 호출 빈도가 높은 함수 (callCount 기준)
+3. 메모리 할당이 큰 함수 (selfSize 기준)
+4. 재귀 호출이나 무한 루프 가능성이 있는 함수
+
+**실무 활용 팁**:
+- 0x 결과의 플레임 그래프를 통해 호출 체인을 시각적으로 파악합니다
+- 상위 10개 핫스팟에 집중하여 최적화를 진행합니다
+- 메모리 누수는 시간에 따른 메모리 증가 패턴을 확인합니다
 
 ### 3. Node.js 내장 프로파일링 도구
 
@@ -161,87 +288,112 @@ node --inspect app.js
 node --inspect-brk app.js
 ```
 
-#### 내장 프로파일링 스크립트
-```javascript
-// profiling.js
-const fs = require('fs');
-const path = require('path');
+#### 내장 프로파일링 활용 전략
 
-class NodeProfiler {
-  constructor() {
-    this.startTime = Date.now();
-    this.memoryUsage = [];
-    this.cpuUsage = [];
-  }
-  
-  // 메모리 사용량 추적
-  trackMemory() {
-    const usage = process.memoryUsage();
-    this.memoryUsage.push({
-      timestamp: Date.now(),
-      rss: usage.rss,
-      heapTotal: usage.heapTotal,
-      heapUsed: usage.heapUsed,
-      external: usage.external
-    });
-  }
-  
-  // CPU 사용률 추적
-  trackCPU() {
-    const usage = process.cpuUsage();
-    this.cpuUsage.push({
-      timestamp: Date.now(),
-      user: usage.user,
-      system: usage.system
-    });
-  }
-  
-  // 프로파일링 결과 저장
-  saveProfile() {
-    const profile = {
-      duration: Date.now() - this.startTime,
-      memoryUsage: this.memoryUsage,
-      cpuUsage: this.cpuUsage,
-      summary: this.generateSummary()
-    };
+Node.js의 내장 프로파일링 기능을 활용하면 외부 도구 없이도 기본적인 성능 분석이 가능합니다.
+
+**메모리 사용량 추적**:
+- `process.memoryUsage()`를 주기적으로 호출하여 메모리 사용 패턴을 파악합니다
+- **rss**: 실제 메모리 사용량 (Resident Set Size)
+- **heapTotal**: 힙 메모리 총량
+- **heapUsed**: 힙 메모리 사용량
+- **external**: V8 엔진 외부 메모리 사용량
+
+**CPU 사용률 추적**:
+- `process.cpuUsage()`를 통해 CPU 사용 패턴을 분석합니다
+- **user**: 사용자 모드 CPU 시간
+- **system**: 시스템 모드 CPU 시간
+
+**프로파일링 데이터 수집 전략**:
+- 샘플링 간격: 1초 간격이면 충분하며, 더 자세한 분석이 필요하면 100ms 간격 사용
+- 수집 기간: 최소 30초 이상 수집하여 패턴을 파악
+- 데이터 저장: JSON 형식으로 저장하여 추후 분석 가능하도록 구성
+
+**실무 활용 팁**:
+- 프로덕션 환경에서는 오버헤드를 최소화하기 위해 샘플링 간격을 늘립니다
+- 메모리 증가 추세를 그래프로 시각화하여 누수 패턴을 식별합니다
+- CPU 사용률이 지속적으로 높은 구간을 식별하여 최적화 대상으로 선정합니다
+
+## 메모리 누수 탐지 및 해결
+
+### 메모리 누수 패턴 개요
+
+메모리 누수는 애플리케이션이 더 이상 사용하지 않는 메모리를 해제하지 않아 발생하는 문제입니다. Node.js에서 흔히 발생하는 메모리 누수 패턴을 이해하는 것이 중요합니다.
+
+```mermaid
+graph TD
+    subgraph "메모리 누수 패턴"
+        PATTERN1[이벤트 리스너 누수]
+        PATTERN2[타이머 누수]
+        PATTERN3[클로저 누수]
+        PATTERN4[전역 변수 누수]
+        PATTERN5[순환 참조]
+    end
     
-    fs.writeFileSync(
-      path.join(__dirname, 'profile.json'),
-      JSON.stringify(profile, null, 2)
-    );
-  }
-  
-  // 요약 정보 생성
-  generateSummary() {
-    const avgMemory = this.memoryUsage.reduce((sum, m) => sum + m.heapUsed, 0) / this.memoryUsage.length;
-    const maxMemory = Math.max(...this.memoryUsage.map(m => m.heapUsed));
+    subgraph "증상"
+        SYMPTOM1[메모리 사용량 지속 증가]
+        SYMPTOM2[GC 빈도 증가]
+        SYMPTOM3[응답 시간 저하]
+        SYMPTOM4[프로세스 크래시]
+    end
     
-    return {
-      averageMemoryUsage: avgMemory,
-      maxMemoryUsage: maxMemory,
-      memoryGrowth: maxMemory - this.memoryUsage[0].heapUsed,
-      totalSamples: this.memoryUsage.length
-    };
-  }
-}
-
-// 사용 예시
-const profiler = new NodeProfiler();
-
-// 1초마다 메모리 추적
-setInterval(() => {
-  profiler.trackMemory();
-  profiler.trackCPU();
-}, 1000);
-
-// 30초 후 프로파일링 결과 저장
-setTimeout(() => {
-  profiler.saveProfile();
-  process.exit(0);
-}, 30000);
+    subgraph "해결 방법"
+        SOLVE1[리스너 제거]
+        SOLVE2[타이머 정리]
+        SOLVE3[참조 해제]
+        SOLVE4[WeakMap/WeakSet 활용]
+        SOLVE5[메모리 풀링]
+    end
+    
+    PATTERN1 --> SYMPTOM1
+    PATTERN2 --> SYMPTOM1
+    PATTERN3 --> SYMPTOM1
+    PATTERN4 --> SYMPTOM1
+    PATTERN5 --> SYMPTOM1
+    
+    SYMPTOM1 --> SOLVE1
+    SYMPTOM2 --> SOLVE2
+    SYMPTOM3 --> SOLVE3
+    SYMPTOM4 --> SOLVE4
+    
+    style PATTERN1 fill:#ffcdd2
+    style PATTERN2 fill:#ffcdd2
+    style PATTERN3 fill:#ffcdd2
+    style SYMPTOM1 fill:#ff9800
+    style SOLVE1 fill:#66bb6a
 ```
 
-## 메모리 누수 탐지 및 해결 (Memory Leak Detection and Resolution)
+### 메모리 누수 생명주기
+
+메모리 누수가 발생하는 과정을 이해하면 더 효과적으로 방지할 수 있습니다:
+
+```mermaid
+sequenceDiagram
+    participant APP as 애플리케이션
+    participant MEM as 메모리
+    participant GC as 가비지 컬렉터
+    
+    Note over APP: 객체 생성
+    APP->>MEM: 메모리 할당
+    MEM-->>APP: 참조 반환
+    
+    Note over APP: 참조 유지
+    APP->>APP: 참조 보관 (누수 원인)
+    
+    Note over APP: 사용 완료
+    APP->>APP: 객체 사용 중단
+    
+    Note over GC: GC 시도
+    GC->>MEM: 메모리 해제 시도
+    MEM-->>GC: 참조 존재 (해제 불가)
+    
+    Note over MEM: 메모리 누수 발생
+    MEM->>MEM: 메모리 사용량 증가
+    
+    Note over APP: 반복
+    APP->>MEM: 추가 할당
+    MEM-->>APP: 메모리 부족 경고
+```
 
 ### 1. 메모리 누수 패턴 및 감지
 
@@ -319,352 +471,365 @@ class MemoryLeakPatterns {
 ### 2. 메모리 누수 감지 도구
 
 #### heapdump를 사용한 메모리 스냅샷
-```bash
-# heapdump 설치
-npm install heapdump
-```
 
-```javascript
-// heapdump 사용 예시
-const heapdump = require('heapdump');
+heapdump는 Node.js 애플리케이션의 메모리 힙 스냅샷을 생성하여 메모리 누수를 분석할 수 있게 해주는 도구입니다.
 
-class MemoryLeakDetector {
-  constructor() {
-    this.snapshots = [];
-    this.leakThreshold = 50 * 1024 * 1024; // 50MB
-  }
-  
-  // 메모리 스냅샷 생성
-  takeSnapshot(label) {
-    const filename = `heap-${Date.now()}-${label}.heapsnapshot`;
-    heapdump.writeSnapshot(filename, (err, filename) => {
-      if (err) {
-        console.error('스냅샷 생성 실패:', err);
-        return;
-      }
-      
-      console.log('메모리 스냅샷 생성:', filename);
-      this.snapshots.push({ filename, timestamp: Date.now() });
-    });
-  }
-  
-  // 메모리 사용량 모니터링
-  monitorMemory() {
-    setInterval(() => {
-      const usage = process.memoryUsage();
-      
-      if (usage.heapUsed > this.leakThreshold) {
-        console.warn('⚠️ 메모리 사용량이 임계값을 초과했습니다:', usage.heapUsed);
-        this.takeSnapshot('high-memory');
-      }
-      
-      // 메모리 사용량 로깅
-      console.log('메모리 사용량:', {
-        rss: (usage.rss / 1024 / 1024).toFixed(2) + ' MB',
-        heapTotal: (usage.heapTotal / 1024 / 1024).toFixed(2) + ' MB',
-        heapUsed: (usage.heapUsed / 1024 / 1024).toFixed(2) + ' MB',
-        external: (usage.external / 1024 / 1024).toFixed(2) + ' MB'
-      });
-    }, 5000); // 5초마다 체크
-  }
-}
+**heapdump 활용 전략:**
 
-// 사용 예시
-const detector = new MemoryLeakDetector();
-detector.monitorMemory();
+**스냅샷 생성 시점:**
+- 애플리케이션 시작 직후 (기준선 설정)
+- 특정 작업 수행 전후 (작업별 메모리 영향 분석)
+- 메모리 사용량이 임계값을 초과할 때 (자동 스냅샷)
+- 정기적인 간격으로 (트렌드 분석)
 
-// 초기 스냅샷
-detector.takeSnapshot('initial');
-```
+**메모리 모니터링 전략:**
+- **임계값 설정**: 일반적으로 50MB 이상이면 주의가 필요합니다
+- **모니터링 간격**: 5초 간격이면 충분하며, 더 자세한 분석이 필요하면 1초 간격 사용
+- **스냅샷 비교**: 시간에 따른 여러 스냅샷을 비교하여 메모리 증가 패턴을 파악합니다
+
+**스냅샷 분석 방법:**
+- Chrome DevTools의 Memory 프로파일러로 `.heapsnapshot` 파일을 열어 분석합니다
+- Comparison 모드를 사용하여 스냅샷 간 차이를 확인합니다
+- Retainers를 확인하여 메모리를 유지하는 참조를 찾습니다
+
+**실무 활용 팁:**
+- 프로덕션 환경에서는 스냅샷 생성이 성능에 영향을 줄 수 있으므로 신중하게 사용합니다
+- 메모리 사용량이 지속적으로 증가하는 패턴을 확인합니다
+- 큰 객체나 배열이 메모리에 남아있는지 확인합니다
 
 ### 3. 메모리 누수 해결 전략
 
-#### WeakMap과 WeakSet 활용
-```javascript
-// WeakMap을 사용한 메모리 효율적인 캐싱
-class WeakMapCache {
-  constructor() {
-    this.cache = new WeakMap();
-  }
-  
-  set(key, value) {
-    this.cache.set(key, value);
-  }
-  
-  get(key) {
-    return this.cache.get(key);
-  }
-  
-  has(key) {
-    return this.cache.has(key);
-  }
-}
+#### WeakMap과 WeakSet 활용 전략
 
-// WeakSet을 사용한 객체 추적
-class ObjectTracker {
-  constructor() {
-    this.trackedObjects = new WeakSet();
-  }
-  
-  track(obj) {
-    this.trackedObjects.add(obj);
-  }
-  
-  isTracked(obj) {
-    return this.trackedObjects.has(obj);
-  }
-}
-```
+WeakMap과 WeakSet은 객체를 키로 사용하되, 해당 객체에 대한 강한 참조를 유지하지 않습니다. 이는 메모리 누수를 방지하는 데 매우 유용합니다.
+
+**WeakMap 활용 시나리오:**
+
+**메모리 효율적인 캐싱:**
+- 객체를 키로 사용하는 캐시를 구현할 때 WeakMap을 사용합니다
+- 객체가 가비지 컬렉션되면 자동으로 캐시에서도 제거됩니다
+- 별도의 정리 로직이 필요 없어 메모리 관리가 자동화됩니다
+
+**메타데이터 저장:**
+- 객체에 추가 정보를 저장해야 할 때 WeakMap을 사용합니다
+- 원본 객체를 수정하지 않고도 추가 정보를 연결할 수 있습니다
+- 객체가 사라지면 메타데이터도 자동으로 정리됩니다
+
+**WeakSet 활용 시나리오:**
+
+**객체 추적:**
+- 특정 객체를 추적해야 할 때 WeakSet을 사용합니다
+- 객체가 가비지 컬렉션되면 자동으로 추적 목록에서 제거됩니다
+- 순회가 필요 없는 경우 WeakSet이 적합합니다
+
+**중복 체크:**
+- 객체의 중복 여부를 확인할 때 WeakSet을 사용합니다
+- 메모리 효율적이며 자동 정리가 가능합니다
+
+**사용 시 주의사항:**
+- WeakMap/WeakSet은 객체만 키로 사용할 수 있습니다 (원시 타입 불가)
+- 키로 사용된 객체가 다른 곳에서 참조되지 않으면 자동으로 제거됩니다
+- 순회(iteration)가 불가능하므로 모든 키를 확인할 수 없습니다
 
 #### 메모리 풀링 패턴
-```javascript
-// 객체 풀링을 통한 메모리 최적화
-class ObjectPool {
-  constructor(createFn, resetFn, initialSize = 10) {
-    this.createFn = createFn;
-    this.resetFn = resetFn;
-    this.pool = [];
+
+메모리 풀링은 객체를 재사용하여 메모리 할당과 해제의 오버헤드를 줄이는 기법입니다. 자주 생성되고 삭제되는 객체에 특히 효과적입니다.
+
+**메모리 풀링의 원리:**
+
+```mermaid
+flowchart LR
+    START([객체 필요]) --> CHECK{풀에<br/>객체 있음?}
+    CHECK -->|예| GET[풀에서 가져오기]
+    CHECK -->|아니오| CREATE[새 객체 생성]
+    GET --> USE[객체 사용]
+    CREATE --> USE
+    USE --> RESET[객체 초기화]
+    RESET --> RETURN[풀에 반환]
+    RETURN --> START
     
-    // 초기 객체 생성
-    for (let i = 0; i < initialSize; i++) {
-      this.pool.push(this.createFn());
-    }
-  }
-  
-  acquire() {
-    if (this.pool.length > 0) {
-      return this.pool.pop();
-    }
-    return this.createFn();
-  }
-  
-  release(obj) {
-    this.resetFn(obj);
-    this.pool.push(obj);
-  }
-}
-
-// 사용 예시
-const userPool = new ObjectPool(
-  () => ({ id: null, name: null, email: null }),
-  (user) => {
-    user.id = null;
-    user.name = null;
-    user.email = null;
-  }
-);
-
-// 객체 사용
-const user = userPool.acquire();
-user.id = 1;
-user.name = 'John';
-user.email = 'john@example.com';
-
-// 사용 후 반환
-userPool.release(user);
+    style GET fill:#66bb6a
+    style CREATE fill:#ff9800
+    style RETURN fill:#4fc3f7
 ```
 
-## CPU 사용률 최적화 (CPU Usage Optimization)
+**메모리 풀링 적용 시나리오:**
+
+**적합한 경우:**
+- 객체 생성 비용이 높은 경우 (복잡한 초기화 로직)
+- 객체가 자주 생성되고 삭제되는 경우 (높은 할당 빈도)
+- 메모리 할당이 성능 병목인 경우
+- 가비지 컬렉션 압력을 줄이고 싶은 경우
+
+**부적합한 경우:**
+- 객체 생성 비용이 낮은 경우 (오버헤드가 더 클 수 있음)
+- 객체가 거의 생성되지 않는 경우 (풀 관리 비용만 증가)
+- 객체 상태가 복잡하여 초기화가 어려운 경우
+
+**풀 크기 관리 전략:**
+- **초기 크기**: 예상 최대 동시 사용량의 50-70%로 설정
+- **최대 크기**: 메모리 제한을 고려하여 설정
+- **동적 조정**: 사용 패턴에 따라 풀 크기를 조정
+
+**실무 활용 팁:**
+- 데이터베이스 연결 풀, HTTP 요청 객체, 버퍼 등에 활용
+- 풀 크기를 모니터링하여 최적값을 찾습니다
+- 과도한 풀링은 오히려 메모리를 낭비할 수 있으므로 신중하게 적용합니다
+
+## CPU 사용률 최적화
 
 ### 1. CPU 집약적 작업 최적화
 
 #### Worker Threads를 사용한 CPU 집약적 작업 분산
-```javascript
-// worker.js
-const { parentPort, workerData } = require('worker_threads');
 
-// CPU 집약적 작업
-function heavyComputation(data) {
-  let result = 0;
-  for (let i = 0; i < data.length; i++) {
-    result += Math.sqrt(data[i] * data[i] + data[i]);
-  }
-  return result;
-}
+Worker Threads는 Node.js에서 CPU 집약적 작업을 별도의 스레드에서 실행하여 메인 스레드를 블로킹하지 않게 해줍니다.
 
-// 워커에서 작업 실행
-const result = heavyComputation(workerData);
-parentPort.postMessage(result);
+**Worker Threads 아키텍처:**
+
+```mermaid
+graph TB
+    subgraph "메인 스레드"
+        MAIN[메인 프로세스]
+        TASK_QUEUE[작업 큐]
+    end
+    
+    subgraph "워커 스레드 풀"
+        WORKER1[Worker 1]
+        WORKER2[Worker 2]
+        WORKER3[Worker N]
+    end
+    
+    subgraph "CPU 집약적 작업"
+        COMPUTE1[계산 작업 1]
+        COMPUTE2[계산 작업 2]
+        COMPUTE3[계산 작업 N]
+    end
+    
+    MAIN --> TASK_QUEUE
+    TASK_QUEUE --> WORKER1
+    TASK_QUEUE --> WORKER2
+    TASK_QUEUE --> WORKER3
+    
+    WORKER1 --> COMPUTE1
+    WORKER2 --> COMPUTE2
+    WORKER3 --> COMPUTE3
+    
+    COMPUTE1 --> MAIN
+    COMPUTE2 --> MAIN
+    COMPUTE3 --> MAIN
+    
+    style MAIN fill:#4fc3f7
+    style WORKER1 fill:#66bb6a
+    style COMPUTE1 fill:#ff9800
 ```
 
-```javascript
-// main.js
-const { Worker } = require('worker_threads');
-const path = require('path');
+**Worker Threads 활용 전략:**
 
-class CPUOptimizer {
-  constructor(numWorkers = require('os').cpus().length) {
-    this.numWorkers = numWorkers;
-    this.workers = [];
-    this.taskQueue = [];
-    this.activeWorkers = 0;
-  }
-  
-  // 워커 초기화
-  initializeWorkers() {
-    for (let i = 0; i < this.numWorkers; i++) {
-      const worker = new Worker(path.join(__dirname, 'worker.js'));
-      this.workers.push(worker);
-    }
-  }
-  
-  // CPU 집약적 작업을 워커에 위임
-  async processData(data) {
-    return new Promise((resolve, reject) => {
-      const worker = this.getAvailableWorker();
-      
-      if (!worker) {
-        // 모든 워커가 사용 중이면 큐에 추가
-        this.taskQueue.push({ data, resolve, reject });
-        return;
-      }
-      
-      this.activeWorkers++;
-      
-      worker.postMessage(data);
-      
-      worker.once('message', (result) => {
-        this.activeWorkers--;
-        resolve(result);
-        this.processNextTask();
-      });
-      
-      worker.once('error', (error) => {
-        this.activeWorkers--;
-        reject(error);
-        this.processNextTask();
-      });
-    });
-  }
-  
-  // 사용 가능한 워커 찾기
-  getAvailableWorker() {
-    return this.workers.find(worker => !worker.busy);
-  }
-  
-  // 다음 작업 처리
-  processNextTask() {
-    if (this.taskQueue.length > 0) {
-      const task = this.taskQueue.shift();
-      this.processData(task.data).then(task.resolve).catch(task.reject);
-    }
-  }
-}
+**워커 수 결정:**
+- CPU 코어 수와 동일하게 설정하는 것이 일반적입니다
+- I/O 작업이 포함된 경우 워커 수를 늘릴 수 있습니다
+- 메모리 제한을 고려하여 워커 수를 조정합니다
 
-// 사용 예시
-const optimizer = new CPUOptimizer();
-optimizer.initializeWorkers();
+**작업 분산 방식:**
+- **Round Robin**: 작업을 순차적으로 워커에 할당
+- **Least Busy**: 가장 한가한 워커에 할당
+- **Work Stealing**: 워커가 작업을 가져가도록 구성
 
-// 대량 데이터 처리
-const largeData = Array.from({ length: 1000000 }, (_, i) => i);
-optimizer.processData(largeData).then(result => {
-  console.log('처리 결과:', result);
-});
-```
+**워커 풀 관리:**
+- 워커를 미리 생성하여 초기화 오버헤드를 줄입니다
+- 작업 큐를 사용하여 워커가 모두 사용 중일 때 대기시킵니다
+- 워커 오류 시 재생성하거나 대체 워커를 사용합니다
+
+**적용 시나리오:**
+- 이미지 처리, 암호화, 데이터 압축 등 CPU 집약적 작업
+- 대량 데이터 처리 및 변환
+- 복잡한 수학 계산
+
+**주의사항:**
+- 워커 간 메모리 공유가 불가능하므로 데이터 복사 오버헤드가 있습니다
+- 작은 작업에는 워커 오버헤드가 더 클 수 있습니다
+- I/O 작업에는 Worker Threads보다 비동기 I/O가 더 효율적입니다
 
 ### 2. 알고리즘 최적화
 
-#### 효율적인 데이터 구조 사용
-```javascript
-// Set을 사용한 중복 제거 최적화
-class DataOptimizer {
-  // 비효율적인 중복 제거
-  removeDuplicatesSlow(arr) {
-    const result = [];
-    for (let i = 0; i < arr.length; i++) {
-      if (result.indexOf(arr[i]) === -1) {
-        result.push(arr[i]);
-      }
-    }
-    return result;
-  }
-  
-  // 효율적인 중복 제거
-  removeDuplicatesFast(arr) {
-    return [...new Set(arr)];
-  }
-  
-  // Map을 사용한 빠른 검색
-  createLookupMap(data) {
-    const map = new Map();
-    data.forEach((item, index) => {
-      map.set(item.id, { ...item, index });
-    });
-    return map;
-  }
-  
-  // 빠른 검색
-  findById(map, id) {
-    return map.get(id);
-  }
-}
+#### 효율적인 데이터 구조 선택 전략
+
+알고리즘 최적화의 핵심은 적절한 데이터 구조를 선택하는 것입니다. 각 데이터 구조의 시간 복잡도를 이해하고 상황에 맞게 선택해야 합니다.
+
+**데이터 구조별 시간 복잡도 비교:**
+
+```mermaid
+graph LR
+    subgraph "배열 Array"
+        A1[접근: O1]
+        A2[검색: On]
+        A3[삽입: On]
+        A4[삭제: On]
+    end
+    
+    subgraph "Set"
+        S1[검색: O1]
+        S2[삽입: O1]
+        S3[삭제: O1]
+    end
+    
+    subgraph "Map"
+        M1[검색: O1]
+        M2[삽입: O1]
+        M3[삭제: O1]
+    end
+    
+    style A2 fill:#ffcdd2
+    style S1 fill:#c8e6c9
+    style M1 fill:#c8e6c9
 ```
+
+**데이터 구조 선택 가이드:**
+
+| 작업 | 배열 | Set | Map | 선택 기준 |
+|------|------|-----|-----|----------|
+| **중복 제거** | O(n²) | O(n) | - | Set 사용 |
+| **빠른 검색** | O(n) | O(1) | O(1) | Set/Map 사용 |
+| **키-값 매핑** | - | - | O(1) | Map 사용 |
+| **순서 유지** | O(1) | - | - | 배열 사용 |
+| **인덱스 접근** | O(1) | - | - | 배열 사용 |
+
+**실무 활용 시나리오:**
+
+**중복 제거:**
+- 배열의 `indexOf()` 사용: O(n²) 시간 복잡도로 비효율적
+- Set 사용: O(n) 시간 복잡도로 효율적
+- 대량 데이터 처리 시 성능 차이가 크게 발생
+
+**빠른 검색:**
+- 배열 순회: O(n) 시간 복잡도
+- Map/Set 사용: O(1) 시간 복잡도
+- 반복적인 검색이 필요한 경우 Map/Set이 필수
+
+**메모리 고려사항:**
+- Set과 Map은 해시 테이블을 사용하므로 메모리 오버헤드가 있습니다
+- 작은 데이터셋에서는 배열이 더 효율적일 수 있습니다
+- 데이터 크기와 접근 패턴을 고려하여 선택합니다
 
 #### 메모이제이션을 통한 계산 최적화
-```javascript
-// 메모이제이션 데코레이터
-function memoize(fn) {
-  const cache = new Map();
-  
-  return function(...args) {
-    const key = JSON.stringify(args);
-    
-    if (cache.has(key)) {
-      return cache.get(key);
-    }
-    
-    const result = fn.apply(this, args);
-    cache.set(key, result);
-    return result;
-  };
-}
 
-// 피보나치 수열 계산 최적화
-const fibonacci = memoize(function(n) {
-  if (n <= 1) return n;
-  return fibonacci(n - 1) + fibonacci(n - 2);
-});
+메모이제이션은 함수의 결과를 캐시하여 동일한 입력에 대해 재계산을 방지하는 최적화 기법입니다.
 
-// 사용 예시
-console.time('fibonacci');
-console.log(fibonacci(40));
-console.timeEnd('fibonacci');
+**메모이제이션 원리:**
+
+```mermaid
+flowchart TD
+    START([함수 호출]) --> CHECK{캐시에<br/>결과 있음?}
+    CHECK -->|예| RETURN[캐시된 결과 반환]
+    CHECK -->|아니오| COMPUTE[계산 수행]
+    COMPUTE --> STORE[결과 캐시 저장]
+    STORE --> RETURN
+    RETURN --> END([결과 반환])
+    
+    style CHECK fill:#4fc3f7
+    style RETURN fill:#66bb6a
+    style COMPUTE fill:#ff9800
 ```
+
+**메모이제이션 적용 시나리오:**
+
+**적합한 경우:**
+- 순수 함수 (동일 입력에 항상 동일 출력)
+- 계산 비용이 높은 함수
+- 동일한 입력이 반복적으로 사용되는 경우
+- 재귀 함수의 중복 계산 제거
+
+**부적합한 경우:**
+- 부수 효과(side effect)가 있는 함수
+- 입력이 거의 중복되지 않는 경우
+- 캐시 메모리 관리 비용이 계산 비용보다 큰 경우
+
+**캐시 전략:**
+- **LRU (Least Recently Used)**: 가장 오래 사용되지 않은 항목 제거
+- **TTL (Time To Live)**: 일정 시간 후 캐시 만료
+- **크기 제한**: 캐시 크기를 제한하여 메모리 사용량 관리
+
+**실무 활용 팁:**
+- 피보나치 수열, 팩토리얼 등 재귀 계산에 매우 효과적
+- API 응답 캐싱, 데이터베이스 쿼리 결과 캐싱에도 활용
+- 캐시 크기를 모니터링하여 메모리 사용량을 관리합니다
 
 ### 3. 비동기 처리 최적화
 
-#### Promise.all을 사용한 병렬 처리
-```javascript
-// 순차 처리 (비효율적)
-async function processSequentially(items) {
-  const results = [];
-  for (const item of items) {
-    const result = await processItem(item);
-    results.push(result);
-  }
-  return results;
-}
+#### Promise.all을 사용한 병렬 처리 전략
 
-// 병렬 처리 (효율적)
-async function processInParallel(items) {
-  const promises = items.map(item => processItem(item));
-  return Promise.all(promises);
-}
+비동기 작업을 병렬로 처리하면 전체 실행 시간을 크게 단축할 수 있습니다. 하지만 모든 상황에서 병렬 처리가 최선은 아닙니다.
 
-// 제한된 병렬 처리
-async function processWithLimit(items, limit = 5) {
-  const results = [];
-  
-  for (let i = 0; i < items.length; i += limit) {
-    const batch = items.slice(i, i + limit);
-    const batchPromises = batch.map(item => processItem(item));
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults);
-  }
-  
-  return results;
-}
+**처리 방식 비교:**
+
+```mermaid
+graph TD
+    subgraph "순차 처리"
+        SEQ1[작업 1<br/>100ms]
+        SEQ2[작업 2<br/>100ms]
+        SEQ3[작업 3<br/>100ms]
+        SEQ_TOTAL[총 시간: 300ms]
+    end
+    
+    subgraph "병렬 처리"
+        PAR1[작업 1<br/>100ms]
+        PAR2[작업 2<br/>100ms]
+        PAR3[작업 3<br/>100ms]
+        PAR_TOTAL[총 시간: 100ms]
+    end
+    
+    subgraph "제한된 병렬 처리"
+        LIM1[배치 1: 작업 1-5<br/>100ms]
+        LIM2[배치 2: 작업 6-10<br/>100ms]
+        LIM_TOTAL[총 시간: 200ms]
+    end
+    
+    SEQ1 --> SEQ2
+    SEQ2 --> SEQ3
+    SEQ3 --> SEQ_TOTAL
+    
+    PAR1 --> PAR_TOTAL
+    PAR2 --> PAR_TOTAL
+    PAR3 --> PAR_TOTAL
+    
+    LIM1 --> LIM2
+    LIM2 --> LIM_TOTAL
+    
+    style SEQ_TOTAL fill:#ffcdd2
+    style PAR_TOTAL fill:#c8e6c9
+    style LIM_TOTAL fill:#fff9c4
 ```
+
+**처리 방식 선택 가이드:**
+
+| 상황 | 순차 처리 | 병렬 처리 | 제한된 병렬 |
+|------|----------|----------|------------|
+| **작업 수** | 적음 (< 10) | 적음-중간 | 많음 (> 100) |
+| **의존성** | 의존적 | 독립적 | 독립적 |
+| **리소스 제한** | - | - | 있음 |
+| **에러 처리** | 즉시 중단 | 모두 실패 | 배치별 처리 |
+
+**병렬 처리 전략:**
+
+**Promise.all 사용:**
+- 모든 작업이 성공해야 하는 경우
+- 하나라도 실패하면 전체 실패
+- 빠른 실행 시간이 중요할 때
+
+**Promise.allSettled 사용:**
+- 일부 실패해도 나머지 결과가 필요한 경우
+- 각 작업의 성공/실패를 개별적으로 처리
+- 에러 복구가 중요한 경우
+
+**제한된 병렬 처리:**
+- 동시 실행 수를 제한하여 리소스 보호
+- API Rate Limit을 준수해야 할 때
+- 메모리나 연결 수 제한이 있을 때
+
+**실무 활용 팁:**
+- I/O 바운드 작업은 병렬 처리가 매우 효과적입니다
+- CPU 바운드 작업은 Worker Threads를 고려합니다
+- 외부 API 호출 시 Rate Limit을 고려하여 제한된 병렬 처리를 사용합니다
 
 #### 스트림을 사용한 대용량 데이터 처리
 ```javascript
@@ -713,7 +878,7 @@ inputStream
   });
 ```
 
-## 비동기 처리 최적화 (Asynchronous Processing Optimization)
+## 비동기 처리 최적화
 
 > **📌 통합된 기존 파일들**: 이 섹션은 다음 기존 파일들의 내용을 통합한 것입니다.
 > - JavaScript 비동기 처리 메커니즘 (동기 vs 비동기, 이벤트 루프)
@@ -747,7 +912,79 @@ console.log('3. 끝');
 
 #### 이벤트 루프(Event Loop) 상세 분석
 
-이벤트 루프는 JavaScript의 비동기 처리를 가능하게 하는 핵심 메커니즘입니다.
+이벤트 루프는 JavaScript의 비동기 처리를 가능하게 하는 핵심 메커니즘입니다. Node.js의 이벤트 루프 구조를 이해하면 성능 최적화에 큰 도움이 됩니다.
+
+**이벤트 루프 전체 구조:**
+
+```mermaid
+graph TB
+    subgraph "이벤트 루프 단계"
+        TIMERS[Timers<br/>setTimeout/setInterval]
+        PENDING[Pending Callbacks<br/>이전 틱의 지연된 콜백]
+        IDLE[Idle, Prepare<br/>내부 사용]
+        POLL[Poll<br/>새로운 I/O 이벤트]
+        CHECK[Check<br/>setImmediate 콜백]
+        CLOSE[Close Callbacks<br/>소켓 종료 등]
+    end
+    
+    subgraph "큐 시스템"
+        MICRO[Microtask Queue<br/>Promise/queueMicrotask]
+        MACRO[Macrotask Queue<br/>setTimeout/setInterval]
+        NEXT[NEXT Tick Queue<br/>process.nextTick]
+    end
+    
+    TIMERS --> POLL
+    PENDING --> POLL
+    IDLE --> POLL
+    POLL --> CHECK
+    CHECK --> CLOSE
+    CLOSE --> TIMERS
+    
+    NEXT -.->|최우선| TIMERS
+    MICRO -.->|우선| MACRO
+    
+    style TIMERS fill:#4fc3f7
+    style POLL fill:#66bb6a
+    style CHECK fill:#ff9800
+    style NEXT fill:#ef5350,color:#fff
+    style MICRO fill:#9c27b0
+```
+
+**이벤트 루프 실행 순서:**
+
+```mermaid
+sequenceDiagram
+    participant STACK as Call Stack
+    participant TIMERS as Timers Phase
+    participant POLL as Poll Phase
+    participant CHECK as Check Phase
+    participant MICRO as Microtask Queue
+    
+    Note over STACK: 동기 코드 실행
+    STACK->>STACK: 동기 작업 처리
+    
+    Note over STACK: 비동기 작업 등록
+    STACK->>TIMERS: setTimeout 등록
+    STACK->>MICRO: Promise 등록
+    
+    Note over STACK: 스택 비움
+    STACK->>STACK: 스택 완료
+    
+    Note over MICRO: Microtask 처리
+    MICRO->>STACK: Promise 콜백 실행
+    
+    Note over TIMERS: Timers Phase
+    TIMERS->>STACK: setTimeout 콜백 실행
+    
+    Note over POLL: Poll Phase
+    POLL->>STACK: I/O 콜백 실행
+    
+    Note over CHECK: Check Phase
+    CHECK->>STACK: setImmediate 콜백 실행
+    
+    Note over STACK: 다음 틱으로
+    STACK->>TIMERS: 루프 반복
+```
 
 ```javascript
 console.log('1. 스크립트 시작');
@@ -1095,16 +1332,88 @@ console.log("1️⃣ End");
 > **📌 `Promise.then()`이 먼저 실행되고, `setImmediate()`가 `setTimeout(0)`보다 먼저 실행될 가능성이 높음!**
 
 #### 이벤트 루프의 동작 과정
-Node.js의 Event Loop는 다음과 같은 단계로 실행됩니다:
+
+Node.js의 Event Loop는 다음과 같은 단계로 실행됩니다. 각 단계의 역할과 실행 순서를 이해하면 비동기 코드의 동작을 정확히 예측할 수 있습니다.
+
+```mermaid
+flowchart LR
+    START([이벤트 루프 시작]) --> T1[1. Timers]
+    T1 --> T2[2. Pending Callbacks]
+    T2 --> T3[3. Idle, Prepare]
+    T3 --> T4[4. Poll]
+    T4 --> T5[5. Check]
+    T5 --> T6[6. Close Callbacks]
+    T6 --> T1
+    
+    T1 -->|setTimeout/setInterval| EXEC1[콜백 실행]
+    T2 -->|이전 틱 지연| EXEC2[콜백 실행]
+    T4 -->|I/O 완료| EXEC3[콜백 실행]
+    T5 -->|setImmediate| EXEC4[콜백 실행]
+    T6 -->|소켓 종료| EXEC5[콜백 실행]
+    
+    style T1 fill:#4fc3f7
+    style T4 fill:#66bb6a
+    style T5 fill:#ff9800
+    style T6 fill:#9c27b0
+```
+
+**각 단계의 상세 설명:**
 
 1. **Timers**: `setTimeout()`, `setInterval()` 콜백 실행
-2. **I/O Callbacks**: 완료된 비동기 I/O 콜백 실행
+   - 타이머가 만료된 콜백들을 실행합니다
+   - 이 단계에서 실행할 콜백이 없으면 다음 단계로 진행합니다
+
+2. **Pending Callbacks**: 완료된 비동기 I/O 콜백 실행
+   - 이전 루프에서 지연된 콜백들을 실행합니다
+   - 대부분의 I/O 콜백은 Poll 단계에서 처리됩니다
+
 3. **Idle, Prepare**: 내부 정리 작업
+   - Node.js 내부에서만 사용되는 단계입니다
+   - 일반적으로 개발자가 직접 제어하지 않습니다
+
 4. **Poll**: 새로운 I/O 이벤트 대기 및 처리
+   - 새로운 I/O 이벤트를 가져와 관련 콜백을 실행합니다
+   - 실행할 콜백이 없으면 Check 단계로 진행합니다
+   - 이 단계에서 대부분의 I/O 작업이 처리됩니다
+
 5. **Check**: `setImmediate()` 콜백 실행
+   - Poll 단계가 완료된 후 즉시 실행됩니다
+   - Poll 단계에서 대기 중인 콜백이 없으면 이 단계로 진행합니다
+
 6. **Close Callbacks**: 소켓 종료 등 작업 처리
+   - 소켓이나 핸들이 갑자기 닫힌 경우의 콜백을 처리합니다
+   - 예: `socket.on('close', ...)`
 
 #### 이벤트 큐의 종류와 우선순위
+
+이벤트 루프는 여러 종류의 큐를 관리하며, 각 큐는 서로 다른 우선순위를 가집니다. 이 우선순위를 이해하면 비동기 코드의 실행 순서를 정확히 예측할 수 있습니다.
+
+```mermaid
+graph TD
+    subgraph "우선순위 (높음 → 낮음)"
+        P1[1. process.nextTick<br/>최우선 실행]
+        P2[2. Promise/queueMicrotask<br/>마이크로태스크]
+        P3[3. setImmediate<br/>체크 단계]
+        P4[4. setTimeout/setInterval<br/>타이머 단계]
+    end
+    
+    subgraph "실행 시점"
+        T1[현재 틱 즉시]
+        T2[현재 틱 마지막]
+        T3[다음 틱 Check 단계]
+        T4[다음 틱 Timers 단계]
+    end
+    
+    P1 --> T1
+    P2 --> T2
+    P3 --> T3
+    P4 --> T4
+    
+    style P1 fill:#ef5350,color:#fff
+    style P2 fill:#ff9800
+    style P3 fill:#4fc3f7
+    style P4 fill:#66bb6a
+```
 
 ##### 1. Microtask Queue (마이크로태스크 큐)
 ```javascript
@@ -2025,7 +2334,7 @@ class AsyncPerformanceMonitor {
 }
 ```
 
-## 실제 성능 병목 지점 분석 및 해결 사례 (Real Performance Bottleneck Analysis and Solutions)
+## 실제 성능 병목 지점 분석 및 해결 사례
 
 ### 1. 데이터베이스 쿼리 최적화 사례
 
@@ -2190,7 +2499,7 @@ inputStream
   });
 ```
 
-## 성능 모니터링 및 알림 (Performance Monitoring and Alerting)
+## 성능 모니터링 및 알림
 
 ### 1. 실시간 성능 모니터링
 
@@ -2391,27 +2700,155 @@ class PerformanceAlert {
 }
 ```
 
-## 결론 (Conclusion)
+## 🔧 트러블슈팅 가이드
 
-Node.js 성능 최적화는 지속적인 모니터링과 개선이 필요한 과정입니다. 
+### 일반적인 성능 문제와 해결책
 
-### 주요 포인트 (Key Points)
+**문제 해결 플로우차트:**
 
-1. **측정 우선**: 최적화 전에 현재 성능을 정확히 측정
-2. **도구 활용**: Clinic.js, 0x, heapdump 등 전문 도구 사용
-3. **메모리 관리**: 메모리 누수 방지 및 효율적인 메모리 사용
-4. **비동기 최적화**: Promise, async/await, 스트림 활용
-5. **지속적 모니터링**: 실시간 성능 추적 및 알림 시스템
+```mermaid
+flowchart TD
+    START([성능 문제 발견]) --> SYMPTOM{증상 확인}
+    
+    SYMPTOM -->|응답 시간 느림| CHECK1{CPU 사용률}
+    SYMPTOM -->|메모리 부족| CHECK2{메모리 사용량}
+    SYMPTOM -->|처리량 저하| CHECK3{I/O 대기}
+    
+    CHECK1 -->|높음| CPU_PROFILE[CPU 프로파일링]
+    CHECK1 -->|낮음| IO_PROFILE[I/O 프로파일링]
+    
+    CHECK2 -->|증가 추세| MEM_PROFILE[메모리 프로파일링]
+    CHECK2 -->|정상| OTHER[다른 원인 조사]
+    
+    CHECK3 -->|높음| DB_OPT[데이터베이스 최적화]
+    CHECK3 -->|낮음| NET_OPT[네트워크 최적화]
+    
+    CPU_PROFILE --> CPU_SOLVE[CPU 최적화 적용]
+    MEM_PROFILE --> MEM_SOLVE[메모리 최적화 적용]
+    IO_PROFILE --> IO_SOLVE[I/O 최적화 적용]
+    DB_OPT --> DB_SOLVE[쿼리 최적화]
+    NET_OPT --> NET_SOLVE[네트워크 최적화]
+    
+    CPU_SOLVE --> VERIFY[검증]
+    MEM_SOLVE --> VERIFY
+    IO_SOLVE --> VERIFY
+    DB_SOLVE --> VERIFY
+    NET_SOLVE --> VERIFY
+    
+    VERIFY -->|개선됨| END([완료])
+    VERIFY -->|개선 안됨| START
+    
+    style START fill:#4fc3f7
+    style VERIFY fill:#66bb6a
+    style END fill:#9c27b0
+```
 
-### 성능 최적화 체크리스트 (Performance Optimization Checklist)
+### 일반적인 문제와 해결책
 
-- [ ] 성능 프로파일링 도구 설정 및 사용
-- [ ] 메모리 누수 패턴 점검 및 해결
-- [ ] CPU 집약적 작업 최적화
-- [ ] 비동기 처리 패턴 개선
-- [ ] 데이터베이스 쿼리 최적화
-- [ ] 캐싱 전략 구현
-- [ ] 성능 모니터링 시스템 구축
-- [ ] 알림 시스템 설정
+**1. 응답 시간이 느린 경우:**
 
-이러한 최적화를 통해 Node.js 애플리케이션의 성능을 크게 향상시킬 수 있습니다.
+| 원인 | 증상 | 해결 방법 |
+|------|------|----------|
+| **CPU 병목** | CPU 사용률 80% 이상 | Worker Threads 사용, 알고리즘 최적화 |
+| **동기 작업** | 이벤트 루프 블로킹 | 비동기 처리로 전환 |
+| **N+1 쿼리** | 데이터베이스 쿼리 과다 | Eager Loading, 배치 쿼리 |
+| **메모리 부족** | GC 빈도 증가 | 메모리 누수 제거, 메모리 풀링 |
+
+**2. 메모리 사용량이 지속적으로 증가하는 경우:**
+
+| 원인 | 증상 | 해결 방법 |
+|------|------|----------|
+| **메모리 누수** | 힙 메모리 지속 증가 | 이벤트 리스너 제거, WeakMap 활용 |
+| **큰 객체 캐싱** | 캐시 크기 증가 | LRU 캐시, TTL 설정 |
+| **순환 참조** | GC가 해제하지 못함 | 참조 구조 재설계 |
+| **스트림 누수** | 스트림이 닫히지 않음 | 스트림 명시적 종료 |
+
+**3. 처리량이 낮은 경우:**
+
+| 원인 | 증상 | 해결 방법 |
+|------|------|----------|
+| **I/O 대기** | 대부분 시간이 I/O 대기 | 비동기 I/O 활용, 연결 풀 최적화 |
+| **순차 처리** | 병렬 처리 가능한 작업을 순차 처리 | Promise.all, 병렬 처리 |
+| **불필요한 작업** | 캐싱되지 않은 중복 계산 | 메모이제이션, 캐싱 |
+| **리소스 경쟁** | 동시 접근 제한 | 큐 관리, Rate Limiting 조정 |
+
+## 💡 5년차 개발자를 위한 고급 전략
+
+### 실무 경험 기반 팁
+
+**1. 성능 최적화 우선순위:**
+
+```mermaid
+graph TD
+    PRIORITY[최적화 우선순위] --> P1[1. 병목 지점]
+    PRIORITY --> P2[2. 자주 호출되는 코드]
+    PRIORITY --> P3[3. 사용자 경험 영향]
+    PRIORITY --> P4[4. 비용 영향]
+    
+    P1 --> MEASURE[측정 기반]
+    P2 --> HOTSPOT[핫스팟 최적화]
+    P3 --> UX[UX 개선]
+    P4 --> COST[비용 절감]
+    
+    style P1 fill:#ef5350,color:#fff
+    style P2 fill:#ff9800
+    style P3 fill:#4fc3f7
+    style P4 fill:#66bb6a
+```
+
+**2. 비용 고려사항:**
+
+- **인프라 비용**: CPU/메모리 사용량 감소로 인한 비용 절감
+- **개발 비용**: 최적화에 투입되는 시간 vs 성능 개선 효과
+- **운영 비용**: 모니터링 도구, 알림 시스템 운영 비용
+- **기회 비용**: 최적화에 투입한 시간을 다른 기능 개발에 사용할 수 있는 기회
+
+**3. 팀 협업 관점:**
+
+- **성능 목표 공유**: 팀 전체가 성능 목표를 이해하고 공유
+- **코드 리뷰**: 성능에 영향을 주는 코드 변경 시 리뷰
+- **지식 공유**: 최적화 경험과 노하우를 문서화하여 공유
+- **모니터링 공유**: 모든 팀원이 성능 메트릭에 접근 가능
+
+**4. 아키텍처 패턴 선택 기준:**
+
+| 패턴 | 사용 시기 | 트레이드오프 |
+|------|----------|------------|
+| **Worker Threads** | CPU 집약적 작업 | 메모리 사용량 증가 vs CPU 효율 |
+| **메모리 풀링** | 자주 생성/삭제되는 객체 | 메모리 사용량 vs 할당 오버헤드 |
+| **캐싱** | 반복적인 계산/조회 | 메모리 사용량 vs 응답 시간 |
+| **스트림** | 대용량 데이터 처리 | 복잡도 증가 vs 메모리 효율 |
+
+**5. 실무에서 자주 놓치는 부분:**
+
+- **프로파일링 없이 최적화**: 추측 기반 최적화는 오히려 성능을 저하시킬 수 있음
+- **로컬 환경만 테스트**: 프로덕션 환경과의 차이를 고려하지 않음
+- **단일 메트릭만 확인**: 전체 시스템 성능을 종합적으로 보지 않음
+- **최적화 후 검증 부족**: 최적화 효과를 측정하지 않고 배포
+
+## 📝 결론
+
+Node.js 성능 최적화는 지속적인 모니터링과 개선이 필요한 과정입니다.
+
+### 핵심 포인트
+
+- ✅ **측정 우선**: 최적화 전에 현재 성능을 정확히 측정
+- ✅ **도구 활용**: Clinic.js, 0x, heapdump 등 전문 도구 사용
+- ✅ **메모리 관리**: 메모리 누수 방지 및 효율적인 메모리 사용
+- ✅ **비동기 최적화**: Promise, async/await, 스트림 활용
+- ✅ **지속적 모니터링**: 실시간 성능 추적 및 알림 시스템
+
+### 모범 사례
+
+1. **프로파일링 우선**: 최적화 전에 반드시 프로파일링 수행
+2. **병목 지점 식별**: 실제 성능 저하 원인을 정확히 파악
+3. **점진적 개선**: 한 번에 하나씩 최적화하고 측정
+4. **모니터링 자동화**: 지속적인 성능 추적 및 알림 설정
+5. **문서화**: 최적화 과정과 결과를 문서화하여 팀과 공유
+
+### 관련 문서
+
+- [부하 테스트 전략](../성능/부하_테스트_전략.md) - 성능 벤치마킹 및 부하 테스트
+- [Observability 전략](../모니터링/Observability_전략.md) - 모니터링 및 성능 추적
+- [캐싱 전략](../캐싱/캐싱_전략.md) - 성능 향상을 위한 캐싱 전략
+- [ORM 심화 전략](../데이터베이스/ORM_심화_전략.md) - 데이터베이스 쿼리 최적화
