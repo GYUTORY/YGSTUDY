@@ -1,7 +1,7 @@
 ---
 title: AWS IAM Identity and Access Management
 tags: [aws, security, iam]
-updated: 2025-09-23
+updated: 2025-11-23
 ---
 
 # AWS IAM (Identity and Access Management)
@@ -303,6 +303,16 @@ AWS 계정에서 실제 작업을 수행하는 개인이나 애플리케이션�
 - AWS Config Rules 활용
 - Lambda 함수를 통한 자동 대응
 - SNS를 통한 즉시 알림
+
+---
+
+### 관련 문서
+
+- [AWS 보안 기본](../Security/Basic.md) - AWS 보안 기본 개념
+- [AWS KMS](../Security/KMS.md) - 키 관리 서비스
+- [Node.js 보안 모범사례](../../Framework/Node/보안/Node.js_보안_모범사례.md) - 애플리케이션 보안
+- [보안 심화 및 취약점 분석](../../Security/보안_심화_및_취약점_분석.md) - 보안 심화 내용
+- [AWS CloudTrail](../Monitoring & Management/CloudTrail.md) - IAM 활동 감사
 
 ---
 
