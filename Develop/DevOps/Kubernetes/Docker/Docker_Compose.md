@@ -1,7 +1,7 @@
 ---
 title: Docker Compose
 tags: [application-architecture, kubernetes, docker, docker-compose]
-updated: 2025-11-01
+updated: 2025-11-23
 ---
 
 # Docker Compose
@@ -1227,6 +1227,16 @@ services:
 ---
 
 ## 참고자료
+
+### 관련 문서
+
+- [Kubernetes 심화 전략](../Kubernetes_심화_전략.md) - Kubernetes와 Docker Compose 비교
+- [CI/CD 고급 패턴](../../CI_CD/고급_CI_CD_패턴.md) - Docker Compose를 활용한 CI/CD
+- [배포 전략](../../../Framework/Node/배포/배포_전략.md) - 컨테이너 배포 전략
+- [AWS ECS](../../../../AWS/Containers/ECS.md) - AWS 컨테이너 서비스
+- [Terraform 인프라 자동화](../../Infrastructure_as_Code/Terraform.md) - 인프라 자동화
+
+---
 
 ### 공식 문서
 - [Docker Compose 공식 문서](https://docs.docker.com/compose/)
