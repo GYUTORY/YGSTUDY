@@ -237,6 +237,16 @@ AWS CloudTrail은 현대적인 클라우드 환경에서 **투명성, 책임성,
 
 ---
 
+### 관련 문서
+
+- [AWS IAM](../Security/IAM.md) - 접근 제어 및 권한 관리
+- [AWS 보안 기본](../Security/Basic.md) - AWS 보안 기본 개념
+- [AWS CloudWatch](../Monitoring & Management/CloudWatch.md) - 로그 모니터링
+- [보안 심화 및 취약점 분석](../../Security/보안_심화_및_취약점_분석.md) - 보안 심화 내용
+- [AWS 모니터링 및 알람 전략](../모니터링/모니터링_및_알람_전략.md) - 모니터링 전략
+
+---
+
 ## 참고 자료
 
 - AWS CloudTrail 사용자 가이드 - https://docs.aws.amazon.com/cloudtrail/
