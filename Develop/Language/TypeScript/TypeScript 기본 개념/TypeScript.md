@@ -342,6 +342,678 @@ console.log(mathUtils.multiply(4, 6));   // 24
 console.log(mathUtils.divide(10, 2));    // 5
 ```
 
+#### 1.3 타입 추론 (Type Inference)
+
+TypeScript는 명시적으로 타입을 지정하지 않아도 값으로부터 타입을 자동으로 추론합니다.
+
+**기본 타입 추론**:
+```typescript
+// 변수 초기화 시 타입 추론
+let name = "홍길동";        // string으로 추론
+let age = 30;              // number로 추론
+let isActive = true;        // boolean으로 추론
+let numbers = [1, 2, 3];    // number[]로 추론
+
+// 함수 반환 타입 추론
+function add(a: number, b: number) {
+    return a + b;  // 반환 타입이 number로 추론됨
+}
+
+// 객체 타입 추론
+const user = {
+    id: 1,
+    name: "홍길동",
+    email: "hong@example.com"
+};
+// { id: number; name: string; email: string }로 추론
+```
+
+**타입 추론의 한계**:
+```typescript
+// 배열 초기화 시 빈 배열은 any[]로 추론됨
+let items = [];  // any[]로 추론 (의도하지 않은 경우)
+
+// 명시적 타입 지정 필요
+let items: number[] = [];  // number[]로 명확히 지정
+
+// 함수 매개변수는 추론되지 않음
+function process(data) {  // 오류: 'data' 매개변수에 타입이 없습니다
+    return data.length;
+}
+
+// 명시적 타입 지정 필요
+function process(data: string) {
+    return data.length;
+}
+```
+
+**최적 공통 타입 (Best Common Type)**:
+```typescript
+// 여러 타입이 섞여 있을 때 유니온 타입으로 추론
+let values = [1, "hello", true];
+// (string | number | boolean)[]로 추론
+
+// 명시적 타입 지정으로 더 구체적인 타입 지정 가능
+let values: (string | number)[] = [1, "hello"];  // boolean 제외
+```
+
+**문맥적 타입 (Contextual Typing)**:
+```typescript
+// 이벤트 핸들러에서 문맥적 타입 추론
+window.onclick = function(event) {
+    // event는 MouseEvent로 추론됨
+    console.log(event.clientX, event.clientY);
+};
+
+// 배열 메서드에서 문맥적 타입 추론
+const numbers = [1, 2, 3, 4, 5];
+numbers.map(function(n) {
+    // n은 number로 추론됨
+    return n * 2;
+});
+```
+
+#### 1.4 타입 단언 (Type Assertion) vs 타입 가드 (Type Guard)
+
+**타입 단언 (Type Assertion)**:
+타입 단언은 개발자가 TypeScript에게 "이 값은 특정 타입이다"라고 알려주는 방법입니다. 런타임에는 아무 영향이 없으며, 컴파일 타임에만 사용됩니다.
+
+```typescript
+// as 문법 사용
+let someValue: unknown = "this is a string";
+let strLength: number = (someValue as string).length;
+
+// angle-bracket 문법 사용 (JSX에서는 사용 불가)
+let strLength2: number = (<string>someValue).length;
+
+// 실제 사용 예시
+interface ApiResponse {
+    data: unknown;
+}
+
+function processResponse(response: ApiResponse) {
+    // data가 실제로 User 객체라고 확신할 때
+    const user = response.data as { id: number; name: string };
+    console.log(user.id, user.name);
+}
+```
+
+**타입 가드 (Type Guard)**:
+타입 가드는 런타임에 타입을 검사하여 TypeScript의 타입 좁히기(Type Narrowing)를 수행합니다.
+
+```typescript
+// typeof 타입 가드
+function isString(value: unknown): value is string {
+    return typeof value === 'string';
+}
+
+function process(value: unknown) {
+    if (isString(value)) {
+        // 이 블록에서 value는 string 타입
+        console.log(value.toUpperCase());
+    }
+}
+
+// instanceof 타입 가드
+class User {
+    constructor(public name: string) {}
+}
+
+class Admin {
+    constructor(public name: string, public role: string) {}
+}
+
+function isUser(obj: User | Admin): obj is User {
+    return obj instanceof User;
+}
+
+function greet(person: User | Admin) {
+    if (isUser(person)) {
+        // person은 User 타입
+        console.log(`Hello, ${person.name}`);
+    } else {
+        // person은 Admin 타입
+        console.log(`Hello, Admin ${person.name}`);
+    }
+}
+
+// in 연산자 타입 가드
+interface Dog {
+    type: 'dog';
+    bark: () => void;
+}
+
+interface Cat {
+    type: 'cat';
+    meow: () => void;
+}
+
+function makeSound(animal: Dog | Cat) {
+    if ('bark' in animal) {
+        // animal은 Dog 타입
+        animal.bark();
+    } else {
+        // animal은 Cat 타입
+        animal.meow();
+    }
+}
+
+// 커스텀 타입 가드 함수
+interface Fish {
+    swim: () => void;
+}
+
+interface Bird {
+    fly: () => void;
+}
+
+function isFish(pet: Fish | Bird): pet is Fish {
+    return (pet as Fish).swim !== undefined;
+}
+
+function move(pet: Fish | Bird) {
+    if (isFish(pet)) {
+        pet.swim();  // Fish 타입으로 좁혀짐
+    } else {
+        pet.fly();   // Bird 타입으로 좁혀짐
+    }
+}
+```
+
+**타입 단언 vs 타입 가드 비교**:
+
+| 특징 | 타입 단언 | 타입 가드 |
+|------|----------|----------|
+| **실행 시점** | 컴파일 타임만 | 런타임 검사 포함 |
+| **안전성** | 개발자 책임 (위험) | 타입 검사로 안전 |
+| **사용 시기** | 타입을 확실히 알 때 | 타입을 확인해야 할 때 |
+| **권장 여부** | 최소한으로 사용 | 가능한 많이 사용 |
+
+```typescript
+// 나쁜 예: 타입 단언 남용
+function badExample(data: unknown) {
+    const user = data as User;  // 위험: 실제로 User가 아닐 수 있음
+    console.log(user.name);     // 런타임 에러 가능
+}
+
+// 좋은 예: 타입 가드 사용
+function goodExample(data: unknown) {
+    if (isUser(data)) {  // 타입 검사
+        console.log(data.name);  // 안전함
+    } else {
+        console.error('Invalid user data');
+    }
+}
+```
+
+#### 1.5 인터페이스 vs 타입 별칭 상세 비교
+
+**인터페이스 (Interface)**:
+인터페이스는 객체의 구조를 정의하는 TypeScript의 주요 방법입니다. 선언 병합(Declaration Merging)이 가능합니다.
+
+```typescript
+// 기본 인터페이스 정의
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
+// 선언 병합 (Declaration Merging)
+interface User {
+    age?: number;  // 기존 인터페이스에 속성 추가
+}
+
+// 결과: User는 id, name, email, age를 모두 가짐
+
+// 인터페이스 확장
+interface Admin extends User {
+    role: 'admin';
+    permissions: string[];
+}
+
+// 다중 확장
+interface SuperAdmin extends User, Admin {
+    level: number;
+}
+```
+
+**타입 별칭 (Type Alias)**:
+타입 별칭은 타입에 이름을 부여하는 방법입니다. 인터페이스보다 더 유연하며, 유니온, 교집합, 튜플 등 다양한 타입을 표현할 수 있습니다.
+
+```typescript
+// 기본 타입 별칭
+type UserId = number;
+type UserName = string;
+
+// 객체 타입 별칭
+type User = {
+    id: number;
+    name: string;
+    email: string;
+};
+
+// 유니온 타입
+type Status = 'pending' | 'approved' | 'rejected';
+
+// 교집합 타입
+type Admin = User & {
+    role: 'admin';
+    permissions: string[];
+};
+
+// 튜플 타입
+type Point = [number, number];
+type RGB = [number, number, number];
+
+// 함수 타입
+type MathOperation = (a: number, b: number) => number;
+
+// 조건부 타입
+type NonNullable<T> = T extends null | undefined ? never : T;
+```
+
+**인터페이스 vs 타입 별칭 비교**:
+
+| 특징 | 인터페이스 | 타입 별칭 |
+|------|-----------|----------|
+| **선언 병합** | 가능 | 불가능 |
+| **확장** | extends 키워드 | & 연산자 |
+| **유니온 타입** | 불가능 | 가능 |
+| **튜플** | 가능하나 제한적 | 완전 지원 |
+| **조건부 타입** | 불가능 | 가능 |
+| **성능** | 약간 빠름 | 약간 느림 |
+| **가독성** | 객체 구조에 적합 | 복잡한 타입에 적합 |
+
+**사용 시나리오**:
+
+1. **인터페이스가 적합한 경우**:
+```typescript
+// 객체 구조 정의
+interface Config {
+    apiUrl: string;
+    timeout: number;
+}
+
+// 클래스 구현
+interface Drawable {
+    draw(): void;
+}
+
+class Circle implements Drawable {
+    draw() {
+        console.log('Drawing circle');
+    }
+}
+
+// 선언 병합이 필요한 경우
+interface Window {
+    myCustomProperty: string;
+}
+```
+
+2. **타입 별칭이 적합한 경우**:
+```typescript
+// 유니온 타입
+type Status = 'loading' | 'success' | 'error';
+
+// 복잡한 타입 조합
+type ApiResponse<T> = 
+    | { status: 'success'; data: T }
+    | { status: 'error'; message: string };
+
+// 함수 타입
+type EventHandler<T> = (event: T) => void;
+
+// 유틸리티 타입과 조합
+type PartialUser = Partial<User>;
+type ReadonlyConfig = Readonly<Config>;
+```
+
+**실전 권장사항**:
+- 객체 구조 정의: 인터페이스 사용
+- 유니온, 교집합, 조건부 타입: 타입 별칭 사용
+- 클래스 구현: 인터페이스 사용
+- 재사용 가능한 타입 유틸리티: 타입 별칭 사용
+
+#### 1.6 함수 타입 선언의 고급 패턴
+
+**함수 오버로드 (Function Overloads)**:
+동일한 함수 이름으로 여러 시그니처를 정의할 수 있습니다.
+
+```typescript
+// 오버로드 시그니처
+function process(value: string): string;
+function process(value: number): number;
+function process(value: boolean): boolean;
+
+// 구현 시그니처
+function process(value: string | number | boolean): string | number | boolean {
+    if (typeof value === 'string') {
+        return value.toUpperCase();
+    } else if (typeof value === 'number') {
+        return value * 2;
+    } else {
+        return !value;
+    }
+}
+
+// 사용 예시
+const str = process('hello');    // string
+const num = process(42);         // number
+const bool = process(true);      // boolean
+```
+
+**제네릭 함수**:
+```typescript
+// 기본 제네릭 함수
+function identity<T>(arg: T): T {
+    return arg;
+}
+
+// 제네릭 제약 조건
+interface Lengthwise {
+    length: number;
+}
+
+function logLength<T extends Lengthwise>(arg: T): T {
+    console.log(arg.length);
+    return arg;
+}
+
+// 다중 타입 매개변수
+function pair<K, V>(key: K, value: V): [K, V] {
+    return [key, value];
+}
+
+// 제네릭 함수 타입 별칭
+type Transformer<T, U> = (input: T) => U;
+
+const stringToNumber: Transformer<string, number> = (str) => 
+    parseInt(str, 10);
+```
+
+**고급 함수 패턴**:
+```typescript
+// 조건부 반환 타입
+function processValue<T>(value: T): T extends string ? string[] : T {
+    if (typeof value === 'string') {
+        return value.split('') as any;
+    }
+    return value as any;
+}
+
+// 나머지 매개변수와 튜플 타입
+function callWithArgs<T extends any[], R>(
+    fn: (...args: T) => R,
+    ...args: T
+): R {
+    return fn(...args);
+}
+
+// 함수 타입 추출
+type FunctionType = typeof Math.max;
+// (value1: number, value2: number, ...values: number[]) => number
+```
+
+#### 1.7 클래스와 인터페이스의 관계
+
+**implements 키워드**:
+클래스가 인터페이스를 구현한다는 것을 명시합니다.
+
+```typescript
+// 인터페이스 정의
+interface Flyable {
+    fly(): void;
+    maxAltitude: number;
+}
+
+interface Swimmable {
+    swim(): void;
+    maxDepth: number;
+}
+
+// 단일 인터페이스 구현
+class Bird implements Flyable {
+    maxAltitude: number = 10000;
+    
+    fly() {
+        console.log('Flying at high altitude');
+    }
+}
+
+// 다중 인터페이스 구현
+class Duck implements Flyable, Swimmable {
+    maxAltitude: number = 1000;
+    maxDepth: number = 5;
+    
+    fly() {
+        console.log('Duck is flying');
+    }
+    
+    swim() {
+        console.log('Duck is swimming');
+    }
+}
+
+// 추상 클래스와 인터페이스 조합
+abstract class Animal {
+    abstract makeSound(): void;
+}
+
+interface Pet {
+    name: string;
+    play(): void;
+}
+
+class Dog extends Animal implements Pet {
+    name: string;
+    
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+    
+    makeSound() {
+        console.log('Woof!');
+    }
+    
+    play() {
+        console.log(`${this.name} is playing`);
+    }
+}
+```
+
+**인터페이스 확장 vs 클래스 상속**:
+```typescript
+// 인터페이스 확장 (구조만 정의)
+interface Base {
+    id: number;
+}
+
+interface Extended extends Base {
+    name: string;
+}
+
+// 클래스 상속 (구현 포함)
+class BaseClass {
+    id: number;
+    
+    constructor(id: number) {
+        this.id = id;
+    }
+}
+
+class ExtendedClass extends BaseClass {
+    name: string;
+    
+    constructor(id: number, name: string) {
+        super(id);
+        this.name = name;
+    }
+}
+```
+
+#### 1.8 모듈 시스템 (Import/Export)
+
+**기본 Export/Import**:
+```typescript
+// math.ts
+export function add(a: number, b: number): number {
+    return a + b;
+}
+
+export function subtract(a: number, b: number): number {
+    return a - b;
+}
+
+// 사용
+import { add, subtract } from './math';
+
+// 또는
+import * as Math from './math';
+Math.add(1, 2);
+```
+
+**Default Export**:
+```typescript
+// Calculator.ts
+export default class Calculator {
+    add(a: number, b: number): number {
+        return a + b;
+    }
+}
+
+// 사용
+import Calculator from './Calculator';
+// 또는
+import Calc from './Calculator';  // 이름 변경 가능
+```
+
+**Named Export와 Default Export 혼용**:
+```typescript
+// utils.ts
+export function formatDate(date: Date): string {
+    return date.toISOString();
+}
+
+export default function formatCurrency(amount: number): string {
+    return `$${amount.toFixed(2)}`;
+}
+
+// 사용
+import formatCurrency, { formatDate } from './utils';
+```
+
+**타입 Export/Import**:
+```typescript
+// types.ts
+export interface User {
+    id: number;
+    name: string;
+}
+
+export type Status = 'active' | 'inactive';
+
+// 사용
+import type { User, Status } from './types';
+// 또는
+import { type User, type Status } from './types';
+```
+
+**Re-export (재내보내기)**:
+```typescript
+// index.ts
+export { User, Status } from './types';
+export { Calculator } from './Calculator';
+export { default as formatCurrency } from './utils';
+```
+
+#### 1.9 네임스페이스와 모듈의 차이점
+
+**네임스페이스 (Namespace)**:
+네임스페이스는 관련된 코드를 논리적으로 그룹화하는 방법입니다. 전역 스코프에 추가됩니다.
+
+```typescript
+// 네임스페이스 정의
+namespace MathUtils {
+    export function add(a: number, b: number): number {
+        return a + b;
+    }
+    
+    export function multiply(a: number, b: number): number {
+        return a * b;
+    }
+    
+    // 중첩 네임스페이스
+    export namespace Geometry {
+        export function area(radius: number): number {
+            return Math.PI * radius * radius;
+        }
+    }
+}
+
+// 사용
+MathUtils.add(1, 2);
+MathUtils.Geometry.area(5);
+
+// 네임스페이스 병합
+namespace MathUtils {
+    export function subtract(a: number, b: number): number {
+        return a - b;
+    }
+}
+```
+
+**모듈 (Module)**:
+모듈은 파일 기반의 코드 조직화 방법입니다. 각 파일이 자체 스코프를 가지며, 명시적으로 export/import해야 합니다.
+
+```typescript
+// math.ts (모듈)
+export function add(a: number, b: number): number {
+    return a + b;
+}
+
+// 사용
+import { add } from './math';
+```
+
+**네임스페이스 vs 모듈 비교**:
+
+| 특징 | 네임스페이스 | 모듈 |
+|------|------------|------|
+| **스코프** | 전역 | 파일별 독립 |
+| **파일 구조** | 여러 파일에 분산 가능 | 파일 단위 |
+| **의존성 관리** | 수동 | 자동 (번들러) |
+| **트리 쉐이킹** | 어려움 | 쉬움 |
+| **권장 여부** | 레거시 코드 | 현대적 프로젝트 |
+
+**현대적 권장사항**:
+- **모듈 사용 권장**: 대부분의 경우 모듈을 사용하는 것이 좋습니다
+- **네임스페이스 사용 시기**: 
+  - 타입 정의 파일(.d.ts)에서 전역 타입 정의
+  - 레거시 코드와의 호환성
+  - 복잡한 타입 선언 병합
+
+```typescript
+// 모듈 방식 (권장)
+// math.ts
+export function add(a: number, b: number): number {
+    return a + b;
+}
+
+// app.ts
+import { add } from './math';
+
+// 네임스페이스 방식 (특수한 경우만)
+// types.d.ts
+declare namespace NodeJS {
+    interface ProcessEnv {
+        NODE_ENV: 'development' | 'production';
+    }
+}
+```
+
 ### 2. 개발 환경 설정
 
 #### 2.1 TypeScript 설치
