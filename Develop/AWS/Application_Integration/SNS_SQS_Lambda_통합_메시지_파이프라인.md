@@ -1,12 +1,12 @@
 ---
 title: AWS SNS/SQS/Lambda 통합 메시지 파이프라인
 tags: [aws, sns, sqs, lambda, messaging, pipeline, event-driven, microservices, nestjs]
-updated: 2025-11-25
+updated: 2025-11-29
 ---
 
 # AWS SNS/SQS/Lambda 통합 메시지 파이프라인 실전
 
-## 📋 목차
+## 목차
 
 1. [개요](#개요)
 2. [통합 아키텍처 패턴](#통합-아키텍처-패턴)
@@ -1234,5 +1234,6 @@ describe('Order Processing E2E', () => {
 ---
 
 **문서 작성일:** 2025-01-16  
-**최종 업데이트:** 2025-01-16
+**최종 업데이트:** 2025-11-29
+
 
