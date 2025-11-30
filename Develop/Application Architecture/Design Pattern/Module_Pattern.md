@@ -1,7 +1,7 @@
 ---
 title: 모듈 패턴 (Module Pattern)
 tags: [application-architecture, design-pattern, module-pattern, javascript, es6]
-updated: 2025-09-21
+updated: 2025-11-30
 ---
 
 # 모듈 패턴 (Module Pattern)
@@ -67,7 +67,7 @@ var orderService = { /* ... */ };
 
 모듈은 독립적인 기능 단위를 담은 파일입니다. 각 모듈은 자신만의 스코프를 가지며, 명시적으로 내보내지 않은 코드는 외부에서 접근할 수 없습니다. 이는 **정보 은닉(Information Hiding)** 원칙을 구현한 것입니다.
 
-#### 🔄 Export와 Import
+#### Export와 Import
 
 - **Export**: 모듈의 공개 인터페이스를 정의하는 메커니즘
 - **Import**: 다른 모듈의 기능을 현재 모듈로 가져오는 메커니즘
@@ -78,7 +78,7 @@ var orderService = { /* ... */ };
 
 모듈 내부의 변수와 함수는 기본적으로 **private**이며, 명시적으로 export한 것만 **public**이 됩니다. 이는 캡슐화를 달성하는 핵심 메커니즘입니다.
 
-#### 🕸️ 의존성 관리
+#### 🕸 의존성 관리
 
 모듈 시스템은 의존성 그래프를 명확하게 만들어 줍니다. 어떤 모듈이 어떤 모듈에 의존하는지, 그리고 그 의존성이 어떤 방향으로 흐르는지 명확하게 파악할 수 있습니다.
 
@@ -324,7 +324,7 @@ ES6 모듈 시스템은 JavaScript의 공식 모듈 표준입니다. CommonJS와
 
 #### ES6 모듈의 핵심 특징
 
-##### 🔍 정적 분석 (Static Analysis)
+##### 정적 분석 (Static Analysis)
 
 - 모듈의 의존성이 코드 실행 전에 결정됨
 - 번들러가 최적화를 수행할 수 있음
@@ -335,7 +335,7 @@ ES6 모듈 시스템은 JavaScript의 공식 모듈 표준입니다. CommonJS와
 - 사용하지 않는 코드를 자동으로 제거
 - 번들 크기 최적화에 큰 도움
 
-##### ⚡ 비동기 로딩
+##### 비동기 로딩
 
 - 모듈을 비동기적으로 로드 가능
 - 코드 스플리팅과 지연 로딩 구현 용이
@@ -637,7 +637,7 @@ const laptop = productManager.addProduct({
 });
 
 const book = productManager.addProduct({
-    name: 'JavaScript 완벽 가이드',
+    name: 'JavaScript 가이드',
     price: 45000,
     category: PRODUCT_CATEGORIES.BOOKS,
     inStock: false
@@ -1988,7 +1988,7 @@ import { apiClient } from './utils/apiClient.js';
 ```
 
 
-### 💡 실무 적용 팁
+### 실무 적용 팁
 
 - **🔄 점진적 마이그레이션**: 기존 CommonJS 프로젝트를 ES6 모듈로 점진적으로 마이그레이션하세요.
 - **📊 모니터링**: 모듈 로드 성능을 지속적으로 모니터링하고 최적화하세요.
@@ -2010,7 +2010,7 @@ import { apiClient } from './utils/apiClient.js';
 - [ES6 Modules Specification](https://tc39.es/ecma262/#sec-modules)
 - [Node.js ES Modules](https://nodejs.org/api/esm.html)
 
-### 🛠️ 도구 및 라이브러리
+### 도구 및 라이브러리
 
 - [Webpack - Module Federation](https://webpack.js.org/concepts/module-federation/)
 - [Rollup - Tree Shaking](https://rollupjs.org/guide/en/#tree-shaking)
@@ -2022,7 +2022,7 @@ import { apiClient } from './utils/apiClient.js';
 - [Exploring JS - Modules](https://exploringjs.com/es6/ch_modules.html)
 - [You Don't Know JS - ES6 & Beyond](https://github.com/getify/You-Dont-Know-JS/tree/1st-ed/es6%20%26%20beyond)
 
-### 🎯 실무 가이드
+### 실무 가이드
 
 - [Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)
 - [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript)

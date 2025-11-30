@@ -1,7 +1,7 @@
 ---
 title: Factory Method(팩토리 메서드) 패턴
 tags: [design-pattern, factory-method, creational-pattern, javascript, architecture, oop]
-updated: 2025-09-21
+updated: 2025-11-30
 ---
 
 # Factory Method(팩토리 메서드) 패턴
@@ -10,7 +10,7 @@ updated: 2025-09-21
 
 Factory Method 패턴은 **객체를 생성하는 방법을 추상화**하는 디자인 패턴입니다. 쉽게 말해, "어떤 객체를 만들지"는 결정하되, "어떻게 만들지"는 서브클래스에 맡기는 방식입니다.
 
-### 🎯 패턴의 핵심 아이디어
+### 패턴의 핵심 아이디어
 
 **"객체 생성을 캡슐화하여 클라이언트가 구체적인 클래스를 알 필요 없게 만든다"**
 
@@ -54,7 +54,7 @@ const database = new DatabaseConnection({
 - 설정에 따라 다른 타입의 객체를 생성해야 함
 - 에러 처리가 어려움
 
-### ✨ Factory Method 패턴의 해결책
+### Factory Method 패턴의 해결책
 
 #### 해결책 1: 생성 책임 분리
 ```javascript
@@ -78,7 +78,7 @@ class VIPUserFactory extends UserFactory {
 }
 ```
 
-### 🎨 패턴의 핵심 원칙
+### 패턴의 핵심 원칙
 
 #### 1. 단일 책임 원칙 (SRP)
 - **객체 생성**이라는 하나의 책임만 가짐
@@ -96,13 +96,13 @@ class VIPUserFactory extends UserFactory {
 - **서브클래스는 부모 클래스를 대체할 수 있어야 함**
 - 모든 팩토리는 동일한 인터페이스 제공
 
-## 🏗️ 패턴 구조 이해하기
+## 🏗 패턴 구조 이해하기
 
 Factory Method 패턴은 **4개의 핵심 구성 요소**로 이루어져 있습니다. 각각의 역할을 쉽게 이해해보겠습니다.
 
 ### 📦 구성 요소별 역할
 
-#### 1️⃣ Product (제품) - "만들어질 것"
+#### 1⃣ Product (제품) - "만들어질 것"
 **역할**: 팩토리에서 만들 객체들의 **공통 규격**을 정의
 
 **실생활 비유**: 자동차의 기본 설계도
@@ -118,7 +118,7 @@ class Vehicle {
 }
 ```
 
-#### 2️⃣ ConcreteProduct (구체적 제품) - "실제 만들어지는 것"
+#### 2⃣ ConcreteProduct (구체적 제품) - "실제 만들어지는 것"
 **역할**: Product의 규격에 맞춰 **실제로 만들어진 객체**
 
 **실생활 비유**: 실제 자동차들 (세단, SUV, 트럭 등)
@@ -139,7 +139,7 @@ class Motorcycle extends Vehicle {
 }
 ```
 
-#### 3️⃣ Creator (생성자) - "만드는 방법을 정하는 것"
+#### 3⃣ Creator (생성자) - "만드는 방법을 정하는 것"
 **역할**: **어떻게 만들지**에 대한 규칙을 정의하는 추상 클래스
 
 **실생활 비유**: 자동차 제조 공정의 기본 틀
@@ -163,7 +163,7 @@ class VehicleFactory {
 }
 ```
 
-#### 4️⃣ ConcreteCreator (구체적 생성자) - "실제로 만드는 것"
+#### 4⃣ ConcreteCreator (구체적 생성자) - "실제로 만드는 것"
 **역할**: **어떤 구체적인 객체를 만들지** 결정하고 실제로 생성
 
 **실생활 비유**: 특정 자동차를 만드는 공장들
@@ -184,7 +184,7 @@ class MotorcycleFactory extends VehicleFactory {
 }
 ```
 
-### 🔄 패턴의 동작 흐름
+### 패턴의 동작 흐름
 
 ```
 1. 클라이언트 → ConcreteCreator에게 객체 생성 요청
@@ -199,9 +199,9 @@ class MotorcycleFactory extends VehicleFactory {
 3. 완성된 자동차를 고객에게 전달
 4. 고객은 자동차를 사용 (어떻게 만들어졌는지 몰라도 됨)
 
-## ⚖️ 장단점 분석
+## ⚖ 장단점 분석
 
-### ✅ 장점
+### 장점
 
 #### 1. **느슨한 결합 (Loose Coupling)**
 ```javascript
@@ -241,7 +241,7 @@ class MockVehicleFactory extends VehicleFactory {
 }
 ```
 
-### ❌ 단점
+### 단점
 
 #### 1. **클래스 수 증가**
 - 각 제품마다 팩토리 클래스가 필요
@@ -255,9 +255,9 @@ class MockVehicleFactory extends VehicleFactory {
 - 추가적인 추상화 계층으로 인한 **약간의 성능 저하**
 - 하지만 대부분의 경우 **무시할 수 있는 수준**
 
-## 🎯 언제 사용해야 할까?
+## 언제 사용해야 할까?
 
-### ✅ 적합한 상황
+### 적합한 상황
 
 #### 1. **런타임에 객체 타입이 결정되는 경우**
 ```javascript
@@ -288,7 +288,7 @@ const payment = PaymentFactory.createPayment(paymentType);
 const logger = LoggerFactory.createLogger(environment);
 ```
 
-### ❌ 부적합한 상황
+### 부적합한 상황
 
 #### 1. **단순한 객체 생성**
 ```javascript
@@ -335,9 +335,9 @@ const config = new AppConfig();
 
 **2개 이상 "Yes"라면 Factory Method 패턴을 사용하는 것을 권장합니다!**
 
-## 💻 단계별 구현 예제
+## 단계별 구현 예제
 
-### 🚀 1단계: 기본 Factory Method 패턴
+### 1단계: 기본 Factory Method 패턴
 
 가장 기본적인 Factory Method 패턴을 **교통수단 예제**로 구현해보겠습니다. 단계별로 따라해보세요!
 
@@ -554,7 +554,7 @@ bicycleDealer.testDrive(giant);
 🛑 Giant Defy Advanced 자전거를 멈춥니다.
 ```
 
-### 🎯 핵심 포인트
+### 주요 내용
 
 1. **클라이언트는 구체적인 클래스를 모름** - `Car`, `Motorcycle`, `Bicycle` 클래스를 직접 사용하지 않음
 2. **팩토리가 객체 생성 책임** - 어떤 객체를 만들지 팩토리가 결정
@@ -2174,10 +2174,6 @@ class VehicleFactory {
 // 3단계: 기존 코드를 점진적으로 팩토리로 교체
 // 4단계: 직접 생성자 호출 제거
 ```
-
-## 결론
-
-Factory Method 패턴은 객체지향 설계의 핵심 원칙들을 잘 구현한 디자인 패턴입니다. 이 패턴을 적절히 활용하면:
 
 ### 장점
 - **유연성**: 새로운 객체 타입을 기존 코드 수정 없이 추가 가능

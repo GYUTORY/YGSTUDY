@@ -1,7 +1,7 @@
 ---
 title: Observer Pattern (옵저버 패턴) 완전 정복
 tags: [design-pattern, observer-pattern, behavioral-pattern, javascript, architecture]
-updated: 2025-09-23
+updated: 2025-11-30
 ---
 
 # Observer Pattern (옵저버 패턴) 완전 정복
@@ -911,7 +911,7 @@ Observer 패턴과 Command 패턴을 함께 사용하면 더욱 유연한 시스
 
 옵저버 패턴은 현대 소프트웨어 개발에서 가장 널리 사용되는 디자인 패턴 중 하나입니다. 이 패턴의 핵심 가치는 **느슨한 결합(Loose Coupling)**을 통해 시스템의 유연성과 확장성을 높이는 것입니다.
 
-### 핵심 포인트
+### 주요 내용
 1. **이벤트 기반 아키텍처**의 기초가 되는 패턴
 2. **실시간 시스템**에서 상태 변화를 효율적으로 전파
 3. **확장성**이 뛰어나며 새로운 기능 추가가 용이
