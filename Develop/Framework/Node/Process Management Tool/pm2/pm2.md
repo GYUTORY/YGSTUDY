@@ -1,7 +1,7 @@
 ---
 title: PM2 Node.js
 tags: [framework, node, process-management-tool, pm2, nodejs]
-updated: 2025-08-10
+updated: 2025-11-30
 ---
 # PM2와 Node.js
 
@@ -1077,7 +1077,7 @@ pm2 set pm2-logrotate:retain 30
 
 
 
-## 🚀 무중단 배포 (Zero Downtime Deployment)
+## 무중단 배포 (Zero Downtime Deployment)
 
 PM2는 `reload` 명령을 통해 애플리케이션을 중단 없이 재배포할 수 있습니다.
 
