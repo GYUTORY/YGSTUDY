@@ -697,7 +697,7 @@ const limiter = rateLimit({
 app.use('/graphql', limiter);
 ```
 
-## 📚 실전 예제: 완전한 GraphQL 서버
+## 실전 예제: 완전한 GraphQL 서버
 
 ```javascript
 const { ApolloServer, gql } = require('apollo-server-express');
@@ -823,7 +823,7 @@ server.applyMiddleware({ app });
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`🚀 GraphQL 서버가 http://localhost:${PORT}/graphql 에서 실행 중입니다.`);
+  console.log(`GraphQL 서버가 http://localhost:${PORT}/graphql 에서 실행 중입니다.`);
 });
 ```
 

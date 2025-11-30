@@ -1073,7 +1073,7 @@ findOne(@Param('id') id: string) {
 **메모리 캐싱:**
 - `@nestjs/cache-manager`를 통한 인메모리 캐싱
 - Redis를 활용한 분산 캐싱
-- 캐시 무효화 전략
+- 캐시 무효화
 
 ### 2. 데이터베이스 최적화
 
