@@ -1,23 +1,23 @@
 ---
 title: AWS ENI 구조와 ECS Task 한계 (awsvpc / bridge / host 네트워크 모드 비교)
 tags: [aws, ecs, eni, networking, containers, fargate]
-updated: 2025-10-25
+updated: 2025-12-01
 ---
 
 # AWS ENI 구조와 ECS Task 한계 (awsvpc / bridge / host 네트워크 모드 비교)
 
 ## 개요
 
-AWS ECS(Elastic Container Service)에서 컨테이너를 실행할 때, 네트워크 모드에 따라 ENI(Elastic Network Interface) 사용 방식이 달라지고, 이는 ECS Task의 최대 실행 개수에 직접적인 영향을 미칩니다. 특히 awsvpc 네트워크 모드에서는 각 Task마다 전용 ENI가 할당되어, EC2 인스턴스의 ENI 제한이 Task 실행 개수의 핵심 제약 요소가 됩니다.
+AWS ECS(Elastic Container Service)에서 컨테이너를 실행할 때, 네트워크 모드에 따라 ENI(Elastic Network Interface) 사용 방식이 달라집니다.
 
 ### ENI 제한의 중요성
 
-ECS 환경에서 ENI 제한을 이해하는 것은 다음과 같은 이유로 중요합니다:
+ECS 환경에서 ENI 제한을 이해하는 것은 다음 이유로 중요합니다:
 
 - **리소스 계획**: 인스턴스 타입 선택 시 Task 밀도 고려
 - **비용 최적화**: ENI 제한을 고려한 효율적인 인스턴스 구성
 - **성능 최적화**: 네트워크 모드별 특성에 맞는 아키텍처 설계
-- **확장성 계획**: 대규모 배포 시 인프라 설계 가이드라인
+- **확장성 계획**: 대규모 배포 시 인프라 설계 기준
 
 ## ENI의 개념과 역할
 
@@ -305,7 +305,7 @@ AWS는 EC2 인스턴스 타입별로 ENI 개수와 각 ENI당 IP 주소 수를 �
 | 확장성 | ENI 제한 고려 필요 | AWS가 자동 처리 |
 | 제어권 | 높음 | 제한적 |
 
-### Fargate에서의 최적화 전략
+### Fargate에서의 최적화
 
 **리소스 최적화**:
 - Task당 최소 리소스 할당
@@ -336,7 +336,7 @@ AWS는 EC2 인스턴스 타입별로 ENI 개수와 각 ENI당 IP 주소 수를 �
 | m5.large | 3개 | 2개 | 30개 | $70 |
 | m5.xlarge | 4개 | 3개 | 60개 | $140 |
 
-### 선택 가이드라인
+### 선택 기준
 
 **awsvpc 모드 선택 시기**:
 - 보안 격리가 중요한 경우
@@ -356,8 +356,7 @@ AWS는 EC2 인스턴스 타입별로 ENI 개수와 각 ENI당 IP 주소 수를 �
 - 단순한 구성 선호
 - 보안 격리보다 성능 우선
 
-## 결론
-
+## 요약
 AWS ECS에서 ENI 제한은 특히 awsvpc 네트워크 모드에서 Task 실행 개수의 핵심 제약 요소입니다. 인스턴스 타입별 ENI 제한을 정확히 이해하고, 애플리케이션의 요구사항에 맞는 네트워크 모드를 선택하는 것이 중요합니다.
 
 **핵심 고려사항**:
@@ -365,7 +364,7 @@ AWS ECS에서 ENI 제한은 특히 awsvpc 네트워크 모드에서 Task 실행 
 - **성능 vs 관리**: host 모드는 성능이 우수하지만 관리가 복잡
 - **비용 vs 기능**: Fargate는 관리가 간단하지만 제어권이 제한적
 
-**최적화 전략**:
+**최적화:**
 - 워크로드 특성에 맞는 네트워크 모드 선택
 - 인스턴스 타입별 ENI 제한 고려한 아키텍처 설계
 - 보조 IP 활용을 통한 Task 밀도 향상
