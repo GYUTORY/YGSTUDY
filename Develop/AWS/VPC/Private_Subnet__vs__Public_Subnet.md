@@ -1,16 +1,16 @@
 ---
-title: AWS VPC Private Subnet vs Public Subnet 완전 가이드
+title: AWS VPC Private Subnet vs Public Subnet
 tags: [aws, vpc, privatesubnet, publicsubnet, 네트워크보안, 클라우드아키텍처]
-updated: 2025-09-23
+updated: 2025-12-02
 ---
 
-# AWS VPC에서 Private Subnet과 Public Subnet 완전 이해하기
+# AWS VPC에서 Private Subnet과 Public Subnet
 
 ## 들어가며
 
-클라우드 아키텍처를 설계할 때 가장 중요한 결정 중 하나가 바로 서브넷 구성입니다. AWS VPC(Virtual Private Cloud)에서 Private Subnet과 Public Subnet을 어떻게 구분하고 활용할지에 대한 이해는 안전하고 효율적인 클라우드 인프라 구축의 핵심입니다.
+- 클라우드 아키텍처를 설계할 때 가장 중요한 결정 중 하나가 바로 서브넷 구성입니다. AWS VPC(Virtual Private Cloud)에서 Private Subnet과 Public Subnet을 어떻게 구분하고 활용할지에 대한 이해는 안전하고 효율적인 클라우드 인프라 구축의 핵심입니다.
 
-이 글에서는 단순히 정의를 나열하는 것이 아니라, 실제 운영 환경에서 왜 이런 구분이 필요한지, 어떤 상황에서 어떤 서브넷을 선택해야 하는지에 대해 깊이 있게 다뤄보겠습니다.
+- 단순히 정의를 나열하는 것이 아니라, 실제 운영 환경에서 왜 이런 구분이 필요한지, 어떤 상황에서 어떤 서브넷을 선택해야 하는지에 대해 다룹니다.
 
 ## VPC의 본질적 이해
 
@@ -202,7 +202,7 @@ Private Subnet의 아웃바운드 트래픽은 NAT Gateway를 통해야 하므�
 Public Subnet의 인터넷 트래픽은 데이터 전송 비용이 발생합니다:
 - **CDN 활용**: 정적 콘텐츠는 CloudFront 사용
 - **압축 및 최적화**: 전송 데이터 크기 최소화
-- **캐싱 전략**: 불필요한 외부 요청 최소화
+- **캐싱**: 불필요한 외부 요청 최소화
 
 ### 성능 최적화
 
@@ -255,7 +255,7 @@ Private Subnet과 Public Subnet의 구분은 단순한 네트워크 설계가 �
 - **사용자 경험을 보장**하고
 - **운영 비용을 최적화**할 수 있게 해줍니다.
 
-실제 프로젝트에서는 비즈니스 요구사항, 보안 정책, 성능 요구사항을 종합적으로 고려하여 서브넷을 설계해야 합니다. 이 글에서 다룬 내용들이 여러분의 클라우드 아키텍처 설계에 도움이 되기를 바랍니다.
+실제 프로젝트에서는 비즈니스 요구사항, 보안 정책, 성능 요구사항을 종합적으로 고려하여 서브넷을 설계해야 합니다.
 
 ## 참고 자료
 
