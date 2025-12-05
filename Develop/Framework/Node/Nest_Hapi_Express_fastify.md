@@ -1,7 +1,7 @@
 ---
 title: Node.js NestJS vs Hapi vs Express vs Fastify
 tags: [framework, node, nesthapiexpressfastify, nodejs]
-updated: 2025-08-10
+updated: 2025-12-05
 ---
 # Node.js 웹 프레임워크 심층 비교 분석: NestJS vs Hapi vs Express vs Fastify
 
@@ -210,118 +210,118 @@ fastify.listen({ port: 3000 });
 
 | 기능 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| 기본 라우팅 | ✅ | ✅ | ✅ | ✅ |
-| 동적 라우팅 | ✅ | ✅ | ✅ | ✅ |
-| 라우트 그룹화 | ✅ | ✅ | ✅ | ✅ |
-| 라우트 미들웨어 | ✅ | ✅ | ✅ | ✅ |
-| 라우트 파라미터 검증 | ❌ | ✅ | ✅ | ✅ |
-| 라우트 버전 관리 | ❌ | ✅ | ✅ | ✅ |
+| 기본 라우팅 | 지원 | 지원 | 지원 | 지원 |
+| 동적 라우팅 | 지원 | 지원 | 지원 | 지원 |
+| 라우트 그룹화 | 지원 | 지원 | 지원 | 지원 |
+| 라우트 미들웨어 | 지원 | 지원 | 지원 | 지원 |
+| 라우트 파라미터 검증 | 미지원 | 지원 | 지원 | 지원 |
+| 라우트 버전 관리 | 미지원 | 지원 | 지원 | 지원 |
 
 ### 2. 미들웨어 시스템
 
 | 기능 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| 커스텀 미들웨어 | ✅ | ✅ | ✅ | ✅ |
-| 미들웨어 체인 | ✅ | ✅ | ✅ | ✅ |
-| 에러 핸들링 | ✅ | ✅ | ✅ | ✅ |
-| 요청/응답 변환 | ✅ | ✅ | ✅ | ✅ |
-| 비동기 미들웨어 | ✅ | ✅ | ✅ | ✅ |
-| 미들웨어 우선순위 | ✅ | ✅ | ✅ | ✅ |
+| 커스텀 미들웨어 | 지원 | 지원 | 지원 | 지원 |
+| 미들웨어 체인 | 지원 | 지원 | 지원 | 지원 |
+| 에러 핸들링 | 지원 | 지원 | 지원 | 지원 |
+| 요청/응답 변환 | 지원 | 지원 | 지원 | 지원 |
+| 비동기 미들웨어 | 지원 | 지원 | 지원 | 지원 |
+| 미들웨어 우선순위 | 지원 | 지원 | 지원 | 지원 |
 
 ### 3. 템플릿 엔진
 
 | 기능 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| EJS | ✅ | ✅ | ✅ | ✅ |
-| Pug | ✅ | ✅ | ✅ | ✅ |
-| Handlebars | ✅ | ✅ | ✅ | ✅ |
-| Mustache | ✅ | ✅ | ✅ | ✅ |
-| Nunjucks | ✅ | ✅ | ✅ | ✅ |
+| EJS | 지원 | 지원 | 지원 | 지원 |
+| Pug | 지원 | 지원 | 지원 | 지원 |
+| Handlebars | 지원 | 지원 | 지원 | 지원 |
+| Mustache | 지원 | 지원 | 지원 | 지원 |
+| Nunjucks | 지원 | 지원 | 지원 | 지원 |
 
 
 ### 1. 기본 보안 기능
 
 | 기능 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| CORS | ✅ | ✅ | ✅ | ✅ |
-| Helmet | ✅ | ✅ | ✅ | ✅ |
-| Rate Limiting | ✅ | ✅ | ✅ | ✅ |
-| XSS Protection | ✅ | ✅ | ✅ | ✅ |
-| CSRF Protection | ✅ | ✅ | ✅ | ✅ |
-| Content Security Policy | ✅ | ✅ | ✅ | ✅ |
+| CORS | 지원 | 지원 | 지원 | 지원 |
+| Helmet | 지원 | 지원 | 지원 | 지원 |
+| Rate Limiting | 지원 | 지원 | 지원 | 지원 |
+| XSS Protection | 지원 | 지원 | 지원 | 지원 |
+| CSRF Protection | 지원 | 지원 | 지원 | 지원 |
+| Content Security Policy | 지원 | 지원 | 지원 | 지원 |
 
 ### 2. 인증 방식
 
 | 방식 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| JWT | ✅ | ✅ | ✅ | ✅ |
-| OAuth2 | ✅ | ✅ | ✅ | ✅ |
-| Basic Auth | ✅ | ✅ | ✅ | ✅ |
-| Session-based | ✅ | ✅ | ✅ | ✅ |
-| API Keys | ✅ | ✅ | ✅ | ✅ |
+| JWT | 지원 | 지원 | 지원 | 지원 |
+| OAuth2 | 지원 | 지원 | 지원 | 지원 |
+| Basic Auth | 지원 | 지원 | 지원 | 지원 |
+| Session-based | 지원 | 지원 | 지원 | 지원 |
+| API Keys | 지원 | 지원 | 지원 | 지원 |
 
 
 ### 1. ORM/ODM 지원
 
 | 데이터베이스 | Express | NestJS | Hapi | Fastify |
 |-------------|---------|--------|------|---------|
-| MongoDB | ✅ | ✅ | ✅ | ✅ |
-| MySQL | ✅ | ✅ | ✅ | ✅ |
-| PostgreSQL | ✅ | ✅ | ✅ | ✅ |
-| SQLite | ✅ | ✅ | ✅ | ✅ |
-| Redis | ✅ | ✅ | ✅ | ✅ |
+| MongoDB | 지원 | 지원 | 지원 | 지원 |
+| MySQL | 지원 | 지원 | 지원 | 지원 |
+| PostgreSQL | 지원 | 지원 | 지원 | 지원 |
+| SQLite | 지원 | 지원 | 지원 | 지원 |
+| Redis | 지원 | 지원 | 지원 | 지원 |
 
 ### 2. 데이터베이스 도구
 
 | 도구 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| TypeORM | ✅ | ✅ | ✅ | ✅ |
-| Sequelize | ✅ | ✅ | ✅ | ✅ |
-| Mongoose | ✅ | ✅ | ✅ | ✅ |
-| Prisma | ✅ | ✅ | ✅ | ✅ |
-| Knex.js | ✅ | ✅ | ✅ | ✅ |
+| TypeORM | 지원 | 지원 | 지원 | 지원 |
+| Sequelize | 지원 | 지원 | 지원 | 지원 |
+| Mongoose | 지원 | 지원 | 지원 | 지원 |
+| Prisma | 지원 | 지원 | 지원 | 지원 |
+| Knex.js | 지원 | 지원 | 지원 | 지원 |
 
 
 ### 1. 테스트 프레임워크 지원
 
 | 프레임워크 | Express | NestJS | Hapi | Fastify |
 |------------|---------|--------|------|---------|
-| Jest | ✅ | ✅ | ✅ | ✅ |
-| Mocha | ✅ | ✅ | ✅ | ✅ |
-| Chai | ✅ | ✅ | ✅ | ✅ |
-| Supertest | ✅ | ✅ | ✅ | ✅ |
-| Cypress | ✅ | ✅ | ✅ | ✅ |
+| Jest | 지원 | 지원 | 지원 | 지원 |
+| Mocha | 지원 | 지원 | 지원 | 지원 |
+| Chai | 지원 | 지원 | 지원 | 지원 |
+| Supertest | 지원 | 지원 | 지원 | 지원 |
+| Cypress | 지원 | 지원 | 지원 | 지원 |
 
 ### 2. 디버깅 도구
 
 | 도구 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| Node Inspector | ✅ | ✅ | ✅ | ✅ |
-| VS Code Debugger | ✅ | ✅ | ✅ | ✅ |
-| Chrome DevTools | ✅ | ✅ | ✅ | ✅ |
-| Logging | ✅ | ✅ | ✅ | ✅ |
-| Performance Profiling | ✅ | ✅ | ✅ | ✅ |
+| Node Inspector | 지원 | 지원 | 지원 | 지원 |
+| VS Code Debugger | 지원 | 지원 | 지원 | 지원 |
+| Chrome DevTools | 지원 | 지원 | 지원 | 지원 |
+| Logging | 지원 | 지원 | 지원 | 지원 |
+| Performance Profiling | 지원 | 지원 | 지원 | 지원 |
 
 
 ### 1. 배포 옵션
 
 | 옵션 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| Docker | ✅ | ✅ | ✅ | ✅ |
-| Kubernetes | ✅ | ✅ | ✅ | ✅ |
-| PM2 | ✅ | ✅ | ✅ | ✅ |
-| Heroku | ✅ | ✅ | ✅ | ✅ |
-| AWS Lambda | ✅ | ✅ | ✅ | ✅ |
+| Docker | 지원 | 지원 | 지원 | 지원 |
+| Kubernetes | 지원 | 지원 | 지원 | 지원 |
+| PM2 | 지원 | 지원 | 지원 | 지원 |
+| Heroku | 지원 | 지원 | 지원 | 지원 |
+| AWS Lambda | 지원 | 지원 | 지원 | 지원 |
 
 ### 2. 모니터링 도구
 
 | 도구 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| New Relic | ✅ | ✅ | ✅ | ✅ |
-| Datadog | ✅ | ✅ | ✅ | ✅ |
-| Prometheus | ✅ | ✅ | ✅ | ✅ |
-| Grafana | ✅ | ✅ | ✅ | ✅ |
-| ELK Stack | ✅ | ✅ | ✅ | ✅ |
+| New Relic | 지원 | 지원 | 지원 | 지원 |
+| Datadog | 지원 | 지원 | 지원 | 지원 |
+| Prometheus | 지원 | 지원 | 지원 | 지원 |
+| Grafana | 지원 | 지원 | 지원 | 지원 |
+| ELK Stack | 지원 | 지원 | 지원 | 지원 |
 
 
 ### 1. 대규모 프로젝트 사례
@@ -366,11 +366,11 @@ fastify.listen({ port: 3000 });
 
 | 항목 | Express | NestJS | Hapi | Fastify |
 |------|---------|--------|------|---------|
-| 튜토리얼 | ✅ | ✅ | ✅ | ✅ |
-| API 문서 | ✅ | ✅ | ✅ | ✅ |
-| 예제 코드 | ✅ | ✅ | ✅ | ✅ |
-| 비디오 강의 | ✅ | ✅ | ✅ | ✅ |
-| 커뮤니티 가이드 | ✅ | ✅ | ✅ | ✅ |
+| 튜토리얼 | 지원 | 지원 | 지원 | 지원 |
+| API 문서 | 지원 | 지원 | 지원 | 지원 |
+| 예제 코드 | 지원 | 지원 | 지원 | 지원 |
+| 비디오 강의 | 지원 | 지원 | 지원 | 지원 |
+| 커뮤니티 가이드 | 지원 | 지원 | 지원 | 지원 |
 
 ### 2. 학습 곡선
 
