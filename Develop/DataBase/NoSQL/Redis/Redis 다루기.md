@@ -1,10 +1,10 @@
 ---
-title: Redis 완벽 가이드: 개념과 활용
+title: Redis 가이드: 개념과 활용
 tags: [database, nosql, redis, 인메모리, 캐싱]
-updated: 2025-09-23
+updated: 2025-12-09
 ---
 
-# Redis 완벽 가이드: 개념과 실무 활용
+# Redis
 
 ## Redis란 무엇인가?
 
