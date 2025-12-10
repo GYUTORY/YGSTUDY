@@ -1,7 +1,7 @@
 ---
 title: GitOps 전략
 tags: [devops, gitops, argocd, flux, declarative-deployment, continuous-deployment, kubernetes]
-updated: 2025-12-09
+updated: 2025-12-10
 ---
 
 # GitOps 전략
