@@ -1,7 +1,7 @@
 ---
-title: Spring Boot Profiles 완벽 가이드
+title: Spring Boot Profiles 가이드
 tags: [framework, java, spring, spring-boot, profiles, configuration, environment]
-updated: 2024-12-19
+updated: 2025-12-13
 ---
 
 # Spring Boot Profiles
@@ -423,12 +423,12 @@ export DB_PASSWORD=secure_password
 
 #### 일반적인 오류 및 해결방법
 ```yaml
-# ❌ 잘못된 방식 (Spring Boot 2.4+)
+# 잘못된 방식 (Spring Boot 2.4+)
 spring:
   profiles:
     active: dev
 
-# ✅ 올바른 방식 (Spring Boot 2.4+)
+# 올바른 방식 (Spring Boot 2.4+)
 spring:
   config:
     activate:

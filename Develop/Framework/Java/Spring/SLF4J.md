@@ -1,10 +1,10 @@
 ---
-title: SLF4J (Simple Logging Facade for Java) 완벽 가이드
+title: SLF4J (Simple Logging Facade for Java) 가이드
 tags: [framework, java, spring, slf4j, logging, logback]
-updated: 2024-12-19
+updated: 2025-12-13
 ---
 
-# SLF4J (Simple Logging Facade for Java) 완벽 가이드
+# SLF4J (Simple Logging Facade for Java) 가이드
 
 ## 배경
 

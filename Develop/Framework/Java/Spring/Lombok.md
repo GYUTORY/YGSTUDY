@@ -1,9 +1,9 @@
 ---
 title: Project Lombok Java
 tags: [framework, java, spring, lombok]
-updated: 2025-08-10
+updated: 2025-12-13
 ---
-# 🚀 Project Lombok: Java 개발자의 필수 도구
+# Project Lombok: Java 개발자의 필수 도구
 
 ## 배경
 1. [Lombok 소개](#1-lombok-소개)
