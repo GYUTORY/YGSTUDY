@@ -1,10 +1,10 @@
 ---
-title: 외부 API 모킹 전략 가이드
+title: 외부 API 모킹 가이드
 tags: [framework, node, testing, mocking, nock, axios-mock-adapter, external-api, integration-testing]
 updated: 2025-09-17
 ---
 
-# 외부 API 모킹 전략 가이드
+# 외부 API 모킹 가이드
 
 ## 배경
 
@@ -386,7 +386,7 @@ class FailureSimulation {
 module.exports = FailureSimulation;
 ```
 
-### 4. 모킹 데이터 관리 전략
+### 4. 모킹 데이터 관리
 
 #### 모킹 데이터 팩토리
 ```javascript
@@ -928,7 +928,7 @@ module.exports = MockStateManager;
 
 ## 운영 팁
 
-### 1. 모킹 전략 최적화
+### 1. 모킹 최적화
 
 #### 모킹 범위 관리
 ```javascript
@@ -1067,7 +1067,7 @@ module.exports = new MockLogger();
 | **axios-mock-adapter** | 간단한 설정, axios 전용 | axios에만 특화 | axios 기반 프로젝트 |
 | **MSW** | 브라우저/Node.js 지원 | 상대적으로 새로운 도구 | 풀스택 애플리케이션 |
 
-### 모범 사례
+### 참고
 
 #### 모킹 원칙
 1. **실제 API와 유사한 응답** 구조 유지
@@ -1085,4 +1085,4 @@ module.exports = new MockLogger();
 외부 API 모킹은 안정적이고 빠른 테스트를 위한 필수 기술입니다.
 nock과 axios-mock-adapter를 적절히 활용하여 외부 의존성 없이 완전한 테스트를 구축할 수 있습니다.
 다양한 장애 시나리오를 시뮬레이션하여 견고한 애플리케이션을 개발하세요.
-모킹 데이터 관리 전략을 통해 일관되고 유지보수하기 쉬운 테스트를 작성하세요.
+모킹 데이터 관리를 통해 일관되고 유지보수하기 쉬운 테스트를 작성하세요.

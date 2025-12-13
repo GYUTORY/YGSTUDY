@@ -1,7 +1,7 @@
 ---
 title: API E2E 테스트 패턴
 tags: [framework, node, testing, api, e2e, rest, authentication, express, integration-testing]
-updated: 2025-09-18
+updated: 2025-12-13
 ---
 
 # API E2E 테스트 패턴 가이드
@@ -1240,7 +1240,7 @@ module.exports = CustomReporter;
 
 ## 참고
 
-### 모범 사례
+### 주의사항
 
 #### 테스트 설계 원칙
 1. **테스트 격리**: 각 테스트가 독립적으로 실행되도록 보장

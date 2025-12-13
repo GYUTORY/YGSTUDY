@@ -1,7 +1,7 @@
 ---
 title: 데이터베이스 통합 테스트
 tags: [framework, node, testing, database, integration-testing, jest, mysql, postgresql]
-updated: 2025-10-02
+updated: 2025-12-13
 ---
 
 # 데이터베이스 통합 테스트
@@ -759,7 +759,7 @@ module.exports = new TestDataCache();
 | **성능** | 읽기 최적화 | 복잡한 쿼리 최적화 |
 | **확장성** | 수평 확장 | 수직 확장 |
 
-### 모범 사례
+### 주의사항
 
 #### 테스트 격리 원칙
 1. **각 테스트는 독립적**이어야 함
