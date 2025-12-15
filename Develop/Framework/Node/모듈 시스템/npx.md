@@ -1,7 +1,7 @@
 ---
 title: npx (Node Package Execute)
 tags: [framework, node, 모듈-시스템, npx, package-runner, nodejs]
-updated: 2025-10-14
+updated: 2025-12-15
 ---
 
 # npx (Node Package Execute)
@@ -71,7 +71,7 @@ npx는 다음과 같은 단계를 거쳐 패키지를 실행합니다:
 npx는 효율적인 캐시 시스템을 사용합니다:
 
 - **캐시 위치**: `~/.npm/_npx/` (Unix/Linux/macOS) 또는 `%APPDATA%\npm-cache\_npx\` (Windows)
-- **캐시 전략**: 패키지별로 버전을 관리하여 중복 다운로드 방지
+- **캐시**: 패키지별로 버전을 관리하여 중복 다운로드 방지
 - **캐시 정리**: `npx clear-npx-cache` 명령으로 수동 정리 가능
 
 ### npx의 고급 기능들
@@ -262,7 +262,7 @@ npx husky install
   run: npx webpack --mode=production
 ```
 
-### 성능 최적화 전략
+### 성능 최적화
 
 #### 1. 캐시 관리
 ```bash

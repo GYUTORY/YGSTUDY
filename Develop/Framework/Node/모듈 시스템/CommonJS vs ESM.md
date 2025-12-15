@@ -1,7 +1,7 @@
 ---
 title: CommonJS vs ESM (ECMAScript Modules)
 tags: [framework, node, 모듈-시스템, commonjs, esm, nodejs]
-updated: 2025-10-13
+updated: 2025-12-15
 ---
 
 # CommonJS vs ESM (ECMAScript Modules)
@@ -313,11 +313,11 @@ const oldModule = require('./old-module.js');
 | **문법** | `require()` / `module.exports` | `import` / `export` |
 | **로딩 시점** | 런타임 (동적) | 컴파일 타임 (정적) |
 | **로딩 방식** | 동기적 (Synchronous) | 비동기적 (Asynchronous) |
-| **브라우저 지원** | ❌ 번들러 필요 | ✅ 네이티브 지원 |
-| **트리 쉐이킹** | ❌ 불가능 | ✅ 가능 |
+| **브라우저 지원** | 번들러 필요 | 네이티브 지원 |
+| **트리 쉐이킹** | 불가능 | 가능 |
 | **순환 의존성** | 런타임 해결 | 정적 분석으로 해결 |
 | **호이스팅** | `require()` 호이스팅 안됨 | `import` 호이스팅됨 |
-| **조건부 로딩** | ✅ 런타임 조건 가능 | ❌ 정적 조건만 가능 |
+| **조건부 로딩** | 런타임 조건 가능 | 정적 조건만 가능 |
 
 ### 실제 성능 차이
 
@@ -498,7 +498,7 @@ const config = require(join(__dirname, 'config.json'));
 console.log(legacyModule.someFunction());
 ```
 
-### 프로젝트 마이그레이션 전략
+### 프로젝트 마이그레이션
 
 #### 1단계: 점진적 마이그레이션
 ```json
@@ -653,7 +653,7 @@ Module.prototype.require = function(id) {
 
 ### 마이그레이션 로드맵
 
-#### 단계별 마이그레이션 전략
+#### 단계별 마이그레이션
 1. **평가 단계**: 현재 코드베이스 분석, 의존성 검토
 2. **준비 단계**: 빌드 도구 업데이트, 테스트 환경 구축
 3. **점진적 마이그레이션**: 새 파일부터 ESM으로 작성
@@ -666,8 +666,7 @@ Module.prototype.require = function(id) {
 - **테스트 환경**: Jest, Mocha 등 테스트 프레임워크 설정 변경
 - **CI/CD 파이프라인**: 빌드 스크립트 및 배포 프로세스 수정
 
-## 결론
-
+## 요약
 CommonJS와 ESM은 각각 고유한 장점을 가진 모듈 시스템입니다. 
 
 **CommonJS**는 Node.js 생태계에서 검증된 안정성과 단순함을 제공하며, 기존 프로젝트에서 신뢰할 수 있는 선택입니다. 동기적 로딩과 런타임 의존성 해결은 예측 가능한 동작을 보장합니다.

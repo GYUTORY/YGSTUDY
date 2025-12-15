@@ -1,7 +1,7 @@
 ---
 title: npm, package.json, package-lock.json
 tags: [framework, node, 모듈-시스템, npm, nodejs]
-updated: 2025-10-14
+updated: 2025-12-15
 ---
 
 # npm, package.json, package-lock.json
@@ -381,12 +381,12 @@ npm update express
 
 ### 주의사항 및 모범 사례
 
-#### ✅ 해야 할 것
+#### 해야 할 것
 - package-lock.json을 Git에 커밋하기
 - 팀원들과 package-lock.json 공유하기
 - CI/CD에서 package-lock.json 사용하기
 
-#### ❌ 하지 말아야 할 것
+#### 하지 말아야 할 것
 - package-lock.json을 .gitignore에 추가하기
 - package-lock.json을 수동으로 편집하기
 - package-lock.json 없이 프로덕션 배포하기
