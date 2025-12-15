@@ -1,12 +1,12 @@
 ---
 title: NestJS Event Driven Architecture with AWS 실전 가이드
 tags: [nestjs, event-driven, aws, sns, sqs, lambda, microservices, architecture]
-updated: 2025-11-28
+updated: 2025-12-15
 ---
 
 # NestJS Event Driven Architecture with AWS 실전 가이드
 
-## 📋 목차
+## 목차
 
 1. [개요](#개요)
 2. [Event Driven Architecture 기본 개념](#event-driven-architecture-기본-개념)
@@ -15,7 +15,7 @@ updated: 2025-11-28
 5. [Lambda를 활용한 이벤트 핸들러](#lambda를-활용한-이벤트-핸들러)
 6. [NestJS 마이크로서비스와 AWS 통합](#nestjs-마이크로서비스와-aws-통합)
 7. [실전 프로젝트 구조](#실전-프로젝트-구조)
-8. [테스트 전략](#테스트-전략)
+8. [테스트](#테스트)
 9. [트러블슈팅](#트러블슈팅)
 
 ---
@@ -108,11 +108,11 @@ sequenceDiagram
 ### 이벤트 설계 원칙
 
 #### 1. 이벤트는 과거 시제로 명명
-- ✅ `order.created`
-- ✅ `user.registered`
-- ✅ `payment.completed`
-- ❌ `create.order`
-- ❌ `register.user`
+- 권장: `order.created`
+- 권장: `user.registered`
+- 권장: `payment.completed`
+- 비권장: `create.order`
+- 비권장: `register.user`
 
 #### 2. 이벤트는 불변(Immutable)
 이벤트는 발생한 사실을 기록하므로 변경할 수 없습니다.
@@ -1004,7 +1004,7 @@ resource "aws_sqs_queue_policy" "order_email_queue_policy" {
 
 ---
 
-## 테스트 전략
+## 테스트
 
 ### 단위 테스트
 
@@ -1156,6 +1156,7 @@ aws sqs get-queue-attributes --queue-url <queue-url> --attribute-names Policy
 
 **문서 작성일:** 2025-01-16  
 **최종 업데이트:** 2025-01-16
+
 
 
 
