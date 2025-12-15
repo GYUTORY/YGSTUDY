@@ -1,16 +1,16 @@
 ---
 title: Node.js 보안 모범 사례
 tags: [framework, node, security, helmet, cors, validation, vulnerability]
-updated: 2025-11-28
+updated: 2025-12-15
 ---
 
-# 🛡️ Node.js 보안 모범 사례
+# Node.js 보안 모범 사례
 
-## 📌 개요
+## 개요
 
-> **보안**은 Node.js 애플리케이션의 핵심 요소로, 다양한 공격 벡터로부터 애플리케이션과 사용자 데이터를 보호해야 합니다.
+보안은 Node.js 애플리케이션의 핵심 요소로, 다양한 공격 벡터로부터 애플리케이션과 사용자 데이터를 보호해야 합니다.
 
-### 🎯 보안 위협
+### 보안 위협
 
 ```mermaid
 mindmap
@@ -32,7 +32,7 @@ mindmap
       권한 상승
 ```
 
-### 📊 보안 계층
+### 보안 계층
 
 ```mermaid
 graph TD
@@ -51,7 +51,7 @@ graph TD
     style D fill:#ef5350,color:#fff
 ```
 
-## 🔒 Helmet.js 설정
+## Helmet.js 설정
 
 ### Helmet 개요
 
@@ -151,7 +151,7 @@ app.use(helmet.contentSecurityPolicy({
 }));
 ```
 
-## 🌐 CORS 상세 설정
+## CORS 상세 설정
 
 ### CORS 기본 설정
 
@@ -220,7 +220,7 @@ function getCorsOptions() {
 app.use(cors(getCorsOptions()));
 ```
 
-## ✅ 입력 검증
+## 입력 검증
 
 ### Joi를 사용한 검증
 
@@ -348,12 +348,12 @@ app.post('/users', validateDto(CreateUserDto), async (req, res) => {
 });
 ```
 
-## 🚫 SQL Injection 방지
+## SQL Injection 방지
 
 ### ORM 사용
 
 ```javascript
-// ❌ 취약한 코드
+// 취약한 예시
 app.get('/users', (req, res) => {
   const query = `SELECT * FROM users WHERE id = ${req.query.id}`;
   db.query(query, (err, results) => {
@@ -361,7 +361,7 @@ app.get('/users', (req, res) => {
   });
 });
 
-// ✅ 안전한 코드 (Sequelize)
+// 안전한 예시: Sequelize 사용
 const { Op } = require('sequelize');
 
 app.get('/users', async (req, res) => {
@@ -373,7 +373,7 @@ app.get('/users', async (req, res) => {
   res.json(users);
 });
 
-// ✅ 안전한 코드 (TypeORM)
+// 안전한 예시: TypeORM 사용
 app.get('/users', async (req, res) => {
   const users = await userRepository.find({
     where: {
@@ -383,7 +383,7 @@ app.get('/users', async (req, res) => {
   res.json(users);
 });
 
-// ✅ 안전한 코드 (Raw Query with Parameterization)
+// 안전한 예시: Raw Query with Parameterization
 app.get('/users', async (req, res) => {
   const query = 'SELECT * FROM users WHERE id = ?';
   const users = await db.query(query, [req.query.id]);
@@ -394,7 +394,7 @@ app.get('/users', async (req, res) => {
 ### NoSQL Injection 방지
 
 ```javascript
-// ❌ 취약한 코드
+// 취약한 예시
 app.post('/login', async (req, res) => {
   const user = await User.findOne({
     email: req.body.email,
@@ -403,7 +403,7 @@ app.post('/login', async (req, res) => {
   // NoSQL Injection 가능!
 });
 
-// ✅ 안전한 코드
+// 안전한 예시
 app.post('/login', async (req, res) => {
   // 입력 검증
   const { email, password } = req.body;
@@ -435,7 +435,7 @@ app.post('/login', async (req, res) => {
 });
 ```
 
-## 🛡️ XSS 및 CSRF 방어
+## XSS 및 CSRF 방어
 
 ### XSS 방어
 
@@ -535,7 +535,7 @@ app.use((req, res, next) => {
 });
 ```
 
-## 🔍 의존성 취약점 스캔
+## 의존성 취약점 스캔
 
 ### npm audit
 
@@ -602,7 +602,7 @@ jobs:
 }
 ```
 
-## 🔐 비밀번호 보안
+## 비밀번호 보안
 
 ### 비밀번호 해싱
 
@@ -658,7 +658,7 @@ app.post('/login', async (req, res) => {
 });
 ```
 
-## 🔧 보안 트러블슈팅
+## 보안 트러블슈팅
 
 ### 보안 위협별 대응 플로우차트
 
@@ -735,7 +735,7 @@ flowchart TD
 - [ ] Content Security Policy
 - [ ] HTTPS 강제
 
-## 💡 5년차 개발자를 위한 고급 전략
+## 고급 활용
 
 **1. 보안 사고 대응 절차:**
 - 즉시 위협 차단
@@ -755,26 +755,25 @@ flowchart TD
 - 보안 점검 정기화
 - 보안 사고 대응 팀 구성
 
-## 📝 결론
-
+## 요약
 Node.js 애플리케이션의 보안은 여러 계층에서의 방어가 필요합니다.
 
-### 핵심 포인트
+### 주요 내용
 
-- ✅ **Helmet.js**: 보안 헤더 설정
-- ✅ **CORS**: 적절한 출처 제한
-- ✅ **입력 검증**: Joi, class-validator 사용
-- ✅ **SQL Injection 방지**: ORM 사용, 파라미터화
-- ✅ **XSS/CSRF 방어**: 입력 이스케이프, CSRF 토큰
-- ✅ **의존성 스캔**: npm audit, Snyk
-- ✅ **비밀번호 보안**: bcrypt 해싱
+- **Helmet.js**: 보안 헤더 설정
+- **CORS**: 적절한 출처 제한
+- **입력 검증**: Joi, class-validator 사용
+- **SQL Injection 방지**: ORM 사용, 파라미터화
+- **XSS/CSRF 방어**: 입력 이스케이프, CSRF 토큰
+- **의존성 스캔**: npm audit, Snyk
+- **비밀번호 보안**: bcrypt 해싱
 
 ### 보안 체크리스트
 
-1. ✅ **HTTPS 사용**: 프로덕션 환경 필수
-2. ✅ **보안 헤더**: Helmet.js로 설정
-3. ✅ **입력 검증**: 모든 사용자 입력 검증
-4. ✅ **인증/인가**: 강력한 인증 메커니즘
+1. **HTTPS 사용**: 프로덕션 환경 필수
+2. **보안 헤더**: Helmet.js로 설정
+3. **입력 검증**: 모든 사용자 입력 검증
+4. **인증/인가**: 강력한 인증 메커니즘
 
 ### 관련 문서
 
@@ -782,8 +781,8 @@ Node.js 애플리케이션의 보안은 여러 계층에서의 방어가 필요�
 - [Rate Limiting](../API/Rate_Limiting.md) - DDoS 방어 및 API 보호
 - [에러 핸들링](../에러_핸들링/에러_핸들링_전략.md) - 보안 에러 처리
 - [파일 업로드 및 처리](../파일_처리/파일_업로드_및_처리.md) - 파일 업로드 보안
-5. ✅ **의존성 관리**: 정기적인 취약점 스캔
-6. ✅ **에러 처리**: 민감한 정보 노출 방지
-7. ✅ **로깅**: 보안 이벤트 로깅
-8. ✅ **비밀번호 정책**: 강력한 비밀번호 요구사항
+5. **의존성 관리**: 정기적인 취약점 스캔
+6. **에러 처리**: 민감한 정보 노출 방지
+7. **로깅**: 보안 이벤트 로깅
+8. **비밀번호 정책**: 강력한 비밀번호 요구사항
 
