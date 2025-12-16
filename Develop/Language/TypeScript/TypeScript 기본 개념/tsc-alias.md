@@ -1,10 +1,10 @@
 ---
-title: TypeScript tsc-alias 완벽 가이드
+title: TypeScript tsc-alias 가이드
 tags: [language, typescript, typescript-기본-개념, tsc-alias, path-alias]
-updated: 2025-08-10
+updated: 2025-12-16
 ---
 
-# TypeScript tsc-alias 완벽 가이드
+# TypeScript tsc-alias 가이드
 
 ## 배경
 

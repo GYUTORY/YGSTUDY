@@ -1,7 +1,7 @@
 ---
-title: TypeScript 완벽 가이드
+title: TypeScript
 tags: [language, typescript, typescript-기본-개념, javascript-superset]
-updated: 2025-09-20
+updated: 2025-12-16
 ---
 
 # TypeScript
