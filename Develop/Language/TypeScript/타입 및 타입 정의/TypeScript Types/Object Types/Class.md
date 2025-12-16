@@ -1,10 +1,10 @@
 ---
-title: TypeScript Class 완벽 가이드
+title: TypeScript Class 가이드
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, object-types, class]
-updated: 2025-08-10
+updated: 2025-12-16
 ---
 
-# TypeScript Class 완벽 가이드
+# TypeScript Class 가이드
 
 ## 배경
 

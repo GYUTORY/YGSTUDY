@@ -1,10 +1,10 @@
 ---
-title: TypeScript Arrays 완벽 가이드
+title: TypeScript Arrays 가이드
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, object-types, arrays]
-updated: 2025-08-10
+updated: 2025-12-16
 ---
 
-# TypeScript Arrays 완벽 가이드
+# TypeScript Arrays 가이드
 
 ## 배경
 
