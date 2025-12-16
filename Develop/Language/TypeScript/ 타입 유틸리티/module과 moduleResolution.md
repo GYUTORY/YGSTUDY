@@ -1,10 +1,10 @@
 ---
-title: TypeScript Module과 ModuleResolution 완벽 가이드
+title: TypeScript Module과 ModuleResolution 가이드
 tags: [language, typescript, module, module-resolution, es-modules, commonjs]
-updated: 2024-12-19
+updated: 2025-12-16
 ---
 
-# TypeScript Module과 ModuleResolution 완벽 가이드
+# TypeScript Module과 ModuleResolution 가이드
 
 ## 배경
 
