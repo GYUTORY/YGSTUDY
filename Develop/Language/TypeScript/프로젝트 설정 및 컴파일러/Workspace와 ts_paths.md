@@ -1,10 +1,10 @@
 ---
-title: TypeScript Workspace와 ts-paths 완벽 가이드
+title: TypeScript Workspace와 ts-paths 가이드
 tags: [language, typescript, 프로젝트-설정-및-컴파일러, workspace, ts-paths]
-updated: 2025-08-10
+updated: 2025-12-18
 ---
 
-# TypeScript Workspace와 ts-paths 완벽 가이드
+# TypeScript Workspace와 ts-paths 가이드
 
 ## 배경
 
