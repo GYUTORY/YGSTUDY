@@ -1,10 +1,10 @@
 ---
-title: TypeScript 타입 단언 완벽 가이드
+title: TypeScript 타입 단언 가이드
 tags: [language, typescript, 타입-및-타입-정의, type-assertion]
-updated: 2025-08-10
+updated: 2025-12-18
 ---
 
-# TypeScript 타입 단언 완벽 가이드
+# TypeScript 타입 단언 가이드
 
 ## 배경
 
