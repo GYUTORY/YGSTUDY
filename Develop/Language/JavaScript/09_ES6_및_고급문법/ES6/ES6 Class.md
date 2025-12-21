@@ -1,7 +1,7 @@
 ---
 title: ES6 Class
 tags: [language, javascript, 09es6및고급문법, es6, es6-class]
-updated: 2025-08-10
+updated: 2025-12-21
 ---
 # ES6 Class
 
@@ -680,7 +680,7 @@ console.log(user1.deactivate()); // "john_doe 사용자가 비활성화되었습
 
 
 
-## 🔄 ES5 vs ES6 비교
+## ES5 vs ES6 비교
 
 ### ES5 방식 (기존 프로토타입 문법)
 
