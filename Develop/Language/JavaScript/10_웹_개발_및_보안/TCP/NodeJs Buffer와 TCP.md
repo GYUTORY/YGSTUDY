@@ -1,7 +1,7 @@
 ---
 title: Node.js Buffer TCP
 tags: [language, javascript, 10웹개발및보안, tcp, nodejs-buffer와-tcp]
-updated: 2025-08-10
+updated: 2025-12-21
 ---
 # Node.js Buffer와 TCP 이해하기
 
@@ -41,7 +41,7 @@ socket.on('data', (receivedBuffer) => {
 ---
 
 
-### 🖥️ TCP 서버 만들기
+### 🖥 TCP 서버 만들기
 
 ```javascript
 const net = require('net');
@@ -93,7 +93,7 @@ server.on('error', (err) => {
 });
 ```
 
-### 💻 TCP 클라이언트 만들기
+### TCP 클라이언트 만들기
 
 ```javascript
 const net = require('net');
@@ -136,7 +136,7 @@ client.on('error', (err) => {
 });
 ```
 
-### 🧪 테스트 방법
+### 테스트 방법
 
 1. **서버 실행**
    ```bash
@@ -173,7 +173,7 @@ client.on('error', (err) => {
    ✅ 서버와의 연결이 정상적으로 종료되었습니다.
    ```
 
-### 🔧 고급 예제: 파일 전송
+### 고급 예제: 파일 전송
 
 ```javascript
 const net = require('net');
@@ -296,7 +296,7 @@ fileServer.listen(8081, () => {
 3. **응답**: 텍스트 → Buffer → 네트워크 전송
 4. **클라이언트**: 네트워크 수신 → Buffer → 텍스트 표시
 
-### 💡 실무에서의 활용
+### 실무에서의 활용
 
 | 분야 | 활용 예시 | 설명 |
 |------|-----------|------|
@@ -520,7 +520,7 @@ fileServer.listen(8081, () => {
 
 ## Buffer란?
 
-### 🔍 Buffer의 정의
+### Buffer의 정의
 
 Buffer는 Node.js에서 **바이너리 데이터(이진 데이터)** 를 다루기 위한 특별한 객체입니다.
 
@@ -528,7 +528,7 @@ Buffer는 Node.js에서 **바이너리 데이터(이진 데이터)** 를 다루�
 > 
 > 컴퓨터가 이해하는 0과 1로 이루어진 데이터를 의미합니다. 텍스트, 이미지, 음악 파일 등 모든 데이터는 결국 0과 1의 조합으로 저장됩니다.
 
-### 💡 Buffer가 필요한 이유
+### Buffer가 필요한 이유
 
 | 상황 | 설명 | 예시 |
 |------|------|------|
@@ -536,9 +536,9 @@ Buffer는 Node.js에서 **바이너리 데이터(이진 데이터)** 를 다루�
 | **네트워크 통신** | 데이터를 주고받을 때는 항상 바이너리 형태로 전송 | 텍스트 → 바이너리 → 네트워크 |
 | **파일 처리** | 이미지, PDF 등은 바이너리 데이터로 처리해야 함 | 이미지 파일의 픽셀 데이터 |
 
-### 🛠️ Buffer 생성 방법
+### Buffer 생성 방법
 
-#### 1️⃣ 빈 Buffer 생성
+#### 1⃣ 빈 Buffer 생성
 ```javascript
 // 크기가 10인 빈 버퍼 생성 (모든 값이 0으로 초기화)
 const emptyBuffer = Buffer.alloc(10);
@@ -546,7 +546,7 @@ console.log(emptyBuffer);
 // 출력: <Buffer 00 00 00 00 00 00 00 00 00 00>
 ```
 
-#### 2️⃣ 문자열로 Buffer 생성
+#### 2⃣ 문자열로 Buffer 생성
 ```javascript
 // 문자열을 바이너리로 변환하여 버퍼 생성
 const textBuffer = Buffer.from('Hello, World!');
@@ -554,14 +554,14 @@ console.log(textBuffer);
 // 출력: <Buffer 48 65 6c 6c 6f 2c 20 57 6f 72 6c 64 21>
 ```
 
-#### 3️⃣ 배열로 Buffer 생성
+#### 3⃣ 배열로 Buffer 생성
 ```javascript
 // 숫자 배열로 버퍼 생성
 const arrayBuffer = Buffer.from([72, 101, 108, 108, 111]); // 'Hello'의 ASCII 코드
 console.log(arrayBuffer.toString()); // 'Hello'
 ```
 
-### 📊 Buffer와 문자열 변환
+### Buffer와 문자열 변환
 
 ```javascript
 const message = "안녕하세요!";
@@ -576,7 +576,7 @@ const backToString = buffer.toString('utf8');
 console.log(backToString); // "안녕하세요!"
 ```
 
-### 🔧 Buffer의 다양한 메서드들
+### Buffer의 다양한 메서드들
 
 ```javascript
 const buffer = Buffer.from('Hello World');
@@ -601,13 +601,13 @@ console.log(copy.toString()); // "Hello World"
 
 ## TCP란?
 
-### 🔍 TCP의 정의
+### TCP의 정의
 
 TCP(Transmission Control Protocol)는 **인터넷에서 데이터를 안전하게 전송하기 위한 규칙**입니다.
 
-### 🏗️ TCP의 작동 원리
+### 🏗 TCP의 작동 원리
 
-#### 1️⃣ 연결 설정 (3-way Handshake)
+#### 1⃣ 연결 설정 (3-way Handshake)
 
 ```
 클라이언트 → 서버: "연결하고 싶어요" (SYN)
@@ -615,13 +615,13 @@ TCP(Transmission Control Protocol)는 **인터넷에서 데이터를 안전하�
 클라이언트 → 서버: "알겠어요" (ACK)
 ```
 
-#### 2️⃣ 데이터 전송
+#### 2⃣ 데이터 전송
 
 - 데이터를 작은 조각(패킷)으로 나누어 전송
 - 각 패킷에 번호를 붙여서 순서 보장
 - 받은 패킷에 대해 "잘 받았어요" 신호 전송
 
-#### 3️⃣ 연결 종료
+#### 3⃣ 연결 종료
 
 ```
 클라이언트 → 서버: "연결 끊을게요" (FIN)
@@ -630,7 +630,7 @@ TCP(Transmission Control Protocol)는 **인터넷에서 데이터를 안전하�
 클라이언트 → 서버: "알겠어요" (ACK)
 ```
 
-### 💡 TCP의 특징
+### TCP의 특징
 
 | 특징 | 설명 | 장단점 |
 |------|------|--------|
@@ -639,7 +639,7 @@ TCP(Transmission Control Protocol)는 **인터넷에서 데이터를 안전하�
 | **연결 지향** | 전송 전에 연결을 먼저 설정 | ✅ 안정적 |
 | **속도** | 안전성을 위해 속도가 상대적으로 느림 | ❌ 느림 |
 
-### 🔧 TCP vs UDP 비교
+### TCP vs UDP 비교
 
 | 특징 | TCP | UDP |
 |------|-----|-----|
@@ -653,7 +653,7 @@ TCP(Transmission Control Protocol)는 **인터넷에서 데이터를 안전하�
 
 ## Buffer와 TCP의 관계
 
-### 🎯 왜 Buffer와 TCP를 함께 사용할까?
+### 왜 Buffer와 TCP를 함께 사용할까?
 
 1. **TCP는 바이너리 데이터를 주고받음**
    - 네트워크에서는 모든 데이터가 0과 1로 전송됩니다
