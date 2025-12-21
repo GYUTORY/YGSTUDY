@@ -3,7 +3,7 @@ title: ESM CommonJS
 tags: [language, javascript, 09es6및고급문법, es6, esm과-commonjs]
 updated: 2025-08-10
 ---
-# ESM과 CommonJS 모듈 시스템 완벽 가이드
+# ESM과 CommonJS 모듈 시스템 가이드
 
 ## 배경
 
@@ -204,7 +204,7 @@ import { add } from './math.js'; // 항상 같은 파일
 
 
 
-## 🔄 ESM(ECMAScript Modules)
+## ESM(ECMAScript Modules)
 
 ### ESM이란?
 - **ESM**은 JavaScript의 공식 표준 모듈 시스템입니다
@@ -296,7 +296,7 @@ console.log(user2.sayHello()); // "안녕하세요! 저는 이영희입니다."
 
 ---
 
-## 🛠️ CommonJS
+## CommonJS
 
 ### CommonJS란?
 - **CommonJS**는 Node.js에서 주로 사용하는 모듈 시스템입니다
@@ -387,7 +387,7 @@ console.log(user2.sayHello()); // "안녕하세요! 저는 이영희입니다."
 
 ---
 
-## 📊 ESM과 CommonJS 비교표
+## ESM과 CommonJS 비교표
 
 | 구분 | ESM | CommonJS |
 |------|-----|----------|
