@@ -1,7 +1,7 @@
 ---
 title: JavaScript Getter Setter
 tags: [language, javascript, 09es6및고급문법, es6, getter-and-setter]
-updated: 2025-08-10
+updated: 2025-12-21
 ---
 # JavaScript Getter & Setter
 
@@ -14,7 +14,7 @@ updated: 2025-08-10
 
 ### 왜 Getter & Setter를 사용할까?
 
-#### ❌ 직접 접근 방식 (문제가 있는 코드)
+#### 직접 접근 방식 (문제가 있는 코드)
 ```javascript
 const user = {
     name: '김철수',
@@ -26,7 +26,7 @@ console.log(user.name); // 김철수
 user.age = 999; // 나이에 999를 넣어도 아무 제한이 없음
 ```
 
-#### ✅ Getter & Setter 방식 (안전한 코드)
+#### Getter & Setter 방식 (안전한 코드)
 ```javascript
 const user = {
     name: '김철수',
@@ -486,5 +486,5 @@ console.log(userProfile.age);      // 25
 
 
 
-## 🔧 ES6 Getter & Setter 문법
+## ES6 Getter & Setter 문법
 
