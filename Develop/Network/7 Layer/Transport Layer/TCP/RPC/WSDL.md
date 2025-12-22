@@ -1,7 +1,7 @@
 ---
 title: WSDL Web Services Description Language
 tags: [network, 7-layer, transport-layer, tcp, rpc, wsdl, soap, web-services]
-updated: 2025-12-18
+updated: 2025-12-22
 ---
 
 # WSDL (Web Services Description Language)
@@ -893,4 +893,5 @@ WSDL은 SOAP 웹 서비스를 기술하는 XML 기반 언어다. 서비스의 �
 
 **실무 팁:**
 새로운 프로젝트는 REST API를 선호한다. 기존 SOAP 서비스와 통신해야 하는 경우에만 WSDL을 사용한다.
+
 
