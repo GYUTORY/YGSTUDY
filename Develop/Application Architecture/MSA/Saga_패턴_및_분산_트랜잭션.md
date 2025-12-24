@@ -1,712 +1,327 @@
+---
+title: Saga 패턴 및 분산 트랜잭션
+tags: [backend, saga, distributed-transaction, choreography, orchestration, outbox, idempotency, compensation]
+updated: 2025-12-24
+---
+
 # Saga 패턴 및 분산 트랜잭션
 
-## 목차 (Table of Contents)
-1. [Saga 패턴을 통한 분산 트랜잭션 관리 (Saga Pattern for Distributed Transaction Management)](#saga-패턴을-통한-분산-트랜잭션-관리-saga-pattern-for-distributed-transaction-management)
-2. [분산 트랜잭션 패턴 (Distributed Transaction Patterns)](#분산-트랜잭션-패턴-distributed-transaction-patterns)
-3. [보상 트랜잭션 (Compensating Transactions)](#보상-트랜잭션-compensating-transactions)
+## 목차
 
-## Saga 패턴을 통한 분산 트랜잭션 관리 (Saga Pattern for Distributed Transaction Management)
+1. 범위
+2. 분산 트랜잭션에서 실제로 필요한 것
+3. Saga 패턴
+4. Choreography Saga
+5. Orchestration Saga
+6. 보상 트랜잭션
+7. 상태 저장과 재처리
+8. 2PC/3PC를 운영에서 피하는 이유
+9. 메시지 설계 포인트
+10. 관측과 장애 대응
+11. 테스트
 
-### 1. Choreography Saga
+---
 
-```javascript
-class OrderSaga {
-  constructor(eventBus) {
-    this.eventBus = eventBus;
-  }
-  
-  async startOrderProcess(orderData) {
-    // 1. 주문 생성
-    const order = await this.createOrder(orderData);
-    
-    // 2. 결제 요청 이벤트 발행
-    await this.eventBus.publish('PaymentRequested', {
-      orderId: order.id,
-      amount: order.amount,
-      userId: order.userId
-    });
-    
-    return order;
-  }
-  
-  async handlePaymentCompleted(event) {
-    const { orderId } = event;
-    
-    try {
-      // 3. 재고 차감 요청
-      await this.eventBus.publish('InventoryReservationRequested', {
-        orderId,
-        items: event.items
-      });
-    } catch (error) {
-      // 결제 취소
-      await this.eventBus.publish('PaymentCancelled', { orderId });
-    }
-  }
-  
-  async handleInventoryReserved(event) {
-    const { orderId } = event;
-    
-    try {
-      // 4. 배송 요청
-      await this.eventBus.publish('ShippingRequested', {
-        orderId,
-        address: event.address
-      });
-    } catch (error) {
-      // 재고 복구 및 결제 취소
-      await this.eventBus.publish('InventoryReleased', { orderId });
-      await this.eventBus.publish('PaymentCancelled', { orderId });
-    }
-  }
-  
-  async handleShippingCompleted(event) {
-    const { orderId } = event;
-    
-    // 5. 주문 완료
-    await this.eventBus.publish('OrderCompleted', { orderId });
-  }
-  
-  // 보상 트랜잭션들
-  async handlePaymentFailed(event) {
-    const { orderId } = event;
-    await this.cancelOrder(orderId, 'Payment failed');
-  }
-  
-  async handleInventoryInsufficient(event) {
-    const { orderId } = event;
-    await this.eventBus.publish('PaymentCancelled', { orderId });
-    await this.cancelOrder(orderId, 'Insufficient inventory');
-  }
-}
-```
+## 범위
 
-### 2. Orchestration Saga
+서비스가 분리되면 하나의 DB 트랜잭션으로는 끝나지 않습니다.  
+주문, 결제, 재고, 배송이 각각 다른 저장소를 가진 순간부터 “부분 성공”이 기본 상태입니다.
 
-```javascript
-class OrderSagaOrchestrator {
-  constructor(services) {
-    this.orderService = services.orderService;
-    this.paymentService = services.paymentService;
-    this.inventoryService = services.inventoryService;
-    this.shippingService = services.shippingService;
-  }
-  
-  async executeOrderSaga(orderData) {
-    const sagaId = this.generateSagaId();
-    const sagaState = {
-      sagaId,
-      orderId: null,
-      paymentId: null,
-      inventoryReservationId: null,
-      shippingId: null,
-      status: 'STARTED',
-      steps: []
-    };
-    
-    try {
-      // 1. 주문 생성
-      sagaState.orderId = await this.orderService.createOrder(orderData);
-      sagaState.steps.push({ step: 'ORDER_CREATED', success: true });
-      
-      // 2. 결제 처리
-      sagaState.paymentId = await this.paymentService.processPayment({
-        orderId: sagaState.orderId,
-        amount: orderData.amount
-      });
-      sagaState.steps.push({ step: 'PAYMENT_PROCESSED', success: true });
-      
-      // 3. 재고 차감
-      sagaState.inventoryReservationId = await this.inventoryService.reserveInventory({
-        orderId: sagaState.orderId,
-        items: orderData.items
-      });
-      sagaState.steps.push({ step: 'INVENTORY_RESERVED', success: true });
-      
-      // 4. 배송 요청
-      sagaState.shippingId = await this.shippingService.createShipping({
-        orderId: sagaState.orderId,
-        address: orderData.address
-      });
-      sagaState.steps.push({ step: 'SHIPPING_CREATED', success: true });
-      
-      sagaState.status = 'COMPLETED';
-      return sagaState;
-      
-    } catch (error) {
-      sagaState.status = 'FAILED';
-      sagaState.error = error.message;
-      
-      // 보상 트랜잭션 실행
-      await this.compensateSaga(sagaState);
-      
-      throw error;
-    }
-  }
-  
-  async compensateSaga(sagaState) {
-    const steps = sagaState.steps.reverse(); // 역순으로 실행
-    
-    for (const step of steps) {
-      if (step.success) {
-        try {
-          await this.executeCompensation(step.step, sagaState);
-        } catch (error) {
-          console.error(`Compensation failed for step ${step.step}:`, error);
-        }
-      }
-    }
-  }
-  
-  async executeCompensation(step, sagaState) {
-    switch (step) {
-      case 'SHIPPING_CREATED':
-        await this.shippingService.cancelShipping(sagaState.shippingId);
-        break;
-      case 'INVENTORY_RESERVED':
-        await this.inventoryService.releaseInventory(sagaState.inventoryReservationId);
-        break;
-      case 'PAYMENT_PROCESSED':
-        await this.paymentService.refundPayment(sagaState.paymentId);
-        break;
-      case 'ORDER_CREATED':
-        await this.orderService.cancelOrder(sagaState.orderId);
-        break;
-    }
-  }
-  
-  generateSagaId() {
-    return `saga-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-}
-```
+이 문서는 아래를 다룹니다.
 
-### 3. Saga 상태 관리
+- Saga로 분산 트랜잭션을 운영 가능한 형태로 만든다
+- 실패했을 때 어떤 상태가 남고, 누가 어디서 복구하는지 정한다
+- 재시도, 중복, 순서, 지연 때문에 생기는 사고를 줄인다
 
-```javascript
-class SagaStateManager {
-  constructor(database) {
-    this.db = database;
-  }
-  
-  async saveSagaState(sagaState) {
-    await this.db.query(
-      'INSERT INTO saga_states (saga_id, order_id, status, state_data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = ?, state_data = ?, updated_at = ?',
-      [
-        sagaState.sagaId,
-        sagaState.orderId,
-        sagaState.status,
-        JSON.stringify(sagaState),
-        new Date(),
-        new Date(),
-        sagaState.status,
-        JSON.stringify(sagaState),
-        new Date()
-      ]
-    );
-  }
-  
-  async getSagaState(sagaId) {
-    const result = await this.db.query(
-      'SELECT * FROM saga_states WHERE saga_id = ?',
-      [sagaId]
-    );
-    
-    if (result.length === 0) {
-      return null;
-    }
-    
-    return JSON.parse(result[0].state_data);
-  }
-  
-  async updateSagaState(sagaId, updates) {
-    const currentState = await this.getSagaState(sagaId);
-    if (!currentState) {
-      throw new Error('Saga state not found');
-    }
-    
-    const updatedState = { ...currentState, ...updates };
-    await this.saveSagaState(updatedState);
-    
-    return updatedState;
-  }
-  
-  async getFailedSagas() {
-    const result = await this.db.query(
-      'SELECT * FROM saga_states WHERE status = ?',
-      ['FAILED']
-    );
-    
-    return result.map(row => JSON.parse(row.state_data));
-  }
-}
-```
+코드는 최소로 두고 운영 관점으로 정리합니다.
 
-## 분산 트랜잭션 패턴 (Distributed Transaction Patterns)
+---
 
-### 1. Two-Phase Commit (2PC)
+## 분산 트랜잭션에서 실제로 필요한 것
 
-```javascript
-class TwoPhaseCommit {
-  constructor(participants) {
-    this.participants = participants;
-  }
-  
-  async executeTransaction(transactionData) {
-    const transactionId = this.generateTransactionId();
-    
-    try {
-      // Phase 1: Prepare
-      const prepareResults = await Promise.all(
-        this.participants.map(participant => 
-          participant.prepare(transactionId, transactionData)
-        )
-      );
-      
-      // 모든 참여자가 준비 완료했는지 확인
-      const allPrepared = prepareResults.every(result => result.success);
-      
-      if (!allPrepared) {
-        // Abort
-        await this.abortTransaction(transactionId);
-        throw new Error('Transaction preparation failed');
-      }
-      
-      // Phase 2: Commit
-      await this.commitTransaction(transactionId);
-      
-      return { success: true, transactionId };
-      
-    } catch (error) {
-      await this.abortTransaction(transactionId);
-      throw error;
-    }
-  }
-  
-  async commitTransaction(transactionId) {
-    await Promise.all(
-      this.participants.map(participant => 
-        participant.commit(transactionId)
-      )
-    );
-  }
-  
-  async abortTransaction(transactionId) {
-    await Promise.all(
-      this.participants.map(participant => 
-        participant.abort(transactionId)
-      )
-    );
-  }
-  
-  generateTransactionId() {
-    return `tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-}
+분산 트랜잭션 문제는 결국 4가지로 축약됩니다.
 
-// 참여자 구현
-class TransactionParticipant {
-  constructor(serviceName, database) {
-    this.serviceName = serviceName;
-    this.db = database;
-  }
-  
-  async prepare(transactionId, transactionData) {
-    try {
-      // 트랜잭션 데이터 검증 및 준비
-      await this.validateTransaction(transactionData);
-      
-      // 준비 상태 저장
-      await this.db.query(
-        'INSERT INTO transaction_prepare (transaction_id, service_name, status, data) VALUES (?, ?, ?, ?)',
-        [transactionId, this.serviceName, 'PREPARED', JSON.stringify(transactionData)]
-      );
-      
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-  
-  async commit(transactionId) {
-    const prepareData = await this.db.query(
-      'SELECT * FROM transaction_prepare WHERE transaction_id = ? AND service_name = ?',
-      [transactionId, this.serviceName]
-    );
-    
-    if (prepareData.length === 0) {
-      throw new Error('No prepared transaction found');
-    }
-    
-    const transactionData = JSON.parse(prepareData[0].data);
-    
-    // 실제 트랜잭션 실행
-    await this.executeTransaction(transactionData);
-    
-    // 준비 데이터 정리
-    await this.db.query(
-      'DELETE FROM transaction_prepare WHERE transaction_id = ? AND service_name = ?',
-      [transactionId, this.serviceName]
-    );
-  }
-  
-  async abort(transactionId) {
-    // 준비 데이터 정리
-    await this.db.query(
-      'DELETE FROM transaction_prepare WHERE transaction_id = ? AND service_name = ?',
-      [transactionId, this.serviceName]
-    );
-  }
-}
-```
+- 단계가 일부만 성공한다
+- 같은 단계가 중복 실행된다
+- 단계 실행 순서가 바뀐다
+- 외부 의존성 때문에 오래 걸리거나 실패한다
 
-### 2. Three-Phase Commit (3PC)
+“원자성”을 시스템 전체에서 만들려는 시도는 대부분 비용이 큽니다.  
+운영에서는 “일관성은 늦게 맞춘다”를 전제로, 실패와 지연을 관리합니다.
 
-```javascript
-class ThreePhaseCommit {
-  constructor(participants) {
-    this.participants = participants;
-  }
-  
-  async executeTransaction(transactionData) {
-    const transactionId = this.generateTransactionId();
-    
-    try {
-      // Phase 1: CanCommit
-      const canCommitResults = await Promise.all(
-        this.participants.map(participant => 
-          participant.canCommit(transactionId, transactionData)
-        )
-      );
-      
-      if (!canCommitResults.every(result => result.canCommit)) {
-        await this.abortTransaction(transactionId);
-        throw new Error('Transaction cannot be committed');
-      }
-      
-      // Phase 2: PreCommit
-      await this.preCommitTransaction(transactionId);
-      
-      // Phase 3: DoCommit
-      await this.doCommitTransaction(transactionId);
-      
-      return { success: true, transactionId };
-      
-    } catch (error) {
-      await this.abortTransaction(transactionId);
-      throw error;
-    }
-  }
-  
-  async preCommitTransaction(transactionId) {
-    await Promise.all(
-      this.participants.map(participant => 
-        participant.preCommit(transactionId)
-      )
-    );
-  }
-  
-  async doCommitTransaction(transactionId) {
-    await Promise.all(
-      this.participants.map(participant => 
-        participant.doCommit(transactionId)
-      )
-    );
-  }
-  
-  async abortTransaction(transactionId) {
-    await Promise.all(
-      this.participants.map(participant => 
-        participant.abort(transactionId)
-      )
-    );
-  }
-}
-```
+---
 
-## 보상 트랜잭션 (Compensating Transactions)
+## Saga 패턴
 
-### 1. 보상 트랜잭션 패턴
+Saga는 긴 트랜잭션을 단계로 쪼개고, 각 단계의 실패를 보상 단계로 되돌립니다.
 
-```javascript
-class CompensatingTransaction {
-  constructor(services) {
-    this.services = services;
-    this.compensationLog = [];
-  }
-  
-  async executeWithCompensation(operations) {
-    const transactionId = this.generateTransactionId();
-    const executedOperations = [];
-    
-    try {
-      for (const operation of operations) {
-        const result = await this.executeOperation(operation);
-        executedOperations.push({
-          operation,
-          result,
-          compensation: operation.compensation
-        });
-        
-        // 보상 로그에 기록
-        this.compensationLog.push({
-          transactionId,
-          operation: operation.name,
-          compensation: operation.compensation
-        });
-      }
-      
-      return { success: true, results: executedOperations };
-      
-    } catch (error) {
-      // 보상 트랜잭션 실행
-      await this.executeCompensations(executedOperations.reverse());
-      throw error;
-    }
-  }
-  
-  async executeOperation(operation) {
-    switch (operation.type) {
-      case 'CREATE_ORDER':
-        return await this.services.orderService.createOrder(operation.data);
-      case 'PROCESS_PAYMENT':
-        return await this.services.paymentService.processPayment(operation.data);
-      case 'RESERVE_INVENTORY':
-        return await this.services.inventoryService.reserveInventory(operation.data);
-      case 'CREATE_SHIPPING':
-        return await this.services.shippingService.createShipping(operation.data);
-      default:
-        throw new Error(`Unknown operation type: ${operation.type}`);
-    }
-  }
-  
-  async executeCompensations(executedOperations) {
-    for (const executedOp of executedOperations) {
-      try {
-        await this.executeCompensation(executedOp.operation, executedOp.result);
-      } catch (error) {
-        console.error(`Compensation failed for ${executedOp.operation.name}:`, error);
-      }
-    }
-  }
-  
-  async executeCompensation(operation, result) {
-    switch (operation.type) {
-      case 'CREATE_ORDER':
-        await this.services.orderService.cancelOrder(result.orderId);
-        break;
-      case 'PROCESS_PAYMENT':
-        await this.services.paymentService.refundPayment(result.paymentId);
-        break;
-      case 'RESERVE_INVENTORY':
-        await this.services.inventoryService.releaseInventory(result.reservationId);
-        break;
-      case 'CREATE_SHIPPING':
-        await this.services.shippingService.cancelShipping(result.shippingId);
-        break;
-    }
-  }
-  
-  generateTransactionId() {
-    return `comp-tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-}
-```
+- 각 단계는 로컬 트랜잭션으로 끝납니다.
+- 단계 사이 연결은 메시지(이벤트)로 이어집니다.
+- 실패는 보상 트랜잭션으로 수습합니다.
 
-### 2. 보상 트랜잭션 서비스
+Saga를 넣는다고 자동으로 안정해지지 않습니다.  
+운영에서 문제 되는 지점은 “상태가 어디에 남는가”, “재시도 시 어디서 재개하는가”입니다.
 
-```javascript
-class CompensationService {
-  constructor(database) {
-    this.db = database;
-  }
-  
-  async logCompensation(transactionId, operation, compensationData) {
-    await this.db.query(
-      'INSERT INTO compensation_log (transaction_id, operation, compensation_data, created_at) VALUES (?, ?, ?, ?)',
-      [transactionId, operation, JSON.stringify(compensationData), new Date()]
-    );
-  }
-  
-  async getCompensations(transactionId) {
-    const result = await this.db.query(
-      'SELECT * FROM compensation_log WHERE transaction_id = ? ORDER BY created_at DESC',
-      [transactionId]
-    );
-    
-    return result.map(row => ({
-      operation: row.operation,
-      compensationData: JSON.parse(row.compensation_data),
-      createdAt: row.created_at
-    }));
-  }
-  
-  async executeCompensation(transactionId, operation, compensationData) {
-    try {
-      await this.performCompensation(operation, compensationData);
-      
-      // 보상 완료 로그
-      await this.db.query(
-        'UPDATE compensation_log SET status = ?, completed_at = ? WHERE transaction_id = ? AND operation = ?',
-        ['COMPLETED', new Date(), transactionId, operation]
-      );
-      
-    } catch (error) {
-      // 보상 실패 로그
-      await this.db.query(
-        'UPDATE compensation_log SET status = ?, error_message = ?, failed_at = ? WHERE transaction_id = ? AND operation = ?',
-        ['FAILED', error.message, new Date(), transactionId, operation]
-      );
-      
-      throw error;
-    }
-  }
-  
-  async performCompensation(operation, compensationData) {
-    switch (operation) {
-      case 'CANCEL_ORDER':
-        await this.orderService.cancelOrder(compensationData.orderId);
-        break;
-      case 'REFUND_PAYMENT':
-        await this.paymentService.refundPayment(compensationData.paymentId);
-        break;
-      case 'RELEASE_INVENTORY':
-        await this.inventoryService.releaseInventory(compensationData.reservationId);
-        break;
-      case 'CANCEL_SHIPPING':
-        await this.shippingService.cancelShipping(compensationData.shippingId);
-        break;
-      default:
-        throw new Error(`Unknown compensation operation: ${operation}`);
-    }
-  }
-}
-```
+---
 
-### 3. 분산 트랜잭션 모니터링
+## Choreography Saga
 
-```javascript
-class DistributedTransactionMonitor {
-  constructor(database) {
-    this.db = database;
-  }
-  
-  async monitorTransaction(transactionId) {
-    const transaction = await this.getTransaction(transactionId);
-    const participants = await this.getTransactionParticipants(transactionId);
-    const compensations = await this.getCompensations(transactionId);
-    
-    return {
-      transaction,
-      participants,
-      compensations,
-      status: this.determineTransactionStatus(transaction, participants, compensations)
-    };
-  }
-  
-  async getTransaction(transactionId) {
-    const result = await this.db.query(
-      'SELECT * FROM transactions WHERE transaction_id = ?',
-      [transactionId]
-    );
-    
-    return result[0] || null;
-  }
-  
-  async getTransactionParticipants(transactionId) {
-    const result = await this.db.query(
-      'SELECT * FROM transaction_participants WHERE transaction_id = ?',
-      [transactionId]
-    );
-    
-    return result;
-  }
-  
-  async getCompensations(transactionId) {
-    const result = await this.db.query(
-      'SELECT * FROM compensation_log WHERE transaction_id = ?',
-      [transactionId]
-    );
-    
-    return result;
-  }
-  
-  determineTransactionStatus(transaction, participants, compensations) {
-    if (!transaction) {
-      return 'NOT_FOUND';
-    }
-    
-    if (transaction.status === 'COMPLETED') {
-      return 'COMPLETED';
-    }
-    
-    if (transaction.status === 'FAILED') {
-      return 'FAILED';
-    }
-    
-    // 진행 중인 트랜잭션 상태 확인
-    const failedParticipants = participants.filter(p => p.status === 'FAILED');
-    const completedParticipants = participants.filter(p => p.status === 'COMPLETED');
-    
-    if (failedParticipants.length > 0) {
-      return 'COMPENSATING';
-    }
-    
-    if (completedParticipants.length === participants.length) {
-      return 'READY_TO_COMMIT';
-    }
-    
-    return 'IN_PROGRESS';
-  }
-  
-  async getStuckTransactions(timeoutMinutes = 30) {
-    const timeoutDate = new Date(Date.now() - timeoutMinutes * 60 * 1000);
-    
-    const result = await this.db.query(
-      'SELECT * FROM transactions WHERE status = ? AND created_at < ?',
-      ['IN_PROGRESS', timeoutDate]
-    );
-    
-    return result;
-  }
-  
-  async retryFailedTransaction(transactionId) {
-    const transaction = await this.getTransaction(transactionId);
-    if (!transaction || transaction.status !== 'FAILED') {
-      throw new Error('Transaction not found or not in failed state');
-    }
-    
-    // 재시도 로직 구현
-    const compensations = await this.getCompensations(transactionId);
-    
-    for (const compensation of compensations) {
-      if (compensation.status === 'FAILED') {
-        await this.executeCompensation(
-          transactionId,
-          compensation.operation,
-          JSON.parse(compensation.compensation_data)
-        );
-      }
-    }
-    
-    // 트랜잭션 상태 업데이트
-    await this.db.query(
-      'UPDATE transactions SET status = ?, retried_at = ? WHERE transaction_id = ?',
-      ['RETRIED', new Date(), transactionId]
-    );
-  }
-}
-```
+### 형태
 
-## 결론
+중앙 오케스트레이터 없이 각 서비스가 이벤트를 구독하고 다음 이벤트를 발행합니다.
 
-Saga 패턴과 분산 트랜잭션 관리는 마이크로서비스 아키텍처에서 데이터 일관성을 보장하는 핵심 기술입니다. Choreography와 Orchestration 방식을 적절히 선택하고, 보상 트랜잭션을 통해 실패 시 일관성을 유지할 수 있습니다.
+- 주문 서비스: `OrderCreated` 발행
+- 결제 서비스: `OrderCreated` 수신 → 결제 처리 → `PaymentCompleted` 또는 `PaymentFailed` 발행
+- 재고 서비스: `PaymentCompleted` 수신 → 재고 예약 → `InventoryReserved` 또는 `InventoryFailed` 발행
+- 배송 서비스: `InventoryReserved` 수신 → 배송 생성 → `ShippingCreated` 또는 `ShippingFailed` 발행
 
-### 핵심 원칙 요약
+### 장점
 
-1. **Saga 패턴**: 분산 트랜잭션을 여러 단계로 나누어 관리
-2. **보상 트랜잭션**: 실패 시 이전 작업들을 되돌리는 메커니즘
-3. **상태 관리**: 트랜잭션 진행 상황을 추적하고 관리
-4. **모니터링**: 분산 트랜잭션의 상태를 실시간으로 모니터링
+- 서비스가 느슨하게 연결됩니다.
+- 중앙 장애 지점이 없습니다.
+- 특정 단계가 늘어도 구조가 단순하게 보일 때가 있습니다.
 
-이러한 패턴들을 적절히 조합하여 안정적이고 일관성 있는 분산 시스템을 구축하세요.
+### 운영에서 자주 터지는 문제
+
+1) 이벤트 흐름이 커지면 “누가 전체 진행을 책임지는지”가 사라집니다.  
+   장애 대응 때 가장 먼저 나오는 질문이 “이 주문 지금 어디까지 갔냐”입니다. 이 답을 낼 수 있는 곳이 없습니다.
+
+2) 스키마 변경 시 배포 순서가 꼬이면 소비자가 죽습니다.  
+   이벤트를 “서버 간 API”처럼 쓰는 순간부터 배포 순서 사고가 납니다.
+
+3) 보상이 여러 서비스에 흩어져서 실패 복구가 어렵습니다.  
+   결제 취소는 됐는데 재고 복구가 안 됐다 같은 상태가 남습니다.
+
+### Choreography를 유지하려면
+
+- 이벤트 기준으로 “단계 상태”를 조회할 수 있어야 합니다.
+- 이벤트 버전과 하위 호환 처리가 들어가야 합니다.
+- 보상 이벤트도 정상 이벤트처럼 관측되어야 합니다.
+
+운영 현실에서는 결국 “진행 상태 조회를 위한 별도 저장소”가 필요해지는 경우가 많습니다.
+
+---
+
+## Orchestration Saga
+
+### 형태
+
+오케스트레이터가 단계를 호출(메시지로 명령을 내리거나 동기 호출)하고, 결과를 보고 다음 단계로 진행합니다.
+
+오케스트레이터가 하는 일은 단순합니다.
+
+- 현재 단계가 무엇인지 저장
+- 다음 단계 실행 요청
+- 실패 시 보상 단계 실행
+- 재시도/타임아웃/중단 상태 관리
+
+### 장점
+
+- “현재 어디까지 진행됐는지”를 한 곳에서 볼 수 있습니다.
+- 실패 시 보상 호출 순서가 고정됩니다.
+- 운영 대응이 빠릅니다. 재처리도 통제 가능합니다.
+
+### 운영에서 자주 터지는 문제
+
+1) 오케스트레이터가 병목이 됩니다.  
+   트래픽이 커지면 오케스트레이터 DB가 먼저 터집니다. 상태 저장이 잦기 때문입니다.
+
+2) 오케스트레이터 장애 시 “멈춘 사가”가 생깁니다.  
+   사가 상태가 저장돼 있어도 워커가 다시 돌릴 수 있어야 합니다.
+
+3) 오케스트레이터가 동기 호출을 섞기 시작하면 장애 전파가 되살아납니다.  
+   결제/재고/배송을 HTTP로 직렬 호출하면 다시 모놀리식처럼 터집니다.
+
+### 운영에서 많이 쓰는 타협
+
+- 오케스트레이터는 상태 저장과 명령 발행만 합니다.
+- 실제 실행은 큐 소비자가 합니다.
+- 결과는 이벤트로 돌아옵니다.
+- 오케스트레이터는 결과 이벤트를 보고 상태를 전진시킵니다.
+
+---
+
+## 보상 트랜잭션
+
+보상은 “되돌리기”가 아니라 “상태를 수습하기”입니다.  
+완벽하게 롤백이 안 되는 단계가 많습니다.
+
+예시가 이렇습니다.
+
+- 결제 승인: 취소/환불로 수습 가능
+- 재고 예약: 해제로 수습 가능
+- 배송 생성: 취소 가능하지만 이미 출고되면 취소가 의미 없습니다
+- 포인트 적립: 회수로 수습 가능하지만 일부는 불가능할 수 있습니다
+
+보상 설계에서 실제로 중요한 포인트는 3가지입니다.
+
+### 1) 보상 가능 기간
+
+결제 취소는 “승인 후 N분” 제약이 있는 경우가 많습니다.  
+배송 취소는 출고 상태에 따라 갈립니다.
+
+보상 가능 기간이 지나면 “인간 개입 프로세스”가 필요합니다.  
+이걸 정의하지 않으면 장애 대응이 끝나지 않습니다.
+
+### 2) 보상 순서
+
+보상은 성공한 단계의 역순이 기본입니다.  
+실무에서는 역순이 깨지는 케이스가 있습니다.
+
+- 재고 해제보다 결제 취소를 먼저 해야 하는 정책
+- 배송 취소가 안 되면 결제 환불을 막아야 하는 정책
+
+보상 순서는 비즈니스 정책으로 고정돼야 합니다.  
+운영 중에 바꾸면 기존 사가와 충돌합니다.
+
+### 3) 보상도 멱등해야 함
+
+보상 이벤트도 중복이 생깁니다.  
+보상 로직도 멱등하지 않으면 “보상 때문에” 사고가 납니다.
+
+---
+
+## 상태 저장과 재처리
+
+사가가 운영 가능한지 여부는 “상태 저장”에서 결정됩니다.
+
+### 상태가 없는 사가가 만드는 사고
+
+- 이벤트는 흘렀는데 소비자가 죽었습니다.
+- 중간 단계가 실패했습니다.
+- 누군가 수동 재처리하려고 합니다.
+
+이때 상태 저장이 없으면 결국 로그를 보고 추측합니다.  
+운영에서 가장 위험한 형태입니다.
+
+### 상태 저장을 할 때 필요한 필드
+
+- saga_id
+- business_key(order_id 같은 값)
+- current_step
+- status(RUNNING/COMPLETED/FAILED/COMPENSATING/STOPPED)
+- started_at, updated_at
+- last_error
+- retry_count
+- step_history(최소한 단계별 결과)
+
+상태 저장소는 RDB가 제일 단순합니다.  
+중요한 것은 “조회가 빨라야 한다” 입니다. 운영 대응 화면이 필요해집니다.
+
+### 재처리 방식
+
+사가 재처리는 2가지로 나뉩니다.
+
+- 같은 단계 재시도
+- 보상 단계 재시도
+
+두 경우를 구분해야 합니다.  
+“실패한 메시지 재발행”으로 퉁치면 중복이 커집니다.
+
+---
+
+## 2PC/3PC를 운영에서 피하는 이유
+
+2PC는 준비(prepare)와 커밋(commit) 단계를 분리합니다.  
+운영에서는 아래 이유로 부담이 큽니다.
+
+- 코디네이터 장애 시 참여자가 “준비 상태”로 묶입니다.
+- 네트워크 분할에서 처리가 멈출 수 있습니다.
+- 참여 서비스가 늘어날수록 실패 지점이 늘어납니다.
+
+3PC는 2PC의 블로킹 문제를 줄이려는 시도지만, 구현과 운영 복잡도가 더 커집니다.  
+현장에서는 Saga로 “부분 성공을 관리”하는 쪽이 더 현실적인 경우가 많습니다.
+
+---
+
+## 메시지 설계 포인트
+
+Saga는 메시지 설계가 허술하면 바로 깨집니다.
+
+### 이벤트/명령 구분
+
+- 명령(Command): “해라”에 가깝습니다. 실패하면 재시도를 강하게 합니다.
+- 이벤트(Event): “됐다/안됐다”에 가깝습니다. 소비자가 여러 명일 수 있습니다.
+
+오케스트레이션은 명령이 많고, 코레오그래피는 이벤트가 많습니다.
+
+### 상관관계 키
+
+사가 디버깅은 결국 “같은 트랜잭션 묶음”을 찾는 작업입니다.
+
+- saga_id
+- correlation_id
+- business_key(order_id)
+
+이 3개가 메시지에 들어가야 합니다.
+
+### 스키마 버전
+
+이벤트 버전이 없으면 배포 순서 사고가 납니다.  
+버전은 메시지 헤더든 바디든 한 곳에 고정해야 합니다.
+
+---
+
+## 관측과 장애 대응
+
+### 사가 관측에서 봐야 하는 것
+
+- 진행 중 사가 수
+- 실패 사가 수
+- 단계별 평균 소요 시간
+- 단계별 실패율
+- 보상 진행 중 사가 수
+- 보상 실패 사가 수
+- 특정 단계에서 오래 멈춘 사가 수
+
+“큐 적체”만 보면 늦습니다.  
+사가 상태 기준으로 봐야 실제 사용자 영향 구간을 찾습니다.
+
+### 멈춘 사가
+
+멈춘 사가는 대부분 이 패턴입니다.
+
+- 오케스트레이터는 단계 요청을 보냈다
+- 워커가 받았는데 처리 중 죽었다
+- 결과 이벤트가 오지 않는다
+
+이 경우는 “타임아웃 후 재발행”이 필요합니다.  
+타임아웃 값을 정할 때 외부 의존성 최대 지연을 반영해야 합니다.
+
+### 운영 대응 루틴
+
+- 해당 order_id/saga_id 기준 현재 단계 확인
+- 해당 단계 워커 로그 확인
+- 외부 의존성 상태 확인
+- 재시도 가능한 실패인지 판단
+- 보상으로 전환할지 판단
+- 수동 개입이 필요한지 분기
+
+사가 운영은 결국 “분기”입니다. 자동화가 안 되는 구간이 남습니다.
+
+---
+
+## 테스트
+
+### 실패 주입
+
+사가 테스트는 성공 시나리오보다 실패 시나리오가 더 중요합니다.
+
+- 결제 승인 성공 후 재고 실패
+- 재고 성공 후 배송 실패
+- 배송 요청 직후 워커 다운
+- 동일 order_id 중복 요청
+- 메시지 중복 전달
+- 이벤트 순서 뒤집힘
+
+### 멱등성 검증
+
+- 동일 이벤트를 2회 이상 흘렸을 때 결과가 1회와 같아야 합니다.
+- 보상 이벤트도 동일하게 검증해야 합니다.
+
+### 타임아웃 검증
+
+- 처리 시간을 일부러 늘려 타임아웃 동작을 확인합니다.
+- 타임아웃 후 재발행이 중복 처리로 이어지지 않는지 확인합니다.
+
+---
