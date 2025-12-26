@@ -1,5 +1,5 @@
 ---
-title: c
+title: REST와 RESTful API
 tags: [network, 7-layer, application-layer, http, restful, api, web-service]
 updated: 2025-12-26
 ---
