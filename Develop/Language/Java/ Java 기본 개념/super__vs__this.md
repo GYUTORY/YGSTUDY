@@ -1,10 +1,10 @@
 ---
-title: Java this와 super 키워드 완벽 가이드
+title: Java this와 super 키워드 가이드
 tags: [language, java, java-기본-개념, this, super, inheritance]
-updated: 2025-08-10
+updated: 2025-12-28
 ---
 
-# Java this와 super 키워드 완벽 가이드
+# Java this와 super 키워드 가이드
 
 ## 배경
 
