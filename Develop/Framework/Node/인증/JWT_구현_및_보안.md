@@ -1,16 +1,16 @@
 ---
-title: JWT 구현 및 보안 전략
+title: JWT 구현 및 보안
 tags: [framework, node, jwt, authentication, security, token, refresh-token]
-updated: 2025-11-27
+updated: 2025-12-27
 ---
 
-# 🔐 JWT 구현 및 보안 전략
+# JWT 구현 및 보안
 
-## 📌 개요
+## 개요
 
-> **JWT (JSON Web Token)**는 클레임 기반의 토큰 인증 방식으로, 상태를 유지하지 않는(stateless) 인증 메커니즘을 제공합니다.
+JWT (JSON Web Token)는 클레임 기반의 토큰 인증 방식으로, 상태를 유지하지 않는(stateless) 인증 메커니즘을 제공합니다.
 
-### 🎯 JWT의 구조
+### JWT의 구조
 
 ```mermaid
 mindmap
@@ -29,7 +29,7 @@ mindmap
       정보 교환
 ```
 
-### 📊 JWT vs 세션 비교
+### JWT vs 세션 비교
 
 ```mermaid
 graph TB
@@ -63,7 +63,7 @@ graph TB
 | **취소** | 즉시 가능 | 어려움 |
 | **보안** | 서버 관리 | 클라이언트 관리 |
 
-## 🏗️ JWT 구조
+## JWT 구조
 
 ### JWT 구성 요소
 
@@ -130,7 +130,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJ1c2VybmFtZSI6ImpvaG4
 | **iat** (Issued At) | 발급 시간 | 권장 |
 | **jti** (JWT ID) | 토큰 고유 ID | 선택 |
 
-## 🔧 JWT 구현
+## JWT 구현
 
 ### 기본 구현
 
@@ -211,7 +211,7 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 ```
 
-## 🔄 Access Token vs Refresh Token
+## Access Token vs Refresh Token
 
 ### 이중 토큰 구조
 
@@ -497,7 +497,7 @@ app.post('/logout', authenticateToken, async (req, res) => {
 });
 ```
 
-## 🛡️ JWT 보안 취약점 및 대응
+## JWT 보안 취약점 및 대응
 
 ### 주요 보안 취약점
 
@@ -523,7 +523,7 @@ mindmap
 #### 공격 시나리오
 
 ```javascript
-// ❌ 취약한 코드
+// 취약한 예시
 jwt.verify(token, secret); // 알고리즘 검증 없음
 
 // 공격자가 "none" 알고리즘으로 토큰 생성
@@ -533,7 +533,7 @@ jwt.verify(token, secret); // 알고리즘 검증 없음
 #### 대응 방법
 
 ```javascript
-// ✅ 안전한 코드
+// 안전한 예시
 jwt.verify(token, secret, {
   algorithms: ['HS256'] // 명시적으로 알고리즘 지정
 });
@@ -547,7 +547,7 @@ if (decoded.header.alg !== 'HS256') {
 
 ### 2. Secret 키 관리
 
-#### ❌ 취약한 방법
+#### 취약한 방법
 
 ```javascript
 // 하드코딩된 Secret
@@ -560,7 +560,7 @@ const secret = '123456';
 const secret = process.env.JWT_SECRET || 'default-secret';
 ```
 
-#### ✅ 안전한 방법
+#### 안전한 방법
 
 ```javascript
 // 강력한 Secret 생성
@@ -638,7 +638,7 @@ app.post('/login', async (req, res) => {
 ### 4. 토큰 만료 시간 설정
 
 ```javascript
-// ✅ 적절한 만료 시간
+// 적절한 예시: 만료 시간 설정
 const accessToken = jwt.sign(payload, secret, {
   expiresIn: '15m' // 짧은 만료 시간
 });
@@ -647,14 +647,14 @@ const refreshToken = jwt.sign(payload, refreshSecret, {
   expiresIn: '7d' // 긴 만료 시간
 });
 
-// ❌ 만료 시간 없음
+// 나쁜 예시: 만료 시간 없음
 const token = jwt.sign(payload, secret); // 위험!
 ```
 
 ### 5. 클레임 검증
 
 ```javascript
-// ✅ 모든 클레임 검증
+// 좋은 예시: 모든 클레임 검증
 function verifyToken(token, secret) {
   const decoded = jwt.verify(token, secret, {
     issuer: 'api-server',
@@ -675,7 +675,7 @@ function verifyToken(token, secret) {
 }
 ```
 
-## 🔒 보안 모범 사례
+## 보안 모범 사례
 
 ### 보안 체크리스트
 
@@ -796,7 +796,7 @@ function authenticateToken(req, res, next) {
 }
 ```
 
-## 🎯 JWT vs 세션 선택 가이드
+## JWT vs 세션 선택 가이드
 
 ### 의사결정 트리
 
@@ -825,13 +825,13 @@ flowchart TD
 | 기준 | JWT | 세션 |
 |------|-----|------|
 | **상태 관리** | Stateless | Stateful |
-| **확장성** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **확장성** | 5 | 3 |
 | **토큰 크기** | 큼 | 작음 |
 | **즉시 취소** | 어려움 | 쉬움 |
 | **서버 부하** | 낮음 | 높음 |
 | **크로스 도메인** | 용이 | 제한적 |
 
-## 🔧 JWT 트러블슈팅
+## JWT 트러블슈팅
 
 ### 일반적인 JWT 문제와 해결책
 
@@ -851,9 +851,9 @@ flowchart TD
 | **XSS 공격** | localStorage 저장 | httpOnly 쿠키 사용 |
 | **CSRF 공격** | 쿠키 사용 시 | CSRF 토큰 추가 |
 
-## 💡 5년차 개발자를 위한 고급 전략
+## 고급 활용
 
-**1. 토큰 갱신 전략:**
+**1. 토큰 갱신:**
 - Refresh Token을 사용하여 Access Token 자동 갱신
 - 토큰 갱신 시 Race Condition 방지
 - Refresh Token Rotation으로 보안 강화
@@ -868,32 +868,31 @@ flowchart TD
 - 토큰 검증 로직 공유
 - 보안 취약점 점검 체크리스트
 
-## 📝 결론
-
+## 요약
 JWT는 강력한 인증 메커니즘이지만, 올바르게 구현하지 않으면 보안 취약점이 발생할 수 있습니다.
 
-### 핵심 포인트
+### 주요 내용
 
-- ✅ **이중 토큰 구조**: Access Token + Refresh Token
-- ✅ **토큰 블랙리스트**: 로그아웃 및 토큰 무효화
-- ✅ **보안 강화**: 알고리즘 명시, 강력한 Secret, 클레임 검증
-- ✅ **HTTPS 사용**: 프로덕션 환경 필수
-- ✅ **적절한 만료 시간**: Access Token은 짧게, Refresh Token은 길게
+- **이중 토큰 구조**: Access Token + Refresh Token
+- **토큰 블랙리스트**: 로그아웃 및 토큰 무효화
+- **보안 강화**: 알고리즘 명시, 강력한 Secret, 클레임 검증
+- **HTTPS 사용**: 프로덕션 환경 필수
+- **적절한 만료 시간**: Access Token은 짧게, Refresh Token은 길게
 
 ### 보안 체크리스트
 
-1. ✅ 알고리즘 명시적으로 지정
-2. ✅ 강력한 Secret 키 사용 (최소 32자)
-3. ✅ 적절한 만료 시간 설정
-4. ✅ 모든 클레임 검증
-5. ✅ HTTPS 사용 (프로덕션)
-6. ✅ HttpOnly Cookie 사용 (가능한 경우)
-7. ✅ 토큰 블랙리스트 구현
-8. ✅ Secret 키 로테이션 계획
+1. 알고리즘 명시적으로 지정
+2. 강력한 Secret 키 사용 (최소 32자)
+3. 적절한 만료 시간 설정
+4. 모든 클레임 검증
+5. HTTPS 사용 (프로덕션)
+6. HttpOnly Cookie 사용 (가능한 경우)
+7. 토큰 블랙리스트 구현
+8. Secret 키 로테이션 계획
 
 ### 관련 문서
 
-- [보안 모범 사례](../보안/Node.js_보안_모범사례.md) - 전체 보안 전략
+- [보안 모범 사례](../보안/Node.js_보안_모범사례.md) - 전체 보안
 - [API 설계 원칙](../API/API_설계_원칙.md) - 인증이 포함된 API 설계
 - [Rate Limiting](../API/Rate_Limiting.md) - 인증 시도 제한
 - [에러 핸들링](../에러_핸들링/에러_핸들링_전략.md) - 인증 에러 처리
