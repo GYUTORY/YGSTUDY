@@ -1,9 +1,9 @@
 ---
 title: String Immutable Object
 tags: [language, java, java-기본-개념, string-불변-객체]
-updated: 2025-08-10
+updated: 2025-12-28
 ---
-# String 불변 객체(Immutable Object) 🚀
+# String 불변 객체(Immutable Object)
 
 ## 1. 불변 객체(Immutable Object)란? 🤔
 
@@ -36,7 +36,7 @@ public final class String implements java.io.Serializable, Comparable<String>, C
 
 ---
 
-## 3. `String`의 불변성 확인하기 🔄
+## 3. `String`의 불변성 확인하기
 
 ### 3.1 `String` 객체 변경 시 새로운 객체 생성
 
@@ -85,7 +85,7 @@ str2: Hello
 
 ### 3.2 `String`을 `new`로 생성할 경우 메모리 비교
 
-#### ✅ 예제 (`new` 연산자 사용)
+#### 예제 (`new` 연산자 사용)
 ```java
 public class StringMemoryExample {
     public static void main(String[] args) {
@@ -112,13 +112,13 @@ false
 
 
 
-## 4. `StringBuilder`와 `StringBuffer` (Mutable String) 🔄
+## 4. `StringBuilder`와 `StringBuffer` (Mutable String)
 
 불변 객체 `String`과 다르게, **`StringBuilder`와 `StringBuffer`는 문자열을 변경할 수 있습니다.**  
 ✔ **`StringBuilder` → 싱글 스레드 환경에서 사용 (빠름)**  
 ✔ **`StringBuffer` → 멀티 스레드 환경에서 사용 (동기화 지원)**
 
-#### ✅ 예제 (`StringBuilder` 활용)
+#### 예제 (`StringBuilder` 활용)
 ```java
 public class MutableStringExample {
     public static void main(String[] args) {
@@ -137,9 +137,9 @@ Hello World
 
 ---
 
-## 5. 불변 객체의 장점과 단점 ⚖️
+## 5. 불변 객체의 장점과 단점 ⚖
 
-### ✅ **불변 객체(Immutable)의 장점**
+### **불변 객체(Immutable)의 장점**
 ✔ **안전성 (Thread-Safe)** → 멀티스레드 환경에서 동기화 없이 사용 가능  
 ✔ **캐싱 가능** → 변경되지 않으므로 재사용 가능  
 ✔ **예상치 못한 변경 방지** → 객체 공유 시 안전
