@@ -1,10 +1,10 @@
 ---
 title: Java - Dependency Injection
 tags: [language, java, 자바-디자인-패턴-및-원칙, dependencyinjection]
-updated: 2025-08-10
+updated: 2025-12-29
 ---
 
-## ✅ 의존성 주입 (Dependency Injection, DI)이란?
+## 의존성 주입 (Dependency Injection, DI)이란?
 **의존성 주입(Dependency Injection, DI)** 은 **객체가 필요한 다른 객체를 직접 생성하지 않고 외부에서 주입받는 프로그래밍 기법**입니다.
 
 ## 배경
@@ -73,9 +73,9 @@ public class QuoteController {
 
 
 
-# 🎯 Java - 의존성 주입 (Dependency Injection) 완벽 가이드
+# Java - 의존성 주입 (Dependency Injection) 가이드
 
-## ✅ 의존성 주입을 사용하지 않은 경우 (Bad Case)
+## 의존성 주입을 사용하지 않은 경우 (Bad Case)
 - 아래 코드는 의존성 주입을 사용하지 않은 경우입니다.
 - QuoteController 클래스 내부에서 QuoteService 객체를 직접 생성(new QuoteService())하여 사용하고 있습니다.
 
@@ -106,7 +106,7 @@ public class QuoteController {
 
 ---
 
-## ✅ 의존성 주입 방식 3가지
+## 의존성 주입 방식 3가지
 Java와 Spring Boot에서 사용하는 의존성 주입 방식은 크게 3가지입니다:
 
 ---
@@ -171,7 +171,7 @@ public class QuoteController {
 
 ---
 
-## ✅ `@Autowired`의 역할
+## `@Autowired`의 역할
 `@Autowired`는 **의존성 자동 주입**을 위한 **스프링 어노테이션**입니다.
 
 ```java
@@ -202,7 +202,7 @@ public class QuoteController {
 }
 ```
 
-## ✅ `@Component` vs. `@Service` vs. `@Repository`의 차이
+## `@Component` vs. `@Service` vs. `@Repository`의 차이
 | 어노테이션         | 역할                                      | 사용 예 |
 |--------------------|------------------------------------------|---------|
 | `@Component`       | **기본 빈(Bean) 등록**                   | 일반적인 클래스 |
