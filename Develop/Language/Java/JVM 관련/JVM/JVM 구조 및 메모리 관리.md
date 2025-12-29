@@ -1,9 +1,9 @@
 ---
 title: JVM
 tags: [language, java, jvm-관련, jvm, jvm-구조-및-메모리-관리]
-updated: 2025-08-10
+updated: 2025-12-29
 ---
-# JVM 구조 및 메모리 관리 🚀
+# JVM 구조 및 메모리 관리
 
 ## 1. JVM(Java Virtual Machine)이란? 🤔
 
@@ -20,11 +20,11 @@ updated: 2025-08-10
 
 ---
 
-## 2. JVM의 구조 🏗️
+## 2. JVM의 구조 🏗
 
 JVM은 **Class Loader, Runtime Data Area, Execution Engine, Native Interface** 등으로 구성됩니다.
 
-### 📌 JVM의 주요 구성 요소
+### JVM의 주요 구성 요소
 
 | 구성 요소 | 설명 |
 |-----------|-----------------|
@@ -50,7 +50,7 @@ JVM은 **Class Loader, Runtime Data Area, Execution Engine, Native Interface** �
 
 ---
 
-## 3. JVM의 메모리 구조 🔄
+## 3. JVM의 메모리 구조
 
 JVM의 메모리는 크게 **Heap, Stack, Method Area, PC Register, Native Method Stack**으로 구성됩니다.
 
@@ -67,7 +67,7 @@ JVM의 메모리는 크게 **Heap, Stack, Method Area, PC Register, Native Metho
 +-----------------------> Native Method Stack (JNI 호출 시 사용)
 ```  
 
-### 3.1 **Heap 영역** 🛠️
+### 3.1 **Heap 영역**
 
 ✔ **객체와 인스턴스 변수가 저장되는 공간**  
 ✔ GC(Garbage Collector)에 의해 관리됨  
@@ -92,7 +92,7 @@ public class HeapExample {
 
 ---
 
-### 3.2 **Stack 영역** 📌
+### 3.2 **Stack 영역**
 
 ✔ **메서드 호출 시 생성되는 지역 변수 및 메서드 실행 프레임을 저장**  
 ✔ **메서드 실행이 끝나면 자동으로 제거됨 (LIFO - Last In First Out)**  
@@ -163,7 +163,7 @@ public class PCRegisterExample {
 
 ---
 
-## 4. Garbage Collection (GC) 🔄
+## 4. Garbage Collection (GC)
 
 JVM의 **Garbage Collector(GC)**는 **Heap 영역에서 더 이상 사용되지 않는 객체를 자동으로 제거하는 역할**을 합니다.
 
