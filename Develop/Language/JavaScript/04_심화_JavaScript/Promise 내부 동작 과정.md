@@ -1,7 +1,7 @@
 ---
 title: Promise
 tags: [language, javascript, 04심화javascript, promise-내부-동작-과정, java]
-updated: 2025-08-10
+updated: 2025-12-30
 ---
 # Promise 내부 동작 과정
 
@@ -31,7 +31,7 @@ JavaScript에서 비동기 처리는 코드가 순차적으로 실행되지 않�
 2. **Microtask Queue** (Promise 콜백들)
 3. **Task Queue** (setTimeout, setInterval 등)
 
-### 핵심 포인트
+### 주요 내용
 - Microtask Queue는 Task Queue보다 **항상 먼저** 처리됩니다
 - Microtask Queue가 비어있어야 Task Queue의 콜백이 실행됩니다
 
