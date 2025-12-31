@@ -1,10 +1,10 @@
 ---
-title: TypeScript boolean 타입 완벽 가이드
+title: TypeScript boolean 타입 가이드
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, boolean]
-updated: 2025-08-10
+updated: 2025-12-31
 ---
 
-# TypeScript boolean 타입 완벽 가이드
+# TypeScript boolean 타입 가이드
 
 ## 배경
 
