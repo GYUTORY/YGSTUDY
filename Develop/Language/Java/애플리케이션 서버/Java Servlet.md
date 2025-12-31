@@ -1,10 +1,10 @@
 ---
 title: Java Servlet
 tags: [language, java, 애플리케이션-서버, java-servlet]
-updated: 2025-08-10
+updated: 2025-12-31
 ---
 
-## 1️⃣ Java Servlet이란?
+## 1⃣ Java Servlet이란?
 Java Servlet은 **Java 기반의 서버 사이드 기술**로, 클라이언트의 요청을 처리하고 동적인 웹 콘텐츠를 생성하는 데 사용됩니다.  
 **HTTP 프로토콜**을 기반으로 동작하며, Java EE (Jakarta EE)의 일부로 제공됩니다.
 
@@ -16,7 +16,7 @@ Java Servlet은 **Java 기반의 서버 사이드 기술**로, 클라이언트�
 ---
 
 
-### 👉🏻 주요 코드와 설명
+### 주요 코드와 설명
 1. **`@WebServlet("/hello")`**
     - 이 서블릿을 URL `/hello`로 매핑. 클라이언트가 `/hello`로 요청을 보내면 이 서블릿이 호출됩니다.
 
@@ -111,7 +111,7 @@ Java Servlet은 **Java 기반의 서버 사이드 기술**로, 클라이언트�
 
 # Java Servlet
 
-## ✨ Java Servlet의 동작 원리
+## Java Servlet의 동작 원리
 
 ### 1. 클라이언트 요청
 - 클라이언트(웹 브라우저 또는 애플리케이션)가 URL을 통해 요청을 보냅니다.
@@ -175,7 +175,7 @@ public class HelloServlet extends HttpServlet {  // HttpServlet 클래스를 상
 
 ---
 
-## 🎯 Servlet의 장단점
+## Servlet의 장단점
 
 ## 🔗 Servlet을 사용하는 주요 프레임워크
 - **Spring Framework**: Spring MVC는 Servlet을 기반으로 동작하며, MVC 패턴을 통해 개발 생산성을 극대화.
