@@ -1,266 +1,167 @@
 ---
-title: AWS CDN CloudFront
-tags: [aws, networking-and-content-delivery, cdn]
-updated: 2025-12-07
+title: AWS CloudFront — CDN & 캐싱 이해
+tags: [aws, cloudfront, cdn, edge, caching, networking]
+updated: 2026-01-01
 ---
 
-# AWS CloudFront CDN
+# AWS CloudFront
 
-## 개요
+CloudFront는 Amazon Web Services가 제공하는 글로벌 CDN(Content Delivery Network) 서비스로,  
+정적/동적 콘텐츠, 미디어, API를 전 세계 사용자에게 더 빠르고 안전하게 전달한다.
 
-CloudFront는 AWS의 CDN(Content Delivery Network) 서비스다. 전 세계 엣지 로케이션에 콘텐츠를 캐싱해 사용자에게 빠르게 전달한다.
-
-## CDN이란?
-
-CDN은 웹 콘텐츠를 전 세계 여러 지역에 분산 저장하여 사용자에게 빠르게 전달하는 네트워크 인프라다.
-
-### CDN이 해결하는 문제
-
-**지연 시간 문제:**
-- 사용자가 한국에 있는데 미국 서버에서 이미지를 받아오면 200-300ms의 지연이 발생
-- CDN을 사용하면 한국 엣지 서버에서 20-50ms로 단축
-
-**서버 부하 문제:**
-- 원본 서버에 모든 요청이 몰리면 서버 다운 위험
-- CDN이 요청을 분산시켜 원본 서버 부하 감소
-
-**대역폭 비용 문제:**
-- 원본 서버에서 직접 전송하면 높은 대역폭 비용
-- CDN을 통해 지역별로 분산 전송하여 비용 절약
-
-### CDN의 작동 메커니즘
-
-1. 캐싱: 자주 요청되는 콘텐츠를 엣지 서버에 저장
-2. 지리적 분산: 전 세계 400개 이상의 엣지 로케이션에 서버 배치
-3. 지능적 라우팅: 사용자와 가장 가까운 서버로 자동 라우팅
-4. 캐시 무효화: 콘텐츠 업데이트 시 캐시 자동 갱신
-
-**실무 팁:**
-정적 콘텐츠(이미지, CSS, JS)는 CDN을 사용하면 성능과 비용 모두 개선된다.
+---
 
 ## CloudFront 핵심 개념
 
-### 오리진(Origin)
+| 키워드 | 설명 |
+|--------|------|
+| CDN | 전 세계에 분산된 POP(Point of Presence) 서버가 콘텐츠를 캐싱하여 가까운 곳에서 전달 |
+| Origin | 콘텐츠 원본 저장 위치 — S3, ALB, EC2, API Gateway, Custom HTTP 서버 등 |
+| Edge Location | 사용자 근처의 CDN 캐싱 서버 — 요청이 가장 가까운 POP으로 라우팅 |
+| POP 캐시 | Origin에서 받아온 콘텐츠를 일정 기간 저장하여 재사용하는 저장 공간 |
 
-콘텐츠의 원본이 저장된 서버다. CloudFront는 다양한 오리진을 지원한다.
+---
 
-**지원하는 오리진:**
-- S3 버킷: 정적 웹사이트, 이미지, 동영상 등
-- EC2 인스턴스: 동적 웹 애플리케이션
-- ELB: 로드 밸런서 뒤의 여러 서버
-- API Gateway: REST API 엔드포인트
-- 사용자 정의 서버: 온프레미스나 다른 클라우드 서버
+## CloudFront 작동 흐름
 
-**실무 팁:**
-S3 버킷을 오리진으로 사용하면 가장 간단하고 비용 효율적이다.
+```
+사용자 → Edge Location (캐시 확인)
+      ├ 히트(HIT): 캐시된 콘텐츠 즉시 반환
+      └ 미스(MISS): Origin으로 요청 전달 → 캐싱 후 사용자에게 응답
+```
 
-### 엣지 로케이션(Edge Location)
+CloudFront가 캐싱할 수 있는 주요 콘텐츠:
+- 이미지, JS/CSS, HTML 파일
+- 정적 웹사이트 (React build 파일)
+- S3 Object
+- 동적 API 응답 (단, 조건부 캐싱 필요)
 
-사용자와 가까운 지역에 위치한 CDN 서버다. 전 세계 주요 도시에 배치되어 있다.
+---
 
-**주요 엣지 로케이션:**
-- 아시아: 서울, 도쿄, 싱가포르, 뭄바이, 홍콩
-- 유럽: 런던, 프랑크푸르트, 파리, 스톡홀름
-- 아메리카: 뉴욕, 로스앤젤레스, 상파울루, 토론토
+## CloudFront 배포 구성 (Distribution)
 
-### 배포(Distribution)
+CloudFront를 사용하려면 배포(Distribution)를 생성해야 한다.
 
-CloudFront에서 생성하는 콘텐츠 제공 단위다. 각 배포는 고유한 도메인명을 가진다.
+| 구성 항목 | 설명 |
+|----------|------|
+| Origin | 콘텐츠 원본 (S3 / ALB / API Gateway / Custom Server) |
+| Behaviors | 캐시 정책, 경로 매핑, GET/POST 허용 설정 |
+| SSL 인증서 | ACM 인증서 적용, HTTPS 도메인 설정 |
+| Domain (Alternate Domain Name) | `cdn.yourdomain.com` 같은 커스텀 URL 사용 |
 
-**배포 유형:**
-- Web Distribution: 웹사이트, API, 동적 콘텐츠용
-- RTMP Distribution: 실시간 스트리밍용 (현재 지원 중단)
+---
 
-### 캐싱 정책(Cache Policy)
+## Edge Location 캐싱 방식
 
-콘텐츠가 얼마나 오래 캐시될지 결정하는 규칙이다.
+CloudFront는 전 세계 POP 서버 내 디스크에 캐싱한다.
 
-**캐싱 전략:**
-- 정적 자산: CSS, JS, 이미지 - 1년 캐싱
-- HTML 페이지: 1시간 캐싱
-- API 응답: 5분 캐싱
-- 개인화 콘텐츠: 캐싱 비활성화
+CDN이 S3/Origin의 파일을 미리 가져오는 것이 아니라,  
+처음 요청 시 Origin에서 가져온 뒤 POP 디스크에 저장하고 이후 요청에 재사용한다.
 
-**실무 팁:**
-캐싱 정책을 잘 설정하면 원본 서버 부하를 크게 줄일 수 있다. 정적 자산은 최대한 길게 캐싱한다.
+캐싱 저장 위치:
+- Edge Location 내 디스크 기반 스토리지
+- TTL 만료 시 삭제되며, 자주 요청되지 않는 항목은 자동 제거
 
-## 구축 과정
+---
 
-### 1단계: S3 버킷 준비
+## 캐시 제어 옵션 (Cache Key & TTL)
 
-**S3 버킷 생성 및 설정:**
-1. AWS 콘솔에서 S3 서비스 선택
-2. "버킷 만들기" 클릭
-3. 버킷명 입력 (전 세계적으로 고유해야 함)
-4. 리전 선택 (가장 많은 사용자가 있는 지역)
-5. 퍼블릭 액세스 차단 설정 해제
-6. 버킷 정책으로 퍼블릭 읽기 권한 부여
+| 항목 | 설명 |
+|------|------|
+| TTL (Time-To-Live) | 캐시 유효 시간 |
+| Cache Key | 어떤 요청을 동일한 캐시로 간주할지 결정하는 키(QueryString/Headers/Cookies 포함 여부) |
+| Cache Policy | API 캐싱 조건 및 캐시 키 정책 정의 가능 |
 
-**정적 웹사이트 파일 업로드:**
-- HTML, CSS, JavaScript 파일을 버킷에 업로드
-- 각 파일의 Content-Type을 올바르게 설정
-- 폴더 구조를 웹사이트 구조에 맞게 구성
+예: GET만 캐싱 & POST는 항상 Origin으로 요청  
+→ CloudFront는 기본적으로 GET, HEAD만 캐싱하고 POST는 캐싱하지 않는다.
 
-**실무 팁:**
-버킷 정책을 잘못 설정하면 보안 위험이 있다. 퍼블릭 읽기는 필요한 파일에만 적용한다.
+---
 
-### 2단계: CloudFront 배포 생성
+## Origin 유형 및 적용 예시
 
-**배포 설정 구성:**
-1. CloudFront 콘솔에서 "배포 만들기" 선택
-2. 오리진 도메인을 S3 버킷으로 설정
-3. 뷰어 프로토콜 정책을 "HTTPS로 리디렉션" 설정
-4. 캐싱 동작 설정:
-   - 기본 TTL: 86400초 (24시간)
-   - 최대 TTL: 31536000초 (1년)
-   - 최소 TTL: 0초
+| Origin | 사용 목적 |
+|--------|-----------|
+| S3 | 정적 웹사이트, 이미지, 정적 자원 |
+| ALB | 백엔드 API 또는 서버 기반 웹서비스 |
+| EC2 | 커스텀 서버 직접 연결 |
+| API Gateway | Lambda 기반 서버리스 API |
 
-**고급 설정:**
-- 압축 활성화: HTML, CSS, JS 파일 자동 압축
-- 지리적 제한: 특정 국가만 접근 허용
-- WAF 연동: 웹 애플리케이션 방화벽 설정
+---
 
-**실무 팁:**
-압축을 활성화하면 전송 데이터 크기가 줄어 비용이 절감된다.
+## SSL 및 HTTPS 설정
 
-### 3단계: 사용자 정의 도메인 연결
+CloudFront에서 HTTPS를 사용하려면 AWS Certificate Manager(ACM)를 통해 인증서를 발급받아야 하며,  
+ACM은 반드시 `us-east-1` 리전에 있어야 한다.
 
-**Route 53을 통한 도메인 연결:**
-1. Route 53에서 호스팅 영역 생성
-2. CloudFront 배포의 도메인명을 Alias 레코드로 설정
-3. SSL/TLS 인증서를 AWS Certificate Manager에서 발급
-4. CloudFront 배포에 인증서 연결
+예시 (AWS CLI):
 
-**도메인 설정 완료:**
-- www.example.com → CloudFront 배포
-- example.com → www.example.com으로 리디렉션
-- HTTPS 강제 적용
+```bash
+aws acm request-certificate \
+  --domain-name "cdn.example.com" \
+  --validation-method DNS \
+  --region us-east-1
+```
 
-**실무 팁:**
-ACM 인증서는 us-east-1 리전에서 발급해야 CloudFront에서 사용할 수 있다.
+---
 
-## 성능 최적화
+## 커스텀 도메인 연결 흐름
 
-### 캐싱 최적화
+```
+Route 53 (CNAME / Alias)
+       ↓
+cdn.example.com
+       ↓
+CloudFront Distribution
+       ↓
+Origin (S3 / ALB / EC2 / API Gateway)
+```
 
-**콘텐츠별 캐싱 전략:**
-- 이미지 파일: 1년 캐싱, WebP 형식 사용
-- CSS/JS 파일: 1년 캐싱, 버전 관리 (파일명에 해시 추가)
-- HTML 파일: 1시간 캐싱, ETag 활용
-- API 응답: 5분 캐싱, 개인화 데이터는 캐싱 제외
+DNS 예시:
 
-**캐시 무효화 전략:**
-- 전체 무효화는 비용이 높으므로 특정 경로만 무효화
-- 배포 시 자동 무효화 스크립트 작성
-- 캐시 무효화 대신 버전 관리 방식 선호
+```
+cdn.example.com   A(ALIAs)   d1234abcd.cloudfront.net
+```
 
-**실무 팁:**
-캐시 무효화는 비용이 발생한다. 파일명에 버전을 포함하면 무효화 없이도 새 파일을 배포할 수 있다.
+---
 
-### 압축 및 최적화
+## React 정적 파일 배포 예시
 
-**압축 설정:**
-- Gzip 압축 활성화
-- 압축 가능한 콘텐츠 타입 설정
-- 이미지는 사전 압축하여 업로드
+```
+[사용자] 
+   ↓
+[CloudFront CDN]
+   ↓
+[S3 Bucket (정적 React build files)]
+   ↓
+(optional) API 요청 → API Gateway / ALB / Lambda
+```
 
-**이미지 최적화:**
-- WebP 형식 사용 (브라우저 지원 시)
-- 반응형 이미지 구현
-- 지연 로딩(Lazy Loading) 적용
+`npm run build` 또는 `yarn build`로 생성된 React 앱은 완전한 정적 파일이며, 캐싱에 적합하다.
 
-**실무 팁:**
-이미지는 사전에 압축하여 업로드하면 전송 비용을 줄일 수 있다.
+---
 
-### 네트워크 최적화
+## 비용 구조
 
-**HTTP/2 활용:**
-- CloudFront는 HTTP/2를 자동 지원
-- 멀티플렉싱으로 동시 요청 처리
-- 서버 푸시 기능 활용
+| 항목 | 과금 방식 |
+|------|-----------|
+| Data Transfer Out | POP → 사용자 전송 데이터 기준 |
+| Requests | CDN 요청 수 기준 |
+| Invalidation | 캐시 삭제 요청 1,000건당 비용 발생 (약 $0.005) |
 
-**지리적 분산:**
-- 사용자 위치에 맞는 엣지 로케이션 선택
-- 다중 리전 배포로 가용성 향상
+주의: `aws cloudfront create-invalidation`를 반복적으로 사용하면 불필요한 비용이 발생할 수 있다.
 
-## 비용 관리 및 보안
+---
 
-### 비용 최적화
+## 실무 팁
 
-**과금 구조:**
-- 데이터 전송 비용: 지역별로 차등 과금
-- 요청 비용: 10,000회 요청당 과금
-- 캐시 무효화 비용: 경로당 과금
+- 정적 사이트는 CloudFront로 배포하면 속도와 비용 모두 최적화 가능
+- 캐시 무효화를 줄이기 위해 빌드 파일 이름에 해시값 추가 (`main.[hash].js`)
+- API 캐싱 시 TTL이 너무 길면 데이터 일관성 문제가 발생할 수 있으므로 주의
+- 다국적 서비스의 경우 리전 + CDN 조합을 적극 활용
 
-**비용 절약 방법:**
-- 캐시 히트율 향상으로 데이터 전송 비용 절약
-- 불필요한 캐시 무효화 최소화
-- 이미지 압축으로 대역폭 사용량 감소
-- 적절한 TTL 설정으로 원본 서버 요청 감소
+---
 
-**실무 팁:**
-캐시 히트율이 높을수록 비용이 절감된다. 정적 자산은 최대한 길게 캐싱한다.
+## 참고 문서
 
-### 보안 강화
-
-**HTTPS 강제 적용:**
-- 모든 트래픽을 HTTPS로 리디렉션
-- HSTS 헤더 설정으로 브라우저 캐싱
-- SSL/TLS 인증서 자동 갱신
-
-**WAF 연동:**
-- SQL 인젝션, XSS 공격 차단
-- DDoS 공격 방어
-- 지리적 제한으로 특정 국가 차단
-
-**보안 헤더 설정:**
-- X-Frame-Options: 클릭재킹 방지
-- X-Content-Type-Options: MIME 타입 스니핑 방지
-- X-XSS-Protection: XSS 공격 방지
-- Strict-Transport-Security: HTTPS 강제
-
-**실무 팁:**
-WAF를 연동하면 보안이 강화되지만 비용이 추가된다. 필요에 따라 사용한다.
-
-## 모니터링 및 운영
-
-### 성능 모니터링
-
-**주요 지표:**
-- 캐시 히트율: 90% 이상 목표
-- 평균 응답 시간: 100ms 이하 목표
-- 오류율: 1% 이하 목표
-- 데이터 전송량: 월별 트렌드 분석
-
-**모니터링 도구:**
-- CloudWatch: AWS 네이티브 모니터링
-- Real User Monitoring: 실제 사용자 경험 측정
-- WebPageTest: 상세한 성능 분석
-
-**실무 팁:**
-CloudWatch 대시보드를 만들어 주요 지표를 모니터링한다. 캐시 히트율이 낮으면 TTL을 조정한다.
-
-### 운영 고려사항
-
-**배포 프로세스:**
-1. 개발 환경에서 테스트
-2. 스테이징 환경에서 검증
-3. 프로덕션 배포
-4. 캐시 무효화 (필요시)
-5. 성능 모니터링
-
-**장애 대응:**
-- 다중 오리진 설정으로 가용성 확보
-- 헬스 체크 설정으로 장애 자동 감지
-- 백업 오리진으로 자동 페일오버
-
-**정기 점검:**
-- 월간 비용 분석 및 최적화
-- 분기별 성능 리뷰
-- 연간 아키텍처 검토
-
-## 참고
-
-- AWS CloudFront 공식 문서: https://docs.aws.amazon.com/cloudfront/
-- CloudFront 요금 정책: https://aws.amazon.com/cloudfront/pricing/
-- AWS Well-Architected Framework: https://aws.amazon.com/architecture/well-architected/
+- [AWS CloudFront Developer Guide](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html)
+- [AWS 가격 계산기](https://calculator.aws/#/estimate)
