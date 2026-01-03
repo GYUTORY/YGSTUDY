@@ -1,401 +1,212 @@
 ---
 title: AWS Application Load Balancer (ALB)
-tags: [aws, loadbalancer, alb, networking, http]
-updated: 2025-12-06
+tags: [aws, alb, loadbalancer, networking, http, microservices]
+updated: 2026-01-03
 ---
 
 # AWS Application Load Balancer (ALB)
 
 ## 개요
 
-ALB는 OSI 7계층 애플리케이션 계층에서 동작하는 로드 밸런서다. HTTP/HTTPS 요청의 내용을 분석해 라우팅할 수 있다.
+Application Load Balancer(ALB)는 AWS에서 제공하는 L7 계층(애플리케이션 계층)의 로드 밸런서다.  
+HTTP 및 HTTPS 트래픽을 기반으로 다양한 조건에 따라 백엔드로 트래픽을 분산할 수 있다.
 
-**주요 특징:**
-- HTTP/HTTPS 트래픽 처리
-- URL 경로, 호스트 헤더, HTTP 헤더 등으로 라우팅 가능
-- EC2, ECS, Lambda 등 다양한 대상 지원
+---
 
-**사용하는 경우:**
-- 마이크로서비스에서 경로별로 다른 서비스로 라우팅할 때
-- 단일 도메인으로 여러 백엔드 서비스를 제공할 때
-- ECS/EKS와 함께 사용할 때
+## 주요 특징
 
-## 핵심 개념
+| 항목 | 설명 |
+|------|------|
+| 프로토콜 | HTTP, HTTPS (TLS 종료 지원) |
+| 지원 대상 | EC2, ECS, Lambda, IP 주소 |
+| 로드 밸런싱 기준 | URL 경로, Host 헤더, HTTP 헤더, 메서드, 쿼리 파라미터 등 |
+| 통합 | Auto Scaling, CloudWatch, ACM, WAF 등 |
+| 인증서 지원 | AWS ACM과 연동하여 TLS 인증서 자동 관리 가능 |
 
-### 애플리케이션 계층 로드 밸런싱
+---
 
-ALB는 7계층에서 동작한다. HTTP 요청 내용을 보고 라우팅한다.
+## 사용 사례
 
-**NLB와의 차이:**
-- NLB: IP와 포트만 보고 라우팅 (4계층)
-- ALB: HTTP 헤더, 경로, 호스트명까지 분석 (7계층)
+- 마이크로서비스 경로 기반 분기 (`/users`, `/orders`, `/admin`)
+- ECS, Lambda 등 다양한 서비스로 트래픽 분산
+- HTTPS 인증서 중앙 관리 및 암호화 통신
+- A/B 테스트 또는 카나리 배포
+- 모바일 또는 웹 트래픽 처리
 
-**라우팅 기준:**
-- URL 경로: `/api/users/*` → 사용자 서비스
-- 호스트 헤더: `api.example.com` → API 서버
-- HTTP 메서드: POST만 특정 서비스로
-- 쿼리 파라미터: `?version=v2` → v2 서비스
-- 커스텀 헤더: `X-User-Type: admin` → 관리자 서비스
+---
 
-**실제 사용 예:**
+## 아키텍처 구성 예시
+
 ```
-/api/users/* → 사용자 서비스 (EC2 인스턴스)
-/api/orders/* → 주문 서비스 (ECS 태스크)
-/admin/* → 관리자 서비스 (별도 대상 그룹)
-```
-
-이렇게 하면 클라이언트는 하나의 도메인만 알면 되고, 백엔드는 서비스별로 독립 배포가 가능하다.
-
-### 요청 기반 로드 밸런싱
-
-ALB는 세션 기반이 아니라 요청 기반으로 동작한다. 각 요청마다 대상이 달라질 수 있다.
-
-**동작 방식:**
-- 요청 1: 인스턴스 A로 전달
-- 요청 2: 인스턴스 B로 전달
-- 요청 3: 다시 인스턴스 A로 전달 가능
-
-**장점:**
-- 인스턴스 장애 시 다른 인스턴스로 자동 전환
-- 새 인스턴스 추가 시 즉시 트래픽 분산 시작
-- Auto Scaling과 함께 사용하면 트래픽 증가에 자동 대응
-
-**주의사항:**
-세션 정보가 필요한 경우 쿠키 기반 고정(sticky session)을 사용해야 한다. 하지만 이렇게 하면 인스턴스 간 부하 분산이 안 되므로 가능하면 세션을 외부 저장소(Redis 등)로 분리하는 게 좋다.
-
-### 마이크로서비스에서의 사용
-
-ALB는 경로별로 다른 서비스로 라우팅할 수 있다. 각 서비스는 별도 대상 그룹으로 관리한다.
-
-**구성 예시:**
-```
-ALB (api.example.com)
-├── /api/users/* → 사용자 서비스 대상 그룹 (3개 인스턴스)
-├── /api/orders/* → 주문 서비스 대상 그룹 (5개 인스턴스)
-└── /api/payments/* → 결제 서비스 대상 그룹 (2개 인스턴스)
+Client
+  ↓ HTTPS
+ALB
+ ├── /users/*     → EC2 Target Group
+ ├── /orders/*    → ECS Target Group
+ ├── /analytics/* → Lambda Target Group
 ```
 
-**실무에서의 장점:**
-- 사용자 서비스만 재배포해도 주문 서비스는 영향 없음
-- 주문 서비스만 스케일 아웃 가능
-- 서비스별로 다른 헬스 체크 경로 설정 가능 (`/api/users/health`, `/api/orders/health`)
+---
+
+## 핵심 구성 요소
+
+### 1. Listener
+
+클라이언트 요청을 수신하는 포트 및 프로토콜 지정
+
+- 일반적으로 80(HTTP), 443(HTTPS)
+- HTTPS 사용 시 ACM을 통한 인증서 연동
+- 기본 액션 설정 가능 (리디렉션, 고정 응답 등)
+
+### 2. Target Group
+
+트래픽이 전달되는 대상(EC2, ECS, IP, Lambda 등)의 집합
+
+- 라운드로빈 방식 또는 최소 미해결 요청 기준으로 분산
+- 대상 등록 시 개별 헬스체크 수행
+
+### 3. Routing Rule
+
+라우팅 조건과 액션 지정
+
+- 조건: Host 헤더, 경로, 메서드, 헤더, 쿼리스트링 등
+- 액션: Forward(포워딩), Redirect(리디렉션), Fixed Response
+
+---
 
 ## 주요 기능
 
-### 라우팅 규칙
+### ✅ 경로 기반 라우팅
 
-ALB는 HTTP 요청 내용을 보고 라우팅한다.
-
-**경로 기반 라우팅:**
 ```
-/api/* → API 서버 대상 그룹
-/static/* → S3 또는 CloudFront
-/admin/* → 관리자 서버 대상 그룹
+/api/users/*      → user-service
+/api/orders/*     → order-service
+/static/*         → CloudFront 또는 S3
 ```
 
-**호스트 기반 라우팅:**
+### ✅ 호스트 기반 라우팅
+
 ```
-api.example.com → API 서버
-admin.example.com → 관리자 서버
-www.example.com → 웹 서버
-```
-
-같은 ALB에서 여러 도메인을 처리할 수 있다. 각 도메인은 다른 대상 그룹으로 라우팅된다.
-
-**헤더 기반 라우팅:**
-- `X-User-Type: admin` → 관리자 서비스
-- `X-Version: v2` → v2 서비스
-- 쿼리 파라미터 `?beta=true` → 베타 서비스
-
-A/B 테스트나 카나리 배포에 사용한다. 예를 들어 10% 트래픽만 새 버전으로 보내고 싶으면 가중치 기반 라우팅을 사용한다.
-
-### SSL/TLS 종료
-
-ALB에서 HTTPS를 처리하고 백엔드는 HTTP로 통신한다.
-
-**동작 방식:**
-```
-클라이언트 (HTTPS) → ALB (HTTPS 종료) → 백엔드 (HTTP)
+api.example.com    → API 백엔드
+admin.example.com  → 관리자 백엔드
 ```
 
-**장점:**
-- 백엔드 서버가 SSL 처리 부담 없음
-- 인증서를 ALB에서만 관리 (ACM 사용)
-- 인증서 자동 갱신 가능
+### ✅ 고정 응답, 리디렉션
 
-**주의사항:**
-ALB와 백엔드가 다른 VPC나 네트워크에 있으면 HTTPS로 통신해야 한다. 같은 VPC 내부면 HTTP로 충분하다.
+- 특정 조건에 대해 고정 응답 반환 가능
+- HTTP → HTTPS 리디렉션 가능
 
-### 헬스 체크
+### ✅ HTTPS TLS 종료
 
-ALB는 대상 그룹의 각 대상에 대해 주기적으로 헬스 체크를 한다.
+- ALB에서 HTTPS 인증서를 종료(TLS Termination)
+- 백엔드에는 HTTP로 통신 (암호화 부담 분산)
+- ACM을 통한 인증서 자동 갱신
 
-**설정 항목:**
-- 프로토콜: HTTP 또는 HTTPS
-- 경로: `/health`, `/api/health` 등
-- 간격: 30초 (기본값)
-- 타임아웃: 5초 (기본값)
-- 성공 임계값: 2회 연속 성공 시 정상
-- 실패 임계값: 2회 연속 실패 시 비정상
+### ✅ 헬스 체크
 
-**동작:**
-- 헬스 체크 실패 → 트래픽에서 제외
-- 헬스 체크 성공 → 트래픽 분산에 다시 포함
+- 기본 `/` 또는 `/health` 경로
+- 실패 시 트래픽 대상에서 제외
+- 설정 항목: 간격, 타임아웃, 실패/성공 허용 횟수
 
-**주의사항:**
-- 헬스 체크 경로는 실제 애플리케이션 로직과 분리해야 한다. DB 연결 실패해도 헬스 체크는 성공해야 한다.
-- 간격을 너무 짧게 하면 대상 서버 부하가 증가한다.
-- 실패 임계값을 너무 크게 하면 장애 감지가 늦어진다.
+---
 
-### Auto Scaling 연동
+## 고급 기능
 
-ALB는 Auto Scaling과 연동된다. 대상 그룹의 인스턴스 수를 메트릭 기반으로 조정한다.
+### 1. Sticky Session (세션 고정)
 
-**사용 예시:**
-- CPU 사용률 70% 초과 → 인스턴스 추가
-- ALB 요청 수 증가 → 인스턴스 추가
-- CPU 사용률 30% 미만 → 인스턴스 제거
+- 쿠키 기반 세션 고정 가능
+- 사용자 요청을 항상 동일한 인스턴스로 라우팅
+- 세션 상태를 서버 간 공유하지 못할 경우 유용
 
-**연결 드레이닝:**
-인스턴스 제거 시 기존 연결을 유지하면서 새 요청은 받지 않는다. 기본값은 300초다. 이 시간 동안 처리 중인 요청이 완료되면 인스턴스를 종료한다.
+### 2. 압축 (gzip)
 
-**압축:**
-텍스트 기반 콘텐츠(HTML, CSS, JS, JSON)에 대해 gzip 압축을 적용한다. 네트워크 대역폭을 줄이고 응답 시간을 개선한다.
+- HTTP 응답을 gzip으로 압축
+- 텍스트 기반 자원(CSS, JS, HTML 등)에 유리
 
-## ALB 구성 요소
+### 3. HTTP/2 지원
 
-### 리스너 (Listener)
+- 멀티플렉싱, 헤더 압축 등 성능 향상
+- 클라이언트가 HTTP/2 지원 시 자동 사용
 
-리스너는 클라이언트 요청을 받는 진입점이다. 프로토콜과 포트를 지정한다.
+### 4. WebSocket 지원
 
-**프로토콜:**
-- HTTP: 80번 포트
-- HTTPS: 443번 포트 (인증서 필요)
+- 실시간 통신을 위한 WebSocket 지원 포함
 
-**인증서:**
-- ACM에서 발급한 인증서 사용
-- 여러 도메인 인증서 지원 (SAN 인증서)
-- 인증서 자동 갱신
+---
 
-**기본 액션:**
-라우팅 규칙에 매치되지 않는 요청에 대한 동작이다. 보통 기본 대상 그룹으로 포워딩하거나 HTTP → HTTPS 리다이렉션에 사용한다.
+## 보안 구성
 
-**실무 팁:**
-HTTP 리스너는 HTTPS로 리다이렉션만 하고, 실제 트래픽은 HTTPS 리스너로 받는다.
+### 1. ACM 인증서
 
-### 대상 그룹 (Target Group)
+- ACM에서 무료 인증서 발급
+- 자동 갱신 가능
+- SAN 인증서 지원 (여러 도메인)
 
-대상 그룹은 실제 트래픽을 처리할 백엔드 리소스들의 그룹이다.
+### 2. WAF 연동
 
-**지원 대상 타입:**
-- **인스턴스**: EC2 인스턴스 ID로 등록
-- **IP**: 특정 IP 주소와 포트로 등록 (온프레미스 서버 포함)
-- **Lambda**: Lambda 함수 직접 호출
-- **ALB**: 다른 ALB를 대상으로 설정 (중첩 구성)
+- ALB 앞단에 Web Application Firewall 적용 가능
+- OWASP Top 10 대응 가능
 
-**헬스 체크:**
-각 대상 그룹마다 독립적인 헬스 체크 설정이 가능하다. 서비스별로 다른 경로를 사용할 수 있다.
+### 3. 보안 그룹 구성 예시
 
-**로드 밸런싱 알고리즘:**
-- 라운드 로빈 (기본값)
-- 최소 미해결 요청 수 (least outstanding requests)
+- ALB SG: 0.0.0.0/0 → 80, 443 허용
+- 백엔드 SG: ALB SG만 허용 (인바운드 제한)
 
-**실무 팁:**
-ECS 서비스를 대상 그룹에 등록하면 컨테이너가 자동으로 등록/해제된다. 수동으로 관리할 필요가 없다.
+---
 
-### 라우팅 규칙 (Routing Rules)
+## 모니터링 & 로깅
 
-라우팅 규칙은 요청을 분석해 대상 그룹으로 전달하는 로직이다. 조건과 액션으로 구성된다.
+### CloudWatch 메트릭
 
-**조건 (Conditions):**
-- 경로 패턴: `/api/*`, `/admin/*`
-- 호스트 헤더: `api.example.com`
-- HTTP 헤더: `X-User-Type: admin`
-- HTTP 메서드: GET, POST 등
-- 쿼리 파라미터: `?version=v2`
-- 소스 IP: 특정 IP 대역
+- `RequestCount`: 전체 요청 수
+- `TargetResponseTime`: 평균 응답 시간
+- `HTTPCode_ELB_4XX_Count`, `5XX_Count`: 오류 수
+- `UnHealthyHostCount`: 헬스체크 실패 수
 
-**액션 (Actions):**
-- 포워드: 대상 그룹으로 전달
-- 리다이렉트: 다른 URL로 리다이렉트
-- 고정 응답: 미리 정의한 응답 반환 (에러 페이지 등)
+### 액세스 로그
 
-**우선순위:**
-여러 규칙이 매치되면 우선순위가 낮은 숫자(높은 우선순위)부터 적용된다. 첫 번째로 매치되는 규칙만 실행된다.
+- S3에 저장
+- 필드: 시간, IP, 요청, 응답코드, 지연 시간 등
+- 보안 분석 및 트래픽 패턴 분석에 유용
 
-**실무 예시:**
-```
-우선순위 1: /api/admin/* → 관리자 서비스
-우선순위 2: /api/* → 일반 API 서비스
-우선순위 3: /* → 기본 웹 서비스
-```
+### X-Ray 통합
 
-주의: 규칙 순서가 중요하다. `/api/*`를 먼저 두면 `/api/admin/*`이 매치되지 않는다.
+- ALB → 백엔드까지 분산 추적 가능
 
-## 실제 사용 사례
+---
 
-### 마이크로서비스 구성
+## Auto Scaling 연동
 
-ALB 하나로 여러 마이크로서비스를 라우팅한다.
+- ALB 대상 그룹과 Auto Scaling Group 연결
+- 요청 수 또는 CPU 사용률 기반으로 스케일 인/아웃
+- Target Tracking 또는 Step Scaling 사용
 
-**구성 예시:**
-```
-api.example.com
-├── /api/users/* → 사용자 서비스 (EC2 3대)
-├── /api/orders/* → 주문 서비스 (ECS 태스크)
-├── /api/payments/* → 결제 서비스 (Lambda)
-└── /admin/* → 관리자 서비스 (별도 대상 그룹)
-```
+---
 
-**장점:**
-- 클라이언트는 하나의 도메인만 알면 됨
-- 서비스별 독립 배포 가능
-- 서비스별 독립 스케일링 가능
+## 실무 팁
 
-**주의사항:**
-- 라우팅 규칙이 많아지면 관리가 복잡해진다
-- API Gateway를 사용하는 것도 고려해볼 만하다 (인증, 레이트 리미팅 등 추가 기능)
+- ALB는 모든 요청을 **요청 단위로 분산** (세션 유지 필요 시 sticky session 사용)
+- **헬스체크 실패** → 즉시 대상 제외, **Auto Scaling과 반드시 연계**
+- 기본 라우팅 외에 **정적 콘텐츠는 CloudFront 사용** 권장
+- **ACM 인증서** 사용으로 HTTPS 적용이 매우 간편
+- ALB는 일반적으로 **비용 효율이 높고 유연성 뛰어남**
 
-### ECS/EKS 통합
+---
 
-ALB는 ECS와 EKS와 자동으로 연동된다.
+## ALB vs NLB vs API Gateway 비교
 
-**ECS 통합:**
-- ECS 서비스를 대상 그룹에 등록하면 태스크가 자동 등록/해제됨
-- 태스크가 시작되면 ALB에 자동 등록
-- 태스크가 종료되면 ALB에서 자동 제거
-- 수동 관리 불필요
+| 항목 | ALB | NLB | API Gateway |
+|------|-----|-----|--------------|
+| 계층 | L7 | L4 | L7 (API) |
+| 대상 | EC2, ECS, Lambda | EC2, IP | Lambda, HTTP |
+| 사용 목적 | 웹, MSA 라우팅 | 실시간 통신, 게임 | 외부 API, 서버리스 |
+| 인증서 | TLS 종료 | TLS 패스스루 | IAM, JWT, API Key |
+| 기능 | 고급 라우팅 | 고성능, 저지연 | 인증, 레이트 리밋, CORS |
 
-**EKS 통합:**
-- Kubernetes Service 타입을 LoadBalancer로 설정하면 ALB가 생성됨
-- ALB Ingress Controller 사용 시 경로 기반 라우팅 가능
-- Pod가 변경되어도 자동으로 반영됨
+---
 
-**실무 팁:**
-ECS에서 대상 그룹 등록 시 헬스 체크가 통과해야 트래픽을 받는다. 컨테이너 시작 시간을 고려해 헬스 체크 간격을 조정해야 한다.
+## 참고 링크
 
-### Lambda 통합
-
-ALB는 Lambda 함수를 직접 대상으로 설정할 수 있다.
-
-**사용 예시:**
-```
-/api/users/* → EC2 인스턴스
-/api/analytics/* → Lambda 함수
-```
-
-**주의사항:**
-- Lambda는 요청당 타임아웃이 있다 (최대 15분)
-- 동시 실행 수 제한이 있다
-- 콜드 스타트 지연이 발생할 수 있다
-
-하이브리드 구성으로 점진적 마이그레이션이 가능하다.
-
-## 운영 고려사항
-
-### 고가용성
-
-ALB는 최소 2개 이상의 가용영역에 서브넷을 배치해야 한다. 단일 가용영역 장애 시에도 서비스가 유지된다.
-
-**크로스 존 로드 밸런싱:**
-가용영역 간 트래픽 분산이 가능하다. 예를 들어 AZ-A에 인스턴스 5개, AZ-B에 인스턴스 2개가 있어도 트래픽을 균등하게 분산한다.
-
-**비용:**
-크로스 존 로드 밸런싱 사용 시 가용영역 간 데이터 전송 비용이 발생한다. 같은 가용영역 내 통신은 비용이 없다.
-
-### 보안
-
-**SSL/TLS 종료:**
-ALB에서 HTTPS를 처리하고 백엔드는 HTTP로 통신한다. ACM 인증서를 사용하면 자동 갱신된다.
-
-**WAF 통합:**
-ALB 앞에 WAF를 연결해 SQL 인젝션, XSS 공격 등을 차단한다. WAF 규칙을 설정해 특정 IP 차단, 레이트 리미팅 등을 할 수 있다.
-
-**보안 그룹:**
-- ALB 보안 그룹: 클라이언트(0.0.0.0/0)에서 80, 443 포트 허용
-- 백엔드 보안 그룹: ALB 보안 그룹에서만 트래픽 허용
-
-이렇게 하면 백엔드 서버를 인터넷에 직접 노출하지 않는다.
-
-**실무 팁:**
-보안 그룹 규칙을 잘못 설정하면 ALB는 정상인데 백엔드로 트래픽이 안 갈 수 있다. CloudWatch 메트릭에서 대상 상태를 확인해야 한다.
-
-### 성능 최적화
-
-**연결 드레이닝:**
-인스턴스 제거 시 기존 연결을 유지하면서 새 요청은 받지 않는다. 기본값 300초 동안 처리 중인 요청이 완료되면 인스턴스를 종료한다. 이 시간을 너무 짧게 하면 요청이 끊길 수 있다.
-
-**압축:**
-텍스트 기반 콘텐츠(HTML, CSS, JS, JSON)에 gzip 압축을 적용한다. 네트워크 대역폭을 줄이고 응답 시간을 개선한다. 이미 압축된 파일(PNG, JPG 등)은 제외해야 한다.
-
-**HTTP/2:**
-ALB는 HTTP/2를 지원한다. 멀티플렉싱과 헤더 압축으로 성능이 향상된다. 클라이언트가 HTTP/2를 지원하면 자동으로 사용한다.
-
-### 모니터링
-
-**액세스 로그:**
-S3에 저장해 요청 패턴, 응답 시간, 오류율을 분석한다. ELK 스택이나 CloudWatch Logs Insights로 분석한다.
-
-**CloudWatch 메트릭:**
-- RequestCount: 요청 수
-- TargetResponseTime: 백엔드 응답 시간
-- HTTPCode_Target_4XX_Count: 4xx 오류 수
-- UnHealthyHostCount: 비정상 대상 수
-
-이 메트릭으로 알람을 설정하고 Auto Scaling 정책을 구성한다.
-
-**X-Ray:**
-분산 추적으로 요청이 ALB를 거쳐 여러 백엔드 서비스를 호출하는 전체 경로를 추적한다. 병목 지점을 찾을 때 유용하다.
-
-**실무 팁:**
-TargetResponseTime이 갑자기 증가하면 백엔드 서버 문제일 가능성이 높다. UnHealthyHostCount가 증가하면 헬스 체크 설정을 확인해야 한다.
-
-## 다른 로드 밸런서와 비교
-
-### AWS 로드 밸런서 종류
-
-**Application Load Balancer (ALB):**
-- 7계층 동작
-- HTTP/HTTPS 트래픽
-- 경로, 호스트, 헤더 기반 라우팅
-- Lambda 지원
-- 마이크로서비스에 적합
-
-**Network Load Balancer (NLB):**
-- 4계층 동작
-- TCP/UDP/TLS 트래픽
-- 낮은 지연시간, 높은 성능
-- 정적 IP 주소 지원
-- 게임 서버, 실시간 애플리케이션에 적합
-
-**Classic Load Balancer (CLB):**
-- 레거시
-- 새 프로젝트에서는 사용하지 않음
-
-**Gateway Load Balancer:**
-- 3계층 동작
-- IP 트래픽
-- 보안 어플라이언스 통합용
-
-### ALB를 선택하는 경우
-
-- HTTP/HTTPS 트래픽 처리
-- 경로별로 다른 서비스로 라우팅
-- ECS/EKS와 통합
-- Lambda 함수 직접 호출
-- 복잡한 라우팅 규칙 필요
-
-**NLB를 선택하는 경우:**
-- TCP/UDP 트래픽 처리
-- 최소 지연시간 필요
-- 정적 IP 주소 필요
-- 초고성능 필요
-
-**실무 팁:**
-대부분의 웹 애플리케이션은 ALB로 충분하다. 게임 서버나 실시간 스트리밍처럼 지연시간이 중요하면 NLB를 고려한다.
-
-## 참조
-
-- AWS Application Load Balancer 사용자 가이드: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/
-- AWS Well-Architected Framework: https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/load-balancing.html
-- ALB 가격: https://aws.amazon.com/elasticloadbalancing/pricing/
+- [ALB 공식 문서](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html)
+- [ALB 가격 안내](https://aws.amazon.com/elasticloadbalancing/pricing/)
+- [AWS Load Balancer 선택 가이드](https://aws.amazon.com/elasticloadbalancing/features/)
