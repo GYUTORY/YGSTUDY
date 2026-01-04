@@ -1,155 +1,153 @@
 ---
 title: Aurora MySQL Writer Failover & Endpoint Routing
 tags: [aws, aurora, mysql, rds, failover]
-updated: 2025-12-17
+updated: 2026-01-04
 ---
 
-# Aurora MySQL Writer 전환(Reader 승격)과 Endpoint Routing
+# Aurora MySQL Writer 장애 전환과 엔드포인트 라우팅
 
-이 문서는 Aurora MySQL을 실제 운영하면서 가장 많이 오해하는 **Writer 장애 시 동작**과 **Endpoint 라우팅 변경**을 중심으로 정리한다.  
-데이터 복구 관점이 아니라 **연결 전환 관점**에서 이해해야 한다.
+이 문서는 Aurora MySQL의 Writer 인스턴스 장애 시 처리 방식과 엔드포인트 라우팅 전환 흐름을 실무 중심으로 정리합니다.  
+복제/백업보다는 **연결 전환 관점**에 초점을 둡니다.
 
 ---
 
-## Aurora 클러스터 기본 구조
+## 1. Aurora 클러스터 기본 구조
 
-```mermaid
-flowchart LR
-    App[Application]
-    Writer[(Writer Instance)]
-    Reader1[(Reader Instance)]
-    Reader2[(Reader Instance)]
-    Storage[(Distributed Storage
-6 copies / 3 AZ)]
+- Writer 인스턴스: 1개
+- Reader 인스턴스: 0~N개
+- 스토리지는 모든 인스턴스가 공유하는 분산 구조 (6개 복사본, 3개 AZ 분산)
+- 복제 지연이 거의 없음
 
-    App --> Writer
-    App --> Reader1
-    App --> Reader2
-
-    Writer --> Storage
-    Reader1 --> Storage
-    Reader2 --> Storage
+```
+Application
+   ├──> Writer (Read/Write)
+   └──> Reader1 (Read-only)
+        └──> Shared Storage (6 copies / 3 AZ)
 ```
 
-- Writer는 항상 1개
-- Reader는 0~N개
-- 모든 인스턴스는 **같은 스토리지 볼륨을 공유**
-- 복제 지연 개념이 거의 없음
-- 장애 시 데이터 복구 작업은 발생하지 않음
+---
+
+## 2. 장애 발생 시 내부 처리 흐름
+
+Aurora는 Writer 인스턴스에 장애가 발생하면, 자동으로 Reader 인스턴스 중 하나를 Writer로 승격시킵니다.
+
+### 처리 과정 요약
+
+1. Writer 인스턴스 장애 발생
+2. 클러스터가 가장 최신 트랜잭션 로그를 가진 Reader를 식별
+3. 해당 Reader를 Writer로 승격
+4. **Writer 엔드포인트가 자동으로 새로운 Writer로 갱신됨**
+5. 애플리케이션에서 DNS 갱신 후 새로운 Writer로 재연결
+
+> 데이터 복구는 필요하지 않음. 스토리지는 항상 최신 상태 유지.
 
 ---
 
-## Writer 장애 발생 시 실제 내부 흐름
+## 3. Writer 장애 시 연결 재시도 흐름
 
-```mermaid
-sequenceDiagram
-    participant App
-    participant Writer
-    participant Reader
-    participant Storage
-
-    App->>Writer: Write Query
-    Writer--x App: 장애 발생
-    Reader->>Storage: 최신 데이터 상태 확인
-    Reader->>Reader: Writer 승격
-    App->>Reader: 재연결 (Writer Endpoint)
-    Reader->>Storage: Write 처리
+```plaintext
+1. App → Writer: 쓰기 요청
+2. Writer 응답 없음 (장애 발생)
+3. 클러스터: Reader 중 하나를 Writer로 승격
+4. App 재시도 → Writer Endpoint → 새 Writer로 연결
 ```
 
-중요한 포인트:
-- 스토리지 복구 없음
-- 데이터 재동기화 없음
-- **연결 대상만 변경**
-- 애플리케이션 재시도 여부가 체감 장애 시간을 결정
+> **애플리케이션이 재시도하지 않으면 장애처럼 느껴질 수 있음**
 
 ---
 
-## Reader → Writer 승격 조건
-
-Aurora는 아래 조건을 기준으로 Reader를 Writer로 승격한다.
-
-- 가장 최근 redo log 위치
-- 인스턴스 상태 (CPU, 메모리)
-- AZ 분산 상태
-- 장애 원인이 인스턴스 단위인지 AZ 단위인지
-
-운영 중 수동으로 특정 Reader를 승격 대상으로 지정할 수도 있다.
-
----
-
-## Endpoint 구조와 라우팅 동작
-
-```mermaid
-flowchart TB
-    App[Application]
-    WE[Writer Endpoint]
-    RE[Reader Endpoint]
-
-    Writer[(Writer)]
-    Reader1[(Reader)]
-    Reader2[(Reader)]
-
-    App --> WE --> Writer
-    App --> RE --> Reader1
-    App --> RE --> Reader2
-```
+## 4. Endpoint 구조 및 동작
 
 ### Writer Endpoint
-- 항상 **현재 Writer를 가리킴**
-- Failover 발생 시 자동 갱신
-- DNS TTL 만료 전까지는 기존 연결 유지
+
+- 클러스터 내 **현재 Writer 인스턴스**를 가리킴
+- 장애 발생 시 자동으로 새 Writer로 갱신
+- DNS 기반으로 동작 → TTL 반영됨
 
 ### Reader Endpoint
-- Reader 중 하나로 라운드로빈
-- 읽기 전용 트래픽 분산용
+
+- 모든 Reader 인스턴스 중 하나로 라운드로빈 방식 라우팅
+- 읽기 전용 트래픽 분산 처리용
+- Reader 수가 많을수록 분산 효과 증가
 
 ---
 
-## 실제 운영에서 자주 터지는 문제
+## 5. 장애 시 자주 발생하는 문제
 
-### 1. Writer Endpoint를 쓰는데도 장애가 길어지는 경우
+### 문제 1: Writer Endpoint 사용 중인데도 장애처럼 느껴짐
 
-원인:
-- 커넥션 풀에 기존 Writer 연결이 남아 있음
-- TCP keep-alive로 세션이 유지됨
+**원인**
+- 기존 Writer로의 TCP 커넥션이 남아 있음 (커넥션 풀 미정리)
+- DB 연결 실패 시 재시도 로직 부재
 
-해결:
-- Failover 감지 시 커넥션 풀 강제 초기화
-- Write 쿼리 실패 시 즉시 재시도 로직 필요
-
----
-
-### 2. Failover 후 일부 요청만 에러가 나는 경우
-
-원인:
-- 일부 Pod / 인스턴스만 DNS 캐시 갱신 지연
-- 애플리케이션마다 resolver 동작 차이
-
-해결:
-- JVM / Node.js DNS TTL 명시 설정
-- 장애 시 전체 재기동을 고려
+**대응**
+- 커넥션 풀에서 장애 시 연결 정리
+- 쓰기 실패 시 재시도 로직 구현
 
 ---
 
-## RDS MySQL과의 결정적 차이
+### 문제 2: 일부 애플리케이션만 장애 발생
+
+**원인**
+- DNS 캐시 TTL이 만료되지 않아 엔드포인트 갱신이 안됨
+- 각 프로세스 또는 런타임마다 DNS 해석 방식 다름
+
+**대응**
+- 애플리케이션 DNS TTL 설정 명시 (예: JVM, Node.js)
+- 전체 프로세스 재시작 또는 커넥션 풀 초기화 고려
+
+---
+
+## 6. 승격 대상 결정 기준
+
+Aurora는 다음 기준에 따라 승격할 Reader를 결정합니다:
+
+- 가장 최신 트랜잭션 로그 위치 (Log Sequence Number)
+- 인스턴스 상태 (CPU, 네트워크, 헬스체크)
+- 가용영역 분산 고려
+- 수동 설정된 우선순위 값 (기본 미사용)
+
+---
+
+## 7. Aurora vs. RDS MySQL
 
 | 항목 | Aurora MySQL | RDS MySQL |
-|----|----|----|
-| 스토리지 | 공유 분산 스토리지 | 인스턴스 종속 |
-| Failover | Reader 승격 | Standby 전환 |
-| 데이터 복구 | 없음 | 필요 |
-| 체감 장애 | 짧음 | 상대적으로 김 |
-| Endpoint | 논리적 추상화 | 인스턴스 중심 |
+|------|--------------|-----------|
+| 스토리지 | 공유 분산 스토리지 | 인스턴스마다 물리적 스토리지 |
+| 장애 처리 방식 | Reader 승격 | Standby 인스턴스로 전환 |
+| 데이터 복구 필요 | 없음 | 필요 (복제 및 리플레이) |
+| 체감 장애 시간 | 수 초 내 회복 | 수십 초 ~ 수 분 |
+| 엔드포인트 | Writer/Reader 논리 엔드포인트 | 인스턴스 주소 기반 |
 
 ---
 
-## 정리
+## 8. 실무 팁
 
-- Aurora Failover는 **데이터 문제가 아니다**
-- 핵심은 **연결 전환과 애플리케이션 재시도**
-- Writer Endpoint를 써도 커넥션 관리가 중요하다
-- 장애 시간의 대부분은 DB가 아니라 **애플리케이션에서 발생**
+- **Writer Endpoint 사용은 필수**  
+  → Writer 장애 시에도 자동으로 갱신되는 논리 엔드포인트
+
+- **DB 연결 풀 관리 중요**  
+  → 장애 시 커넥션 풀 초기화 없으면 회복되지 않음
+
+- **DNS TTL 명시 설정**  
+  → Java: `networkaddress.cache.ttl=30`  
+  → Node.js: DNS cache 라이브러리 사용
+
+- **실패 재시도 로직 구성**  
+  → 쓰기 실패 시 짧은 지연 후 재시도. 영구 실패 시 알림
 
 ---
 
-문서 작성일: 2025-12-16
+## 9. 정리
+
+- Aurora는 장애 발생 시 **스토리지 복구가 아닌 연결 대상 전환**
+- 장애 복구는 빠르지만, 애플리케이션이 준비되지 않으면 서비스 중단 체감 발생
+- Writer Endpoint + 재시도 로직 + 커넥션 풀 관리가 핵심
+
+---
+
+## 참고
+
+- [Aurora MySQL Failover Mechanism](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.html#Aurora.Managing.FaultTolerance)
+- [Best Practices for Aurora Connections](https://aws.amazon.com/premiumsupport/knowledge-center/aurora-failover-reconnect/)
+- [DNS TTL 설정 예시 (Java)](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/java-dg-jvm-ttl.html)
