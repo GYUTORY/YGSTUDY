@@ -1,10 +1,10 @@
 ---
-title: Java 객체지향 프로그래밍(OOP) 완벽 가이드
+title: Java 객체지향 프로그래밍(OOP) 가이드
 tags: [language, java, 객체지향-프로그래밍-oop, oop, encapsulation, inheritance, polymorphism, abstraction]
-updated: 2025-08-10
+updated: 2026-01-07
 ---
 
-# Java 객체지향 프로그래밍(OOP) 완벽 가이드
+# Java 객체지향 프로그래밍(OOP) 가이드
 
 ## 배경
 
