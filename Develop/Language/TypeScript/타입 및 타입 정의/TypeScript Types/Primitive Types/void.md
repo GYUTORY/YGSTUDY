@@ -1,10 +1,10 @@
 ---
-title: TypeScript void 타입 완벽 가이드
+title: TypeScript void 타입 가이드
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, void]
 updated: 2025-08-10
 ---
 
-# TypeScript void 타입 완벽 가이드
+# TypeScript void 타입 가이드
 
 ## 배경
 
