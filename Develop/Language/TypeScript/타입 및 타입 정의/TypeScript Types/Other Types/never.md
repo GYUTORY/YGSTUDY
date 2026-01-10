@@ -1,10 +1,10 @@
 ---
-title: TypeScript never 타입 완벽 가이드
+title: TypeScript never 타입 가이드
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, other-types, never]
 updated: 2025-08-10
 ---
 
-# TypeScript never 타입 완벽 가이드
+# TypeScript never 타입 가이드
 
 ## 배경
 
