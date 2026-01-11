@@ -1,30 +1,27 @@
 ---
 title: JavaScript Builder
 tags: [language, javascript, 01기본javascript, object, jsbuilderpattern]
-updated: 2025-08-10
+updated: 2026-01-11
 ---
 # JavaScript Builder 패턴
 
-## 1️⃣ Builder 패턴이란?
-**Builder 패턴**은 **객체를 단계적으로 생성할 수 있도록 도와주는 디자인 패턴**입니다.  
-객체의 생성 과정이 복잡할 때, **생성 로직을 분리하여 더 읽기 쉽고 유지보수하기 쉽게 만듭니다.**
+## 개요
 
-> **👉🏻 Builder 패턴은 특히 옵션이 많은 객체를 만들 때 유용합니다.**
+Builder 패턴은 객체를 단계적으로 생성하는 디자인 패턴이다. 속성이 많거나 생성 로직이 복잡할 때 사용한다.
 
-### 🔍 Builder 패턴의 핵심 개념
-1. **단계적 생성**: 객체를 한 번에 생성하는 대신, 여러 단계를 거쳐 생성합니다.
-2. **유연성**: 선택적 매개변수를 쉽게 설정할 수 있습니다.
-3. **가독성**: 메서드 체이닝을 통해 코드의 의도를 명확하게 표현할 수 있습니다.
-4. **유지보수성**: 객체 생성 로직을 분리하여 코드의 유지보수가 용이합니다.
+**핵심 개념:**
+- 단계적 생성: 여러 단계를 거쳐 객체 생성
+- 메서드 체이닝: `builder.setName().setAge().build()` 형태
+- 유효성 검사: 각 단계에서 입력값 검증 가능
+- 선택적 속성: 필요한 속성만 설정
 
----
+## 문제 상황
 
-## 2️⃣ 왜 Builder 패턴을 사용할까?
+속성이 많은 객체를 생성할 때 문제가 생긴다.
 
-## 배경
 ```javascript
-// 일반적인 객체 생성 방식
-const user1 = {
+// 속성이 많아지면 코드가 지저분해짐
+const user = {
     name: "Alice",
     age: 25,
     email: "alice@example.com",
@@ -38,91 +35,30 @@ const user1 = {
         language: "ko"
     }
 };
-
-// Builder 패턴을 사용한 객체 생성
-const user2 = new UserBuilder("Alice")
-    .setAge(25)
-    .setEmail("alice@example.com")
-    .setAddress("Seoul")
-    .setPhone("010-1234-5678")
-    .setRole("admin")
-    .setPermissions(["read", "write", "delete"])
-    .setSettings({
-        theme: "dark",
-        notifications: true,
-        language: "ko"
-    })
-    .build();
 ```
 
-> **👉🏻 위처럼 직접 객체를 생성하면, 속성이 많아질수록 코드가 지저분해지고 유지보수가 어려워집니다.**
+**문제점:**
+- 속성이 많아질수록 가독성 저하
+- 유효성 검사가 어려움
+- 기본값 설정이 복잡함
+- 선택적 속성 처리 불편
+- 에러 처리가 일관되지 않음
 
-1. **유효성 검사**: 각 단계에서 입력값의 유효성을 검사합니다.
-2. **기본값 설정**: 선택적 속성에 대한 기본값을 제공합니다.
-3. **메서드 체이닝**: 각 메서드가 `this`를 반환하여 체이닝이 가능합니다.
-4. **에러 처리**: 잘못된 입력에 대한 예외 처리가 포함되어 있습니다.
+## 해결 방법
 
----
+### 클래스 기반 Builder 패턴
 
-1. **객체 생성 과정의 명확성**
-   - 각 단계가 명확하게 구분되어 있어 코드의 의도를 쉽게 파악할 수 있습니다.
-   - 메서드 체이닝을 통해 가독성이 향상됩니다.
+클래스를 사용해 Builder를 구현한다.
 
-2. **유연한 확장성**
-   - 새로운 속성을 추가하기 쉽습니다.
-   - 기존 코드를 수정하지 않고도 새로운 기능을 추가할 수 있습니다.
-
-3. **유효성 검사**
-   - 각 단계에서 입력값의 유효성을 검사할 수 있습니다.
-   - 잘못된 입력에 대한 예외 처리가 용이합니다.
-
-4. **재사용성**
-   - 동일한 생성 로직을 여러 곳에서 재사용할 수 있습니다.
-   - 코드 중복을 줄일 수 있습니다.
-
-1. **코드 복잡성**
-   - 작은 객체의 경우 Builder 패턴이 오버엔지니어링이 될 수 있습니다.
-   - 초기 설정이 필요하여 코드가 길어질 수 있습니다.
-
-2. **학습 곡선**
-   - 패턴을 이해하고 적용하는 데 시간이 필요합니다.
-   - 팀원들이 패턴에 익숙해져야 합니다.
-
-3. **성능 오버헤드**
-   - 객체 생성 과정이 여러 단계로 나뉘어 있어 약간의 성능 저하가 있을 수 있습니다.
-   - 메서드 체이닝으로 인한 추가적인 함수 호출이 발생합니다.
-
----
-
-
-
-
-
-
-### 🔍 Builder 패턴의 장점
-1. **명확한 의도**: 각 속성의 설정이 명확하게 구분됩니다.
-2. **유연한 확장**: 새로운 속성을 추가하기 쉽습니다.
-3. **타입 안정성**: 각 단계에서 타입 체크가 가능합니다.
-4. **재사용성**: 동일한 생성 로직을 여러 곳에서 재사용할 수 있습니다.
-
----
-
-
-
-
-
-## 3️⃣ 기본적인 Builder 패턴 구현
-
-### ✨ 클래스를 이용한 Builder 패턴
 ```javascript
 class UserBuilder {
     constructor(name) {
-        this.name = name; // 필수 값
+        this.name = name;
         this.age = null;
         this.email = null;
         this.address = null;
         this.phone = null;
-        this.role = "user"; // 기본값 설정
+        this.role = "user";
         this.permissions = [];
         this.settings = {};
     }
@@ -176,7 +112,6 @@ class UserBuilder {
     }
 
     build() {
-        // 필수 값 검증
         if (!this.name) {
             throw new Error("Name is required");
         }
@@ -212,36 +147,31 @@ class User {
 }
 
 // 사용 예시
-try {
-    const user = new UserBuilder("Alice")
-        .setAge(25)
-        .setEmail("alice@example.com")
-        .setAddress("Seoul")
-        .setPhone("010-1234-5678")
-        .setRole("admin")
-        .setPermissions(["read", "write", "delete"])
-        .setSettings({
-            theme: "dark",
-            notifications: true,
-            language: "ko"
-        })
-        .build();
+const user = new UserBuilder("Alice")
+    .setAge(25)
+    .setEmail("alice@example.com")
+    .setRole("admin")
+    .setPermissions(["read", "write", "delete"])
+    .build();
 
-    user.display();
-} catch (error) {
-    console.error("Error creating user:", error.message);
-}
+user.display();
 ```
 
-> **👉🏻 `UserBuilder`를 사용하여 단계적으로 객체를 생성할 수 있습니다.**
+**특징:**
+- 각 메서드가 `this`를 반환해 메서드 체이닝 가능
+- 각 단계에서 유효성 검사 수행
+- `build()` 호출 시 최종 객체 생성
 
-## 4️⃣ 함수형 Builder 패턴 구현
+**주의사항:**
+- `build()` 전까지는 객체가 완성되지 않음
+- 필수 속성은 `build()`에서 검증해야 함
 
-클래스를 사용하지 않고, **함수형 방식으로도 Builder 패턴을 구현할 수 있습니다.**
+### 함수형 Builder 패턴
+
+클로저를 사용해 Builder를 구현한다.
 
 ```javascript
 function createUser(name) {
-    // private 변수로 user 객체 관리
     const user = { 
         name,
         age: null,
@@ -253,7 +183,6 @@ function createUser(name) {
         settings: {}
     };
 
-    // 유효성 검사 함수들
     const validators = {
         age: (age) => age >= 0 && age <= 150,
         email: (email) => email.includes("@"),
@@ -263,16 +192,12 @@ function createUser(name) {
 
     return {
         setAge(age) {
-            if (!validators.age(age)) {
-                throw new Error("Invalid age");
-            }
+            if (!validators.age(age)) throw new Error("Invalid age");
             user.age = age;
             return this;
         },
         setEmail(email) {
-            if (!validators.email(email)) {
-                throw new Error("Invalid email");
-            }
+            if (!validators.email(email)) throw new Error("Invalid email");
             user.email = email;
             return this;
         },
@@ -281,16 +206,12 @@ function createUser(name) {
             return this;
         },
         setPhone(phone) {
-            if (!validators.phone(phone)) {
-                throw new Error("Invalid phone number");
-            }
+            if (!validators.phone(phone)) throw new Error("Invalid phone number");
             user.phone = phone;
             return this;
         },
         setRole(role) {
-            if (!validators.role(role)) {
-                throw new Error("Invalid role");
-            }
+            if (!validators.role(role)) throw new Error("Invalid role");
             user.role = role;
             return this;
         },
@@ -303,51 +224,33 @@ function createUser(name) {
             return this;
         },
         build() {
-            if (!user.name) {
-                throw new Error("Name is required");
-            }
-            return { ...user }; // 불변성을 위해 복사본 반환
+            if (!user.name) throw new Error("Name is required");
+            return { ...user };
         }
     };
 }
 
 // 사용 예시
-try {
-    const user = createUser("Bob")
-        .setAge(30)
-        .setEmail("bob@example.com")
-        .setAddress("Busan")
-        .setPhone("010-1234-5678")
-        .setRole("manager")
-        .setPermissions(["read", "write"])
-        .setSettings({
-            theme: "light",
-            notifications: false,
-            language: "en"
-        })
-        .build();
-
-    console.log(user);
-} catch (error) {
-    console.error("Error creating user:", error.message);
-}
+const user = createUser("Bob")
+    .setAge(30)
+    .setEmail("bob@example.com")
+    .setRole("user")
+    .build();
 ```
 
-> **👉🏻 함수형 방식도 동일한 메서드 체이닝을 지원하며, 클로저를 활용하여 private 변수를 관리합니다.**
+**클래스 vs 함수형:**
+- 클래스: 상속 가능, 인스턴스 메서드 사용
+- 함수형: 클로저로 상태 캡슐화, 더 가벼움
 
-### 🔍 함수형 Builder의 특징
-1. **캡슐화**: 클로저를 통해 private 변수를 관리합니다.
-2. **유효성 검사**: 각 단계에서 입력값의 유효성을 검사합니다.
-3. **불변성**: `build()` 메서드에서 객체의 복사본을 반환합니다.
-4. **재사용성**: 유효성 검사 로직을 별도로 분리하여 재사용할 수 있습니다.
+**실무 팁:**
+간단한 경우 함수형이 더 가볍고, 복잡한 경우 클래스가 더 관리하기 쉽다.
 
----
+## 실제 사용 예제
 
-## 5️⃣ Builder 패턴의 장점과 단점
+### HTTP 요청 Builder
 
-## 6️⃣ 실제 사용 사례
+fetch API를 래핑해 재시도 로직과 타임아웃을 추가한 예제다.
 
-### ✅ 1. HTTP 요청 생성기
 ```javascript
 class RequestBuilder {
     constructor(url) {
@@ -385,17 +288,13 @@ class RequestBuilder {
     }
 
     setTimeout(timeout) {
-        if (timeout < 0) {
-            throw new Error("Timeout must be positive");
-        }
+        if (timeout < 0) throw new Error("Timeout must be positive");
         this.timeout = timeout;
         return this;
     }
 
     setRetries(retries) {
-        if (retries < 0) {
-            throw new Error("Retries must be positive");
-        }
+        if (retries < 0) throw new Error("Retries must be positive");
         this.retries = retries;
         return this;
     }
@@ -424,9 +323,7 @@ class RequestBuilder {
                 return response;
             } catch (error) {
                 attempts++;
-                if (attempts === this.retries) {
-                    throw error;
-                }
+                if (attempts === this.retries) throw error;
                 await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
             }
         }
@@ -434,115 +331,26 @@ class RequestBuilder {
 }
 
 // 사용 예시
-async function fetchUserData() {
-    try {
-        const response = await new RequestBuilder("https://api.example.com/users")
-            .setMethod("POST")
-            .setHeaders({
-                "Authorization": "Bearer token123",
-                "Accept": "application/json"
-            })
-            .setBody({
-                name: "John Doe",
-                email: "john@example.com"
-            })
-            .setTimeout(10000)
-            .setRetries(3)
-            .setCache(false)
-            .build();
-
-        const data = await response.json();
-        console.log(data);
-    } catch (error) {
-        console.error("Error fetching user data:", error.message);
-    }
-}
-```
-
-### ✅ 2. UI 컴포넌트 생성기
-```javascript
-class UIComponentBuilder {
-    constructor(type) {
-        this.type = type;
-        this.props = {};
-        this.children = [];
-        this.styles = {};
-        this.events = {};
-    }
-
-    setProps(props) {
-        this.props = { ...this.props, ...props };
-        return this;
-    }
-
-    addChild(child) {
-        this.children.push(child);
-        return this;
-    }
-
-    setStyle(styles) {
-        this.styles = { ...this.styles, ...styles };
-        return this;
-    }
-
-    addEvent(eventName, handler) {
-        this.events[eventName] = handler;
-        return this;
-    }
-
-    build() {
-        const element = document.createElement(this.type);
-        
-        // 속성 설정
-        Object.entries(this.props).forEach(([key, value]) => {
-            element.setAttribute(key, value);
-        });
-
-        // 스타일 설정
-        Object.entries(this.styles).forEach(([key, value]) => {
-            element.style[key] = value;
-        });
-
-        // 이벤트 리스너 설정
-        Object.entries(this.events).forEach(([eventName, handler]) => {
-            element.addEventListener(eventName, handler);
-        });
-
-        // 자식 요소 추가
-        this.children.forEach(child => {
-            if (typeof child === "string") {
-                element.appendChild(document.createTextNode(child));
-            } else {
-                element.appendChild(child);
-            }
-        });
-
-        return element;
-    }
-}
-
-// 사용 예시
-const button = new UIComponentBuilder("button")
-    .setProps({
-        type: "submit",
-        disabled: false
-    })
-    .setStyle({
-        backgroundColor: "#007bff",
-        color: "white",
-        padding: "10px 20px",
-        border: "none",
-        borderRadius: "5px",
-        cursor: "pointer"
-    })
-    .addEvent("click", () => console.log("Button clicked!"))
-    .addChild("Submit")
+const response = await new RequestBuilder("https://api.example.com/users")
+    .setMethod("POST")
+    .setHeaders({ "Authorization": "Bearer token123" })
+    .setBody({ name: "John Doe", email: "john@example.com" })
+    .setTimeout(10000)
+    .setRetries(3)
     .build();
 
-document.body.appendChild(button);
+const data = await response.json();
 ```
 
-### ✅ 3. 데이터베이스 쿼리 생성기
+**실무 팁:**
+- 재시도 로직은 네트워크 오류에만 적용하고, 4xx 오류는 재시도하지 않는다
+- 타임아웃을 너무 짧게 설정하면 정상 요청도 실패할 수 있다
+- 헤더 설정은 `setHeaders()`로 한 번에 하는 게 편하다
+
+### SQL 쿼리 Builder
+
+SQL 쿼리를 동적으로 생성하는 예제다.
+
 ```javascript
 class QueryBuilder {
     constructor() {
@@ -586,36 +394,21 @@ class QueryBuilder {
 
     build() {
         let query = "SELECT ";
-        
-        // SELECT 절
-        query += this.select.length > 0 
-            ? this.select.join(", ") 
-            : "*";
-        
-        // FROM 절
+        query += this.select.length > 0 ? this.select.join(", ") : "*";
         query += ` FROM ${this.table}`;
         
-        // WHERE 절
         if (this.where.length > 0) {
             query += " WHERE " + this.where.join(" AND ");
         }
         
-        // ORDER BY 절
         if (this.orderBy.length > 0) {
             query += " ORDER BY " + this.orderBy
                 .map(({ field, direction }) => `${field} ${direction}`)
                 .join(", ");
         }
         
-        // LIMIT 절
-        if (this.limit !== null) {
-            query += ` LIMIT ${this.limit}`;
-        }
-        
-        // OFFSET 절
-        if (this.offset !== null) {
-            query += ` OFFSET ${this.offset}`;
-        }
+        if (this.limit !== null) query += ` LIMIT ${this.limit}`;
+        if (this.offset !== null) query += ` OFFSET ${this.offset}`;
         
         return query;
     }
@@ -629,96 +422,42 @@ const query = new QueryBuilder()
     .where("status = 'active'")
     .orderBy("name", "ASC")
     .limit(10)
-    .offset(0)
     .build();
 
-console.log(query);
-// SELECT id, name, email FROM users WHERE age > 18 AND status = 'active' ORDER BY name ASC LIMIT 10 OFFSET 0
+// 결과: SELECT id, name, email FROM users WHERE age > 18 AND status = 'active' ORDER BY name ASC LIMIT 10
 ```
 
----
+**주의사항:**
+- SQL 인젝션 방지를 위해 파라미터화된 쿼리를 사용해야 한다
+- 실제 프로덕션에서는 ORM이나 쿼리 빌더 라이브러리(Knex, TypeORM 등)를 사용하는 게 좋다
 
-## 7️⃣ Best Practices
+## 장단점
 
-### ✅ 1. 필수 값 검증
-```javascript
-class Builder {
-    constructor(required) {
-        this.required = required;
-        this.values = {};
-    }
+### 장점
 
-    setValue(key, value) {
-        this.values[key] = value;
-        return this;
-    }
+- 가독성: 메서드 체이닝으로 코드 의도가 명확함
+- 유효성 검사: 각 단계에서 입력값 검증 가능
+- 유연성: 선택적 속성을 쉽게 설정
+- 재사용성: 동일한 생성 로직을 여러 곳에서 재사용
 
-    build() {
-        // 필수 값 검증
-        const missing = this.required.filter(key => !(key in this.values));
-        if (missing.length > 0) {
-            throw new Error(`Missing required values: ${missing.join(", ")}`);
-        }
-        return this.values;
-    }
-}
-```
+### 단점
 
-### ✅ 2. 타입 안정성
-```javascript
-class TypedBuilder {
-    constructor() {
-        this.values = {};
-        this.types = {};
-    }
+- 복잡성: 속성이 적은 객체에는 오버엔지니어링
+- 성능: 메서드 체이닝으로 인한 함수 호출 오버헤드 (미미함)
+- 학습 곡선: 팀원들이 패턴을 이해해야 함
 
-    defineProperty(name, type) {
-        this.types[name] = type;
-        return this;
-    }
+## 사용 시기
 
-    setValue(name, value) {
-        if (this.types[name] && typeof value !== this.types[name]) {
-            throw new Error(`Invalid type for ${name}. Expected ${this.types[name]}`);
-        }
-        this.values[name] = value;
-        return this;
-    }
+**Builder 패턴을 사용하는 경우:**
+- 속성이 5개 이상인 객체
+- 선택적 속성이 많은 경우
+- 유효성 검사가 필요한 경우
+- 동일한 생성 로직을 여러 곳에서 재사용하는 경우
 
-    build() {
-        return this.values;
-    }
-}
-```
+**사용하지 않는 경우:**
+- 속성이 2~3개 정도인 간단한 객체
+- 항상 모든 속성이 필요한 경우
+- 생성 로직이 단순한 경우
 
-### ✅ 3. 불변성 보장
-```javascript
-class ImmutableBuilder {
-    constructor() {
-        this.values = {};
-    }
-
-    setValue(key, value) {
-        this.values = { ...this.values, [key]: value };
-        return this;
-    }
-
-    build() {
-        return Object.freeze({ ...this.values });
-    }
-}
-```
-
----
-
-## 8️⃣ 결론
-
-Builder 패턴은 복잡한 객체 생성 과정을 단순화하고, 코드의 가독성과 유지보수성을 향상시키는 강력한 디자인 패턴입니다. 특히 다음과 같은 상황에서 유용합니다:
-
-1. **복잡한 객체 생성**: 많은 속성과 옵션을 가진 객체를 생성할 때
-2. **단계적 생성**: 객체를 여러 단계에 걸쳐 생성해야 할 때
-3. **유효성 검사**: 객체 생성 과정에서 입력값의 유효성을 검사해야 할 때
-4. **재사용성**: 동일한 생성 로직을 여러 곳에서 재사용해야 할 때
-
-Builder 패턴을 적절히 활용하면 코드의 품질을 크게 향상시킬 수 있습니다. 다만, 작은 객체의 경우에는 패턴의 복잡성이 이점보다 클 수 있으므로, 상황에 맞게 사용하는 것이 중요합니다.
-
+**실무 팁:**
+작은 객체는 일반 객체 리터럴이나 생성자 함수로 충분하다. Builder 패턴은 복잡한 객체 생성에만 사용한다.
