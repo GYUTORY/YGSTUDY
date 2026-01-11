@@ -1,9 +1,9 @@
 ---
 title: Getter Setter
 tags: [language, java, 객체지향-프로그래밍-oop, getter-and-setter]
-updated: 2025-08-10
+updated: 2026-01-11
 ---
-# Getter와 Setter 개념 및 활용 🚀
+# Getter와 Setter 개념 및 활용
 
 ## 1. Getter와 Setter란? 🤔
 
@@ -187,7 +187,7 @@ public class BankAccountExample {
 
 
 
-## 3. Lombok을 활용한 Getter와 Setter 자동 생성 ✨
+## 3. Lombok을 활용한 Getter와 Setter 자동 생성
 
 **Lombok** 라이브러리를 사용하면, **별도의 `get`/`set` 메서드를 작성하지 않고도 자동으로 생성**할 수 있습니다.
 
@@ -195,7 +195,7 @@ public class BankAccountExample {
 ✔ `@Setter` → 클래스의 모든 `setter` 자동 생성  
 ✔ `@Data` → `@Getter`, `@Setter`, `toString()` 등 자동 생성
 
-#### ✅ Lombok 사용 예제
+#### Lombok 사용 예제
 ```java
 import lombok.Getter;
 import lombok.Setter;
@@ -222,7 +222,7 @@ public class LombokExample {
 
 ---
 
-## 4. Getter와 Setter를 사용할 때 주의할 점 ⚠️
+## 4. Getter와 Setter를 사용할 때 주의할 점 ⚠
 
 ✔ **무조건 Getter/Setter를 만들지 말고, 필요한 경우에만 제공해야 함**  
 ✔ **Setter에서 데이터 검증 로직을 포함하여 무결성 유지**  
