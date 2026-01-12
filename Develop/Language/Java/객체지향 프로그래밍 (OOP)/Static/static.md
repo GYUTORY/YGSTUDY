@@ -161,7 +161,7 @@ public class StaticMethodExample {
 
 
 
-# 자바의 `static` 키워드와 멤버 변수/메서드의 종류 및 특성 🚀
+# 자바의 `static` 키워드와 멤버 변수/메서드의 종류 및 특성
 
 ## 3. 멤버 메서드의 종류와 특징
 
@@ -176,7 +176,7 @@ public class StaticMethodExample {
 ✔ **공통적인 기능을 제공할 때 유용**  
 ✔ `static` 키워드를 사용하여 선언합니다.
 
-## 4. `static`을 사용할 때 주의할 점 ⚠️
+## 4. `static`을 사용할 때 주의할 점 ⚠
 
 ✔ **인스턴스 변수는 `static` 메서드에서 직접 접근할 수 없음**  
 ✔ **메모리 사용을 고려하여 불필요한 `static` 사용을 지양**  
