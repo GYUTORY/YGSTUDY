@@ -1,10 +1,10 @@
 ---
-title: JSDoc 완벽 가이드
+title: JSDoc 가이드
 tags: [language, javascript, 08oop및디자인패턴, jsdoc, documentation]
-updated: 2025-08-10
+updated: 2026-01-12
 ---
 
-# JSDoc 완벽 가이드
+# JSDoc 가이드
 
 ## 배경
 
