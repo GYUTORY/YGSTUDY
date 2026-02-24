@@ -1,17 +1,16 @@
 nav:
   - index.md
+  - Language
+  - Framework
   - Application Architecture
-  - AWS
   - Backend
   - DataBase
+  - AWS
   - DevOps
-  - Framework
-  - Language
-  - Linux
   - Network
-  - OS
   - Security
+  - OS
+  - Linux
   - WebServer
-  - Auth
   - DataRepresentation
   - tags.md

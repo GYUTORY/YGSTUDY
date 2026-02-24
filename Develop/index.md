@@ -4,57 +4,28 @@ hide:
   - toc
 ---
 
-<div class="hero" markdown>
+<h1 class="home-title">YGSTUDY</h1>
+<p class="home-desc">백엔드 개발자를 위한 기술 지식 베이스</p>
 
-# YGSTUDY
+<div class="grid" markdown>
 
-백엔드 개발자를 위한 기술 문서 모음
+<div class="item" markdown>
 
-</div>
+### Language
 
-<div class="grid-cards" markdown>
+Java, JavaScript, TypeScript
 
-<div class="card" markdown>
-
-### Application Architecture
-
-현대 서버 애플리케이션의 구조와 패턴. MSA, Kubernetes, 디자인 패턴.
-
-- [MSA 개요](Application Architecture/MSA/MSA.md)
-- [Kubernetes 핵심](Application Architecture/Kubernetes/Kubernetes.md)
-- [생성 패턴](Application Architecture/Design Pattern/생성 패턴.md)
+- [JS 비동기](Language/JavaScript/05_이벤트_루프_비동기/JavaScript의 비동기 처리 메커니즘.md)
+- [유틸리티 타입](Language/TypeScript/타입 유틸리티/유틸리티 타입.md)
+- [JVM 구조](Language/Java/JVM 관련/JVM/JVM 구조 및 메모리 관리.md)
 
 </div>
 
-<div class="card" markdown>
-
-### AWS
-
-AWS 인프라 구성 요소와 운영 모범사례. 컨테이너, 네트워킹, 보안.
-
-- [EKS](AWS/Containers/EKS.md)
-- [ECS vs EKS 비교](AWS/Containers/ECS와 EKS 비교.md)
-- [IAM](AWS/Security/IAM.md)
-
-</div>
-
-<div class="card" markdown>
-
-### DataBase
-
-RDBMS/NoSQL 기초부터 성능 최적화. 인덱스, 락, Redis 운용.
-
-- [RDBMS에서의 Index](DataBase/RDBMS/RDBMS에서의 index.md)
-- [Lock](DataBase/RDBMS/Lock.md)
-- [Redis](DataBase/NoSQL/Redis/Redis.md)
-
-</div>
-
-<div class="card" markdown>
+<div class="item" markdown>
 
 ### Framework
 
-Node/NestJS, Java/Spring 프레임워크의 구조와 사용법.
+NestJS, Spring
 
 - [NestJS Basic](Framework/Node/NestJS/Basic.md)
 - [exports vs providers](Framework/Node/NestJS/exports_vs_providers.md)
@@ -62,23 +33,68 @@ Node/NestJS, Java/Spring 프레임워크의 구조와 사용법.
 
 </div>
 
-<div class="card" markdown>
+<div class="item" markdown>
 
-### Language
+### Application Architecture
 
-Java/JavaScript/TypeScript 핵심 문법과 심화 주제.
+MSA, 디자인 패턴
 
-- [JS 비동기 메커니즘](Language/JavaScript/05_이벤트_루프_비동기/JavaScript의 비동기 처리 메커니즘.md)
-- [TypeScript 유틸리티 타입](Language/TypeScript/타입 유틸리티/유틸리티 타입.md)
-- [JVM 구조](Language/Java/JVM 관련/JVM/JVM 구조 및 메모리 관리.md)
+- [MSA 개요](Application Architecture/MSA/MSA.md)
+- [생성 패턴](Application Architecture/Design Pattern/생성 패턴.md)
 
 </div>
 
-<div class="card" markdown>
+<div class="item" markdown>
+
+### Backend
+
+캐싱, DB, 장애 대응
+
+- [Caching Strategies](Backend/Caching/Caching_Strategies.md)
+- [Fault Tolerance](Backend/Resilience/Fault_Tolerance.md)
+
+</div>
+
+<div class="item" markdown>
+
+### DataBase
+
+인덱스, 락, Redis
+
+- [RDBMS Index](DataBase/RDBMS/RDBMS에서의 index.md)
+- [Lock](DataBase/RDBMS/Lock.md)
+- [Redis](DataBase/NoSQL/Redis/Redis.md)
+
+</div>
+
+<div class="item" markdown>
+
+### AWS
+
+Compute, Network, Security, Database
+
+- [EKS](AWS/Containers/EKS.md)
+- [IAM](AWS/Security/IAM.md)
+- [Lambda](AWS/Compute/Lambda.md)
+
+</div>
+
+<div class="item" markdown>
+
+### DevOps
+
+CI/CD, GitOps, IaC, Docker
+
+- [Bitbucket Pipeline](DevOps/CI_CD/Bitbucket_Pipeline.md)
+- [Docker Compose](DevOps/Kubernetes/Docker/Docker_Compose.md)
+
+</div>
+
+<div class="item" markdown>
 
 ### Network
 
-OSI 7계층, HTTP/HTTPS, TLS, TCP, gRPC 등 통신 스택.
+HTTP, TLS, gRPC, TCP
 
 - [HTTP](Network/7 Layer/Application Layer/Http/HTTP.md)
 - [TLS Handshake](Network/7 Layer/Application Layer/Http/TLS HandShake.md)
@@ -86,69 +102,45 @@ OSI 7계층, HTTP/HTTPS, TLS, TCP, gRPC 등 통신 스택.
 
 </div>
 
-<div class="card" markdown>
-
-### OS
-
-프로세스/스레드, 메모리 구조, 동시성 개념.
-
-- [Process & Thread](OS/Process & Thread/Process & Thread.md)
-- [메모리 관리](OS/Memory/메모리 관리.md)
-- [레이드 컨디션](OS/레이드 컨디션.md)
-
-</div>
-
-<div class="card" markdown>
+<div class="item" markdown>
 
 ### Security
 
-대칭/비대칭 암호, 해시, 인증/인가.
+암호화, 해시, 인증, OAuth
 
 - [AES](Security/AES.md)
 - [RSA](Security/RSA.md)
-- [SHA](Security/SHA.md)
+- [OAuth](Security/OAuth.md)
 
 </div>
 
-<div class="card" markdown>
+<div class="item" markdown>
 
-### DevOps
+### OS
 
-CI/CD 파이프라인, GitOps, IaC.
+프로세스, 스레드, 메모리
 
-- [Bitbucket Pipeline](DevOps/CI_CD/Bitbucket_Pipeline.md)
-- [SSM Deploy](AWS/Monitoring & Management/SSM_Deploy.md)
-
-</div>
-
-<div class="card" markdown>
-
-### WebServer
-
-Nginx, SSL/TLS, 리버스 프록시 구성.
-
-- [Nginx SSL](WebServer/Nginx/SSL.md)
-- [CORS](WebServer/Nginx/CORS.md)
-- [TLS & SSL](WebServer/TLS & SSL.md)
+- [Process & Thread](OS/Process & Thread/Process & Thread.md)
+- [메모리 관리](OS/Memory/메모리 관리.md)
 
 </div>
 
-<div class="card" markdown>
+<div class="item" markdown>
 
 ### Linux
 
-기본 명령어, 네트워크, 프로세스 관리.
+명령어, 네트워크, 프로세스
 
 </div>
 
-<div class="card" markdown>
+<div class="item" markdown>
 
-### DataRepresentation
+### WebServer
 
-2진수/16진수, 인코딩, 버퍼.
+Nginx, SSL/TLS
 
-- [Buffer](DataRepresentation/Buffer.md)
-- [Base64](DataRepresentation/Encoding/Base64.md)
+- [Nginx SSL](WebServer/Nginx/SSL.md)
+- [CORS](WebServer/Nginx/CORS.md)
 
 </div>
 

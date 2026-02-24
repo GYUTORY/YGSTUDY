@@ -14,38 +14,29 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: white
+      accent: blue
       toggle:
-        icon: material/brightness-7
+        icon: material/weather-night
         name: 다크 모드로 전환
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: black
+      accent: blue
       toggle:
-        icon: material/brightness-4
+        icon: material/weather-sunny
         name: 라이트 모드로 전환
-  font:
-    text: Noto Sans KR
-    code: JetBrains Mono
+  font: false
   features:
     - navigation.instant
-    - navigation.instant.prefetch
+    - navigation.instant.progress
     - navigation.tracking
-    - navigation.sections
     - navigation.indexes
-    - navigation.expand
-    - navigation.path
     - navigation.top
-    - navigation.footer
     - search.suggest
     - search.highlight
-    - search.share
     - content.code.copy
-    - content.code.annotate
     - toc.follow
-    - toc.integrate
   icon:
     repo: fontawesome/brands/github
 
@@ -99,3 +90,6 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js

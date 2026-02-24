@@ -1,0 +1,6 @@
+nav:
+  - CI_CD
+  - GitOps
+  - Infrastructure_as_Code
+  - Kubernetes
+  - Monitoring
