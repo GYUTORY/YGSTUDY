@@ -1,15 +1,143 @@
 :root {
   --md-text-font: "Noto Sans KR", sans-serif;
+  --md-primary-fg-color: #3f51b5;
 }
 
+/* 사이드바 너비 확장 (한국어 메뉴가 잘리지 않도록) */
+.md-sidebar--primary {
+  width: 280px;
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-sidebar--primary {
+    width: 300px;
+  }
+}
+
+/* 사이드바 네비게이션 스타일 */
+.md-nav__item .md-nav__link {
+  font-size: 0.78rem;
+}
+
+.md-nav__item--nested > .md-nav__link {
+  font-weight: 600;
+  color: var(--md-primary-fg-color);
+}
+
+/* 본문 타이포그래피 */
 .md-typeset {
   line-height: 1.8;
+  font-size: 0.82rem;
 }
 
+.md-typeset h1 {
+  font-weight: 700;
+  margin-bottom: 0.8em;
+  border-bottom: 2px solid var(--md-primary-fg-color);
+  padding-bottom: 0.3em;
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  margin-top: 1.6em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* 코드 블록 */
 .md-typeset code {
   font-size: 0.85em;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
 }
 
+.md-typeset pre {
+  border-radius: 8px;
+}
+
+/* 태그 스타일 */
 .md-typeset .md-tag {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
+  border-radius: 12px;
+  padding: 0.15em 0.6em;
+}
+
+/* 홈페이지 카드 그리드 */
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.grid-cards .card {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 10px;
+  padding: 1.2rem 1.4rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  background: var(--md-default-bg-color);
+}
+
+.grid-cards .card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.grid-cards .card h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--md-primary-fg-color);
+}
+
+.grid-cards .card p {
+  font-size: 0.78rem;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.6rem;
+}
+
+.grid-cards .card ul {
+  padding-left: 1.2em;
+  margin-bottom: 0;
+}
+
+.grid-cards .card ul li {
+  font-size: 0.75rem;
+}
+
+/* 홈페이지 히어로 */
+.hero {
+  text-align: center;
+  padding: 2rem 0 1rem;
+}
+
+.hero h1 {
+  font-size: 2rem;
+  border: none;
+  margin-bottom: 0.3em;
+}
+
+.hero p {
+  font-size: 0.95rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* 검색바 스타일 */
+.md-search__input {
+  border-radius: 8px;
+}
+
+/* 스크롤바 */
+.md-sidebar__scrollwrap::-webkit-scrollbar {
+  width: 4px;
+}
+
+.md-sidebar__scrollwrap::-webkit-scrollbar-thumb {
+  background: var(--md-default-fg-color--lightest);
+  border-radius: 4px;
+}
+
+/* footer */
+.md-footer {
+  margin-top: 2rem;
 }
