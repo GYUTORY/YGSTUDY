@@ -1,3 +1,9 @@
+---
+title: Terraform 기초 가이드
+tags: [devops, iac, terraform, aws, infrastructure]
+updated: 2026-02-24
+---
+
 # Terraform 기초 가이드 (Terraform Basics Guide)
 
 ## 목차 (Table of Contents)
