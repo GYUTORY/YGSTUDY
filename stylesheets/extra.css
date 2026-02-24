@@ -1,143 +1,208 @@
+/* ================================================
+   YGSTUDY — Clean Minimal Theme
+   ================================================ */
+
+/* ---------- System Font Stack ---------- */
 :root {
-  --md-text-font: "Noto Sans KR", sans-serif;
-  --md-primary-fg-color: #3f51b5;
+  --md-text-font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Malgun Gothic", "맑은 고딕", sans-serif;
+  --md-code-font: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  --point: #2563eb;
+  --point-light: #3b82f6;
+  --border: #e5e7eb;
+  --bg-hover: #f9fafb;
+  --text: #111827;
+  --text-sub: #6b7280;
 }
 
-/* 사이드바 너비 확장 (한국어 메뉴가 잘리지 않도록) */
+[data-md-color-scheme="slate"] {
+  --point: #60a5fa;
+  --point-light: #93bbfd;
+  --border: #374151;
+  --bg-hover: #1f2937;
+  --text: #f3f4f6;
+  --text-sub: #9ca3af;
+}
+
+/* ---------- Header ---------- */
+.md-header {
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.md-header__title {
+  font-weight: 700;
+}
+
+/* ---------- Sidebar ---------- */
 .md-sidebar--primary {
-  width: 280px;
+  border-right: 1px solid var(--border);
 }
 
-@media screen and (min-width: 76.25em) {
-  .md-sidebar--primary {
-    width: 300px;
-  }
+/* 사이드바 안정화 */
+.md-sidebar__scrollwrap {
+  overflow-y: auto;
+  overflow-anchor: none;
+  scroll-behavior: auto;
 }
 
-/* 사이드바 네비게이션 스타일 */
-.md-nav__item .md-nav__link {
-  font-size: 0.78rem;
+/* 사이드바 토글 즉시 반응 */
+.md-nav__toggle ~ .md-nav {
+  transition: none;
+}
+
+/* 활성 항목 auto-scroll 방지 */
+.md-nav__link--active,
+.md-nav__link:focus {
+  scroll-margin: 0;
+}
+
+.md-nav__link {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+}
+
+.md-nav__link:hover {
+  color: var(--point);
+}
+
+.md-nav__link--active {
+  color: var(--point);
+  font-weight: 600;
 }
 
 .md-nav__item--nested > .md-nav__link {
   font-weight: 600;
-  color: var(--md-primary-fg-color);
+  font-size: 0.82rem;
+  color: var(--text);
 }
 
-/* 본문 타이포그래피 */
+/* ---------- Content ---------- */
 .md-typeset {
-  line-height: 1.8;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  line-height: 1.75;
 }
 
 .md-typeset h1 {
   font-weight: 700;
-  margin-bottom: 0.8em;
-  border-bottom: 2px solid var(--md-primary-fg-color);
+  font-size: 1.6rem;
+  border-bottom: 2px solid var(--point);
   padding-bottom: 0.3em;
+  margin-bottom: 0.8em;
 }
 
 .md-typeset h2 {
   font-weight: 600;
-  margin-top: 1.6em;
-  padding-bottom: 0.2em;
-  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  font-size: 1.2rem;
+  margin-top: 2em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--border);
 }
 
-/* 코드 블록 */
+.md-typeset h3 {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 1.5em;
+}
+
+.md-typeset a {
+  color: var(--point);
+  text-decoration: none;
+}
+
+.md-typeset a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Code ---------- */
 .md-typeset code {
-  font-size: 0.85em;
+  font-size: 0.84em;
   padding: 0.1em 0.4em;
   border-radius: 4px;
+  background: var(--md-code-bg-color);
 }
 
 .md-typeset pre {
-  border-radius: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 
-/* 태그 스타일 */
+/* ---------- Tags ---------- */
 .md-typeset .md-tag {
-  font-size: 0.65rem;
-  border-radius: 12px;
-  padding: 0.15em 0.6em;
+  font-size: 0.68rem;
+  border-radius: 3px;
+  padding: 0.1em 0.5em;
 }
 
-/* 홈페이지 카드 그리드 */
-.grid-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
+/* ---------- Table ---------- */
+.md-typeset table:not([class]) th {
+  background: var(--bg-hover);
+  font-weight: 600;
 }
 
-.grid-cards .card {
-  border: 1px solid var(--md-default-fg-color--lightest);
-  border-radius: 10px;
-  padding: 1.2rem 1.4rem;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-  background: var(--md-default-bg-color);
-}
+/* ================================================
+   HOMEPAGE
+   ================================================ */
 
-.grid-cards .card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.grid-cards .card h3 {
-  margin-top: 0;
-  font-size: 1rem;
+.home-title {
+  font-size: 1.4rem;
   font-weight: 700;
-  color: var(--md-primary-fg-color);
-}
-
-.grid-cards .card p {
-  font-size: 0.78rem;
-  color: var(--md-default-fg-color--light);
-  margin-bottom: 0.6rem;
-}
-
-.grid-cards .card ul {
-  padding-left: 1.2em;
-  margin-bottom: 0;
-}
-
-.grid-cards .card ul li {
-  font-size: 0.75rem;
-}
-
-/* 홈페이지 히어로 */
-.hero {
-  text-align: center;
-  padding: 2rem 0 1rem;
-}
-
-.hero h1 {
-  font-size: 2rem;
-  border: none;
   margin-bottom: 0.3em;
+  border: none !important;
 }
 
-.hero p {
-  font-size: 0.95rem;
-  color: var(--md-default-fg-color--light);
+.home-desc {
+  color: var(--text-sub);
+  font-size: 0.9rem;
+  margin-bottom: 2em;
 }
 
-/* 검색바 스타일 */
-.md-search__input {
-  border-radius: 8px;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
 }
 
-/* 스크롤바 */
-.md-sidebar__scrollwrap::-webkit-scrollbar {
-  width: 4px;
+.grid .item {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 18px;
+  background: var(--md-default-bg-color--light);
 }
 
-.md-sidebar__scrollwrap::-webkit-scrollbar-thumb {
-  background: var(--md-default-fg-color--lightest);
-  border-radius: 4px;
+.grid .item:hover {
+  border-color: var(--point);
 }
 
-/* footer */
-.md-footer {
-  margin-top: 2rem;
+.grid .item h3 {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  border: none;
+}
+
+.grid .item p {
+  font-size: 0.76rem;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.grid .item ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.grid .item ul li {
+  font-size: 0.76rem;
+  padding: 2px 0;
+}
+
+.grid .item ul li a {
+  color: var(--point);
+}
+
+.grid .item ul li a:hover {
+  text-decoration: underline;
 }
