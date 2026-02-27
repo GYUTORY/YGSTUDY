@@ -1,32 +1,68 @@
 /* ================================================
-   YGSTUDY — Clean Minimal Theme
+   YGSTUDY — Teal & Cyan Theme
    ================================================ */
 
-/* ---------- System Font Stack ---------- */
 :root {
   --md-text-font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     "Malgun Gothic", "맑은 고딕", sans-serif;
   --md-code-font: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
-  --point: #2563eb;
-  --point-light: #3b82f6;
+
+  --point: #0d9488;
+  --point-light: #14b8a6;
+  --point-dark: #0f766e;
+  --accent: #06b6d4;
+
   --border: #e5e7eb;
-  --bg-hover: #f9fafb;
+  --bg-hover: #f0fdfa;
+  --bg-card: #ffffff;
   --text: #111827;
   --text-sub: #6b7280;
+  --text-muted: #9ca3af;
+
+  --cat-language: #f59e0b;
+  --cat-framework: #10b981;
+  --cat-arch: #8b5cf6;
+  --cat-backend: #3b82f6;
+  --cat-database: #ef4444;
+  --cat-aws: #f97316;
+  --cat-devops: #06b6d4;
+  --cat-network: #6366f1;
+  --cat-security: #ec4899;
+  --cat-os: #14b8a6;
+  --cat-linux: #84cc16;
+  --cat-webserver: #8b5cf6;
 }
 
 [data-md-color-scheme="slate"] {
-  --point: #60a5fa;
-  --point-light: #93bbfd;
+  --point: #2dd4bf;
+  --point-light: #5eead4;
+  --point-dark: #14b8a6;
+  --accent: #22d3ee;
+
   --border: #374151;
   --bg-hover: #1f2937;
+  --bg-card: #1f2937;
   --text: #f3f4f6;
   --text-sub: #9ca3af;
+  --text-muted: #6b7280;
+
+  --cat-language: #fbbf24;
+  --cat-framework: #34d399;
+  --cat-arch: #a78bfa;
+  --cat-backend: #60a5fa;
+  --cat-database: #f87171;
+  --cat-aws: #fb923c;
+  --cat-devops: #22d3ee;
+  --cat-network: #818cf8;
+  --cat-security: #f472b6;
+  --cat-os: #2dd4bf;
+  --cat-linux: #a3e635;
+  --cat-webserver: #a78bfa;
 }
 
 /* ---------- Header ---------- */
 .md-header {
-  box-shadow: 0 1px 0 var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .md-header__title {
@@ -38,27 +74,25 @@
   border-right: 1px solid var(--border);
 }
 
-/* 사이드바 안정화 */
 .md-sidebar__scrollwrap {
   overflow-y: auto;
   overflow-anchor: none;
   scroll-behavior: auto;
 }
 
-/* 사이드바 토글 즉시 반응 */
 .md-nav__toggle ~ .md-nav {
   transition: none;
 }
 
-/* 활성 항목 auto-scroll 방지 */
 .md-nav__link--active,
 .md-nav__link:focus {
   scroll-margin: 0;
 }
 
 .md-nav__link {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-sub);
+  transition: color 0.15s ease;
 }
 
 .md-nav__link:hover {
@@ -66,19 +100,19 @@
 }
 
 .md-nav__link--active {
-  color: var(--point);
+  color: var(--point) !important;
   font-weight: 600;
 }
 
 .md-nav__item--nested > .md-nav__link {
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--text);
 }
 
 /* ---------- Content ---------- */
 .md-typeset {
-  font-size: 0.85rem;
+  font-size: 0.86rem;
   line-height: 1.75;
 }
 
@@ -122,15 +156,19 @@
 }
 
 .md-typeset pre {
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--border);
+}
+
+.md-typeset pre code {
+  background: none;
 }
 
 /* ---------- Tags ---------- */
 .md-typeset .md-tag {
-  font-size: 0.68rem;
-  border-radius: 3px;
-  padding: 0.1em 0.5em;
+  font-size: 0.7rem;
+  border-radius: 10px;
+  padding: 0.15em 0.55em;
 }
 
 /* ---------- Table ---------- */
@@ -139,70 +177,67 @@
   font-weight: 600;
 }
 
+/* ---------- Admonitions ---------- */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 6px;
+}
+
 /* ================================================
    HOMEPAGE
    ================================================ */
 
-.home-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin-bottom: 0.3em;
-  border: none !important;
+.md-typeset .grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 6px;
+  margin-top: 0.6em;
 }
 
-.home-desc {
-  color: var(--text-sub);
-  font-size: 0.9rem;
-  margin-bottom: 2em;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 12px;
-}
-
-.grid .item {
+.md-typeset .grid .item {
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 16px 18px;
-  background: var(--md-default-bg-color--light);
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border-left: 3px solid var(--item-color, var(--point));
+  transition: box-shadow 0.15s ease;
+  min-width: 0;
 }
 
-.grid .item:hover {
-  border-color: var(--point);
+.md-typeset .grid .item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.grid .item h3 {
-  margin: 0 0 6px;
-  font-size: 0.88rem;
+[data-md-color-scheme="slate"] .md-typeset .grid .item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.md-typeset .grid .item h3 {
+  margin: 0 0 2px;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--item-color, var(--point));
   border: none;
 }
 
-.grid .item p {
-  font-size: 0.76rem;
+.md-typeset .grid .item p {
+  font-size: 0.68rem;
   color: var(--text-sub);
-  margin-bottom: 8px;
-  line-height: 1.5;
+  margin-bottom: 0;
+  line-height: 1.4;
+  word-break: keep-all;
 }
 
-.grid .item ul {
-  padding: 0;
-  margin: 0;
-  list-style: none;
+/* Hide mermaid errors on pages without diagrams */
+.mermaid-error,
+[id^="d-mermaid"] {
+  display: none !important;
 }
 
-.grid .item ul li {
-  font-size: 0.76rem;
-  padding: 2px 0;
-}
-
-.grid .item ul li a {
-  color: var(--point);
-}
-
-.grid .item ul li a:hover {
-  text-decoration: underline;
+/* ---------- Responsive ---------- */
+@media screen and (max-width: 768px) {
+  .md-typeset .grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px;
+  }
 }
