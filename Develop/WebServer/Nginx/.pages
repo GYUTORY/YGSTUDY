@@ -1,1 +1,5 @@
 title: Nginx
+nav:
+  - Definition.md
+  - Reverse_Proxy_and_Load_Balancing.md
+  - CORS.md
