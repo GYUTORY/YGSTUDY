@@ -1,1 +1,4 @@
 title: Gateway
+nav:
+  - Definition.md
+  - API_Gateway.md

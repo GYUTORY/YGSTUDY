@@ -1,1 +1,4 @@
 title: Proxy
+nav:
+  - Proxy.md
+  - Load_Balancing.md
