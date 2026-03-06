@@ -1,1 +1,9 @@
 title: Design Pattern
+nav:
+  - Creational_Pattern.md
+  - Behavioral_Pattern.md
+  - Singleton_Pattern.md
+  - Factory Method.md
+  - Observer Pattern.md
+  - Proxy_Pattern.md
+  - Module_Pattern.md
