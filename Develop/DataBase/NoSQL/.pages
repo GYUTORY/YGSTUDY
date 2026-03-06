@@ -1,1 +1,5 @@
 title: NoSQL
+nav:
+  - NoSQL.md
+  - MongoDB.md
+  - Redis

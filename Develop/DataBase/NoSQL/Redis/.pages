@@ -1,1 +1,5 @@
 title: Redis
+nav:
+  - Redis.md
+  - Redis 다루기.md
+  - Redis_Advanced.md
