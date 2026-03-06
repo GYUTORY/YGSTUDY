@@ -1,1 +1,4 @@
 title: JVM
+nav:
+  - JVM
+  - GC_Deep_Dive.md
