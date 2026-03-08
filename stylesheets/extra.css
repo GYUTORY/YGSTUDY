@@ -1,19 +1,19 @@
 /* ================================================
-   YGSTUDY — Teal & Cyan Theme
+   YGSTUDY — Minimal Professional Theme
    ================================================ */
 
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
 :root {
-  --md-text-font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-    "Malgun Gothic", "맑은 고딕", sans-serif;
+  --md-text-font: "Pretendard Variable", "Pretendard", -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --md-code-font: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 
-  --point: #0d9488;
-  --point-light: #14b8a6;
-  --point-dark: #0f766e;
-  --accent: #06b6d4;
+  --point: #4f46e5;
 
   --border: #e5e7eb;
-  --bg-hover: #f0fdfa;
+  --border-hover: #d1d5db;
+  --bg-hover: #f9fafb;
   --bg-card: #ffffff;
   --text: #111827;
   --text-sub: #6b7280;
@@ -35,15 +35,13 @@
 }
 
 [data-md-color-scheme="slate"] {
-  --point: #2dd4bf;
-  --point-light: #5eead4;
-  --point-dark: #14b8a6;
-  --accent: #22d3ee;
+  --point: #818cf8;
 
   --border: #374151;
+  --border-hover: #4b5563;
   --bg-hover: #1f2937;
   --bg-card: #1f2937;
-  --text: #f3f4f6;
+  --text: #f9fafb;
   --text-sub: #9ca3af;
   --text-muted: #6b7280;
 
@@ -60,15 +58,6 @@
   --cat-linux: #a3e635;
   --cat-webserver: #a78bfa;
   --cat-ai: #c084fc;
-}
-
-/* ---------- Header ---------- */
-.md-header {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.md-header__title {
-  font-weight: 700;
 }
 
 /* ---------- Sidebar ---------- */
@@ -114,21 +103,21 @@
 
 /* ---------- Content ---------- */
 .md-typeset {
-  font-size: 0.86rem;
-  line-height: 1.75;
+  font-size: 0.9rem;
+  line-height: 1.8;
 }
 
 .md-typeset h1 {
   font-weight: 700;
   font-size: 1.6rem;
-  border-bottom: 2px solid var(--point);
-  padding-bottom: 0.3em;
-  margin-bottom: 0.8em;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0.6em;
 }
 
 .md-typeset h2 {
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   margin-top: 2em;
   padding-bottom: 0.25em;
   border-bottom: 1px solid var(--border);
@@ -158,19 +147,12 @@
 }
 
 .md-typeset pre {
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border);
 }
 
 .md-typeset pre code {
   background: none;
-}
-
-/* ---------- Tags ---------- */
-.md-typeset .md-tag {
-  font-size: 0.7rem;
-  border-radius: 10px;
-  padding: 0.15em 0.55em;
 }
 
 /* ---------- Table ---------- */
@@ -186,48 +168,99 @@
 }
 
 /* ================================================
+   PROFILE
+   ================================================ */
+
+.md-typeset .profile {
+  margin: 0.2em 0 2.2em;
+  padding-bottom: 1.6em;
+  border-bottom: 1px solid var(--border);
+}
+
+.md-typeset .profile-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.35em;
+  line-height: 1.4;
+}
+
+.md-typeset .profile-role {
+  font-weight: 400;
+  color: var(--text-sub);
+  font-size: 1rem;
+}
+
+.md-typeset .profile-bio {
+  font-size: 0.875rem;
+  color: var(--text-sub);
+  margin: 0 0 1em;
+  line-height: 1.7;
+}
+
+.md-typeset .profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.md-typeset .tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-sub);
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 10px;
+}
+
+/* ================================================
    HOMEPAGE
    ================================================ */
 
+/* Grid */
 .md-typeset .grid {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr) !important;
-  gap: 6px;
+  gap: 8px;
   margin-top: 0.6em;
 }
 
 .md-typeset .grid .item {
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 8px 10px;
-  background: var(--bg-card);
-  border-left: 3px solid var(--item-color, var(--point));
-  transition: box-shadow 0.15s ease;
+  padding: 18px 20px;
+  transition: border-color 0.15s;
   min-width: 0;
 }
 
 .md-typeset .grid .item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-[data-md-color-scheme="slate"] .md-typeset .grid .item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border-color: var(--border-hover);
 }
 
 .md-typeset .grid .item h3 {
-  margin: 0 0 2px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--item-color, var(--point));
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 8px;
   border: none;
 }
 
 .md-typeset .grid .item p {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   color: var(--text-sub);
   margin-bottom: 0;
-  line-height: 1.4;
+  line-height: 1.7;
   word-break: keep-all;
+}
+
+.md-typeset .grid .item p a {
+  color: var(--point);
 }
 
 /* Hide mermaid errors on pages without diagrams */
@@ -242,58 +275,53 @@
 
 .md-typeset .portfolio {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin: 1em 0 2em;
 }
 
 .md-typeset .portfolio-card {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--bg-card);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.15s;
 }
 
 .md-typeset .portfolio-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-[data-md-color-scheme="slate"] .md-typeset .portfolio-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-color: var(--border-hover);
 }
 
 .md-typeset .portfolio-card img {
   width: 100%;
-  height: 220px;
-  object-fit: contain;
+  height: 200px;
+  object-fit: cover;
   display: block;
-  border-bottom: 1px solid var(--border);
-  background: #1a1a2e;
+  background: #f9fafb;
 }
 
-[data-md-color-scheme="default"] .md-typeset .portfolio-card img {
-  background: #f1f5f9;
+[data-md-color-scheme="slate"] .md-typeset .portfolio-card img {
+  background: #1f2937;
 }
 
 .md-typeset .portfolio-info {
-  padding: 12px 14px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
 }
 
 .md-typeset .portfolio-info h3 {
   margin: 0 0 4px;
   font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--point);
+  font-weight: 600;
+  color: var(--text);
   border: none;
 }
 
 .md-typeset .portfolio-info p {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--text-sub);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* ---------- Responsive ---------- */
@@ -305,5 +333,6 @@
 
   .md-typeset .portfolio {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
