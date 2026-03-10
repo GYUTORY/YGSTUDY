@@ -282,11 +282,146 @@ RDS의 백업 전략은 자동 백업과 수동 스냅샷의 조합으로 구성
 ### 성능 최적화 전략
 
 #### 파라미터 그룹 활용
-RDS 파라미터 그룹을 통해 데이터베이스 엔진의 설정을 최적화할 수 있습니다. 주요 최적화 포인트는 다음과 같습니다:
-- **연결 수 제한**: max_connections 파라미터를 통해 동시 연결 수를 제한하여 리소스 보호
-- **버퍼 풀 크기**: innodb_buffer_pool_size를 인스턴스 메모리의 70-80%로 설정하여 캐시 효율성 향상
-- **쿼리 캐시**: query_cache_size 설정을 통해 반복적인 쿼리의 성능 향상
-- **로그 설정**: slow_query_log를 활성화하여 성능 병목 지점 파악
+
+RDS 파라미터 그룹을 통해 데이터베이스 엔진의 설정을 최적화할 수 있습니다.
+
+**AWS CLI로 파라미터 그룹 생성 및 적용**
+
+```bash
+# 파라미터 그룹 생성
+aws rds create-db-parameter-group \
+  --db-parameter-group-name prod-mysql8-params \
+  --db-parameter-group-family mysql8.0 \
+  --description "Production MySQL 8.0 parameter group"
+
+# 파라미터 일괄 설정
+aws rds modify-db-parameter-group \
+  --db-parameter-group-name prod-mysql8-params \
+  --parameters \
+    "ParameterName=max_connections,ParameterValue=500,ApplyMethod=immediate" \
+    "ParameterName=innodb_buffer_pool_size,ParameterValue={DBInstanceClassMemory*3/4},ApplyMethod=pending-reboot" \
+    "ParameterName=slow_query_log,ParameterValue=1,ApplyMethod=immediate" \
+    "ParameterName=long_query_time,ParameterValue=1,ApplyMethod=immediate" \
+    "ParameterName=log_queries_not_using_indexes,ParameterValue=1,ApplyMethod=immediate" \
+    "ParameterName=innodb_flush_log_at_trx_commit,ParameterValue=2,ApplyMethod=pending-reboot" \
+    "ParameterName=character_set_server,ParameterValue=utf8mb4,ApplyMethod=immediate" \
+    "ParameterName=collation_server,ParameterValue=utf8mb4_unicode_ci,ApplyMethod=immediate"
+
+# DB 인스턴스에 파라미터 그룹 적용
+aws rds modify-db-instance \
+  --db-instance-identifier prod-mysql \
+  --db-parameter-group-name prod-mysql8-params \
+  --apply-immediately
+```
+
+**주요 파라미터 설명**
+
+| 파라미터 | 권장값 | 설명 |
+|---------|--------|------|
+| `max_connections` | 인스턴스 메모리에 맞게 | 동시 연결 한도. 초과 시 "Too many connections" |
+| `innodb_buffer_pool_size` | 메모리의 75% | InnoDB 데이터/인덱스 캐시. 클수록 I/O 감소 |
+| `slow_query_log` | 1 (활성화) | 느린 쿼리 로깅 활성화 |
+| `long_query_time` | 1 (초) | 이 시간 초과 시 slow log에 기록 |
+| `innodb_flush_log_at_trx_commit` | 2 (성능 우선) | 1=안전, 2=성능 (약 1초 로그 유실 가능) |
+| `innodb_read_io_threads` | 8 | 읽기 I/O 스레드 수 |
+| `innodb_write_io_threads` | 8 | 쓰기 I/O 스레드 수 |
+
+**Terraform으로 파라미터 그룹 관리 (IaC)**
+
+```hcl
+resource "aws_db_parameter_group" "mysql_prod" {
+  name   = "prod-mysql8-params"
+  family = "mysql8.0"
+
+  parameter {
+    name  = "max_connections"
+    value = "500"
+  }
+
+  parameter {
+    name         = "innodb_buffer_pool_size"
+    value        = "{DBInstanceClassMemory*3/4}"
+    apply_method = "pending-reboot"
+  }
+
+  parameter {
+    name  = "slow_query_log"
+    value = "1"
+  }
+
+  parameter {
+    name  = "long_query_time"
+    value = "1"
+  }
+
+  parameter {
+    name  = "character_set_server"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name  = "collation_server"
+    value = "utf8mb4_unicode_ci"
+  }
+
+  tags = {
+    Environment = "prod"
+  }
+}
+
+resource "aws_db_instance" "mysql_prod" {
+  identifier        = "prod-mysql"
+  engine            = "mysql"
+  engine_version    = "8.0"
+  instance_class    = "db.r6g.large"
+  allocated_storage = 100
+
+  parameter_group_name = aws_db_parameter_group.mysql_prod.name
+
+  # Multi-AZ
+  multi_az = true
+
+  # 백업
+  backup_retention_period = 7
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "Mon:04:00-Mon:05:00"
+
+  # 암호화
+  storage_encrypted = true
+  kms_key_id        = aws_kms_key.rds.arn
+
+  # 네트워크
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+
+  # 삭제 보호
+  deletion_protection = true
+  skip_final_snapshot = false
+
+  tags = {
+    Environment = "prod"
+  }
+}
+```
+
+**슬로우 쿼리 분석**
+
+```bash
+# RDS 슬로우 쿼리 로그 다운로드
+aws rds download-db-log-file-portion \
+  --db-instance-identifier prod-mysql \
+  --log-file-name slowquery/mysql-slowquery.log \
+  --output text
+
+# CloudWatch Logs Insights로 슬로우 쿼리 분석
+# (로그 그룹: /aws/rds/instance/prod-mysql/slowquery)
+fields @timestamp, @message
+| filter @message like /Query_time/
+| parse @message "Query_time: * Lock_time: * Rows_sent: * Rows_examined: *" as query_time, lock_time, rows_sent, rows_examined
+| filter query_time > 1
+| sort query_time desc
+| limit 20
+```
 
 #### 읽기 전용 복제본 최적화
 

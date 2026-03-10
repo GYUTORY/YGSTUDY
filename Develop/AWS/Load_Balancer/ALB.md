@@ -205,6 +205,179 @@ admin.example.com  → 관리자 백엔드
 
 ---
 
+## 코드 예제
+
+### AWS CLI — Target Group + ALB 생성
+
+```bash
+# ── 1. Target Group 생성 ──────────────────────────────────
+TG_ARN=$(aws elbv2 create-target-group \
+  --name "myapp-tg" \
+  --protocol HTTP \
+  --port 8080 \
+  --vpc-id vpc-xxxxxxxx \
+  --target-type instance \
+  --health-check-path "/health" \
+  --health-check-interval-seconds 30 \
+  --healthy-threshold-count 2 \
+  --unhealthy-threshold-count 3 \
+  --query 'TargetGroups[0].TargetGroupArn' --output text)
+
+# ── 2. 대상(EC2 인스턴스) 등록 ───────────────────────────
+aws elbv2 register-targets \
+  --target-group-arn $TG_ARN \
+  --targets Id=i-1234567890abcdef0,Port=8080 \
+            Id=i-0987654321fedcba0,Port=8080
+
+# 헬스체크 상태 확인
+aws elbv2 describe-target-health \
+  --target-group-arn $TG_ARN \
+  --query 'TargetHealthDescriptions[*].{ID:Target.Id,Health:TargetHealth.State}'
+
+# ── 3. ALB 생성 ────────────────────────────────────────────
+ALB_ARN=$(aws elbv2 create-load-balancer \
+  --name "myapp-alb" \
+  --subnets subnet-aaa subnet-bbb \
+  --security-groups sg-xxxxxxxx \
+  --scheme internet-facing \
+  --type application \
+  --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+
+# ── 4. HTTPS Listener 생성 ────────────────────────────────
+LISTENER_ARN=$(aws elbv2 create-listener \
+  --load-balancer-arn $ALB_ARN \
+  --protocol HTTPS \
+  --port 443 \
+  --certificates CertificateArn=arn:aws:acm:...:certificate/xxx \
+  --default-actions Type=forward,TargetGroupArn=$TG_ARN \
+  --query 'Listeners[0].ListenerArn' --output text)
+
+# HTTP → HTTPS 리다이렉트 Listener
+aws elbv2 create-listener \
+  --load-balancer-arn $ALB_ARN \
+  --protocol HTTP --port 80 \
+  --default-actions \
+    Type=redirect,RedirectConfig='{Protocol=HTTPS,Port=443,StatusCode=HTTP_301}'
+```
+
+### AWS CLI — Listener Rule (경로 기반 / 헤더 기반)
+
+```bash
+# ── 경로 기반 라우팅 규칙 추가 ────────────────────────────
+aws elbv2 create-rule \
+  --listener-arn $LISTENER_ARN \
+  --priority 10 \
+  --conditions '[{
+    "Field": "path-pattern",
+    "Values": ["/api/orders/*"]
+  }]' \
+  --actions '[{
+    "Type": "forward",
+    "TargetGroupArn": "'$ORDER_TG_ARN'"
+  }]'
+
+# ── Host 헤더 기반 라우팅 ──────────────────────────────────
+aws elbv2 create-rule \
+  --listener-arn $LISTENER_ARN \
+  --priority 20 \
+  --conditions '[{
+    "Field": "host-header",
+    "Values": ["admin.example.com"]
+  }]' \
+  --actions '[{
+    "Type": "forward",
+    "TargetGroupArn": "'$ADMIN_TG_ARN'"
+  }]'
+
+# ── 현재 규칙 목록 확인 ────────────────────────────────────
+aws elbv2 describe-rules \
+  --listener-arn $LISTENER_ARN \
+  --query 'Rules[*].{Priority:Priority,Conditions:Conditions[0].Field}'
+```
+
+### Terraform — ALB + Target Group + Listener
+
+```hcl
+# ── ALB ────────────────────────────────────────────────────
+resource "aws_lb" "main" {
+  name               = "myapp-alb"
+  load_balancer_type = "application"
+  subnets            = aws_subnet.public[*].id
+  security_groups    = [aws_security_group.alb.id]
+
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.bucket
+    enabled = true
+  }
+}
+
+# ── Target Group ───────────────────────────────────────────
+resource "aws_lb_target_group" "api" {
+  name     = "myapp-api-tg"
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+
+  health_check {
+    path                = "/health"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    matcher             = "200"
+  }
+}
+
+# ── HTTPS Listener ─────────────────────────────────────────
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate.main.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+}
+
+# ── HTTP → HTTPS 리다이렉트 ────────────────────────────────
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# ── 경로 기반 라우팅 Rule ──────────────────────────────────
+resource "aws_lb_listener_rule" "orders" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 10
+
+  condition {
+    path_pattern {
+      values = ["/api/orders/*"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.orders.arn
+  }
+}
+```
+
+---
+
 ## 참고 링크
 
 - [ALB 공식 문서](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html)

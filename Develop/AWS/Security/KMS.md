@@ -158,6 +158,178 @@ AWS KMS는 암호화 키를 생성, 저장, 제어하는 완전 관리형 서비
 
 ---
 
+## 코드 예제
+
+### AWS CLI로 KMS 키 관리
+
+```bash
+# ── KMS 키 생성 ───────────────────────────────────────
+KEY_ID=$(aws kms create-key \
+  --description "Application data encryption key" \
+  --key-usage ENCRYPT_DECRYPT \
+  --key-spec SYMMETRIC_DEFAULT \
+  --query 'KeyMetadata.KeyId' --output text)
+
+# 별칭 추가 (사람이 읽기 쉬운 이름)
+aws kms create-alias \
+  --alias-name alias/app/database \
+  --target-key-id $KEY_ID
+
+# 자동 키 교체 활성화 (1년 주기)
+aws kms enable-key-rotation --key-id $KEY_ID
+
+# ── 데이터 암호화 / 복호화 ────────────────────────────
+# 암호화
+CIPHERTEXT=$(aws kms encrypt \
+  --key-id alias/app/database \
+  --plaintext "민감한 데이터" \
+  --query 'CiphertextBlob' --output text)
+
+echo "Encrypted: $CIPHERTEXT"
+
+# 복호화
+aws kms decrypt \
+  --ciphertext-blob fileb://<(echo $CIPHERTEXT | base64 --decode) \
+  --query 'Plaintext' --output text | base64 --decode
+
+# ── 키 정책 확인 / 변경 ───────────────────────────────
+aws kms get-key-policy \
+  --key-id alias/app/database \
+  --policy-name default \
+  --query Policy --output text | jq .
+
+# ── 키 정보 조회 ──────────────────────────────────────
+aws kms describe-key --key-id alias/app/database
+aws kms list-aliases
+aws kms get-key-rotation-status --key-id $KEY_ID
+```
+
+### Node.js AWS SDK로 데이터 암호화
+
+```javascript
+const { KMSClient, EncryptCommand, DecryptCommand, GenerateDataKeyCommand } = require('@aws-sdk/client-kms');
+
+const kms = new KMSClient({ region: 'ap-northeast-2' });
+const KEY_ARN = process.env.KMS_KEY_ARN;  // alias/app/database
+
+// ── 소량 데이터 직접 암호화 (4KB 이하) ───────────────
+async function encryptData(plaintext) {
+    const response = await kms.send(new EncryptCommand({
+        KeyId: KEY_ARN,
+        Plaintext: Buffer.from(plaintext, 'utf-8')
+    }));
+    return Buffer.from(response.CiphertextBlob).toString('base64');
+}
+
+async function decryptData(ciphertextBase64) {
+    const response = await kms.send(new DecryptCommand({
+        CiphertextBlob: Buffer.from(ciphertextBase64, 'base64')
+    }));
+    return Buffer.from(response.Plaintext).toString('utf-8');
+}
+
+// 사용 예
+const encrypted = await encryptData('홍길동의 주민번호: 123456-1234567');
+const decrypted = await decryptData(encrypted);
+
+// ── 대용량 데이터: Envelope Encryption 패턴 ──────────
+const crypto = require('crypto');
+
+async function encryptLargeData(data) {
+    // 1. KMS에서 데이터 키 생성 (평문 + 암호화된 키)
+    const { Plaintext, CiphertextBlob } = await kms.send(new GenerateDataKeyCommand({
+        KeyId: KEY_ARN,
+        KeySpec: 'AES_256'
+    }));
+
+    // 2. 평문 데이터 키로 실제 데이터를 AES-256으로 암호화
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(Plaintext), iv);
+    const encrypted = Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]);
+
+    // 3. 평문 키는 버리고, 암호화된 키만 보관
+    return {
+        encryptedData: encrypted.toString('base64'),
+        encryptedKey: Buffer.from(CiphertextBlob).toString('base64'),
+        iv: iv.toString('base64')
+    };
+}
+
+async function decryptLargeData({ encryptedData, encryptedKey, iv }) {
+    // 1. KMS로 암호화된 데이터 키 복호화
+    const { Plaintext } = await kms.send(new DecryptCommand({
+        CiphertextBlob: Buffer.from(encryptedKey, 'base64')
+    }));
+
+    // 2. 복호화된 데이터 키로 실제 데이터 복호화
+    const decipher = crypto.createDecipheriv(
+        'aes-256-cbc',
+        Buffer.from(Plaintext),
+        Buffer.from(iv, 'base64')
+    );
+    const decrypted = Buffer.concat([
+        decipher.update(Buffer.from(encryptedData, 'base64')),
+        decipher.final()
+    ]);
+    return decrypted.toString('utf-8');
+}
+```
+
+### S3 서버사이드 암호화 설정
+
+```bash
+# S3 버킷 기본 암호화 설정 (KMS 키 사용)
+aws s3api put-bucket-encryption \
+  --bucket my-sensitive-bucket \
+  --server-side-encryption-configuration '{
+    "Rules": [{
+      "ApplyServerSideEncryptionByDefault": {
+        "SSEAlgorithm": "aws:kms",
+        "KMSMasterKeyID": "alias/app/database"
+      },
+      "BucketKeyEnabled": true
+    }]
+  }'
+
+# 암호화 설정 확인
+aws s3api get-bucket-encryption --bucket my-sensitive-bucket
+
+# 특정 객체 업로드 시 KMS 키 지정
+aws s3 cp sensitive-file.txt \
+  s3://my-sensitive-bucket/ \
+  --sse aws:kms \
+  --sse-kms-key-id alias/app/database
+```
+
+### RDS 암호화 및 Secrets Manager 연동
+
+```bash
+# RDS 인스턴스 생성 시 KMS 암호화 활성화
+aws rds create-db-instance \
+  --db-instance-identifier my-encrypted-db \
+  --db-instance-class db.t3.medium \
+  --engine mysql \
+  --master-username admin \
+  --master-user-password $(openssl rand -base64 24) \
+  --storage-encrypted \
+  --kms-key-id alias/app/database \
+  --allocated-storage 20
+
+# Secrets Manager에 DB 비밀번호 저장 (KMS 암호화)
+aws secretsmanager create-secret \
+  --name prod/myapp/db-credentials \
+  --kms-key-id alias/app/database \
+  --secret-string '{
+    "username": "admin",
+    "password": "supersecretpassword",
+    "host": "mydb.cluster.ap-northeast-2.rds.amazonaws.com",
+    "port": 3306,
+    "dbname": "myapp"
+  }'
+```
+
+---
+
 ## 참고 자료
 
 - [AWS KMS 공식 문서](https://docs.aws.amazon.com/kms/)

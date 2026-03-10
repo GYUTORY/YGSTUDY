@@ -220,6 +220,172 @@ updated: 2025-11-25
 - **Capacity Providers**: Fargate + Fargate Spot 등 여러 용량 소스를 조합해 사용
 - **Task Placement Strategies**: 태스크를 어떤 인스턴스에 어떻게 분배할지 전략적으로 제어
 
+## Task Definition YAML 예제
+
+### Fargate — Spring Boot API 서버
+
+```json
+{
+  "family": "api-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/api-task-role",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/api:latest",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "SPRING_PROFILES_ACTIVE", "value": "prod" },
+        { "name": "SERVER_PORT", "value": "8080" }
+      ],
+      "secrets": [
+        {
+          "name": "DB_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:123456789012:secret:prod/db-password"
+        },
+        {
+          "name": "REDIS_PASSWORD",
+          "valueFrom": "arn:aws:ssm:ap-northeast-2:123456789012:parameter/prod/redis/password"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/api-service",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "essential": true,
+      "cpu": 512,
+      "memory": 1024,
+      "memoryReservation": 512
+    }
+  ]
+}
+```
+
+### ECS Service 설정 (AWS CLI)
+
+```bash
+# 서비스 생성
+aws ecs create-service \
+  --cluster prod-cluster \
+  --service-name api-service \
+  --task-definition api-service:3 \
+  --desired-count 2 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={
+    subnets=[subnet-aaa,subnet-bbb],
+    securityGroups=[sg-xxx],
+    assignPublicIp=DISABLED
+  }" \
+  --load-balancers "targetGroupArn=arn:aws:elasticloadbalancing:...,containerName=api,containerPort=8080" \
+  --deployment-configuration "minimumHealthyPercent=100,maximumPercent=200" \
+  --deployment-controller "type=ECS"
+```
+
+### 오토 스케일링 설정
+
+```bash
+# Application Auto Scaling 등록
+aws application-autoscaling register-scalable-target \
+  --service-namespace ecs \
+  --scalable-dimension ecs:service:DesiredCount \
+  --resource-id service/prod-cluster/api-service \
+  --min-capacity 2 \
+  --max-capacity 10
+
+# CPU 기반 스케일 아웃 정책
+aws application-autoscaling put-scaling-policy \
+  --policy-name api-cpu-scale-out \
+  --service-namespace ecs \
+  --scalable-dimension ecs:service:DesiredCount \
+  --resource-id service/prod-cluster/api-service \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration '{
+    "TargetValue": 60.0,
+    "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+    },
+    "ScaleOutCooldown": 60,
+    "ScaleInCooldown": 300
+  }'
+```
+
+### CDK로 ECS Fargate 서비스 정의 (TypeScript)
+
+```typescript
+import * as cdk from 'aws-cdk-lib';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
+
+const taskDefinition = new ecs.FargateTaskDefinition(this, 'ApiTaskDef', {
+  memoryLimitMiB: 1024,
+  cpu: 512,
+  executionRole: executionRole,
+  taskRole: taskRole,
+});
+
+taskDefinition.addContainer('api', {
+  image: ecs.ContainerImage.fromEcrRepository(repo, 'latest'),
+  portMappings: [{ containerPort: 8080 }],
+  environment: {
+    SPRING_PROFILES_ACTIVE: 'prod',
+  },
+  secrets: {
+    DB_PASSWORD: ecs.Secret.fromSecretsManager(dbSecret),
+  },
+  logging: ecs.LogDrivers.awsLogs({
+    streamPrefix: 'ecs',
+    logGroup: logGroup,
+  }),
+  healthCheck: {
+    command: ['CMD-SHELL', 'curl -f http://localhost:8080/actuator/health || exit 1'],
+    interval: cdk.Duration.seconds(30),
+    timeout: cdk.Duration.seconds(5),
+    retries: 3,
+    startPeriod: cdk.Duration.seconds(60),
+  },
+});
+
+// ALB + Fargate Service 패턴
+const service = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'ApiService', {
+  cluster,
+  taskDefinition,
+  desiredCount: 2,
+  publicLoadBalancer: true,
+  listenerPort: 443,
+  redirectHTTP: true,
+});
+
+// 오토 스케일링
+const scaling = service.service.autoScaleTaskCount({ maxCapacity: 10, minCapacity: 2 });
+scaling.scaleOnCpuUtilization('CpuScaling', {
+  targetUtilizationPercent: 60,
+  scaleOutCooldown: cdk.Duration.seconds(60),
+  scaleInCooldown: cdk.Duration.seconds(300),
+});
+```
+
+---
+
 ## 결론·요약
 
 - **ECS는 "AWS에서 컨테이너를 가장 쉽게 운영하는 방법"에 가까운 서비스**
