@@ -412,6 +412,169 @@ CORS는 서버에서 설정하는 보안 메커니즘이다. 개발 환경에서
 - 새로운 보안 위협에 대한 대응
 - 최적화 기법의 지속적 개선
 
+---
+
+## Nginx CORS 설정 예제
+
+### 기본 CORS 설정
+
+```nginx
+# /etc/nginx/conf.d/cors.conf
+
+server {
+    listen 443 ssl;
+    server_name api.example.com;
+
+    # ── 단순 요청 (Simple Request) CORS ──────────────
+    location /api/ {
+        # 특정 Origin만 허용
+        add_header 'Access-Control-Allow-Origin' 'https://www.example.com' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, X-Request-ID' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+        add_header 'Access-Control-Max-Age' '86400' always;  # Preflight 캐시 24시간
+
+        # Preflight 요청 처리
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'https://www.example.com';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, X-Request-ID';
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Max-Age' '86400';
+            add_header 'Content-Length' '0';
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            return 204;
+        }
+
+        proxy_pass http://backend;
+    }
+}
+```
+
+### 동적 Origin 허용 (여러 도메인)
+
+```nginx
+# map으로 허용된 Origin 목록 관리
+map $http_origin $cors_origin {
+    default                          '';
+    'https://www.example.com'        'https://www.example.com';
+    'https://admin.example.com'      'https://admin.example.com';
+    'https://app.example.com'        'https://app.example.com';
+    ~^https://.*\.staging\.com$      $http_origin;  # 정규식 매칭
+}
+
+server {
+    location /api/ {
+        add_header 'Access-Control-Allow-Origin' $cors_origin always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+        add_header 'Vary' 'Origin' always;  # 캐시 구분을 위해 필수
+
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' $cors_origin;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, Accept, X-Request-ID';
+            add_header 'Access-Control-Max-Age' '3600';
+            return 204;
+        }
+
+        proxy_pass http://backend;
+    }
+
+    # 공개 API — 모든 Origin 허용
+    location /api/public/ {
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, OPTIONS' always;
+        proxy_pass http://backend;
+    }
+}
+```
+
+### 환경별 CORS 설정 (include 패턴)
+
+```nginx
+# /etc/nginx/snippets/cors-dev.conf (개발 환경 — 모두 허용)
+add_header 'Access-Control-Allow-Origin' '*' always;
+add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+add_header 'Access-Control-Allow-Headers' '*' always;
+
+# /etc/nginx/snippets/cors-prod.conf (프로덕션 — 특정 Origin만)
+add_header 'Access-Control-Allow-Origin' 'https://www.example.com' always;
+add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+add_header 'Access-Control-Allow-Credentials' 'true' always;
+add_header 'Vary' 'Origin' always;
+
+# nginx.conf에서 환경 변수로 분기
+# include /etc/nginx/snippets/cors-prod.conf;
+```
+
+### Spring Boot CORS 설정
+
+```java
+// GlobalCorsConfig.java
+@Configuration
+public class GlobalCorsConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/api/**")
+            .allowedOrigins(
+                "https://www.example.com",
+                "https://admin.example.com"
+            )
+            .allowedOriginPatterns("https://*.staging.example.com")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+            .allowedHeaders("Authorization", "Content-Type", "X-Request-ID")
+            .allowCredentials(true)
+            .maxAge(3600);
+
+        // 공개 API
+        registry.addMapping("/api/public/**")
+            .allowedOrigins("*")
+            .allowedMethods("GET")
+            .allowCredentials(false);
+    }
+}
+
+// 또는 Spring Security와 함께 사용
+@Bean
+public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
+    config.setAllowedOrigins(List.of("https://www.example.com", "https://admin.example.com"));
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+    config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Request-ID"));
+    config.setAllowCredentials(true);
+    config.setMaxAge(3600L);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/api/**", config);
+    return source;
+}
+```
+
+### CORS 디버깅
+
+```bash
+# Preflight 요청 테스트
+curl -v -X OPTIONS https://api.example.com/api/users \
+  -H "Origin: https://www.example.com" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Authorization, Content-Type"
+
+# 응답에서 확인할 헤더:
+# Access-Control-Allow-Origin: https://www.example.com
+# Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+# Access-Control-Allow-Headers: Authorization, Content-Type
+# Access-Control-Allow-Credentials: true
+
+# 실제 요청 테스트
+curl -v https://api.example.com/api/users \
+  -H "Origin: https://www.example.com" \
+  -H "Authorization: Bearer token123"
+```
+
+---
+
 ## 참조
 
 ### 공식 문서 및 표준
