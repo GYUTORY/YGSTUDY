@@ -4,3 +4,4 @@ nav:
   - Infrastructure_as_Code
   - Kubernetes
   - Monitoring
+  - Testing
