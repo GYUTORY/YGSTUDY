@@ -121,3 +121,104 @@ MAC 주소는 네트워크에서 쉽게 확인할 수 있으므로 보안 목적
 
 **실무 팁:**
 MAC 주소 필터링은 기본적인 보안 조치다. 추가 보안 조치와 함께 사용한다.
+
+---
+
+## ARP 실습 및 MAC 주소 확인
+
+### MAC 주소 조회 명령어
+
+```bash
+# ── macOS / Linux ──────────────────────────────────────
+
+# 내 네트워크 인터페이스 MAC 주소 확인
+ifconfig en0 | grep ether           # macOS
+ip link show eth0 | grep ether      # Linux
+
+# 예시 출력
+# ether aa:bb:cc:dd:ee:ff  txqueuelen 1000  (Ethernet)
+
+# 모든 인터페이스 확인
+ip addr show
+ifconfig -a
+
+# ── Windows ──────────────────────────────────────────
+ipconfig /all | findstr "Physical Address"
+# Physical Address. . . . : AA-BB-CC-DD-EE-FF
+```
+
+### ARP 테이블 조회
+
+```bash
+# 현재 ARP 캐시 조회 (IP → MAC 매핑)
+arp -a                              # macOS / Windows
+arp -n                              # Linux (도메인 조회 생략)
+ip neighbor show                    # Linux (현대적 방법)
+
+# 예시 출력 (arp -a)
+# gateway (192.168.1.1) at aa:bb:cc:11:22:33 [ether] on eth0
+# ? (192.168.1.100) at 00:1a:2b:3c:4d:5e [ether] on eth0
+
+# ARP 캐시 삭제 (문제 해결 시)
+sudo arp -d 192.168.1.100           # 특정 항목 삭제
+sudo ip neighbor flush dev eth0     # 인터페이스 전체 플러시
+```
+
+### ARP를 이용한 네트워크 장치 탐색
+
+```bash
+# ping으로 ARP 캐시 채우기
+ping -c 1 192.168.1.1
+
+# 서브넷 전체 탐색 (ping sweep)
+for i in $(seq 1 254); do
+    ping -c 1 -W 1 192.168.1.$i &>/dev/null && \
+    echo "192.168.1.$i is up" &
+done
+wait
+
+# arp-scan 도구 (설치 필요: apt install arp-scan)
+sudo arp-scan --localnet
+sudo arp-scan 192.168.1.0/24
+
+# 예시 출력
+# 192.168.1.1     aa:bb:cc:11:22:33   Vendor Inc.
+# 192.168.1.10    00:1a:2b:3c:4d:5e   Unknown
+```
+
+### Node.js에서 네트워크 인터페이스 정보 조회
+
+```javascript
+const os = require('os');
+
+// 네트워크 인터페이스 정보 (MAC 주소 포함)
+const interfaces = os.networkInterfaces();
+
+Object.entries(interfaces).forEach(([name, addrs]) => {
+    addrs.forEach(addr => {
+        if (!addr.internal) {
+            console.log(`Interface: ${name}`);
+            console.log(`  MAC: ${addr.mac}`);
+            console.log(`  IP:  ${addr.address} (${addr.family})`);
+        }
+    });
+});
+
+// 출력 예시
+// Interface: en0
+//   MAC: aa:bb:cc:dd:ee:ff
+//   IP:  192.168.1.100 (IPv4)
+```
+
+### ARP Spoofing 탐지 (보안)
+
+```bash
+# ARP 테이블에서 중복 MAC 주소 확인 (ARP Spoofing 징후)
+arp -a | awk '{print $4}' | sort | uniq -d
+
+# 정적 ARP 엔트리 추가 (ARP Spoofing 방어)
+sudo arp -s 192.168.1.1 aa:bb:cc:11:22:33  # 게이트웨이 MAC 고정
+
+# Linux에서 ARP 변경 감지 로그 확인
+dmesg | grep -i arp
+```

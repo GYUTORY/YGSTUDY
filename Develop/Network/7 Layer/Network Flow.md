@@ -204,6 +204,104 @@ POP는 ISP의 네트워크 진입점이다. 여러 ISP가 연결되는 지점이
 
 ---
 
+## 코드 예제
+
+### 전체 패킷 흐름 다이어그램
+
+```
+클라이언트 (192.168.1.10)       DNS 서버 (8.8.8.8)
+         │                              │
+         │── 1. DNS Query "google.com" ─▶│
+         │◀─ 2. DNS Reply "142.250.x.x" ─│
+         │
+         │                    구글 서버 (142.250.185.46:443)
+         │── 3. TCP SYN ──────────────────────────────────▶│
+         │◀─ 4. TCP SYN-ACK ───────────────────────────────│
+         │── 5. TCP ACK ──────────────────────────────────▶│  ← 3-way Handshake 완료
+         │
+         │── 6. TLS ClientHello ─────────────────────────▶│
+         │◀─ 7. TLS ServerHello + Certificate ─────────────│
+         │── 8. TLS Finished ──────────────────────────────▶│  ← TLS 완료
+         │
+         │── 9.  HTTP GET / ───────────────────────────────▶│
+         │◀─ 10. HTTP 200 OK + HTML ────────────────────────│
+         ▼
+   브라우저 렌더링
+```
+
+### tcpdump — 패킷 흐름 실시간 캡처
+
+```bash
+# ── DNS 쿼리 캡처 (포트 53) ─────────────────────────────
+$ sudo tcpdump -i eth0 port 53 -n
+# 14:23:00.001  IP 192.168.1.10.52000 > 8.8.8.8.53: A? google.com.
+# 14:23:00.013  IP 8.8.8.8.53 > 192.168.1.10.52000: A 142.250.185.46
+
+# ── TCP 3-way Handshake 확인 ─────────────────────────────
+$ sudo tcpdump -i eth0 host google.com -n
+# [S]  = SYN     (연결 요청)
+# [S.] = SYN-ACK (연결 수락)
+# [.]  = ACK     (확인)
+# [P.] = PSH-ACK (데이터 전송)
+# [F.] = FIN-ACK (연결 종료)
+
+# 14:23:01.001  192.168.1.10 > 142.250.185.46: Flags [S]    ← SYN
+# 14:23:01.013  142.250.185.46 > 192.168.1.10: Flags [S.]   ← SYN-ACK
+# 14:23:01.014  192.168.1.10 > 142.250.185.46: Flags [.]    ← ACK
+
+# ── 패킷 파일 저장 후 Wireshark 분석 ─────────────────────
+$ sudo tcpdump -i eth0 host google.com -w capture.pcap
+$ wireshark capture.pcap   # GUI 분석
+```
+
+### curl --verbose — 연결 전체 흐름 확인
+
+```bash
+$ curl -v https://google.com 2>&1 | head -30
+
+# 출력 예시:
+* Trying 142.250.185.46:443...      ← TCP 연결 시도
+* Connected to google.com (142.250.185.46) port 443   ← 연결 성공
+* ALPN: offers h2, http/1.1
+* TLSv1.3 (OUT): TLS Handshake     ← TLS 시작
+* TLSv1.3 (IN):  TLS Handshake     ← 서버 인증서 수신
+* SSL certificate verify ok         ← 인증서 검증 완료
+> GET / HTTP/2                      ← HTTP 요청 전송
+> Host: google.com
+< HTTP/2 301                        ← 서버 응답 (리다이렉트)
+
+# ── 각 단계별 소요 시간 측정 ─────────────────────────────
+$ curl -o /dev/null -s -w \
+  "DNS:     %{time_namelookup}s\nTCP:     %{time_connect}s\nTLS:     %{time_appconnect}s\nTTFB:    %{time_starttransfer}s\nTotal:   %{time_total}s\n" \
+  https://google.com
+
+# DNS:     0.012s   ← DNS 조회
+# TCP:     0.024s   ← TCP 연결
+# TLS:     0.089s   ← TLS 핸드셰이크
+# TTFB:    0.145s   ← 첫 바이트 수신 (Time To First Byte)
+# Total:   0.148s   ← 전체 완료
+```
+
+### ss — 현재 연결 상태 확인
+
+```bash
+# 리스닝 포트 확인
+$ ss -tuln
+# Proto  State   Recv-Q  Send-Q  Local Address:Port
+# tcp    LISTEN  0       128     0.0.0.0:80      ← HTTP
+# tcp    LISTEN  0       128     0.0.0.0:443     ← HTTPS
+
+# 현재 ESTABLISHED 연결 목록
+$ ss -tn state established
+# State    Recv-Q  Send-Q  Local Address:Port  Peer Address:Port
+# ESTAB    0       0       192.168.1.10:52341  142.250.185.46:443
+
+# 프로세스 이름과 함께 표시
+$ sudo ss -tnp
+```
+
+---
+
 ## 참고자료
 > [1] [네트워크의 전체 흐름 살펴보기](https://hgggny.tistory.com/entry/8%EC%9E%A5-%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC%EC%9D%98-%EC%A0%84%EC%B2%B4-%ED%9D%90%EB%A6%84-%EC%82%B4%ED%8E%B4%EB%B3%B4%EA%B8%B0)
 > 

@@ -213,6 +213,128 @@ TCP는 신뢰성이 중요한 통신에 사용한다. 웹, 이메일, 파일 전
 - 개인정보 처리
 - API 통신
 
+---
+
+## 실습 명령어
+
+### tcpdump — 패킷 캡처
+
+```bash
+# 기본 사용법
+sudo tcpdump -i eth0                          # eth0 인터페이스 모든 트래픽
+sudo tcpdump -i any                           # 모든 인터페이스
+
+# 프로토콜/포트 필터
+sudo tcpdump -i eth0 port 80                  # HTTP 트래픽만
+sudo tcpdump -i eth0 port 443                 # HTTPS
+sudo tcpdump -i eth0 udp port 53              # DNS
+sudo tcpdump -i eth0 tcp port 3306            # MySQL
+
+# 특정 호스트 필터
+sudo tcpdump -i eth0 host 192.168.1.100
+sudo tcpdump -i eth0 src 192.168.1.100        # 특정 출발지
+sudo tcpdump -i eth0 dst 192.168.1.1          # 특정 목적지
+
+# 조합 필터
+sudo tcpdump -i eth0 "host 192.168.1.100 and port 80"
+sudo tcpdump -i eth0 "port 80 or port 443"
+
+# 패킷 내용 출력 옵션
+sudo tcpdump -i eth0 -n -v port 80            # DNS 역조회 비활성, 자세히
+sudo tcpdump -i eth0 -X port 80               # 16진수 + ASCII 출력
+sudo tcpdump -i eth0 -w capture.pcap port 80  # 파일로 저장
+
+# 저장된 파일 분석
+sudo tcpdump -r capture.pcap
+```
+
+### TCP 3-way Handshake 캡처 분석
+
+```bash
+# TCP 연결 수립 패킷 캡처
+sudo tcpdump -i eth0 -n "tcp[tcpflags] & (tcp-syn|tcp-ack) != 0" port 80
+
+# 출력 예시 (3-way Handshake)
+# 14:30:01.123456 IP 192.168.1.100.54321 > 93.184.216.34.80: Flags [S],  seq 100
+# 14:30:01.234567 IP 93.184.216.34.80 > 192.168.1.100.54321: Flags [S.], seq 200 ack 101
+# 14:30:01.234890 IP 192.168.1.100.54321 > 93.184.216.34.80: Flags [.],  ack 201
+
+# Flags 해석
+# [S]  = SYN  (연결 요청)
+# [S.] = SYN-ACK (연결 수락 + 자신의 SYN)
+# [.]  = ACK  (확인)
+# [F.] = FIN-ACK (연결 종료 요청)
+# [R]  = RST  (연결 강제 리셋)
+# [P.] = PSH-ACK (데이터 푸시)
+```
+
+### netstat / ss — 연결 상태 확인
+
+```bash
+# 모든 연결 상태 확인
+netstat -an                          # 구버전 (deprecated)
+ss -an                               # 현대적 대안
+
+# TCP 연결만 확인
+ss -tn
+ss -tn state established             # ESTABLISHED만
+
+# 포트별 리스닝 프로세스 확인
+ss -tlnp                             # TCP 리스닝 + 프로세스
+ss -ulnp                             # UDP 리스닝 + 프로세스
+
+# 예시 출력
+# Netid  State      Recv-Q  Send-Q  Local Address:Port  Peer Address:Port  Process
+# tcp    LISTEN     0       128     0.0.0.0:8080        0.0.0.0:*          users:("java",pid=1234)
+# tcp    ESTAB      0       0       192.168.1.5:8080    10.0.0.1:54321
+
+# TIME_WAIT 상태 카운트 (너무 많으면 소켓 고갈)
+ss -tn state time-wait | wc -l
+```
+
+### nc (netcat) — 프로토콜 테스트
+
+```bash
+# TCP 포트 연결 테스트
+nc -zv 192.168.1.100 8080
+# 출력: Connection to 192.168.1.100 8080 port [tcp] succeeded!
+
+# 포트 범위 스캔
+nc -zv 192.168.1.100 8080-8090
+
+# HTTP 요청 수동 전송
+printf "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n" | nc example.com 80
+
+# UDP 테스트
+nc -u 8.8.8.8 53
+
+# 간이 서버 (파일 전송)
+nc -l 9999 > received_file.txt       # 수신 측
+nc 192.168.1.100 9999 < file.txt     # 전송 측
+```
+
+### curl — HTTP 프로토콜 디버깅
+
+```bash
+# HTTP 헤더 확인
+curl -I https://example.com                    # HEAD 요청
+curl -v https://example.com                    # 자세한 요청/응답
+
+# TLS/SSL 정보 확인
+curl -vI https://example.com 2>&1 | grep -E "SSL|TLS|Certificate"
+
+# 응답 시간 측정
+curl -o /dev/null -s -w \
+  "DNS: %{time_namelookup}s\nConnect: %{time_connect}s\nTLS: %{time_appconnect}s\nTotal: %{time_total}s\n" \
+  https://example.com
+
+# HTTP 버전 확인
+curl --http2 -v https://example.com 2>&1 | grep "HTTP/"
+# < HTTP/2 200
+```
+
+---
+
 ## 참고
 
 ### 최신 프로토콜 동향

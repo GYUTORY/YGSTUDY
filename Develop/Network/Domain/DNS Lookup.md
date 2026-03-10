@@ -215,6 +215,120 @@ DNS 조회는 네트워크를 통해 여러 서버와 통신해야 하므로 시
 - 간단한 DNS 조회
 - 사용하기 쉬운 인터페이스
 
+## 코드 예제
+
+### dig 명령어 — DNS 레코드 조회
+
+```bash
+# ── 레코드 타입별 조회 ─────────────────────────────────────
+# A 레코드 (IPv4)
+$ dig google.com A +short
+142.250.185.46
+
+# CNAME 레코드 (별칭)
+$ dig www.github.com CNAME +short
+github.com.
+
+# MX 레코드 (메일 서버)
+$ dig google.com MX +short
+10 smtp.google.com.
+
+# NS 레코드 (권한 네임서버)
+$ dig google.com NS +short
+ns1.google.com.
+ns2.google.com.
+
+# TXT 레코드 (SPF, DKIM 등)
+$ dig google.com TXT +short
+"v=spf1 include:_spf.google.com ~all"
+
+# ── 특정 DNS 서버에 직접 질의 ─────────────────────────────
+$ dig @8.8.8.8 google.com A    # Google Public DNS
+$ dig @1.1.1.1 naver.com A     # Cloudflare DNS
+
+# ── TTL 확인 (두 번 조회하면 줄어드는 것을 확인) ─────────
+$ dig google.com A | grep "^google"
+# google.com.     300   IN  A  142.250.185.46
+$ sleep 10
+$ dig google.com A | grep "^google"
+# google.com.     290   IN  A  142.250.185.46  ← TTL 10초 감소
+
+# ── 역방향 DNS 조회 (IP → 도메인) ────────────────────────
+$ dig -x 8.8.8.8 +short
+dns.google.
+```
+
+### dig +trace — DNS 조회 체인 전체 추적
+
+```bash
+$ dig +trace google.com
+
+# 출력 예시 (루트 → TLD → 권한 서버 순):
+# .             518400  IN  NS  a.root-servers.net.   ← 루트 서버
+# com.          172800  IN  NS  a.gtld-servers.net.   ← .com TLD 서버
+# google.com.   172800  IN  NS  ns1.google.com.       ← 구글 권한 서버
+# google.com.   300     IN  A   142.250.185.46        ← 최종 응답
+
+# 쿼리 시간 분석
+$ dig google.com | grep "Query time"
+# ;; Query time: 12 msec
+```
+
+### nslookup — 대화형 DNS 조회
+
+```bash
+# 비대화형 모드
+$ nslookup google.com
+Server:   192.168.1.1
+Address:  192.168.1.1#53
+
+Non-authoritative answer:
+Name:   google.com
+Address: 142.250.185.46
+
+# 특정 DNS 서버 지정
+$ nslookup google.com 8.8.8.8
+
+# 대화형 모드
+$ nslookup
+> server 8.8.8.8       # DNS 서버 변경
+> set type=MX           # 레코드 타입 변경
+> gmail.com             # MX 레코드 조회
+> exit
+```
+
+### DNS 문제 해결 명령어
+
+```bash
+# ── DNS 캐시 비우기 ───────────────────────────────────────
+# macOS
+$ sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+
+# Linux (systemd-resolved)
+$ sudo systemd-resolve --flush-caches
+$ sudo resolvectl flush-caches
+
+# ── 여러 DNS 서버 응답 시간 비교 ─────────────────────────
+$ for dns in 8.8.8.8 1.1.1.1 9.9.9.9; do
+    echo -n "$dns: "
+    dig @$dns google.com A | grep "Query time"
+  done
+# 8.8.8.8:  ;; Query time: 12 msec
+# 1.1.1.1:  ;; Query time: 8 msec
+# 9.9.9.9:  ;; Query time: 15 msec
+
+# ── /etc/hosts — 로컬 DNS 재정의 (개발 환경) ─────────────
+$ cat /etc/hosts
+127.0.0.1   localhost
+127.0.0.1   myapp.local    # 로컬 개발 도메인 등록
+
+# 등록 후 확인
+$ dig myapp.local +short   # /etc/hosts 우선 적용됨
+127.0.0.1
+```
+
+---
+
 ## 참조
 
 - RFC 1034: Domain Names - Concepts and Facilities
