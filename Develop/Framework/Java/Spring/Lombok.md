@@ -131,6 +131,82 @@ public class User {
 }
 ```
 
+#### @Value — 불변 객체 (Immutable)
+```java
+@Value  // 모든 필드 final, @Getter, @AllArgsConstructor, @ToString, @EqualsAndHashCode 적용
+public class Money {
+    long amount;
+    String currency;
+}
+
+// 생성: new Money(1000, "KRW")
+// 수정 불가 — setter 없음, 모든 필드 final
+```
+
+#### @Builder — 빌더 패턴
+```java
+@Builder
+@Getter
+public class Order {
+    private final Long id;
+    private final String productName;
+    private final int quantity;
+    @Builder.Default
+    private final String status = "PENDING";  // 기본값 설정
+}
+
+// 사용
+Order order = Order.builder()
+    .id(1L)
+    .productName("노트북")
+    .quantity(2)
+    .build();
+
+// 복사 후 일부 변경 (toBuilder)
+@Builder(toBuilder = true)
+public class Config { ... }
+Config updated = config.toBuilder().timeout(30).build();
+```
+
+#### @Slf4j — 로깅
+```java
+@Slf4j
+@Service
+public class PaymentService {
+    public void process(Long orderId) {
+        log.debug("Processing order: {}", orderId);
+        log.info("Payment started for order: {}", orderId);
+        try {
+            // 처리 로직
+        } catch (Exception e) {
+            log.error("Payment failed for order: {}", orderId, e);
+        }
+    }
+}
+// log 변수 자동 생성 → private static final Logger log = LoggerFactory.getLogger(PaymentService.class)
+```
+
+#### @EqualsAndHashCode
+```java
+@EqualsAndHashCode(of = "id")  // id 필드만으로 동등성 비교
+@Getter
+@Entity
+public class Product {
+    @Id
+    private Long id;
+    private String name;
+    private int price;
+}
+
+// JPA Entity에서 주의: 양방향 연관관계는 제외해야 순환참조 방지
+@EqualsAndHashCode(exclude = {"orders"})
+public class User {
+    private Long id;
+    @OneToMany
+    private List<Order> orders;
+}
+```
+
 ## 4. 실전 활용
 
 ### 4.1 Spring Boot에서의 활용
