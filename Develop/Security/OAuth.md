@@ -276,6 +276,226 @@ OAuth 2.0은 현대적인 웹 애플리케이션에서 필수적인 인증 표�
 
 OAuth 2.0의 지속적인 발전과 새로운 보안 표준과의 통합을 통해 더욱 안전하고 편리한 인증 시스템이 구축될 것으로 예상됩니다.
 
+---
+
+## 코드 예제
+
+### OAuth 2.0 Authorization Code Flow (Node.js)
+
+```javascript
+// ── 1. 인증 요청 URL 생성 (클라이언트 → 인증 서버) ─────
+const crypto = require('crypto');
+
+function generateAuthUrl() {
+    // PKCE: Code Verifier / Code Challenge 생성
+    const codeVerifier = crypto.randomBytes(32).toString('base64url');
+    const codeChallenge = crypto.createHash('sha256')
+        .update(codeVerifier).digest('base64url');
+    const state = crypto.randomBytes(16).toString('hex');  // CSRF 방어
+
+    const params = new URLSearchParams({
+        response_type: 'code',
+        client_id:     process.env.OAUTH_CLIENT_ID,
+        redirect_uri:  'https://myapp.com/callback',
+        scope:         'openid profile email',
+        state,
+        code_challenge:        codeChallenge,
+        code_challenge_method: 'S256'
+    });
+
+    // session에 저장 (callback에서 검증)
+    session.codeVerifier = codeVerifier;
+    session.state = state;
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
+// ── 2. 콜백 처리 (인증 코드 → 액세스 토큰 교환) ────────
+app.get('/callback', async (req, res) => {
+    const { code, state } = req.query;
+
+    // state 검증 (CSRF 방어)
+    if (state !== session.state) return res.status(400).send('Invalid state');
+
+    // 토큰 교환
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            grant_type:    'authorization_code',
+            code,
+            redirect_uri:  'https://myapp.com/callback',
+            client_id:     process.env.OAUTH_CLIENT_ID,
+            client_secret: process.env.OAUTH_CLIENT_SECRET,
+            code_verifier: session.codeVerifier  // PKCE
+        })
+    });
+
+    const tokens = await tokenResponse.json();
+    // tokens = { access_token, refresh_token, id_token, expires_in }
+
+    // 사용자 정보 조회
+    const userInfo = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` }
+    }).then(r => r.json());
+
+    // JWT id_token 검증
+    const payload = await verifyIdToken(tokens.id_token);
+    req.session.userId = payload.sub;
+    res.redirect('/dashboard');
+});
+
+// ── 3. 토큰 갱신 ──────────────────────────────────────
+async function refreshAccessToken(refreshToken) {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            grant_type:    'refresh_token',
+            refresh_token: refreshToken,
+            client_id:     process.env.OAUTH_CLIENT_ID,
+            client_secret: process.env.OAUTH_CLIENT_SECRET
+        })
+    });
+    return response.json();  // { access_token, expires_in }
+}
+```
+
+### Spring Security OAuth2 설정
+
+```yaml
+# application.yml
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid,profile,email
+            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            scope: profile_nickname,account_email
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+```
+
+```java
+// SecurityConfig.java
+@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+    private final CustomOAuth2UserService oAuth2UserService;
+    private final OAuth2SuccessHandler successHandler;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(ui -> ui.userService(oAuth2UserService))
+                .successHandler(successHandler)
+            );
+        return http.build();
+    }
+}
+
+// CustomOAuth2UserService.java
+@Service
+@RequiredArgsConstructor
+public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+    private final UserRepository userRepo;
+
+    @Override
+    public OAuth2User loadUser(OAuth2UserRequest req) {
+        OAuth2User oAuth2User = new DefaultOAuth2UserService().loadUser(req);
+        String registrationId = req.getClientRegistration().getRegistrationId();
+
+        OAuth2UserInfo userInfo = OAuth2UserInfoFactory.of(registrationId, oAuth2User.getAttributes());
+        User user = userRepo.findByEmail(userInfo.getEmail())
+            .orElseGet(() -> userRepo.save(User.of(userInfo, registrationId)));
+
+        return new CustomOAuth2User(user, oAuth2User.getAttributes());
+    }
+}
+
+// OAuth2SuccessHandler.java — 로그인 성공 후 JWT 발급
+@Component
+@RequiredArgsConstructor
+public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest req, HttpServletResponse res,
+                                        Authentication auth) throws IOException {
+        CustomOAuth2User user = (CustomOAuth2User) auth.getPrincipal();
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getRole());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+
+        // HttpOnly 쿠키에 저장
+        res.addCookie(createCookie("access_token", accessToken, 3600));
+        res.addCookie(createCookie("refresh_token", refreshToken, 604800));
+        getRedirectStrategy().sendRedirect(req, res, "/dashboard");
+    }
+}
+```
+
+### JWT 발급 / 검증
+
+```java
+// JwtTokenProvider.java
+@Component
+public class JwtTokenProvider {
+    @Value("${jwt.secret}") private String secret;
+    private static final long ACCESS_TOKEN_EXPIRE  = 60 * 60 * 1000L;       // 1시간
+    private static final long REFRESH_TOKEN_EXPIRE = 7 * 24 * 60 * 60 * 1000L; // 7일
+
+    private Key getKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String createAccessToken(Long userId, String role) {
+        return Jwts.builder()
+            .setSubject(userId.toString())
+            .claim("role", role)
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRE))
+            .signWith(getKey(), SignatureAlgorithm.HS256)
+            .compact();
+    }
+
+    public Claims validateToken(String token) {
+        try {
+            return Jwts.parserBuilder()
+                .setSigningKey(getKey()).build()
+                .parseClaimsJws(token).getBody();
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException("토큰이 만료되었습니다.");
+        } catch (JwtException e) {
+            throw new InvalidTokenException("유효하지 않은 토큰입니다.");
+        }
+    }
+}
+```
+
+---
+
 ## 참조
 
 - RFC 6749: The OAuth 2.0 Authorization Framework
