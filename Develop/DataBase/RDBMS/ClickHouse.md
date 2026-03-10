@@ -214,6 +214,149 @@ GROUP BY sensor_id
 HAVING avg_temp > 25;
 ```
 
+---
+
+## MergeTree 엔진 계열 심화
+
+MergeTree는 ClickHouse의 핵심 엔진이다. 파생 엔진들은 백그라운드 병합(merge) 시 추가 처리를 수행한다.
+
+### 엔진 계열 비교
+
+| 엔진 | 병합 시 동작 | 적합한 용도 |
+|------|------------|----------|
+| `MergeTree` | 단순 병합 | 기본 이벤트 로그 |
+| `ReplacingMergeTree` | 같은 정렬 키의 중복 행 제거 (최신 버전 유지) | 최신 상태 스냅샷 |
+| `SummingMergeTree` | 같은 정렬 키의 수치 컬럼 합산 | 카운터, 누적 집계 |
+| `AggregatingMergeTree` | 집계 상태(State) 병합 | Materialized View와 결합 |
+| `CollapsingMergeTree` | Sign 컬럼 기반 행 취소 | 변경 이벤트 스트림 |
+| `VersionedCollapsingMergeTree` | CollapsingMergeTree + 버전 관리 | 동시 업데이트 환경 |
+
+### ReplacingMergeTree — 최신 상태 유지
+
+```sql
+-- 사용자 최신 프로필 저장
+CREATE TABLE user_profiles (
+    user_id  UInt64,
+    name     String,
+    email    String,
+    updated_at DateTime
+) ENGINE = ReplacingMergeTree(updated_at)  -- updated_at 기준 최신 행 유지
+ORDER BY user_id;
+
+-- 업데이트: 새 행을 INSERT하면 병합 시 최신 행만 남음
+INSERT INTO user_profiles VALUES (1, 'Alice', 'alice@old.com', '2024-01-01 00:00:00');
+INSERT INTO user_profiles VALUES (1, 'Alice', 'alice@new.com', '2024-06-01 00:00:00');
+
+-- 병합 전에는 두 행이 보일 수 있음 → FINAL 키워드로 강제 중복 제거
+SELECT * FROM user_profiles FINAL WHERE user_id = 1;
+```
+
+### SummingMergeTree — 자동 집계
+
+```sql
+-- 페이지별 일별 조회수 누적
+CREATE TABLE page_daily_views (
+    date    Date,
+    page_id UInt32,
+    views   UInt64,   -- 병합 시 자동 합산
+    clicks  UInt64    -- 병합 시 자동 합산
+) ENGINE = SummingMergeTree()
+PARTITION BY toYYYYMM(date)
+ORDER BY (date, page_id);
+
+INSERT INTO page_daily_views VALUES ('2024-01-01', 1, 100, 10);
+INSERT INTO page_daily_views VALUES ('2024-01-01', 1, 200, 20);
+-- 병합 후: ('2024-01-01', 1, 300, 30)
+
+-- 병합 전에도 정확한 합계 조회
+SELECT date, page_id, sum(views), sum(clicks)
+FROM page_daily_views
+GROUP BY date, page_id;
+```
+
+### AggregatingMergeTree + Materialized View
+
+```sql
+-- 원본 테이블
+CREATE TABLE events (
+    timestamp DateTime,
+    user_id   UInt64,
+    event     String,
+    value     Float64
+) ENGINE = MergeTree()
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (user_id, timestamp);
+
+-- 집계 상태 저장 테이블
+CREATE TABLE events_hourly_agg (
+    hour       DateTime,
+    event      String,
+    cnt        AggregateFunction(count),
+    avg_value  AggregateFunction(avg, Float64),
+    p95_value  AggregateFunction(quantile(0.95), Float64)
+) ENGINE = AggregatingMergeTree()
+PARTITION BY toYYYYMM(hour)
+ORDER BY (hour, event);
+
+-- Materialized View: 실시간으로 집계 상태 업데이트
+CREATE MATERIALIZED VIEW events_hourly_mv
+TO events_hourly_agg AS
+SELECT
+    toStartOfHour(timestamp) AS hour,
+    event,
+    countState()                    AS cnt,
+    avgState(value)                 AS avg_value,
+    quantileState(0.95)(value)      AS p95_value
+FROM events
+GROUP BY hour, event;
+
+-- 조회: Merge 함수로 집계 상태 병합
+SELECT
+    hour,
+    event,
+    countMerge(cnt)              AS total_count,
+    avgMerge(avg_value)          AS avg,
+    quantileMerge(0.95)(p95_value) AS p95
+FROM events_hourly_agg
+WHERE hour >= now() - INTERVAL 24 HOUR
+GROUP BY hour, event
+ORDER BY hour;
+```
+
+---
+
+## 파티셔닝 키 설계 패턴
+
+```sql
+-- 월별 파티션 (일반적인 로그)
+PARTITION BY toYYYYMM(timestamp)
+
+-- 일별 파티션 (고빈도 데이터, 짧은 보관 주기)
+PARTITION BY toYYYYMMDD(timestamp)
+
+-- 다중 파티션 (지역별 + 월별)
+PARTITION BY (region, toYYYYMM(timestamp))
+
+-- 주의: 파티션이 너무 많으면 성능 저하
+-- 권장: 파티션당 최소 수백만 행, 총 파티션 수 < 1000
+```
+
+### 파티션 관리
+
+```sql
+-- 오래된 파티션 삭제 (데이터 보관 정책)
+ALTER TABLE events DROP PARTITION '202301';
+
+-- 파티션 확인
+SELECT partition, rows, bytes_on_disk
+FROM system.parts
+WHERE table = 'events' AND active = 1
+ORDER BY partition;
+
+-- TTL로 자동 삭제
+ALTER TABLE events MODIFY TTL timestamp + INTERVAL 90 DAY;
+```
+
 ## 참고
 
 ### ClickHouse vs 다른 OLAP
