@@ -853,3 +853,204 @@ CQRS는 아키텍처 패턴이고, 마이크로서비스는 배포 패턴이다.
 
 **결론:**
 이 패턴들은 시스템을 "단순하게" 만들지 않는다. 대신 **설명 가능한 시스템**을 만든다. 모든 변경 내역을 추적하고, 읽기와 쓰기를 독립적으로 최적화할 수 있다.
+
+---
+
+## 코드 예제
+
+### 이벤트 소싱 구현 (Java / Spring)
+
+```java
+// ── 이벤트 정의 ──────────────────────────────────────
+public sealed interface OrderEvent permits OrderCreated, ItemAdded, OrderConfirmed, OrderCancelled {
+    String orderId();
+    Instant occurredAt();
+}
+
+public record OrderCreated(String orderId, String userId, Instant occurredAt) implements OrderEvent {}
+public record ItemAdded(String orderId, String productId, int qty, long price, Instant occurredAt) implements OrderEvent {}
+public record OrderConfirmed(String orderId, Instant occurredAt) implements OrderEvent {}
+public record OrderCancelled(String orderId, String reason, Instant occurredAt) implements OrderEvent {}
+
+// ── 집계 루트 (이벤트로부터 상태 재구성) ──────────────
+public class Order {
+    private String orderId;
+    private String userId;
+    private List<OrderItem> items = new ArrayList<>();
+    private OrderStatus status;
+    private final List<OrderEvent> uncommittedEvents = new ArrayList<>();
+
+    // 이벤트 적용 (상태 변경)
+    private void apply(OrderEvent event) {
+        switch (event) {
+            case OrderCreated e -> {
+                this.orderId = e.orderId();
+                this.userId = e.userId();
+                this.status = OrderStatus.DRAFT;
+            }
+            case ItemAdded e -> items.add(new OrderItem(e.productId(), e.qty(), e.price()));
+            case OrderConfirmed e -> this.status = OrderStatus.CONFIRMED;
+            case OrderCancelled e -> this.status = OrderStatus.CANCELLED;
+        }
+    }
+
+    // 커맨드 처리 → 이벤트 생성
+    public static Order create(String orderId, String userId) {
+        Order order = new Order();
+        OrderCreated event = new OrderCreated(orderId, userId, Instant.now());
+        order.apply(event);
+        order.uncommittedEvents.add(event);
+        return order;
+    }
+
+    public void addItem(String productId, int qty, long price) {
+        if (status != OrderStatus.DRAFT) throw new IllegalStateException("확정된 주문에 상품 추가 불가");
+        ItemAdded event = new ItemAdded(orderId, productId, qty, price, Instant.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void confirm() {
+        if (items.isEmpty()) throw new IllegalStateException("상품이 없는 주문은 확정 불가");
+        OrderConfirmed event = new OrderConfirmed(orderId, Instant.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    // 이벤트 스트림으로부터 재구성
+    public static Order reconstitute(List<OrderEvent> events) {
+        Order order = new Order();
+        events.forEach(order::apply);
+        return order;
+    }
+}
+```
+
+```java
+// ── EventStore (이벤트 저장소) ────────────────────────
+@Repository
+@RequiredArgsConstructor
+public class JpaEventStore {
+    private final EventRecordRepository eventRepo;
+    private final ObjectMapper objectMapper;
+
+    public void append(String aggregateId, List<OrderEvent> events, int expectedVersion) {
+        int currentVersion = eventRepo.getMaxVersion(aggregateId).orElse(-1);
+        if (currentVersion != expectedVersion) {
+            throw new OptimisticLockingException("동시 수정 감지: expected=" + expectedVersion);
+        }
+
+        int version = currentVersion + 1;
+        for (OrderEvent event : events) {
+            EventRecord record = new EventRecord(
+                UUID.randomUUID().toString(),
+                aggregateId,
+                event.getClass().getSimpleName(),
+                objectMapper.writeValueAsString(event),
+                version++,
+                event.occurredAt()
+            );
+            eventRepo.save(record);
+        }
+    }
+
+    public List<OrderEvent> load(String aggregateId) {
+        return eventRepo.findByAggregateIdOrderByVersion(aggregateId)
+            .stream()
+            .map(this::deserialize)
+            .toList();
+    }
+}
+
+// ── OrderCommandService (쓰기 사이드) ─────────────────
+@Service
+@RequiredArgsConstructor
+public class OrderCommandService {
+    private final JpaEventStore eventStore;
+    private final ApplicationEventPublisher publisher;
+
+    public String createOrder(String userId) {
+        String orderId = UUID.randomUUID().toString();
+        Order order = Order.create(orderId, userId);
+        eventStore.append(orderId, order.getUncommittedEvents(), -1);
+        order.getUncommittedEvents().forEach(publisher::publishEvent); // 읽기 모델 동기화
+        return orderId;
+    }
+
+    public void addItem(String orderId, String productId, int qty, long price) {
+        List<OrderEvent> events = eventStore.load(orderId);
+        Order order = Order.reconstitute(events);
+        order.addItem(productId, qty, price);
+        eventStore.append(orderId, order.getUncommittedEvents(), events.size() - 1);
+        order.getUncommittedEvents().forEach(publisher::publishEvent);
+    }
+}
+```
+
+### CQRS — 읽기 모델 동기화
+
+```java
+// ── 읽기 모델 (Query Side) ────────────────────────────
+@Entity
+@Table(name = "order_summaries")
+public class OrderSummary {
+    @Id private String orderId;
+    private String userId;
+    private int itemCount;
+    private long totalAmount;
+    private String status;
+    private Instant createdAt;
+    private Instant updatedAt;
+}
+
+// ── 이벤트 핸들러 (프로젝션) ──────────────────────────
+@Component
+@RequiredArgsConstructor
+public class OrderProjection {
+    private final OrderSummaryRepository summaryRepo;
+
+    @EventListener
+    public void on(OrderCreated event) {
+        summaryRepo.save(new OrderSummary(
+            event.orderId(), event.userId(), 0, 0L, "DRAFT", event.occurredAt(), event.occurredAt()
+        ));
+    }
+
+    @EventListener
+    public void on(ItemAdded event) {
+        summaryRepo.findById(event.orderId()).ifPresent(summary -> {
+            summary.setItemCount(summary.getItemCount() + 1);
+            summary.setTotalAmount(summary.getTotalAmount() + event.qty() * event.price());
+            summary.setUpdatedAt(event.occurredAt());
+            summaryRepo.save(summary);
+        });
+    }
+
+    @EventListener
+    public void on(OrderConfirmed event) {
+        summaryRepo.findById(event.orderId()).ifPresent(summary -> {
+            summary.setStatus("CONFIRMED");
+            summary.setUpdatedAt(event.occurredAt());
+            summaryRepo.save(summary);
+        });
+    }
+}
+
+// ── 조회 서비스 (Query Side) ──────────────────────────
+@Service
+@RequiredArgsConstructor
+public class OrderQueryService {
+    private final OrderSummaryRepository summaryRepo;
+
+    public List<OrderSummary> getUserOrders(String userId, int page, int size) {
+        return summaryRepo.findByUserId(userId,
+            PageRequest.of(page, size, Sort.by("createdAt").descending())
+        ).getContent();
+    }
+
+    public OrderSummary getOrderSummary(String orderId) {
+        return summaryRepo.findById(orderId)
+            .orElseThrow(() -> new OrderNotFoundException(orderId));
+    }
+}
+```
