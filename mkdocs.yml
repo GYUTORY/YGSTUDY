@@ -14,15 +14,15 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: white
+      accent: blue
       toggle:
         icon: material/weather-night
         name: 다크 모드로 전환
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: black
+      accent: blue
       toggle:
         icon: material/weather-sunny
         name: 라이트 모드로 전환
@@ -39,6 +39,7 @@ theme:
     - search.share
     - content.code.copy
     - content.code.annotate
+    - content.tooltips
     - toc.follow
   icon:
     logo: material/book-open-page-variant
