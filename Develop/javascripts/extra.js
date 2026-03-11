@@ -10,19 +10,35 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     var sb = document.querySelector(".md-sidebar__scrollwrap");
-    if (!sb) return;
 
-    // 사용자가 직접 스크롤한 경우에만 위치 저장
-    sb.addEventListener("wheel", function () { pos = sb.scrollTop; }, { passive: true });
-    sb.addEventListener("touchmove", function () { pos = sb.scrollTop; }, { passive: true });
+    if (sb) {
+      // 사용자가 직접 스크롤한 경우에만 위치 저장
+      sb.addEventListener("wheel", function () { pos = sb.scrollTop; }, { passive: true });
+      sb.addEventListener("touchmove", function () { pos = sb.scrollTop; }, { passive: true });
 
-    // 메뉴 클릭 시 스크롤 위치를 반복적으로 강제 복원
-    document.addEventListener("click", function (e) {
-      if (!e.target.closest || !e.target.closest(".md-nav")) return;
-      var p = pos;
-      [0, 10, 30, 60, 100, 200, 400].forEach(function (t) {
-        setTimeout(function () { sb.scrollTop = p; }, t);
+      // 메뉴 클릭 시 스크롤 위치를 반복적으로 강제 복원
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest || !e.target.closest(".md-nav")) return;
+        var p = pos;
+        [0, 10, 30, 60, 100, 200, 400].forEach(function (t) {
+          setTimeout(function () { sb.scrollTop = p; }, t);
+        });
       });
-    });
+    }
+
+    // Reading Progress Bar
+    var bar = document.createElement("div");
+    bar.id = "reading-progress";
+    document.body.appendChild(bar);
+
+    function updateProgress() {
+      var scrollTop = window.scrollY || document.documentElement.scrollTop;
+      var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      bar.style.width = Math.min(progress, 100) + "%";
+    }
+
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
   });
 })();
