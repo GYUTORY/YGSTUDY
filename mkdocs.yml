@@ -54,6 +54,12 @@ plugins:
   - awesome-pages
   - tags:
       tags_file: tags.md
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: date
+      locale: ko
+  - minify:
+      minify_html: true
 
 markdown_extensions:
   - pymdownx.highlight:
