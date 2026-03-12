@@ -16,13 +16,27 @@
       sb.addEventListener("wheel", function () { pos = sb.scrollTop; }, { passive: true });
       sb.addEventListener("touchmove", function () { pos = sb.scrollTop; }, { passive: true });
 
-      // 메뉴 클릭 시 스크롤 위치를 반복적으로 강제 복원
+      // MutationObserver: active 클래스 변화 감지 후 1회 정확히 복원
+      var restoring = false;
+      var nav = document.querySelector(".md-sidebar--primary .md-nav");
+      if (nav) {
+        var observer = new MutationObserver(function () {
+          if (restoring) return;
+          restoring = true;
+          sb.scrollTop = pos;
+          setTimeout(function () {
+            sb.scrollTop = pos;
+            restoring = false;
+          }, 50);
+        });
+        observer.observe(nav, { subtree: true, attributes: true, attributeFilter: ["class"] });
+      }
+
+      // 메뉴 클릭 fallback
       document.addEventListener("click", function (e) {
         if (!e.target.closest || !e.target.closest(".md-nav")) return;
         var p = pos;
-        [0, 10, 30, 60, 100, 200, 400].forEach(function (t) {
-          setTimeout(function () { sb.scrollTop = p; }, t);
-        });
+        setTimeout(function () { sb.scrollTop = p; }, 100);
       });
     }
 
