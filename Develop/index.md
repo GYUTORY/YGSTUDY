@@ -21,6 +21,9 @@ hide:
   <span class="tag">Docker</span>
   <span class="tag">Kubernetes</span>
 </div>
+<div class="profile-social">
+  <a href="https://github.com/GYUTORY" target="_blank" class="social-link">GitHub @GYUTORY</a>
+</div>
 </div>
 
 ## My Projects
@@ -38,8 +41,8 @@ hide:
 </div>
 </div>
 
-<div class="portfolio-card wip" markdown>
-<img src="assets/images/momo_editor.png" alt="MOMO Editor">
+<div class="portfolio-card" markdown>
+<a href="http://gyutory.co.kr/momo_editor/" target="_blank"><img src="assets/images/momo_editor.png" alt="MOMO Editor"></a>
 <div class="portfolio-info" markdown>
 
 ### MOMO Editor
@@ -49,7 +52,7 @@ hide:
 </div>
 </div>
 
-<div class="portfolio-card" markdown>
+<div class="portfolio-card wip" markdown>
 <img src="assets/images/trip_planner.png" alt="AI Trip Planner">
 <div class="portfolio-info" markdown>
 
@@ -160,7 +163,7 @@ AI 기반 여행 일정 생성 앱. 도시를 선택하면 맛집, 관광지, �
 
 ### AI
 
-[Claude Code](AI/Claude_Code/Claude_Code.md) · [CC 효율화](AI/Claude_Code/Claude_Code_Tips.md) · [Codex](AI/Codex/Codex.md) · [Grok](AI/Grok/Grok.md) · [Copilot](AI/GitHub_Copilot/GitHub_Copilot.md) · [Cursor](AI/Cursor/Cursor.md) · [Gemini](AI/Gemini/Gemini.md) · [MCP](AI/MCP/MCP.md)
+[Claude Code](AI/Claude_Code/Claude_Code.md) · [CC 효율화](AI/Claude_Code/Claude_Code_Tips.md) · [Codex](AI/Codex/Codex.md) · [Grok](AI/Grok/Grok.md) · [Copilot](AI/GitHub_Copilot/GitHub_Copilot.md) · [Cursor](AI/Cursor/Cursor.md) · [Gemini](AI/Gemini/Gemini.md) · [MCP](AI/MCP/MCP.md) · [Prompt Engineering](AI/Concepts/Prompt_Engineering.md) · [RAG for Code](AI/Concepts/RAG_for_Code.md)
 
 </div>
 
