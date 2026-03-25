@@ -112,6 +112,464 @@ import {
 
 주의: Semantic Conventions는 버전별로 속성 이름이 바뀌는 경우가 있다. 예를 들어 `http.method`는 `http.request.method`로 변경됐다. OTel SDK 버전을 올릴 때 속성 이름이 달라져서 기존 대시보드가 깨질 수 있으니, Collector의 `transform` processor로 마이그레이션 기간에 양쪽 이름을 모두 내보내는 방법을 쓰기도 한다.
 
+### Trace 내부 구조
+
+#### Trace와 Span의 관계
+
+Trace는 하나의 요청이 시스템을 통과하는 전체 경로를 나타낸다. Trace 자체는 독립적인 데이터 객체가 아니라, **같은 trace ID를 공유하는 Span들의 집합**이다. Span은 하나의 작업 단위를 나타내고, Span들이 부모-자식 관계로 연결되어 트리 구조를 형성한다.
+
+```
+Trace (trace_id: abc123)
+│
+├── Span A: "POST /api/orders" (parent_span_id: 없음 = root span)
+│   ├── Span B: "OrderService.create" (parent_span_id: A)
+│   │   ├── Span C: "DB INSERT orders" (parent_span_id: B)
+│   │   └── Span D: "Redis SET order_cache" (parent_span_id: B)
+│   └── Span E: "PaymentService.charge" (parent_span_id: A)
+│       └── Span F: "HTTP POST stripe.com/charge" (parent_span_id: E)
+```
+
+Jaeger UI에서 보는 워터폴 차트가 이 구조를 시간축 위에 펼친 것이다.
+
+#### Span의 구성 요소
+
+각 Span은 다음 필드를 가진다.
+
+```
+trace_id         — 이 span이 속한 trace의 고유 ID (128-bit, 32자 hex)
+                   같은 요청에서 만들어진 모든 span이 이 값을 공유한다
+
+span_id          — 이 span 자체의 고유 ID (64-bit, 16자 hex)
+
+parent_span_id   — 부모 span의 ID. root span이면 비어 있다
+                   이 값으로 span 간 트리 구조가 만들어진다
+
+name             — span 이름. "HTTP GET /users", "DB SELECT users" 같은 형태
+                   나중에 Jaeger에서 검색하는 단위이므로 변수값을 넣으면 안 된다
+                   "GET /users/123" (X) → "GET /users/:id" (O)
+
+kind             — CLIENT, SERVER, PRODUCER, CONSUMER, INTERNAL (아래 SpanKind 섹션 참고)
+
+start_time       — span 시작 시각 (nanosecond 정밀도)
+end_time         — span 종료 시각. end()를 호출해야 기록된다
+
+status           — UNSET, OK, ERROR 중 하나
+                   에러가 아닌 한 UNSET으로 두면 된다. OK를 명시적으로 찍을 필요는 없다
+
+attributes       — 키-값 쌍. Jaeger에서 검색과 필터링에 사용된다
+                   예: { "http.method": "GET", "http.status_code": 200 }
+
+events           — span 실행 중 발생한 특정 시점의 기록
+                   예외 발생, 재시도 시작 같은 이벤트를 타임스탬프와 함께 남긴다
+
+links            — 다른 trace나 span과의 참조 관계
+                   부모-자식이 아닌 "관련 있음" 수준의 연결에 사용한다
+```
+
+#### Events — Span 안의 시점 기록
+
+Span이 "구간"을 나타낸다면, Event는 그 구간 안의 **특정 시점**을 나타낸다. 예외가 발생했거나, 재시도를 했거나, 캐시를 히트/미스한 순간을 기록할 때 쓴다.
+
+```typescript
+span.addEvent('cache.miss', {
+  'cache.key': 'user:123',
+});
+
+// 예외 기록도 내부적으로 Event다
+span.recordException(new Error('connection timeout'));
+// → name: "exception", attributes: { "exception.message": "connection timeout", ... }
+```
+
+`recordException()`은 `addEvent('exception', ...)`의 편의 메서드다. 예외를 기록하면 Jaeger에서 해당 span에 에러 마크가 표시된다.
+
+#### Links — 인과 관계가 아닌 연결
+
+부모-자식 관계는 "A가 B를 호출했다"는 인과 관계다. 반면 Link는 인과 관계 없이 "관련 있음"을 나타낸다.
+
+Link가 필요한 상황:
+
+- 배치 처리 — 하나의 consumer span이 여러 producer span에서 온 메시지를 처리할 때, 각 producer span을 link로 연결한다. 부모는 하나밖에 못 두니까 link를 쓴다
+- 재처리 — 실패한 요청을 재처리할 때, 원래 trace를 link로 걸어두면 "이건 저 요청의 재시도"라는 맥락이 남는다
+
+```typescript
+const link = {
+  context: originalSpan.spanContext(),
+  attributes: { 'link.reason': 'retry' },
+};
+
+tracer.startActiveSpan('order.retry', { links: [link] }, (span) => {
+  // 재처리 로직
+  span.end();
+});
+```
+
+#### Span 간 관계 — 트리와 DAG
+
+일반적인 동기 호출에서는 span들이 **트리 구조**를 형성한다. 하나의 부모가 여러 자식을 가지고, 자식은 부모를 하나만 가진다.
+
+비동기 메시징이나 배치 처리가 섞이면 Link 때문에 관계가 **DAG(Directed Acyclic Graph)**로 확장된다. 부모-자식 관계는 여전히 트리지만, Link를 포함하면 하나의 span이 여러 trace의 span들과 연결될 수 있다.
+
+```
+Trace 1: [Producer A] ──publish──▶ [message queue]
+Trace 2: [Producer B] ──publish──▶ [message queue]
+                                        │
+Trace 3: [Consumer] ◀──consume──────────┘
+          links: [Producer A의 span, Producer B의 span]
+```
+
+Jaeger에서 Link가 있는 span을 클릭하면 연결된 trace로 점프할 수 있다. 다만 모든 트레이싱 백엔드가 Link를 잘 시각화하지는 않는다. Tempo는 지원하고, Jaeger는 버전에 따라 다르다.
+
+### Context와 Context Propagation
+
+#### Context가 뭔가
+
+Context는 현재 실행 중인 코드의 **부가 정보를 담는 불변 객체**다. 가장 중요한 역할은 "지금 활성화된 span이 뭔지"를 들고 다니는 것이다.
+
+함수 A가 span을 시작하고 함수 B를 호출하면, 함수 B는 어떻게 "내 부모 span이 A다"라는 걸 아는가? 매번 span을 파라미터로 넘길 수는 없으니까, OTel은 Context라는 **암묵적 저장소**에 현재 span을 넣어두고, 하위 코드에서 `context.active()`로 꺼내 쓴다.
+
+```
+함수 호출 흐름:
+
+handleRequest()                    context = { activeSpan: spanA }
+  └── processOrder()               context = { activeSpan: spanA }  ← 자동 전파
+        └── chargePayment()         context = { activeSpan: spanB }  ← spanB의 parent = spanA
+              └── callStripe()      context = { activeSpan: spanC }  ← spanC의 parent = spanB
+```
+
+`startActiveSpan()`을 호출하면 새 span을 만들고, 그 span을 담은 새 Context를 현재 실행 범위에 설정한다. 콜백이 끝나면 이전 Context로 복원된다.
+
+#### 프로세스 내 전파 — Zone, AsyncLocalStorage
+
+같은 프로세스 안에서 Context가 비동기 코드를 따라가야 한다. Node.js에서는 `AsyncLocalStorage`가 이 역할을 한다. OTel Node.js SDK는 내부적으로 `AsyncLocalStorage`를 사용해서, `await` 체인을 따라 Context가 자동으로 전파된다.
+
+문제는 `AsyncLocalStorage`의 추적이 끊기는 경우다.
+
+```typescript
+// AsyncLocalStorage가 추적하는 경우 (context 전파됨)
+await someAsyncFunction();        // OK
+new Promise((resolve) => { ... }) // OK
+fs.readFile(path, callback);      // OK (Node.js 16+)
+
+// AsyncLocalStorage 추적이 끊기는 경우 (context 유실)
+setTimeout(() => { ... });        // 콜백이 다른 실행 컨텍스트
+setInterval(() => { ... });       // 마찬가지
+EventEmitter.on('event', () => { ... });  // 이벤트 핸들러
+```
+
+`setTimeout` 안에서 `context.active()`를 호출하면 root context가 반환된다. 부모 span 정보가 없으니 고아 span이 만들어지고, Jaeger에서 트레이스가 끊겨 보인다. 이때는 `context.with()`로 명시적으로 전달해야 한다.
+
+```typescript
+const ctx = context.active();
+setTimeout(() => {
+  context.with(ctx, () => {
+    // 여기서 context.active() === ctx
+  });
+}, 100);
+```
+
+Java에서는 `ThreadLocal`이 같은 역할을 하는데, 스레드 풀에서 작업이 다른 스레드로 넘어가면 Context가 유실된다. 그래서 `ExecutorService`를 `Context.taskWrapping(executor)`으로 감싸야 한다.
+
+#### 프로세스 간 전파 — Propagation
+
+서비스 A에서 서비스 B를 HTTP로 호출할 때, Context를 HTTP 헤더에 실어 보내야 한다. 이게 Context Propagation이다.
+
+과정은 세 단계다:
+
+```
+1. Inject (주입)  — 서비스 A가 현재 Context에서 trace_id, span_id를 꺼내
+                    HTTP 요청 헤더에 넣는다
+                    propagation.inject(context.active(), headers)
+
+2. Transfer (전송) — HTTP 요청이 네트워크를 통해 서비스 B로 전달된다
+                    traceparent: 00-abc123-def456-01 (W3C 포맷)
+
+3. Extract (추출) — 서비스 B가 수신한 헤더에서 trace_id, span_id를 꺼내
+                    새 Context를 만들고, 이후 생성되는 span의 부모로 설정한다
+                    propagation.extract(context.active(), headers)
+```
+
+자동 계측(`@opentelemetry/instrumentation-http` 등)이 이 inject/extract를 알아서 처리한다. HTTP client 라이브러리(axios, fetch)로 요청을 보내면 자동으로 `traceparent` 헤더가 추가되고, Express/Fastify 서버에서 요청을 받으면 자동으로 헤더를 읽어 부모 span을 설정한다.
+
+수동으로 해야 하는 경우는 자동 계측이 지원하지 않는 전송 수단을 쓸 때다. 예를 들어 커스텀 메시지 큐, gRPC metadata, WebSocket 등.
+
+#### Propagator 종류와 선택
+
+Propagation에서 "어떤 포맷으로 직렬화하느냐"를 결정하는 게 Propagator다. 아래 Propagator 섹션에서 W3C TraceContext, B3 등 구체적인 포맷을 다룬다.
+
+### SDK 내부 파이프라인
+
+NodeSDK 래퍼를 쓰면 초기화 코드가 간단하지만, 내부에서 어떤 일이 일어나는지 모르면 문제가 생겼을 때 원인을 못 찾는다.
+
+#### TracerProvider → Tracer → Span
+
+```
+TracerProvider (SDK 초기화 시 1개 생성)
+  │
+  ├── Resource 설정 (service.name, environment 등)
+  ├── SpanProcessor 등록 (Simple 또는 Batch)
+  ├── Sampler 설정
+  │
+  └── getTracer('module-name', 'version')
+        │
+        └── Tracer (모듈/라이브러리별로 1개씩)
+              │
+              └── startActiveSpan('operation-name')
+                    │
+                    └── Span 생성
+                          │
+                          ├── Sampler에게 "이 span 수집할까?" 물어봄
+                          │   └── YES → 정상 span, 속성/이벤트 기록
+                          │   └── NO  → NoOp span, 아무것도 안 함
+                          │
+                          └── span.end() 호출 시 → SpanProcessor로 전달
+```
+
+`TracerProvider`는 프로세스당 하나다. `trace.getTracer()`로 Tracer를 여러 개 만들 수 있지만, 이건 Instrumentation Scope를 구분하기 위한 것이지 별도의 설정을 가지는 건 아니다. 모든 Tracer가 같은 TracerProvider의 Sampler, Processor, Exporter를 공유한다.
+
+`NodeSDK`는 이 TracerProvider 생성과 글로벌 등록을 한 줄로 해주는 래퍼다. 내부적으로는 `TracerProvider`를 만들고 `trace.setGlobalTracerProvider()`를 호출한다.
+
+#### SpanProcessor — Simple vs Batch
+
+Span이 `end()`되면 SpanProcessor에게 전달된다. Processor가 Exporter를 호출해서 실제로 데이터를 보낸다.
+
+```
+Span.end()
+  │
+  ▼
+SpanProcessor.onEnd(span)
+  │
+  ├── SimpleSpanProcessor
+  │     └── 즉시 Exporter.export([span]) 호출
+  │         span이 끝날 때마다 바로 전송
+  │         개발 환경에서 디버깅할 때 쓴다
+  │         프로덕션에서 쓰면 요청마다 네트워크 호출이 발생해서 성능이 나빠진다
+  │
+  └── BatchSpanProcessor
+        └── 내부 큐에 span을 쌓아둔다
+            일정 시간(scheduledDelayMillis, 기본 5초) 또는
+            일정 개수(maxExportBatchSize, 기본 512개)가 되면
+            한 번에 Exporter.export(spans[]) 호출
+            프로덕션에서는 이걸 써야 한다
+```
+
+```typescript
+import { BatchSpanProcessor, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+
+const exporter = new OTLPTraceExporter({ url: 'http://collector:4318/v1/traces' });
+
+// 프로덕션
+const batchProcessor = new BatchSpanProcessor(exporter, {
+  scheduledDelayMillis: 5000,    // 5초마다 내보내기
+  maxExportBatchSize: 512,       // 한 번에 최대 512개
+  maxQueueSize: 2048,            // 큐에 최대 2048개 대기
+  exportTimeoutMillis: 30000,    // 내보내기 타임아웃 30초
+});
+
+// 개발
+const simpleProcessor = new SimpleSpanProcessor(exporter);
+```
+
+`NodeSDK`에 `traceExporter`만 넘기면 내부적으로 `BatchSpanProcessor`로 감싸준다. `spanProcessors`를 직접 넘기면 원하는 Processor를 쓸 수 있다.
+
+`maxQueueSize`에 도달하면 새 span이 버려진다. 트래픽이 많은 서비스에서 이 값이 작으면 span 유실이 생기는데, Collector 메트릭의 `otelcol_exporter_send_failed_spans`가 아니라 SDK 쪽에서 조용히 drop되는 거라 모르고 지나가는 경우가 있다.
+
+#### Exporter — 데이터를 어디로 보내나
+
+SpanProcessor가 Exporter를 호출하면, Exporter가 실제 네트워크 전송을 담당한다.
+
+```
+Exporter 종류:
+  OTLPTraceExporter (HTTP)  — http://collector:4318/v1/traces 로 전송
+  OTLPTraceExporter (gRPC)  — collector:4317 로 전송
+  ConsoleSpanExporter       — 콘솔에 JSON 출력 (디버깅용)
+  InMemorySpanExporter      — 메모리에 저장 (테스트용)
+```
+
+Exporter는 바꿔 끼울 수 있다. Collector로 보내다가 Jaeger로 직접 보내고 싶으면 Exporter만 바꾸면 된다. 하지만 실무에서는 항상 Collector를 거치는 게 맞다. Collector에서 배치 처리, 필터링, 샘플링을 하니까.
+
+#### 전체 흐름 정리
+
+```
+[애플리케이션 코드]
+     │
+     │ tracer.startActiveSpan('op')
+     ▼
+[Sampler] ─── 수집 여부 결정
+     │
+     │ span.setAttribute(), span.addEvent()
+     │ span.end()
+     ▼
+[SpanProcessor]
+     │ Simple: 즉시 전송
+     │ Batch: 큐에 모아서 전송
+     ▼
+[Exporter]
+     │ OTLP HTTP/gRPC
+     ▼
+[Collector] ─── receivers → processors → exporters
+     │
+     ▼
+[Backend] ─── Jaeger, Tempo, Datadog 등
+```
+
+### Sampler 종류와 동작 원리
+
+현재 문서의 샘플링 섹션에서 head/tail 구분만 간략히 다뤘는데, SDK에서 설정하는 Sampler의 구체적인 종류와 조합 방식이 빠져 있다.
+
+#### Head-based Sampler (SDK에서 설정)
+
+Head-based 샘플링은 **span이 만들어지는 시점**에 수집 여부를 결정한다. SDK의 `Sampler` 인터페이스가 이 역할을 한다.
+
+**AlwaysOnSampler** — 모든 span을 수집한다. 디버깅이나 트래픽이 적은 서비스에서 쓴다. 프로덕션에서 트래픽이 많은 서비스에 걸면 스토리지 비용이 감당이 안 된다.
+
+**AlwaysOffSampler** — 아무것도 수집하지 않는다. span 자체는 생성되지만 NoOp 상태라 속성이나 이벤트가 기록되지 않고 export도 안 된다. 특정 서비스의 트레이싱을 완전히 끄고 싶을 때 쓴다.
+
+**TraceIdRatioBasedSampler** — trace ID의 해시값을 기준으로 비율 샘플링한다. `ratio: 0.1`이면 10%의 trace를 수집한다. 중요한 점은, 같은 trace ID는 어떤 서비스에서든 같은 결정이 나온다는 것이다. trace ID 자체가 랜덤이고, 그 값의 하위 비트를 비율과 비교하기 때문이다. 그래서 서비스 A에서 샘플링된 trace는 서비스 B에서도 샘플링된다(같은 ratio를 쓴다면).
+
+```typescript
+import { TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-base';
+
+// 10% 샘플링 — trace ID 해시 기반이라 서비스 간 일관성 보장
+const sampler = new TraceIdRatioBasedSampler(0.1);
+```
+
+**ParentBasedSampler** — 부모 span의 샘플링 결정을 따른다. 부모가 샘플링됐으면 자식도 샘플링하고, 안 됐으면 자식도 안 한다. 부모가 없는 root span에 대해서만 별도 Sampler를 적용한다.
+
+이게 왜 필요한가: 서비스 A가 10% 샘플링으로 trace를 시작했는데, 서비스 B가 별도로 20% 샘플링을 하면 A에서는 수집되는 trace가 B에서는 버려지는 경우가 생긴다. trace가 중간에 끊기는 것이다. `ParentBasedSampler`는 upstream의 결정을 존중해서 이 문제를 방지한다.
+
+```typescript
+import { ParentBasedSampler, TraceIdRatioBasedSampler, AlwaysOnSampler } from '@opentelemetry/sdk-trace-base';
+
+const sampler = new ParentBasedSampler({
+  root: new TraceIdRatioBasedSampler(0.1),         // root span은 10% 샘플링
+  remoteParentSampled: new AlwaysOnSampler(),       // upstream이 수집 결정 → 따른다
+  remoteParentNotSampled: new AlwaysOffSampler(),   // upstream이 미수집 결정 → 따른다
+  localParentSampled: new AlwaysOnSampler(),        // 같은 프로세스 내 부모가 수집 → 따른다
+  localParentNotSampled: new AlwaysOffSampler(),    // 같은 프로세스 내 부모가 미수집 → 따른다
+});
+```
+
+`NodeSDK`의 기본 Sampler는 `ParentBasedSampler(root: AlwaysOnSampler)`다. 즉, root span은 전부 수집하고, 부모가 있으면 부모 결정을 따른다. 프로덕션에서 root의 AlwaysOn을 TraceIdRatio로 바꾸는 게 일반적이다.
+
+#### 조합 방식
+
+실무에서 쓰는 패턴:
+
+```
+패턴 1: ParentBased + TraceIdRatio (가장 흔함)
+  → root span은 10% 샘플링, 나머지는 부모를 따름
+  → 서비스 간 trace가 끊기지 않음
+
+패턴 2: 서비스별 다른 비율
+  → 결제 서비스: 100% (장애 추적 중요)
+  → 상품 목록 서비스: 1% (트래픽 많고 대부분 정상)
+  → ParentBased는 그대로 적용해서 upstream 결정을 존중
+
+패턴 3: Head + Tail 조합
+  → SDK(Head): ParentBased + TraceIdRatio(0.2)로 20% 수집
+  → Collector(Tail): 그 20% 중에서 에러/느린 것만 최종 저장
+  → 수집 비용과 장애 추적 사이의 균형점
+```
+
+Sampler는 SDK(head-based)와 Collector(tail-based)에서 각각 다른 레이어로 동작한다. SDK Sampler는 span 생성 시점에 결정하고, Collector의 `tail_sampling` processor는 trace 전체가 도착한 후에 결정한다. 둘을 조합하면 SDK에서 대략적으로 걸러내고, Collector에서 정밀하게 선별하는 2단 구조가 된다.
+
+### Instrumentation — 자동과 수동
+
+#### Auto Instrumentation의 동작 원리
+
+`@opentelemetry/auto-instrumentations-node`를 설치하고 `getNodeAutoInstrumentations()`을 호출하면, Express, HTTP, pg, ioredis 같은 라이브러리에 자동으로 계측이 걸린다. 이게 어떻게 되는 건가?
+
+내부적으로 **monkey-patching** 방식으로 동작한다. 라이브러리가 export하는 함수나 메서드를 SDK가 가로채서, 원래 함수 실행 전후에 span 생성/종료 코드를 끼워 넣는다.
+
+```
+원래 동작:
+  http.request(options) → 네트워크 요청 → 응답
+
+패치 후 동작:
+  http.request(options)
+    → span 생성 (name: "HTTP GET", kind: CLIENT)
+    → headers에 traceparent 주입
+    → 원래 http.request 실행
+    → 응답 수신
+    → span에 status_code 속성 추가
+    → span.end()
+```
+
+이게 SDK를 다른 모듈보다 먼저 초기화해야 하는 이유다. `require('http')`가 먼저 실행되면 원본 모듈이 이미 캐시에 올라간 상태라 패치할 타이밍을 놓친다. Node.js의 `require` 캐시 특성상, 한번 로드된 모듈은 다시 로드하지 않는다.
+
+Java Agent(`-javaagent:opentelemetry-javaagent.jar`)는 더 저수준에서 동작한다. JVM의 bytecode instrumentation을 사용해서 클래스 로딩 시점에 바이트코드를 수정한다. 그래서 코드 수정 없이 JVM 옵션 하나로 계측이 가능하다.
+
+#### Auto vs Manual 트레이드오프
+
+```
+Auto Instrumentation:
+  장점
+  - 코드 수정 없이 HTTP, DB, 메시지 큐 등 인프라 레벨 계측이 된다
+  - 라이브러리 업데이트 시 계측도 자동으로 맞춰진다
+  - 설정 몇 줄로 서비스 간 호출 관계가 Jaeger에 보인다
+
+  한계
+  - 비즈니스 로직의 의미를 모른다
+    "결제 승인 단계"와 "포인트 적립 단계"를 구분 못 한다
+    DB 쿼리가 느린 건 보이지만, 왜 그 쿼리가 실행됐는지는 모른다
+  - 속성을 마음대로 못 붙인다
+    order_id, user_tier 같은 비즈니스 속성이 없으면
+    "느린 요청이 누구 건지" 파악할 수가 없다
+  - monkey-patching이라 라이브러리 내부 구현이 바뀌면 깨질 수 있다
+    실제로 OTel SDK 버전과 계측 대상 라이브러리 버전 사이에
+    호환성 문제가 생기는 경우가 있다
+
+Manual Instrumentation:
+  장점
+  - 비즈니스 로직 단위로 span을 만들 수 있다
+    "장바구니 계산", "쿠폰 적용", "재고 확인" 각각을 span으로 분리
+  - 원하는 속성을 자유롭게 추가할 수 있다
+  - 코드에서 직접 제어하니까 동작이 예측 가능하다
+
+  한계
+  - 코드에 OTel 의존성이 들어간다
+  - span 시작/종료를 빠뜨리면 트레이스가 깨진다
+  - 코드 변경이 필요하다
+```
+
+#### 실무에서는 둘 다 쓴다
+
+Auto로 인프라 레벨(HTTP, DB, 큐)을 깔고, 비즈니스 로직에 Manual로 커스텀 span을 추가하는 게 일반적이다.
+
+```typescript
+// Auto: Express 요청 진입, HTTP 클라이언트 호출, DB 쿼리가 자동으로 잡힌다
+// Manual: 비즈니스 로직 단위를 직접 계측
+
+async function processOrder(orderId: string) {
+  // 이 span은 Express 요청 span의 자식으로 자동 연결된다
+  return tracer.startActiveSpan('order.process', async (span) => {
+    span.setAttribute('order.id', orderId);
+
+    const items = await getOrderItems(orderId);    // auto: DB 쿼리 span 자동 생성
+    const total = calculateTotal(items);            // manual 불필요 — 빠르고 단순한 로직
+
+    // 결제는 중요하니까 manual span 추가
+    await tracer.startActiveSpan('order.payment', async (paySpan) => {
+      paySpan.setAttribute('payment.amount', total);
+      await chargePayment(orderId, total);          // auto: HTTP 클라이언트 span 자동 생성
+      paySpan.end();
+    });
+
+    span.end();
+  });
+}
+```
+
+Auto Instrumentation을 끌 때 — `getNodeAutoInstrumentations()`에서 특정 라이브러리를 비활성화할 수 있다. 파일 시스템(`fs`) 계측은 span이 너무 많이 생겨서 끄는 경우가 많다. DNS 계측도 마찬가지다.
+
+```typescript
+getNodeAutoInstrumentations({
+  '@opentelemetry/instrumentation-fs': { enabled: false },
+  '@opentelemetry/instrumentation-dns': { enabled: false },
+});
+```
+
 ---
 
 ## OTel과 기존 모니터링 도구의 관계
