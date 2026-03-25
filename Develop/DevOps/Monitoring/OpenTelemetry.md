@@ -1,6 +1,6 @@
 ---
 title: OpenTelemetry
-tags: [devops, monitoring, observability, opentelemetry, otel, tracing, metrics, logs, jaeger, tempo, collector, kubernetes, baggage]
+tags: [devops, monitoring, observability, opentelemetry, otel, tracing, metrics, logs, jaeger, tempo, collector, kubernetes, baggage, otlp, semantic-conventions, propagator, spankind]
 updated: 2026-03-26
 ---
 
@@ -25,6 +25,130 @@ OpenTelemetry(OTel)는 **로그·메트릭·트레이스** 세 가지 관찰 데
 
 ---
 
+## 핵심 개념 모델
+
+### Resource
+
+Resource는 텔레메트리 데이터를 생성하는 **엔티티의 정체성**이다. "이 데이터가 어디서 왔는가"를 나타내는 속성 집합으로, 서비스 이름, 버전, 배포 환경, 호스트 정보 등이 포함된다.
+
+```typescript
+import { Resource } from '@opentelemetry/resources';
+import {
+  SEMRESATTRS_SERVICE_NAME,
+  SEMRESATTRS_SERVICE_VERSION,
+} from '@opentelemetry/semantic-conventions';
+
+const resource = new Resource({
+  [SEMRESATTRS_SERVICE_NAME]: 'payment-service',
+  [SEMRESATTRS_SERVICE_VERSION]: '2.1.0',
+  'deployment.environment': 'production',
+  'service.namespace': 'checkout',
+  'service.instance.id': process.env.HOSTNAME ?? 'local',
+});
+```
+
+Resource는 SDK 초기화 시 한 번 설정되면 해당 프로세스에서 생성되는 모든 trace, metric, log에 자동으로 붙는다. Jaeger에서 서비스를 드롭다운으로 선택할 수 있는 것도 `service.name` Resource 속성 덕분이다.
+
+실무에서 자주 빠뜨리는 것:
+
+- `service.namespace` — 같은 이름의 서비스가 여러 팀에 있을 때 구분이 안 된다. 네임스페이스를 넣어야 Jaeger에서 구분된다
+- `service.instance.id` — 인스턴스별 문제를 추적하려면 필수다. Kubernetes라면 Pod 이름을 넣는다
+- `deployment.environment` — staging과 production 데이터가 같은 백엔드에 들어갈 때 이걸로 필터링한다
+
+### Instrumentation Scope
+
+Instrumentation Scope는 텔레메트리를 생성하는 **계측 라이브러리의 이름과 버전**이다. `getTracer('payment-service', '1.0.0')`에서 넘기는 인자가 바로 Instrumentation Scope다.
+
+```typescript
+// 각 모듈/라이브러리별로 별도의 tracer를 만드는 게 맞다
+const paymentTracer = trace.getTracer('payment-module', '1.0.0');
+const notificationTracer = trace.getTracer('notification-module', '1.2.0');
+
+// meter도 마찬가지
+const paymentMeter = metrics.getMeter('payment-module', '1.0.0');
+```
+
+Jaeger나 Grafana에서 span을 볼 때 "이 span이 어떤 계측 라이브러리에서 만들어졌는가"를 확인할 수 있다. 자동 계측 라이브러리(`@opentelemetry/instrumentation-express` 등)가 만든 span과 직접 만든 span을 구분할 때 쓰인다.
+
+Resource가 "어느 서비스"를 나타낸다면, Instrumentation Scope는 "그 서비스 안에서 어느 모듈/라이브러리"를 나타낸다.
+
+### Semantic Conventions
+
+Semantic Conventions는 속성 이름에 대한 **공통 네이밍 규칙**이다. 팀마다 HTTP 상태 코드를 `status_code`, `http_status`, `response_code` 등 다르게 쓰면 대시보드와 쿼리를 서비스별로 따로 만들어야 한다. OTel은 이걸 `http.response.status_code`로 통일한다.
+
+주요 네이밍 패턴:
+
+```
+http.request.method          — GET, POST 등
+http.response.status_code    — 200, 500 등
+http.route                   — /api/users/:id (패턴)
+url.full                     — https://api.example.com/users/123
+
+db.system                    — postgresql, mysql, redis
+db.statement                 — SELECT * FROM users WHERE id = $1
+db.operation.name            — SELECT, INSERT
+
+messaging.system             — kafka, rabbitmq
+messaging.operation.type     — publish, receive
+messaging.destination.name   — orders-topic
+
+rpc.system                   — grpc
+rpc.method                   — GetUser
+rpc.service                  — UserService
+```
+
+`@opentelemetry/semantic-conventions` 패키지에서 상수로 제공한다.
+
+```typescript
+import {
+  SEMRESATTRS_SERVICE_NAME,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_STATUS_CODE,
+  SEMATTRS_DB_SYSTEM,
+} from '@opentelemetry/semantic-conventions';
+```
+
+자동 계측 라이브러리는 이 규칙을 따르지만, 커스텀 span에서 속성을 직접 지정할 때는 이 규칙을 의식적으로 따라야 한다. `order_id`보다 `order.id`처럼 dot-separated namespace를 쓰는 게 관례다.
+
+주의: Semantic Conventions는 버전별로 속성 이름이 바뀌는 경우가 있다. 예를 들어 `http.method`는 `http.request.method`로 변경됐다. OTel SDK 버전을 올릴 때 속성 이름이 달라져서 기존 대시보드가 깨질 수 있으니, Collector의 `transform` processor로 마이그레이션 기간에 양쪽 이름을 모두 내보내는 방법을 쓰기도 한다.
+
+---
+
+## OTel과 기존 모니터링 도구의 관계
+
+OTel은 Prometheus, Jaeger, Datadog 같은 도구를 **대체하는 게 아니다.** OTel의 역할은 데이터를 수집하고 전송하는 **계층**이고, 저장·쿼리·시각화는 기존 도구가 담당한다.
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    OTel의 영역                       │
+│  계측 (SDK) → 수집/처리 (Collector) → 전송 (OTLP)   │
+└──────────────────────────┬──────────────────────────┘
+                           │
+          ┌────────────────┼────────────────┐
+          ▼                ▼                ▼
+    ┌──────────┐    ┌───────────┐    ┌──────────┐
+    │ Jaeger   │    │Prometheus │    │ Datadog  │
+    │ Tempo    │    │ Mimir     │    │ New Relic│
+    │ Zipkin   │    │ Thanos    │    │ Dynatrace│
+    └──────────┘    └───────────┘    └──────────┘
+      트레이싱         메트릭          상용 APM
+      저장/조회        저장/조회       저장/조회/알림
+```
+
+각 도구와의 관계를 정리하면:
+
+**Prometheus** — OTel 이전에는 각 서비스에서 `/metrics` 엔드포인트를 노출하고 Prometheus가 pull 방식으로 수집했다. OTel을 쓰면 서비스는 OTLP로 Collector에 push하고, Collector의 prometheus exporter가 `/metrics`를 대신 노출하거나, `prometheusremotewrite` exporter로 직접 Prometheus에 쓴다. Prometheus 자체를 버리는 게 아니라, 수집 경로만 OTel로 통일하는 것이다.
+
+**Jaeger / Tempo / Zipkin** — 분산 트레이싱 백엔드다. 예전에는 Jaeger client SDK로 직접 트레이스를 보냈지만, Jaeger가 공식적으로 자체 SDK를 deprecated하고 OTel SDK를 쓰라고 권장한다. Jaeger는 OTLP를 네이티브로 수신할 수 있어서 Collector에서 OTLP로 바로 보내면 된다.
+
+**Datadog / New Relic / Dynatrace** — 상용 APM은 자체 에이전트와 SDK가 있지만, OTel로 데이터를 보내는 것도 지원한다. 벤더를 바꿀 때 코드 수정 없이 Collector의 exporter 설정만 변경하면 된다. 이게 OTel을 쓰는 가장 현실적인 이유다.
+
+**Grafana** — 시각화 레이어다. OTel과 직접적인 관계는 없지만, Grafana가 Tempo(트레이스)·Mimir(메트릭)·Loki(로그) 스택을 밀고 있어서 OTel + Grafana 스택 조합을 많이 쓴다.
+
+정리하면, OTel은 "데이터를 어떻게 만들고 보낼 것인가"를 표준화한 것이고, "데이터를 어디에 저장하고 어떻게 볼 것인가"는 각자 선택이다. 한 벤더에 종속되지 않는 것이 핵심이다.
+
+---
+
 ## 아키텍처
 
 ```
@@ -38,6 +162,61 @@ OpenTelemetry(OTel)는 **로그·메트릭·트레이스** 세 가지 관찰 데
 └────────────┘                                     │   Loki   │
                                                    └──────────┘
 ```
+
+---
+
+## OTLP (OpenTelemetry Protocol)
+
+OTLP는 OTel에서 텔레메트리 데이터를 전송하는 **표준 프로토콜**이다. SDK에서 Collector로, Collector에서 백엔드로 데이터를 보낼 때 사용한다.
+
+### 직렬화 구조
+
+OTLP는 **Protocol Buffers(protobuf)** 기반이다. `.proto` 파일로 메시지 스키마가 정의되어 있고, trace·metric·log 각각에 대한 메시지 타입이 있다. protobuf 바이너리 직렬화 덕분에 JSON보다 페이로드가 작고 파싱이 빠르다.
+
+HTTP 전송에서는 protobuf 바이너리(`Content-Type: application/x-protobuf`)가 기본이고, JSON(`application/json`)도 지원한다. JSON은 디버깅 용도로 쓰고, 프로덕션에서는 protobuf를 쓴다.
+
+### 전송 방식: gRPC vs HTTP
+
+| | gRPC (포트 4317) | HTTP (포트 4318) |
+|---|---|---|
+| 직렬화 | protobuf 바이너리 | protobuf 바이너리 또는 JSON |
+| 커넥션 | HTTP/2 멀티플렉싱 | HTTP/1.1 또는 HTTP/2 |
+| 스트리밍 | 지원 | 미지원 |
+| 프록시 통과 | HTTP/2 지원 필요 | 대부분의 프록시에서 동작 |
+| 디버깅 | 바이너리라 curl 불가 | JSON 모드로 curl 가능 |
+
+같은 Kubernetes 클러스터 안이라면 gRPC가 낫다. ALB나 Nginx 같은 L7 프록시를 거쳐야 하는 환경이면 HTTP가 설정이 단순하다.
+
+### Signal별 엔드포인트 경로
+
+HTTP 전송에서 각 signal 타입은 별도의 경로를 사용한다.
+
+```
+POST /v1/traces      — trace 데이터
+POST /v1/metrics     — metric 데이터
+POST /v1/logs        — log 데이터
+```
+
+gRPC에서는 경로 대신 protobuf 서비스 정의로 구분한다.
+
+```
+opentelemetry.proto.collector.trace.v1.TraceService/Export
+opentelemetry.proto.collector.metrics.v1.MetricsService/Export
+opentelemetry.proto.collector.logs.v1.LogsService/Export
+```
+
+SDK에서 exporter를 설정할 때 이 경로를 알아야 하는 경우가 있다. `OTEL_EXPORTER_OTLP_ENDPOINT`를 `http://collector:4318`로 설정하면 SDK가 signal별로 `/v1/traces`, `/v1/metrics`를 자동으로 붙인다. 하지만 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`처럼 signal별 환경변수를 쓰면 전체 URL을 직접 지정해야 한다.
+
+```bash
+# 기본 엔드포인트 — SDK가 경로를 붙임
+OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4318
+
+# signal별 엔드포인트 — 전체 경로를 직접 지정
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://collector:4318/v1/traces
+OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://collector:4318/v1/metrics
+```
+
+이 차이를 모르면 exporter가 `/v1/traces/v1/traces` 같은 경로로 요청을 보내서 404 에러가 나는 경우가 있다.
 
 ---
 
@@ -300,6 +479,47 @@ import express from 'express';
 // ...
 ```
 
+### SpanKind — Span의 역할 구분
+
+Span을 만들 때 `kind`를 지정할 수 있다. Jaeger나 Tempo에서 span을 시각화할 때 이 정보로 요청의 방향과 역할을 파악한다.
+
+```
+CLIENT   — 외부 서비스를 호출하는 쪽. HTTP 요청을 보내거나 gRPC call을 하는 span
+SERVER   — 외부에서 들어온 요청을 처리하는 쪽. Express 핸들러, gRPC 서버 메서드
+PRODUCER — 메시지를 큐에 넣는 쪽. Kafka produce, RabbitMQ publish
+CONSUMER — 큐에서 메시지를 꺼내 처리하는 쪽. Kafka consume, RabbitMQ subscribe
+INTERNAL — 서비스 내부 로직. 외부 호출이 아닌 비즈니스 로직 span (기본값)
+```
+
+자동 계측 라이브러리는 이걸 알아서 설정한다. Express instrumentation은 들어온 요청에 SERVER를, HTTP client instrumentation은 나가는 요청에 CLIENT를 붙인다. 직접 span을 만들 때만 신경 쓰면 된다.
+
+```typescript
+import { SpanKind } from '@opentelemetry/api';
+
+// 다른 서비스를 호출하는 span — CLIENT
+tracer.startActiveSpan('user-service.getUser', { kind: SpanKind.CLIENT }, async (span) => {
+  const user = await fetch('http://user-service/api/users/123');
+  span.end();
+});
+
+// Kafka에 메시지를 보내는 span — PRODUCER
+tracer.startActiveSpan('orders.publish', { kind: SpanKind.PRODUCER }, async (span) => {
+  await kafka.producer.send({ topic: 'orders', messages: [{ value: orderJson }] });
+  span.end();
+});
+
+// 서비스 내부 계산 — INTERNAL (기본값이라 생략 가능)
+tracer.startActiveSpan('payment.calculateFee', async (span) => {
+  const fee = calculateFee(amount);
+  span.end();
+  return fee;
+});
+```
+
+CLIENT와 SERVER span은 짝을 이룬다. 서비스 A의 CLIENT span과 서비스 B의 SERVER span이 같은 trace 안에서 부모-자식 관계로 연결되면, Jaeger에서 서비스 간 호출 관계를 그릴 수 있다. PRODUCER와 CONSUMER도 마찬가지로 짝을 이룬다.
+
+kind를 잘못 지정하면 Jaeger의 서비스 의존성 그래프(DAG)가 엉뚱하게 나온다. 내부 로직인데 CLIENT로 지정하면 존재하지 않는 외부 서비스 호출처럼 보인다.
+
 ### 커스텀 Span — 비즈니스 로직 추적
 
 ```typescript
@@ -363,6 +583,217 @@ async function callDownstreamService(url: string) {
 // Express instrumentation이 자동으로 traceparent 헤더를 읽어
 // 부모 Span과 연결함 → Jaeger에서 전체 흐름 확인 가능
 ```
+
+### Propagator — 컨텍스트 전파 포맷
+
+위 코드에서 `propagation.inject()`가 HTTP 헤더에 트레이스 컨텍스트를 넣는데, 어떤 헤더 포맷을 쓸지 결정하는 게 **Propagator**다.
+
+**W3C TraceContext (기본값)**
+
+OTel SDK의 기본 propagator다. `traceparent`와 `tracestate` 두 개의 헤더를 사용한다.
+
+```
+traceparent: 00-a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4-1a2b3c4d5e6f7a8b-01
+             │   │                                  │                  │
+             버전  trace-id (32자)                    span-id (16자)     샘플링 플래그
+```
+
+W3C 표준이라 대부분의 APM 도구와 클라우드 서비스가 지원한다. 특별한 이유가 없으면 이걸 쓰면 된다.
+
+**B3 (Zipkin 호환)**
+
+Zipkin에서 시작된 포맷이다. 기존에 Zipkin 기반 트레이싱을 쓰고 있는 환경에서 마이그레이션할 때 필요하다.
+
+```
+# B3 Multi-header (각각 별도 헤더)
+X-B3-TraceId: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+X-B3-SpanId: 1a2b3c4d5e6f7a8b
+X-B3-ParentSpanId: 0000000000000000
+X-B3-Sampled: 1
+
+# B3 Single-header (한 줄)
+b3: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4-1a2b3c4d5e6f7a8b-1
+```
+
+**Propagator 설정**
+
+NodeSDK는 기본으로 W3C TraceContext + W3C Baggage propagator를 등록한다. B3가 필요하면 직접 추가해야 한다.
+
+```typescript
+import { CompositePropagator } from '@opentelemetry/core';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { W3CBaggagePropagator } from '@opentelemetry/core';
+import { B3Propagator, B3InjectEncoding } from '@opentelemetry/propagator-b3';
+
+const sdk = new NodeSDK({
+  textMapPropagator: new CompositePropagator({
+    propagators: [
+      new W3CTraceContextPropagator(),
+      new W3CBaggagePropagator(),
+      new B3Propagator({ injectEncoding: B3InjectEncoding.MULTI_HEADER }),
+    ],
+  }),
+  // ...
+});
+```
+
+`CompositePropagator`를 쓰면 여러 포맷을 동시에 주입/추출한다. Zipkin 기반 서비스와 OTel 기반 서비스가 공존하는 마이그레이션 기간에 유용하다. inject 시에는 모든 포맷의 헤더를 넣고, extract 시에는 있는 헤더를 순서대로 찾아서 읽는다.
+
+선택 기준은 단순하다:
+
+- 새 프로젝트: W3C TraceContext만 쓴다
+- 기존 Zipkin 환경 마이그레이션 중: B3 + W3C 둘 다 쓰다가 B3를 뺀다
+- AWS X-Ray 연동: `AWSXRayPropagator`를 추가한다 (`@opentelemetry/propagator-aws-xray`)
+
+propagator를 직접 설정하면서 `W3CBaggagePropagator`를 빠뜨리는 실수가 잦다. 이러면 Baggage 전파가 안 돼서 downstream 서비스에서 baggage를 읽을 수 없다.
+
+---
+
+## OTel Logs 모델
+
+OTel의 Logs는 Traces, Metrics와 접근 방식이 다르다. Traces와 Metrics는 OTel API로 직접 생성하지만, Logs는 **기존 로거(winston, pino, log4j 등)를 그대로 쓰면서 OTel 파이프라인에 연결하는 방식**이다. 이걸 Log Bridge API라고 한다.
+
+### 왜 Log Bridge인가
+
+대부분의 애플리케이션에는 이미 로거가 있다. winston이든 pino든 이미 로그를 찍고 있는데, OTel을 도입했다고 로거를 전부 교체하는 건 비현실적이다. 그래서 OTel은 로그 생성 자체를 맡지 않고, 기존 로거가 만든 로그를 OTel의 LogRecord로 변환해서 Collector로 보내는 **브릿지** 역할만 한다.
+
+```
+기존 방식:
+  winston → console/file → Fluentd → Loki
+
+OTel 방식:
+  winston → Log Bridge → OTLP → Collector → Loki
+            (OTel SDK)
+```
+
+### LogRecord 구조
+
+OTel의 LogRecord는 다음 필드로 구성된다.
+
+```
+Timestamp           — 로그 발생 시각 (nanosecond 정밀도)
+ObservedTimestamp   — OTel이 로그를 수집한 시각
+SeverityNumber      — 로그 레벨 (1~24, INFO=9, ERROR=17)
+SeverityText        — "INFO", "ERROR" 같은 문자열
+Body                — 로그 메시지 본문
+Attributes          — 키-값 쌍 (orderId, userId 등)
+Resource            — 서비스 정보 (service.name 등, SDK에서 자동 설정)
+InstrumentationScope — 로거 이름/버전
+TraceId             — 연관된 trace ID (있으면 자동 연결)
+SpanId              — 연관된 span ID
+TraceFlags          — 샘플링 플래그
+```
+
+`TraceId`와 `SpanId`가 LogRecord에 포함되기 때문에, 로그와 트레이스를 자동으로 연결할 수 있다. 이게 기존 로깅 파이프라인(Fluentd 등)으로는 직접 구현해야 했던 부분이다.
+
+### Node.js에서 Log Bridge 설정
+
+```typescript
+import { logs, SeverityNumber } from '@opentelemetry/api-logs';
+import { LoggerProvider, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { Resource } from '@opentelemetry/resources';
+import { SEMRESATTRS_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+
+const loggerProvider = new LoggerProvider({
+  resource: new Resource({
+    [SEMRESATTRS_SERVICE_NAME]: 'payment-service',
+  }),
+});
+
+loggerProvider.addLogRecordProcessor(
+  new SimpleLogRecordProcessor(
+    new OTLPLogExporter({
+      url: 'http://otel-collector:4318/v1/logs',
+    })
+  )
+);
+
+logs.setGlobalLoggerProvider(loggerProvider);
+```
+
+### winston과 연동
+
+`@opentelemetry/winston-transport`를 쓰면 winston 로그가 OTel LogRecord로 변환돼서 Collector로 전송된다. 기존 winston 설정은 그대로 두고 transport만 추가하면 된다.
+
+```typescript
+import winston from 'winston';
+import { OpenTelemetryTransportV3 } from '@opentelemetry/winston-transport';
+
+const logger = winston.createLogger({
+  transports: [
+    new winston.transports.Console(),           // 기존 콘솔 출력 유지
+    new OpenTelemetryTransportV3(),              // OTel로도 전송
+  ],
+});
+
+// 기존 코드 수정 없이 그대로 사용
+logger.info('결제 처리 시작', { orderId: 'ORD-123', amount: 50000 });
+// → 콘솔에도 출력되고, Collector에 LogRecord로도 전송됨
+// → 현재 active span이 있으면 TraceId, SpanId가 자동으로 붙음
+```
+
+### pino와 연동
+
+pino는 `pino-opentelemetry-transport`를 사용한다.
+
+```typescript
+import pino from 'pino';
+
+const logger = pino({
+  transport: {
+    targets: [
+      { target: 'pino-pretty', level: 'info' },   // 기존 출력
+      {
+        target: 'pino-opentelemetry-transport',     // OTel 전송
+        options: {
+          resourceAttributes: { 'service.name': 'payment-service' },
+        },
+      },
+    ],
+  },
+});
+```
+
+### Collector에서 Logs 파이프라인
+
+Collector는 OTLP로 받은 로그를 처리해서 Loki, Elasticsearch 등으로 보낸다.
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+  # 로그에서 민감 정보 제거
+  attributes/logs:
+    actions:
+      - key: user.email
+        action: hash
+      - key: db.statement
+        action: delete
+
+exporters:
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [batch, attributes/logs]
+      exporters: [loki]
+```
+
+### 기존 로깅 파이프라인과의 비교
+
+기존에 Fluentd/Fluent Bit로 로그를 수집하고 있었다면, OTel Logs로 당장 전부 교체할 필요는 없다. OTel Logs의 장점은 trace context가 자동으로 연결된다는 것과, Collector 하나로 trace·metric·log를 모두 처리할 수 있다는 점이다. 반면 Fluentd 생태계의 플러그인이 더 풍부하고, 파일 기반 로그 수집은 Fluent Bit가 더 성숙하다.
+
+실무에서는 OTel SDK에서 Log Bridge로 Collector에 보내는 것과, 파일 로그를 Fluent Bit로 수집하는 것을 병행하다가 점진적으로 OTel로 옮기는 경우가 많다.
 
 ---
 
