@@ -1589,6 +1589,14 @@
          <lastmod>2026-03-25</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/CORS_and_Security_Headers/</loc>
+         <lastmod>2026-03-25</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Container_Security/</loc>
+         <lastmod>2026-03-25</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/HTTPS_and_TLS/</loc>
          <lastmod>2026-03-25</lastmod>
     </url>
@@ -1602,6 +1610,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/SHA/</loc>
+         <lastmod>2026-03-25</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/SSRF/</loc>
          <lastmod>2026-03-25</lastmod>
     </url>
     <url>
