@@ -5,4 +5,5 @@ nav:
   - CORS.md
   - Rate_Limiting.md
   - SSL_TLS_설정.md
+  - 보안_설정.md
   - 성능_튜닝.md

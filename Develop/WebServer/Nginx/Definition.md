@@ -1,242 +1,446 @@
 ---
 title: Nginx
-tags: [webserver, nginx, definition, web-server, reverse-proxy, load-balancer]
-updated: 2025-10-12
+tags: [webserver, nginx, reverse-proxy, load-balancer]
+updated: 2026-03-25
 ---
 
 # Nginx
 
-## Nginx란 무엇인가
+## Nginx란
 
-Nginx는 2004년 러시아의 Igor Sysoev가 개발한 고성능 웹 서버이자 리버스 프록시 서버입니다. 현재 전 세계 웹사이트의 약 30% 이상에서 사용되고 있으며, 특히 대용량 트래픽을 처리해야 하는 현대적인 웹 애플리케이션에서 핵심적인 역할을 담당하고 있습니다.
+Igor Sysoev가 2004년에 만든 웹 서버. 정적 파일 서빙, 리버스 프록시, 로드 밸런서로 쓴다. Apache가 연결마다 프로세스/스레드를 만드는 것과 달리 이벤트 기반 비동기 모델로 동작해서 적은 메모리로 동시 연결을 많이 처리한다.
 
-### Nginx가 주목받는 이유
+## 설치와 실행
 
-**이벤트 기반 아키텍처의 혁신**
-Nginx의 가장 큰 특징은 전통적인 Apache의 프로세스/스레드 기반 모델과 달리 이벤트 기반 비동기 처리 방식을 채택했다는 점입니다. 이는 단일 프로세스가 수천 개의 동시 연결을 효율적으로 처리할 수 있게 해주며, 메모리 사용량을 크게 줄여줍니다.
+### Ubuntu/Debian
 
-**C10K 문제의 해결책**
-C10K 문제(한 서버에서 10,000개의 동시 연결을 처리하는 문제)를 해결하기 위해 설계된 Nginx는 실제로 수만 개의 동시 연결을 안정적으로 처리할 수 있습니다. 이는 웹 서비스의 확장성 측면에서 매우 중요한 장점입니다.
+```bash
+sudo apt update
+sudo apt install nginx
 
-**모듈화된 설계**
-Nginx는 핵심 엔진과 기능 모듈이 분리된 구조로 설계되어 있어, 필요한 기능만 선택적으로 사용할 수 있습니다. 이는 보안성과 성능 최적화 측면에서 큰 이점을 제공합니다.
+# 버전 확인
+nginx -v
 
-### Nginx의 핵심 역할
+# 시작/중지/재시작
+sudo systemctl start nginx
+sudo systemctl stop nginx
+sudo systemctl restart nginx
 
-**웹 서버로서의 Nginx**
-정적 파일(HTML, CSS, JavaScript, 이미지 등)을 직접 서빙하는 역할을 수행합니다. 이 과정에서 gzip 압축, 캐싱, 보안 헤더 추가 등의 최적화 작업을 동시에 처리합니다.
+# 설정 변경 후 무중단 리로드 (실무에서는 restart 대신 이걸 쓴다)
+sudo systemctl reload nginx
+```
 
-**리버스 프록시로서의 Nginx**
-클라이언트의 요청을 받아서 백엔드 서버로 전달하는 중간자 역할을 합니다. 이 과정에서 로드 밸런싱, SSL 종료, 요청/응답 변환 등의 작업을 수행합니다.
+### macOS (Homebrew)
 
-**API 게이트웨이로서의 Nginx**
-마이크로서비스 아키텍처에서 여러 서비스로의 요청을 적절히 라우팅하고, 인증, 인가, 속도 제한 등의 기능을 제공합니다.
+```bash
+brew install nginx
 
-## Nginx의 핵심 개념
+# Homebrew로 설치하면 기본 포트가 8080이다
+nginx
+nginx -s reload
+nginx -s stop
+```
 
-### 1. 이벤트 기반 아키텍처의 이해
+### 설정 파일 문법 검사
 
-**전통적인 웹 서버의 한계**
-기존의 Apache 같은 웹 서버는 각 연결마다 별도의 프로세스나 스레드를 생성하는 방식이었습니다. 이는 연결이 많아질수록 메모리 사용량이 선형적으로 증가하고, 컨텍스트 스위칭 비용이 커지는 문제를 야기했습니다.
+설정을 수정한 뒤 reload 전에 반드시 문법 검사를 해야 한다. 문법 오류가 있는 상태에서 reload하면 기존 설정으로 계속 돌아가지만, restart하면 서비스가 죽는다.
 
-**Nginx의 혁신적 접근**
-Nginx는 이벤트 기반 비동기 I/O 모델을 채택하여 이러한 문제를 해결했습니다. 단일 마스터 프로세스가 여러 워커 프로세스를 관리하고, 각 워커 프로세스는 이벤트 루프를 통해 수천 개의 연결을 효율적으로 처리합니다.
+```bash
+sudo nginx -t
+# nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+# nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
 
-**epoll의 활용**
-Linux 환경에서 Nginx는 epoll 시스템 콜을 사용하여 대량의 파일 디스크립터를 효율적으로 모니터링합니다. 이는 select나 poll 방식보다 훨씬 적은 CPU 오버헤드로 많은 연결을 처리할 수 있게 해줍니다.
+## 프로세스 구조: Master와 Worker
 
-### 2. 모듈화된 설계 철학
+Nginx는 master 프로세스 1개와 worker 프로세스 여러 개로 돈다.
 
-**핵심 모듈의 역할**
-- **ngx_core_module**: Nginx의 기본 기능과 프로세스 관리를 담당
-- **ngx_http_module**: HTTP 프로토콜 처리와 웹 서버 기능 제공
-- **ngx_stream_module**: TCP/UDP 레벨에서의 프록시 기능
-- **ngx_mail_module**: 메일 서버 프록시 기능
-- **ngx_upstream_module**: 로드 밸런싱과 백엔드 서버 관리
+- **master**: 설정 파일 읽기, worker 관리. 실제 요청은 처리하지 않는다.
+- **worker**: 실제 클라이언트 요청을 처리한다. 각 worker가 이벤트 루프를 돌면서 수천 개 연결을 동시에 처리한다.
 
-**모듈의 장점**
-이러한 모듈화된 구조는 보안성, 성능, 유지보수성 측면에서 큰 이점을 제공합니다. 필요한 기능만 로드하여 공격 표면을 줄이고, 메모리 사용량을 최적화할 수 있습니다.
+프로세스 확인:
 
-### 3. 설정 파일의 계층적 구조
+```bash
+ps aux | grep nginx
+# root      1234  ...  nginx: master process /usr/sbin/nginx
+# www-data  1235  ...  nginx: worker process
+# www-data  1236  ...  nginx: worker process
+```
 
-**계층적 설정의 의미**
-Nginx 설정은 계층적 구조로 되어 있어, 상위 레벨에서 설정한 값이 하위 레벨로 상속됩니다. 이는 설정의 일관성을 보장하고 중복을 줄여줍니다.
+master는 root로, worker는 `nginx.conf`에서 지정한 사용자(보통 `www-data` 또는 `nginx`)로 실행된다.
 
-**컨텍스트의 개념**
-- **main**: 전역 설정 (프로세스 수, 로그 파일 등)
-- **events**: 이벤트 처리 관련 설정
-- **http**: HTTP 서버 관련 설정
-- **server**: 가상 호스트 설정
-- **location**: URL 패턴별 설정
+### worker 프로세스 수 설정
 
-이러한 계층 구조는 복잡한 웹 서비스 설정을 체계적으로 관리할 수 있게 해줍니다.
+```nginx
+# /etc/nginx/nginx.conf
 
-### 4. 웹 서버와 리버스 프록시의 차이점
+worker_processes auto;  # CPU 코어 수에 맞춰 자동 설정
+# worker_processes 4;   # 직접 지정할 수도 있다
 
-**웹 서버로서의 역할**
-Nginx가 웹 서버로 동작할 때는 클라이언트의 HTTP 요청을 직접 처리하여 파일 시스템에서 정적 파일을 찾아 응답을 반환합니다. 이 과정에서 파일의 MIME 타입을 자동으로 감지하고, 적절한 HTTP 헤더를 추가합니다.
+events {
+    worker_connections 1024;  # worker 하나당 최대 동시 연결 수
+    # 이론상 최대 동시 연결 = worker_processes × worker_connections
+}
+```
 
-**정적 파일 서빙의 최적화**
-정적 파일을 서빙할 때 Nginx는 여러 최적화 기법을 적용합니다. gzip 압축을 통해 전송 데이터 크기를 줄이고, 브라우저 캐싱을 위한 적절한 헤더를 설정하며, 파일의 마지막 수정 시간을 확인하여 304 Not Modified 응답을 보내기도 합니다.
+`auto`로 두면 CPU 코어 수만큼 worker를 만든다. 대부분의 경우 `auto`가 맞다. worker_connections는 기본값 512인데, 트래픽이 많으면 1024~4096 정도로 올린다.
 
-**리버스 프록시로서의 역할**
-리버스 프록시 모드에서는 Nginx가 클라이언트와 백엔드 서버 사이의 중간자 역할을 합니다. 클라이언트의 요청을 받아서 백엔드 서버로 전달하고, 백엔드의 응답을 받아서 클라이언트에게 전달합니다.
+## 설정 파일 구조
 
-**프록시의 장점**
-리버스 프록시를 사용하면 백엔드 서버의 실제 위치를 숨길 수 있고, 로드 밸런싱, SSL 종료, 캐싱 등의 기능을 추가할 수 있습니다. 또한 여러 백엔드 서버를 하나의 도메인으로 통합할 수 있어 마이크로서비스 아키텍처에 적합합니다.
+설정 파일 위치:
 
-**헤더 전달의 중요성**
-프록시 모드에서는 클라이언트의 원본 정보를 백엔드 서버에 전달하는 것이 중요합니다. X-Real-IP, X-Forwarded-For 등의 헤더를 통해 백엔드 서버가 클라이언트의 실제 IP 주소를 알 수 있게 해줍니다.
+```bash
+# Ubuntu/Debian
+/etc/nginx/nginx.conf              # 메인 설정
+/etc/nginx/sites-available/        # 사이트별 설정 파일
+/etc/nginx/sites-enabled/          # 활성화된 사이트 (심볼릭 링크)
 
-### 5. 정적 콘텐츠와 동적 콘텐츠 처리
+# CentOS/RHEL
+/etc/nginx/nginx.conf
+/etc/nginx/conf.d/                 # *.conf 파일을 자동으로 읽는다
+```
 
-**정적 콘텐츠의 특성**
-정적 콘텐츠는 HTML, CSS, JavaScript, 이미지 파일 등 서버에서 미리 생성되어 저장된 파일들입니다. 이들은 요청 시마다 동일한 내용을 반환하므로 캐싱이 매우 효과적입니다.
+### 기본 설정 파일 예제
 
-**정적 파일 서빙의 최적화 전략**
-Nginx는 정적 파일을 서빙할 때 여러 최적화 기법을 적용합니다. sendfile 시스템 콜을 사용하여 커널 공간에서 직접 파일을 전송하고, 파일의 마지막 수정 시간을 확인하여 조건부 요청을 처리합니다. 또한 적절한 캐시 헤더를 설정하여 브라우저 캐싱을 최적화합니다.
+```nginx
+# /etc/nginx/nginx.conf
 
-**gzip 압축의 효과**
-텍스트 기반 파일(CSS, JavaScript, HTML)에 대해 gzip 압축을 적용하면 전송 데이터 크기를 70-80% 정도 줄일 수 있습니다. 이는 네트워크 대역폭 절약과 페이지 로딩 속도 향상에 직접적인 영향을 미칩니다.
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+error_log /var/log/nginx/error.log warn;
 
-**동적 콘텐츠의 처리 방식**
-동적 콘텐츠는 PHP, Python, Node.js 등의 애플리케이션 서버에서 실시간으로 생성되는 내용입니다. Nginx는 이들을 직접 처리하지 않고 FastCGI, uWSGI, 또는 프록시를 통해 애플리케이션 서버로 전달합니다.
+events {
+    worker_connections 1024;
+}
 
-**FastCGI의 역할**
-FastCGI는 웹 서버와 애플리케이션 서버 간의 효율적인 통신을 위한 프로토콜입니다. 전통적인 CGI와 달리 프로세스를 재사용하여 성능을 크게 향상시킵니다. Nginx는 FastCGI를 통해 PHP-FPM, uWSGI 등의 애플리케이션 서버와 통신합니다.
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
 
-**캐싱 전략의 차이**
-정적 콘텐츠는 장기간 캐싱이 가능하지만, 동적 콘텐츠는 실시간성이 중요하므로 캐싱을 제한적으로 적용해야 합니다. 사용자별로 다른 내용을 보여주는 경우에는 캐싱을 아예 비활성화하기도 합니다.
+    # 로그 포맷 정의
+    log_format main '$remote_addr - $remote_user [$time_local] '
+                    '"$request" $status $body_bytes_sent '
+                    '"$http_referer" "$http_user_agent" '
+                    '$request_time $upstream_response_time';
 
-## Nginx의 실제 활용 사례
+    access_log /var/log/nginx/access.log main;
 
-### 1. 단일 페이지 애플리케이션 (SPA) 서빙
+    sendfile on;           # 커널에서 직접 파일 전송 (성능 향상)
+    tcp_nopush on;         # sendfile과 같이 쓴다
+    keepalive_timeout 65;
+    gzip on;
 
-**SPA의 특성과 도전과제**
-React, Vue, Angular 등의 SPA는 클라이언트 사이드 라우팅을 사용합니다. 이는 브라우저에서 직접 URL에 접근할 때 서버에서 해당 경로에 대한 파일을 찾을 수 없다는 문제를 야기합니다.
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+```
 
-**try_files 지시어의 활용**
-Nginx의 try_files 지시어는 이 문제를 해결하는 핵심 기능입니다. 요청된 파일이 존재하지 않을 때 기본 파일(index.html)로 폴백하여 클라이언트 사이드 라우터가 적절한 컴포넌트를 렌더링할 수 있게 해줍니다.
+설정 파일은 `main` → `events` / `http` → `server` → `location` 순으로 중첩된다. 상위에서 설정한 값은 하위로 상속되고, 하위에서 같은 항목을 쓰면 덮어쓴다.
 
-**API와 정적 자산의 분리**
-SPA에서는 API 요청과 정적 자산 요청을 구분하여 처리해야 합니다. API 요청은 백엔드 서버로 프록시하고, 정적 자산은 적절한 캐싱 정책을 적용하여 성능을 최적화합니다.
+## 정적 파일 서빙
 
-### 2. 마이크로서비스 아키텍처에서의 역할
+가장 기본적인 사용법. 정적 파일을 Nginx가 직접 서빙한다.
 
-**서비스 디스커버리의 구현**
-마이크로서비스 아키텍처에서는 여러 개의 독립적인 서비스가 각각 다른 포트에서 실행됩니다. Nginx는 이들을 하나의 도메인으로 통합하여 클라이언트에게는 단일 진입점을 제공합니다.
+```nginx
+# /etc/nginx/sites-available/my-site
 
-**라우팅 규칙의 설계**
-URL 패턴에 따라 적절한 서비스로 요청을 라우팅하는 것이 중요합니다. 예를 들어 `/api/users/`로 시작하는 요청은 사용자 서비스로, `/api/products/`로 시작하는 요청은 상품 서비스로 전달합니다.
+server {
+    listen 80;
+    server_name example.com;
 
-**로드 밸런싱의 적용**
-각 서비스가 여러 인스턴스로 실행되는 경우, Nginx의 upstream 모듈을 사용하여 로드 밸런싱을 구현할 수 있습니다. 이를 통해 서비스의 가용성과 성능을 향상시킬 수 있습니다.
+    root /var/www/my-site;
+    index index.html;
 
-### 3. 고급 로드 밸런싱 전략
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # CSS, JS, 이미지는 캐시 헤더를 붙인다
+    location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
 
-**라운드 로빈 방식**
-가장 기본적인 로드 밸런싱 방식으로, 요청을 순차적으로 각 서버에 분산시킵니다. 서버의 성능이나 현재 상태를 고려하지 않고 단순히 순서대로 분배하므로, 서버 간 성능 차이가 클 때는 비효율적일 수 있습니다.
+`try_files $uri $uri/ =404`는 요청 URI에 해당하는 파일을 찾고, 없으면 디렉토리를 찾고, 그래도 없으면 404를 반환한다.
 
-**가중치 기반 분산**
-서버의 성능이나 용량에 따라 가중치를 부여하여 요청을 분산시키는 방식입니다. 성능이 좋은 서버에는 더 많은 요청을 할당하고, 성능이 낮은 서버에는 적은 요청을 할당하여 전체적인 성능을 최적화할 수 있습니다.
+## 리버스 프록시
+
+백엔드 서버 앞에 Nginx를 두는 구성. 실무에서 가장 많이 쓰는 패턴이다.
 
-**최소 연결 수 기반 분산**
-현재 활성 연결 수가 가장 적은 서버로 요청을 전달하는 방식입니다. 이는 서버의 처리 능력이 비슷할 때 매우 효과적이며, 각 서버의 부하를 균등하게 유지하는 데 도움이 됩니다.
+```nginx
+server {
+    listen 80;
+    server_name api.example.com;
 
-**IP 해시 기반 분산**
-클라이언트의 IP 주소를 해시하여 특정 서버에 고정적으로 연결하는 방식입니다. 이는 세션 유지가 필요한 애플리케이션에서 유용하며, 사용자의 세션 정보가 특정 서버에 저장되어 있을 때 중요한 역할을 합니다.
+    location / {
+        proxy_pass http://127.0.0.1:8080;
 
-**헬스 체크와 장애 복구**
-Nginx는 백엔드 서버의 상태를 모니터링하고, 장애가 발생한 서버를 자동으로 제외시킵니다. max_fails와 fail_timeout 파라미터를 통해 장애 감지 기준과 복구 시간을 설정할 수 있습니다.
+        # 백엔드에 클라이언트 정보 전달
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
-### 4. 프록시 캐싱의 이해
+### 주의할 점
 
-**캐싱의 목적과 효과**
-프록시 캐싱은 백엔드 서버의 응답을 Nginx에서 임시 저장하여, 동일한 요청이 들어올 때 백엔드 서버를 거치지 않고 바로 응답을 반환하는 기능입니다. 이는 백엔드 서버의 부하를 줄이고 응답 시간을 단축시키는 효과가 있습니다.
+**proxy_set_header를 빠뜨리면 안 된다.** 백엔드 애플리케이션에서 클라이언트 IP를 찍을 때 `X-Real-IP`나 `X-Forwarded-For`가 없으면 전부 `127.0.0.1`로 찍힌다. 로그 분석이나 IP 기반 제한이 먹히지 않는다.
 
-**캐시 키의 구성**
-캐시 키는 요청의 특성을 나타내는 고유한 식별자입니다. 일반적으로 HTTP 메서드, 호스트명, URL 경로 등을 조합하여 생성하며, 이 키를 기반으로 캐시된 응답을 찾거나 저장합니다.
+**proxy_pass 끝에 슬래시(/) 유무가 동작을 바꾼다:**
 
-**캐시 유효성 관리**
-캐시된 응답의 유효성을 관리하는 것이 중요합니다. HTTP 상태 코드별로 다른 유효 시간을 설정하고, 백엔드 서버가 오류를 반환할 때는 기존 캐시를 사용하는 stale-while-revalidate 전략을 적용할 수 있습니다.
+```nginx
+# /api/users 요청이 들어올 때
 
-**캐시 무효화**
-데이터가 변경되었을 때 관련된 캐시를 무효화하는 것이 중요합니다. Nginx는 PURGE 메서드를 통해 특정 캐시 항목을 삭제할 수 있으며, 이를 통해 데이터의 일관성을 유지할 수 있습니다.
+location /api/ {
+    proxy_pass http://backend;
+    # → 백엔드에 /api/users 그대로 전달
+}
+
+location /api/ {
+    proxy_pass http://backend/;
+    # → 백엔드에 /users 로 전달 (/api/ 가 잘린다)
+}
+```
 
-## Nginx 운영의 핵심 요소
+이걸 모르고 설정하면 백엔드에서 404가 나오는데, Nginx 로그에는 정상으로 찍혀서 찾기 어렵다.
+
+## 로드 밸런싱
 
-### 1. 성능 최적화 전략
+여러 백엔드 서버에 요청을 분산한다.
 
-**워커 프로세스의 최적화**
-Nginx의 성능은 워커 프로세스 수와 각 워커가 처리할 수 있는 연결 수에 크게 좌우됩니다. 일반적으로 CPU 코어 수와 동일하게 워커 프로세스를 설정하는 것이 좋으며, I/O 집약적인 작업이 많은 경우에는 코어 수의 2배까지도 고려할 수 있습니다.
+```nginx
+upstream backend_servers {
+    # 기본은 라운드 로빈
+    server 10.0.0.1:8080;
+    server 10.0.0.2:8080;
+    server 10.0.0.3:8080 weight=2;  # 가중치 - 이 서버에 2배 더 보낸다
 
-**이벤트 처리의 최적화**
-Linux 환경에서는 epoll을 사용하여 이벤트 처리를 최적화할 수 있습니다. multi_accept 옵션을 활성화하면 여러 연결을 한 번에 수락하여 오버헤드를 줄일 수 있습니다.
+    # server 10.0.0.4:8080 backup;  # 다른 서버가 전부 죽으면 이 서버 사용
+    # server 10.0.0.5:8080 down;    # 점검 중 - 요청 안 보냄
+}
 
-**버퍼 크기의 조정**
-클라이언트 요청의 크기에 따라 적절한 버퍼 크기를 설정하는 것이 중요합니다. 너무 작으면 메모리 재할당이 빈번해지고, 너무 크면 메모리 낭비가 발생할 수 있습니다.
+server {
+    listen 80;
 
-**gzip 압축의 효과적 활용**
-텍스트 기반 파일에 대한 gzip 압축은 네트워크 대역폭을 크게 절약할 수 있습니다. 압축 레벨은 6 정도가 압축률과 CPU 사용량의 균형점으로 알려져 있으며, 이미 압축된 파일은 제외하는 것이 좋습니다.
+    location / {
+        proxy_pass http://backend_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
 
-### 2. 보안 강화 방안
+### 분산 방식
 
-**보안 헤더의 중요성**
-현대적인 웹 보안을 위해서는 다양한 보안 헤더를 설정해야 합니다. X-Frame-Options는 클릭재킹 공격을 방지하고, X-Content-Type-Options는 MIME 타입 스니핑을 방지합니다. Content-Security-Policy는 XSS 공격을 효과적으로 차단할 수 있습니다.
+```nginx
+upstream backend {
+    # 라운드 로빈 (기본값) - 순서대로 돌아가며 보낸다
+    server 10.0.0.1:8080;
+    server 10.0.0.2:8080;
+}
+
+upstream backend {
+    least_conn;  # 현재 연결이 가장 적은 서버로 보낸다
+    server 10.0.0.1:8080;
+    server 10.0.0.2:8080;
+}
+
+upstream backend {
+    ip_hash;  # 같은 클라이언트 IP는 같은 서버로 보낸다 (세션 유지에 사용)
+    server 10.0.0.1:8080;
+    server 10.0.0.2:8080;
+}
+```
+
+`ip_hash`는 세션을 서버 메모리에 저장하는 레거시 애플리케이션에서 쓴다. Redis 같은 외부 세션 스토어를 쓰면 `ip_hash`가 필요 없다.
+
+### 헬스 체크
+
+```nginx
+upstream backend {
+    server 10.0.0.1:8080 max_fails=3 fail_timeout=30s;
+    server 10.0.0.2:8080 max_fails=3 fail_timeout=30s;
+}
+```
+
+30초 안에 3번 실패하면 해당 서버를 30초간 제외한다. 30초 후 다시 요청을 보내서 정상이면 복귀시킨다. 기본값은 `max_fails=1`, `fail_timeout=10s`다.
 
-**접근 제어의 구현**
-IP 기반 접근 제어를 통해 관리자 페이지나 민감한 리소스에 대한 접근을 제한할 수 있습니다. 또한 기본 인증을 통해 추가적인 보안 계층을 제공할 수 있습니다.
+## HTTPS 설정
 
-**SSL/TLS 설정의 최적화**
-HTTPS를 사용할 때는 적절한 암호화 알고리즘과 프로토콜 버전을 선택해야 합니다. 오래된 프로토콜이나 약한 암호화는 보안 취약점을 야기할 수 있습니다.
+```nginx
+server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;  # HTTP → HTTPS 리다이렉트
+}
 
-### 3. 모니터링과 로깅
+server {
+    listen 443 ssl;
+    server_name example.com;
 
-**로그 형식의 설계**
-효과적인 모니터링을 위해서는 적절한 로그 형식을 설계해야 합니다. 요청 시간, 업스트림 응답 시간, 클라이언트 정보 등을 포함하여 성능 분석과 문제 해결에 필요한 정보를 수집할 수 있습니다.
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
-**성능 메트릭의 추적**
-응답 시간, 처리량, 오류율 등의 성능 메트릭을 지속적으로 모니터링하여 서비스의 상태를 파악하고, 문제가 발생하기 전에 미리 대응할 수 있습니다.
+    # TLS 1.2 이상만 허용
+    ssl_protocols TLSv1.2 TLSv1.3;
 
-**로그 분석의 활용**
-접근 로그를 분석하여 사용자 행동 패턴을 파악하고, 보안 위협을 탐지하며, 성능 병목 지점을 식별할 수 있습니다.
+    # SSL 세션 캐시 - 같은 클라이언트가 재접속할 때 핸드셰이크 생략
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
 
-## Nginx와 다른 웹 서버의 비교
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+```
 
-### Nginx vs Apache
+Let's Encrypt로 인증서를 발급받으면 certbot이 Nginx 설정까지 자동으로 잡아준다:
 
-**아키텍처의 차이점**
-Nginx는 이벤트 기반 비동기 모델을 사용하여 단일 프로세스가 수천 개의 연결을 처리할 수 있습니다. 반면 Apache는 전통적인 프로세스/스레드 기반 모델을 사용하여 각 연결마다 별도의 프로세스나 스레드를 생성합니다.
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d example.com
+```
 
-**성능 특성**
-Nginx는 정적 파일 서빙과 리버스 프록시 역할에서 뛰어난 성능을 보입니다. 메모리 사용량이 적고 동시 연결 처리 능력이 우수합니다. Apache는 동적 콘텐츠 처리에 강점이 있으며, 풍부한 모듈 생태계를 가지고 있습니다.
+## SPA(React, Vue 등) 서빙
 
-**사용 시나리오**
-Nginx는 대용량 트래픽을 처리해야 하는 현대적인 웹 서비스에 적합하며, Apache는 복잡한 웹 애플리케이션이나 레거시 시스템과의 호환성이 중요한 환경에서 선호됩니다.
+SPA는 클라이언트 사이드 라우팅을 쓰기 때문에 `/about`, `/users/123` 같은 경로로 직접 접근하면 Nginx가 파일을 못 찾는다. 모든 경로를 `index.html`로 보내야 한다.
 
-### Nginx의 적합한 사용 사례
+```nginx
+server {
+    listen 80;
+    server_name app.example.com;
+    root /var/www/app/dist;
 
-**정적 파일 서빙**
-Nginx는 정적 파일을 서빙하는 데 최적화되어 있습니다. sendfile 시스템 콜을 활용하여 커널 공간에서 직접 파일을 전송하고, 효율적인 캐싱 메커니즘을 제공합니다.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
 
-**리버스 프록시와 로드 밸런싱**
-마이크로서비스 아키텍처에서 Nginx는 여러 백엔드 서비스로의 요청을 효율적으로 분산시키고, 다양한 로드 밸런싱 알고리즘을 제공합니다.
+    # API 요청은 백엔드로 프록시
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
 
-**API 게이트웨이**
-Nginx는 API 게이트웨이 역할을 수행하여 인증, 인가, 속도 제한, 라우팅 등의 기능을 제공할 수 있습니다.
+`try_files $uri $uri/ /index.html`에서 마지막 `/index.html`이 핵심이다. 파일도 디렉토리도 없으면 `index.html`을 반환해서 SPA 라우터가 처리하게 한다.
 
-## 마무리
+## gzip 압축
 
-Nginx는 현대적인 웹 인프라의 핵심 구성 요소로 자리잡았습니다. 이벤트 기반 아키텍처를 통해 높은 성능과 효율성을 제공하며, 다양한 웹 서비스 요구사항을 충족시킬 수 있는 유연한 기능들을 제공합니다.
+```nginx
+http {
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript
+               text/xml application/xml text/javascript;
+    gzip_min_length 1000;   # 1KB 미만은 압축 안 함 (오히려 느려질 수 있다)
+    gzip_comp_level 6;      # 1~9, 6이면 압축률과 CPU 사이 적당한 지점
+    gzip_vary on;            # Vary: Accept-Encoding 헤더 추가
+}
+```
 
-웹 서버, 리버스 프록시, 로드 밸런서, API 게이트웨이 등 다양한 역할을 수행할 수 있는 Nginx는 대규모 웹 서비스 구축에 필수적인 도구입니다. 적절한 설정과 최적화를 통해 안정적이고 고성능인 웹 서비스를 구축할 수 있습니다.
+이미지(png, jpg)나 이미 압축된 파일(woff2)은 `gzip_types`에 넣지 않는다. 압축 효과가 거의 없고 CPU만 쓴다.
+
+## 자주 쓰는 보안 헤더
+
+```nginx
+server {
+    # 클릭재킹 방지
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    # MIME 타입 스니핑 방지
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # 서버 버전 정보 숨기기
+    server_tokens off;
+
+    # Nginx 기본 에러 페이지에서 버전이 노출되는 걸 막는다
+    # 응답 헤더의 "Server: nginx/1.x.x" → "Server: nginx"
+}
+```
+
+`server_tokens off`는 반드시 설정한다. 버전 정보가 노출되면 해당 버전의 알려진 취약점을 이용한 공격 대상이 된다.
+
+## 트러블슈팅
+
+### 로그 확인
+
+문제가 생기면 로그부터 본다:
+
+```bash
+# 에러 로그
+tail -f /var/log/nginx/error.log
+
+# 접근 로그
+tail -f /var/log/nginx/access.log
+
+# 특정 도메인 로그 (설정에서 분리한 경우)
+tail -f /var/log/nginx/api.example.com.access.log
+```
+
+### 자주 만나는 문제
+
+**502 Bad Gateway**: 백엔드가 안 떠있거나 연결이 안 된다. `proxy_pass` 주소와 포트를 확인하고, 백엔드 프로세스가 실행 중인지 본다.
+
+```bash
+# 백엔드가 떠있는지 확인
+curl -I http://127.0.0.1:8080
+
+# 포트가 열려있는지 확인
+ss -tlnp | grep 8080
+```
+
+**403 Forbidden**: 파일 권한 문제가 대부분이다. Nginx worker 프로세스 사용자가 해당 디렉토리를 읽을 수 있는지 확인한다.
+
+```bash
+# Nginx worker 사용자 확인
+grep "^user" /etc/nginx/nginx.conf
+
+# 파일 권한 확인
+ls -la /var/www/my-site/
+namei -l /var/www/my-site/index.html  # 경로의 모든 디렉토리 권한을 보여준다
+```
+
+**413 Request Entity Too Large**: 파일 업로드 크기 제한에 걸린 것이다.
+
+```nginx
+client_max_body_size 50m;  # 기본값 1m, 필요한 만큼 올린다
+```
+
+**upstream timed out**: 백엔드 응답이 너무 느리다. 타임아웃 값을 조정하거나 백엔드 성능을 개선한다.
+
+```nginx
+location / {
+    proxy_pass http://backend;
+    proxy_connect_timeout 10s;   # 백엔드 연결 타임아웃 (기본 60s)
+    proxy_read_timeout 60s;      # 백엔드 응답 대기 타임아웃 (기본 60s)
+    proxy_send_timeout 60s;      # 백엔드로 요청 전송 타임아웃 (기본 60s)
+}
+```
+
+## Apache와 비교
+
+|  | Nginx | Apache |
+|---|---|---|
+| 동작 방식 | 이벤트 기반 비동기 | 프로세스/스레드 기반 |
+| 메모리 사용 | 적다 | 연결 수에 비례해서 늘어난다 |
+| 정적 파일 | 빠르다 | 상대적으로 느리다 |
+| 동적 처리 | 직접 못 한다 (FastCGI, 프록시로 넘긴다) | mod_php 등으로 직접 처리 가능 |
+| 설정 방식 | 중앙 집중 (nginx.conf) | 분산 가능 (.htaccess) |
+| 설정 반영 | reload 필요 | .htaccess는 즉시 반영 |
+
+Apache의 `.htaccess`는 디렉토리별로 설정을 덮어쓸 수 있어서 공유 호스팅에서 편하다. 대신 요청마다 `.htaccess` 파일을 읽어서 성능이 떨어진다. Nginx는 `.htaccess`를 지원하지 않고 설정 파일을 직접 수정해야 한다.
 
 ## 참조
 
 - Nginx 공식 문서: https://nginx.org/en/docs/
-- Nginx 모듈 개발 가이드: https://nginx.org/en/docs/dev/development_guide.html
-- 웹 서버 성능 비교 연구: https://www.nginx.com/blog/nginx-vs-apache-our-view/
-- 이벤트 기반 프로그래밍: https://en.wikipedia.org/wiki/Event-driven_programming
-- C10K 문제와 해결책: https://en.wikipedia.org/wiki/C10k_problem
-- HTTP/2와 Nginx: https://nginx.org/en/docs/http/ngx_http_v2_module.html
-- Nginx 보안 모범 사례: https://nginx.org/en/docs/http/ngx_http_ssl_module.html
+- Nginx 설정 디렉티브 목록: https://nginx.org/en/docs/dirindex.html
+- C10K 문제: https://en.wikipedia.org/wiki/C10k_problem
