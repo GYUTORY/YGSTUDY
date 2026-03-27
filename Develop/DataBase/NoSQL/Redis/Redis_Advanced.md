@@ -1,7 +1,7 @@
 ---
-title: Redis 심화 가이드
-tags: [redis, cluster, sentinel, streams, lua, distributed-lock, spring-data-redis, performance]
-updated: 2026-03-01
+title: Redis 심화
+tags: [redis, cluster, sentinel, streams, lua, distributed-lock, spring-data-redis, performance, valkey, redis-functions]
+updated: 2026-03-27
 ---
 
 # Redis 심화
@@ -1000,35 +1000,379 @@ RDB vs AOF 비교:
   └─────────────┴──────────────────┴──────────────────┘
 ```
 
-## 8. 운영 체크리스트
+## 8. 프로덕션 트러블슈팅
+
+### 8.1 OOM Killer 대응
+
+Linux의 OOM Killer가 Redis 프로세스를 죽이는 경우가 있다. `dmesg | grep -i oom`에서 redis-server가 보이면 이 문제다.
+
+```bash
+# OOM Killer에 의해 종료된 로그 확인
+dmesg | grep -i "oom.*redis"
+# Out of memory: Kill process 12345 (redis-server) score 800
+
+# Redis의 OOM 점수 낮추기 (우선순위 보호)
+echo -17 > /proc/$(pidof redis-server)/oom_score_adj
+
+# /etc/sysctl.conf에서 overcommit 정책 변경
+# vm.overcommit_memory = 1 로 설정해야 포크(BGSAVE) 시 실패하지 않는다
+sysctl vm.overcommit_memory=1
+```
+
+Redis는 `maxmemory`를 설정해도 OS 레벨에서 추가 메모리를 사용한다. 출력 버퍼, 복제 백로그, Lua 스크립트 메모리 등은 `maxmemory` 제한 밖이다. 물리 메모리의 60~70%를 `maxmemory`로 잡고, 나머지는 OS와 Redis 내부 오버헤드용으로 남겨야 한다.
+
+### 8.2 커넥션 풀 고갈 — Lettuce vs Jedis
+
+커넥션 풀이 고갈되면 `RedisConnectionFailureException`이나 `Cannot get Jedis connection`이 발생한다. Lettuce와 Jedis는 커넥션 관리 방식이 근본적으로 다르다.
 
 ```
-설정:
-  □ maxmemory 설정 (물리 메모리의 70~80%)
-  □ maxmemory-policy 설정 (용도에 맞게)
-  □ 영속성 전략 선택 (RDB + AOF 하이브리드 권장)
-  □ 위험 명령어 rename/비활성화
+Lettuce:
+  - 단일 커넥션을 여러 스레드가 공유 (Netty 기반, 비동기 I/O)
+  - 커넥션 풀이 기본적으로 필요 없다
+  - 문제가 생기는 경우: blocking 명령(BLPOP 등)이나 트랜잭션(MULTI/EXEC) 사용 시
+    → 전용 커넥션이 필요하다
+  - connection sharing이 꺼져 있거나 pool 설정 없이 blocking 명령을 쓰면 커넥션 부족 발생
 
-보안:
-  □ requirepass 설정
-  □ bind 127.0.0.1 (외부 접근 차단)
-  □ protected-mode yes
-  □ ACL 설정 (사용자별 권한)
-  □ TLS 암호화 (프로덕션)
-
-모니터링:
-  □ INFO 명령어 주기적 수집
-  □ Slow Log 모니터링
-  □ 메모리 사용량 알림
-  □ 연결 수 모니터링
-  □ 복제 지연(lag) 모니터링
-
-고가용성:
-  □ Sentinel 또는 Cluster 구성
-  □ 자동 페일오버 테스트
-  □ 백업 스케줄 + 복구 테스트
-  □ 장애 대응 절차 문서화
+Jedis:
+  - 요청마다 커넥션 풀에서 꺼내서 사용 (동기 I/O)
+  - 풀 크기가 부족하면 바로 고갈된다
+  - max-active가 너무 작거나, 커넥션 반환이 안 되면(close 누락) 풀이 마른다
 ```
+
+```yaml
+# Lettuce 커넥션 풀 (blocking 명령 사용 시 필요)
+spring:
+  data:
+    redis:
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
+          max-wait: 3000ms    # 이 시간 안에 커넥션 못 얻으면 예외
+
+# Jedis 커넥션 풀
+spring:
+  data:
+    redis:
+      jedis:
+        pool:
+          max-active: 32      # 동시 요청 수 기준으로 설정
+          max-idle: 16
+          min-idle: 8
+          max-wait: 3000ms
+```
+
+Lettuce 환경에서 커넥션 고갈이 의심될 때는 `CLIENT LIST` 명령으로 현재 커넥션 수를 확인한다. 커넥션 수가 비정상적으로 많으면 커넥션 누수(close 누락)를 의심해야 한다.
+
+### 8.3 메모리 단편화
+
+`INFO memory`의 `mem_fragmentation_ratio`가 1.5를 넘으면 단편화가 심한 상태다.
+
+```redis
+INFO memory
+# mem_fragmentation_ratio: 2.3   ← OS가 할당한 메모리가 실제 사용량의 2.3배
+# mem_fragmentation_bytes: 524288000
+```
+
+```
+단편화가 발생하는 원인:
+  - 크기가 다른 키를 반복적으로 생성/삭제
+  - 짧은 TTL 키가 대량으로 만료되면서 메모리 구멍이 생김
+  - jemalloc 할당자가 OS에 메모리를 반환하지 못하는 경우
+
+대응:
+  1. Redis 4.0+에서는 activedefrag 사용
+     CONFIG SET activedefrag yes
+     CONFIG SET active-defrag-threshold-lower 10    # 단편화 10% 이상이면 시작
+     CONFIG SET active-defrag-threshold-upper 100   # 100% 이상이면 최대 노력
+     CONFIG SET active-defrag-cycle-min 1           # CPU 사용률 최소 1%
+     CONFIG SET active-defrag-cycle-max 25          # CPU 사용률 최대 25%
+
+  2. activedefrag로 해결 안 되면 페일오버 후 재시작
+     → Replica에서 읽기 전환 후 Master 재시작하면 단편화 해소
+```
+
+`mem_fragmentation_ratio`가 1.0 미만이면 Redis가 swap을 쓰고 있다는 뜻이다. 이 경우는 메모리 부족이므로 즉시 `maxmemory`를 줄이거나 노드를 추가해야 한다.
+
+### 8.4 포크 시 메모리 2배 사용
+
+BGSAVE(RDB 저장)나 AOF 재작성 시 Redis는 `fork()`를 호출한다. Copy-on-Write(CoW) 방식이라 이론적으로는 메모리가 크게 늘지 않지만, 쓰기가 많은 워크로드에서는 거의 2배까지 메모리를 사용한다.
+
+```
+문제 시나리오:
+  물리 메모리: 16GB
+  Redis maxmemory: 12GB
+  BGSAVE 시작 → fork()
+  쓰기 요청이 계속 들어옴 → CoW로 페이지 복사 발생
+  메모리 사용량: 12GB(부모) + 10GB(자식 CoW) = 22GB
+  → OOM Killer 발동 또는 swap 폭주
+
+대응:
+  1. maxmemory를 물리 메모리의 50% 이하로 설정 (쓰기가 많은 경우)
+  2. Transparent Huge Pages(THP) 비활성화 — CoW 단위가 2MB로 커져서 메모리 낭비 심해짐
+     echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  3. Replica에서만 RDB 저장 수행하고 Master는 RDB 저장 비활성화
+     # Master: save ""
+     # Replica에서 BGSAVE 실행
+```
+
+### 8.5 maxmemory 설정 실수로 인한 장애
+
+실제로 많이 겪는 장애 패턴이다.
+
+```
+사례 1: maxmemory를 설정하지 않음
+  - Redis 기본값은 maxmemory 0 (무제한)
+  - 메모리를 계속 써서 OS가 OOM Killer로 프로세스를 죽임
+  - 운영 환경에서는 반드시 maxmemory를 명시해야 한다
+
+사례 2: maxmemory-policy가 noeviction (기본값)
+  - 메모리가 가득 차면 쓰기 명령이 전부 에러를 반환한다
+  - 캐시 용도인데 noeviction이면 서비스 장애로 이어진다
+  - 캐시: allkeys-lru 또는 allkeys-lfu 사용
+  - 세션/큐: volatile-lru + TTL 필수 설정
+
+사례 3: maxmemory를 CONFIG SET으로만 변경하고 redis.conf는 안 고침
+  - Redis 재시작하면 redis.conf의 설정으로 돌아간다
+  - CONFIG REWRITE로 현재 설정을 파일에 반영하거나, 직접 redis.conf를 수정해야 한다
+```
+
+```bash
+# 현재 설정 확인
+redis-cli CONFIG GET maxmemory
+redis-cli CONFIG GET maxmemory-policy
+
+# 설정 변경 + 파일 반영
+redis-cli CONFIG SET maxmemory 4gb
+redis-cli CONFIG SET maxmemory-policy allkeys-lru
+redis-cli CONFIG REWRITE    # redis.conf에 반영
+```
+
+## 9. Redis 7.x 주요 변경사항
+
+### 9.1 Redis Functions (Lua 스크립트 대체)
+
+Redis 7.0부터 Functions가 도입됐다. Lua 스크립트는 클라이언트가 매번 보내야 하지만, Functions는 Redis에 등록해두고 이름으로 호출한다. 라이브러리 단위로 관리되고, 복제와 영속성도 지원한다.
+
+```redis
+# 함수 라이브러리 등록
+FUNCTION LOAD "#!lua name=mylib
+redis.register_function('my_set_and_expire', function(keys, args)
+    redis.call('SET', keys[1], args[1])
+    redis.call('EXPIRE', keys[1], tonumber(args[2]))
+    return redis.call('GET', keys[1])
+end)
+
+redis.register_function('my_rate_check', function(keys, args)
+    local current = tonumber(redis.call('INCR', keys[1]) or '0')
+    if current == 1 then
+        redis.call('EXPIRE', keys[1], tonumber(args[1]))
+    end
+    return current <= tonumber(args[2]) and 1 or 0
+end)
+"
+
+# 함수 호출
+FCALL my_set_and_expire 1 user:1000 "John" 3600
+FCALL my_rate_check 1 rate:client:42 60 100
+
+# 등록된 함수 목록
+FUNCTION LIST
+FUNCTION LIST LIBRARYNAME mylib
+
+# 함수 삭제
+FUNCTION DELETE mylib
+
+# 함수 덤프/복원 (클러스터 간 이동)
+FUNCTION DUMP
+FUNCTION RESTORE <serialized-data>
+```
+
+```
+Lua 스크립트 vs Functions:
+  EVAL/EVALSHA:
+    - 클라이언트가 스크립트를 보내야 한다
+    - SCRIPT FLUSH 하면 날아간다
+    - 복제/AOF에 스크립트 전체가 포함됨
+
+  Functions:
+    - Redis에 영구 등록, 이름으로 호출
+    - RDB/AOF에 함수 정의 포함 → 재시작해도 유지
+    - 라이브러리 단위 관리 (여러 함수를 묶을 수 있음)
+    - Replica에 자동 복제
+    - 기존 EVAL/EVALSHA도 계속 동작한다
+```
+
+### 9.2 Sharded Pub/Sub
+
+기존 Pub/Sub은 클러스터 환경에서 모든 노드에 메시지를 브로드캐스트한다. 채널이 100개든 1개든 전 노드에 전파되므로 노드 수가 늘면 오버헤드도 같이 늘었다.
+
+Redis 7.0의 Sharded Pub/Sub은 채널을 해시 슬롯에 매핑한다. 해당 슬롯을 담당하는 노드에서만 메시지가 처리된다.
+
+```redis
+# 기존 Pub/Sub (클러스터 전체 브로드캐스트)
+SUBSCRIBE channel1
+PUBLISH channel1 "message"
+
+# Sharded Pub/Sub (슬롯 기반, 7.0+)
+SSUBSCRIBE channel1
+SPUBLISH channel1 "message"
+
+# channel1의 해시 슬롯을 담당하는 노드에서만 처리된다
+# 클러스터가 30노드여도 해당 슬롯의 Master+Replica에서만 메시지 흐름
+```
+
+```
+언제 Sharded Pub/Sub을 써야 하는가:
+  - 클러스터 환경에서 채널 수가 많을 때
+  - 노드 수가 많아서 기존 Pub/Sub의 브로드캐스트 오버헤드가 큰 경우
+  - 단일 인스턴스나 Sentinel 환경에서는 기존 Pub/Sub을 그대로 쓰면 된다
+```
+
+### 9.3 Client-side Caching
+
+Redis 6.0에서 도입, 7.x에서 안정화됐다. 클라이언트가 키 값을 로컬 메모리에 캐시하고, 서버가 해당 키가 변경되면 무효화(invalidation) 알림을 보내는 방식이다.
+
+```redis
+# 클라이언트 추적 활성화
+CLIENT TRACKING ON REDIRECT <client-id>
+# 이후 GET으로 읽은 키가 변경되면 무효화 메시지 수신
+
+# Broadcasting 모드 (접두사 기반)
+CLIENT TRACKING ON BCAST PREFIX user: PREFIX product:
+# user:* 또는 product:*로 시작하는 키가 변경되면 알림
+```
+
+```
+동작 방식:
+  1. 클라이언트가 GET user:1000 → 서버가 응답 + 키 추적 시작
+  2. 클라이언트가 응답값을 로컬 메모리에 캐시
+  3. 다른 클라이언트가 SET user:1000 "new" → 서버가 무효화 메시지 전송
+  4. 클라이언트가 로컬 캐시에서 user:1000 삭제
+  5. 다음 조회 시 서버에 다시 요청
+
+Lettuce 6.x부터 Client-side Caching 지원:
+  StatefulRedisConnection<String, String> conn = client.connect();
+  CacheFrontend<String, String> frontend = ClientSideCaching.enable(
+      CacheAccessor.forMap(new ConcurrentHashMap<>()),
+      conn,
+      TrackingArgs.Builder.enabled()
+  );
+  String value = frontend.get("user:1000");  // 로컬 캐시 → 미스 시 서버 조회
+```
+
+Redis에 대한 네트워크 요청 자체를 줄이므로 읽기 비율이 높은 워크로드에서 지연 시간이 크게 줄어든다. 단, 캐시 일관성은 best-effort다. 네트워크 문제로 무효화 메시지가 유실될 수 있으므로 로컬 캐시에 TTL을 함께 설정하는 게 안전하다.
+
+### 9.4 ACL v2 (Redis 7.0+)
+
+Redis 6.0에서 도입된 ACL이 7.0에서 크게 개선됐다. Selector 개념이 추가되어 하나의 사용자에게 여러 권한 규칙을 조합할 수 있다.
+
+```redis
+# 사용자 생성 (기본)
+ACL SETUSER app-reader on >password123 ~user:* &* +get +mget +hgetall
+
+# ACL v2 Selector — 하나의 사용자에게 복합 권한 부여
+ACL SETUSER api-service on >securepass \
+    ~cache:* +get +set +del +expire \
+    (~queue:* +lpush +rpop +llen)
+
+# api-service는:
+#   cache:* 키에 대해 get, set, del, expire 허용
+#   queue:* 키에 대해 lpush, rpop, llen 허용
+#   그 외 키/명령은 차단
+
+# ACL 목록 확인
+ACL LIST
+ACL GETUSER api-service
+
+# ACL 파일로 관리
+ACL LOAD        # aclfile에서 로드
+ACL SAVE        # 현재 ACL을 파일에 저장
+```
+
+```conf
+# redis.conf
+aclfile /etc/redis/users.acl
+
+# /etc/redis/users.acl
+user default on >defaultpass ~* &* +@all
+user app-reader on >readerpass ~app:* &* +@read
+user app-writer on >writerpass ~app:* &* +@write +@read
+user admin on >adminpass ~* &* +@all
+```
+
+운영 환경에서는 `default` 사용자의 권한을 최소화하고, 애플리케이션별로 전용 사용자를 만들어야 한다. `requirepass`만으로 관리하던 방식은 Redis 6.0 이후로는 권장하지 않는다.
+
+## 10. Redis 라이선스 변경과 Valkey
+
+### 10.1 라이선스 변경 (2024년 3월)
+
+Redis Labs가 Redis 7.4부터 라이선스를 BSD에서 **SSPL + RSALv2 듀얼 라이선스**로 변경했다. 클라우드 벤더가 Redis를 그대로 서비스로 제공하는 것을 막기 위한 결정이다.
+
+```
+라이선스 변경의 영향:
+  - Redis를 자사 서비스에 내장하여 사용: 영향 없음 (대부분의 경우)
+  - Redis를 기반으로 매니지드 서비스 제공: SSPL/RSALv2 제약에 해당
+  - AWS ElastiCache, Google Memorystore 등 클라우드 서비스에 직접 영향
+
+  SSPL: 서비스로 제공하려면 관리 도구 포함 전체 소스코드 공개 필요
+  RSALv2: Redis를 경쟁 제품의 기반으로 사용 금지
+```
+
+### 10.2 Valkey 포크
+
+라이선스 변경 직후 Linux Foundation 주도로 **Valkey**가 Redis 7.2.4 기반으로 포크됐다. AWS, Google, Oracle, Ericsson 등이 참여하고 있다.
+
+```
+Valkey 특징:
+  - BSD 3-Clause 라이선스 (오픈소스 유지)
+  - Redis 7.2.4와 호환 — 기존 Redis 클라이언트, 명령어 그대로 사용 가능
+  - AWS ElastiCache, Google Memorystore가 Valkey로 전환 중
+  - 커뮤니티 기여가 활발하고, Redis에 없는 기능도 추가되고 있음
+
+이관 시 확인 사항:
+  - 클라이언트 라이브러리 호환성: Lettuce, Jedis, Redisson 모두 Valkey 지원
+  - Redis Modules 사용 여부: RedisJSON, RediSearch 등은 Redis Ltd 소유이므로 Valkey에서 직접 사용 불가
+    → 대체: RedisJSON → ReJSON 포크, RediSearch → 별도 검색엔진 고려
+  - 설정 파일은 redis.conf → valkey.conf로 이름만 바뀌고 내용은 동일
+```
+
+```bash
+# Valkey 설치 (소스 빌드)
+git clone https://github.com/valkey-io/valkey.git
+cd valkey
+make
+make install
+
+# 실행 — Redis와 동일한 인터페이스
+valkey-server /etc/valkey/valkey.conf
+valkey-cli ping    # → PONG
+
+# 기존 Spring Boot 설정에서 호스트만 변경하면 된다
+# Lettuce/Jedis 클라이언트가 프로토콜 레벨에서 호환
+```
+
+자사 서비스에 Redis를 내장하여 사용하는 경우라면 라이선스 문제가 없으므로 당장 Valkey로 전환할 필요는 없다. 하지만 클라우드 매니지드 서비스를 사용하고 있다면 해당 벤더의 Valkey 전환 일정을 확인해야 한다.
+
+## 11. 운영 시 주의사항
+
+### 설정
+
+`maxmemory`는 물리 메모리의 60~70%로 설정한다. 나머지는 포크 오버헤드, 출력 버퍼, 복제 백로그 등이 사용한다. `maxmemory-policy`는 용도에 맞게 선택해야 하며, 캐시 용도라면 `allkeys-lru`가 무난하다. 영속성은 RDB + AOF 하이브리드(`aof-use-rdb-preamble yes`)가 복구 속도와 내구성 모두 잡을 수 있다. `KEYS`, `FLUSHALL` 같은 위험 명령어는 `rename-command`로 비활성화한다.
+
+### 보안
+
+`requirepass` 대신 ACL로 사용자별 권한을 분리하고, `bind`로 접근 가능한 인터페이스를 제한한다. `protected-mode yes`는 기본값이지만, bind와 requirepass 없이 외부에서 접근하면 차단되는 설정이다. 프로덕션에서는 TLS 암호화를 적용해야 하며, Redis 6.0+에서 네이티브 TLS를 지원한다.
+
+### 모니터링
+
+`INFO` 명령으로 메모리 사용량, 커넥션 수, 초당 명령 처리량, 복제 지연 등을 주기적으로 수집한다. Slow Log는 `slowlog-log-slower-than 10000`(10ms)으로 설정하고 주기적으로 확인한다. `mem_fragmentation_ratio`가 1.5를 넘거나 1.0 미만이면 즉시 대응이 필요하다. 복제 지연(`master_repl_offset` - `slave_repl_offset`)이 크면 네트워크나 Replica 부하를 점검한다.
+
+### 고가용성
+
+Sentinel 또는 Cluster를 구성하고, 자동 페일오버가 정상 동작하는지 주기적으로 테스트한다. 백업 스케줄을 설정하되 Replica에서 RDB를 저장하는 것이 Master 부하를 줄인다. 장애 대응 시 확인할 항목과 복구 절차를 미리 정리해 두어야 한다.
 
 ## 참고
 
