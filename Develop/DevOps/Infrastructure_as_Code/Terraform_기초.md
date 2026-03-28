@@ -1,115 +1,102 @@
 ---
-title: Terraform 기초 가이드
+title: Terraform 기초
 tags: [devops, iac, terraform, aws, infrastructure]
-updated: 2026-02-24
+updated: 2026-03-29
 ---
 
-# Terraform 기초 가이드 (Terraform Basics Guide)
+# Terraform 기초
 
-## 목차 (Table of Contents)
-1. [Terraform 개요 (Terraform Overview)](#terraform-개요)
-2. [Terraform 설치 및 설정 (Terraform Installation and Setup)](#terraform-설치-및-설정)
-3. [AWS 리소스 생성 예제 (AWS Resource Creation Examples)](#aws-리소스-생성-예제)
-4. [모듈화된 인프라 관리 (Modular Infrastructure Management)](#모듈화된-인프라-관리)
-5. [상태 파일 관리 (State File Management)](#상태-파일-관리)
-6. [실제 EC2, RDS 생성 예제 (Real EC2, RDS Creation Examples)](#실제-ec2-rds-생성-예제)
-7. [고급 기능 및 모범 사례 (Advanced Features and Best Practices)](#고급-기능-및-모범-사례)
+Terraform은 HashiCorp가 만든 IaC 도구다. 인프라를 HCL(HashiCorp Configuration Language)로 정의하고, `plan` → `apply` 흐름으로 생성/변경/삭제한다. 이 문서는 Terraform을 처음 쓸 때 실제로 부딪히는 문제 위주로 정리한다.
 
-## Terraform 개요 (Terraform Overview)
+> Terraform의 개념, 문법, 모듈 시스템, AWS 인프라 구축 예제는 [Terraform 인프라 자동화](./Terraform.md)에서 다룬다.
 
-Terraform은 HashiCorp에서 개발한 Infrastructure as Code (IaC) 도구로, 클라우드 인프라를 코드로 정의하고 관리할 수 있습니다.
+---
 
-### Terraform의 주요 특징 (Key Features)
+## 설치와 프로젝트 초기 설정
 
-- **선언적 구성 (Declarative Configuration)**: 원하는 상태를 선언하면 Terraform이 자동으로 구현
-- **멀티 클라우드 지원 (Multi-cloud Support)**: AWS, Azure, GCP 등 다양한 클라우드 제공업체 지원
-- **상태 관리 (State Management)**: 인프라의 현재 상태를 추적하고 관리
-- **의존성 관리 (Dependency Management)**: 리소스 간 의존성을 자동으로 해결
-- **계획 및 적용 (Plan and Apply)**: 변경사항을 미리 확인하고 안전하게 적용
+### 설치
 
-### Terraform 워크플로우 (Terraform Workflow)
-
-```mermaid
-graph LR
-    A[코드 작성<br/>Write Code] --> B[초기화<br/>terraform init]
-    B --> C[계획 수립<br/>terraform plan]
-    C --> D[적용<br/>terraform apply]
-    D --> E[상태 확인<br/>terraform show]
-```
-
-## Terraform 설치 및 설정 (Terraform Installation and Setup)
-
-### 1. Terraform 설치 (Terraform Installation)
-
-#### macOS 설치
 ```bash
-# Homebrew를 사용한 설치
+# macOS
 brew tap hashicorp/tap
 brew install hashicorp/tap/terraform
 
-# 설치 확인
-terraform version
-```
-
-#### Linux 설치
-```bash
-# Terraform 다운로드
-wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
-
-# 압축 해제
-unzip terraform_1.6.0_linux_amd64.zip
-
-# 실행 권한 부여 및 PATH 설정
-chmod +x terraform
+# Linux
+wget https://releases.hashicorp.com/terraform/1.9.0/terraform_1.9.0_linux_amd64.zip
+unzip terraform_1.9.0_linux_amd64.zip
 sudo mv terraform /usr/local/bin/
 
 # 설치 확인
 terraform version
 ```
 
-#### Windows 설치
-```powershell
-# Chocolatey를 사용한 설치
-choco install terraform
-
-# 또는 직접 다운로드 후 PATH 설정
-```
-
-### 2. AWS CLI 설정 (AWS CLI Setup)
+tfenv을 쓰면 프로젝트별로 Terraform 버전을 다르게 쓸 수 있다. 팀에서 버전이 다를 때 문제가 잦으니 `.terraform-version` 파일을 프로젝트 루트에 두는 게 낫다.
 
 ```bash
-# AWS CLI 설치 (macOS)
-brew install awscli
-
-# AWS CLI 설치 (Linux)
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
-# AWS 자격 증명 설정
-aws configure
+brew install tfenv
+tfenv install 1.9.0
+tfenv use 1.9.0
 ```
 
-### 3. 기본 프로젝트 구조 (Basic Project Structure)
+### 프로젝트 구조
 
 ```
-terraform-project/
-├── main.tf              # 메인 구성 파일
-├── variables.tf          # 변수 정의
-├── outputs.tf           # 출력 값 정의
-├── terraform.tfvars     # 변수 값 설정
-├── .terraform/          # Terraform 초기화 파일
-└── terraform.tfstate    # 상태 파일
+project/
+├── main.tf            # 리소스 정의
+├── variables.tf       # 변수 선언
+├── outputs.tf         # 출력 값
+├── terraform.tfvars   # 변수 값 (git에 올리지 않음)
+├── versions.tf        # required_providers, required_version
+├── .gitignore         # 반드시 설정
+└── .terraform.lock.hcl # provider 버전 잠금 (git에 올림)
 ```
 
-## AWS 리소스 생성 예제 (AWS Resource Creation Examples)
+### .gitignore 필수 설정
 
-### 1. 기본 VPC 및 서브넷 생성 (Basic VPC and Subnet Creation)
+이거 안 하면 state 파일이나 `.terraform/` 디렉토리가 git에 올라간다. state 파일에는 DB 비밀번호 같은 민감 정보가 평문으로 들어가기 때문에 절대 커밋하면 안 된다.
+
+```gitignore
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+```
+
+`.terraform.lock.hcl`은 `.gitignore`에 넣지 않는다. 이유는 아래에서 설명한다.
+
+---
+
+## terraform init 실패 트러블슈팅
+
+`terraform init`은 provider 플러그인을 다운로드하고 backend를 초기화한다. 처음 쓸 때 여기서 막히는 경우가 많다.
+
+### provider를 못 찾는 경우
+
+```
+Error: Failed to query available provider packages
+Could not retrieve the list of available versions for provider hashicorp/aws
+```
+
+원인은 대부분 네트워크 문제거나 provider source를 잘못 쓴 경우다.
 
 ```hcl
-# main.tf
+# 틀린 예 - source 없이 쓰면 Terraform 0.12 이전 방식
+provider "aws" {
+  region = "ap-northeast-2"
+}
+
+# 맞는 예 - required_providers에 source 명시
 terraform {
-  required_version = ">= 1.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -117,887 +104,447 @@ terraform {
     }
   }
 }
+```
 
-provider "aws" {
-  region = var.aws_region
+회사 내부 네트워크에서 프록시 뒤에 있으면 `HTTPS_PROXY` 환경변수를 설정해야 한다.
+
+```bash
+export HTTPS_PROXY=http://proxy.company.com:8080
+terraform init
+```
+
+### backend 설정 변경 후 init 실패
+
+backend를 로컬에서 S3로 바꾸거나 S3 버킷 이름을 변경하면 `terraform init`이 실패한다.
+
+```bash
+# backend 설정이 바뀌었을 때
+terraform init -reconfigure
+
+# 기존 state를 새 backend로 옮기고 싶을 때
+terraform init -migrate-state
+```
+
+`-reconfigure`는 기존 state를 버리고 새로 시작한다. `-migrate-state`는 기존 state를 새 backend로 복사한다. 둘의 차이를 모르고 `-reconfigure`를 썼다가 state를 날리는 사고가 생긴다.
+
+### .terraform 디렉토리가 깨진 경우
+
+`.terraform/` 디렉토리를 삭제하고 다시 init하면 된다. 이 디렉토리는 캐시일 뿐이라 지워도 문제없다.
+
+```bash
+rm -rf .terraform
+terraform init
+```
+
+---
+
+## .terraform.lock.hcl 관리
+
+`.terraform.lock.hcl`은 provider의 정확한 버전과 해시값을 기록한다. `package-lock.json`이나 `go.sum`과 같은 역할이다.
+
+### git에 올려야 하는 이유
+
+이 파일을 git에 안 올리면 팀원마다 `terraform init` 할 때 다른 버전의 provider를 받을 수 있다. A는 aws provider 5.30.0, B는 5.31.0을 쓰면 plan 결과가 달라진다.
+
+### 플랫폼 해시 문제
+
+macOS에서 lock 파일을 생성하면 `h1:` 해시만 들어간다. CI/CD가 Linux에서 돌면 해시가 안 맞아서 init이 실패한다.
+
+```bash
+# 여러 플랫폼의 해시를 한 번에 추가
+terraform providers lock \
+  -platform=darwin_amd64 \
+  -platform=darwin_arm64 \
+  -platform=linux_amd64
+```
+
+이걸 안 하면 CI에서 `terraform init` 할 때마다 `-lock=false`를 붙여야 하는데, 그러면 lock 파일의 의미가 없어진다.
+
+### provider 버전 올릴 때
+
+```bash
+# lock 파일의 특정 provider 버전을 갱신
+terraform init -upgrade
+```
+
+`-upgrade` 없이 `terraform init`만 하면 lock 파일에 적힌 버전을 고수한다. 의도적으로 버전을 올리려면 `-upgrade`를 써야 한다.
+
+---
+
+## terraform plan에서 예상 외 변경사항 대응
+
+`plan`을 찍었는데 내가 바꾸지 않은 리소스에 변경이 뜨는 경우가 있다. 처음 겪으면 당황스러운데 원인은 몇 가지로 나뉜다.
+
+### 누군가 콘솔에서 직접 바꾼 경우
+
+Terraform은 state에 기록된 상태와 실제 인프라를 비교한다. 누군가 AWS 콘솔에서 직접 보안 그룹 규칙을 추가했으면, plan에서 그 규칙을 삭제하겠다고 나온다.
+
+대응 방법:
+
+```bash
+# 실제 인프라 상태를 state에 반영
+terraform apply -refresh-only
+```
+
+`-refresh-only`는 코드는 안 바꾸고 state만 실제 인프라에 맞춘다. 다만 이렇게 하면 코드와 state가 어긋나니까, 코드도 같이 수정해야 한다.
+
+### provider 업데이트 후 기본값이 바뀐 경우
+
+aws provider를 5.x에서 올렸더니 갑자기 S3 버킷에 `bucket_regional_domain_name` 같은 필드가 생겨서 변경사항으로 잡히는 경우가 있다. 대부분 `plan`에서 `~ update in-place`로 뜨고 실제로 인프라가 바뀌진 않지만, 모르면 불안하다.
+
+```bash
+# 특정 리소스의 plan 결과만 보고 싶을 때
+terraform plan -target=aws_s3_bucket.main
+```
+
+### plan 결과 저장하고 그대로 apply
+
+plan 결과를 파일로 저장하면 apply 할 때 정확히 그 plan대로만 적용된다. plan과 apply 사이에 인프라가 바뀌는 사고를 막는다.
+
+```bash
+terraform plan -out=tfplan
+terraform apply tfplan
+```
+
+---
+
+## State 꼬임 해결법
+
+state가 꼬이면 plan이 이상하게 나오거나 apply가 실패한다. 가장 흔한 상황과 해결법을 정리한다.
+
+### 리소스가 이미 존재하는데 state에 없는 경우
+
+다른 방법으로 만든 리소스를 Terraform으로 관리하고 싶거나, state에서 실수로 빠진 리소스를 다시 넣어야 할 때 import를 쓴다.
+
+```bash
+# 기존 리소스를 state로 가져오기
+terraform import aws_instance.web i-0abc123def456
+```
+
+Terraform 1.5부터는 `import` 블록을 코드에 쓸 수 있다. 이 방식이 더 낫다. plan으로 미리 확인할 수 있기 때문이다.
+
+```hcl
+import {
+  to = aws_instance.web
+  id = "i-0abc123def456"
+}
+```
+
+### state에 있는데 실제 리소스가 삭제된 경우
+
+누군가 콘솔에서 리소스를 삭제했는데 state에는 남아있으면, plan에서 에러가 나거나 재생성하겠다고 뜬다. 재생성하고 싶지 않으면 state에서 빼야 한다.
+
+```bash
+terraform state rm aws_instance.web
+```
+
+### state lock이 풀리지 않는 경우
+
+`terraform apply` 중에 프로세스가 죽으면 DynamoDB의 lock이 남는다. 다음 apply 때 "state is locked"라고 뜬다.
+
+```bash
+# lock ID는 에러 메시지에 나온다
+terraform force-unlock LOCK_ID
+```
+
+실제로 다른 사람이 apply 중인 건 아닌지 확인하고 써야 한다. 두 명이 동시에 apply 하면 state가 꼬진다.
+
+### state를 직접 수정해야 할 때
+
+리소스 이름을 바꾸면 Terraform은 기존 리소스 삭제 + 새 리소스 생성으로 판단한다. 실제 인프라를 그대로 두고 state만 옮기고 싶으면:
+
+```bash
+# 리소스 이름 변경: old_name → new_name
+terraform state mv aws_instance.old_name aws_instance.new_name
+```
+
+Terraform 1.1부터는 `moved` 블록을 쓸 수 있다.
+
+```hcl
+moved {
+  from = aws_instance.old_name
+  to   = aws_instance.new_name
+}
+```
+
+`moved` 블록이 더 안전하다. plan에서 미리 확인할 수 있고, 코드에 이력이 남는다.
+
+---
+
+## count vs for_each 실무 차이
+
+둘 다 리소스를 여러 개 만들 때 쓰는데, 실무에서 count로 시작했다가 for_each로 바꾸는 일이 잦다.
+
+### count의 문제
+
+count는 인덱스 기반이다. 리스트 중간 항목을 삭제하면 뒤의 인덱스가 전부 밀린다.
+
+```hcl
+variable "subnet_cidrs" {
+  default = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 }
 
-# VPC 생성
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+resource "aws_subnet" "main" {
+  count      = length(var.subnet_cidrs)
+  cidr_block = var.subnet_cidrs[count.index]
+  vpc_id     = aws_vpc.main.id
+}
+```
+
+여기서 두 번째 서브넷(`10.0.2.0/24`)을 리스트에서 빼면, 기존 세 번째 서브넷이 인덱스 1로 밀려서 **삭제 후 재생성**된다. 프로덕션에서 서브넷이 재생성되면 그 안의 EC2, RDS가 전부 영향받는다.
+
+### for_each가 안전한 이유
+
+for_each는 키 기반이다. 중간 항목을 빼도 다른 리소스에 영향이 없다.
+
+```hcl
+variable "subnets" {
+  default = {
+    "public-a"  = "10.0.1.0/24"
+    "public-c"  = "10.0.2.0/24"
+    "private-a" = "10.0.3.0/24"
+  }
+}
+
+resource "aws_subnet" "main" {
+  for_each   = var.subnets
+  cidr_block = each.value
+  vpc_id     = aws_vpc.main.id
 
   tags = {
-    Name = "${var.project_name}-vpc"
-  }
-}
-
-# 인터넷 게이트웨이
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "${var.project_name}-igw"
-  }
-}
-
-# 퍼블릭 서브넷
-resource "aws_subnet" "public" {
-  count = length(var.availability_zones)
-
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "${var.project_name}-public-subnet-${count.index + 1}"
-  }
-}
-
-# 프라이빗 서브넷
-resource "aws_subnet" "private" {
-  count = length(var.availability_zones)
-
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = var.availability_zones[count.index]
-
-  tags = {
-    Name = "${var.project_name}-private-subnet-${count.index + 1}"
-  }
-}
-
-# 라우트 테이블 (퍼블릭)
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = {
-    Name = "${var.project_name}-public-rt"
-  }
-}
-
-# 라우트 테이블 연결 (퍼블릭)
-resource "aws_route_table_association" "public" {
-  count = length(aws_subnet.public)
-
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
-}
-```
-
-### 2. 변수 정의 (Variable Definitions)
-
-```hcl
-# variables.tf
-variable "aws_region" {
-  description = "AWS 리전"
-  type        = string
-  default     = "ap-northeast-2"
-}
-
-variable "project_name" {
-  description = "프로젝트 이름"
-  type        = string
-  default     = "terraform-example"
-}
-
-variable "vpc_cidr" {
-  description = "VPC CIDR 블록"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "availability_zones" {
-  description = "가용 영역 목록"
-  type        = list(string)
-  default     = ["ap-northeast-2a", "ap-northeast-2c"]
-}
-
-variable "public_subnet_cidrs" {
-  description = "퍼블릭 서브넷 CIDR 블록"
-  type        = list(string)
-  default     = ["10.0.1.0/24", "10.0.2.0/24"]
-}
-
-variable "private_subnet_cidrs" {
-  description = "프라이빗 서브넷 CIDR 블록"
-  type        = list(string)
-  default     = ["10.0.10.0/24", "10.0.20.0/24"]
-}
-```
-
-### 3. 출력 값 정의 (Output Definitions)
-
-```hcl
-# outputs.tf
-output "vpc_id" {
-  description = "VPC ID"
-  value       = aws_vpc.main.id
-}
-
-output "vpc_cidr_block" {
-  description = "VPC CIDR 블록"
-  value       = aws_vpc.main.cidr_block
-}
-
-output "public_subnet_ids" {
-  description = "퍼블릭 서브넷 ID 목록"
-  value       = aws_subnet.public[*].id
-}
-
-output "private_subnet_ids" {
-  description = "프라이빗 서브넷 ID 목록"
-  value       = aws_subnet.private[*].id
-}
-
-output "internet_gateway_id" {
-  description = "인터넷 게이트웨이 ID"
-  value       = aws_internet_gateway.main.id
-}
-```
-
-## 모듈화된 인프라 관리 (Modular Infrastructure Management)
-
-### 1. VPC 모듈 생성 (VPC Module Creation)
-
-```hcl
-# modules/vpc/main.tf
-resource "aws_vpc" "this" {
-  cidr_block           = var.cidr_block
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-vpc"
-  })
-}
-
-resource "aws_internet_gateway" "this" {
-  vpc_id = aws_vpc.this.id
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-igw"
-  })
-}
-
-resource "aws_subnet" "public" {
-  count = length(var.availability_zones)
-
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = true
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-public-subnet-${count.index + 1}"
-  })
-}
-
-resource "aws_subnet" "private" {
-  count = length(var.availability_zones)
-
-  vpc_id            = aws_vpc.this.id
-  cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = var.availability_zones[count.index]
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-private-subnet-${count.index + 1}"
-  })
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.this.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.this.id
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-public-rt"
-  })
-}
-
-resource "aws_route_table_association" "public" {
-  count = length(aws_subnet.public)
-
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
-}
-```
-
-### 2. VPC 모듈 변수 및 출력 (VPC Module Variables and Outputs)
-
-```hcl
-# modules/vpc/variables.tf
-variable "name" {
-  description = "VPC 이름"
-  type        = string
-}
-
-variable "cidr_block" {
-  description = "VPC CIDR 블록"
-  type        = string
-}
-
-variable "availability_zones" {
-  description = "가용 영역 목록"
-  type        = list(string)
-}
-
-variable "public_subnet_cidrs" {
-  description = "퍼블릭 서브넷 CIDR 블록"
-  type        = list(string)
-}
-
-variable "private_subnet_cidrs" {
-  description = "프라이빗 서브넷 CIDR 블록"
-  type        = list(string)
-}
-
-variable "tags" {
-  description = "추가 태그"
-  type        = map(string)
-  default     = {}
-}
-```
-
-```hcl
-# modules/vpc/outputs.tf
-output "vpc_id" {
-  description = "VPC ID"
-  value       = aws_vpc.this.id
-}
-
-output "vpc_cidr_block" {
-  description = "VPC CIDR 블록"
-  value       = aws_vpc.this.cidr_block
-}
-
-output "public_subnet_ids" {
-  description = "퍼블릭 서브넷 ID 목록"
-  value       = aws_subnet.public[*].id
-}
-
-output "private_subnet_ids" {
-  description = "프라이빗 서브넷 ID 목록"
-  value       = aws_subnet.private[*].id
-}
-
-output "internet_gateway_id" {
-  description = "인터넷 게이트웨이 ID"
-  value       = aws_internet_gateway.this.id
-}
-```
-
-### 3. 모듈 사용 (Module Usage)
-
-```hcl
-# main.tf
-module "vpc" {
-  source = "./modules/vpc"
-
-  name                = var.project_name
-  cidr_block          = var.vpc_cidr
-  availability_zones  = var.availability_zones
-  public_subnet_cidrs = var.public_subnet_cidrs
-  private_subnet_cidrs = var.private_subnet_cidrs
-
-  tags = {
-    Environment = var.environment
-    Project     = var.project_name
+    Name = each.key
   }
 }
 ```
 
-## 상태 파일 관리 (State File Management)
+`"public-c"`를 빼면 그 서브넷만 삭제된다. 나머지는 건드리지 않는다.
 
-### 1. 로컬 상태 파일 (Local State File)
+### 언제 count를 쓰는가
+
+count는 단순히 "같은 걸 N개 만들고 싶을 때"만 쓴다. 개별 리소스를 구분할 필요가 없고, 중간에 하나를 뺄 일이 없는 경우에 적합하다.
 
 ```hcl
-# 기본적으로 Terraform은 로컬에 상태 파일을 저장
-# terraform.tfstate 파일이 생성됨
+# 이런 경우에만 count
+resource "aws_instance" "worker" {
+  count         = var.worker_count
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t3.micro"
+}
 ```
 
-### 2. 원격 상태 저장소 설정 (Remote State Backend Configuration)
+그 외에는 for_each를 쓴다. count에서 for_each로 바꾸면 state를 전부 옮겨야 하니까, 처음부터 for_each로 시작하는 게 낫다.
+
+---
+
+## depends_on과 lifecycle 블록
+
+### depends_on은 되도록 안 쓴다
+
+Terraform은 리소스 간 참조를 분석해서 의존성을 자동으로 파악한다. `aws_instance`에서 `aws_subnet.main.id`를 참조하면 서브넷이 먼저 생성된다. `depends_on`은 이 자동 의존성이 작동하지 않을 때만 쓴다.
+
+실제로 `depends_on`이 필요한 경우:
 
 ```hcl
-# backend.tf
+# IAM 정책을 붙인 role을 EC2에 쓸 때
+# aws_iam_role_policy_attachment는 EC2와 직접 참조 관계가 없다
+resource "aws_instance" "app" {
+  ami                  = data.aws_ami.amazon_linux.id
+  instance_type        = "t3.micro"
+  iam_instance_profile = aws_iam_instance_profile.app.name
+
+  depends_on = [aws_iam_role_policy_attachment.app_policy]
+}
+```
+
+IAM 정책이 아직 적용되지 않은 상태에서 EC2가 뜨면 권한 에러가 난다. 이런 "간접 의존성"에만 depends_on을 쓴다.
+
+depends_on을 남발하면 불필요한 순차 실행이 생겨서 apply가 느려진다.
+
+### lifecycle 블록 사용 시점
+
+#### prevent_destroy
+
+프로덕션 DB 같은 리소스를 실수로 삭제하는 걸 막는다.
+
+```hcl
+resource "aws_db_instance" "production" {
+  identifier     = "prod-db"
+  engine         = "mysql"
+  instance_class = "db.t3.medium"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+```
+
+`terraform destroy`나 리소스 삭제를 시도하면 에러가 난다. 정말 삭제하려면 이 블록을 제거하고 apply해야 한다.
+
+#### ignore_changes
+
+AWS 콘솔에서 바꾸는 값을 Terraform이 되돌리지 않게 한다. Auto Scaling Group의 desired_count처럼 동적으로 변하는 값에 쓴다.
+
+```hcl
+resource "aws_autoscaling_group" "app" {
+  desired_capacity = 2
+  min_size         = 1
+  max_size         = 10
+
+  lifecycle {
+    ignore_changes = [desired_capacity]
+  }
+}
+```
+
+스케일링 정책이 desired_capacity를 4로 올렸는데, `terraform apply` 할 때마다 2로 되돌리면 안 되니까 ignore_changes를 건다.
+
+#### create_before_destroy
+
+리소스를 교체할 때 새 리소스를 먼저 만들고 기존 리소스를 삭제한다. 다운타임 없이 교체해야 할 때 쓴다.
+
+```hcl
+resource "aws_instance" "web" {
+  ami           = var.ami_id
+  instance_type = "t3.micro"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+```
+
+AMI를 바꿔서 인스턴스를 교체할 때, 기본 동작은 기존 인스턴스 삭제 → 새 인스턴스 생성이라 중간에 서비스가 끊긴다. `create_before_destroy`를 쓰면 새 인스턴스가 먼저 뜬 뒤 기존 인스턴스를 삭제한다.
+
+---
+
+## Provider version pinning 실수 사례
+
+### version 제약 안 거는 경우
+
+```hcl
+# 이렇게 쓰면 init 할 때마다 최신 버전을 받는다
 terraform {
-  backend "s3" {
-    bucket         = "your-terraform-state-bucket"
-    key            = "terraform.tfstate"
-    region         = "ap-northeast-2"
-    encrypt        = true
-    dynamodb_table = "terraform-state-lock"
-  }
-}
-```
-
-### 3. S3 버킷 및 DynamoDB 테이블 생성 (S3 Bucket and DynamoDB Table Creation)
-
-```hcl
-# state-backend.tf
-resource "aws_s3_bucket" "terraform_state" {
-  bucket = "your-terraform-state-bucket"
-
-  tags = {
-    Name        = "Terraform State Bucket"
-    Environment = "Production"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "terraform_state" {
-  bucket = aws_s3_bucket.terraform_state.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
-  bucket = aws_s3_bucket.terraform_state.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
     }
   }
 }
+```
 
-resource "aws_dynamodb_table" "terraform_state_lock" {
-  name           = "terraform-state-lock"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockID"
+aws provider 메이저 버전이 올라가면서 기존 코드가 깨지는 경우가 있다. `~> 5.0`처럼 메이저 버전은 고정하고 마이너 버전만 올라가게 해야 한다.
 
-  attribute {
-    name = "LockID"
-    type = "S"
-  }
+### 너무 느슨하게 거는 경우
 
-  tags = {
-    Name        = "Terraform State Lock Table"
-    Environment = "Production"
+```hcl
+# ">= 4.0" 이러면 5.x도 받을 수 있다
+aws = {
+  source  = "hashicorp/aws"
+  version = ">= 4.0"
+}
+```
+
+4.x에서 5.x로 올라가면서 `aws_s3_bucket` 리소스의 구조가 크게 바뀌었다. ACL, versioning, encryption 설정이 별도 리소스로 분리됐다. `>= 4.0`으로 열어두면 어느 날 갑자기 CI에서 init 할 때 5.x를 받아서 plan이 깨진다.
+
+### 권장하는 방식
+
+```hcl
+terraform {
+  required_version = ">= 1.5.0, < 2.0.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"     # 5.x 내에서만 업데이트
+    }
   }
 }
 ```
 
-### 4. 상태 파일 작업 (State File Operations)
+`~> 5.0`은 `>= 5.0.0, < 6.0.0`과 같다. 마이너 업데이트는 호환성이 유지되니까 자동으로 받아도 되지만, 메이저 업데이트는 수동으로 확인하고 올려야 한다.
+
+Terraform 자체 버전도 `required_version`으로 걸어둔다. 팀원 중 한 명이 Terraform 2.x를 쓰면서 state 포맷이 바뀌면 나머지 팀원이 작업할 수 없다.
+
+---
+
+## 처음 쓸 때 자주 하는 실수
+
+### sensitive 변수를 tfvars에 평문으로 넣기
+
+`terraform.tfvars`에 DB 비밀번호를 넣고 git에 커밋하는 사고가 많다. `.gitignore`에 `*.tfvars`를 넣는 것만으로 충분하지 않다. 이미 커밋된 적이 있으면 git 히스토리에 남아있다.
+
+비밀번호는 환경변수나 Secrets Manager로 주입한다.
 
 ```bash
-# 상태 파일 초기화
-terraform init
-
-# 상태 파일 확인
-terraform show
-
-# 상태 파일 리스트
-terraform state list
-
-# 특정 리소스 상태 확인
-terraform state show aws_vpc.main
-
-# 상태 파일 가져오기
-terraform import aws_vpc.main vpc-12345678
-
-# 상태 파일에서 리소스 제거
-terraform state rm aws_vpc.main
-
-# 상태 파일 이동
-terraform state mv aws_vpc.main aws_vpc.old_main
-```
-
-## 실제 EC2, RDS 생성 예제 (Real EC2, RDS Creation Examples)
-
-### 1. 보안 그룹 생성 (Security Group Creation)
-
-```hcl
-# security-groups.tf
-resource "aws_security_group" "web" {
-  name_prefix = "${var.project_name}-web-"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.ssh_cidr]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.project_name}-web-sg"
-  }
-}
-
-resource "aws_security_group" "database" {
-  name_prefix = "${var.project_name}-db-"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description     = "MySQL"
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    security_groups = [aws_security_group.web.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.project_name}-db-sg"
-  }
-}
-```
-
-### 2. EC2 인스턴스 생성 (EC2 Instance Creation)
-
-```hcl
-# ec2.tf
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-resource "aws_key_pair" "main" {
-  key_name   = "${var.project_name}-key"
-  public_key = file(var.public_key_path)
-
-  tags = {
-    Name = "${var.project_name}-key"
-  }
-}
-
-resource "aws_instance" "web" {
-  count = var.instance_count
-
-  ami                    = data.aws_ami.amazon_linux.id
-  instance_type          = var.instance_type
-  key_name               = aws_key_pair.main.key_name
-  vpc_security_group_ids = [aws_security_group.web.id]
-  subnet_id              = module.vpc.public_subnet_ids[count.index % length(module.vpc.public_subnet_ids)]
-
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    db_endpoint = aws_db_instance.main.endpoint
-    db_name     = var.db_name
-    db_username = var.db_username
-    db_password = var.db_password
-  }))
-
-  tags = {
-    Name = "${var.project_name}-web-${count.index + 1}"
-  }
-}
-
-# 로드 밸런서
-resource "aws_lb" "main" {
-  name               = "${var.project_name}-lb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.web.id]
-  subnets            = module.vpc.public_subnet_ids
-
-  tags = {
-    Name = "${var.project_name}-lb"
-  }
-}
-
-resource "aws_lb_target_group" "web" {
-  name     = "${var.project_name}-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = module.vpc.vpc_id
-
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
-    matcher             = "200"
-    path                = "/"
-    port                = "traffic-port"
-    protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 2
-  }
-
-  tags = {
-    Name = "${var.project_name}-tg"
-  }
-}
-
-resource "aws_lb_target_group_attachment" "web" {
-  count            = var.instance_count
-  target_group_arn = aws_lb_target_group.web.arn
-  target_id        = aws_instance.web[count.index].id
-  port             = 80
-}
-
-resource "aws_lb_listener" "web" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.web.arn
-  }
-}
-```
-
-### 3. RDS 데이터베이스 생성 (RDS Database Creation)
-
-```hcl
-# rds.tf
-resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-db-subnet-group"
-  subnet_ids = module.vpc.private_subnet_ids
-
-  tags = {
-    Name = "${var.project_name}-db-subnet-group"
-  }
-}
-
-resource "aws_db_instance" "main" {
-  identifier = "${var.project_name}-db"
-
-  engine         = "mysql"
-  engine_version = "8.0"
-  instance_class = var.db_instance_class
-
-  allocated_storage     = var.db_allocated_storage
-  max_allocated_storage = var.db_max_allocated_storage
-  storage_type          = "gp2"
-  storage_encrypted     = true
-
-  db_name  = var.db_name
-  username = var.db_username
-  password = var.db_password
-
-  vpc_security_group_ids = [aws_security_group.database.id]
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-
-  backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-
-  skip_final_snapshot = var.environment != "production"
-  deletion_protection = var.environment == "production"
-
-  tags = {
-    Name = "${var.project_name}-db"
-  }
-}
-```
-
-### 4. 사용자 데이터 스크립트 (User Data Script)
-
-```bash
-#!/bin/bash
-# user_data.sh
-
-# 시스템 업데이트
-yum update -y
-
-# Apache 설치
-yum install -y httpd
-
-# Apache 시작 및 자동 시작 설정
-systemctl start httpd
-systemctl enable httpd
-
-# 간단한 웹 페이지 생성
-cat > /var/www/html/index.html << EOF
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Terraform Example</title>
-</head>
-<body>
-    <h1>Welcome to Terraform Example!</h1>
-    <p>This instance was created using Terraform.</p>
-    <p>Database Endpoint: ${db_endpoint}</p>
-    <p>Database Name: ${db_name}</p>
-    <p>Database Username: ${db_username}</p>
-</body>
-</html>
-EOF
-
-# Apache 재시작
-systemctl restart httpd
-```
-
-### 5. 변수 파일 (Variables File)
-
-```hcl
-# variables.tf
-variable "environment" {
-  description = "환경 (dev, staging, production)"
-  type        = string
-  default     = "dev"
-}
-
-variable "instance_count" {
-  description = "EC2 인스턴스 개수"
-  type        = number
-  default     = 2
-}
-
-variable "instance_type" {
-  description = "EC2 인스턴스 타입"
-  type        = string
-  default     = "t3.micro"
-}
-
-variable "public_key_path" {
-  description = "SSH 공개키 파일 경로"
-  type        = string
-  default     = "~/.ssh/id_rsa.pub"
-}
-
-variable "ssh_cidr" {
-  description = "SSH 접근 허용 CIDR"
-  type        = string
-  default     = "0.0.0.0/0"
-}
-
-variable "db_instance_class" {
-  description = "RDS 인스턴스 클래스"
-  type        = string
-  default     = "db.t3.micro"
-}
-
-variable "db_allocated_storage" {
-  description = "RDS 할당된 스토리지 (GB)"
-  type        = number
-  default     = 20
-}
-
-variable "db_max_allocated_storage" {
-  description = "RDS 최대 할당된 스토리지 (GB)"
-  type        = number
-  default     = 100
-}
-
-variable "db_name" {
-  description = "데이터베이스 이름"
-  type        = string
-  default     = "example"
-}
-
-variable "db_username" {
-  description = "데이터베이스 사용자명"
-  type        = string
-  default     = "admin"
-}
-
-variable "db_password" {
-  description = "데이터베이스 비밀번호"
-  type        = string
-  sensitive   = true
-}
-```
-
-### 6. 출력 값 (Outputs)
-
-```hcl
-# outputs.tf
-output "vpc_id" {
-  description = "VPC ID"
-  value       = module.vpc.vpc_id
-}
-
-output "web_instance_ids" {
-  description = "웹 인스턴스 ID 목록"
-  value       = aws_instance.web[*].id
-}
-
-output "web_instance_public_ips" {
-  description = "웹 인스턴스 퍼블릭 IP 목록"
-  value       = aws_instance.web[*].public_ip
-}
-
-output "load_balancer_dns" {
-  description = "로드 밸런서 DNS 이름"
-  value       = aws_lb.main.dns_name
-}
-
-output "database_endpoint" {
-  description = "데이터베이스 엔드포인트"
-  value       = aws_db_instance.main.endpoint
-  sensitive   = true
-}
-
-output "database_port" {
-  description = "데이터베이스 포트"
-  value       = aws_db_instance.main.port
-}
-```
-
-## 고급 기능 및 모범 사례 (Advanced Features and Best Practices)
-
-### 1. 환경별 변수 파일 (Environment-specific Variable Files)
-
-```hcl
-# terraform.tfvars (개발 환경)
-environment = "dev"
-instance_count = 1
-instance_type = "t3.micro"
-db_instance_class = "db.t3.micro"
-db_allocated_storage = 20
+# 환경변수로 전달 (TF_VAR_ 접두사)
+export TF_VAR_db_password="실제비밀번호"
+terraform apply
 ```
 
 ```hcl
-# production.tfvars (프로덕션 환경)
-environment = "production"
-instance_count = 3
-instance_type = "t3.medium"
-db_instance_class = "db.t3.small"
-db_allocated_storage = 100
-```
-
-### 2. Terraform 명령어 실행 (Terraform Commands)
-
-```bash
-# 초기화
-terraform init
-
-# 계획 수립
-terraform plan -var-file="production.tfvars"
-
-# 적용
-terraform apply -var-file="production.tfvars"
-
-# 특정 리소스만 적용
-terraform apply -target=aws_instance.web
-
-# 자동 승인
-terraform apply -auto-approve
-
-# 리소스 제거
-terraform destroy
-
-# 특정 리소스만 제거
-terraform destroy -target=aws_instance.web
-```
-
-### 3. 모범 사례 (Best Practices)
-
-#### 코드 구조화
-```
-terraform-project/
-├── environments/
-│   ├── dev/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── terraform.tfvars
-│   └── production/
-│       ├── main.tf
-│       ├── variables.tf
-│       └── terraform.tfvars
-├── modules/
-│   ├── vpc/
-│   ├── ec2/
-│   └── rds/
-└── shared/
-    ├── backend.tf
-    └── providers.tf
-```
-
-#### 보안 모범 사례
-```hcl
-# 민감한 데이터는 변수로 관리
-variable "db_password" {
-  description = "데이터베이스 비밀번호"
-  type        = string
-  sensitive   = true
-}
-
-# AWS Secrets Manager 사용
+# AWS Secrets Manager에서 가져오기
 data "aws_secretsmanager_secret_version" "db_password" {
   secret_id = "prod/db/password"
 }
 
 resource "aws_db_instance" "main" {
-  # ... 기타 설정
   password = data.aws_secretsmanager_secret_version.db_password.secret_string
 }
 ```
 
-#### 태깅 전략
-```hcl
-locals {
-  common_tags = {
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = "DevOps Team"
-  }
-}
+### -auto-approve를 습관적으로 쓰기
 
-resource "aws_instance" "web" {
-  # ... 기타 설정
-  tags = merge(local.common_tags, {
-    Name = "${var.project_name}-web"
-    Type = "Web Server"
-  })
+`terraform apply -auto-approve`는 plan 확인 없이 바로 적용한다. 개발 환경에서 반복 테스트할 때는 편하지만, 프로덕션에서 습관적으로 쓰면 사고가 난다. plan을 눈으로 확인하는 게 Terraform의 안전장치다.
+
+### terraform destroy를 전체에 쓰기
+
+`terraform destroy`는 state에 있는 모든 리소스를 삭제한다. 특정 리소스만 삭제하고 싶으면 `-target`을 쓴다.
+
+```bash
+# 특정 리소스만 삭제
+terraform destroy -target=aws_instance.test
+
+# 전체 삭제 전에 plan으로 확인
+terraform plan -destroy
+```
+
+### output으로 민감 정보 노출
+
+output에 sensitive 표시를 안 하면 `terraform output`이나 CI 로그에 비밀번호가 찍힌다.
+
+```hcl
+output "database_endpoint" {
+  value     = aws_db_instance.main.endpoint
+  sensitive = true
 }
 ```
 
-## 결론 (Conclusion)
+---
 
-Terraform을 사용하면 인프라를 코드로 관리하여 일관성, 재사용성, 버전 관리의 이점을 얻을 수 있습니다. 모듈화된 구조와 적절한 상태 관리로 확장 가능하고 유지보수가 용이한 인프라를 구축할 수 있습니다.
+## 기본 워크플로우 정리
 
-### 주요 포인트 (Key Points)
+```bash
+# 1. 프로젝트 초기화
+terraform init
 
-1. **코드로 인프라 관리**: 선언적 방식으로 인프라 정의
-2. **모듈화**: 재사용 가능한 모듈 구조
-3. **상태 관리**: 원격 상태 저장소 활용
-4. **환경 분리**: 환경별 변수 파일 관리
-5. **보안**: 민감한 데이터 보호 및 접근 제어
-6. **모범 사례**: 일관된 태깅 및 코드 구조
+# 2. 코드 포맷 정리
+terraform fmt
 
-Terraform을 통해 Infrastructure as Code의 모든 이점을 활용할 수 있습니다.
+# 3. 문법 검증
+terraform validate
+
+# 4. 변경사항 확인
+terraform plan
+
+# 5. 적용
+terraform apply
+
+# 6. 상태 확인
+terraform state list
+terraform state show aws_instance.web
+
+# 7. 리소스 삭제 (주의)
+terraform destroy
+```
+
+`fmt` → `validate` → `plan` → `apply` 순서를 지키면 된다. CI/CD에서도 이 순서대로 파이프라인을 구성한다. `fmt -check`와 `validate`를 PR 단계에서 돌리고, `plan` 결과를 PR 코멘트에 붙이고, merge 후에 `apply`를 실행하는 구조다.
