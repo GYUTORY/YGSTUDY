@@ -1661,6 +1661,10 @@
          <lastmod>2026-03-28</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/CSRF/</loc>
+         <lastmod>2026-03-28</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/Container_Security/</loc>
          <lastmod>2026-03-28</lastmod>
     </url>
@@ -1686,6 +1690,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/SSRF/</loc>
+         <lastmod>2026-03-28</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/XSS/</loc>
          <lastmod>2026-03-28</lastmod>
     </url>
     <url>
