@@ -1,6 +1,6 @@
 ---
 title: LLM 동작 원리와 프로덕션 통합
-tags: [ai, llm, transformer, inference, backend]
+tags: [ai, llm, transformer, inference, backend, fine-tuning, embedding, evaluation]
 updated: 2026-03-29
 ---
 
@@ -605,3 +605,522 @@ Ollama vs vLLM 선택 기준:
 **양자화(Quantization)**: 모델 가중치를 FP16에서 INT8이나 INT4로 줄이면 메모리 사용량이 반~1/4로 줄어든다. 품질 저하가 있지만, 8B 모델의 INT4 양자화는 실용적인 수준이다. GGUF 포맷(llama.cpp)이나 AWQ, GPTQ 포맷을 많이 사용한다.
 
 **네트워크 구성**: 로컬 LLM은 내부 네트워크에서만 접근하게 한다. 외부에 노출하면 무제한 추론 요청이 들어올 수 있고, GPU 리소스를 전부 소진당할 수 있다. Rate limiting과 인증은 반드시 적용해야 한다.
+
+---
+
+## 9. LLM 학습 파이프라인
+
+LLM이 어떻게 만들어지는지 이해하면, 모델의 한계와 특성을 예측할 수 있다. 학습은 크게 세 단계로 나뉜다.
+
+### 9.1 Pre-training (사전 학습)
+
+인터넷에서 수집한 대규모 텍스트 데이터로 "다음 토큰 예측" 과제를 학습하는 단계다. GPT-4 급 모델은 수조(trillion) 토큰 규모의 데이터를 수천 장의 GPU로 수개월간 학습한다.
+
+```
+학습 목표: 주어진 토큰 시퀀스 [t1, t2, ..., tn]에서 다음 토큰 t(n+1)의 확률을 최대화
+
+Loss = -Σ log P(t_i | t_1, ..., t_{i-1})
+```
+
+이 단계에서 모델은 문법, 사실 관계, 추론 패턴 등을 학습한다. 다만 이 상태의 모델은 대화 형태로 응답하지 못한다. "서울의 수도는?"이라고 물으면 "서울의 수도는? 부산의 수도는? 대전의..."처럼 비슷한 패턴의 텍스트를 계속 이어 생성한다.
+
+사전 학습 데이터의 품질이 모델 성능을 결정하는 가장 큰 요소다. 대부분의 LLM 회사들이 데이터 수집과 필터링에 가장 많은 리소스를 투입하는 이유가 여기에 있다.
+
+**데이터 구성의 현실**:
+
+- Common Crawl 같은 웹 크롤링 데이터가 주를 이루지만, 필터링 없이 쓰면 품질이 처참하다
+- 코드 데이터(GitHub 등)를 섞으면 추론 능력이 향상되는 것으로 알려져 있다
+- 한국어 데이터 비율이 전체의 1~3% 수준인 모델이 대부분이다. 한국어 성능이 영어보다 떨어지는 근본적인 이유다
+
+### 9.2 SFT (Supervised Fine-Tuning)
+
+사전 학습된 모델에 사람이 작성한 질문-답변 쌍을 학습시키는 단계다. 이 과정을 거쳐야 모델이 "질문을 받으면 답변을 한다"는 대화 형식을 이해하게 된다.
+
+```
+SFT 데이터 예시:
+
+[질문] Python에서 리스트를 역순으로 정렬하려면?
+[답변] sorted(my_list, reverse=True)를 사용하거나, my_list.sort(reverse=True)로
+      원본 리스트를 직접 정렬할 수 있다. sorted()는 새 리스트를 반환하고,
+      sort()는 원본을 변경한다는 차이가 있다.
+```
+
+SFT 데이터는 보통 수만~수십만 건이다. 사전 학습 데이터의 수조 토큰과 비교하면 양이 훨씬 적지만, 모델의 응답 스타일을 결정하는 중요한 단계다.
+
+SFT만으로도 꽤 쓸만한 모델이 나온다. 하지만 "어떤 답변이 더 좋은지" 판단하는 능력은 부족하다. 사실과 다른 내용을 자신 있게 말하거나, 유해한 내용을 거부하지 못하는 경우가 생긴다.
+
+### 9.3 RLHF (Reinforcement Learning from Human Feedback)
+
+사람의 선호도를 모델에 반영하는 단계다. 핵심 아이디어는 "사람이 좋다고 평가한 답변을 더 많이 생성하도록 학습"하는 것이다.
+
+**과정**:
+
+1. **보상 모델(Reward Model) 학습**: 같은 질문에 대한 두 개의 답변을 사람에게 보여주고, 어느 쪽이 더 나은지 선택하게 한다. 이 선호도 데이터로 보상 모델을 학습시킨다.
+2. **PPO 최적화**: 보상 모델의 점수를 높이는 방향으로 LLM을 업데이트한다. 이때 원래 모델과 너무 달라지지 않도록 KL divergence 페널티를 건다.
+
+```
+RLHF 흐름:
+
+프롬프트 → LLM 응답 생성 → 보상 모델 점수 매김 → PPO로 LLM 업데이트
+                                                     │
+                                              KL 페널티 (원래 모델과
+                                              너무 달라지면 제동)
+```
+
+RLHF는 구현이 복잡하고 학습이 불안정하다. 보상 모델 자체가 편향되면 LLM도 같이 편향되는 문제가 있다. 보상 해킹(reward hacking) — 보상 모델의 점수만 높이고 실제 품질은 떨어지는 현상 — 도 흔하게 발생한다.
+
+### 9.4 DPO (Direct Preference Optimization)
+
+RLHF의 복잡한 파이프라인을 단순화한 방법이다. 보상 모델을 별도로 학습시키지 않고, 선호도 데이터에서 직접 LLM을 업데이트한다.
+
+```
+DPO 데이터 형태:
+
+prompt: "Python에서 파일 읽기"
+chosen: "with open('file.txt', 'r') as f: ..."  ← 선호 답변
+rejected: "f = open('file.txt') ..."             ← 비선호 답변
+```
+
+DPO는 RLHF보다 구현이 간단하고 학습이 안정적이다. 최근 공개된 모델들(Llama 3, Mistral 등) 대부분이 DPO나 그 변형을 사용한다. 다만 선호도 데이터의 품질에 크게 의존하기 때문에, 데이터 구축에 신경을 써야 한다.
+
+---
+
+## 10. 임베딩과 벡터 표현
+
+LLM의 내부에서는 모든 것이 벡터(숫자 배열)로 표현된다. 텍스트를 벡터로 변환하는 과정을 임베딩이라 하고, 이 벡터를 활용하면 의미 기반 검색, 유사도 계산, 클러스터링 등이 가능해진다.
+
+### 10.1 임베딩이 하는 일
+
+토크나이저가 텍스트를 정수 ID로 변환하면, 임베딩 레이어가 이 ID를 고차원 벡터로 바꾼다. GPT-4 급 모델은 각 토큰을 수천 차원의 벡터로 표현한다.
+
+```
+"서버" → 토큰 ID 12345 → [0.12, -0.34, 0.56, ..., 0.78]  (d차원 벡터)
+```
+
+의미가 비슷한 단어는 벡터 공간에서 가까운 위치에 놓인다. "서버"와 "호스트"의 벡터 거리는 "서버"와 "바나나"의 거리보다 가깝다.
+
+### 10.2 임베딩 API 사용
+
+문장 단위의 임베딩을 생성해서 검색이나 유사도 계산에 사용하는 방식이다. RAG 파이프라인의 핵심 구성 요소이기도 하다.
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+
+def get_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:
+    response = client.embeddings.create(
+        input=text,
+        model=model,
+    )
+    return response.data[0].embedding
+
+# 두 문장의 유사도 비교
+import numpy as np
+
+def cosine_similarity(a: list[float], b: list[float]) -> float:
+    a, b = np.array(a), np.array(b)
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+emb1 = get_embedding("서버 배포 프로세스")
+emb2 = get_embedding("애플리케이션 릴리즈 절차")
+emb3 = get_embedding("오늘 점심 메뉴")
+
+print(cosine_similarity(emb1, emb2))  # 0.85+ (의미적으로 유사)
+print(cosine_similarity(emb1, emb3))  # 0.2~  (관련 없음)
+```
+
+### 10.3 벡터 DB와 연동
+
+임베딩을 저장하고 유사도 검색을 수행하려면 벡터 데이터베이스가 필요하다. 문서 수천 건까지는 numpy로 직접 계산해도 되지만, 수만 건 이상이면 전용 벡터 DB를 써야 한다.
+
+```python
+# ChromaDB 예시 (가벼운 벡터 DB)
+import chromadb
+
+client = chromadb.PersistentClient(path="./chroma_db")
+collection = client.get_or_create_collection("docs")
+
+# 문서 저장
+collection.add(
+    documents=["쿠버네티스 파드 스케줄링", "도커 컨테이너 네트워크 설정", "AWS IAM 정책 관리"],
+    ids=["doc1", "doc2", "doc3"],
+)
+
+# 유사 문서 검색
+results = collection.query(
+    query_texts=["컨테이너 오케스트레이션"],
+    n_results=2,
+)
+print(results["documents"])  # 쿠버네티스, 도커 관련 문서가 반환됨
+```
+
+자주 사용하는 벡터 DB:
+
+| 이름 | 특징 | 적합한 상황 |
+|------|------|-------------|
+| ChromaDB | 임베디드, Python 네이티브 | 프로토타입, 소규모 |
+| Pinecone | 완전 관리형 SaaS | 운영 부담 줄이고 싶을 때 |
+| Weaviate | 자체 호스팅 가능, 하이브리드 검색 | 키워드+벡터 검색 병행 |
+| pgvector | PostgreSQL 확장 | 이미 Postgres를 쓰고 있을 때 |
+
+### 10.4 임베딩 모델 선택 시 주의할 점
+
+- **차원 수**: 차원이 높을수록 표현력이 좋지만 저장 공간과 연산 비용이 올라간다. `text-embedding-3-small`은 1536차원, `text-embedding-3-large`는 3072차원이다
+- **한국어 성능**: 범용 임베딩 모델은 한국어 성능이 떨어지는 경우가 있다. `multilingual-e5-large` 같은 다국어 특화 모델을 테스트해볼 필요가 있다
+- **임베딩은 한 번 선택하면 바꾸기 어렵다**: 벡터 DB에 이미 수십만 건이 저장된 상태에서 임베딩 모델을 바꾸면 전체 재인덱싱이 필요하다. 처음에 비교 평가를 해두는 게 좋다
+
+---
+
+## 11. 할루시네이션
+
+LLM이 사실이 아닌 내용을 마치 사실인 것처럼 생성하는 현상이다. LLM을 프로덕션에 도입할 때 가장 큰 걸림돌이고, 완전히 제거할 수 있는 방법은 현재 없다.
+
+### 11.1 왜 발생하는가
+
+LLM은 "다음 토큰의 확률 분포"를 학습한 모델이다. 사실 관계를 저장하는 데이터베이스가 아니다. 이 구조적 특성 때문에 할루시네이션이 발생한다.
+
+**학습 데이터 문제**: 학습 데이터 자체에 오류가 있거나, 상충하는 정보가 섞여 있으면 모델이 잘못된 내용을 학습한다. 인터넷 데이터에는 부정확한 정보가 많다.
+
+**지식 경계의 모호함**: 모델은 "모른다"는 개념이 없다. 학습 데이터에 없는 내용이라도 통계적으로 그럴듯한 토큰 시퀀스를 생성한다. "2026년 3월 한국의 인구는?"이라는 질문에 정확한 수치를 모르더라도 숫자를 만들어낸다.
+
+**확률적 샘플링**: Temperature > 0인 경우, 확률이 낮은 토큰도 선택될 수 있다. 한 번 잘못된 토큰이 생성되면 이후 토큰들도 그에 맞춰서 생성되기 때문에 전체 문장이 틀어진다.
+
+**긴 컨텍스트에서의 주의력 분산**: 입력이 길어지면 중간 부분의 정보를 제대로 참조하지 못하는 현상이 있다. 이를 "Lost in the Middle" 문제라 한다.
+
+### 11.2 할루시네이션 유형
+
+```
+1. 사실 오류: "Python은 1985년에 만들어졌다" (실제: 1991년)
+2. 존재하지 않는 것 생성: 없는 API, 없는 논문, 없는 라이브러리를 언급
+3. 논리적 비약: 전제와 결론이 맞지 않는 추론
+4. 수치 오류: 계산이 필요한 질문에서 틀린 숫자를 제시
+```
+
+백엔드 개발에서 특히 문제가 되는 경우는 "존재하지 않는 API나 함수를 생성"하는 것이다. 모델이 `requests.get_async()`같은 없는 메서드를 쓰거나, 실제로는 없는 라이브러리 옵션을 제안하는 경우를 자주 볼 수 있다.
+
+### 11.3 대응 방법
+
+**RAG (Retrieval-Augmented Generation)**: 질문과 관련된 문서를 검색해서 컨텍스트에 넣어주는 방식이다. 모델이 학습 데이터의 기억에만 의존하지 않고, 제공된 문서를 참고하게 만든다. 할루시네이션 감소에 가장 실용적인 방법이다.
+
+```python
+def answer_with_rag(question: str, retriever, llm_client) -> str:
+    # 1. 관련 문서 검색
+    docs = retriever.search(question, top_k=3)
+    context = "\n---\n".join([doc.content for doc in docs])
+
+    # 2. 검색 결과를 컨텍스트로 제공
+    prompt = f"""다음 문서를 참고해서 질문에 답해라.
+문서에 없는 내용은 "확인할 수 없다"고 답해라.
+
+[문서]
+{context}
+
+[질문]
+{question}"""
+
+    response = llm_client.chat(prompt)
+    return response
+```
+
+**Temperature 낮추기**: 사실 정확도가 중요한 작업에는 Temperature를 0에 가깝게 설정한다. 다양성은 줄어들지만 할루시네이션 확률도 줄어든다.
+
+**출력 검증 레이어**: LLM 응답을 그대로 사용자에게 전달하지 않고, 별도의 검증 로직을 거친다.
+
+```python
+def verify_response(response: str, source_docs: list[str]) -> dict:
+    """응답 내용이 소스 문서에 근거하는지 검증한다"""
+    # 다른 LLM이나 NLI 모델로 각 문장의 근거 여부를 판단
+    verification_prompt = f"""
+다음 응답의 각 문장이 제공된 문서에 근거하는지 판단해라.
+각 문장에 대해 "supported", "not_supported", "unclear" 중 하나로 분류해라.
+
+[응답]
+{response}
+
+[문서]
+{chr(10).join(source_docs)}
+"""
+    return llm_verify(verification_prompt)
+```
+
+**"모른다"고 답하게 유도**: 시스템 프롬프트에 "확실하지 않으면 모른다고 답해라"를 명시한다. 완벽하지는 않지만, 아예 넣지 않는 것보다는 할루시네이션이 줄어든다.
+
+근본적으로, LLM 출력은 항상 검증이 필요한 "초안"으로 취급해야 한다. 자동화 파이프라인에서 LLM 출력을 검증 없이 바로 실행하면 사고가 난다.
+
+---
+
+## 12. 파인튜닝 실무
+
+범용 모델로는 도메인 특화 작업에서 성능이 부족한 경우가 있다. 이때 도메인 데이터로 모델을 추가 학습시키는 것이 파인튜닝이다.
+
+### 12.1 파인튜닝이 필요한 경우와 아닌 경우
+
+파인튜닝을 고려하기 전에 프롬프트 엔지니어링과 RAG로 해결할 수 없는지 먼저 확인해야 한다. 파인튜닝은 데이터 준비, 학습, 평가에 드는 비용이 크다.
+
+**파인튜닝이 필요한 경우**:
+- 특정 도메인의 용어나 표현을 정확하게 써야 할 때 (의료, 법률, 금융 용어)
+- 일관된 출력 형식이 프롬프트만으로는 안정적이지 않을 때
+- API 호출 비용을 줄이기 위해 큰 모델을 작은 파인튜닝 모델로 대체할 때
+- 지연 시간(latency) 요구사항이 엄격할 때
+
+**파인튜닝 없이 해결 가능한 경우**:
+- 최신 정보가 필요한 경우 → RAG
+- 특정 형식으로 응답해야 하는 경우 → Structured Outputs + 프롬프트
+- 몇 가지 예시를 보여주면 잘 하는 경우 → Few-shot prompting
+
+### 12.2 LoRA (Low-Rank Adaptation)
+
+모델 전체를 학습시키면 GPT-4 급은 수천 장의 GPU가 필요하다. LoRA는 모델의 가중치 전체를 업데이트하지 않고, 저랭크(low-rank) 행렬 두 개를 끼워 넣어서 학습 파라미터 수를 대폭 줄이는 기법이다.
+
+```
+기존 가중치 행렬 W (d × d)를 직접 업데이트하는 대신:
+ΔW = A × B  (A: d×r, B: r×d, r << d)
+
+r(rank)이 4~64 수준이면, 학습 파라미터가 원래의 0.1~1% 수준으로 줄어든다.
+```
+
+```python
+# Hugging Face PEFT 라이브러리로 LoRA 적용
+from peft import LoraConfig, get_peft_model
+from transformers import AutoModelForCausalLM
+
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+
+lora_config = LoraConfig(
+    r=16,                     # 랭크. 높을수록 표현력 증가, 메모리 사용 증가
+    lora_alpha=32,            # 스케일링 팩터. 보통 r의 2배로 설정
+    target_modules=["q_proj", "v_proj"],  # Attention의 Q, V에만 적용
+    lora_dropout=0.05,
+    task_type="CAUSAL_LM",
+)
+
+model = get_peft_model(model, lora_config)
+model.print_trainable_parameters()
+# trainable params: 4,194,304 || all params: 8,030,261,248 || trainable%: 0.0522
+```
+
+8B 모델 기준으로 LoRA를 쓰면 A100 1장(80GB)이면 학습할 수 있다. 풀 파인튜닝이었으면 4장 이상 필요했을 것이다.
+
+**QLoRA**: 모델 가중치를 4bit로 양자화한 상태에서 LoRA를 적용하는 방법이다. 메모리 사용량이 더 줄어들어서 8B 모델을 RTX 4090(24GB)에서 학습할 수 있다.
+
+### 12.3 데이터 준비
+
+파인튜닝 결과의 80%는 데이터 품질에 의해 결정된다. 모델이나 하이퍼파라미터보다 데이터가 훨씬 중요하다.
+
+**데이터 형식**: 대화 형태의 JSONL이 표준이다.
+
+```jsonl
+{"messages": [{"role": "system", "content": "주문 상태를 확인하는 CS 에이전트"}, {"role": "user", "content": "주문번호 ORD-5678 배송 상태"}, {"role": "assistant", "content": "주문 ORD-5678은 현재 배송 중입니다. 오늘 오후 도착 예정입니다."}]}
+{"messages": [{"role": "user", "content": "환불 요청합니다"}, {"role": "assistant", "content": "환불 처리를 위해 주문번호를 알려주시겠습니까?"}]}
+```
+
+**데이터 양**: 작업 특성에 따라 다르지만, 일반적인 기준:
+
+- 출력 스타일 변경: 100~500건
+- 도메인 지식 주입: 1,000~5,000건
+- 복잡한 태스크 학습: 5,000~50,000건
+
+양보다 품질이 중요하다. 잘못된 답변이 섞이면 모델이 그 오류까지 학습한다. 데이터 100건을 꼼꼼히 만드는 게 1,000건을 대충 만드는 것보다 낫다.
+
+**데이터 준비 시 자주 하는 실수**:
+
+- 학습 데이터에 평가 데이터가 섞이는 것 (데이터 누수). 학습/평가 데이터를 먼저 분리하고 시작해야 한다
+- 하나의 정답만 있는 데이터만 사용하는 것. 같은 질문에 대해 다양한 형태의 올바른 답변을 포함해야 모델이 과적합되지 않는다
+- 너무 긴 응답만 학습 데이터로 사용하는 것. 모델이 불필요하게 장황한 응답을 생성하게 된다
+
+### 12.4 학습 실행
+
+```python
+from transformers import TrainingArguments, Trainer
+
+training_args = TrainingArguments(
+    output_dir="./output",
+    num_train_epochs=3,           # 보통 2~5 에폭
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4, # 실질 배치 사이즈 = 4 × 4 = 16
+    learning_rate=2e-5,           # LoRA는 1e-4~2e-4가 일반적
+    warmup_ratio=0.1,
+    logging_steps=10,
+    eval_strategy="steps",
+    eval_steps=100,
+    save_strategy="steps",
+    save_steps=100,
+    bf16=True,                    # A100/H100에서 bf16 사용
+)
+
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+)
+
+trainer.train()
+```
+
+학습 중에 eval loss를 모니터링해야 한다. train loss는 계속 떨어지는데 eval loss가 올라가기 시작하면 과적합이다. 그 시점의 체크포인트를 사용해야 한다.
+
+### 12.5 API를 통한 파인튜닝
+
+직접 GPU를 확보하기 어려우면 OpenAI나 Anthropic의 파인튜닝 API를 쓸 수 있다.
+
+```python
+# OpenAI 파인튜닝 API
+from openai import OpenAI
+
+client = OpenAI()
+
+# 1. 학습 데이터 업로드
+file = client.files.create(
+    file=open("training_data.jsonl", "rb"),
+    purpose="fine-tune",
+)
+
+# 2. 파인튜닝 작업 생성
+job = client.fine_tuning.jobs.create(
+    training_file=file.id,
+    model="gpt-4o-mini-2024-07-18",
+    hyperparameters={
+        "n_epochs": 3,
+    },
+)
+
+# 3. 상태 확인
+status = client.fine_tuning.jobs.retrieve(job.id)
+print(status.status)  # "running", "succeeded", "failed"
+
+# 4. 완료 후 사용
+response = client.chat.completions.create(
+    model=job.fine_tuned_model,  # "ft:gpt-4o-mini-2024-07-18:org:custom:id"
+    messages=[{"role": "user", "content": "질문"}],
+)
+```
+
+API 파인튜닝 비용은 토큰 수 × 에폭 수 × 학습 단가로 계산된다. gpt-4o-mini 기준으로 100만 토큰 학습에 약 $3 정도다. 대량 데이터가 아니면 직접 GPU를 빌리는 것보다 저렴한 경우가 많다.
+
+---
+
+## 13. 모델 평가
+
+"이 모델이 우리 작업에 적합한가"를 판단하려면 체계적인 평가가 필요하다. 감으로 판단하면 비싼 모델을 불필요하게 쓰거나, 부적합한 모델을 프로덕션에 올리는 실수를 한다.
+
+### 13.1 공개 벤치마크
+
+모델 간 비교에 흔히 사용되는 벤치마크들이다. 각 벤치마크가 측정하는 능력이 다르다.
+
+| 벤치마크 | 측정 대상 | 특징 |
+|----------|-----------|------|
+| MMLU | 다양한 분야의 지식 | 57개 과목의 객관식 문제. 범용 지식 수준을 본다 |
+| HumanEval / MBPP | 코드 생성 능력 | Python 함수 구현 문제. pass@1 (한 번에 맞추는 비율) 기준 |
+| GSM8K | 수학 추론 | 초등학교 수준 수학 문제. 단계적 추론 능력을 본다 |
+| MT-Bench | 대화 능력 | GPT-4가 채점하는 방식. 멀티턴 대화 품질 측정 |
+| LMSYS Chatbot Arena | 종합 선호도 | 사용자가 두 모델의 답변을 비교 투표. ELO 레이팅 |
+
+벤치마크 점수만 보고 모델을 선택하면 안 된다. 벤치마크에 과적합된 모델이 있고, 벤치마크가 측정하는 능력과 실제 필요한 능력이 다를 수 있다. MMLU 점수가 높다고 코드 생성을 잘 한다는 보장이 없다.
+
+### 13.2 자체 평가 셋 구축
+
+프로덕션 용도에 가장 신뢰할 수 있는 평가 방법은, 실제 사용 사례를 기반으로 평가 셋을 직접 만드는 것이다.
+
+```python
+# 평가 데이터 구조
+eval_cases = [
+    {
+        "id": "order-001",
+        "input": "주문번호 ORD-5678 배송 상태 알려줘",
+        "expected_tool_call": "get_order_status",
+        "expected_args": {"order_id": "ORD-5678"},
+        "category": "tool_use",
+    },
+    {
+        "id": "refund-001",
+        "input": "3일 전에 산 건데 환불 가능해?",
+        "expected_contains": ["환불", "주문번호"],
+        "expected_not_contains": ["불가능"],  # 정보 없이 불가능이라고 하면 안 됨
+        "category": "response_quality",
+    },
+]
+
+def evaluate_model(model_name: str, eval_cases: list[dict]) -> dict:
+    results = {"total": 0, "passed": 0, "failed": [], "by_category": {}}
+
+    for case in eval_cases:
+        response = call_llm(model_name, case["input"])
+        passed = check_case(response, case)
+
+        results["total"] += 1
+        if passed:
+            results["passed"] += 1
+        else:
+            results["failed"].append({"id": case["id"], "response": response})
+
+        cat = case["category"]
+        if cat not in results["by_category"]:
+            results["by_category"][cat] = {"total": 0, "passed": 0}
+        results["by_category"][cat]["total"] += 1
+        if passed:
+            results["by_category"][cat]["passed"] += 1
+
+    return results
+```
+
+평가 셋은 50~200건 정도면 모델 간 차이를 구분하기에 충분하다. 카테고리별로 분류해두면 "이 모델은 Tool Use는 잘 하는데 한국어 응답 품질이 떨어진다" 같은 구체적인 판단이 가능해진다.
+
+### 13.3 LLM-as-Judge
+
+사람이 직접 평가하기 어려운 규모의 데이터를 다른 LLM으로 평가하는 방식이다. MT-Bench가 이 방식을 사용한다.
+
+```python
+def llm_judge(question: str, answer_a: str, answer_b: str) -> str:
+    """두 모델의 답변을 비교 평가한다"""
+    prompt = f"""다음 질문에 대한 두 답변을 비교해라.
+정확성, 완전성, 관련성을 기준으로 어느 답변이 더 나은지 판단해라.
+
+[질문]
+{question}
+
+[답변 A]
+{answer_a}
+
+[답변 B]
+{answer_b}
+
+평가 결과를 JSON으로 출력해라:
+{{"winner": "A" 또는 "B" 또는 "tie", "reason": "판단 근거"}}"""
+
+    return call_llm("claude-sonnet-4-6-20250514", prompt)
+```
+
+LLM-as-Judge를 사용할 때 주의할 점:
+
+- **위치 편향**: 답변 A와 B의 순서를 바꿔서 두 번 평가한 뒤, 결과가 일치하는지 확인한다. 순서만 바꿔도 결과가 달라지는 경우가 많다
+- **장문 편향**: LLM은 더 긴 답변을 선호하는 경향이 있다. 간결한 답변이 더 나은 경우에도 긴 답변에 점수를 주는 경우가 있다
+- **평가 모델의 한계**: 평가에 사용하는 모델이 잘 모르는 도메인이면 평가 결과를 신뢰하기 어렵다
+
+### 13.4 평가 자동화
+
+모델을 교체하거나 프롬프트를 변경할 때마다 평가를 돌려야 한다. CI/CD 파이프라인에 평가를 포함시키면 성능 저하를 조기에 발견할 수 있다.
+
+```python
+# 평가 결과를 기록하고 비교하는 간단한 구조
+import json
+from datetime import datetime
+
+def run_evaluation(model: str, eval_set: list[dict], tag: str) -> None:
+    results = evaluate_model(model, eval_set)
+    results["model"] = model
+    results["tag"] = tag
+    results["timestamp"] = datetime.now().isoformat()
+    results["pass_rate"] = results["passed"] / results["total"]
+
+    # 결과 저장
+    with open(f"eval_results/{tag}_{model}.json", "w") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+
+    # 기준치 미달 시 알림
+    if results["pass_rate"] < 0.85:
+        notify_team(f"{model} 평가 통과율 {results['pass_rate']:.1%} — 기준치(85%) 미달")
+```
+
+pass rate 기준치는 작업 특성에 맞게 정해야 한다. 고객 대면 서비스는 95% 이상, 내부 도구는 80% 정도로 차등을 두는 식이다. 기준 없이 "대충 괜찮아 보인다"로 판단하면 프로덕션에서 문제가 터진다.
