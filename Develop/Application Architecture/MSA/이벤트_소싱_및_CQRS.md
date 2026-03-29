@@ -1,7 +1,7 @@
 ---
 title: 이벤트 소싱과 CQRS 개념 정리
 tags: [backend, event-sourcing, cqrs, distributed-system]
-updated: 2026-01-14
+updated: 2026-03-29
 ---
 
 # 이벤트 소싱과 CQRS 개념 정리
@@ -220,6 +220,74 @@ updated: 2026-01-14
 - 복원: 스냅샷 로드 + 101~150번 이벤트 재생
 - 전체 재생 대비 시간 단축
 
+**스냅샷 저장 구조:**
+
+스냅샷 테이블에는 집계 ID, 해당 시점의 버전, 직렬화된 상태를 저장한다.
+
+```java
+@Entity
+@Table(name = "snapshots")
+public class Snapshot {
+    @Id private String aggregateId;
+    private int version;          // 스냅샷 시점의 이벤트 버전
+    @Lob private String state;    // 직렬화된 집계 상태 (JSON)
+    private Instant createdAt;
+}
+```
+
+**스냅샷을 사용한 집계 복원:**
+
+```java
+public Order loadAggregate(String orderId) {
+    // 1. 스냅샷이 있으면 로드한다
+    Optional<Snapshot> snapshot = snapshotRepo.findById(orderId);
+
+    Order order;
+    int fromVersion;
+
+    if (snapshot.isPresent()) {
+        order = objectMapper.readValue(snapshot.get().getState(), Order.class);
+        fromVersion = snapshot.get().getVersion() + 1;
+    } else {
+        order = new Order();
+        fromVersion = 0;
+    }
+
+    // 2. 스냅샷 이후의 이벤트만 재생한다
+    List<OrderEvent> events = eventRepo
+        .findByAggregateIdAndVersionGreaterThanEqual(orderId, fromVersion);
+    events.forEach(order::apply);
+
+    return order;
+}
+```
+
+**스냅샷 저장 타이밍:**
+
+이벤트를 저장할 때 버전을 확인하고, 기준 개수를 넘으면 스냅샷을 찍는다.
+
+```java
+private static final int SNAPSHOT_INTERVAL = 100;
+
+public void saveAndMaybeSnapshot(String aggregateId, Order order, int currentVersion) {
+    if (currentVersion > 0 && currentVersion % SNAPSHOT_INTERVAL == 0) {
+        Snapshot snapshot = new Snapshot(
+            aggregateId,
+            currentVersion,
+            objectMapper.writeValueAsString(order),
+            Instant.now()
+        );
+        snapshotRepo.save(snapshot);
+    }
+}
+```
+
+**스냅샷 관련 주의사항:**
+
+- 스냅샷은 캐시다. 깨지면 이벤트를 처음부터 재생하면 된다. 스냅샷이 없어도 시스템은 동작해야 한다
+- 집계 클래스의 구조가 바뀌면 기존 스냅샷을 역직렬화할 수 없는 경우가 있다. 집계 클래스에 필드를 추가하면 기존 스냅샷을 무효화하거나, 역직렬화 시 기본값을 설정해야 한다
+- 스냅샷 주기가 너무 짧으면 저장 비용이 늘고, 너무 길면 복원 시간이 길어진다. 실무에서는 100~500개 단위로 설정하는 경우가 많다
+
 ### 프로젝션(Projection)
 
 프로젝션은 이벤트를 읽기 모델로 변환하는 과정이다.
@@ -234,16 +302,157 @@ updated: 2026-01-14
 2. 읽기 모델을 업데이트한다
 3. 조회에 최적화된 형태로 저장한다
 
-**예시:**
-- `OrderCreated` 이벤트 → 주문 목록 읽기 모델에 추가
-- `PaymentCompleted` 이벤트 → 주문 상세 읽기 모델 업데이트
-- `ShippingStarted` 이벤트 → 배송 상태 읽기 모델 업데이트
-
 **읽기 모델의 종류:**
 - 주문 목록: 리스트 조회용
 - 주문 상세: 상세 조회용
 - 통계: 집계 데이터용
 - 검색: 검색 엔진용
+
+**같은 이벤트 스트림으로 여러 읽기 모델을 만드는 구조:**
+
+하나의 이벤트 스트림에서 목적이 다른 읽기 모델을 각각 독립적으로 만들 수 있다. 주문 서비스의 이벤트를 사용해 "주문 목록용 테이블", "관리자 대시보드용 통계 테이블", "검색 인덱스"를 동시에 만든다.
+
+```java
+// ── 읽기 모델 1: 주문 목록 ────────────────────────────
+@Entity
+@Table(name = "order_list_view")
+public class OrderListView {
+    @Id private String orderId;
+    private String userId;
+    private String status;
+    private long totalAmount;
+    private Instant createdAt;
+    // 목록 조회에 필요한 필드만 포함한다. 조인 없이 단일 테이블에서 조회한다.
+}
+
+// ── 읽기 모델 2: 주문 상세 ────────────────────────────
+@Entity
+@Table(name = "order_detail_view")
+public class OrderDetailView {
+    @Id private String orderId;
+    private String userId;
+    private String userName;       // 사용자 서비스에서 가져온 이름
+    private String status;
+    private long totalAmount;
+    private long discountAmount;
+    @Column(columnDefinition = "jsonb")
+    private String items;          // 상품 목록을 JSON으로 비정규화
+    private String shippingAddress;
+    private Instant createdAt;
+    private Instant updatedAt;
+    // 상세 화면에 필요한 모든 정보를 한 행에 넣는다.
+}
+
+// ── 읽기 모델 3: 일별 주문 통계 ───────────────────────
+@Entity
+@Table(name = "daily_order_stats")
+public class DailyOrderStats {
+    @Id private String date;       // "2026-03-29"
+    private long orderCount;
+    private long totalRevenue;
+    private long cancelledCount;
+    // 집계 데이터를 미리 계산해 둔다.
+}
+```
+
+**프로젝션 구현 — 각 읽기 모델에 대한 이벤트 핸들러:**
+
+```java
+// 주문 목록 프로젝션
+@Component
+@RequiredArgsConstructor
+public class OrderListProjection {
+    private final OrderListViewRepository repo;
+
+    @EventListener
+    public void on(OrderCreated e) {
+        repo.save(new OrderListView(e.orderId(), e.userId(), "DRAFT", 0L, e.occurredAt()));
+    }
+
+    @EventListener
+    public void on(OrderConfirmed e) {
+        repo.updateStatus(e.orderId(), "CONFIRMED", e.occurredAt());
+    }
+
+    @EventListener
+    public void on(OrderCancelled e) {
+        repo.updateStatus(e.orderId(), "CANCELLED", e.occurredAt());
+    }
+}
+
+// 일별 통계 프로젝션
+@Component
+@RequiredArgsConstructor
+public class DailyStatsProjection {
+    private final DailyOrderStatsRepository repo;
+
+    @EventListener
+    public void on(OrderConfirmed e) {
+        String date = e.occurredAt().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().toString();
+        repo.incrementOrderCount(date);
+    }
+
+    @EventListener
+    public void on(OrderCancelled e) {
+        String date = e.occurredAt().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().toString();
+        repo.incrementCancelledCount(date);
+    }
+}
+```
+
+**프로젝션 리빌드:**
+
+프로젝션 코드에 버그가 있었거나, 새 읽기 모델을 추가할 때 기존 이벤트를 처음부터 다시 재생해야 하는 경우가 있다. 이 과정을 리빌드라고 한다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class ProjectionRebuilder {
+    private final EventRecordRepository eventRepo;
+    private final OrderListProjection orderListProjection;
+
+    /**
+     * 읽기 모델 테이블을 비우고 모든 이벤트를 처음부터 재생한다.
+     * 이벤트가 수백만 건이면 시간이 오래 걸린다. 배치로 나눠서 처리해야 한다.
+     */
+    public void rebuild(String projectionName) {
+        // 1. 기존 읽기 모델 데이터를 삭제한다
+        orderListViewRepo.deleteAll();
+
+        // 2. 이벤트를 배치 단위로 읽어서 프로젝션에 전달한다
+        int batchSize = 1000;
+        long lastProcessedId = 0;
+
+        while (true) {
+            List<EventRecord> batch = eventRepo
+                .findByIdGreaterThanOrderById(lastProcessedId, PageRequest.of(0, batchSize));
+            if (batch.isEmpty()) break;
+
+            for (EventRecord record : batch) {
+                OrderEvent event = deserialize(record);
+                orderListProjection.handle(event);
+                lastProcessedId = record.getId();
+            }
+        }
+    }
+}
+```
+
+**프로젝션 위치 추적:**
+
+프로젝션이 어디까지 처리했는지 기록해야 한다. 프로젝션이 중간에 죽으면 마지막 처리 위치부터 재시작할 수 있다.
+
+```java
+@Entity
+@Table(name = "projection_positions")
+public class ProjectionPosition {
+    @Id private String projectionName;   // "order-list", "daily-stats" 등
+    private long lastProcessedEventId;   // 마지막으로 처리한 이벤트의 글로벌 시퀀스 번호
+    private Instant updatedAt;
+}
+```
+
+각 프로젝션은 이벤트를 처리할 때마다 자신의 위치를 업데이트한다. 프로젝션을 재시작하면 이 위치부터 다시 읽기 시작한다. 위치 업데이트와 읽기 모델 업데이트는 같은 트랜잭션 안에서 해야 한다. 그래야 프로젝션이 중간에 죽어도 위치와 데이터가 일치한다.
 
 ## 이벤트 소싱을 사용하는 이유
 
@@ -328,9 +537,76 @@ updated: 2026-01-14
 - 버전 관리가 필요하다
 
 **이벤트 버전 관리:**
-- 이벤트에 버전을 포함한다
-- 새 버전 이벤트를 발행해도 이전 버전 소비자가 처리할 수 있어야 한다
-- 변환 로직이 필요하다
+
+이벤트 스키마가 바뀌면 이전 버전 이벤트를 읽을 수 있어야 한다. 이벤트 스토어에 저장된 이벤트는 삭제할 수 없기 때문에, 새 버전과 구 버전이 공존하는 기간이 반드시 존재한다.
+
+**업캐스팅(Upcasting) 방식:**
+
+가장 일반적인 방식이다. 이벤트를 읽을 때 구 버전을 최신 버전으로 변환한다.
+
+```java
+// 이벤트 v1: 초기 버전
+public record OrderCreatedV1(String orderId, String userId, long amount, Instant occurredAt) {}
+
+// 이벤트 v2: discount 필드 추가
+public record OrderCreatedV2(String orderId, String userId, long amount, long discount,
+                             long totalAmount, Instant occurredAt) {}
+
+// 업캐스터: v1 → v2로 변환
+public class OrderCreatedUpcaster {
+    public OrderCreatedV2 upcast(OrderCreatedV1 v1) {
+        return new OrderCreatedV2(
+            v1.orderId(), v1.userId(), v1.amount(),
+            0L,                  // discount: 구 버전에는 할인 개념이 없었으므로 0
+            v1.amount(),         // totalAmount = amount - discount
+            v1.occurredAt()
+        );
+    }
+}
+```
+
+업캐스터는 체인으로 연결할 수 있다. v1 → v2 → v3으로 순차 변환하면 각 단계의 변환 로직만 관리하면 된다.
+
+**이벤트 역직렬화 시 버전 분기:**
+
+```java
+public OrderEvent deserialize(EventRecord record) {
+    return switch (record.getEventType()) {
+        case "OrderCreated" -> {
+            int version = record.getSchemaVersion();
+            if (version == 1) {
+                OrderCreatedV1 v1 = objectMapper.readValue(record.getData(), OrderCreatedV1.class);
+                yield upcaster.upcast(v1);  // v1 → v2로 변환
+            }
+            yield objectMapper.readValue(record.getData(), OrderCreatedV2.class);
+        }
+        // ... 다른 이벤트 타입
+        default -> throw new UnknownEventTypeException(record.getEventType());
+    };
+}
+```
+
+**이벤트 스키마 변경 시 규칙:**
+
+- 필드 추가는 괜찮다. 기본값만 정의하면 구 버전 이벤트를 처리할 수 있다
+- 필드 삭제는 위험하다. 구 버전 이벤트에 해당 필드가 있으므로, 삭제 대신 무시하는 쪽으로 처리한다
+- 필드 타입 변경은 하면 안 된다. 새 이벤트 타입을 만들어야 한다
+- 이벤트 타입 이름 변경도 하면 안 된다. 이벤트 스토어에 저장된 이름은 바뀌지 않는다
+
+**`schemaVersion` 필드를 이벤트 레코드에 포함하는 방식:**
+
+```sql
+CREATE TABLE event_store (
+    event_id       VARCHAR(36) PRIMARY KEY,
+    aggregate_id   VARCHAR(36) NOT NULL,
+    event_type     VARCHAR(100) NOT NULL,
+    schema_version INT NOT NULL DEFAULT 1,   -- 이벤트 스키마 버전
+    event_data     JSONB NOT NULL,
+    version        INT NOT NULL,             -- 집계 버전 (동시성 제어용)
+    created_at     TIMESTAMP NOT NULL,
+    UNIQUE (aggregate_id, version)
+);
+```
 
 **재처리 시 멱등성:**
 - 이벤트를 재처리할 때 중복 실행을 방지해야 한다
@@ -568,7 +844,7 @@ CQRS로 분리하면 각각 독립적으로 최적화할 수 있다.
 **이벤트 소싱과 함께 CQRS:**
 - 쓰기는 이벤트 소싱으로 처리한다
 - 읽기는 이벤트를 프로젝션해 만든다
-- 더 강력하지만 복잡도가 높다
+- 복잡도는 높지만 감사 추적과 유연한 읽기 모델을 동시에 얻는다
 
 **이벤트 소싱은 선택 사항이다:**
 CQRS는 읽기와 쓰기를 분리하는 패턴이다. 이벤트 소싱은 쓰기 모델을 구현하는 방법 중 하나다.
@@ -594,7 +870,7 @@ CQRS는 아키텍처 패턴이고, 마이크로서비스는 배포 패턴이다.
 
 ### 조합의 형태
 
-이벤트 소싱과 CQRS를 함께 사용하면 강력한 아키텍처가 된다.
+이벤트 소싱과 CQRS를 함께 사용하면 각각의 장점을 살릴 수 있다.
 
 **구조:**
 
@@ -719,17 +995,118 @@ CQRS는 아키텍처 패턴이고, 마이크로서비스는 배포 패턴이다.
 ### 읽기 모델 동기화 지연
 
 **문제:**
-이벤트 처리 지연으로 읽기 모델이 오래된 상태로 남는다.
+이벤트 처리 지연으로 읽기 모델이 오래된 상태로 남는다. 사용자가 주문을 생성한 직후 주문 목록을 보면 방금 만든 주문이 안 보이는 경우가 생긴다.
 
 **해결 방법:**
 - 이벤트 처리 지연을 모니터링한다
 - 지연이 발생하면 프로세스를 확장한다
 - 중요한 읽기는 쓰기 모델에서 직접 조회한다
 
-**예시:**
-- 주문 생성 후 즉시 주문 상세를 조회해야 하는 경우
-- 읽기 모델 대신 이벤트 스토어에서 직접 조회
-- 또는 쓰기 모델에서 조회
+### Eventual Consistency 상태에서 UI 처리
+
+CQRS 구조에서 쓰기 후 읽기 모델이 즉시 반영되지 않는 문제는 반드시 UI 레벨에서 처리해야 한다. 서버만으로는 해결이 안 된다.
+
+**방법 1: Write-through Read (쓰기 직후 이벤트 스토어에서 직접 읽기)**
+
+사용자가 방금 수행한 액션의 결과를 볼 때는 읽기 모델을 거치지 않고, Command의 응답에서 필요한 데이터를 바로 반환한다.
+
+```java
+// Command 응답에 결과를 포함한다
+@PostMapping("/orders")
+public ResponseEntity<CreateOrderResponse> createOrder(@RequestBody CreateOrderRequest request) {
+    String orderId = orderCommandService.createOrder(request.getUserId());
+
+    // Command 처리 결과를 바로 반환한다. 읽기 모델을 조회하지 않는다.
+    return ResponseEntity.ok(new CreateOrderResponse(orderId, "DRAFT", Instant.now()));
+}
+```
+
+이 방식을 쓰면 사용자가 방금 생성한 주문의 ID와 상태를 즉시 볼 수 있다. 프론트엔드는 이 응답을 로컬 상태에 반영하면 된다.
+
+**방법 2: Optimistic UI Update (프론트엔드에서 낙관적 업데이트)**
+
+프론트엔드가 서버 응답을 기다리지 않고 먼저 UI를 업데이트한다. 서버에서 실패 응답이 오면 롤백한다.
+
+```javascript
+// React 예시
+async function confirmOrder(orderId) {
+    // 1. UI를 먼저 업데이트한다
+    setOrders(prev => prev.map(order =>
+        order.id === orderId ? { ...order, status: 'CONFIRMED' } : order
+    ));
+
+    try {
+        // 2. 서버에 Command를 보낸다
+        await api.post(`/orders/${orderId}/confirm`);
+    } catch (error) {
+        // 3. 실패하면 원래 상태로 되돌린다
+        setOrders(prev => prev.map(order =>
+            order.id === orderId ? { ...order, status: 'DRAFT' } : order
+        ));
+        showError('주문 확정에 실패했습니다.');
+    }
+}
+```
+
+**방법 3: Polling with Version (버전 기반 폴링)**
+
+Command 응답에 이벤트 버전을 포함한다. 이후 읽기 요청에서 해당 버전 이상이 반영될 때까지 대기하거나 재시도한다.
+
+```java
+// Command 응답에 버전을 포함한다
+@PostMapping("/orders/{orderId}/confirm")
+public ResponseEntity<CommandResponse> confirmOrder(@PathVariable String orderId) {
+    int newVersion = orderCommandService.confirm(orderId);
+    return ResponseEntity.ok(new CommandResponse(orderId, newVersion));
+}
+
+// 읽기 요청에서 최소 버전을 지정한다
+@GetMapping("/orders/{orderId}")
+public ResponseEntity<OrderDetailView> getOrder(
+        @PathVariable String orderId,
+        @RequestParam(required = false) Integer minVersion) {
+
+    OrderDetailView order = orderQueryService.getOrder(orderId);
+
+    // 읽기 모델이 아직 해당 버전을 반영하지 않았으면 202 Accepted를 반환한다
+    if (minVersion != null && order.getProjectedVersion() < minVersion) {
+        return ResponseEntity.accepted().build();
+    }
+
+    return ResponseEntity.ok(order);
+}
+```
+
+프론트엔드는 202가 돌아오면 짧은 간격으로 재시도한다. 보통 수십~수백 밀리초 안에 반영되므로 1~2회 재시도로 충분하다.
+
+**방법 4: SSE/WebSocket으로 읽기 모델 업데이트 알림**
+
+프로젝션이 완료되면 서버가 클라이언트에 알린다. 실시간성이 중요한 화면에서 사용한다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class OrderProjectionWithNotification {
+    private final SseEmitters emitters;
+    private final OrderDetailViewRepository repo;
+
+    @EventListener
+    public void on(OrderConfirmed event) {
+        // 읽기 모델 업데이트
+        repo.updateStatus(event.orderId(), "CONFIRMED", event.occurredAt());
+
+        // 해당 주문을 구독 중인 클라이언트에 알린다
+        emitters.send(event.orderId(), new OrderStatusChanged("CONFIRMED"));
+    }
+}
+```
+
+**어떤 방식을 쓸지 판단하는 기준:**
+
+- 대부분의 경우 방법 1(Command 응답에 결과 포함)로 충분하다. 가장 단순하고 구현 비용이 낮다
+- 리스트 화면에서 최신 상태가 보여야 하면 방법 2(Optimistic UI)를 쓴다
+- 여러 사용자가 같은 데이터를 보는 상황이면 방법 3(버전 기반 폴링)이나 방법 4(SSE)를 고려한다
+- 방법 4는 실시간 대시보드나 협업 화면처럼 즉각적인 반영이 필요한 경우에만 쓴다. 구현 복잡도가 높다
 
 ### 이벤트 재처리
 
@@ -843,7 +1220,7 @@ CQRS는 아키텍처 패턴이고, 마이크로서비스는 배포 패턴이다.
 
 **관계:**
 - 둘은 독립적이지만 같이 쓰이는 경우가 많다
-- 이벤트 소싱 + CQRS 조합이 강력하다
+- 이벤트 소싱 + CQRS 조합이 자주 쓰인다
 - 하지만 복잡도도 높아진다
 
 **선택 기준:**
