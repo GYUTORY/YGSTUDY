@@ -1431,3 +1431,723 @@ public class OrderQueryService {
     }
 }
 ```
+
+---
+
+## Spring Cloud Stream으로 이벤트 발행/구독
+
+위 코드 예제는 `ApplicationEventPublisher`를 사용해 단일 애플리케이션 내에서만 이벤트가 전파된다. MSA 환경에서는 서비스 간 이벤트를 주고받아야 한다. Spring Cloud Stream이 이 부분을 담당한다.
+
+### 의존성 설정
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-stream</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-stream-binder-kafka</artifactId>
+</dependency>
+```
+
+Kafka 대신 RabbitMQ를 쓸 수도 있다. binder만 바꾸면 애플리케이션 코드는 동일하게 동작한다.
+
+### application.yml 설정
+
+```yaml
+spring:
+  cloud:
+    stream:
+      bindings:
+        orderEvents-out-0:
+          destination: order-events    # Kafka 토픽 이름
+          content-type: application/json
+        orderEvents-in-0:
+          destination: order-events
+          group: order-projection      # Consumer Group — 같은 그룹 내 하나의 인스턴스만 처리
+          content-type: application/json
+      kafka:
+        binder:
+          brokers: localhost:9092
+        bindings:
+          orderEvents-in-0:
+            consumer:
+              enable-dlq: true                      # 처리 실패한 메시지를 DLQ로 보낸다
+              dlq-name: order-events-dlq
+              max-attempts: 3                        # 3회 재시도 후 DLQ로 이동
+```
+
+`group` 설정이 없으면 모든 인스턴스가 같은 메시지를 받는다. 프로젝션 처리에서는 반드시 Consumer Group을 지정해야 중복 처리를 방지할 수 있다.
+
+### 이벤트 발행 — 주문 서비스
+
+```java
+@Service
+@RequiredArgsConstructor
+public class OrderCommandService {
+    private final JpaEventStore eventStore;
+    private final StreamBridge streamBridge;
+
+    public String createOrder(String userId) {
+        String orderId = UUID.randomUUID().toString();
+        Order order = Order.create(orderId, userId);
+        eventStore.append(orderId, order.getUncommittedEvents(), -1);
+
+        // Spring Cloud Stream을 통해 외부로 이벤트 발행
+        for (OrderEvent event : order.getUncommittedEvents()) {
+            streamBridge.send("orderEvents-out-0", MessageBuilder
+                .withPayload(event)
+                .setHeader("eventType", event.getClass().getSimpleName())
+                .setHeader("aggregateId", orderId)
+                .build());
+        }
+
+        return orderId;
+    }
+}
+```
+
+`StreamBridge`는 함수형 스타일의 Spring Cloud Stream에서 명시적으로 메시지를 보낼 때 사용한다. 이벤트 저장과 발행이 별도 트랜잭션이므로, 이벤트는 저장됐는데 발행은 실패하는 경우가 생길 수 있다. 이 문제는 Transactional Outbox 패턴으로 해결하는데, Saga 패턴 문서에서 다루고 있다.
+
+### 이벤트 구독 — 다른 서비스에서 읽기 모델 업데이트
+
+```java
+@Configuration
+public class OrderEventConsumerConfig {
+
+    @Bean
+    public Consumer<Message<String>> orderEventsIn0(
+            ObjectMapper objectMapper,
+            OrderProjection projection) {
+        return message -> {
+            String eventType = message.getHeaders().get("eventType", String.class);
+            String payload = message.getPayload();
+
+            switch (eventType) {
+                case "OrderCreated" -> {
+                    OrderCreated event = objectMapper.readValue(payload, OrderCreated.class);
+                    projection.on(event);
+                }
+                case "ItemAdded" -> {
+                    ItemAdded event = objectMapper.readValue(payload, ItemAdded.class);
+                    projection.on(event);
+                }
+                case "OrderConfirmed" -> {
+                    OrderConfirmed event = objectMapper.readValue(payload, OrderConfirmed.class);
+                    projection.on(event);
+                }
+                default -> log.warn("알 수 없는 이벤트 타입: {}", eventType);
+            }
+        };
+    }
+}
+```
+
+메서드 이름 `orderEventsIn0`은 binding 이름 `orderEvents-in-0`과 매칭된다. Spring Cloud Stream이 자동으로 연결한다. 이름 규칙이 안 맞으면 메시지를 못 받으니 주의한다.
+
+### 실무에서 겪는 문제
+
+**메시지 순서 보장:**
+
+Kafka는 같은 파티션 내에서만 순서를 보장한다. 주문 ID를 파티션 키로 설정해야 같은 주문의 이벤트가 순서대로 처리된다.
+
+```yaml
+spring:
+  cloud:
+    stream:
+      bindings:
+        orderEvents-out-0:
+          producer:
+            partition-key-expression: headers['aggregateId']
+            partition-count: 10
+```
+
+**역직렬화 실패 처리:**
+
+이벤트 스키마가 바뀌면 Consumer 쪽에서 역직렬화가 실패한다. 이벤트 발행 시 `schemaVersion` 헤더를 넣고, Consumer 쪽에서 버전별로 분기 처리해야 한다. 버전 관리를 안 하면 배포 순서에 따라 장애가 난다.
+
+---
+
+## Axon Framework 기반 Event Sourcing + CQRS
+
+직접 이벤트 스토어를 구현하면 동시성 제어, 스냅샷, 프로젝션 위치 추적 등을 모두 직접 만들어야 한다. Axon Framework는 이 구조를 프레임워크 레벨에서 제공한다.
+
+### 의존성 설정
+
+```xml
+<dependency>
+    <groupId>org.axonframework</groupId>
+    <artifactId>axon-spring-boot-starter</artifactId>
+    <version>4.9.3</version>
+</dependency>
+<!-- Axon Server 없이 JPA 기반 이벤트 스토어를 쓸 때 -->
+<dependency>
+    <groupId>org.axonframework</groupId>
+    <artifactId>axon-configuration</artifactId>
+    <version>4.9.3</version>
+</dependency>
+```
+
+Axon Server를 별도로 띄우면 이벤트 스토어와 메시지 라우팅을 Axon Server가 처리한다. Axon Server 없이도 JPA + 로컬 이벤트 버스로 동작하지만, 분산 환경에서는 Axon Server나 Kafka를 연결해야 한다.
+
+### application.yml 설정 (Axon Server 없이 JPA 사용)
+
+```yaml
+axon:
+  axonserver:
+    enabled: false          # Axon Server를 쓰지 않는 경우
+  eventhandling:
+    processors:
+      order-projection:
+        mode: tracking      # tracking 모드: 프로젝션이 이벤트를 순서대로 가져간다
+        source: eventStore
+```
+
+### Aggregate — 쓰기 모델
+
+```java
+@Aggregate
+@NoArgsConstructor
+public class OrderAggregate {
+
+    @AggregateIdentifier
+    private String orderId;
+    private String userId;
+    private List<OrderItem> items = new ArrayList<>();
+    private OrderStatus status;
+
+    // ── Command Handler: 커맨드를 받아서 검증 후 이벤트를 발행한다 ──
+
+    @CommandHandler
+    public OrderAggregate(CreateOrderCommand cmd) {
+        // 검증 로직
+        if (cmd.getUserId() == null || cmd.getUserId().isBlank()) {
+            throw new IllegalArgumentException("userId는 필수");
+        }
+        // 이벤트 발행 — AggregateLifecycle.apply()를 호출한다
+        AggregateLifecycle.apply(new OrderCreatedEvent(cmd.getOrderId(), cmd.getUserId()));
+    }
+
+    @CommandHandler
+    public void handle(AddItemCommand cmd) {
+        if (status != OrderStatus.DRAFT) {
+            throw new IllegalStateException("확정된 주문에는 상품을 추가할 수 없다");
+        }
+        AggregateLifecycle.apply(new ItemAddedEvent(
+            orderId, cmd.getProductId(), cmd.getQuantity(), cmd.getPrice()));
+    }
+
+    @CommandHandler
+    public void handle(ConfirmOrderCommand cmd) {
+        if (items.isEmpty()) {
+            throw new IllegalStateException("상품이 없는 주문은 확정할 수 없다");
+        }
+        if (status != OrderStatus.DRAFT) {
+            throw new IllegalStateException("이미 처리된 주문");
+        }
+        AggregateLifecycle.apply(new OrderConfirmedEvent(orderId));
+    }
+
+    // ── Event Sourcing Handler: 이벤트를 적용해서 상태를 변경한다 ──
+    // 여기에는 비즈니스 로직이 없어야 한다. 상태 변경만 한다.
+
+    @EventSourcingHandler
+    public void on(OrderCreatedEvent event) {
+        this.orderId = event.getOrderId();
+        this.userId = event.getUserId();
+        this.status = OrderStatus.DRAFT;
+        this.items = new ArrayList<>();
+    }
+
+    @EventSourcingHandler
+    public void on(ItemAddedEvent event) {
+        items.add(new OrderItem(event.getProductId(), event.getQuantity(), event.getPrice()));
+    }
+
+    @EventSourcingHandler
+    public void on(OrderConfirmedEvent event) {
+        this.status = OrderStatus.CONFIRMED;
+    }
+}
+```
+
+`@CommandHandler`가 생성자에 붙으면 새 Aggregate를 만드는 것이다. 일반 메서드에 붙으면 기존 Aggregate를 조회(이벤트 재생)한 뒤 호출된다. Axon이 이 과정을 자동으로 처리한다.
+
+`@EventSourcingHandler`에는 검증 로직을 넣으면 안 된다. 이벤트는 이미 발생한 사실이다. 여기서 예외를 던지면 Aggregate를 복원할 수 없게 된다.
+
+### Command와 Event 정의
+
+```java
+// ── Command ──
+@Value
+public class CreateOrderCommand {
+    @TargetAggregateIdentifier
+    String orderId;
+    String userId;
+}
+
+@Value
+public class AddItemCommand {
+    @TargetAggregateIdentifier
+    String orderId;
+    String productId;
+    int quantity;
+    long price;
+}
+
+@Value
+public class ConfirmOrderCommand {
+    @TargetAggregateIdentifier
+    String orderId;
+}
+
+// ── Event ──
+@Value
+public class OrderCreatedEvent {
+    String orderId;
+    String userId;
+}
+
+@Value
+public class ItemAddedEvent {
+    String orderId;
+    String productId;
+    int quantity;
+    long price;
+}
+
+@Value
+public class OrderConfirmedEvent {
+    String orderId;
+}
+```
+
+`@TargetAggregateIdentifier`는 Axon이 어떤 Aggregate 인스턴스에 커맨드를 전달할지 결정하는 데 사용한다. 이 어노테이션이 없으면 라우팅이 안 된다.
+
+### Event Handler — 읽기 모델 프로젝션
+
+```java
+@Component
+@ProcessingGroup("order-projection")    // application.yml의 processor 이름과 매칭
+@RequiredArgsConstructor
+public class OrderProjectionHandler {
+    private final OrderSummaryRepository summaryRepo;
+
+    @EventHandler
+    public void on(OrderCreatedEvent event) {
+        OrderSummary summary = new OrderSummary();
+        summary.setOrderId(event.getOrderId());
+        summary.setUserId(event.getUserId());
+        summary.setItemCount(0);
+        summary.setTotalAmount(0L);
+        summary.setStatus("DRAFT");
+        summary.setCreatedAt(Instant.now());
+        summary.setUpdatedAt(Instant.now());
+        summaryRepo.save(summary);
+    }
+
+    @EventHandler
+    public void on(ItemAddedEvent event) {
+        summaryRepo.findById(event.getOrderId()).ifPresent(summary -> {
+            summary.setItemCount(summary.getItemCount() + 1);
+            summary.setTotalAmount(
+                summary.getTotalAmount() + (long) event.getQuantity() * event.getPrice());
+            summary.setUpdatedAt(Instant.now());
+            summaryRepo.save(summary);
+        });
+    }
+
+    @EventHandler
+    public void on(OrderConfirmedEvent event) {
+        summaryRepo.findById(event.getOrderId()).ifPresent(summary -> {
+            summary.setStatus("CONFIRMED");
+            summary.setUpdatedAt(Instant.now());
+            summaryRepo.save(summary);
+        });
+    }
+
+    // 프로젝션 리셋이 필요할 때 호출된다
+    @ResetHandler
+    public void onReset() {
+        summaryRepo.deleteAll();
+    }
+}
+```
+
+`@ProcessingGroup`으로 같은 그룹에 속한 핸들러는 하나의 Event Processor가 관리한다. tracking 모드에서는 프로젝션이 자신의 처리 위치(token)를 DB에 저장한다. 애플리케이션이 재시작되면 마지막 처리 위치부터 이어서 처리한다.
+
+`@ResetHandler`는 프로젝션을 처음부터 다시 빌드할 때 사용한다. Axon이 제공하는 `TrackingEventProcessor.resetTokens()` API를 호출하면 토큰이 초기화되고, `@ResetHandler`가 실행된 뒤 모든 이벤트를 처음부터 재처리한다.
+
+### Query Handler — 읽기 모델 조회
+
+```java
+// ── Query 정의 ──
+@Value
+public class GetOrderSummaryQuery {
+    String orderId;
+}
+
+@Value
+public class GetUserOrdersQuery {
+    String userId;
+    int page;
+    int size;
+}
+
+// ── Query Handler ──
+@Component
+@RequiredArgsConstructor
+public class OrderQueryHandler {
+    private final OrderSummaryRepository summaryRepo;
+
+    @QueryHandler
+    public OrderSummary handle(GetOrderSummaryQuery query) {
+        return summaryRepo.findById(query.getOrderId())
+            .orElseThrow(() -> new OrderNotFoundException(query.getOrderId()));
+    }
+
+    @QueryHandler
+    public List<OrderSummary> handle(GetUserOrdersQuery query) {
+        return summaryRepo.findByUserId(query.getUserId(),
+            PageRequest.of(query.getPage(), query.getSize(),
+                Sort.by("createdAt").descending())
+        ).getContent();
+    }
+}
+```
+
+### REST Controller에서 사용
+
+```java
+@RestController
+@RequestMapping("/orders")
+@RequiredArgsConstructor
+public class OrderController {
+    private final CommandGateway commandGateway;
+    private final QueryGateway queryGateway;
+
+    @PostMapping
+    public CompletableFuture<String> createOrder(@RequestBody CreateOrderRequest request) {
+        String orderId = UUID.randomUUID().toString();
+        return commandGateway.send(new CreateOrderCommand(orderId, request.getUserId()));
+    }
+
+    @PostMapping("/{orderId}/items")
+    public CompletableFuture<Void> addItem(
+            @PathVariable String orderId,
+            @RequestBody AddItemRequest request) {
+        return commandGateway.send(
+            new AddItemCommand(orderId, request.getProductId(),
+                request.getQuantity(), request.getPrice()));
+    }
+
+    @PostMapping("/{orderId}/confirm")
+    public CompletableFuture<Void> confirm(@PathVariable String orderId) {
+        return commandGateway.send(new ConfirmOrderCommand(orderId));
+    }
+
+    @GetMapping("/{orderId}")
+    public CompletableFuture<OrderSummary> getOrder(@PathVariable String orderId) {
+        return queryGateway.query(
+            new GetOrderSummaryQuery(orderId), OrderSummary.class);
+    }
+
+    @GetMapping
+    public CompletableFuture<List<OrderSummary>> getUserOrders(
+            @RequestParam String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return queryGateway.query(
+            new GetUserOrdersQuery(userId, page, size),
+            ResponseTypes.multipleInstancesOf(OrderSummary.class));
+    }
+}
+```
+
+`CommandGateway`와 `QueryGateway`는 Axon이 자동으로 빈 등록한다. 커맨드는 `CompletableFuture`를 반환하므로 비동기 처리가 가능하다. 동기식으로 쓰고 싶으면 `commandGateway.sendAndWait()`을 사용한다.
+
+### Axon 사용 시 주의사항
+
+**Aggregate 크기 관리:**
+
+Aggregate에 이벤트가 많이 쌓이면 로딩이 느려진다. Axon은 스냅샷을 지원한다.
+
+```java
+@Configuration
+public class AxonConfig {
+
+    @Bean
+    public SnapshotTriggerDefinition snapshotTrigger(Snapshotter snapshotter) {
+        // 100개 이벤트마다 스냅샷을 생성한다
+        return new EventCountSnapshotTriggerDefinition(snapshotter, 100);
+    }
+
+    @Aggregate(snapshotTriggerDefinition = "snapshotTrigger")
+    public class OrderAggregate {
+        // ...
+    }
+}
+```
+
+**프로젝션 에러 처리:**
+
+tracking 프로세서에서 이벤트 처리가 실패하면 기본적으로 재시도한다. 계속 실패하면 프로세서가 멈춘다. 에러 핸들링 설정이 필요하다.
+
+```java
+@Configuration
+public class EventProcessingConfig {
+
+    @Autowired
+    public void configure(EventProcessingConfigurer configurer) {
+        configurer.registerTrackingEventProcessor("order-projection",
+            Configuration::eventStore,
+            config -> TrackingEventProcessorConfiguration.forSingleThreadedProcessing()
+                .andBatchSize(100));
+
+        // 처리 실패 시 1초 대기 후 재시도, 최대 3회
+        configurer.registerListenerInvocationErrorHandler("order-projection",
+            config -> (exception, event, handler) -> {
+                log.error("프로젝션 처리 실패: event={}, error={}",
+                    event.getPayloadType().getSimpleName(), exception.getMessage());
+                // PropagatingErrorHandler.instance()를 쓰면 예외를 그대로 던진다
+                // LoggingErrorHandler.instance()를 쓰면 로그만 찍고 넘어간다
+                throw exception;
+            });
+    }
+}
+```
+
+**Axon Server vs JPA 이벤트 스토어:**
+
+개발 환경에서는 JPA로 충분하다. 운영 환경에서 Axon Server를 쓰면 이벤트 스토어 최적화, 이벤트 라우팅, 클러스터링을 프레임워크가 처리한다. Axon Server 없이 Kafka를 이벤트 버스로 연결하는 구성도 가능하다.
+
+---
+
+## Read Model 프로젝션 구현 — JPA Entity와 비동기 업데이트
+
+위 Axon 예제에서 프로젝션의 기본 구조를 보여줬다. 여기서는 프로젝션을 실무에서 어떻게 구성하는지 구체적으로 다룬다.
+
+### JPA Entity로 읽기 모델 설계
+
+읽기 모델은 화면 단위로 설계한다. 하나의 API 응답에 필요한 데이터를 한 테이블에 넣는다.
+
+```java
+// 주문 목록 화면용 — 최소한의 필드만 포함
+@Entity
+@Table(name = "order_list_view", indexes = {
+    @Index(name = "idx_order_list_user", columnList = "userId, createdAt DESC"),
+    @Index(name = "idx_order_list_status", columnList = "status")
+})
+@Getter @Setter
+@NoArgsConstructor
+public class OrderListView {
+    @Id
+    private String orderId;
+    private String userId;
+    private String status;
+    private int itemCount;
+    private long totalAmount;
+    private Instant createdAt;
+
+    // 프로젝션이 어디까지 반영됐는지 추적
+    private long lastEventSequence;
+}
+
+// 주문 상세 화면용 — 필요한 정보를 모두 비정규화
+@Entity
+@Table(name = "order_detail_view")
+@Getter @Setter
+@NoArgsConstructor
+public class OrderDetailView {
+    @Id
+    private String orderId;
+    private String userId;
+    private String status;
+    private int itemCount;
+    private long totalAmount;
+    private long discountAmount;
+    private String shippingAddress;
+    private String shippingStatus;
+    private Instant createdAt;
+    private Instant confirmedAt;
+    private Instant shippedAt;
+    private Instant updatedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String itemsJson;    // 상품 목록을 JSON으로 저장 — 조인 없이 한 번에 조회
+
+    private long lastEventSequence;
+}
+```
+
+읽기 모델에서는 정규화를 신경 쓸 필요가 없다. `itemsJson`처럼 JSON을 그대로 넣어도 된다. 읽기 모델의 목적은 빠른 조회다. 데이터 정합성은 이벤트 스토어(쓰기 모델)가 보장한다.
+
+### 비동기 프로젝션 구현 — Spring의 @Async
+
+Axon 없이 Spring만으로 비동기 프로젝션을 구현하는 방식이다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class AsyncOrderProjection {
+    private final OrderListViewRepository listRepo;
+    private final OrderDetailViewRepository detailRepo;
+    private final ObjectMapper objectMapper;
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOrderCreated(OrderCreated event) {
+        // 목록 뷰 생성
+        OrderListView listView = new OrderListView();
+        listView.setOrderId(event.orderId());
+        listView.setUserId(event.userId());
+        listView.setStatus("DRAFT");
+        listView.setItemCount(0);
+        listView.setTotalAmount(0L);
+        listView.setCreatedAt(event.occurredAt());
+        listRepo.save(listView);
+
+        // 상세 뷰 생성
+        OrderDetailView detailView = new OrderDetailView();
+        detailView.setOrderId(event.orderId());
+        detailView.setUserId(event.userId());
+        detailView.setStatus("DRAFT");
+        detailView.setCreatedAt(event.occurredAt());
+        detailView.setUpdatedAt(event.occurredAt());
+        detailView.setItemsJson("[]");
+        detailRepo.save(detailView);
+    }
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onItemAdded(ItemAdded event) {
+        // 목록 뷰 업데이트
+        listRepo.findById(event.orderId()).ifPresent(view -> {
+            view.setItemCount(view.getItemCount() + 1);
+            view.setTotalAmount(view.getTotalAmount() + (long) event.qty() * event.price());
+            listRepo.save(view);
+        });
+
+        // 상세 뷰 업데이트 — items JSON에 추가
+        detailRepo.findById(event.orderId()).ifPresent(view -> {
+            List<Map<String, Object>> items = objectMapper.readValue(
+                view.getItemsJson(), new TypeReference<>() {});
+            items.add(Map.of(
+                "productId", event.productId(),
+                "quantity", event.qty(),
+                "price", event.price()
+            ));
+            view.setItemsJson(objectMapper.writeValueAsString(items));
+            view.setItemCount(items.size());
+            view.setTotalAmount(items.stream()
+                .mapToLong(i -> ((Number) i.get("quantity")).longValue()
+                    * ((Number) i.get("price")).longValue())
+                .sum());
+            view.setUpdatedAt(Instant.now());
+            detailRepo.save(view);
+        });
+    }
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOrderConfirmed(OrderConfirmed event) {
+        listRepo.findById(event.orderId()).ifPresent(view -> {
+            view.setStatus("CONFIRMED");
+            listRepo.save(view);
+        });
+
+        detailRepo.findById(event.orderId()).ifPresent(view -> {
+            view.setStatus("CONFIRMED");
+            view.setConfirmedAt(event.occurredAt());
+            view.setUpdatedAt(event.occurredAt());
+            detailRepo.save(view);
+        });
+    }
+}
+```
+
+`@TransactionalEventListener(phase = AFTER_COMMIT)`는 쓰기 트랜잭션이 커밋된 후에 실행된다. 쓰기가 롤백되면 프로젝션도 실행되지 않는다. `@Async`와 조합하면 쓰기 응답 시간에 영향을 주지 않는다.
+
+### 비동기 실행을 위한 Executor 설정
+
+```java
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean("projectionExecutor")
+    public Executor projectionExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("projection-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+}
+```
+
+`CallerRunsPolicy`는 큐가 가득 찼을 때 호출 스레드에서 직접 실행한다. 프로젝션이 밀려서 큐가 찰 때 메시지를 버리지 않고 처리 속도를 조절하는 역할을 한다.
+
+### 프로젝션 실패 시 복구
+
+비동기 프로젝션은 실패해도 쓰기 트랜잭션에 영향을 주지 않는다. 대신 읽기 모델이 오래된 상태로 남는다. 실패한 이벤트를 기록하고 재처리하는 구조가 필요하다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class ProjectionFailureHandler {
+    private final FailedProjectionEventRepository failedRepo;
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleWithRetry(OrderEvent event) {
+        try {
+            // 프로젝션 처리 로직
+            processProjection(event);
+        } catch (Exception e) {
+            // 실패한 이벤트를 DB에 기록한다
+            failedRepo.save(new FailedProjectionEvent(
+                event.orderId(),
+                event.getClass().getSimpleName(),
+                e.getMessage(),
+                Instant.now()
+            ));
+        }
+    }
+}
+
+// 실패한 이벤트를 주기적으로 재처리하는 스케줄러
+@Component
+@RequiredArgsConstructor
+public class ProjectionRetryScheduler {
+    private final FailedProjectionEventRepository failedRepo;
+    private final JpaEventStore eventStore;
+    private final AsyncOrderProjection projection;
+
+    @Scheduled(fixedDelay = 60_000)    // 1분마다 실행
+    public void retryFailed() {
+        List<FailedProjectionEvent> failed = failedRepo.findTop100ByOrderByCreatedAtAsc();
+        for (FailedProjectionEvent record : failed) {
+            try {
+                // 이벤트 스토어에서 원본 이벤트를 다시 읽어서 처리한다
+                List<OrderEvent> events = eventStore.load(record.getAggregateId());
+                // 해당 이벤트를 찾아서 재처리
+                // 성공하면 실패 기록 삭제
+                failedRepo.delete(record);
+            } catch (Exception e) {
+                record.incrementRetryCount();
+                if (record.getRetryCount() > 5) {
+                    record.setStatus("DEAD");    // 5회 초과 실패 시 수동 확인 필요
+                }
+                failedRepo.save(record);
+            }
+        }
+    }
+}
+```
+
+프로젝션 실패가 쌓이면 읽기 모델과 이벤트 스토어의 차이가 커진다. 모니터링에서 실패 건수를 추적하고, `DEAD` 상태가 되면 알림을 보내야 한다. 최후의 수단으로는 읽기 모델 테이블을 날리고 이벤트를 처음부터 재생하는 리빌드가 있다.
