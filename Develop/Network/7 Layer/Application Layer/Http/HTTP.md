@@ -1,7 +1,7 @@
 ---
 title: HTTP HyperText Transfer Protocol
-tags: [network, 7-layer, application-layer, http, message, header, status-code, content-negotiation, redirection]
-updated: 2026-03-29
+tags: [network, 7-layer, application-layer, http, message, header, status-code, content-negotiation, redirection, transfer-encoding, content-encoding]
+updated: 2026-03-30
 ---
 # HTTP (HyperText Transfer Protocol)
 
@@ -237,6 +237,87 @@ World!\r\n
 
 Content-Length와 Transfer-Encoding: chunked가 동시에 오면 chunked가 우선한다. 둘 다 없으면 연결이 닫힐 때까지 바디를 읽는다.
 
+## Transfer-Encoding: 전송 인코딩
+
+### chunked 전송의 동작 원리
+
+서버가 응답을 생성하면서 전체 크기를 알 수 없는 경우, 데이터를 조각(chunk) 단위로 나눠서 보낸다. DB 쿼리 결과를 스트리밍하거나, SSE(Server-Sent Events), 대용량 리포트 생성 같은 상황에서 쓴다.
+
+각 청크의 구조는 다음과 같다:
+
+```
+[청크 크기(16진수)]\r\n
+[청크 데이터]\r\n
+```
+
+마지막 청크는 크기가 0이고, 그 뒤에 빈 줄이 온다. 트레일러 헤더가 있으면 마지막 청크 뒤에 붙는다.
+
+```http
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Content-Type: application/json
+Trailer: X-Checksum
+
+1a\r\n
+{"results": [{"id": 1},\r\n
+19\r\n
+{"id": 2}, {"id": 3}]}\r\n
+0\r\n
+X-Checksum: abc123\r\n
+\r\n
+```
+
+트레일러 헤더는 전체 응답이 끝난 뒤에야 계산할 수 있는 값(체크섬, 서명 등)을 전달할 때 쓴다. `Trailer` 헤더로 미리 어떤 트레일러가 올지 알려줘야 한다. 다만 트레일러를 제대로 처리하는 클라이언트가 많지 않으므로, 쓸 일이 있으면 클라이언트가 지원하는지부터 확인한다.
+
+### chunked 전송이 필요한 실무 상황
+
+**DB 결과 스트리밍**: 수만 건의 데이터를 한 번에 메모리에 올려서 Content-Length를 계산하면 OOM이 날 수 있다. cursor나 stream으로 읽으면서 청크 단위로 내려보내면 메모리 사용량을 일정하게 유지할 수 있다.
+
+```java
+// Spring WebFlux에서 chunked 스트리밍
+@GetMapping(value = "/export", produces = MediaType.APPLICATION_NDJSON_VALUE)
+public Flux<User> exportUsers() {
+    return userRepository.findAllAsStream(); // DB cursor 기반 스트리밍
+}
+```
+
+**실시간 로그 전송**: 서버에서 로그가 쌓이는 대로 클라이언트에 밀어넣는 경우, 전체 크기를 알 수 없으므로 chunked가 자연스럽다.
+
+```javascript
+// Node.js에서 chunked 응답
+app.get('/logs', (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/plain',
+        'Transfer-Encoding': 'chunked'
+    });
+
+    const tail = spawn('tail', ['-f', '/var/log/app.log']);
+    tail.stdout.on('data', (chunk) => {
+        res.write(chunk); // Node.js가 자동으로 chunked 인코딩
+    });
+
+    req.on('close', () => tail.kill());
+});
+```
+
+### chunked 전송에서 자주 겪는 문제
+
+**프록시 버퍼링**: Nginx가 기본적으로 업스트림 응답을 버퍼링한다. 스트리밍이 필요한 엔드포인트에서 응답이 한꺼번에 오는 경우, 버퍼링이 원인인 경우가 많다.
+
+```nginx
+location /stream/ {
+    proxy_pass http://backend;
+    proxy_buffering off;         # 버퍼링 비활성화
+    proxy_cache off;             # 캐시도 끈다
+    proxy_http_version 1.1;      # chunked는 HTTP/1.1 이상
+    chunked_transfer_encoding on;
+}
+```
+
+**Content-Length와의 충돌**: 애플리케이션 프레임워크가 Content-Length를 자동으로 넣는 경우가 있다. Content-Length와 Transfer-Encoding: chunked가 동시에 있으면 스펙상 chunked가 우선하지만, 일부 클라이언트에서 혼란이 생긴다. 프레임워크 설정을 확인해서 스트리밍 응답에는 Content-Length가 안 붙도록 해야 한다.
+
+**HTTP/2에서는 chunked가 없다**: HTTP/2는 프레임 단위로 데이터를 나눠 보내므로 Transfer-Encoding: chunked 자체가 의미 없다. HTTP/2에서 chunked 헤더를 보내면 프로토콜 에러가 발생한다. Nginx 같은 리버스 프록시가 HTTP/1.1 chunked 응답을 HTTP/2 프레임으로 자동 변환해주므로, 애플리케이션에서는 HTTP/1.1 기준으로 작성해도 된다.
+
 ## HTTP 메서드 (요청 방식)
 
 ### 주요 메서드
@@ -284,6 +365,55 @@ Content-Type: application/json
 ```
 
 PUT은 전체 교체이므로 빠뜨린 필드가 null로 바뀔 수 있다. 부분 수정은 PATCH를 써야 한다.
+
+### 안전성·멱등성이 실무에서 문제가 되는 경우
+
+**GET에 부수 효과를 넣으면 생기는 일**: GET은 안전한 메서드이므로 브라우저, 크롤러, 프리페치, CDN 등이 부담 없이 호출한다. GET 요청에 조회수 증가나 상태 변경 같은 부수 효과를 넣으면, 구글 크롤러가 돌 때마다 조회수가 올라가거나 프리페치가 의도하지 않은 상태 변경을 일으킨다. 실제로 GET으로 삭제를 구현한 관리 화면에서 크롤러가 모든 데이터를 날린 사례가 있다.
+
+```
+잘못된 설계:
+GET /api/posts/123/delete    → 크롤러가 이 링크를 따라가면 삭제됨
+GET /api/users/123?action=deactivate → 프리페치가 사용자를 비활성화
+
+올바른 설계:
+DELETE /api/posts/123
+PATCH /api/users/123 {"active": false}
+```
+
+**DELETE의 멱등성 함정**: DELETE는 멱등하다. 같은 리소스를 두 번 삭제해도 서버 상태는 동일하다(리소스가 없는 상태). 하지만 첫 번째 DELETE는 200을 돌려주고, 두 번째 DELETE는 404를 돌려주는 서버가 많다. 응답 코드가 달라진다고 멱등성이 깨진 건 아니다. 멱등성은 "서버 상태"가 동일한지를 따지는 것이지 "응답 코드"가 동일한지를 따지는 게 아니다.
+
+**POST 재시도와 중복 생성**: 네트워크 타임아웃으로 POST 응답을 못 받았을 때, 클라이언트가 재시도하면 리소스가 중복 생성될 수 있다. 결제 API에서 이런 일이 생기면 이중 결제가 된다.
+
+```http
+# 멱등 키로 중복 요청 방지
+POST /api/payments HTTP/1.1
+Content-Type: application/json
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+
+{"amount": 50000, "card_id": "card_abc"}
+```
+
+서버에서 Idempotency-Key를 저장해두고, 같은 키로 요청이 다시 오면 이전 응답을 그대로 돌려준다. Stripe, 토스페이먼츠 같은 결제 API에서 이 방식을 쓴다. 키 저장 시 TTL을 설정해야 한다. 보통 24시간~48시간이면 충분하다.
+
+**PUT의 멱등성과 동시성**: PUT이 멱등하다고 해서 동시성 문제가 없는 건 아니다. 두 클라이언트가 동시에 같은 리소스를 PUT하면 나중에 도착한 요청이 이긴다(Last-Write-Wins). 이런 충돌을 방지하려면 ETag 기반 낙관적 잠금을 쓴다.
+
+```http
+# 1. 리소스 조회 — ETag 확인
+GET /api/users/123 HTTP/1.1
+
+HTTP/1.1 200 OK
+ETag: "v3"
+{"name": "홍길동", "email": "hong@example.com"}
+
+# 2. 수정 요청 — If-Match로 조건부 PUT
+PUT /api/users/123 HTTP/1.1
+If-Match: "v3"
+Content-Type: application/json
+
+{"name": "홍길동", "email": "new@example.com"}
+
+# ETag가 맞으면 200, 다른 누가 먼저 수정했으면 412 Precondition Failed
+```
 
 ## HTTP 상태 코드
 
@@ -531,6 +661,105 @@ Vary: Accept-Encoding
 `br`은 Brotli 압축이다. gzip보다 압축률이 20~30% 좋지만 압축 속도가 느리다. 정적 파일은 미리 Brotli로 압축해두고, 동적 응답은 gzip을 쓰는 경우가 많다.
 
 `Vary: Accept-Encoding` 헤더가 중요하다. CDN이나 프록시 캐시에게 "Accept-Encoding 헤더가 다르면 별도로 캐시하라"고 알려주는 것이다. 이게 없으면 gzip 응답이 캐시된 상태에서 Brotli를 지원하는 클라이언트에게도 gzip이 전달될 수 있다.
+
+### Content-Encoding: 압축 동작 원리
+
+HTTP 압축의 전체 흐름은 다음과 같다:
+
+```
+1. 클라이언트 → 서버: Accept-Encoding: gzip, br
+2. 서버: 응답 바디를 선택한 알고리즘으로 압축
+3. 서버 → 클라이언트: Content-Encoding: gzip (압축된 바디)
+4. 클라이언트: Content-Encoding 헤더를 보고 압축 해제 후 처리
+```
+
+여기서 Content-Length는 **압축된 후의 크기**를 나타낸다. 원본 크기가 아니다. 이 부분을 헷갈려서 Content-Length를 원본 크기로 넣으면 클라이언트가 데이터를 덜 읽거나 더 읽다가 에러가 난다.
+
+#### 압축 알고리즘 비교
+
+| 알고리즘 | 압축률 | 압축 속도 | 해제 속도 | 브라우저 지원 |
+|---------|--------|----------|----------|-------------|
+| gzip (deflate) | 보통 | 빠름 | 빠름 | 모든 브라우저 |
+| br (Brotli) | gzip 대비 15~25% 향상 | 느림 (레벨에 따라 다름) | 빠름 | 모던 브라우저 (IE 제외) |
+| zstd | Brotli와 비슷하거나 좋음 | Brotli보다 빠름 | 매우 빠름 | Chrome 123+, Firefox 126+ |
+
+gzip은 어디서나 동작하므로 기본값으로 쓴다. Brotli는 정적 파일에 미리 압축해두는 방식으로 쓰면 압축 속도 문제를 피할 수 있다. zstd는 아직 지원 범위가 좁아서 CDN 레벨에서 fallback과 함께 쓰는 정도다.
+
+#### Nginx에서 gzip 설정
+
+```nginx
+http {
+    gzip on;
+    gzip_comp_level 6;        # 1-9, 6이 속도/압축률 균형점
+    gzip_min_length 256;      # 256바이트 미만은 압축 안 함 (오히려 커질 수 있음)
+    gzip_types
+        text/plain
+        text/css
+        text/javascript
+        application/json
+        application/javascript
+        application/xml
+        image/svg+xml;
+
+    gzip_vary on;              # Vary: Accept-Encoding 자동 추가
+    gzip_proxied any;          # 프록시 뒤에서도 압축
+    gzip_disable "msie6";      # IE6은 gzip 버그가 있어서 제외
+}
+```
+
+`gzip_min_length`를 빠뜨리는 경우가 흔하다. 작은 응답은 gzip 헤더(약 20바이트) 때문에 압축 후 오히려 커진다. 256바이트 이상부터 압축하는 것이 적절하다.
+
+`gzip_comp_level`은 6을 넘으면 CPU 사용량이 급격히 늘어나는데 압축률 향상은 미미하다. 9로 올려봐야 6 대비 1~2% 더 줄어드는 정도다.
+
+이미지(JPEG, PNG, WebP)나 이미 압축된 파일(.gz, .zip, .mp4)은 gzip_types에 넣지 않는다. 이미 압축된 데이터를 다시 압축하면 CPU만 낭비하고 크기는 줄지 않는다.
+
+#### Nginx에서 Brotli 설정
+
+Brotli는 Nginx 기본 모듈이 아니다. `ngx_brotli` 모듈을 별도로 설치해야 한다.
+
+```nginx
+# 동적 압축 (요청마다 압축)
+brotli on;
+brotli_comp_level 4;       # 1-11, 동적 압축은 4-6이 적절
+brotli_types
+    text/plain
+    text/css
+    text/javascript
+    application/json
+    application/javascript
+    image/svg+xml;
+
+# 정적 파일 사전 압축 (미리 .br 파일을 만들어둠)
+brotli_static on;
+```
+
+동적 Brotli 압축은 레벨 4~6이 적절하다. 레벨 11은 파일 하나 압축하는 데 수초가 걸릴 수 있다. 정적 파일은 빌드 시점에 미리 최고 레벨로 압축해두고 `brotli_static on`으로 제공하는 방식이 일반적이다.
+
+```bash
+# 빌드 시 정적 파일 사전 압축
+find ./dist -type f \( -name "*.js" -o -name "*.css" -o -name "*.html" -o -name "*.svg" \) \
+  -exec brotli -q 11 {} \;
+# 결과: 원본 파일 옆에 .br 파일 생성 (bundle.js → bundle.js.br)
+```
+
+#### Spring Boot에서 압축 설정
+
+```properties
+# application.properties
+server.compression.enabled=true
+server.compression.min-response-size=2048
+server.compression.mime-types=application/json,application/xml,text/html,text/css,text/javascript
+```
+
+Spring Boot 내장 톰캣의 압축은 CPU를 애플리케이션 서버에서 소모한다. 대부분의 프로덕션 환경에서는 앞단 Nginx나 CDN에서 압축을 처리하고, 애플리케이션 서버에서는 압축을 끄는 것이 좋다. 애플리케이션 서버의 CPU는 비즈니스 로직에 쓰는 게 낫다.
+
+#### 압축에서 자주 겪는 문제
+
+**이중 압축**: 앞단 Nginx에서 gzip 압축을 하고, 애플리케이션에서도 gzip 압축을 하면 이중 압축이 된다. 클라이언트가 한 번만 해제하면 깨진 데이터가 나온다. 압축은 한 곳에서만 한다.
+
+**CDN 캐시 오염**: `Vary: Accept-Encoding`이 빠지면, CDN이 gzip으로 압축된 응답을 캐시한 뒤 압축을 지원하지 않는 클라이언트에게도 그대로 전달한다. 클라이언트는 깨진 응답을 받게 된다.
+
+**ETag 불일치**: 같은 원본 파일이라도 gzip과 Brotli 결과는 다르다. Apache는 압축할 때 ETag에 인코딩 suffix를 붙이는데, Nginx는 gzip 시 weak ETag(`W/"..."`)로 바꿔버린다. CDN에서 ETag 기반 캐시 무효화를 쓰고 있으면 이 차이가 문제가 될 수 있다.
 
 ### Content-Type 협상
 
