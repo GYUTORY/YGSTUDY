@@ -1,7 +1,7 @@
 ---
 title: Claude
 tags: [ai, claude, anthropic, llm, api]
-updated: 2026-03-25
+updated: 2026-03-30
 ---
 
 # Claude
@@ -386,3 +386,212 @@ for block in response.content:
 ```
 
 thinking에 할당한 토큰도 출력 토큰으로 과금된다. 단순한 질문에 thinking을 켜면 비용만 늘고 답변 품질 차이는 거의 없다. 복잡한 수학 문제, 다단계 논리 추론, 대규모 코드 분석 같은 작업에서만 켜는 게 좋다.
+
+---
+
+## 10. Tool Use (Function Calling)
+
+Claude가 외부 기능을 호출할 수 있게 하는 API 기능이다. 날씨 조회, DB 검색, 외부 API 호출 같은 작업을 Claude가 직접 수행하지 않고, "이 도구를 이런 파라미터로 호출해달라"고 요청하는 방식이다. 에이전트를 만들 때 핵심이 되는 기능이니 구조를 정확히 이해해야 한다.
+
+### 10.1 도구 정의
+
+`tools` 파라미터에 JSON Schema 형식으로 도구를 정의한다. 도구의 이름, 설명, 파라미터 스키마를 넘긴다.
+
+```python
+tools = [
+    {
+        "name": "get_weather",
+        "description": "지정한 도시의 현재 날씨를 조회한다.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "날씨를 조회할 도시명 (예: Seoul, Tokyo)"
+                },
+                "unit": {
+                    "type": "string",
+                    "enum": ["celsius", "fahrenheit"],
+                    "description": "온도 단위"
+                }
+            },
+            "required": ["city"]
+        }
+    }
+]
+```
+
+`description`이 중요하다. Claude는 이 설명을 보고 언제 이 도구를 써야 하는지 판단한다. 설명이 모호하면 도구를 안 쓰거나 엉뚱한 상황에서 쓴다. "날씨를 조회한다"처럼 구체적으로 적어야 한다.
+
+`input_schema`는 표준 JSON Schema를 따른다. `required`에 필수 파라미터를 명시하지 않으면 Claude가 해당 파라미터를 빼먹는 경우가 있다.
+
+### 10.2 tool_use 응답 처리
+
+도구를 정의한 상태에서 요청을 보내면, Claude가 도구 호출이 필요하다고 판단할 때 `tool_use` 타입의 content block을 반환한다.
+
+```python
+response = client.messages.create(
+    model="claude-sonnet-4-6",
+    max_tokens=1024,
+    tools=tools,
+    messages=[
+        {"role": "user", "content": "서울 날씨 알려줘"}
+    ]
+)
+
+print(response.stop_reason)  # "tool_use"
+```
+
+응답의 `stop_reason`이 `"tool_use"`이면 Claude가 도구 호출을 요청한 것이다. `content` 배열에서 `tool_use` 블록을 꺼내야 한다.
+
+```python
+for block in response.content:
+    if block.type == "tool_use":
+        print(block.id)     # "toolu_01ABC..." — 이 ID를 결과 전송 시 사용
+        print(block.name)   # "get_weather"
+        print(block.input)  # {"city": "Seoul"}
+```
+
+주의할 점이 있다. `content` 배열에 `text` 블록과 `tool_use` 블록이 함께 올 수 있다. Claude가 "날씨를 확인해볼게요"라는 텍스트와 함께 도구 호출을 하는 식이다. `tool_use` 블록만 필터링해서 처리해야 한다.
+
+### 10.3 tool_result 전송
+
+Claude가 요청한 도구를 실제로 실행한 뒤, 그 결과를 `tool_result`로 돌려보낸다. 이 과정은 개발자가 직접 구현해야 한다 — Claude가 알아서 API를 호출하는 게 아니다.
+
+```python
+# 1. 도구를 실제로 실행 (개발자가 구현)
+def execute_tool(name, input_data):
+    if name == "get_weather":
+        # 실제로는 날씨 API를 호출
+        return {"temperature": 22, "condition": "맑음", "humidity": 45}
+    raise ValueError(f"알 수 없는 도구: {name}")
+
+# 2. tool_use 블록에서 정보 추출
+tool_block = next(b for b in response.content if b.type == "tool_use")
+result = execute_tool(tool_block.name, tool_block.input)
+
+# 3. 결과를 tool_result로 전송
+follow_up = client.messages.create(
+    model="claude-sonnet-4-6",
+    max_tokens=1024,
+    tools=tools,
+    messages=[
+        {"role": "user", "content": "서울 날씨 알려줘"},
+        {"role": "assistant", "content": response.content},  # tool_use가 포함된 응답 전체
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tool_block.id,  # tool_use 블록의 id와 매칭
+                    "content": json.dumps(result, ensure_ascii=False)
+                }
+            ]
+        }
+    ]
+)
+
+print(follow_up.content[0].text)
+# "서울의 현재 날씨는 맑음이고, 기온은 22도, 습도는 45%입니다."
+```
+
+`tool_use_id`를 틀리면 에러가 난다. `tool_use` 블록의 `id`를 그대로 넘겨야 한다.
+
+`tool_result`의 `content`는 문자열이다. JSON 객체를 넘기려면 `json.dumps()`로 직렬화해야 한다. 도구 실행이 실패한 경우에는 `is_error: true`를 추가한다.
+
+```python
+{
+    "type": "tool_result",
+    "tool_use_id": tool_block.id,
+    "content": "API 호출 실패: 타임아웃",
+    "is_error": True
+}
+```
+
+에러를 전달하면 Claude가 사용자에게 실패 사실을 알리거나, 다른 방법을 시도한다.
+
+### 10.4 멀티턴 도구 호출 루프
+
+실제 에이전트를 만들면 도구 호출이 한 번으로 끝나지 않는다. Claude가 여러 도구를 연속으로 호출하거나, 하나의 도구 결과를 보고 다른 도구를 호출하는 경우가 흔하다. 이걸 처리하려면 루프를 돌려야 한다.
+
+```python
+import json
+
+def run_agent(client, tools, user_message):
+    messages = [{"role": "user", "content": user_message}]
+
+    while True:
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4096,
+            tools=tools,
+            messages=messages
+        )
+
+        # Claude가 도구 호출 없이 최종 답변을 한 경우 — 루프 종료
+        if response.stop_reason == "end_turn":
+            return response.content
+
+        # assistant 응답을 대화 내역에 추가
+        messages.append({"role": "assistant", "content": response.content})
+
+        # tool_use 블록을 모두 찾아서 실행
+        tool_results = []
+        for block in response.content:
+            if block.type == "tool_use":
+                result = execute_tool(block.name, block.input)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": json.dumps(result, ensure_ascii=False)
+                })
+
+        # 도구 실행 결과를 대화 내역에 추가
+        messages.append({"role": "user", "content": tool_results})
+```
+
+이 루프의 흐름은 이렇다:
+
+1. 사용자 메시지로 첫 요청을 보낸다
+2. Claude가 `tool_use`로 응답하면 해당 도구를 실행한다
+3. 실행 결과를 `tool_result`로 보낸다
+4. Claude가 추가 도구 호출을 하면 2~3을 반복한다
+5. `stop_reason`이 `"end_turn"`이면 최종 답변이므로 루프를 빠져나온다
+
+한 번의 응답에서 여러 도구를 동시에 호출하는 경우(parallel tool use)도 있다. 위 코드에서 `for block in response.content` 부분이 이걸 처리한다. 모든 `tool_use` 블록에 대한 `tool_result`를 한꺼번에 보내야 한다. 하나라도 빠뜨리면 에러가 발생한다.
+
+### 10.5 도구 정의 시 실무 주의사항
+
+**도구 개수**: 도구를 많이 정의할수록 입력 토큰을 많이 소모한다. 도구 정의 자체가 system prompt처럼 매 요청에 포함되기 때문이다. 쓰지 않는 도구는 빼야 한다.
+
+**도구 선택 제어**: `tool_choice` 파라미터로 Claude의 도구 사용을 제어할 수 있다.
+
+```python
+# 도구 사용을 강제
+tool_choice={"type": "any"}
+
+# 특정 도구만 사용하도록 강제
+tool_choice={"type": "tool", "name": "get_weather"}
+
+# Claude가 알아서 판단 (기본값)
+tool_choice={"type": "auto"}
+```
+
+`"auto"`가 기본값이다. Claude가 도구를 안 쓰고 텍스트로만 답변하는 경우가 있는데, 반드시 도구를 쓰게 하려면 `"any"`를 쓴다.
+
+**무한 루프 방지**: 도구 호출 루프에 반드시 최대 반복 횟수를 걸어야 한다. Claude가 같은 도구를 반복 호출하거나, 도구 결과를 해석하지 못하고 계속 재시도하는 상황이 생긴다.
+
+```python
+MAX_TURNS = 10
+
+for turn in range(MAX_TURNS):
+    response = client.messages.create(...)
+    if response.stop_reason == "end_turn":
+        break
+    # ... 도구 실행 ...
+else:
+    # MAX_TURNS에 도달 — 강제 종료
+    print("도구 호출 횟수 초과")
+```
+
+**OpenAI와의 차이**: OpenAI는 `functions` 또는 `tools` 파라미터에 `parameters`로 스키마를 넘기지만, Claude는 `input_schema`를 쓴다. 응답 구조도 다르다. OpenAI는 `function_call`이나 `tool_calls` 필드에 결과가 오고, Claude는 `content` 배열 안에 `tool_use` 블록으로 온다. 양쪽 API를 모두 쓴다면 이 차이를 추상화하는 래퍼를 만들어두는 게 편하다.
