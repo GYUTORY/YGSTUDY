@@ -4,6 +4,8 @@ nav:
   - Behavioral_Pattern.md
   - Singleton_Pattern.md
   - Factory Method.md
+  - Abstract_Factory_Pattern.md
+  - Prototype_Pattern.md
   - Observer Pattern.md
   - Proxy_Pattern.md
   - Module_Pattern.md

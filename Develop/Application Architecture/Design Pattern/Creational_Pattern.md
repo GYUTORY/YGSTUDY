@@ -1,7 +1,7 @@
 ---
 title: 생성 패턴 (Creational Patterns)
-tags: [application-architecture, design-pattern, creational-patterns, singleton, factory, builder, nodejs, backend]
-updated: 2025-11-30
+tags: [application-architecture, design-pattern, creational-patterns, singleton, factory, builder, prototype, nodejs, backend]
+updated: 2026-03-30
 ---
 
 # 생성 패턴 (Creational Patterns)
@@ -4684,6 +4684,364 @@ const config = { host: 'localhost', port: 3000 }; // 빌더 불필요
 2. **선택적 매개변수가 많은가?** (이메일, 설정 객체)
 3. **가독성이 중요한가?** (API 클라이언트, 쿼리 빌더)
 4. **유효성 검사가 필요한가?** (복잡한 객체 생성)
+
+### 5. Prototype Pattern (프로토타입 패턴)
+
+#### 프로토타입 패턴
+
+프로토타입 패턴은 기존 객체를 복제해서 새 객체를 만드는 패턴이다. `new`로 처음부터 생성하는 대신, 이미 만들어진 객체를 복사한 뒤 필요한 부분만 수정한다.
+
+언제 쓰는가:
+- 객체 생성 비용이 큰 경우 (DB 조회 결과로 만든 객체, 복잡한 계산을 거친 객체)
+- 비슷한 객체를 여러 개 만들어야 하는 경우 (게임 캐릭터, 문서 템플릿, 설정 프리셋)
+- 클래스 계층이 복잡해서 팩토리로 만들기 번거로운 경우
+
+JavaScript는 언어 차원에서 프로토타입 기반이라 이 패턴과 잘 맞는다. 다만 **깊은 복사 vs 얕은 복사** 문제를 제대로 이해하지 않으면 버그가 나기 쉽다.
+
+#### 얕은 복사와 깊은 복사
+
+프로토타입 패턴에서 가장 많이 실수하는 부분이다.
+
+```javascript
+// 얕은 복사 — 중첩 객체는 참조를 공유한다
+const original = {
+    name: 'template',
+    config: {
+        timeout: 3000,
+        retries: 3,
+        headers: { 'Content-Type': 'application/json' }
+    },
+    tags: ['default']
+};
+
+const shallow = { ...original };
+shallow.name = 'copy'; // 독립적으로 변경됨
+shallow.config.timeout = 5000; // original.config.timeout도 5000으로 바뀜
+shallow.tags.push('new'); // original.tags에도 'new'가 추가됨
+
+console.log(original.config.timeout); // 5000 — 의도하지 않은 변경
+console.log(original.tags); // ['default', 'new'] — 의도하지 않은 변경
+```
+
+이런 버그는 테스트에서 잘 안 잡힌다. 한 테스트에서 복제본을 수정했는데 다음 테스트의 원본 데이터가 오염되는 식이다.
+
+```javascript
+// 깊은 복사 방법들
+
+// 1. structuredClone (Node.js 17+, 브라우저 지원)
+const deep1 = structuredClone(original);
+deep1.config.timeout = 5000;
+console.log(original.config.timeout); // 3000 — 원본 유지
+
+// 2. JSON 직렬화 — 함수, undefined, Symbol, Date 등이 손실된다
+const deep2 = JSON.parse(JSON.stringify(original));
+// Date는 문자열로, undefined는 삭제됨, 함수도 삭제됨
+
+// 3. 재귀 복사 — 순환 참조 처리가 필요
+function deepClone(obj, seen = new WeakMap()) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (seen.has(obj)) return seen.get(obj);
+
+    const clone = Array.isArray(obj) ? [] : {};
+    seen.set(obj, clone);
+
+    for (const [key, value] of Object.entries(obj)) {
+        clone[key] = deepClone(value, seen);
+    }
+    return clone;
+}
+```
+
+**어떤 방법을 쓸 것인가:**
+
+| 방법 | 함수 복사 | Date 보존 | 순환 참조 | 성능 |
+|------|-----------|-----------|-----------|------|
+| `structuredClone` | X | O | O | 빠름 |
+| `JSON.parse/stringify` | X | X (문자열 변환) | X (에러) | 중간 |
+| 재귀 복사 | O (직접 구현 시) | O (직접 구현 시) | O (WeakMap) | 느림 |
+
+실무에서는 `structuredClone`을 기본으로 쓰고, 함수를 포함한 객체를 복제해야 하면 재귀 복사를 쓴다. `JSON.parse/stringify`는 단순한 데이터 객체에만 쓴다.
+
+#### Object.create와 프로토타입 체인 활용
+
+JavaScript의 `Object.create`는 프로토타입 체인을 이용해서 객체를 복제한다. GoF의 프로토타입 패턴과 개념적으로 가장 가까운 방식이다.
+
+```javascript
+// Object.create — 프로토타입 체인 기반 복제
+const vehiclePrototype = {
+    type: 'unknown',
+    fuel: 'gasoline',
+    describe() {
+        return `${this.type} (${this.fuel})`;
+    }
+};
+
+const sedan = Object.create(vehiclePrototype);
+sedan.type = 'sedan';
+sedan.doors = 4;
+
+const suv = Object.create(vehiclePrototype);
+suv.type = 'SUV';
+suv.doors = 5;
+suv.fuel = 'diesel';
+
+console.log(sedan.describe()); // sedan (gasoline) — fuel은 프로토타입에서 가져옴
+console.log(suv.describe());   // SUV (diesel) — fuel을 직접 가지고 있음
+```
+
+`Object.create`로 만든 객체는 원본의 프로퍼티를 프로토타입 체인으로 참조한다. 메모리를 절약할 수 있지만, 원본을 수정하면 복제본에 영향이 간다는 점에 주의해야 한다.
+
+```javascript
+// 주의: 프로토타입 수정의 영향
+vehiclePrototype.fuel = 'electric';
+console.log(sedan.fuel);  // electric — sedan은 fuel을 직접 가지고 있지 않으므로 영향 받음
+console.log(suv.fuel);    // diesel — suv는 fuel을 직접 가지고 있으므로 영향 없음
+```
+
+#### 클래스 기반 프로토타입 구현
+
+실무에서는 `clone()` 메서드를 가진 클래스로 구현하는 경우가 많다.
+
+```javascript
+class ServerConfig {
+    constructor(options = {}) {
+        this.host = options.host || 'localhost';
+        this.port = options.port || 3000;
+        this.ssl = options.ssl || false;
+        this.database = options.database || {
+            host: 'localhost',
+            port: 5432,
+            name: 'mydb',
+            pool: { min: 2, max: 10 }
+        };
+        this.cache = options.cache || {
+            driver: 'redis',
+            host: 'localhost',
+            ttl: 3600
+        };
+        this.logging = options.logging || {
+            level: 'info',
+            format: 'json',
+            destinations: ['console', 'file']
+        };
+    }
+
+    clone() {
+        // structuredClone으로 깊은 복사 후 새 인스턴스 생성
+        const cloned = structuredClone({
+            host: this.host,
+            port: this.port,
+            ssl: this.ssl,
+            database: this.database,
+            cache: this.cache,
+            logging: this.logging
+        });
+        return new ServerConfig(cloned);
+    }
+}
+
+// 운영 환경 설정을 기반으로 다른 환경 설정 생성
+const production = new ServerConfig({
+    host: 'api.example.com',
+    port: 443,
+    ssl: true,
+    database: {
+        host: 'db-primary.internal',
+        port: 5432,
+        name: 'prod_db',
+        pool: { min: 10, max: 50 }
+    },
+    cache: { driver: 'redis', host: 'cache.internal', ttl: 7200 },
+    logging: { level: 'warn', format: 'json', destinations: ['cloudwatch'] }
+});
+
+// 스테이징은 운영과 거의 같되 몇 가지만 다르다
+const staging = production.clone();
+staging.host = 'staging-api.example.com';
+staging.database.host = 'db-staging.internal';
+staging.database.name = 'staging_db';
+staging.database.pool.max = 20;
+staging.logging.level = 'debug';
+
+// production 원본은 변경되지 않음
+console.log(production.database.host); // db-primary.internal
+console.log(staging.database.host);    // db-staging.internal
+```
+
+`new ServerConfig()`으로 매번 처음부터 설정하는 것보다, 운영 설정을 복제해서 수정하는 게 빠뜨리는 설정 없이 안전하다.
+
+#### 프로토타입 레지스트리
+
+미리 정의된 프로토타입을 등록해두고 이름으로 꺼내 쓰는 패턴이다. 팩토리와 결합해서 쓰는 경우가 많다.
+
+```javascript
+class NotificationTemplate {
+    constructor(options = {}) {
+        this.channel = options.channel || 'email';
+        this.priority = options.priority || 'normal';
+        this.subject = options.subject || '';
+        this.body = options.body || '';
+        this.recipients = options.recipients ? [...options.recipients] : [];
+        this.metadata = options.metadata
+            ? structuredClone(options.metadata)
+            : {};
+    }
+
+    clone() {
+        return new NotificationTemplate({
+            channel: this.channel,
+            priority: this.priority,
+            subject: this.subject,
+            body: this.body,
+            recipients: [...this.recipients],
+            metadata: structuredClone(this.metadata)
+        });
+    }
+}
+
+class NotificationRegistry {
+    #templates = new Map();
+
+    register(name, template) {
+        if (!(template instanceof NotificationTemplate)) {
+            throw new TypeError('NotificationTemplate 인스턴스만 등록할 수 있다');
+        }
+        this.#templates.set(name, template);
+    }
+
+    create(name, overrides = {}) {
+        const template = this.#templates.get(name);
+        if (!template) {
+            throw new Error(`등록되지 않은 템플릿: ${name}`);
+        }
+        const clone = template.clone();
+        Object.assign(clone, overrides);
+        return clone;
+    }
+
+    list() {
+        return [...this.#templates.keys()];
+    }
+}
+
+// 레지스트리 셋업
+const registry = new NotificationRegistry();
+
+registry.register('welcome', new NotificationTemplate({
+    channel: 'email',
+    priority: 'normal',
+    subject: '가입을 환영합니다',
+    body: '서비스에 가입해주셔서 감사합니다.',
+    metadata: { category: 'onboarding', trackOpen: true }
+}));
+
+registry.register('alert', new NotificationTemplate({
+    channel: 'slack',
+    priority: 'high',
+    subject: '시스템 알림',
+    body: '',
+    metadata: { category: 'system', escalate: true }
+}));
+
+registry.register('promotion', new NotificationTemplate({
+    channel: 'email',
+    priority: 'low',
+    subject: '',
+    body: '',
+    metadata: { category: 'marketing', trackOpen: true, trackClick: true }
+}));
+
+// 사용
+const welcomeEmail = registry.create('welcome', {
+    recipients: ['user@example.com']
+});
+
+const serverAlert = registry.create('alert', {
+    subject: 'CPU 사용률 90% 초과',
+    body: 'web-server-03 CPU가 90%를 넘었다. 확인 필요.',
+    recipients: ['#ops-channel']
+});
+```
+
+레지스트리 패턴은 알림, 문서 템플릿, 게임 오브젝트 같은 곳에서 자주 쓰인다. 새 유형을 추가할 때 코드 변경 없이 레지스트리에 등록만 하면 된다.
+
+#### 프로토타입 패턴의 함정
+
+**1. 얕은 복사를 깊은 복사로 착각하는 경우**
+
+가장 흔한 실수다. `Object.assign`이나 스프레드 연산자로 복사하면 1depth까지만 복사된다.
+
+```javascript
+// 실수하기 쉬운 코드
+class Config {
+    clone() {
+        return Object.assign(new Config(), this); // 얕은 복사
+    }
+}
+
+const a = new Config();
+a.nested = { value: 1 };
+const b = a.clone();
+b.nested.value = 2;
+console.log(a.nested.value); // 2 — 원본이 오염됨
+```
+
+**2. 순환 참조가 있는 객체**
+
+```javascript
+const node = { name: 'root', children: [] };
+node.parent = node; // 순환 참조
+
+// JSON.parse/stringify는 에러
+// JSON.parse(JSON.stringify(node)); // TypeError: Converting circular structure to JSON
+
+// structuredClone은 순환 참조를 처리한다
+const cloned = structuredClone(node);
+console.log(cloned.parent === cloned); // true — 순환 구조 유지
+```
+
+**3. 복제 후 식별자 충돌**
+
+```javascript
+// 복제한 객체의 id가 같으면 DB 저장 시 충돌한다
+class Entity {
+    constructor(data) {
+        this.id = data.id;
+        this.name = data.name;
+        this.createdAt = data.createdAt;
+    }
+
+    clone() {
+        const cloned = structuredClone(this);
+        // id와 생성일은 새로 발급해야 한다
+        cloned.id = crypto.randomUUID();
+        cloned.createdAt = new Date();
+        return Object.assign(new Entity({}), cloned);
+    }
+}
+```
+
+#### 프로토타입 패턴 장단점
+
+**장점:**
+- 복잡한 객체를 처음부터 만드는 것보다 빠르다 (DB 조회, 외부 API 호출 비용 절약)
+- 런타임에 새로운 종류의 객체를 동적으로 추가할 수 있다
+- 클래스 계층을 단순하게 유지할 수 있다 — 서브클래스 대신 프로토타입 변형으로 처리
+
+**단점:**
+- 깊은 복사 구현이 까다롭다 — 중첩 객체, 순환 참조, 특수 타입(Map, Set, Date) 처리
+- 복제 후 어떤 필드를 초기화해야 하는지(id, timestamp 등) 누락하기 쉽다
+- 프로토타입 체인을 쓰는 경우 원본 수정의 파급 범위를 예측하기 어렵다
+
+**다른 생성 패턴과의 비교:**
+
+| 상황 | 적합한 패턴 |
+|------|------------|
+| 비슷한 객체를 여러 개 만들되 일부만 다른 경우 | Prototype |
+| 매개변수가 많고 조합이 다양한 경우 | Builder |
+| 타입에 따라 다른 클래스를 생성하는 경우 | Factory Method |
+| 관련 객체 군을 일괄 생성하는 경우 | Abstract Factory |
+| 인스턴스가 하나만 존재해야 하는 경우 | Singleton |
 
 ## 프로젝트에서의 활용
 
