@@ -2,3 +2,4 @@ title: Resilience
 nav:
   - Fault_Tolerance.md
   - Rate_Limiting_and_Bulkhead.md
+  - Chaos_Engineering.md
