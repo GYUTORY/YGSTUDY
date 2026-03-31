@@ -2,6 +2,3 @@ title: OS
 nav:
   - Process & Thread
   - Memory
-  - CPU_Scheduling.md
-  - Deadlock.md
-  - IPC.md

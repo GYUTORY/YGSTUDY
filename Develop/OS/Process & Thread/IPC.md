@@ -1,29 +1,49 @@
 ---
 title: "프로세스 간 통신 (IPC)"
-tags: [OS, IPC, pipe, shared-memory, socket, signal, message-queue]
-updated: 2026-03-25
+tags: [OS, IPC, pipe, shared-memory, socket, signal, message-queue, msa, container]
+updated: 2026-03-31
 ---
 
 # 프로세스 간 통신 (IPC)
 
 IPC(Inter-Process Communication)는 서로 다른 프로세스가 데이터를 주고받는 방법이다. 프로세스는 각자 독립된 가상 메모리 공간을 가지기 때문에, 커널이 제공하는 메커니즘 없이는 직접 데이터를 공유할 수 없다.
 
+```
+프로세스 A [메모리 공간 A]     프로세스 B [메모리 공간 B]
+     │                              │
+     └────── IPC 메커니즘 ──────────┘
+             (파이프, 공유 메모리, 소켓 등)
+```
+
 리눅스에서 실무적으로 쓰이는 IPC 방식은 크게 6가지다.
 
-| 방식 | 데이터 흐름 | 속도 | 관계 제약 |
-|------|------------|------|----------|
-| Pipe | 단방향 바이트 스트림 | 빠름 | 부모-자식 프로세스 |
-| Named Pipe (FIFO) | 단방향 바이트 스트림 | 빠름 | 제약 없음 (파일 경로 공유) |
-| Unix Domain Socket | 양방향 바이트/데이터그램 | 빠름 | 제약 없음 |
-| Shared Memory | 양방향 메모리 직접 접근 | 가장 빠름 | 제약 없음 |
-| Message Queue | 양방향 메시지 단위 | 보통 | 제약 없음 |
-| Signal | 비동기 알림 (데이터 없음) | - | 제약 없음 |
+| 방식 | 데이터 흐름 | 속도 | 관계 제약 | 네트워크 |
+|------|------------|------|----------|---------|
+| Pipe | 단방향 바이트 스트림 | 빠름 | 부모-자식 프로세스 | 불가 |
+| Named Pipe (FIFO) | 단방향 바이트 스트림 | 빠름 | 제약 없음 (파일 경로 공유) | 불가 |
+| Unix Domain Socket | 양방향 바이트/데이터그램 | 빠름 | 제약 없음 | 불가 |
+| Shared Memory | 양방향 메모리 직접 접근 | 가장 빠름 | 제약 없음 | 불가 |
+| Message Queue | 양방향 메시지 단위 | 보통 | 제약 없음 | 불가 |
+| Signal | 비동기 알림 (데이터 없음) | - | 제약 없음 | 불가 |
 
 ---
 
 ## Pipe
 
 가장 단순한 IPC다. `pipe()` 시스템 콜로 파일 디스크립터 2개를 만들고, `fork()` 후 부모-자식 간에 데이터를 주고받는다.
+
+```
+부모 프로세스                    자식 프로세스
+  write(fd[1]) ──────────────▶ read(fd[0])
+               파이프 (커널 버퍼)
+```
+
+쉘에서 `|` 기호가 pipe다.
+
+```bash
+# ls의 stdout → grep의 stdin → wc의 stdin
+ls -la | grep ".md" | wc -l
+```
 
 ```c
 #include <stdio.h>
@@ -85,6 +105,17 @@ cat /proc/sys/fs/pipe-max-size
 
 일반 pipe는 `fork()`로 파일 디스크립터를 공유해야 하므로 부모-자식 관계에서만 동작한다. named pipe는 파일 시스템에 경로를 만들어서 아무 프로세스나 열 수 있다.
 
+```bash
+# Named Pipe 생성 및 사용 (쉘)
+mkfifo /tmp/myfifo
+
+# 터미널 A: 쓰기
+echo "Hello" > /tmp/myfifo
+
+# 터미널 B: 읽기
+cat /tmp/myfifo    # "Hello" 출력
+```
+
 **writer.c**
 ```c
 #include <stdio.h>
@@ -143,6 +174,24 @@ int main(void)
 TCP/UDP 소켓과 같은 API를 쓰지만, 네트워크 스택을 타지 않고 커널 내부에서 데이터를 복사한다. 양방향 통신이 되고, `SOCK_STREAM`(TCP처럼)과 `SOCK_DGRAM`(UDP처럼) 둘 다 지원한다.
 
 nginx, PostgreSQL, Docker, MySQL 등 대부분의 서버 소프트웨어가 로컬 통신에 Unix domain socket을 사용한다.
+
+```bash
+# 실제 사용 예
+mysql -S /var/run/mysqld/mysqld.sock
+docker -H unix:///var/run/docker.sock ps
+```
+
+```
+서버 프로세스                     클라이언트 프로세스
+  socket()                         socket()
+  bind()                              │
+  listen()                             │
+  accept() ◀──── 연결 수립 ──────── connect()
+     │                                  │
+  read/write ◀──── 데이터 교환 ────▶ read/write
+     │                                  │
+  close()                            close()
+```
 
 **server.c**
 ```c
@@ -248,7 +297,19 @@ int main(void)
 
 ## Shared Memory
 
-커널을 거치지 않고 프로세스 간에 메모리를 직접 공유하는 방식이다. 데이터 복사가 없으므로 대량 데이터 전송에서 가장 빠르다. 두 가지 API가 있다.
+커널을 거치지 않고 프로세스 간에 메모리를 직접 공유하는 방식이다. 데이터 복사가 없으므로 대량 데이터 전송에서 가장 빠르다.
+
+```
+프로세스 A [가상 주소 공간]         프로세스 B [가상 주소 공간]
+  0x1000 ─┐                         ┌─ 0x2000
+          │    ┌─────────────┐      │
+          └───▶│ 공유 메모리  │◀─────┘
+               │ (물리 메모리) │
+               └─────────────┘
+  → 같은 물리 메모리를 서로 다른 가상 주소로 매핑
+```
+
+두 가지 API가 있다.
 
 ### shmget (System V)
 
@@ -348,6 +409,12 @@ ipcrm -m <shmid>
 
 **동기화를 직접 해야 한다.** shared memory 자체에는 락이 없다. 여러 프로세스가 동시에 쓰면 데이터가 깨진다. 세마포어(`sem_open`, `semget`)나 뮤텍스(`pthread_mutex`의 `PTHREAD_PROCESS_SHARED` 속성)를 같이 써야 한다. 위 예제에서 `sleep(1)`을 쓴 것은 동기화를 대충 한 것이고, 실제 코드에서는 세마포어를 써야 한다.
 
+```
+공유 메모리 + 세마포어 동기화 패턴:
+  Writer:  sem_wait() → 쓰기 → sem_post()
+  Reader:  sem_wait() → 읽기 → sem_post()
+```
+
 **mmap의 MAP_ANONYMOUS는 fork() 관계에서만 공유된다.** 관련 없는 프로세스 간에 mmap으로 공유하려면 `shm_open()`으로 이름 있는 공유 메모리 객체를 만들어야 한다.
 
 ```c
@@ -363,6 +430,12 @@ shm_unlink("/my_shm");  /* 정리 */
 ## Message Queue
 
 메시지 단위로 데이터를 주고받는다. pipe와 달리 메시지 경계가 보존되고, 메시지 타입별로 선택적 수신이 가능하다. POSIX message queue(`mq_open`)와 System V message queue(`msgget`)가 있는데, POSIX 쪽이 API가 깔끔하다.
+
+```
+프로세스 A ──┐                  ┌── 프로세스 B
+프로세스 C ──┤→ [메시지 큐] →──┤── 프로세스 D
+프로세스 E ──┘   (커널 관리)    └── 프로세스 F
+```
 
 ### POSIX Message Queue
 
@@ -445,6 +518,28 @@ gcc -o mq_demo mq_demo.c -lrt
 
 signal은 프로세스에 비동기 이벤트를 알리는 방법이다. 데이터를 전달하는 용도는 아니고, 특정 이벤트가 발생했다는 사실만 통보한다.
 
+### 주요 시그널 목록
+
+| 시그널 | 번호 | 기본 동작 | 용도 |
+|--------|------|----------|------|
+| `SIGHUP` | 1 | 종료 | 설정 리로드 |
+| `SIGINT` | 2 | 종료 | Ctrl+C 인터럽트 |
+| `SIGKILL` | 9 | 종료 (차단 불가) | 강제 종료 |
+| `SIGTERM` | 15 | 종료 | 정상 종료 요청 |
+| `SIGSTOP` | 19 | 정지 (차단 불가) | 프로세스 일시 정지 |
+| `SIGCONT` | 18 | 계속 | 정지된 프로세스 재개 |
+| `SIGCHLD` | 17 | 무시 | 자식 프로세스 종료 알림 |
+| `SIGUSR1` | 10 | 종료 | 사용자 정의 |
+| `SIGPIPE` | 13 | 종료 | 읽는 쪽 없는 pipe에 write |
+
+```bash
+# 시그널 전송
+kill -SIGTERM 1234              # PID 1234에 종료 요청
+kill -9 1234                    # 강제 종료 (SIGKILL)
+kill -HUP $(cat nginx.pid)      # Nginx 설정 리로드
+kill -TERM -$(pgrep -o myapp)   # 프로세스 그룹 전체에 시그널
+```
+
 ```c
 #include <stdio.h>
 #include <signal.h>
@@ -514,12 +609,69 @@ shared memory가 압도적으로 빠르지만, 동기화 코드를 직접 짜야
 
 ## 어떤 걸 쓸지 판단하는 기준
 
-**부모-자식 간 단순 데이터 전달** → pipe가 가장 간단하다. shell의 `|` 파이프가 이것이다.
+```
+같은 머신 + 부모-자식?
+  ├── Yes → Pipe
+  └── No
+       │
+       대용량 데이터?
+       ├── Yes → Shared Memory + 세마포어
+       └── No
+            │
+            이벤트 알림만?
+            ├── Yes → Signal
+            └── No
+                 │
+                 다른 머신과 통신?
+                 ├── Yes → TCP/UDP Socket
+                 └── No → Message Queue 또는 Unix Domain Socket
+```
 
-**관련 없는 프로세스 간 통신** → Unix domain socket을 먼저 고려한다. 양방향이고 API가 TCP/UDP와 동일해서 나중에 네트워크 통신으로 전환하기 쉽다.
+| 사용 사례 | 적합한 IPC |
+|----------|-----------|
+| 쉘 파이프라인 (`ls \| grep`) | Pipe |
+| 데이터베이스 공유 버퍼 | Shared Memory |
+| 웹 서버 - 앱 서버 (같은 머신) | Unix Domain Socket |
+| Nginx - PHP-FPM | Unix Domain Socket |
+| Docker 데몬 통신 | Unix Domain Socket |
+| 마이크로서비스 간 통신 | TCP Socket (gRPC) |
+| 프로세스 종료 알림 | Signal (SIGCHLD) |
+| 프로세스 간 작업 큐 | Message Queue |
 
-**대용량 데이터 공유** → shared memory + 세마포어 조합. 데이터를 복사하지 않으므로 수십 MB 이상의 데이터를 주고받을 때 의미가 있다.
+---
 
-**메시지 단위 통신이 필요할 때** → message queue. 메시지 경계가 보존되고 우선순위 기반 수신이 가능하다.
+## MSA/컨테이너 환경에서의 IPC
 
-**프로세스에 이벤트 알림만 보낼 때** → signal. `SIGTERM`으로 graceful shutdown 요청하는 게 대표적인 예다.
+단일 머신의 OS IPC를 넘어서, MSA나 컨테이너 환경에서는 네트워크 기반으로 IPC 개념이 확장된다. OS IPC와 1:1 대응은 아니지만, 근본 원리는 같다.
+
+### MSA에서의 통신 방식
+
+| 통신 방식 | OS IPC와의 관계 | 사용 예 |
+|----------|----------------|--------|
+| REST API | TCP Socket 기반 | HTTP/JSON, 서비스 간 동기 호출 |
+| gRPC | TCP Socket 기반 | HTTP/2 + Protobuf, 서비스 간 저지연 호출 |
+| 메시지 브로커 | Message Queue의 네트워크 확장 | Kafka, RabbitMQ |
+| 공유 캐시 | Shared Memory의 네트워크 확장 | Redis, Memcached |
+
+단일 프로세스에서 `pipe()`나 `shmget()`으로 하던 일을 네트워크 너머에서 하는 것이다. Kafka가 OS의 message queue를 대체하고, Redis가 shared memory 역할을 한다고 보면 된다.
+
+### 컨테이너 환경에서 주의할 점
+
+**Docker 컨테이너 간 IPC**
+
+- 기본적으로 컨테이너는 IPC namespace가 격리되어 있다. 같은 호스트에 있어도 `shmget()`이나 POSIX message queue를 공유할 수 없다.
+- `--ipc=shareable` 옵션으로 컨테이너를 만들고, 다른 컨테이너에서 `--ipc=container:<name>`으로 참조하면 System V IPC와 POSIX shared memory를 공유할 수 있다.
+- 네트워크 통신은 Docker bridge network를 통해 TCP/UDP로 한다.
+- 파일 기반 IPC가 필요하면 공유 볼륨 마운트를 쓴다.
+
+**Kubernetes Pod 내부**
+
+- 같은 Pod의 컨테이너는 IPC namespace를 공유한다. `shmget()`이나 `shm_open()`이 컨테이너 간에 동작한다.
+- localhost로 TCP/Unix Domain Socket 통신이 가능하다. sidecar 패턴에서 주로 쓰인다.
+- `emptyDir` 볼륨으로 파일 기반 데이터 공유가 가능하다. `medium: Memory` 옵션을 주면 tmpfs에 올라가서 shared memory처럼 동작한다.
+
+---
+
+## 참고
+
+- [Linux Programmer's Manual -- IPC](https://man7.org/linux/man-pages/man7/svipc.7.html)
