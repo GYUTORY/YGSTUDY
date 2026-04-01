@@ -1,6 +1,6 @@
 ---
 title: NestJS 부트스트랩 및 모듈 시스템
-tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, graceful-shutdown, node]
+tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, module-ref, lazy-loading, graceful-shutdown, node]
 updated: 2026-04-01
 ---
 
@@ -400,6 +400,463 @@ export class SomeModule {
 ```
 
 이 병합 동작을 모르면 "분명 forRoot에서 providers를 지정했는데 왜 @Module의 providers도 같이 등록되지?"같은 혼란이 생긴다. 반대로, `@Module({})`을 비워두고 동적 메서드에서만 providers를 지정하면 깔끔하게 관리할 수 있다.
+
+
+## ModuleRef — 런타임에 프로바이더 꺼내기
+
+`ModuleRef`는 DI 컨테이너에서 런타임에 프로바이더 인스턴스를 직접 조회하는 객체다. 생성자 주입만으로 해결이 안 되는 상황에서 사용한다.
+
+### 기본 사용법
+
+```typescript
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+
+@Injectable()
+export class TaskRunner implements OnModuleInit {
+  private reportService: ReportService;
+
+  constructor(private readonly moduleRef: ModuleRef) {}
+
+  onModuleInit() {
+    // 현재 모듈 컨텍스트에서 프로바이더를 조회
+    this.reportService = this.moduleRef.get(ReportService, { strict: false });
+  }
+}
+```
+
+`get()` 메서드의 두 번째 파라미터 `{ strict: false }`를 주면 현재 모듈뿐 아니라 전역 컨테이너에서도 검색한다. 기본값은 `strict: true`로, 현재 모듈 내에서만 찾는다. 다른 모듈의 프로바이더를 조회하려면 `strict: false`가 필요한데, 이건 해당 프로바이더가 export된 상태여야 동작한다.
+
+### resolve() — REQUEST 스코프 프로바이더 조회
+
+`get()`은 싱글톤 프로바이더에만 사용한다. `Scope.REQUEST`나 `Scope.TRANSIENT`로 등록된 프로바이더는 `resolve()`를 써야 한다.
+
+```typescript
+@Injectable()
+export class AuditService {
+  constructor(private readonly moduleRef: ModuleRef) {}
+
+  async createAuditContext() {
+    // resolve()는 호출할 때마다 새 인스턴스를 만든다 (transient)
+    const logger = await this.moduleRef.resolve(TransientLogger);
+    return logger;
+  }
+
+  async createSharedContext() {
+    // contextId를 지정하면 같은 contextId 내에서 인스턴스를 공유한다
+    const contextId = ContextIdFactory.create();
+    const a = await this.moduleRef.resolve(TransientLogger, contextId);
+    const b = await this.moduleRef.resolve(TransientLogger, contextId);
+    // a === b → true (같은 contextId이므로)
+  }
+}
+```
+
+`resolve()`는 항상 Promise를 반환한다. `get()`과 다르게 동기가 아니니까 생성자에서 호출하면 안 되고, `onModuleInit`이나 비즈니스 로직 안에서 써야 한다.
+
+### create() — DI 컨테이너 밖에서 인스턴스 생성
+
+등록되지 않은 클래스의 인스턴스를 DI 컨테이너의 의존성 주입을 적용해서 만들 수 있다.
+
+```typescript
+@Injectable()
+export class HandlerFactory {
+  constructor(private readonly moduleRef: ModuleRef) {}
+
+  async createHandler(type: string) {
+    // EventHandler가 providers에 등록되어 있지 않아도,
+    // 생성자에 주입이 필요한 의존성은 컨테이너에서 가져와서 넣어준다
+    const handler = await this.moduleRef.create(EventHandler);
+    return handler;
+  }
+}
+```
+
+`create()`로 만든 인스턴스는 NestJS 모듈 시스템이 관리하지 않는다. 라이프사이클 훅(`OnModuleInit` 등)이 호출되지 않고, GC가 수거하기 전까지 메모리에 남는다. 동적으로 핸들러를 생성하는 패턴에서 유용하지만, 남용하면 메모리 누수 원인이 된다.
+
+### 실무에서 ModuleRef가 필요한 경우
+
+대부분의 상황에서는 생성자 주입으로 충분하다. ModuleRef가 필요한 상황은 제한적이다:
+
+- **런타임에 타입이 결정되는 경우**: 이벤트 타입에 따라 다른 핸들러를 선택해야 할 때
+- **순환 의존성 회피**: `forwardRef()` 대신 런타임에 필요한 시점에 조회
+- **REQUEST 스코프 프로바이더를 싱글톤에서 사용해야 할 때**: 싱글톤 서비스가 요청별 컨텍스트에 접근해야 하는 경우
+
+```typescript
+// 이벤트 타입에 따라 핸들러를 동적으로 선택하는 예시
+@Injectable()
+export class EventDispatcher {
+  private handlerMap: Map<string, Type<EventHandler>>;
+
+  constructor(private readonly moduleRef: ModuleRef) {
+    this.handlerMap = new Map([
+      ['order.created', OrderCreatedHandler],
+      ['order.cancelled', OrderCancelledHandler],
+      ['payment.completed', PaymentCompletedHandler],
+    ]);
+  }
+
+  async dispatch(event: DomainEvent) {
+    const handlerType = this.handlerMap.get(event.type);
+    if (!handlerType) {
+      throw new Error(`핸들러 없음: ${event.type}`);
+    }
+    const handler = this.moduleRef.get(handlerType, { strict: false });
+    await handler.handle(event);
+  }
+}
+```
+
+
+## LazyModuleLoader — 모듈 지연 로딩
+
+`LazyModuleLoader`는 부트스트랩 시점에 모듈을 로딩하지 않고, 실제로 필요해지는 시점에 로딩하는 기능이다. 콜드 스타트 시간이 중요한 서버리스 환경이나, 특정 조건에서만 사용하는 무거운 모듈이 있을 때 유용하다.
+
+### 기본 사용법
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { LazyModuleLoader } from '@nestjs/core';
+
+@Injectable()
+export class ReportController {
+  constructor(private readonly lazyModuleLoader: LazyModuleLoader) {}
+
+  async generateReport() {
+    // ReportModule을 이 시점에 처음 로딩한다
+    const moduleRef = await this.lazyModuleLoader.load(() => ReportModule);
+
+    // 로딩된 모듈에서 서비스를 꺼낸다
+    const reportService = moduleRef.get(ReportService);
+    return reportService.generate();
+  }
+}
+```
+
+`load()`는 팩토리 함수를 받는다. 화살표 함수로 감싸야 하며, 직접 클래스를 넘기면 안 된다. 한 번 로딩된 모듈은 캐시되어 두 번째 `load()` 호출부터는 즉시 반환된다.
+
+### 지연 로딩 시 주의사항
+
+지연 로딩된 모듈은 몇 가지 제약이 있다:
+
+**컨트롤러가 등록되지 않는다.** 지연 로딩된 모듈에 선언된 컨트롤러는 라우트로 등록되지 않는다. HTTP 라우팅은 부트스트랩 시점에 결정되기 때문이다. 지연 로딩은 프로바이더 위주의 백그라운드 작업에 적합하다.
+
+**`global: true` 모듈은 지연 로딩할 수 없다.** 글로벌 모듈은 부트스트랩 시점에 이미 전역 컨테이너에 등록되어야 하기 때문이다.
+
+**라이프사이클 훅은 정상 동작한다.** `OnModuleInit`과 `OnApplicationBootstrap`이 `load()` 시점에 실행된다. 단, `OnModuleDestroy`는 애플리케이션 종료 시 호출된다.
+
+```typescript
+// 서버리스에서 콜드 스타트를 줄이는 패턴
+@Injectable()
+export class PdfService {
+  constructor(private readonly lazyModuleLoader: LazyModuleLoader) {}
+
+  async generatePdf(data: any) {
+    // PDF 생성 라이브러리가 무거워서 (puppeteer 등)
+    // 모든 요청에서 필요하지 않으면 지연 로딩한다
+    const { PdfModule } = await import('./pdf/pdf.module');
+    const moduleRef = await this.lazyModuleLoader.load(() => PdfModule);
+    const generator = moduleRef.get(PdfGenerator);
+    return generator.create(data);
+  }
+}
+```
+
+동적 import(`import()`)와 `LazyModuleLoader.load()`를 함께 쓰면 모듈의 JavaScript 번들 자체도 필요할 때만 로딩할 수 있다.
+
+
+## ConfigurableModuleBuilder — 동적 모듈 보일러플레이트 제거
+
+NestJS 9부터 추가된 `ConfigurableModuleBuilder`는 `forRoot`, `forRootAsync`, 옵션 인터페이스 등의 반복 코드를 자동 생성한다. 동적 모듈을 직접 구현하면 매번 비슷한 코드를 짜야 하는데, 이걸 줄여준다.
+
+### 기본 사용법
+
+```typescript
+// notification.module-definition.ts
+import { ConfigurableModuleBuilder } from '@nestjs/common';
+
+export interface NotificationModuleOptions {
+  apiKey: string;
+  sender: string;
+  retryCount?: number;
+}
+
+export const {
+  ConfigurableModuleClass,
+  MODULE_OPTIONS_TOKEN,
+} = new ConfigurableModuleBuilder<NotificationModuleOptions>()
+  .build();
+```
+
+`build()`를 호출하면 두 가지가 생성된다:
+- `ConfigurableModuleClass`: `register()`와 `registerAsync()` 정적 메서드가 포함된 클래스
+- `MODULE_OPTIONS_TOKEN`: 옵션을 주입받을 때 사용하는 토큰
+
+```typescript
+// notification.module.ts
+import { Module } from '@nestjs/common';
+import { ConfigurableModuleClass } from './notification.module-definition';
+import { NotificationService } from './notification.service';
+
+@Module({
+  providers: [NotificationService],
+  exports: [NotificationService],
+})
+export class NotificationModule extends ConfigurableModuleClass {}
+```
+
+모듈 클래스가 `ConfigurableModuleClass`를 extends하면 `register()`와 `registerAsync()`가 자동으로 붙는다.
+
+```typescript
+// notification.service.ts
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  MODULE_OPTIONS_TOKEN,
+  NotificationModuleOptions,
+} from './notification.module-definition';
+
+@Injectable()
+export class NotificationService {
+  constructor(
+    @Inject(MODULE_OPTIONS_TOKEN)
+    private readonly options: NotificationModuleOptions,
+  ) {}
+
+  async send(to: string, message: string) {
+    // this.options.apiKey, this.options.sender 사용
+  }
+}
+```
+
+### 메서드 이름 변경
+
+기본으로 `register`/`registerAsync`가 생성되는데, `forRoot`/`forRootAsync`로 바꾸려면:
+
+```typescript
+export const {
+  ConfigurableModuleClass,
+  MODULE_OPTIONS_TOKEN,
+} = new ConfigurableModuleBuilder<NotificationModuleOptions>()
+  .setClassMethodName('forRoot')
+  .build();
+```
+
+이렇게 하면 `NotificationModule.forRoot()`과 `NotificationModule.forRootAsync()`가 생성된다.
+
+### 글로벌 모듈로 만들기
+
+```typescript
+export const {
+  ConfigurableModuleClass,
+  MODULE_OPTIONS_TOKEN,
+} = new ConfigurableModuleBuilder<NotificationModuleOptions>()
+  .setClassMethodName('forRoot')
+  .setExtras({ isGlobal: false }, (definition, extras) => ({
+    ...definition,
+    global: extras.isGlobal,
+  }))
+  .build();
+```
+
+`setExtras`를 사용하면 옵션 외에 추가 파라미터를 받을 수 있다. 사용하는 쪽에서 `isGlobal: true`를 넘기면 글로벌 모듈로 동작한다.
+
+```typescript
+@Module({
+  imports: [
+    NotificationModule.forRoot({
+      apiKey: 'xxx',
+      sender: 'noreply@example.com',
+      isGlobal: true,  // setExtras에서 정의한 추가 옵션
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### 직접 구현 vs ConfigurableModuleBuilder
+
+직접 구현하는 게 나은 경우도 있다. `ConfigurableModuleBuilder`는 `register`/`registerAsync` 패턴을 따르는 단순한 동적 모듈에 적합하다. `forRoot`과 `forFeature`를 동시에 제공하거나, 옵션에 따라 providers가 크게 달라지는 복잡한 모듈에서는 직접 구현하는 게 코드를 이해하기 쉽다.
+
+
+## 모듈 재내보내기 (Re-exporting)
+
+한 모듈이 import한 모듈을 다시 export하면, 그 모듈을 import하는 쪽에서 원본 모듈을 따로 import하지 않아도 된다.
+
+### 기본 패턴
+
+```typescript
+@Module({
+  imports: [DatabaseModule, CacheModule],
+  exports: [DatabaseModule, CacheModule],  // import한 모듈을 다시 export
+})
+export class CoreModule {}
+```
+
+```typescript
+// AppModule에서 CoreModule만 import하면
+// DatabaseModule과 CacheModule의 exported 프로바이더를 모두 사용할 수 있다
+@Module({
+  imports: [CoreModule],
+})
+export class AppModule {}
+```
+
+내부 동작을 보면, `CoreModule`이 `DatabaseModule`을 re-export하면 NestJS는 `DatabaseModule`의 exports 배열에 명시된 프로바이더들을 `CoreModule`을 import하는 모든 모듈에 노출한다. `DatabaseModule` 내부에서 export하지 않은 프로바이더는 여전히 접근할 수 없다.
+
+### 동적 모듈 재내보내기
+
+동적 모듈도 re-export할 수 있다. 단, `forRoot()`를 호출한 결과를 re-export해야 한다.
+
+```typescript
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: 'localhost',
+      // ...
+    }),
+  ],
+  exports: [TypeOrmModule],  // TypeOrmModule 클래스를 re-export
+})
+export class DatabaseModule {}
+```
+
+여기서 `exports`에 `TypeOrmModule`(클래스)을 넣는다. `TypeOrmModule.forRoot()`의 반환값(DynamicModule 객체)이 아니라 클래스 자체를 넣는다. NestJS는 모듈 토큰(클래스)을 기준으로 매칭하기 때문이다.
+
+### 재내보내기를 쓰는 이유
+
+- **관련 모듈을 하나로 묶어서 import 줄이기**: 여러 인프라 모듈을 `CoreModule` 하나로 묶으면 각 feature 모듈에서 import 목록이 짧아진다.
+- **간접 의존성 관리**: 내부 구현 모듈을 직접 노출하지 않고, 래핑 모듈을 통해서만 접근하게 한다. 나중에 내부 모듈을 교체할 때 래핑 모듈만 수정하면 된다.
+
+주의할 점: re-export을 남발하면 모듈 의존성이 불투명해진다. `CoreModule`이 뭘 re-export하는지 알려면 항상 `CoreModule` 코드를 열어봐야 한다. 명확한 목적 없이 "편하니까" re-export하는 건 피해야 한다.
+
+
+## forFeature 패턴
+
+`forRoot`이 전역 설정을 담당한다면, `forFeature`는 각 feature 모듈에서 필요한 부분만 등록하는 패턴이다. TypeORM의 `TypeOrmModule.forFeature([User, Order])`가 대표적인 예시다.
+
+### forFeature의 동작 원리
+
+`forRoot`에서 전역 설정(DB 연결 정보 등)을 등록하고, `forFeature`에서는 그 설정을 기반으로 특정 리소스(엔티티, 리포지토리 등)만 모듈 스코프에 등록한다.
+
+```typescript
+@Module({})
+export class EventStoreModule {
+  // 전역 설정: 이벤트 스토어 연결 정보
+  static forRoot(options: EventStoreOptions): DynamicModule {
+    return {
+      module: EventStoreModule,
+      global: true,
+      providers: [
+        {
+          provide: 'EVENT_STORE_OPTIONS',
+          useValue: options,
+        },
+        EventStoreConnection,
+      ],
+      exports: [EventStoreConnection],
+    };
+  }
+
+  // 모듈별 설정: 해당 모듈에서 사용할 이벤트 스트림 등록
+  static forFeature(streams: string[]): DynamicModule {
+    const providers = streams.map(stream => ({
+      provide: `EVENT_STREAM_${stream}`,
+      useFactory: (connection: EventStoreConnection) => {
+        return connection.getStream(stream);
+      },
+      inject: [EventStoreConnection],
+    }));
+
+    return {
+      module: EventStoreModule,
+      providers,
+      exports: providers.map(p => p.provide),
+    };
+  }
+}
+```
+
+```typescript
+// AppModule에서 연결 설정
+@Module({
+  imports: [
+    EventStoreModule.forRoot({
+      host: 'localhost',
+      port: 1113,
+    }),
+    OrderModule,
+    PaymentModule,
+  ],
+})
+export class AppModule {}
+
+// OrderModule에서 필요한 스트림만 등록
+@Module({
+  imports: [
+    EventStoreModule.forFeature(['order-created', 'order-cancelled']),
+  ],
+})
+export class OrderModule {}
+
+// PaymentModule에서 다른 스트림 등록
+@Module({
+  imports: [
+    EventStoreModule.forFeature(['payment-completed', 'payment-failed']),
+  ],
+})
+export class PaymentModule {}
+```
+
+### forFeature 구현 시 핵심 포인트
+
+**forRoot은 global, forFeature는 non-global이다.** `forRoot`이 `global: true`로 등록되어 있어야 `forFeature`에서 `EventStoreConnection`을 `inject`로 가져올 수 있다. `forFeature`가 반환하는 `DynamicModule`에는 `global: true`를 넣으면 안 된다. forFeature의 프로바이더는 해당 모듈 스코프에만 존재해야 한다.
+
+**같은 module 클래스를 사용하면 모듈 토큰이 겹친다.** 위 예시에서 `OrderModule`과 `PaymentModule` 모두 `EventStoreModule.forFeature()`를 호출하는데, 반환되는 `DynamicModule`의 `module` 필드가 둘 다 `EventStoreModule`이다. NestJS는 같은 토큰의 모듈을 한 번만 등록하기 때문에, 하나가 무시될 수 있다.
+
+이 문제를 해결하는 방법:
+
+```typescript
+static forFeature(streams: string[]): DynamicModule {
+  const providers = streams.map(stream => ({
+    provide: `EVENT_STREAM_${stream}`,
+    useFactory: (connection: EventStoreConnection) => {
+      return connection.getStream(stream);
+    },
+    inject: [EventStoreConnection],
+  }));
+
+  return {
+    module: EventStoreModule,
+    providers,
+    exports: providers.map(p => p.provide),
+  };
+}
+```
+
+실제로 NestJS는 동적 모듈의 경우 `module` 클래스 + 전달된 메타데이터 조합으로 중복을 판단한다. providers 배열이 다르면 별개의 모듈 인스턴스로 취급된다. TypeOrmModule이 여러 곳에서 `forFeature()`를 호출해도 동작하는 이유가 이것이다. 다만 직접 구현할 때 이 동작에 의존하지 말고, 프로바이더 토큰이 겹치지 않도록 설계하는 게 안전하다.
+
+### forFeature에서 동적 프로바이더 토큰 패턴
+
+TypeORM의 `getRepositoryToken()` 같은 함수를 만들면, forFeature로 등록한 프로바이더를 다른 서비스에서 주입받을 때 편하다.
+
+```typescript
+// 토큰 생성 함수
+export function getEventStreamToken(stream: string): string {
+  return `EVENT_STREAM_${stream}`;
+}
+
+// 서비스에서 주입
+@Injectable()
+export class OrderService {
+  constructor(
+    @Inject(getEventStreamToken('order-created'))
+    private readonly orderCreatedStream: EventStream,
+  ) {}
+}
+```
+
+문자열 토큰을 직접 쓰면 오타 위험이 있으니, 토큰 생성 함수를 한 곳에서 관리한다.
 
 
 ## Graceful Shutdown 구현
