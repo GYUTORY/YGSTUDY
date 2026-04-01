@@ -1,7 +1,7 @@
 ---
 title: Redis 심화
-tags: [redis, cluster, sentinel, streams, lua, distributed-lock, spring-data-redis, performance, valkey, redis-functions]
-updated: 2026-03-27
+tags: [redis, cluster, sentinel, streams, lua, distributed-lock, spring-data-redis, performance, valkey, redis-functions, split-brain, network-partition, quorum]
+updated: 2026-04-02
 ---
 
 # Redis 심화
@@ -193,7 +193,153 @@ Sentinel의 역할:
    - 클라이언트에 새 Master 주소 전파
 ```
 
-### 2.3 설정
+### 2.3 Split-Brain과 네트워크 파티션
+
+Sentinel 환경에서 가장 위험한 장애는 split-brain이다. 네트워크 파티션으로 Master가 Sentinel 과반수와 분리되면, 기존 Master는 계속 쓰기를 받는데 Sentinel은 새 Master를 승격시킨다. 이 순간 Master가 2대가 되고, 양쪽에 다른 데이터가 쓰인다.
+
+```
+정상 상태:
+  [Sentinel 1] [Sentinel 2] [Sentinel 3]
+       │             │             │
+       └─────────────┼─────────────┘
+                     │
+              ┌──────────┐
+              │  Master   │──→ Replica 1, Replica 2
+              └──────────┘
+
+네트워크 파티션 발생:
+  ── 파티션 A ──────────        ── 파티션 B ──────────
+  [Sentinel 1] [Sentinel 2]     [Sentinel 3]
+       │             │                │
+       │             │           ┌──────────┐
+       │             │           │  Master   │ ← 클라이언트가 여전히 쓰기 중
+       │             │           └──────────┘
+       │             │
+  ┌──────────┐       │
+  │ Replica 1│ ← 새 Master로 승격
+  └──────────┘
+
+  → Master가 2대 존재하는 split-brain 상태
+  → 파티션 해소 후 기존 Master는 Replica로 강등되면서 파티션 B 쪽 쓰기가 유실됨
+```
+
+이 문제를 완전히 막을 수는 없지만, 데이터 유실 범위를 줄이는 설정이 있다.
+
+```conf
+# redis.conf (Master에 설정)
+min-replicas-to-write 1        # 최소 1대의 Replica가 연결되어야 쓰기 허용
+min-replicas-max-lag 10        # Replica의 복제 지연이 10초 이내여야 쓰기 허용
+```
+
+```
+min-replicas-to-write가 동작하는 방식:
+  파티션 발생 → 기존 Master에서 Replica가 끊어짐
+  → min-replicas-to-write 조건 미충족
+  → 기존 Master가 쓰기를 거부 (NOREPLICAS 에러)
+  → 파티션 B 쪽 데이터 유실 방지
+
+  주의:
+  - Replica가 모두 끊어지면 Master도 쓰기 불가 → 가용성이 떨어진다
+  - 쓰기 가용성과 데이터 안전성 사이의 트레이드오프
+  - min-replicas-to-write 1 + Replica 2대 구성이면 1대 장애까지는 쓰기 가능
+```
+
+실제로 네트워크 파티션이 발생하면 클라이언트 쪽에서도 대응해야 한다. Lettuce의 Sentinel 연결에서 `refresh` 간격을 짧게 잡아야 새 Master로 빨리 전환된다. 파티션 해소 후 `CLIENT LIST`로 기존 Master에 붙어있는 커넥션이 남아있는지 확인하고, 남아있으면 `CLIENT KILL`로 정리해야 한다.
+
+### 2.4 Quorum 설정 실수 사례
+
+quorum은 ODOWN 판정에 필요한 최소 Sentinel 동의 수다. 이 값을 잘못 설정하면 페일오버가 안 되거나 너무 빨리 된다.
+
+```
+사례 1: Sentinel 2대에 quorum 2
+
+  sentinel monitor mymaster 192.168.1.1 6379 2
+
+  Sentinel이 2대뿐인데 quorum이 2면, Sentinel 1대만 죽어도 ODOWN 판정이 불가능하다.
+  Master가 장애 나도 페일오버가 실행되지 않는다.
+
+  → Sentinel은 최소 3대, quorum은 2로 설정한다.
+  → Sentinel 수가 홀수여야 리더 선출 시 과반수 계산이 깔끔하다.
+
+사례 2: Sentinel 5대에 quorum 1
+
+  sentinel monitor mymaster 192.168.1.1 6379 1
+
+  Sentinel 1대만 "Master 죽었다"고 판단하면 바로 ODOWN이 된다.
+  네트워크 일시 지연으로 Sentinel 1대가 Master와 통신 실패 → 불필요한 페일오버 발생
+  페일오버가 잦으면 데이터 정합성 문제와 커넥션 끊김이 반복된다.
+
+  → quorum은 (Sentinel 수 / 2) + 1 이 적정선이다.
+  → 5대면 quorum 3, 3대면 quorum 2.
+
+사례 3: quorum과 과반수 혼동
+
+  quorum은 ODOWN 판정에만 사용된다. 실제 페일오버를 실행하려면 Sentinel 과반수의
+  동의가 별도로 필요하다.
+
+  Sentinel 5대, quorum 2:
+    - ODOWN: 2대 동의면 Master를 down으로 판정 ← quorum
+    - 리더 선출: 3대 이상 동의 필요 (과반수) ← quorum과 무관
+    - quorum을 낮춰도 과반수 미달이면 페일오버는 실행되지 않는다
+```
+
+### 2.5 Sentinel 모니터링 명령어
+
+Sentinel 상태를 확인하는 명령어는 redis-cli로 Sentinel 포트(기본 26379)에 접속해서 사용한다.
+
+```bash
+# Sentinel 접속
+redis-cli -p 26379
+
+# 감시 중인 Master 정보
+SENTINEL masters
+# → 이름, IP, 포트, 상태(flags), 연결된 Replica 수, Sentinel 수 등
+
+# 특정 Master의 상세 정보
+SENTINEL master mymaster
+# → num-slaves, num-other-sentinels, quorum, failover-timeout 등 확인
+
+# Master의 Replica 목록
+SENTINEL replicas mymaster
+# → 각 Replica의 IP, 포트, 상태, 복제 지연(master-link-down-time) 등
+
+# 다른 Sentinel 목록
+SENTINEL sentinels mymaster
+# → 각 Sentinel의 IP, 포트, 마지막 통신 시간
+
+# 현재 Master 주소 조회 (클라이언트가 사용)
+SENTINEL get-master-addr-by-name mymaster
+# → "192.168.1.1" "6379"
+
+# 페일오버 히스토리 (로그에서 확인)
+SENTINEL failover-status mymaster
+
+# 수동 페일오버 트리거 (테스트 시)
+SENTINEL failover mymaster
+# → 강제로 페일오버 실행, 현재 Master를 Replica로 강등
+
+# Sentinel 설정 변경 (런타임)
+SENTINEL SET mymaster down-after-milliseconds 10000
+SENTINEL SET mymaster failover-timeout 120000
+
+# 모니터링 대상 추가/제거
+SENTINEL MONITOR newmaster 192.168.1.5 6379 2
+SENTINEL REMOVE mymaster
+```
+
+```
+운영 시 주기적으로 확인할 항목:
+  1. SENTINEL masters → flags가 "master"인지 (s_down, o_down이 붙어있으면 문제)
+  2. SENTINEL replicas mymaster → 모든 Replica가 "slave" 상태인지
+  3. SENTINEL sentinels mymaster → Sentinel 수가 예상과 일치하는지
+  4. Master의 INFO replication → connected_slaves 수, repl_backlog_active 여부
+
+  Sentinel 수가 예상보다 많으면 이전 Sentinel이 정리되지 않은 것이다.
+  SENTINEL RESET mymaster로 Sentinel 목록을 초기화할 수 있다.
+  단, 모든 Sentinel에서 실행해야 한다.
+```
+
+### 2.6 설정
 
 ```conf
 # sentinel.conf
@@ -221,17 +367,204 @@ spring:
           refresh: 10s
 ```
 
-### 2.4 Sentinel vs Cluster
+### 2.7 Sentinel vs Cluster — 실무 선택 기준
+
+단순 비교표로는 판단이 안 된다. 실제로 어떤 상황에서 무엇을 고르는지가 중요하다.
 
 | 항목 | Sentinel | Cluster |
 |------|----------|---------|
 | **목적** | 고가용성 (HA) | HA + 수평 확장 |
 | **데이터 분산** | X (단일 Master) | O (멀티 Master) |
 | **자동 페일오버** | O | O |
-| **최대 메모리** | 단일 노드 메모리 | 노드 수 × 메모리 |
+| **최대 메모리** | 단일 노드 메모리 | 노드 수 x 메모리 |
 | **멀티 키 연산** | 제약 없음 | 같은 슬롯만 가능 |
 | **복잡도** | 낮음 | 높음 |
 | **적합한 경우** | 10GB 이하, HA 필요 | 대용량, 높은 처리량 |
+
+#### 데이터 크기 기준
+
+```
+데이터가 단일 서버 메모리에 들어가는가?
+
+  10GB 이하:
+    → Sentinel로 충분하다. Cluster를 쓰면 운영 복잡도만 올라간다.
+    → Master 1대 + Replica 2대 + Sentinel 3대 = 총 6프로세스
+    → 단순하고, 멀티 키 연산도 자유롭다.
+
+  10~50GB:
+    → 메모리에 여유가 있으면 Sentinel, 없으면 Cluster.
+    → 64GB 메모리 서버에 50GB Redis를 올리면 포크 시 메모리 부족이 온다.
+    → maxmemory를 물리 메모리의 50%로 잡았을 때 데이터가 들어가면 Sentinel.
+
+  50GB 이상:
+    → Cluster가 거의 필수다.
+    → 단일 서버에 50GB 이상 올리면 포크 시간, RDB 저장 시간, 복제 시간이 모두 길어진다.
+    → 노드당 10~20GB 수준으로 분산하는 게 운영하기 편하다.
+```
+
+#### 트래픽 패턴 기준
+
+```
+읽기 비율이 높은 경우 (읽기 80% 이상):
+  → Sentinel + ReadFrom.REPLICA_PREFERRED로 읽기 분산
+  → Cluster보다 구성이 간단하고 멀티 키 연산에 제약이 없다.
+
+쓰기가 많은 경우:
+  → 단일 Master의 쓰기 처리량에 한계가 있다.
+  → Redis 단일 노드의 쓰기 한계는 보통 10~15만 ops/sec.
+  → 이 이상이 필요하면 Cluster로 쓰기를 분산해야 한다.
+
+MGET, 파이프라인, 트랜잭션을 많이 쓰는 경우:
+  → Sentinel이 유리하다.
+  → Cluster에서는 해시 태그로 같은 슬롯에 몰아야 하는데,
+    데이터 분포가 편중되면 핫스팟이 생긴다.
+  → 해시 태그를 과도하게 쓰면 Cluster를 쓰는 의미가 없어진다.
+```
+
+#### 운영 인력 기준
+
+```
+1~2명이 Redis를 포함한 인프라 전체를 관리하는 경우:
+  → Sentinel을 쓴다.
+  → Cluster는 슬롯 리밸런싱, 노드 추가/제거, MOVED 에러 대응 등 운영 포인트가 많다.
+  → 장애 시 Cluster 상태를 파악하고 복구하는 데 경험이 필요하다.
+
+전담 DBA나 인프라 팀이 있는 경우:
+  → 규모에 따라 Cluster를 고려한다.
+  → 클라우드 매니지드 서비스(ElastiCache, Memorystore)를 쓰면
+    Cluster 운영 부담이 크게 줄어든다.
+```
+
+### 2.8 Sentinel에서 Cluster로 마이그레이션
+
+데이터가 커지거나 트래픽이 증가해서 Sentinel에서 Cluster로 옮겨야 하는 경우가 있다. 무중단으로 하려면 단계적으로 접근해야 한다.
+
+```
+마이그레이션 순서:
+
+1. Cluster 구축
+   - 별도 서버에 Redis Cluster를 새로 구성한다.
+   - Master 3대 + Replica 3대 (최소 구성).
+
+2. 데이터 마이그레이션
+   - redis-cli --cluster import 는 단건 처리라 느리다.
+   - 대량 데이터는 RDB 파일 기반 마이그레이션이 빠르다.
+     → Sentinel의 Replica에서 BGSAVE → RDB 파일 추출
+     → redis-shake 같은 도구로 Cluster에 적재
+   - 키 수가 적으면(수백만 이하) DUMP/RESTORE 조합도 가능하다.
+
+3. 애플리케이션 코드 수정
+   - Spring Boot 설정을 sentinel → cluster로 변경.
+   - 멀티 키 연산이 있으면 해시 태그를 추가하거나 로직을 변경해야 한다.
+     → MGET key1 key2 key3 → 같은 슬롯이 아니면 에러
+     → {prefix}:key1, {prefix}:key2 형태로 변경하거나 개별 GET으로 분리
+   - KEYS, SCAN 명령이 있으면 노드별로 실행하도록 변경한다.
+
+4. 듀얼 라이트 (선택)
+   - 전환 기간 동안 Sentinel과 Cluster 양쪽에 쓰기.
+   - 읽기를 Cluster로 전환하면서 데이터 정합성 확인.
+   - 정합성이 확인되면 Sentinel 쓰기를 중단한다.
+
+5. 전환 완료
+   - 모든 트래픽을 Cluster로 전환한다.
+   - Sentinel 환경은 일정 기간 유지 후 제거한다.
+```
+
+```
+주의사항:
+  - SELECT (DB 번호) 사용 시: Cluster는 DB 0만 지원한다.
+    Sentinel에서 DB 1, DB 2를 쓰고 있었다면 키 네이밍을 바꿔야 한다.
+  - Lua 스크립트: KEYS 파라미터로 전달하는 모든 키가 같은 슬롯에 있어야 한다.
+    스크립트 내에서 동적으로 키를 생성하면 CROSSSLOT 에러가 난다.
+  - Pub/Sub: 기존 SUBSCRIBE/PUBLISH는 Cluster 전 노드에 브로드캐스트된다.
+    Redis 7.0+면 Sharded Pub/Sub(SSUBSCRIBE/SPUBLISH)으로 변경한다.
+```
+
+### 2.9 아키텍처별 장애 패턴과 대응
+
+#### Sentinel에서 흔히 겪는 장애
+
+```
+1. 페일오버 후 클라이언트가 기존 Master에 계속 접속
+
+  원인: 클라이언트의 Sentinel 토폴로지 갱신이 늦음.
+  증상: 새 Master로 전환됐는데 쓰기가 기존 Master에 계속 들어감.
+       파티션 해소 후 기존 Master가 Replica로 강등되면서 데이터 유실.
+
+  대응:
+  - Lettuce의 sentinel refresh 간격을 짧게 잡는다 (기본 10s → 2~5s).
+  - 기존 Master의 redis.conf에 min-replicas-to-write 1을 설정한다.
+  - 페일오버 직후 SENTINEL get-master-addr-by-name으로 Master 주소를 확인한다.
+
+2. Sentinel 프로세스가 Redis Master와 같은 서버에 있음
+
+  원인: 비용 절감으로 같은 서버에 배치.
+  증상: 서버 장애 시 Sentinel도 같이 죽어서 quorum 미달 → 페일오버 불가.
+
+  대응:
+  - Sentinel은 Redis와 다른 서버에 배치한다.
+  - 최소한 3대의 Sentinel을 서로 다른 서버 또는 가용 영역에 둔다.
+
+3. down-after-milliseconds가 너무 짧음
+
+  원인: 빠른 장애 감지를 위해 1초 같은 짧은 값으로 설정.
+  증상: GC pause나 네트워크 일시 지연으로 불필요한 페일오버 반복.
+       페일오버마다 커넥션이 끊기고 복제가 다시 시작됨.
+
+  대응:
+  - 5~10초가 적정선이다. 너무 짧으면 false positive가 많다.
+  - 페일오버 빈도가 월 1회 이상이면 값을 올려야 한다.
+```
+
+#### Cluster에서 흔히 겪는 장애
+
+```
+1. 슬롯 커버리지 실패 (CLUSTERDOWN)
+
+  원인: Master 1대가 죽었는데 해당 Replica도 없거나 Replica까지 죽음.
+  증상: 해당 슬롯 범위의 키에 접근 불가.
+       cluster-require-full-coverage yes(기본값)면 클러스터 전체가 쓰기 거부.
+
+  대응:
+  - cluster-require-full-coverage no로 변경하면, 문제 슬롯을 제외한
+    나머지 슬롯은 정상 동작한다. 부분 장애가 전체 장애로 번지지 않는다.
+  - 각 Master에 Replica를 2대 이상 붙이면 동시 장애에 대비할 수 있다.
+
+2. 핫스팟 (특정 노드에 트래픽 집중)
+
+  원인: 인기 키가 특정 슬롯에 몰리거나, 해시 태그를 과도하게 사용.
+  증상: 특정 Master의 CPU가 100%에 가까운데 나머지 노드는 한가함.
+       해당 노드의 응답 시간이 급격히 증가.
+
+  대응:
+  - 핫키를 찾는다: redis-cli --hotkeys (Redis 4.0+, LFU 정책 필요)
+  - 핫키를 여러 키로 분산한다: key → key:1, key:2, ... key:N
+    클라이언트가 랜덤으로 읽으면 슬롯이 분산된다.
+  - 읽기 핫스팟이면 ReadFrom.REPLICA로 Replica에서 읽게 한다.
+
+3. 리샤딩 중 성능 저하
+
+  원인: 슬롯 마이그레이션 시 키를 하나씩 MIGRATE하는데, 큰 키가 있으면 블로킹.
+  증상: 리샤딩 중 특정 요청에서 타임아웃 발생.
+       ASK 리다이렉션이 급증.
+
+  대응:
+  - 리샤딩 전에 OBJECT ENCODING과 MEMORY USAGE로 큰 키를 확인한다.
+  - cluster-migration-barrier 설정으로 리샤딩 속도를 조절한다.
+  - 트래픽이 적은 시간대에 리샤딩을 수행한다.
+  - 노드 추가 시 처음부터 충분한 노드 수로 구성하면 리샤딩 빈도를 줄일 수 있다.
+
+4. 노드 간 Gossip 프로토콜 부하
+
+  원인: 클러스터 노드가 수십 대 이상으로 커짐.
+  증상: cluster-node-timeout 시간 내에 모든 노드 상태를 교환하지 못함.
+       불필요한 PFAIL/FAIL 판정이 발생.
+
+  대응:
+  - 노드 수를 100대 이내로 유지한다 (Redis 공식 권장).
+  - cluster-node-timeout을 너무 짧게 잡지 않는다 (15초 이상 권장).
+  - 노드가 더 필요하면 클러스터를 여러 개로 분리하고 애플리케이션 레벨에서 라우팅한다.
+```
 
 ## 3. Redis Streams
 
