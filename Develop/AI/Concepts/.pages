@@ -1,4 +1,5 @@
 nav:
   - LLM.md
+  - AI_Hallucination.md
   - Prompt_Engineering.md
   - RAG_for_Code.md
