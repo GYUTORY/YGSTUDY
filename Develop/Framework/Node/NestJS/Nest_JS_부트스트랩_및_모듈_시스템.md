@@ -1,6 +1,6 @@
 ---
 title: NestJS 부트스트랩 및 모듈 시스템
-tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, module-ref, lazy-loading, graceful-shutdown, node]
+tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, module-ref, lazy-loading, graceful-shutdown, testing, monorepo, node]
 updated: 2026-04-01
 ---
 
@@ -857,6 +857,498 @@ export class OrderService {
 ```
 
 문자열 토큰을 직접 쓰면 오타 위험이 있으니, 토큰 생성 함수를 한 곳에서 관리한다.
+
+
+## 모듈 단위 테스트
+
+NestJS에서 모듈 단위로 격리 테스트를 하려면 `Test.createTestingModule()`을 사용한다. 실제 모듈 구조를 그대로 가져오되, 외부 의존성만 가짜로 교체하는 방식이다.
+
+### 기본 구조
+
+```typescript
+import { Test, TestingModule } from '@nestjs/testing';
+import { OrderService } from './order.service';
+import { PaymentService } from './payment.service';
+
+describe('OrderService', () => {
+  let service: OrderService;
+  let paymentService: PaymentService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        OrderService,
+        {
+          provide: PaymentService,
+          useValue: {
+            charge: jest.fn().mockResolvedValue({ success: true }),
+            refund: jest.fn().mockResolvedValue({ success: true }),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<OrderService>(OrderService);
+    paymentService = module.get<PaymentService>(PaymentService);
+  });
+
+  it('주문 생성 시 결제를 호출한다', async () => {
+    await service.createOrder({ productId: 1, amount: 10000 });
+    expect(paymentService.charge).toHaveBeenCalledWith(10000);
+  });
+});
+```
+
+`createTestingModule()`은 `@Module()` 데코레이터에 넘기는 것과 같은 형태의 메타데이터를 받는다. 테스트에서 필요한 프로바이더만 등록하고, 외부 의존성은 mock 객체로 대체한다.
+
+### overrideProvider 패턴
+
+실제 모듈을 통째로 가져와서 특정 프로바이더만 교체하는 방법이 있다. 모듈에 프로바이더가 많을 때 mock 객체를 일일이 만드는 것보다 낫다.
+
+```typescript
+describe('OrderModule 통합 테스트', () => {
+  let module: TestingModule;
+
+  beforeEach(async () => {
+    module = await Test.createTestingModule({
+      imports: [OrderModule],
+    })
+      .overrideProvider(PaymentService)
+      .useValue({
+        charge: jest.fn().mockResolvedValue({ success: true }),
+      })
+      .overrideProvider(NotificationService)
+      .useValue({
+        send: jest.fn(),
+      })
+      .compile();
+  });
+});
+```
+
+`overrideProvider()`는 체이닝으로 여러 개를 연달아 교체할 수 있다. `compile()` 전에 호출해야 한다.
+
+교체 방식은 세 가지가 있다:
+
+```typescript
+// 1. useValue — 객체를 직접 넘긴다
+.overrideProvider(PaymentService)
+.useValue({ charge: jest.fn() })
+
+// 2. useClass — 다른 클래스로 교체한다
+.overrideProvider(PaymentService)
+.useClass(MockPaymentService)
+
+// 3. useFactory — 팩토리 함수로 생성한다
+.overrideProvider(PaymentService)
+.useFactory({
+  factory: (configService: ConfigService) => {
+    return new StubPaymentService(configService.get('TEST_API_KEY'));
+  },
+  inject: [ConfigService],
+})
+```
+
+### 테스트에서 자주 빠지는 실수
+
+**import한 모듈의 의존성까지 따라 들어오는 문제**
+
+```typescript
+// OrderModule이 PaymentModule을 import하고,
+// PaymentModule이 HttpModule을 import한다면
+const module = await Test.createTestingModule({
+  imports: [OrderModule],
+}).compile();
+// → HttpModule의 실제 HTTP 클라이언트까지 초기화된다
+```
+
+이런 경우 `overrideProvider`로 HttpService를 교체하거나, OrderModule 대신 필요한 프로바이더만 직접 등록하는 게 낫다. 모듈을 통째로 import하면 테스트 실행 시간이 느려지고, 외부 서비스 연결 실패로 테스트가 깨지는 경우가 생긴다.
+
+**커스텀 프로바이더 토큰 교체 시 문자열 토큰 누락**
+
+```typescript
+// 모듈에서 문자열 토큰으로 등록한 프로바이더
+{
+  provide: 'PAYMENT_CLIENT',
+  useFactory: () => new PaymentClient(),
+}
+
+// 테스트에서 교체할 때 클래스가 아니라 같은 문자열 토큰을 써야 한다
+.overrideProvider('PAYMENT_CLIENT')
+.useValue(mockClient)
+```
+
+클래스 토큰은 타입 추론이 되니까 실수할 일이 적은데, 문자열 토큰은 오타가 나면 교체가 안 되고 원본 프로바이더가 그대로 실행된다. 에러도 안 나서 디버깅이 어렵다.
+
+
+## 멀티 프로바이더
+
+같은 토큰에 여러 구현체를 등록해야 하는 경우가 있다. 이벤트 핸들러, 검증 파이프, 플러그인 같은 패턴에서 사용한다.
+
+### 기본 구현
+
+NestJS에서 같은 토큰에 여러 프로바이더를 등록하면 마지막에 등록된 것이 이긴다. 배열로 여러 구현체를 받으려면 별도로 설계해야 한다.
+
+```typescript
+// 각 검증기를 개별 토큰으로 등록하고, 배열 토큰으로 묶는 패턴
+@Module({
+  providers: [
+    EmailValidator,
+    PhoneValidator,
+    AddressValidator,
+    {
+      provide: 'VALIDATORS',
+      useFactory: (...validators: Validator[]) => validators,
+      inject: [EmailValidator, PhoneValidator, AddressValidator],
+    },
+  ],
+  exports: ['VALIDATORS'],
+})
+export class ValidationModule {}
+```
+
+```typescript
+@Injectable()
+export class UserService {
+  constructor(
+    @Inject('VALIDATORS')
+    private readonly validators: Validator[],
+  ) {}
+
+  async validate(input: CreateUserDto) {
+    for (const validator of this.validators) {
+      const result = validator.validate(input);
+      if (!result.valid) {
+        throw new BadRequestException(result.message);
+      }
+    }
+  }
+}
+```
+
+### 동적으로 멀티 프로바이더 수집하기
+
+검증기가 추가될 때마다 `useFactory`의 `inject` 배열을 수정하는 건 번거롭다. `DiscoveryService`를 사용하면 데코레이터로 표시된 프로바이더를 자동으로 수집할 수 있다.
+
+```typescript
+import { DiscoveryService } from '@nestjs/core';
+import { SetMetadata } from '@nestjs/common';
+
+// 커스텀 데코레이터
+export const VALIDATOR_KEY = 'VALIDATOR';
+export const IsValidator = () => SetMetadata(VALIDATOR_KEY, true);
+```
+
+```typescript
+@IsValidator()
+@Injectable()
+export class EmailValidator implements Validator {
+  validate(input: any) { /* ... */ }
+}
+
+@IsValidator()
+@Injectable()
+export class PhoneValidator implements Validator {
+  validate(input: any) { /* ... */ }
+}
+```
+
+```typescript
+@Injectable()
+export class ValidationService implements OnModuleInit {
+  private validators: Validator[] = [];
+
+  constructor(private readonly discoveryService: DiscoveryService) {}
+
+  onModuleInit() {
+    const providers = this.discoveryService.getProviders();
+    this.validators = providers
+      .filter(wrapper => {
+        if (!wrapper.metatype) return false;
+        return Reflect.getMetadata(VALIDATOR_KEY, wrapper.metatype);
+      })
+      .map(wrapper => wrapper.instance as Validator);
+  }
+
+  async validateAll(input: any) {
+    for (const validator of this.validators) {
+      validator.validate(input);
+    }
+  }
+}
+```
+
+`DiscoveryService`는 `@nestjs/core`에서 제공한다. 별도로 import할 모듈은 없지만, `DiscoveryModule`을 import해야 사용할 수 있다.
+
+### 멀티 프로바이더 주의사항
+
+**같은 토큰에 providers 배열로 여러 번 등록하면 마지막이 이긴다**
+
+```typescript
+@Module({
+  providers: [
+    { provide: 'LOGGER', useClass: ConsoleLogger },
+    { provide: 'LOGGER', useClass: FileLogger },    // 이게 최종 등록됨
+  ],
+})
+export class AppModule {}
+```
+
+NestJS DI 컨테이너는 같은 토큰에 대해 마지막으로 등록된 프로바이더를 사용한다. 에러나 경고가 나지 않으니 의도와 다르게 동작하는 걸 눈치채기 어렵다. 여러 구현체를 배열로 받으려면 위에서 설명한 팩토리 패턴이나 DiscoveryService를 써야 한다.
+
+**순서 의존성이 있는 경우**
+
+멀티 프로바이더를 수집해서 순차 실행한다면 실행 순서가 중요할 수 있다. `useFactory`로 직접 배열을 만들면 순서를 제어할 수 있지만, `DiscoveryService`로 자동 수집하면 순서가 보장되지 않는다. 순서가 중요하면 메타데이터에 priority 값을 넣고 정렬하는 식으로 처리해야 한다.
+
+```typescript
+export const IsValidator = (priority = 0) =>
+  SetMetadata(VALIDATOR_KEY, { enabled: true, priority });
+```
+
+
+## 모듈 간 프로바이더 충돌
+
+모듈이 많아지면 같은 토큰의 프로바이더가 여러 모듈에 존재하는 상황이 생긴다. 어떤 인스턴스가 주입되는지 이해하지 못하면 디버깅하기 어려운 버그가 나온다.
+
+### 같은 토큰이 여러 모듈에 있을 때
+
+```typescript
+@Module({
+  providers: [
+    { provide: 'CONFIG', useValue: { timeout: 3000 } },
+    ServiceA,
+  ],
+  exports: ['CONFIG', ServiceA],
+})
+export class ModuleA {}
+
+@Module({
+  providers: [
+    { provide: 'CONFIG', useValue: { timeout: 10000 } },
+    ServiceB,
+  ],
+  exports: ['CONFIG', ServiceB],
+})
+export class ModuleB {}
+
+@Module({
+  imports: [ModuleA, ModuleB],
+})
+export class AppModule {}
+```
+
+이 상태에서 `AppModule` 내의 어떤 서비스가 `@Inject('CONFIG')`를 하면 어떤 값이 들어올까? imports 배열에서 나중에 선언된 모듈(`ModuleB`)의 프로바이더가 들어온다. NestJS는 같은 토큰을 나중에 등록하면 이전 것을 덮어쓴다.
+
+문제는 이게 아무 경고 없이 일어난다는 것이다. `ModuleA`의 `ServiceA`는 자기 모듈의 `CONFIG`(timeout: 3000)를 쓰고, `AppModule`에서 직접 주입하면 `ModuleB`의 `CONFIG`(timeout: 10000)가 들어온다. 모듈 스코프에 따라 다른 값이 주입되니까 동작이 일관적이지 않다.
+
+### exports 안 한 프로바이더가 덮어씌워지는 사례
+
+```typescript
+@Module({
+  providers: [LoggerService],  // exports 안 함 → 모듈 내부 전용
+})
+export class InternalModule {}
+
+@Module({
+  providers: [
+    {
+      provide: LoggerService,
+      useClass: CustomLoggerService,  // 같은 토큰으로 등록
+    },
+  ],
+  exports: [LoggerService],
+})
+export class CustomLoggerModule {}
+
+@Module({
+  imports: [InternalModule, CustomLoggerModule],
+})
+export class AppModule {}
+```
+
+`InternalModule`이 `LoggerService`를 exports하지 않았으니까 외부에 영향이 없을 거라고 생각할 수 있다. 맞다 — `InternalModule` 내부의 서비스들은 자기 모듈의 `LoggerService`를 쓴다.
+
+하지만 global 모듈이 끼면 상황이 달라진다:
+
+```typescript
+@Global()
+@Module({
+  providers: [LoggerService],
+  exports: [LoggerService],
+})
+export class GlobalLoggerModule {}
+
+@Module({
+  providers: [LoggerService],  // 로컬에서 다시 등록
+})
+export class FeatureModule {}
+```
+
+`FeatureModule`이 `LoggerService`를 로컬에 등록하면 해당 모듈 내에서는 로컬 인스턴스가 우선한다. `GlobalLoggerModule`의 인스턴스를 덮는다. 의도한 거라면 괜찮지만, 모르고 같은 클래스 이름을 쓰면 글로벌 설정이 무시되는 원인이 된다.
+
+### 충돌 방지 방법
+
+**1. 문자열이나 Symbol 토큰을 사용한다**
+
+```typescript
+// 모듈별로 고유한 토큰을 정의
+export const MODULE_A_CONFIG = Symbol('MODULE_A_CONFIG');
+export const MODULE_B_CONFIG = Symbol('MODULE_B_CONFIG');
+
+@Module({
+  providers: [
+    { provide: MODULE_A_CONFIG, useValue: { timeout: 3000 } },
+  ],
+  exports: [MODULE_A_CONFIG],
+})
+export class ModuleA {}
+```
+
+Symbol은 유일성이 보장되니까 토큰 충돌이 원천적으로 없다. 문자열 토큰은 모듈 prefix를 붙여서 `MODULE_A_CONFIG` 같은 형태로 관리한다.
+
+**2. 글로벌 모듈은 신중하게 사용한다**
+
+`@Global()`을 남발하면 토큰 충돌 가능성이 높아진다. 글로벌 모듈은 ConfigModule, DatabaseModule처럼 정말로 모든 모듈에서 필요한 것만 글로벌로 등록해야 한다. "import 쓰기 귀찮아서" 글로벌로 만들면 나중에 토큰 충돌 디버깅 지옥에 빠진다.
+
+**3. 토큰 충돌 디버깅**
+
+예상과 다른 프로바이더가 주입되는 것 같으면, NestJS의 디버그 로깅을 켜서 DI 컨테이너가 어떤 프로바이더를 어떤 모듈에 등록하는지 확인한다.
+
+```typescript
+const app = await NestFactory.create(AppModule, {
+  logger: ['debug'],
+});
+```
+
+디버그 로그에서 `"... is not unique"` 같은 경고가 나오면 토큰이 겹치고 있다는 신호다.
+
+
+## 모노레포에서 모듈 분리
+
+NestJS CLI는 `library` 모드를 제공한다. 공통 모듈(DTO, 인터페이스, 유틸리티 등)을 별도 라이브러리로 분리해서 여러 애플리케이션에서 공유하는 구조다.
+
+### library 모드 기본 구조
+
+```bash
+nest g library common
+```
+
+이 명령을 실행하면 `libs/common` 디렉토리가 생기고, `nest-cli.json`에 라이브러리 설정이 추가된다.
+
+```
+project-root/
+├── apps/
+│   ├── api/          # 메인 애플리케이션
+│   └── worker/       # 워커 애플리케이션
+├── libs/
+│   └── common/       # 공통 라이브러리
+│       ├── src/
+│       │   ├── common.module.ts
+│       │   ├── common.service.ts
+│       │   └── index.ts    ← barrel export
+│       └── tsconfig.lib.json
+├── nest-cli.json
+└── tsconfig.json
+```
+
+`tsconfig.json`에 path alias가 자동으로 추가된다:
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@app/common": ["libs/common/src"],
+      "@app/common/*": ["libs/common/src/*"]
+    }
+  }
+}
+```
+
+사용하는 쪽에서는 이렇게 import한다:
+
+```typescript
+import { CommonModule, SomeService } from '@app/common';
+```
+
+### 실무에서 겪는 문제들
+
+**1. barrel export(index.ts) 누락**
+
+가장 흔한 실수다. `libs/common/src/index.ts`에서 export하지 않은 파일은 `@app/common`으로 import할 수 없다.
+
+```typescript
+// libs/common/src/index.ts
+export * from './common.module';
+export * from './common.service';
+// dto/create-user.dto.ts를 여기에 추가하는 걸 빠뜨리면
+// import { CreateUserDto } from '@app/common'; ← 컴파일 에러
+```
+
+파일을 추가할 때마다 `index.ts`를 수정해야 하는데, 이걸 잊으면 "분명 파일은 있는데 import가 안 된다"는 상황이 생긴다. 특히 코드 리뷰에서 잡기 어렵다 — 새 파일을 만든 사람은 로컬에서 상대 경로로 import해서 동작하는 걸 확인하고, 다른 앱에서 `@app/common`으로 import하려는 사람만 에러를 만난다.
+
+**2. path alias가 런타임에 안 먹는 문제**
+
+`tsconfig.json`의 `paths`는 TypeScript 컴파일러에게만 의미가 있다. 컴파일된 JavaScript에는 path alias가 그대로 남아있다. `tsc`로 빌드하면 `require('@app/common')`이 그대로 출력되는데, Node.js는 이 경로를 모른다.
+
+NestJS CLI의 `nest build`는 내부적으로 이걸 처리해준다. 하지만 `tsc`를 직접 실행하거나, `ts-node`로 실행할 때는 `tsconfig-paths` 패키지를 별도로 등록해야 한다.
+
+```typescript
+// ts-node로 실행할 때
+// tsconfig-paths/register를 먼저 로드해야 한다
+// package.json
+{
+  "scripts": {
+    "start:dev": "ts-node -r tsconfig-paths/register src/main.ts"
+  }
+}
+```
+
+Jest에서도 마찬가지다. `jest.config.ts`에 `moduleNameMapper`를 설정해야 한다:
+
+```typescript
+// jest.config.ts
+{
+  moduleNameMapper: {
+    '^@app/common(.*)$': '<rootDir>/libs/common/src$1',
+  },
+}
+```
+
+이 설정을 빠뜨리면 테스트에서 `Cannot find module '@app/common'` 에러가 난다.
+
+**3. 라이브러리 간 의존성 순환**
+
+```
+libs/
+├── common/     # 공통 유틸
+├── auth/       # 인증 관련 — common에 의존
+└── user/       # 사용자 관련 — common, auth에 의존
+```
+
+`auth` 라이브러리가 `user`의 타입을 참조하고, `user`가 `auth`의 인터페이스를 참조하면 순환 의존성이 생긴다. TypeScript 컴파일은 되는 경우가 있지만, 런타임에 `undefined`가 주입되는 원인이 된다.
+
+해결 방법은 공통 인터페이스를 `common` 라이브러리로 올리는 것이다. `auth`와 `user`가 서로를 직접 참조하지 않고, 공통 인터페이스에 의존하는 구조로 바꿔야 한다.
+
+**4. 빌드 순서 문제**
+
+라이브러리가 여러 개이고 서로 의존하면, 빌드 순서가 맞아야 한다. `nest build`는 단일 프로젝트만 빌드하므로, 의존하는 라이브러리가 먼저 빌드되어 있어야 한다.
+
+```bash
+# common을 먼저 빌드하고, auth를 빌드하고, 마지막에 api를 빌드
+nest build common && nest build auth && nest build api
+```
+
+`nest-cli.json`에서 `webpack`을 사용하면 빌드 시점에 모든 라이브러리를 하나로 번들링하기 때문에 이 문제가 줄어든다. 하지만 webpack 설정이 복잡해지는 트레이드오프가 있다.
+
+### 라이브러리 분리 기준
+
+모든 공통 코드를 하나의 `common` 라이브러리에 넣으면 결국 거대한 유틸 모듈이 된다. 목적별로 분리하는 게 낫다:
+
+- `libs/database` — TypeORM 엔티티, 리포지토리, 마이그레이션
+- `libs/auth` — 인증 가드, JWT 설정, 세션 관리
+- `libs/dto` — 공유 DTO, 인터페이스, enum
+
+분리 기준은 "이 라이브러리를 수정했을 때 영향받는 앱이 몇 개인가"로 판단한다. 모든 앱이 영향받는 코드만 `common`에 넣고, 특정 도메인에 관련된 코드는 도메인별 라이브러리로 분리한다.
 
 
 ## Graceful Shutdown 구현
