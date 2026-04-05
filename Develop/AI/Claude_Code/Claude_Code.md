@@ -1,7 +1,7 @@
 ---
 title: Claude Code
 tags: [ai, claude-code, anthropic, cli, agentic-coding]
-updated: 2026-03-25
+updated: 2026-04-05
 ---
 
 # Claude Code
@@ -143,6 +143,82 @@ Claude Code는 내부적으로 다양한 도구를 사용한다.
 }
 ```
 
+#### allow/deny 패턴 상세
+
+패턴은 `도구명(인자)` 형식이다. 괄호 안에 들어가는 문자열은 prefix 매칭으로 동작한다. `Bash(npm test)`를 allow에 넣으면 `npm test`, `npm test -- --coverage` 모두 자동 승인된다.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git log)",
+      "Bash(cd )"
+    ],
+    "deny": [
+      "Bash(rm -rf)",
+      "Bash(git push --force)",
+      "Bash(git reset --hard)",
+      "Bash(curl)",
+      "Bash(wget)"
+    ]
+  }
+}
+```
+
+패턴 작성 시 주의할 점:
+
+- **도구명만 쓰면 해당 도구 전체 허용**: `"Read"`는 모든 파일 읽기를 자동 승인한다. 특정 경로만 허용하는 건 안 된다.
+- **Bash는 prefix 매칭**: `"Bash(git)"` 하나면 `git status`, `git push --force` 모두 통과한다. `git push --force`를 막으려면 deny에 별도로 넣어야 한다.
+- **deny가 allow보다 우선**: 같은 명령이 양쪽에 매칭되면 deny가 이긴다.
+- **설정 파일 우선순위**: `.claude/settings.local.json` > `.claude/settings.json` > `~/.claude/settings.json` 순서로 병합된다. deny는 어디에 있든 최종적으로 합산된다.
+
+실무에서 쓸만한 설정 조합:
+
+```json
+// .claude/settings.json (팀 공유용)
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf)",
+      "Bash(git push --force)",
+      "Bash(git reset --hard)",
+      "Bash(docker rm)",
+      "Bash(docker rmi)"
+    ]
+  }
+}
+```
+
+```json
+// .claude/settings.local.json (개인용)
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Bash(npm )",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git log)"
+    ]
+  }
+}
+```
+
+팀 공유 설정에는 deny 위주로 위험한 명령을 차단하고, 개인 설정에는 allow로 자주 쓰는 도구를 자동 승인하는 패턴이 실용적이다.
+
 ---
 
 ## 4. 사용 환경
@@ -205,34 +281,257 @@ CLAUDE.md가 사용자가 직접 작성하는 설정이라면, Auto Memory는 Cl
 
 저장 위치는 `~/.claude/projects/{project}/memory/`이고, 대화가 끝나도 다음 세션에서 기억이 유지된다.
 
-저장되는 정보:
-- 사용자의 역할과 선호 (예: "한국어로 답변", "커밋은 수동으로만")
-- 피드백 이력 (예: "테스트에서 DB 모킹하지 마")
-- 프로젝트 관련 컨텍스트 (예: "3월 5일 이후 머지 프리즈")
-- 외부 리소스 참조 (예: "버그 트래킹은 Linear INGEST 프로젝트")
-
 "이거 기억해줘"라고 말하면 즉시 저장하고, "잊어줘"라고 하면 삭제한다. 명시적으로 지시하지 않아도 대화 중 반복되는 패턴이나 교정 사항은 자동으로 메모리에 반영된다.
+
+#### 메모리 타입
+
+메모리는 네 가지 타입으로 분류된다. 각 타입마다 저장하는 정보의 성격이 다르다.
+
+| 타입 | 저장 내용 | 예시 |
+|------|----------|------|
+| **user** | 사용자 역할, 선호, 지식 수준 | "한국어로 답변", "Go 10년차, React는 처음" |
+| **feedback** | 작업 방식에 대한 교정·확인 | "테스트에서 DB 모킹하지 마", "요약 생략해" |
+| **project** | 프로젝트 일정, 의사결정, 제약사항 | "3월 5일 이후 머지 프리즈", "인증 리팩토링은 법무팀 요청" |
+| **reference** | 외부 시스템 위치 정보 | "버그 트래킹은 Linear INGEST 프로젝트" |
+
+#### 파일 구조
+
+메모리 디렉토리 안에는 `MEMORY.md`(인덱스)와 개별 메모리 파일들이 있다.
+
+```
+~/.claude/projects/{project-hash}/memory/
+├── MEMORY.md                  # 인덱스 파일 (전체 목록)
+├── user_role.md               # user 타입 메모리
+├── feedback_testing.md        # feedback 타입 메모리
+├── project_merge_freeze.md    # project 타입 메모리
+└── reference_linear.md        # reference 타입 메모리
+```
+
+개별 메모리 파일은 YAML frontmatter를 가진다.
+
+```markdown
+---
+name: 테스트 방침
+description: 통합 테스트에서 DB 모킹 금지
+type: feedback
+---
+
+통합 테스트에서 DB를 모킹하지 말 것.
+
+**Why:** 모킹된 테스트가 통과했는데 프로덕션 마이그레이션에서 장애 발생한 적 있음.
+
+**How to apply:** 테스트 코드 작성 시 실제 DB 연결을 사용한다.
+```
+
+`MEMORY.md`는 각 메모리 파일을 한 줄로 가리키는 인덱스다. 200줄 넘으면 잘리니까 항목당 한 줄로 유지해야 한다.
+
+```markdown
+# 프로젝트 메모리
+
+- [사용자 역할](user_role.md) — 백엔드 개발자, 한국어 선호
+- [테스트 방침](feedback_testing.md) — 통합 테스트에서 DB 모킹 금지
+- [머지 프리즈](project_merge_freeze.md) — 3월 5일 이후 비긴급 PR 보류
+```
+
+#### 메모리에 저장하면 안 되는 것
+
+코드 패턴, 아키텍처, 파일 경로, git 히스토리 같은 건 코드나 `git log`에서 바로 확인할 수 있으니 메모리에 넣을 필요 없다. 디버깅 해결 방법도 마찬가지다 — 수정 내용은 코드에 있고, 맥락은 커밋 메시지에 있다. CLAUDE.md에 이미 적힌 내용을 중복으로 저장하는 것도 낭비다.
+
+#### 메모리 관리
+
+메모리가 쌓이면 오래된 정보가 현재 상태와 맞지 않는 경우가 생긴다. Claude Code는 메모리를 참조하기 전에 해당 내용이 아직 유효한지 확인하도록 되어 있지만, 직접 정리해주는 게 확실하다.
+
+```bash
+# 메모리 디렉토리 직접 확인
+ls ~/.claude/projects/*/memory/
+
+# 특정 메모리 삭제 (대화 중)
+> "머지 프리즈 메모리 삭제해줘"
+```
+
+project 타입 메모리는 특히 유효기간이 짧다. 일정이나 의사결정은 시간이 지나면 바뀌니까 주기적으로 확인하는 게 좋다.
 
 ### 5.3 MCP 서버 (Model Context Protocol)
 
-Claude Code에 외부 도구를 연결하는 프로토콜이다.
+Claude Code에 외부 도구를 연결하는 프로토콜이다. MCP 서버를 등록하면 Claude Code가 해당 서버의 도구를 자동으로 인식하고 사용한다.
+
+#### 기본 설정 방법
+
+`.claude/settings.json`의 `mcpServers` 필드에 서버를 등록한다.
 
 ```json
-// .claude/settings.json
 {
   "mcpServers": {
-    "postgres": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+    "서버이름": {
+      "command": "실행할 명령",
+      "args": ["인자 목록"],
       "env": {
-        "DATABASE_URL": "postgresql://localhost:5432/mydb"
+        "환경변수": "값"
       }
     }
   }
 }
 ```
 
-연결하고 나면 "users 테이블에서 최근 가입자 수 뽑아줘" 같은 자연어 요청이 가능해진다.
+설정 파일 위치에 따라 적용 범위가 달라진다.
+
+| 위치 | 범위 |
+|------|------|
+| `~/.claude/settings.json` | 모든 프로젝트에서 사용 |
+| `.claude/settings.json` | 해당 프로젝트 전용 (git 공유 가능) |
+| `.claude/settings.local.json` | 해당 프로젝트 전용 (개인) |
+
+DB 접속 정보가 포함된 MCP 설정은 `settings.local.json`에 넣는다. git에 올라가면 안 되니까.
+
+#### 자주 쓰는 MCP 서버 예시
+
+**PostgreSQL** — DB 쿼리를 자연어로 실행:
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "DATABASE_URL": "postgresql://user:pass@localhost:5432/mydb"
+      }
+    }
+  }
+}
+```
+
+등록하면 "users 테이블에서 최근 가입자 수 뽑아줘" 같은 요청이 가능해진다.
+
+**GitHub** — 이슈, PR, 리포지토리 조작:
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
+      }
+    }
+  }
+}
+```
+
+**파일시스템** — 특정 디렉토리에 대한 읽기/쓰기 접근:
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/dir"]
+    }
+  }
+}
+```
+
+**Slack** — 채널 메시지 읽기/쓰기:
+
+```json
+{
+  "mcpServers": {
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-server-slack"],
+      "env": {
+        "SLACK_BOT_TOKEN": "xoxb-...",
+        "SLACK_TEAM_ID": "T0..."
+      }
+    }
+  }
+}
+```
+
+#### 커스텀 MCP 서버 연결
+
+직접 만든 MCP 서버도 같은 방식으로 등록한다. 실행 가능한 바이너리나 스크립트 경로를 command에 넣으면 된다.
+
+```json
+{
+  "mcpServers": {
+    "internal-api": {
+      "command": "node",
+      "args": ["/home/user/mcp-servers/internal-api/index.js"],
+      "env": {
+        "API_BASE_URL": "https://internal.company.com/api",
+        "API_TOKEN": "..."
+      }
+    }
+  }
+}
+```
+
+Python으로 만든 서버:
+
+```json
+{
+  "mcpServers": {
+    "ml-pipeline": {
+      "command": "python",
+      "args": ["/home/user/mcp-servers/ml-pipeline/server.py"],
+      "env": {
+        "MODEL_REGISTRY_URL": "https://mlflow.internal.com"
+      }
+    }
+  }
+}
+```
+
+커스텀 서버 연결 시 주의사항:
+
+- **command 경로**: `node`, `python` 같은 명령이 PATH에 있어야 한다. `nvm`이나 `pyenv`를 쓰는 환경에서는 절대 경로(`/usr/local/bin/node`)를 쓰는 게 안전하다.
+- **stdio 통신**: MCP 서버는 stdin/stdout으로 JSON-RPC 메시지를 주고받는다. 서버가 stdout에 로그를 찍으면 통신이 깨진다. 로그는 반드시 stderr로 보내야 한다.
+- **서버 이름 충돌**: `mcpServers`의 키가 서버 이름이 된다. 같은 이름으로 두 개 등록하면 나중 것이 덮어쓴다.
+- **타임아웃**: 서버 시작이 느리면 Claude Code가 연결 실패로 판단한다. 서버 초기화에 시간이 걸리는 경우(DB 커넥션 풀 생성 등) 초기화를 비동기로 처리하거나 lazy하게 하는 게 낫다.
+
+#### MCP 서버 디버깅
+
+서버가 제대로 동작하는지 확인하는 방법:
+
+**1단계 — 서버 단독 실행 확인:**
+
+```bash
+# 서버를 직접 실행해서 프로세스가 정상 시작되는지 확인
+npx -y @modelcontextprotocol/server-postgres
+# Ctrl+C로 종료
+```
+
+시작 시 에러 메시지가 나오면 환경 변수나 의존성 문제다.
+
+**2단계 — Claude Code에서 연결 상태 확인:**
+
+```bash
+# Claude Code 실행 후
+> /doctor
+```
+
+`/doctor`가 MCP 서버 연결 상태를 보여준다. 연결 실패 시 에러 메시지가 표시된다.
+
+**3단계 — 서버 로그 확인:**
+
+```bash
+# MCP 서버 로그 위치
+ls ~/.claude/logs/mcp*.log
+```
+
+`stderr`로 보낸 로그가 여기에 남는다. 연결은 됐는데 도구 호출이 실패하는 경우 이 로그에서 원인을 찾을 수 있다.
+
+**자주 발생하는 문제:**
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| 서버가 도구 목록에 안 보임 | command 경로 문제 | 절대 경로로 변경 |
+| 연결 후 바로 끊김 | stdout에 로그 출력 | stderr로 변경 |
+| 도구 호출 시 타임아웃 | 서버 응답 지연 | 서버 측 처리 시간 확인 |
+| 환경 변수 인식 안 됨 | env 필드 누락 | settings.json의 env 확인 |
+| npx 실행 실패 | 패키지 버전 문제 | `npx -y 패키지@latest`로 버전 지정 |
 
 ### 5.4 훅 시스템 (Hooks)
 

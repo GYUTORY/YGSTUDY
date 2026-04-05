@@ -1,7 +1,7 @@
 ---
 title: Claude Code 실전 팁
 tags: [ai, claude-code, anthropic, tips, productivity]
-updated: 2026-03-25
+updated: 2026-04-05
 ---
 
 # Claude Code 실전 팁
@@ -371,3 +371,109 @@ npm install -g oh-my-claude-sisyphus
 요청을 분석해서 알맞은 에이전트를 자동으로 고르기 때문에, 직접 "아키텍트 에이전트 써줘"라고 지정할 필요가 없다.
 
 Claude Code 외에 Cursor, Aider 같은 오픈소스 도구를 쓴다면 **Oh My Open Code (OMO)**를 찾아보면 된다. 특정 벤더에 종속되지 않는 유사 에코시스템이다.
+
+---
+
+## 12. 팀 도입 — 혼자 쓸 때와 다른 점
+
+혼자 쓸 때는 CLAUDE.md 하나 만들고 끝이다. 팀 전체가 쓰기 시작하면 "누구 설정이 맞는 거야?"라는 문제가 바로 생긴다.
+
+### CLAUDE.md — 팀 규칙과 개인 설정 분리
+
+CLAUDE.md를 git에 올리면 팀 전원이 같은 규칙을 공유한다. 문제는 개인마다 다른 부분이 있다는 거다. 한 명은 커밋 전에 항상 lint를 돌리고 싶고, 다른 한 명은 그거 없이 빠르게 돌리고 싶다.
+
+Claude Code는 CLAUDE.md를 여러 경로에서 읽는다. 이걸 이용해서 분리한다.
+
+```
+프로젝트 루트/
+├── CLAUDE.md              ← git 추적. 팀 공통 규칙
+├── CLAUDE.local.md        ← .gitignore. 개인 설정
+└── src/
+    └── payments/
+        └── CLAUDE.md      ← 해당 디렉토리 전용 규칙
+```
+
+팀 공통 CLAUDE.md에는 코딩 컨벤션, 테스트 실행 방법, 커밋 메시지 형식 같은 걸 넣는다. 개인적으로 다른 모델을 쓰고 싶거나, 특정 파일을 항상 무시하고 싶으면 `CLAUDE.local.md`에 넣고 `.gitignore`에 추가한다.
+
+디렉토리별 CLAUDE.md는 특정 모듈에만 적용되는 규칙이 있을 때 쓴다. 결제 모듈에서는 "금액 계산 시 반드시 BigDecimal 사용"처럼 해당 디렉토리 작업할 때만 자동으로 로드된다.
+
+실제 팀에서 겪는 문제는 CLAUDE.md가 점점 커지는 거다. 규칙이 50줄 넘어가면 Claude가 뒤쪽 내용을 놓치는 경우가 생긴다. 핵심 규칙은 위에 두고, 참고사항은 아래로 밀어야 한다.
+
+### settings.json과 settings.local.json
+
+CLAUDE.md가 "Claude에게 주는 지시"라면, settings.json은 "Claude Code 자체의 동작 설정"이다. 두 가지 레벨이 있다.
+
+```
+프로젝트 루트/
+└── .claude/
+    ├── settings.json        ← git 추적. 팀 공통 설정
+    └── settings.local.json  ← .gitignore. 개인 설정
+```
+
+팀 공통 settings.json 예시:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run test)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force)"
+    ]
+  },
+  "hooks": {
+    "PreCommit": [
+      {
+        "command": "npm run lint-staged"
+      }
+    ]
+  }
+}
+```
+
+팀원 전원이 같은 허용/차단 명령어를 쓰게 된다. `rm -rf *`이나 `git push --force`를 팀 레벨에서 막아둘 수 있다.
+
+개인 settings.local.json은 본인만 쓰는 MCP 서버 연결이나, 특정 디렉토리에 대한 추가 권한 같은 걸 넣는다. 이 파일은 `.gitignore`에 자동으로 들어가 있다.
+
+주의할 점이 하나 있다. settings.json과 settings.local.json이 충돌하면 local이 이긴다. 팀에서 deny로 막아둔 명령을 개인 설정에서 allow로 풀 수 있다. 이건 의도된 동작이지만, 보안이 중요한 환경이라면 팀원들한테 local에서 deny를 풀지 말라고 공유해야 한다.
+
+### 팀 공통 스킬 관리
+
+스킬 파일을 `.claude/skills/` 디렉토리에 넣고 git으로 관리하면 팀 전원이 같은 스킬을 쓴다.
+
+```
+프로젝트 루트/
+└── .claude/
+    └── skills/
+        ├── pr-ready.md        ← PR 전 점검
+        ├── security-scan.md   ← 보안 스캔
+        └── migration-check.md ← DB 마이그레이션 검증
+```
+
+팀에서 스킬을 만들 때 주의할 점:
+
+- **스킬 이름은 동사형으로 통일한다.** `pr-ready`, `security-scan`, `migration-check`처럼. 명사형으로 만들면 "이게 뭘 하는 건지" 매번 열어봐야 한다.
+- **스킬 안에서 외부 도구를 호출하면 팀원 환경에도 그 도구가 있어야 한다.** 스킬에서 `npx sonarqube-scanner`를 쓰는데 다른 팀원한테 SonarQube가 없으면 에러가 난다. 스킬 파일 상단에 필요한 도구를 명시하거나, package.json의 devDependencies에 포함시킨다.
+- **스킬이 너무 많아지면 오히려 안 쓴다.** 5개 이상이면 팀원들이 뭐가 있는지 파악하지 못한다. 자주 쓰는 3~4개만 유지하고, 나머지는 개인 스킬(`~/.claude/skills/`)로 빼는 게 낫다.
+
+### 비용 분배 패턴
+
+팀에서 Claude Code를 쓸 때 비용 관리 방식은 보통 세 가지다.
+
+**1. API 키 공유 방식**
+
+팀 공용 API 키 하나를 쓴다. 설정이 간단하지만, 누가 얼마를 썼는지 구분이 안 된다. 초반에 사용 감각을 익히는 단계에서는 괜찮은데, 한 명이 Opus로 대규모 리팩토링을 돌리면 예산이 한 번에 날아간다.
+
+**2. 개인 키 + 팀 예산 방식**
+
+각자 API 키를 발급받되, Anthropic 콘솔에서 키별 사용량을 추적한다. 월별 사용량을 공유하고, 팀 예산 한도를 정해놓는다. 대부분의 팀이 이 방식으로 안착한다.
+
+**3. Max Plan 활용**
+
+Anthropic의 Max Plan을 팀원별로 구독하면 API 키 없이 사용량 제한이 자동으로 걸린다. 관리 부담이 가장 적다. 단, Plan별 사용량 상한이 있어서 헤비 유저에게는 부족할 수 있다.
+
+어떤 방식이든 팀 내에서 공유해야 하는 건 비용 감각이다. Sonnet으로 30분 작업하면 대략 얼마, Opus로 설계를 돌리면 대략 얼마. 이런 감각이 없으면 "Claude Code 비싸다"만 남는다. `/cost` 결과를 주간 회의에서 한 번씩 공유하면 자연스럽게 팀 전체의 사용 패턴이 개선된다.
