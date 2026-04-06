@@ -8,6 +8,7 @@ nav:
   - Spring_Batch.md
   - Spring_Cloud.md
   - Spring_Test.md
+  - Rate_Limiting.md
   - Spring Boot Profiles.md
   - Boot2.0__vs__Boot3.0.md
   - Gradle__vs__Maven.md
