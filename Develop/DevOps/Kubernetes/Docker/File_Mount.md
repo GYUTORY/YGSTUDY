@@ -1,309 +1,602 @@
 ---
 title: Docker 파일 마운트
-tags: [application-architecture, kubernetes, docker, filemount]
-updated: 2025-09-22
+tags: [docker, mount, volume, bind-mount, tmpfs, buildkit]
+updated: 2026-04-06
 ---
 
 # Docker 파일 마운트
 
-## 목차
-- [개념 이해](#개념-이해)
-- [마운트 방식](#마운트-방식)
-- [실제 사용법](#실제-사용법)
-- [고급 활용법](#고급-활용법)
-- [주의사항 및 모범 사례](#주의사항-및-모범-사례)
-- [성능 최적화](#성능-최적화)
-- [참조](#참조)
+컨테이너는 자체 파일시스템을 갖고 있지만, 컨테이너를 삭제하면 내부 데이터도 같이 사라진다. 호스트의 파일이나 디렉토리를 컨테이너 내부 경로에 연결하는 것이 마운트다. 개발 환경에서는 소스 코드를 바인드 마운트해서 컨테이너 재빌드 없이 변경사항을 반영하고, 프로덕션에서는 볼륨 마운트로 DB 데이터를 보존한다.
+
+Docker는 세 가지 마운트 타입을 지원한다: **바인드 마운트**, **볼륨 마운트**, **tmpfs 마운트**.
 
 ---
 
-## 개념 이해
+## -v와 --mount 플래그
 
-### 파일 마운트란?
+마운트를 지정하는 방법이 두 가지 있다.
 
-파일 마운트는 운영체제에서 외부 저장장치나 파일시스템을 특정 디렉토리에 연결하여 접근 가능하게 하는 기술입니다. Docker에서의 파일 마운트는 이 개념을 컨테이너 환경에 적용한 것으로, **호스트 시스템의 파일이나 디렉토리를 컨테이너 내부의 특정 경로에 연결**하는 것을 의미합니다.
+### -v (--volume) 플래그
 
-### Docker 파일 마운트의 핵심 원리
+콜론으로 구분된 세 개의 필드를 받는다.
 
-Docker 컨테이너는 격리된 파일시스템을 가지지만, 마운트를 통해 호스트와 파일을 공유할 수 있습니다. 이는 다음과 같은 방식으로 작동합니다:
-
-1. **네임스페이스 격리**: 컨테이너는 독립적인 파일시스템 네임스페이스를 가집니다
-2. **마운트 포인트 생성**: 지정된 컨테이너 경로에 마운트 포인트를 생성합니다
-3. **파일시스템 연결**: 호스트의 파일시스템을 해당 마운트 포인트에 연결합니다
-4. **투명한 접근**: 컨테이너 내부에서는 마운트된 파일을 로컬 파일처럼 접근할 수 있습니다
-
-### 파일 마운트가 필요한 이유
-
-#### 데이터 영속성 (Data Persistence)
-컨테이너는 기본적으로 임시적입니다. 컨테이너를 삭제하면 내부의 모든 데이터가 함께 사라집니다. 파일 마운트를 사용하면 중요한 데이터를 호스트에 저장하여 컨테이너의 생명주기와 독립적으로 보존할 수 있습니다.
-
-#### 개발 효율성 향상
-개발 과정에서 코드를 수정할 때마다 컨테이너를 다시 빌드하는 것은 비효율적입니다. 바인드 마운트를 사용하면 호스트에서 코드를 수정하고 컨테이너에서 즉시 반영된 결과를 확인할 수 있습니다.
-
-#### 리소스 공유
-여러 컨테이너가 동일한 데이터나 설정 파일을 공유해야 하는 경우, 마운트를 통해 효율적으로 리소스를 공유할 수 있습니다.
-
-#### 설정 관리
-환경별 설정 파일, 로그 파일, 백업 데이터 등을 체계적으로 관리할 수 있습니다.
-
----
-
-## 마운트 방식
-
-Docker는 두 가지 주요 마운트 방식을 제공합니다. 각각의 특징과 사용 시나리오를 이해하는 것이 중요합니다.
-
-### 1. 바인드 마운트 (Bind Mount)
-
-바인드 마운트는 호스트 시스템의 특정 경로를 컨테이너의 특정 경로에 직접 연결하는 방식입니다.
-
-#### 특징
-- **직접 연결**: 호스트의 실제 파일시스템 경로를 그대로 사용
-- **실시간 동기화**: 컨테이너에서의 변경사항이 호스트에 즉시 반영
-- **양방향 접근**: 호스트와 컨테이너 모두에서 파일을 읽고 쓸 수 있음
-- **경로 의존성**: 호스트 경로가 존재하지 않으면 오류 발생
-
-#### 기본 문법
 ```bash
-docker run -v /host/path:/container/path 이미지명
+docker run -v /host/path:/container/path:옵션 이미지명
 ```
 
-#### 실제 예시
+- 첫 번째 필드: 호스트 경로 또는 볼륨 이름
+- 두 번째 필드: 컨테이너 경로
+- 세 번째 필드: 옵션 (ro, rw, z, Z 등 콤마로 구분)
+
+`-v`는 호스트 경로가 없으면 자동으로 디렉토리를 생성한다. 이게 문제가 되는 경우가 있다. 경로를 오타냈을 때 에러 없이 빈 디렉토리가 마운트되어서, 컨테이너가 설정 파일을 못 찾는 원인을 한참 추적하게 된다.
+
+### --mount 플래그
+
+key=value 쌍으로 명시적으로 지정한다.
+
 ```bash
-# 현재 디렉토리를 컨테이너의 /app에 마운트
-docker run -it -v $(pwd):/app node:16
-
-# 특정 호스트 디렉토리 마운트
-docker run -it -v /home/user/project:/workspace ubuntu:20.04
-
-# 설정 파일 마운트
-docker run -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf:ro nginx
+docker run --mount type=bind,source=/host/path,target=/container/path,readonly 이미지명
 ```
 
-### 2. 볼륨 마운트 (Volume Mount)
+주요 키:
 
-볼륨 마운트는 Docker가 관리하는 전용 저장공간을 사용하는 방식입니다.
+| 키 | 설명 |
+|---|---|
+| `type` | bind, volume, tmpfs 중 하나 |
+| `source` (src) | 호스트 경로 또는 볼륨 이름 |
+| `target` (dst) | 컨테이너 경로 |
+| `readonly` | 읽기 전용 |
+| `bind-propagation` | 마운트 전파 옵션 |
+| `volume-driver` | 볼륨 드라이버 지정 |
+| `volume-opt` | 드라이버 옵션 |
+| `tmpfs-size` | tmpfs 크기 제한 |
+| `tmpfs-mode` | tmpfs 파일 모드 |
 
-#### 특징
-- **Docker 관리**: Docker 엔진이 볼륨의 생성, 삭제, 백업을 자동으로 관리
-- **플랫폼 독립성**: 호스트 운영체제에 관계없이 일관된 방식으로 작동
-- **보안 격리**: 호스트 파일시스템과 격리되어 보안상 안전
-- **성능 최적화**: Docker 엔진이 최적화된 방식으로 파일 접근 처리
+### 왜 --mount를 써야 하는 상황이 있는가
 
-#### 기본 문법
+`-v`는 존재하지 않는 호스트 경로를 자동 생성한다. `--mount`는 경로가 없으면 에러를 뱉는다. 설정 파일이나 시크릿 파일을 마운트할 때는 `--mount`를 쓰는 게 안전하다. 파일이 실제로 존재하는지 확인하고 싶을 때 `--mount`를 써라.
+
 ```bash
-# 1단계: 볼륨 생성
-docker volume create 볼륨이름
+# -v: /etc/myapp/config.yml이 없으면 빈 디렉토리로 자동 생성됨 (의도하지 않은 동작)
+docker run -v /etc/myapp/config.yml:/app/config.yml myapp
 
-# 2단계: 컨테이너에 마운트
-docker run -v 볼륨이름:/container/path 이미지명
+# --mount: 파일이 없으면 에러 발생 (원하는 동작)
+docker run --mount type=bind,source=/etc/myapp/config.yml,target=/app/config.yml myapp
 ```
 
-#### 실제 예시
-```bash
-# MySQL 데이터용 볼륨 생성 및 마운트
-docker volume create mysql-data
-docker run -d --name mysql \
-  -v mysql-data:/var/lib/mysql \
-  -e MYSQL_ROOT_PASSWORD=password \
-  mysql:8.0
-
-# PostgreSQL 데이터용 볼륨 생성 및 마운트
-docker volume create postgres-data
-docker run -d --name postgres \
-  -v postgres-data:/var/lib/postgresql/data \
-  -e POSTGRES_PASSWORD=password \
-  -p 5432:5432 \
-  postgres:13
-```
-
----
-
-## 실제 사용법
-
-### 개발 환경 구성
-
-#### 웹 개발 시나리오
-```bash
-# 1. 프로젝트 디렉토리로 이동
-cd /home/user/web-project
-
-# 2. 현재 폴더를 컨테이너에 마운트하여 개발 환경 구성
-docker run -it --name dev-server \
-  -v $(pwd):/app \
-  -p 3000:3000 \
-  node:16 bash
-
-# 3. 컨테이너 내부에서 개발 작업
-cd /app
-npm install
-npm start
-```
-
-#### 데이터베이스 운영 환경
-```bash
-# 1. 데이터용 볼륨 생성
-docker volume create postgres-data
-
-# 2. PostgreSQL 컨테이너 실행
-docker run -d --name postgres \
-  -v postgres-data:/var/lib/postgresql/data \
-  -e POSTGRES_PASSWORD=password \
-  -p 5432:5432 \
-  postgres:13
-
-# 3. 컨테이너 삭제 후에도 데이터는 볼륨에 보존됨
-docker rm postgres
-```
-
-### Docker Compose를 활용한 마운트
+Docker Compose에서도 긴 문법(long syntax)으로 `--mount`와 동일한 동작을 지정할 수 있다.
 
 ```yaml
-version: '3.8'
 services:
-  web:
-    image: node:16
+  app:
     volumes:
+      # 짧은 문법 (-v와 동일)
       - ./src:/app/src
-      - ./package.json:/app/package.json
-    ports:
-      - "3000:3000"
-  
-  database:
-    image: postgres:13
+
+      # 긴 문법 (--mount와 동일)
+      - type: bind
+        source: ./config.yml
+        target: /app/config.yml
+        read_only: true
+```
+
+---
+
+## 바인드 마운트 (Bind Mount)
+
+호스트의 특정 경로를 컨테이너에 직접 연결한다. 호스트에서 파일을 수정하면 컨테이너에서 바로 보이고, 컨테이너에서 수정해도 호스트에 반영된다.
+
+```bash
+# 현재 디렉토리를 컨테이너의 /app에 마운트
+docker run -it -v $(pwd):/app node:20
+
+# 읽기 전용 마운트
+docker run -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf:ro nginx
+
+# --mount 사용
+docker run --mount type=bind,src=$(pwd),dst=/app,readonly node:20
+```
+
+바인드 마운트는 호스트 파일시스템 구조에 의존한다. 다른 머신에서 같은 명령을 실행하면 경로가 달라서 실패할 수 있다. 프로덕션에서는 볼륨을 쓰고, 바인드 마운트는 개발 환경에서만 쓰는 게 일반적이다.
+
+---
+
+## 볼륨 마운트 (Volume Mount)
+
+Docker가 관리하는 저장 영역이다. 기본적으로 호스트의 `/var/lib/docker/volumes/` 아래에 저장된다. 호스트 경로를 알 필요 없이 이름으로 관리한다.
+
+```bash
+# 볼륨 생성
+docker volume create postgres-data
+
+# 컨테이너에 마운트
+docker run -d --name postgres \
+  -v postgres-data:/var/lib/postgresql/data \
+  -e POSTGRES_PASSWORD=secret \
+  postgres:16
+
+# 볼륨 상세 정보
+docker volume inspect postgres-data
+```
+
+`-v 볼륨이름:/경로` 형태에서 볼륨이 없으면 자동으로 생성된다. 명시적으로 만들고 싶으면 `docker volume create`를 먼저 실행해라.
+
+### 볼륨 드라이버
+
+기본 드라이버는 `local`이다. NFS나 CIFS 같은 네트워크 파일시스템을 볼륨으로 쓸 수 있다.
+
+#### NFS 볼륨
+
+```bash
+docker volume create --driver local \
+  --opt type=nfs \
+  --opt o=addr=192.168.1.100,rw,nfsvers=4 \
+  --opt device=:/export/data \
+  nfs-data
+```
+
+Compose에서는 이렇게 선언한다.
+
+```yaml
+volumes:
+  nfs-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.100,rw,nfsvers=4
+      device: ":/export/data"
+```
+
+#### CIFS (SMB) 볼륨
+
+```bash
+docker volume create --driver local \
+  --opt type=cifs \
+  --opt o=addr=192.168.1.200,username=user,password=pass \
+  --opt device=//192.168.1.200/share \
+  cifs-data
+```
+
+NFS 볼륨을 쓸 때 주의할 점: 네트워크가 끊기면 컨테이너 내부에서 I/O 행이 걸린다. 타임아웃 옵션(`timeo`, `retrans`)을 반드시 설정해라.
+
+```bash
+docker volume create --driver local \
+  --opt type=nfs \
+  --opt o=addr=192.168.1.100,rw,nfsvers=4,soft,timeo=30,retrans=2 \
+  --opt device=:/export/data \
+  nfs-data
+```
+
+### 볼륨 백업과 복원
+
+볼륨 데이터를 백업하려면 임시 컨테이너를 띄워서 tar로 묶는다.
+
+```bash
+# 백업: postgres-data 볼륨을 tar 파일로 추출
+docker run --rm \
+  -v postgres-data:/source:ro \
+  -v $(pwd):/backup \
+  alpine tar czf /backup/postgres-backup.tar.gz -C /source .
+
+# 복원: tar 파일을 새 볼륨에 풀기
+docker volume create postgres-data-restored
+docker run --rm \
+  -v postgres-data-restored:/target \
+  -v $(pwd):/backup \
+  alpine tar xzf /backup/postgres-backup.tar.gz -C /target
+```
+
+`/source`를 `:ro`로 마운트하는 게 중요하다. 백업 중에 데이터가 변경되는 것을 막는다.
+
+DB 볼륨을 백업할 때는 tar보다 DB 자체 덤프 도구(`pg_dump`, `mysqldump`)를 쓰는 게 낫다. 실행 중인 DB의 데이터 파일을 그냥 tar로 묶으면 일관성이 깨질 수 있다.
+
+---
+
+## tmpfs 마운트
+
+tmpfs는 메모리에만 존재하는 파일시스템이다. 디스크에 쓰지 않으므로 컨테이너가 종료되면 데이터가 사라진다.
+
+```bash
+# --tmpfs 플래그
+docker run --tmpfs /tmp:rw,noexec,nosuid,size=100m 이미지명
+
+# --mount 플래그
+docker run --mount type=tmpfs,target=/tmp,tmpfs-size=104857600,tmpfs-mode=1777 이미지명
+```
+
+tmpfs를 쓰는 경우:
+
+- **민감한 데이터**: 비밀번호 파일이나 토큰을 디스크에 남기고 싶지 않을 때
+- **임시 캐시**: 애플리케이션이 /tmp에 캐시를 많이 생성하는데 디스크 I/O를 줄이고 싶을 때
+- **빌드 아티팩트**: 빌드 중간 산출물이 디스크를 소모하지 않게 할 때
+
+주의: tmpfs는 메모리를 소비한다. `size` 옵션을 안 주면 호스트 메모리의 절반까지 쓸 수 있다. 컨테이너 메모리 제한(`--memory`)과 별개이므로 반드시 크기를 지정해라.
+
+Compose에서는 이렇게 쓴다.
+
+```yaml
+services:
+  app:
+    tmpfs:
+      - /tmp:size=100m,mode=1777
+```
+
+---
+
+## BuildKit 마운트 타입
+
+`Dockerfile`의 `RUN` 명령에서 `--mount` 플래그를 사용할 수 있다. BuildKit이 활성화되어야 한다 (Docker 23.0 이상에서 기본 활성).
+
+### cache 마운트
+
+빌드 캐시를 유지해서 재빌드 속도를 높인다. 패키지 매니저의 캐시 디렉토리를 유지하는 데 주로 쓴다.
+
+```dockerfile
+# apt 캐시 유지
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt \
+    apt-get update && apt-get install -y curl
+
+# pip 캐시 유지
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# Go 모듈 캐시 유지
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -o /app .
+
+# npm 캐시 유지
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --production
+```
+
+cache 마운트는 빌드 간에 유지되지만, 다른 빌드에서도 공유된다. `id` 옵션으로 격리할 수 있다.
+
+```dockerfile
+RUN --mount=type=cache,id=myapp-npm,target=/root/.npm \
+    npm ci
+```
+
+### secret 마운트
+
+빌드 시 필요한 시크릿을 이미지 레이어에 남기지 않고 전달한다. `.npmrc`에 private registry 토큰이 있거나, pip에 private index 인증이 필요할 때 쓴다.
+
+```dockerfile
+# Dockerfile
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
+    npm ci --production
+
+RUN --mount=type=secret,id=aws,target=/root/.aws/credentials \
+    aws s3 cp s3://my-bucket/data.tar.gz /tmp/
+```
+
+빌드 실행 시 시크릿 파일을 전달한다.
+
+```bash
+docker build --secret id=npmrc,src=$HOME/.npmrc \
+             --secret id=aws,src=$HOME/.aws/credentials \
+             -t myapp .
+```
+
+이전에는 `ARG`로 토큰을 넘기는 코드를 많이 봤는데, `ARG`는 이미지 히스토리에 남는다. `docker history`로 누구나 볼 수 있다. secret 마운트는 해당 `RUN` 명령 실행 중에만 파일이 존재하고, 레이어에 기록되지 않는다.
+
+### ssh 마운트
+
+SSH agent를 빌드 컨테이너에 전달한다. private Git 저장소에서 의존성을 가져올 때 쓴다.
+
+```dockerfile
+# Dockerfile
+RUN --mount=type=ssh \
+    git clone git@github.com:company/private-lib.git /tmp/lib
+```
+
+```bash
+# SSH agent가 실행 중이어야 함
+eval $(ssh-agent)
+ssh-add ~/.ssh/id_ed25519
+docker build --ssh default -t myapp .
+```
+
+SSH 키 파일을 COPY로 이미지에 넣는 실수를 하면 안 된다. multi-stage로 지워도 이전 레이어에 남아 있다.
+
+### bind 마운트 (빌드 시)
+
+빌드 컨텍스트 외부의 파일을 빌드에서 참조할 때 쓴다.
+
+```dockerfile
+RUN --mount=type=bind,from=builder,source=/app/build,target=/static \
+    cp -r /static /usr/share/nginx/html/
+```
+
+---
+
+## 마운트 전파 (Propagation)
+
+컨테이너 내부에서 마운트를 수행할 때(예: 컨테이너 안에서 USB를 마운트하거나, 다른 파일시스템을 붙일 때) propagation 옵션이 필요하다.
+
+| 옵션 | 호스트 → 컨테이너 | 컨테이너 → 호스트 |
+|---|---|---|
+| `rprivate` (기본값) | 전파 안 됨 | 전파 안 됨 |
+| `private` | 전파 안 됨 | 전파 안 됨 |
+| `rslave` | 전파됨 | 전파 안 됨 |
+| `slave` | 전파됨 | 전파 안 됨 |
+| `rshared` | 전파됨 | 전파됨 |
+| `shared` | 전파됨 | 전파됨 |
+
+`r` 접두사는 재귀(recursive)를 의미한다. 하위 마운트까지 같은 규칙을 적용한다.
+
+```bash
+# 호스트의 마운트 변경이 컨테이너에 보이게
+docker run -v /mnt/usb:/mnt/usb:rslave 이미지명
+
+# --mount 사용
+docker run --mount type=bind,src=/mnt/usb,dst=/mnt/usb,bind-propagation=rslave 이미지명
+```
+
+대부분의 경우 기본값(`rprivate`)으로 충분하다. Docker-in-Docker를 실행하거나, 컨테이너가 NFS/FUSE 마운트를 수행하는 특수한 경우에만 propagation을 변경해야 한다.
+
+---
+
+## SELinux 라벨 (:z, :Z)
+
+RHEL, CentOS, Fedora 같은 SELinux가 활성화된 시스템에서 바인드 마운트하면 Permission denied가 발생하는 경우가 있다. 컨테이너 프로세스의 SELinux 컨텍스트가 호스트 파일의 라벨과 맞지 않기 때문이다.
+
+```bash
+# 공유 라벨 - 여러 컨테이너가 동시에 접근 가능
+docker run -v /host/data:/data:z 이미지명
+
+# 전용 라벨 - 해당 컨테이너만 접근 가능
+docker run -v /host/data:/data:Z 이미지명
+```
+
+- `:z` (소문자): 호스트 디렉토리에 `svirt_sandbox_file_t` 라벨을 설정한다. 여러 컨테이너가 공유할 수 있다.
+- `:Z` (대문자): 컨테이너 전용 라벨을 설정한다. 다른 컨테이너나 호스트 프로세스가 접근할 수 없게 된다.
+
+**`:Z`를 시스템 디렉토리에 절대 쓰지 마라.** `/etc`나 `/var/log` 같은 경로에 `:Z`를 쓰면 호스트 시스템 자체가 해당 파일에 접근할 수 없게 되어 시스템이 망가질 수 있다.
+
+```bash
+# 이런 거 하면 안 된다
+docker run -v /etc:/etc:Z 이미지명   # 호스트 시스템 파손 가능
+
+# SELinux를 일시적으로 permissive 모드로 전환해서 원인 확인
+# (디버깅 용도로만 사용)
+sudo setenforce 0
+docker run -v /host/data:/data 이미지명
+# 문제가 해결되면 SELinux 라벨 문제가 맞다
+sudo setenforce 1
+```
+
+Ubuntu, Debian, macOS에서는 SELinux가 기본 비활성이므로 `:z`, `:Z` 옵션이 필요 없다.
+
+---
+
+## macOS 바인드 마운트 성능 문제
+
+macOS에서 Docker Desktop을 사용할 때 바인드 마운트 성능이 Linux 대비 크게 떨어진다. Docker Desktop은 Linux VM 위에서 돌아가기 때문에, 바인드 마운트가 호스트(macOS) → VM → 컨테이너를 거친다.
+
+### 파일시스템 드라이버 변천
+
+- **osxfs** (구버전): 초기 Docker for Mac에서 사용. node_modules 같은 대량 파일 접근 시 체감될 정도로 느렸다.
+- **gRPC FUSE**: osxfs 대체로 등장. 약간 개선되었지만 여전히 느렸다.
+- **VirtioFS** (현재 기본): Docker Desktop 4.15+에서 기본 파일시스템. 이전 대비 큰 폭의 성능 향상.
+
+Docker Desktop 설정에서 `VirtioFS`가 선택되어 있는지 확인해라. Settings > General > "Choose file sharing implementation for your containers"에서 볼 수 있다.
+
+### consistency 옵션 (deprecated)
+
+과거에는 `-v` 플래그에 consistency 옵션을 쓸 수 있었다.
+
+```bash
+# 과거에 사용하던 옵션 (현재는 무시됨)
+docker run -v $(pwd):/app:delegated node:20
+docker run -v $(pwd):/app:cached node:20
+docker run -v $(pwd):/app:consistent node:20
+```
+
+- `consistent`: 완전 동기화 (기본값, 가장 느림)
+- `cached`: 호스트 → 컨테이너 방향에서 지연 허용
+- `delegated`: 컨테이너 → 호스트 방향에서 지연 허용 (가장 빠름)
+
+VirtioFS에서는 이 옵션들이 무시된다. 쓰더라도 에러는 안 나지만 효과가 없다.
+
+### 실제 대응 방법
+
+node_modules처럼 파일 수가 많고 자주 접근하는 디렉토리는 바인드 마운트에서 제외하고 named volume을 쓴다.
+
+```yaml
+services:
+  app:
+    build: .
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=password
+      - .:/app                      # 소스 코드는 바인드 마운트
+      - node_modules:/app/node_modules  # node_modules는 볼륨으로 분리
 
 volumes:
+  node_modules:
+```
+
+이렇게 하면 소스 코드 변경은 즉시 반영되면서, node_modules 접근 성능은 네이티브 수준을 유지한다.
+
+---
+
+## UID/GID 불일치 문제
+
+컨테이너 내부의 사용자와 호스트 사용자의 UID/GID가 다르면 권한 문제가 생긴다. 흔한 시나리오: 컨테이너가 root(UID 0)로 실행되면서 바인드 마운트된 디렉토리에 파일을 생성하면, 호스트에서 해당 파일이 root 소유로 나타난다.
+
+```bash
+# 컨테이너에서 파일 생성
+docker run -v $(pwd):/app alpine sh -c "echo hello > /app/test.txt"
+
+# 호스트에서 확인하면 root 소유
+ls -la test.txt
+# -rw-r--r-- 1 root root 6 Apr  6 10:00 test.txt
+# 일반 사용자로 수정/삭제가 안 될 수 있다
+```
+
+### 해결 방법 1: --user 플래그
+
+```bash
+# 현재 사용자의 UID/GID로 컨테이너 실행
+docker run --user $(id -u):$(id -g) -v $(pwd):/app node:20 npm run build
+```
+
+이 방법은 간단하지만, 컨테이너 내부에 해당 UID의 사용자가 없어서 `whoami`가 실패하거나, 홈 디렉토리가 없어서 npm/pip 캐시가 동작하지 않는 경우가 있다.
+
+### 해결 방법 2: Dockerfile에서 사용자 생성
+
+```dockerfile
+FROM node:20
+
+# 호스트 사용자와 동일한 UID/GID로 사용자 생성
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} appuser && \
+    useradd -u ${UID} -g ${GID} -m appuser
+
+USER appuser
+WORKDIR /home/appuser/app
+```
+
+```bash
+docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) -t myapp .
+docker run -v $(pwd):/home/appuser/app myapp
+```
+
+### 해결 방법 3: fixuid 같은 엔트리포인트 스크립트
+
+컨테이너 시작 시 UID/GID를 동적으로 맞추는 방법이다.
+
+```bash
+#!/bin/sh
+# entrypoint.sh
+# 마운트된 디렉토리의 소유자 UID로 앱 사용자의 UID를 변경
+if [ -d "/app" ]; then
+    HOST_UID=$(stat -c '%u' /app)
+    HOST_GID=$(stat -c '%g' /app)
+    usermod -u $HOST_UID appuser 2>/dev/null
+    groupmod -g $HOST_GID appuser 2>/dev/null
+fi
+exec gosu appuser "$@"
+```
+
+이 스크립트는 root로 시작해서 UID를 바꾼 다음 `gosu`로 권한을 내려서 프로세스를 실행한다.
+
+---
+
+## inotify와 바인드 마운트
+
+webpack-dev-server, nodemon, React HMR 같은 도구들은 파일 변경을 감지해서 자동 리로드한다. 이 도구들은 Linux의 inotify를 사용하는데, 바인드 마운트 환경에서 inotify 이벤트가 전달되지 않는 경우가 있다.
+
+### 문제가 발생하는 상황
+
+macOS나 Windows에서 Docker Desktop을 쓸 때, 호스트에서 파일을 수정해도 컨테이너 내부의 inotify에 이벤트가 도달하지 않는다. Docker Desktop이 VM을 통해 파일을 중계하기 때문이다. VirtioFS가 inotify를 지원하긴 하지만, 이벤트 전달이 누락되거나 지연되는 경우가 여전히 있다.
+
+### 대응 방법
+
+#### polling 모드 사용
+
+대부분의 도구가 polling fallback을 지원한다.
+
+```bash
+# webpack
+WATCHPACK_POLLING=true webpack serve
+
+# nodemon
+nodemon --legacy-watch app.js
+
+# Create React App / Vite
+CHOKIDAR_USEPOLLING=true npm start
+```
+
+Compose에서 환경 변수로 넘기면 편하다.
+
+```yaml
+services:
+  app:
+    volumes:
+      - .:/app
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+```
+
+polling은 CPU를 더 쓴다. `CHOKIDAR_INTERVAL`을 늘려서(기본 100ms → 1000ms 등) 부하를 줄일 수 있다.
+
+#### Linux 호스트에서도 안 되는 경우
+
+Linux에서 바인드 마운트한 경우에는 inotify가 정상 동작해야 한다. 안 된다면 inotify watcher 제한에 걸린 것일 수 있다.
+
+```bash
+# 현재 watcher 제한 확인
+cat /proc/sys/fs/inotify/max_user_watches
+
+# 제한 늘리기 (임시)
+sudo sysctl fs.inotify.max_user_watches=524288
+
+# 영구 적용
+echo "fs.inotify.max_user_watches=524288" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+```
+
+node_modules처럼 감시할 필요 없는 디렉토리는 도구 설정에서 제외해라. 불필요한 watcher가 제한을 소모한다.
+
+---
+
+## Docker Compose 마운트 예시
+
+실제 프로젝트에서 여러 마운트 타입을 조합해서 쓰는 패턴이다.
+
+```yaml
+services:
+  app:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    volumes:
+      # 소스 코드 바인드 마운트
+      - .:/app
+
+      # 의존성은 named volume으로 분리 (macOS 성능)
+      - node_modules:/app/node_modules
+
+      # 설정 파일 읽기 전용
+      - type: bind
+        source: ./config/production.yml
+        target: /app/config/production.yml
+        read_only: true
+    tmpfs:
+      - /tmp:size=100m
+
+  db:
+    image: postgres:16
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_PASSWORD: secret
+
+volumes:
+  node_modules:
   postgres-data:
 ```
 
 ---
 
-## 고급 활용법
+## 트러블슈팅 정리
 
-### 읽기 전용 마운트
-보안이 중요한 설정 파일이나 참조용 데이터를 마운트할 때 사용합니다.
-
-```bash
-# 읽기 전용으로 마운트
-docker run -v /host/config:/container/config:ro 이미지명
-
-# 설정 파일을 읽기 전용으로 마운트
-docker run -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf:ro nginx
-```
-
-### 여러 볼륨 동시 마운트
-하나의 컨테이너에 여러 볼륨을 동시에 마운트할 수 있습니다.
-
-```bash
-docker run -v volume1:/app/data \
-  -v volume2:/app/logs \
-  -v /host/config:/app/config \
-  -v /host/backup:/app/backup:ro \
-  이미지명
-```
-
-### 볼륨 관리 명령어
-
-```bash
-# 볼륨 목록 확인
-docker volume ls
-
-# 볼륨 상세 정보 확인
-docker volume inspect 볼륨이름
-
-# 사용하지 않는 볼륨 정리
-docker volume prune
-
-# 특정 볼륨 삭제
-docker volume rm 볼륨이름
-```
-
----
-
-## 주의사항 및 모범 사례
-
-### 바인드 마운트 주의점
-
-1. **경로 존재 확인**: 마운트할 호스트 경로가 반드시 존재해야 합니다
-2. **권한 문제**: 호스트와 컨테이너의 파일 권한이 다를 수 있어 접근 문제가 발생할 수 있습니다
-3. **보안 위험**: 호스트의 민감한 파일이 컨테이너에 노출될 수 있습니다
-4. **경로 절대성**: 상대 경로 사용 시 예상과 다른 위치에 마운트될 수 있습니다
-
-### 볼륨 마운트 주의점
-
-1. **용량 관리**: 볼륨이 계속 쌓이면 디스크 공간 부족이 발생할 수 있습니다
-2. **백업 필요**: 중요한 데이터는 정기적으로 백업해야 합니다
-3. **볼륨 위치**: Docker 볼륨의 실제 저장 위치를 파악해두어야 합니다
-
-### 모범 사례
-
-#### 보안 강화
-```bash
-# 민감한 파일은 읽기 전용으로 마운트
-docker run -v /etc/ssl/certs:/etc/ssl/certs:ro 이미지명
-
-# 최소 권한 원칙 적용
-docker run --user 1000:1000 -v /host/data:/app/data 이미지명
-```
-
-#### 성능 최적화
-```bash
-# 대용량 파일 처리를 위한 볼륨 사용
-docker run -v large-data-volume:/data 이미지명
-
-# 로그 파일 분리
-docker run -v logs-volume:/var/log 이미지명
-```
-
----
-
-## 성능 최적화
-
-### 성능 비교
-
-| 마운트 방식 | 읽기 성능 | 쓰기 성능 | 메타데이터 성능 | 사용 사례 |
-|------------|----------|----------|----------------|----------|
-| 바인드 마운트 | 보통 | 보통 | 느림 | 개발 환경, 설정 파일 |
-| 볼륨 마운트 | 빠름 | 빠름 | 빠름 | 프로덕션, 데이터베이스 |
-
-### 성능 최적화 팁
-
-1. **적절한 마운트 방식 선택**: 용도에 따라 바인드 마운트와 볼륨 마운트를 적절히 선택
-2. **불필요한 마운트 제거**: 사용하지 않는 마운트는 성능에 영향을 줄 수 있습니다
-3. **SSD 사용**: 볼륨이 저장되는 디스크를 SSD로 사용하면 성능이 향상됩니다
-4. **네트워크 파일시스템 주의**: NFS 등 네트워크 파일시스템은 성능이 제한적일 수 있습니다
-
----
-
-## 용어 정리
-
-| 용어 | 설명 |
-|------|------|
-| **호스트** | Docker가 실행되는 실제 컴퓨터 시스템 |
-| **컨테이너** | Docker로 생성된 격리된 실행 환경 |
-| **마운트** | 외부 저장공간을 시스템에 연결하는 작업 |
-| **볼륨** | Docker가 관리하는 전용 저장공간 |
-| **바인드** | 호스트의 실제 경로를 직접 연결하는 방식 |
-| **마운트 포인트** | 파일시스템이 연결되는 컨테이너 내부 경로 |
-
----
-
-## 사용 시나리오별 가이드
-
-### 바인드 마운트 사용 시기
-- 개발 중인 코드를 실시간으로 테스트할 때
-- 호스트의 설정 파일을 컨테이너에서 사용할 때
-- 로그 파일을 호스트에서 직접 확인하고 싶을 때
-- 프로토타입 개발이나 임시 테스트 시
-
-### 볼륨 마운트 사용 시기
-- 데이터베이스 데이터를 영구 보존하고 싶을 때
-- 여러 컨테이너가 같은 데이터를 공유할 때
-- 보안이 중요한 데이터를 다룰 때
-- 프로덕션 환경에서 안정적인 데이터 관리가 필요할 때
+| 증상 | 원인 | 해결 |
+|---|---|---|
+| Permission denied (RHEL/CentOS) | SELinux 라벨 불일치 | `-v /path:/path:z` 사용 |
+| 컨테이너가 생성한 파일이 호스트에서 root 소유 | UID/GID 불일치 | `--user $(id -u):$(id -g)` |
+| 바인드 마운트 경로 오타인데 에러 없음 | `-v`가 자동 디렉토리 생성 | `--mount`로 변경 |
+| Hot reload가 안 됨 (macOS) | inotify 이벤트 미전달 | polling 모드 활성화 |
+| Hot reload가 안 됨 (Linux) | inotify watcher 제한 초과 | `max_user_watches` 증가 |
+| macOS에서 npm install이 느림 | 바인드 마운트 I/O 오버헤드 | node_modules를 named volume으로 분리 |
+| NFS 볼륨에서 I/O 행 | 네트워크 끊김 + hard mount | `soft,timeo=30` 옵션 추가 |
+| 빌드 시 시크릿이 이미지에 남음 | ARG/COPY로 시크릿 전달 | BuildKit secret 마운트 사용 |
 
 ---
 
@@ -312,6 +605,6 @@ docker run -v logs-volume:/var/log 이미지명
 - [Docker 공식 문서 - Volumes](https://docs.docker.com/storage/volumes/)
 - [Docker 공식 문서 - Bind mounts](https://docs.docker.com/storage/bind-mounts/)
 - [Docker 공식 문서 - tmpfs mounts](https://docs.docker.com/storage/tmpfs/)
-- [Docker Compose 공식 문서 - Volumes](https://docs.docker.com/compose/compose-file/compose-file-v3/#volumes)
-- [Docker Best Practices for Data Management](https://docs.docker.com/storage/)
-- [Linux Filesystem Hierarchy Standard](https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html)
+- [Docker 공식 문서 - BuildKit](https://docs.docker.com/build/buildkit/)
+- [Dockerfile reference - RUN --mount](https://docs.docker.com/reference/dockerfile/#run---mount)
+- [Docker Desktop - VirtioFS](https://docs.docker.com/desktop/settings/#general)
