@@ -1,1 +1,11 @@
 title: Security
+nav:
+  - Basic.md
+  - IAM.md
+  - KMS.md
+  - Secrets_Manager.md
+  - Secrets_Manager_vs_KMS.md
+  - Cognito.md
+  - ACM.md
+  - WAF.md
+  - Shield.md
