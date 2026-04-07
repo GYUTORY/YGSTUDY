@@ -8,4 +8,5 @@ nav:
   - Basic.md
   - XSS.md
   - CSRF.md
+  - OWASP_Top_10.md
   - 보안_심화_및_취약점_분석.md
