@@ -1,7 +1,7 @@
 ---
 title: LLM 동작 원리와 프로덕션 통합
 tags: [ai, llm, transformer, inference, backend, fine-tuning, embedding, evaluation]
-updated: 2026-03-29
+updated: 2026-04-08
 ---
 
 # LLM 동작 원리와 프로덕션 통합
@@ -88,17 +88,25 @@ RNN의 기울기 소실 문제를 완화하기 위해 **게이트(gate)** 구조
 
 Transformer는 **인코더-디코더** 구조지만, 현재 대부분의 LLM은 **디코더 전용(Decoder-only)** 구조를 사용한다.
 
-```
-입력 토큰 → Embedding → [Decoder Block × N] → Linear → Softmax → 다음 토큰 확률
-                              │
-                    ┌─────────┴─────────┐
-                    │  Masked Self-Attention  │
-                    │  Feed-Forward Network   │
-                    │  Layer Normalization    │
-                    └───────────────────┘
+```mermaid
+graph LR
+    A["입력 토큰"] --> B["Token Embedding\n+ Positional Encoding"]
+    B --> C["Decoder Block\n× N layers"]
+    C --> D["Linear Layer"]
+    D --> E["Softmax"]
+    E --> F["다음 토큰 확률"]
+
+    subgraph block ["Decoder Block 내부 구조"]
+        direction TB
+        G["Masked Self-Attention"] --> H["Add & Layer Norm"]
+        H --> I["Feed-Forward Network\n(2-layer MLP)"]
+        I --> J["Add & Layer Norm"]
+    end
+
+    C -.-> block
 ```
 
-디코더 블록이 수십~수백 개 쌓여 있다. GPT-4 급 모델은 100개 이상의 레이어를 가진 것으로 알려져 있다.
+각 Decoder Block은 Masked Self-Attention과 Feed-Forward Network, 그리고 잔차 연결(residual connection)과 Layer Normalization으로 구성된다. 입력이 Attention을 거친 뒤 원래 입력과 더해지고(Add), 정규화(Norm)를 거치는 과정이 반복된다. 이 블록이 수십~수백 개 쌓여 있다. GPT-4 급 모델은 100개 이상의 레이어를 가진 것으로 알려져 있다.
 
 ### 2.2 Self-Attention 메커니즘
 
@@ -125,6 +133,37 @@ Attention(Q, K, V) = softmax(QK^T / √d_k) × V
 ```
 
 **Multi-Head Attention**은 이 과정을 여러 번 병렬로 수행한다. 각 head가 다른 관점에서 관계를 포착한다. 한 head는 문법적 관계를, 다른 head는 의미적 관계를 학습하는 식이다.
+
+```mermaid
+graph TB
+    Input["입력 벡터 X"] --> WQ["W_Q 행렬"]
+    Input --> WK["W_K 행렬"]
+    Input --> WV["W_V 행렬"]
+    WQ --> Q["Q (Query)"]
+    WK --> K["K (Key)"]
+    WV --> V["V (Value)"]
+    Q --> MM["QK^T 행렬 곱"]
+    K --> MM
+    MM --> Scale["÷ √d_k\n스케일링"]
+    Scale --> Mask["Masked\n(미래 토큰 차단)"]
+    Mask --> SM["Softmax\n→ Attention 가중치"]
+    SM --> MV["× V"]
+    V --> MV
+    MV --> Out["Attention 출력"]
+
+    subgraph MHA ["Multi-Head Attention"]
+        direction LR
+        H1["Head 1\n(문법 관계)"]
+        H2["Head 2\n(의미 관계)"]
+        H3["Head 3\n(위치 관계)"]
+        Hn["Head n\n(...)"]
+    end
+
+    Out -.-> MHA
+    MHA --> Concat["Concat → Linear"]
+```
+
+위 흐름이 Self-Attention의 전체 연산 과정이다. 입력 벡터에서 Q, K, V를 각각 만들고, Q와 K의 유사도를 구해 가중치로 사용한다. Decoder에서는 Mask를 적용해서 아직 생성하지 않은 미래 토큰을 참조하지 못하게 막는다. Multi-Head는 이 과정을 여러 head가 병렬로 수행한 뒤 결과를 합치는 구조다.
 
 ### 2.3 컨텍스트 윈도우와 KV Cache
 
@@ -157,6 +196,28 @@ BPE의 동작 방식:
 3. 이 과정을 반복해서 어휘 사전을 만든다
 
 영어는 한 단어가 1~2토큰이지만, 한국어는 3~5토큰이 되는 경우가 많다. API 비용을 계산할 때 이 차이를 반드시 고려해야 한다.
+
+```mermaid
+graph LR
+    subgraph encoding ["BPE 토크나이저 인코딩 과정"]
+        direction TB
+        A["원본 텍스트\n'서버가 요청을 처리한다'"] --> B["UTF-8 바이트로 분해\nec 84 9c eb b2 84 ea b0 80 ..."]
+        B --> C["빈도 높은 바이트 쌍 병합\n(ec,84) → 토큰A\n(9c,eb) → 토큰B"]
+        C --> D["반복 병합\n토큰A+토큰B → 토큰C"]
+        D --> E["최종 토큰 ID\n[23491, 8837, 52301, ...]"]
+    end
+
+    subgraph decoding ["디코딩 과정"]
+        direction TB
+        F["토큰 ID 배열\n[23491, 8837, ...]"] --> G["어휘 사전에서\nID → 바이트 역매핑"]
+        G --> H["바이트 결합\n→ UTF-8 디코딩"]
+        H --> I["복원된 텍스트\n'서버가 요청을 처리한다'"]
+    end
+
+    E --> F
+```
+
+BPE는 학습 단계에서 대규모 텍스트 코퍼스의 바이트 쌍 빈도를 기반으로 어휘 사전(vocab)을 미리 구성한다. 이 어휘 사전의 크기가 토큰화 결과를 결정하고, 영어 중심 코퍼스로 학습한 사전은 한국어를 더 잘게 쪼개게 된다.
 
 ### 3.2 SentencePiece
 
@@ -217,6 +278,52 @@ Top-p = 1.0 → 모든 토큰이 후보 (필터링 없음)
 ```
 
 Temperature와 Top-p를 동시에 낮추면 출력이 너무 제한적이 되고, 둘 다 높이면 횡설수설하는 결과가 나온다. 보통 하나만 조절하고 다른 하나는 기본값으로 두는 게 낫다.
+
+아래 다이어그램은 "서버가 요청을 ___" 다음 토큰을 선택하는 상황에서, Temperature와 Top-p 설정에 따라 후보 토큰의 확률 분포가 어떻게 바뀌는지 보여준다.
+
+```mermaid
+graph TB
+    subgraph original ["원래 확률 분포 (Temperature=1.0)"]
+        direction LR
+        O1["처리한다\n45%"]
+        O2["전달한다\n25%"]
+        O3["받는다\n15%"]
+        O4["분석한다\n8%"]
+        O5["무시한다\n4%"]
+        O6["기타\n3%"]
+    end
+
+    subgraph low_temp ["Temperature = 0.0 (결정적)"]
+        direction LR
+        L1["처리한다\n≈100%"]
+        L2["전달한다\n≈0%"]
+        L3["나머지\n≈0%"]
+    end
+
+    subgraph high_temp ["Temperature = 1.5 (평탄화)"]
+        direction LR
+        H1["처리한다\n28%"]
+        H2["전달한다\n21%"]
+        H3["받는다\n17%"]
+        H4["분석한다\n14%"]
+        H5["무시한다\n11%"]
+        H6["기타\n9%"]
+    end
+
+    subgraph top_p ["Top-p = 0.7 (누적 70%까지만)"]
+        direction LR
+        T1["처리한다\n45%\n누적 45%"]
+        T2["전달한다\n25%\n누적 70%"]
+        T3["받는다\n✗ 제외"]
+        T4["나머지\n✗ 제외"]
+    end
+
+    original --> |"Temperature ↓"| low_temp
+    original --> |"Temperature ↑"| high_temp
+    original --> |"Top-p 필터"| top_p
+```
+
+Temperature는 확률 분포의 뾰족함을 조절한다. 낮추면 1등 토큰에 확률이 집중되고, 높이면 분포가 고르게 퍼진다. Top-p는 분포 모양은 건드리지 않고, 누적 확률 기준으로 하위 토큰들을 후보에서 잘라내는 방식이다.
 
 ### 4.3 Max Tokens / Stop Sequences
 
@@ -685,6 +792,35 @@ Ollama vs vLLM 선택 기준:
 ## 10. LLM 학습 파이프라인
 
 LLM이 어떻게 만들어지는지 이해하면, 모델의 한계와 특성을 예측할 수 있다. 학습은 크게 세 단계로 나뉜다.
+
+```mermaid
+graph LR
+    subgraph stage1 ["1단계: Pre-training"]
+        direction TB
+        D1["대규모 텍스트 데이터\n(수조 토큰)"]
+        D1 --> P1["다음 토큰 예측\n(자기지도 학습)"]
+        P1 --> M1["Base Model\n언어 이해는 하지만\n대화는 못 함"]
+    end
+
+    subgraph stage2 ["2단계: SFT"]
+        direction TB
+        D2["질문-답변 쌍\n(수만~수십만 건)"]
+        D2 --> P2["지도 학습\n(대화 형식 학습)"]
+        P2 --> M2["SFT Model\n대화가 가능하지만\n품질 편차가 큼"]
+    end
+
+    subgraph stage3 ["3단계: RLHF / DPO"]
+        direction TB
+        D3["사람의 선호도 데이터\n(A vs B 비교)"]
+        D3 --> P3["선호 학습\n(PPO 또는 DPO)"]
+        P3 --> M3["Aligned Model\n안전하고 유용한\n최종 모델"]
+    end
+
+    M1 --> |"가중치 전달"| stage2
+    M2 --> |"가중치 전달"| stage3
+```
+
+각 단계에서 모델의 성격이 바뀐다. Pre-training은 "언어를 아는 상태", SFT는 "대화할 줄 아는 상태", RLHF/DPO는 "좋은 답변을 구분하는 상태"가 된다. 단계별로 필요한 데이터의 양과 성격이 완전히 다르다.
 
 ### 10.1 Pre-training (사전 학습)
 
