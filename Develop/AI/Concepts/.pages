@@ -1,5 +1,7 @@
 nav:
   - LLM.md
+  - LLM_Agent.md
+  - LLM_Security.md
   - AI_Hallucination.md
   - Prompt_Engineering.md
   - RAG_for_Code.md

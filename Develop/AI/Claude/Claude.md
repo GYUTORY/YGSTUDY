@@ -37,6 +37,66 @@ graph LR
     style H fill:#065f46,stroke:#10b981,color:#fff
 ```
 
+### 모델 등급별 성능-비용 포지셔닝
+
+<svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" style="max-width:720px;width:100%;height:auto;font-family:'Segoe UI',system-ui,sans-serif">
+  <defs>
+    <linearGradient id="opus-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+    <linearGradient id="sonnet-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient>
+    <linearGradient id="haiku-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#059669"/><stop offset="100%" stop-color="#34d399"/></linearGradient>
+  </defs>
+  <rect width="720" height="340" rx="12" fill="#1e1e2e"/>
+  <text x="360" y="32" text-anchor="middle" fill="#cdd6f4" font-size="15" font-weight="600">Claude 모델 등급별 비교 (상대값, 100 = 최대)</text>
+  <!-- 축 레이블 -->
+  <text x="95" y="75" text-anchor="end" fill="#a6adc8" font-size="12">성능</text>
+  <text x="95" y="135" text-anchor="end" fill="#a6adc8" font-size="12">속도</text>
+  <text x="95" y="195" text-anchor="end" fill="#a6adc8" font-size="12">비용 (역)</text>
+  <text x="95" y="255" text-anchor="end" fill="#a6adc8" font-size="12">컨텍스트</text>
+  <!-- 그리드 -->
+  <line x1="110" y1="62" x2="620" y2="62" stroke="#313244" stroke-width="1"/>
+  <line x1="110" y1="122" x2="620" y2="122" stroke="#313244" stroke-width="1"/>
+  <line x1="110" y1="182" x2="620" y2="182" stroke="#313244" stroke-width="1"/>
+  <line x1="110" y1="242" x2="620" y2="242" stroke="#313244" stroke-width="1"/>
+  <!-- 성능 바 -->
+  <rect x="110" y="56" width="510" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
+  <rect x="110" y="69" width="408" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
+  <rect x="110" y="82" width="255" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
+  <!-- 속도 바 -->
+  <rect x="110" y="116" width="204" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
+  <rect x="110" y="129" width="357" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
+  <rect x="110" y="142" width="510" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
+  <!-- 비용(역) 바 — 저렴할수록 길다 -->
+  <rect x="110" y="176" width="54" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
+  <rect x="110" y="189" width="170" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
+  <rect x="110" y="202" width="510" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
+  <!-- 컨텍스트 바 -->
+  <rect x="110" y="236" width="510" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
+  <rect x="110" y="249" width="204" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
+  <rect x="110" y="262" width="204" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
+  <!-- 범례 -->
+  <rect x="200" y="296" width="14" height="14" rx="3" fill="url(#opus-grad)"/>
+  <text x="220" y="308" fill="#cdd6f4" font-size="12">Opus 4.6</text>
+  <rect x="310" y="296" width="14" height="14" rx="3" fill="url(#sonnet-grad)"/>
+  <text x="330" y="308" fill="#cdd6f4" font-size="12">Sonnet 4.6</text>
+  <rect x="430" y="296" width="14" height="14" rx="3" fill="url(#haiku-grad)"/>
+  <text x="450" y="308" fill="#cdd6f4" font-size="12">Haiku 4.5</text>
+  <!-- 값 표시 -->
+  <text x="625" y="65" fill="#a78bfa" font-size="10">100</text>
+  <text x="523" y="78" fill="#60a5fa" font-size="10">80</text>
+  <text x="370" y="91" fill="#34d399" font-size="10">50</text>
+  <text x="319" y="125" fill="#a78bfa" font-size="10">40</text>
+  <text x="472" y="138" fill="#60a5fa" font-size="10">70</text>
+  <text x="625" y="151" fill="#34d399" font-size="10">100</text>
+  <text x="169" y="185" fill="#a78bfa" font-size="10">$75</text>
+  <text x="285" y="198" fill="#60a5fa" font-size="10">$15</text>
+  <text x="625" y="211" fill="#34d399" font-size="10">$4</text>
+  <text x="625" y="245" fill="#a78bfa" font-size="10">1M</text>
+  <text x="319" y="258" fill="#60a5fa" font-size="10">200K</text>
+  <text x="319" y="271" fill="#34d399" font-size="10">200K</text>
+</svg>
+
+Opus는 성능과 컨텍스트(1M 확장)에서 압도적이지만 출력 토큰 단가가 $75/1M으로 Haiku의 약 19배다. Sonnet은 성능 80% 수준에서 비용이 Opus의 1/5이라 가성비가 가장 좋다. Haiku는 성능을 포기하는 대신 속도와 비용에서 이긴다.
+
 ### 2.1 Opus / Sonnet / Haiku
 
 | 구분 | Opus | Sonnet | Haiku |
@@ -223,6 +283,54 @@ graph LR
     style BILL fill:#374151,stroke:#6b7280,color:#fff
 ```
 
+### 모델별 토큰 단가 비교
+
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="max-width:720px;width:100%;height:auto;font-family:'Segoe UI',system-ui,sans-serif">
+  <rect width="720" height="300" rx="12" fill="#1e1e2e"/>
+  <text x="360" y="30" text-anchor="middle" fill="#cdd6f4" font-size="15" font-weight="600">출력 토큰 1M당 비용 ($)</text>
+  <!-- Y축 눈금 -->
+  <line x1="100" y1="55" x2="100" y2="240" stroke="#45475a" stroke-width="1"/>
+  <line x1="100" y1="240" x2="640" y2="240" stroke="#45475a" stroke-width="1"/>
+  <text x="90" y="63" text-anchor="end" fill="#6c7086" font-size="11">$75</text>
+  <text x="90" y="107" text-anchor="end" fill="#6c7086" font-size="11">$56</text>
+  <text x="90" y="152" text-anchor="end" fill="#6c7086" font-size="11">$37</text>
+  <text x="90" y="196" text-anchor="end" fill="#6c7086" font-size="11">$19</text>
+  <text x="90" y="244" text-anchor="end" fill="#6c7086" font-size="11">$0</text>
+  <line x1="100" y1="55" x2="640" y2="55" stroke="#313244" stroke-width="0.5" stroke-dasharray="4"/>
+  <line x1="100" y1="103" x2="640" y2="103" stroke="#313244" stroke-width="0.5" stroke-dasharray="4"/>
+  <line x1="100" y1="148" x2="640" y2="148" stroke="#313244" stroke-width="0.5" stroke-dasharray="4"/>
+  <line x1="100" y1="192" x2="640" y2="192" stroke="#313244" stroke-width="0.5" stroke-dasharray="4"/>
+  <!-- Opus 입력 바 -->
+  <rect x="140" y="203" width="55" height="37" rx="4" fill="#7c3aed" opacity="0.5"/>
+  <text x="167" y="225" text-anchor="middle" fill="#cdd6f4" font-size="10">$15</text>
+  <!-- Opus 출력 바 -->
+  <rect x="200" y="55" width="55" height="185" rx="4" fill="#7c3aed"/>
+  <text x="227" y="48" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">$75</text>
+  <!-- Sonnet 입력 바 -->
+  <rect x="320" y="233" width="55" height="7" rx="4" fill="#2563eb" opacity="0.5"/>
+  <text x="347" y="228" text-anchor="middle" fill="#cdd6f4" font-size="10">$3</text>
+  <!-- Sonnet 출력 바 -->
+  <rect x="380" y="203" width="55" height="37" rx="4" fill="#2563eb"/>
+  <text x="407" y="197" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="600">$15</text>
+  <!-- Haiku 입력 바 -->
+  <rect x="500" y="238" width="55" height="2" rx="1" fill="#059669" opacity="0.5"/>
+  <text x="527" y="234" text-anchor="middle" fill="#cdd6f4" font-size="10">$0.8</text>
+  <!-- Haiku 출력 바 -->
+  <rect x="560" y="230" width="55" height="10" rx="4" fill="#059669"/>
+  <text x="587" y="225" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">$4</text>
+  <!-- 모델 레이블 -->
+  <text x="195" y="260" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="500">Opus 4.6</text>
+  <text x="375" y="260" text-anchor="middle" fill="#60a5fa" font-size="12" font-weight="500">Sonnet 4.6</text>
+  <text x="555" y="260" text-anchor="middle" fill="#34d399" font-size="12" font-weight="500">Haiku 4.5</text>
+  <!-- 범례 -->
+  <rect x="240" y="278" width="12" height="12" rx="2" fill="#7c3aed" opacity="0.5"/>
+  <text x="258" y="289" fill="#a6adc8" font-size="11">입력 토큰</text>
+  <rect x="360" y="278" width="12" height="12" rx="2" fill="#7c3aed"/>
+  <text x="378" y="289" fill="#a6adc8" font-size="11">출력 토큰</text>
+</svg>
+
+그래프로 보면 Opus의 출력 토큰 비용이 얼마나 큰지 체감된다. Sonnet 출력 단가가 Opus의 1/5, Haiku의 출력 단가는 Opus의 약 1/19 수준이다. 코드 생성처럼 출력이 긴 작업에서는 모델 선택이 비용에 직접적으로 영향을 준다.
+
 | 모델 (4.6 기준) | 입력 (1M 토큰) | 출력 (1M 토큰) | 입출력 비율 |
 |-----------------|---------------|---------------|-----------|
 | Opus 4.6 | $15 | $75 | 1 : 5 |
@@ -302,6 +410,66 @@ sequenceDiagram
 
 200K 토큰은 대략 코드 파일 수백 개, 일반 텍스트 기준 책 한 권 분량이다.
 
+### 컨텍스트 윈도우 구성 시각화
+
+<svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" style="max-width:720px;width:100%;height:auto;font-family:'Segoe UI',system-ui,sans-serif">
+  <rect width="720" height="260" rx="12" fill="#1e1e2e"/>
+  <text x="360" y="28" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="600">200K 토큰 컨텍스트 — 실제 사용 시 구성 예시</text>
+  <!-- 첫 번째 예: 짧은 대화 -->
+  <text x="30" y="62" fill="#a6adc8" font-size="11">단순 질문</text>
+  <rect x="110" y="48" width="40" height="24" rx="4" fill="#7c3aed"/>
+  <rect x="150" y="48" width="16" height="24" rx="0" fill="#2563eb"/>
+  <rect x="166" y="48" width="534" height="24" rx="4" fill="#065f46" opacity="0.3"/>
+  <text x="130" y="64" text-anchor="middle" fill="#fff" font-size="9">sys</text>
+  <text x="158" y="64" text-anchor="middle" fill="#fff" font-size="9">Q</text>
+  <text x="433" y="64" text-anchor="middle" fill="#34d399" font-size="10">응답 가능: ~195K</text>
+  <!-- 두 번째 예: 코드 리뷰 -->
+  <text x="30" y="106" fill="#a6adc8" font-size="11">코드 리뷰</text>
+  <rect x="110" y="92" width="40" height="24" rx="4" fill="#7c3aed"/>
+  <rect x="150" y="92" width="120" height="24" rx="0" fill="#dc2626"/>
+  <rect x="270" y="92" width="30" height="24" rx="0" fill="#2563eb"/>
+  <rect x="300" y="92" width="400" height="24" rx="4" fill="#065f46" opacity="0.3"/>
+  <text x="130" y="108" text-anchor="middle" fill="#fff" font-size="9">sys</text>
+  <text x="210" y="108" text-anchor="middle" fill="#fff" font-size="9">코드 파일 5개 (~30K)</text>
+  <text x="285" y="108" text-anchor="middle" fill="#fff" font-size="9">Q</text>
+  <text x="500" y="108" text-anchor="middle" fill="#34d399" font-size="10">응답 가능: ~165K</text>
+  <!-- 세 번째 예: 에이전트 + 도구 -->
+  <text x="30" y="150" fill="#a6adc8" font-size="11">에이전트</text>
+  <rect x="110" y="136" width="60" height="24" rx="4" fill="#7c3aed"/>
+  <rect x="170" y="136" width="80" height="24" rx="0" fill="#ca8a04"/>
+  <rect x="250" y="136" width="200" height="24" rx="0" fill="#dc2626"/>
+  <rect x="450" y="136" width="40" height="24" rx="0" fill="#2563eb"/>
+  <rect x="490" y="136" width="210" height="24" rx="4" fill="#065f46" opacity="0.3"/>
+  <text x="140" y="152" text-anchor="middle" fill="#fff" font-size="9">sys</text>
+  <text x="210" y="152" text-anchor="middle" fill="#fff" font-size="9">tools</text>
+  <text x="350" y="152" text-anchor="middle" fill="#fff" font-size="9">대화 내역 (~50K)</text>
+  <text x="470" y="152" text-anchor="middle" fill="#fff" font-size="9">Q</text>
+  <text x="595" y="152" text-anchor="middle" fill="#34d399" font-size="10">~105K</text>
+  <!-- 네 번째 예: 긴 대화 -->
+  <text x="30" y="194" fill="#a6adc8" font-size="11">긴 멀티턴</text>
+  <rect x="110" y="180" width="60" height="24" rx="4" fill="#7c3aed"/>
+  <rect x="170" y="180" width="460" height="24" rx="0" fill="#dc2626"/>
+  <rect x="630" y="180" width="40" height="24" rx="0" fill="#2563eb"/>
+  <rect x="670" y="180" width="30" height="24" rx="4" fill="#065f46" opacity="0.3"/>
+  <text x="140" y="196" text-anchor="middle" fill="#fff" font-size="9">sys</text>
+  <text x="400" y="196" text-anchor="middle" fill="#fff" font-size="9">대화 내역 누적 (~170K)</text>
+  <text x="650" y="196" text-anchor="middle" fill="#fff" font-size="9">Q</text>
+  <text x="685" y="196" text-anchor="middle" fill="#ef4444" font-size="8">!!!</text>
+  <!-- 범례 -->
+  <rect x="120" y="224" width="12" height="12" rx="2" fill="#7c3aed"/>
+  <text x="138" y="234" fill="#a6adc8" font-size="10">System Prompt</text>
+  <rect x="240" y="224" width="12" height="12" rx="2" fill="#ca8a04"/>
+  <text x="258" y="234" fill="#a6adc8" font-size="10">Tools 정의</text>
+  <rect x="340" y="224" width="12" height="12" rx="2" fill="#dc2626"/>
+  <text x="358" y="234" fill="#a6adc8" font-size="10">대화 내역</text>
+  <rect x="440" y="224" width="12" height="12" rx="2" fill="#2563eb"/>
+  <text x="458" y="234" fill="#a6adc8" font-size="10">현재 요청</text>
+  <rect x="540" y="224" width="12" height="12" rx="2" fill="#065f46" opacity="0.3"/>
+  <text x="558" y="234" fill="#a6adc8" font-size="10">응답 가능 공간</text>
+</svg>
+
+네 번째 케이스가 실무에서 자주 겪는 문제다. 멀티턴 대화가 길어지면 대화 내역이 컨텍스트 대부분을 차지하고, 응답 가능 공간이 거의 남지 않는다. 이때 응답 품질이 떨어지거나 잘리는 현상이 발생한다.
+
 ```mermaid
 graph TB
     subgraph 컨텍스트 윈도우 구성
@@ -369,6 +537,71 @@ API가 아닌 claude.ai 웹이나 Desktop 앱으로 사용할 때의 주요 기�
 ---
 
 ## 7. 다른 LLM과의 체감 비교
+
+### 주요 LLM 특성 비교
+
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" style="max-width:720px;width:100%;height:auto;font-family:'Segoe UI',system-ui,sans-serif">
+  <rect width="720" height="320" rx="12" fill="#1e1e2e"/>
+  <text x="360" y="28" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="600">Claude vs GPT-4o vs Gemini — 항목별 체감 비교</text>
+  <!-- 축 레이블 -->
+  <text x="90" y="72" text-anchor="end" fill="#a6adc8" font-size="11">코딩 품질</text>
+  <text x="90" y="112" text-anchor="end" fill="#a6adc8" font-size="11">지시 준수</text>
+  <text x="90" y="152" text-anchor="end" fill="#a6adc8" font-size="11">컨텍스트</text>
+  <text x="90" y="192" text-anchor="end" fill="#a6adc8" font-size="11">멀티모달</text>
+  <text x="90" y="232" text-anchor="end" fill="#a6adc8" font-size="11">가격 경쟁력</text>
+  <!-- 그리드 -->
+  <line x1="105" y1="60" x2="640" y2="60" stroke="#313244" stroke-width="0.5"/>
+  <line x1="105" y1="100" x2="640" y2="100" stroke="#313244" stroke-width="0.5"/>
+  <line x1="105" y1="140" x2="640" y2="140" stroke="#313244" stroke-width="0.5"/>
+  <line x1="105" y1="180" x2="640" y2="180" stroke="#313244" stroke-width="0.5"/>
+  <line x1="105" y1="220" x2="640" y2="220" stroke="#313244" stroke-width="0.5"/>
+  <!-- 코딩 품질 -->
+  <rect x="105" y="56" width="482" height="8" rx="4" fill="#a78bfa"/>
+  <rect x="105" y="66" width="428" height="8" rx="4" fill="#f97316"/>
+  <rect x="105" y="76" width="375" height="8" rx="4" fill="#38bdf8"/>
+  <!-- 지시 준수 -->
+  <rect x="105" y="96" width="510" height="8" rx="4" fill="#a78bfa"/>
+  <rect x="105" y="106" width="375" height="8" rx="4" fill="#f97316"/>
+  <rect x="105" y="116" width="321" height="8" rx="4" fill="#38bdf8"/>
+  <!-- 컨텍스트 -->
+  <rect x="105" y="136" width="375" height="8" rx="4" fill="#a78bfa"/>
+  <rect x="105" y="146" width="214" height="8" rx="4" fill="#f97316"/>
+  <rect x="105" y="156" width="510" height="8" rx="4" fill="#38bdf8"/>
+  <!-- 멀티모달 -->
+  <rect x="105" y="176" width="268" height="8" rx="4" fill="#a78bfa"/>
+  <rect x="105" y="186" width="482" height="8" rx="4" fill="#f97316"/>
+  <rect x="105" y="196" width="428" height="8" rx="4" fill="#38bdf8"/>
+  <!-- 가격 경쟁력 -->
+  <rect x="105" y="216" width="214" height="8" rx="4" fill="#a78bfa"/>
+  <rect x="105" y="226" width="268" height="8" rx="4" fill="#f97316"/>
+  <rect x="105" y="236" width="428" height="8" rx="4" fill="#38bdf8"/>
+  <!-- 값 레이블 -->
+  <text x="592" y="64" fill="#a78bfa" font-size="9">90</text>
+  <text x="538" y="74" fill="#f97316" font-size="9">80</text>
+  <text x="485" y="84" fill="#38bdf8" font-size="9">70</text>
+  <text x="620" y="104" fill="#a78bfa" font-size="9">95</text>
+  <text x="485" y="114" fill="#f97316" font-size="9">70</text>
+  <text x="431" y="124" fill="#38bdf8" font-size="9">60</text>
+  <text x="485" y="144" fill="#a78bfa" font-size="9">200K~1M</text>
+  <text x="324" y="154" fill="#f97316" font-size="9">128K</text>
+  <text x="620" y="164" fill="#38bdf8" font-size="9">1M~2M</text>
+  <text x="378" y="184" fill="#a78bfa" font-size="9">이미지 입력</text>
+  <text x="592" y="194" fill="#f97316" font-size="9">입출력+생성</text>
+  <text x="538" y="204" fill="#38bdf8" font-size="9">영상+오디오</text>
+  <text x="324" y="224" fill="#a78bfa" font-size="9">중~높음</text>
+  <text x="378" y="234" fill="#f97316" font-size="9">중간</text>
+  <text x="538" y="244" fill="#38bdf8" font-size="9">저렴</text>
+  <!-- 범례 -->
+  <rect x="200" y="270" width="14" height="14" rx="3" fill="#a78bfa"/>
+  <text x="220" y="282" fill="#cdd6f4" font-size="12">Claude (Opus/Sonnet)</text>
+  <rect x="370" y="270" width="14" height="14" rx="3" fill="#f97316"/>
+  <text x="390" y="282" fill="#cdd6f4" font-size="12">GPT-4o</text>
+  <rect x="470" y="270" width="14" height="14" rx="3" fill="#38bdf8"/>
+  <text x="490" y="282" fill="#cdd6f4" font-size="12">Gemini</text>
+  <text x="360" y="305" text-anchor="middle" fill="#585b70" font-size="10">* 2026년 4월 기준 체감 비교. 벤치마크와 다를 수 있음</text>
+</svg>
+
+모든 항목에서 한 모델이 압도하는 건 아니다. Claude는 코딩과 지시 준수에서 강하고, GPT-4o는 멀티모달(이미지 생성 포함)에서 대안이 없다. Gemini는 컨텍스트 크기와 가격에서 유리하다.
 
 ### 7.1 Claude vs GPT-4o
 
