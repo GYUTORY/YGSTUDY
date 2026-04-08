@@ -1,7 +1,7 @@
 ---
 title: 로깅 & 모니터링
 tags: [backend, logging, monitoring, elk, efk, distributed-tracing, alerting, observability]
-updated: 2026-03-29
+updated: 2026-04-08
 ---
 
 # 로깅 & 모니터링
@@ -165,6 +165,44 @@ App → Promtail → Loki → Grafana
 
 인덱싱을 안 하니까 저장 비용이 싸다. 대신 "에러 메시지에 특정 문자열이 포함된 로그"를 검색하면 느리다. Grafana를 이미 쓰고 있으면 대시보드 통합이 편하다는 장점이 있다.
 
+### Grafana + Loki 로그 조회 흐름
+
+실제로 Grafana에서 Loki 로그를 조회할 때 데이터가 어떤 경로로 흘러가는지 정리하면 다음과 같다.
+
+```mermaid
+flowchart LR
+    subgraph 애플리케이션
+        A1[order-service]
+        A2[payment-service]
+        A3[user-service]
+    end
+
+    subgraph 로그 수집
+        P[Promtail<br/>stdout/stderr 수집]
+    end
+
+    subgraph 저장
+        L[Loki<br/>라벨 인덱싱만 수행<br/>원본은 chunk로 저장]
+    end
+
+    subgraph 조회
+        G[Grafana Explore<br/>LogQL 쿼리 실행]
+    end
+
+    A1 -->|stdout| P
+    A2 -->|stdout| P
+    A3 -->|stdout| P
+    P -->|push| L
+    L -->|query| G
+```
+
+Grafana Explore 화면에서 LogQL로 조회하는 구조다. 라벨 필터(`{service="order-service"}`)는 빠르고, 본문 필터(`|= "timeout"`)는 chunk를 스캔해야 해서 느리다. 라벨 필터로 범위를 먼저 좁히고 본문 필터를 거는 게 핵심이다.
+
+```
+# LogQL 조회 예시
+{service="order-service", level="error"} |= "timeout" | json | duration > 5s
+```
+
 ---
 
 ## 분산 트레이싱
@@ -237,12 +275,48 @@ public class OrderService {
 
 ## 메트릭 & 알림
 
-### Prometheus + Grafana 기본 구성
+### Prometheus + Grafana 메트릭 대시보드 구성
 
+```mermaid
+flowchart TB
+    subgraph 애플리케이션 서버
+        APP1[order-service<br/>/actuator/prometheus]
+        APP2[payment-service<br/>/actuator/prometheus]
+        APP3[user-service<br/>/actuator/prometheus]
+    end
+
+    subgraph Prometheus
+        direction TB
+        SC[Scrape Config<br/>15초 간격 Pull]
+        TSDB[Time Series DB<br/>메트릭 저장]
+        RULE[Alerting Rules<br/>임계값 평가]
+    end
+
+    subgraph Alertmanager
+        AM[라우팅/그룹핑/억제]
+    end
+
+    subgraph Grafana
+        DASH[대시보드<br/>PromQL로 시각화]
+    end
+
+    subgraph 알림 채널
+        SL[Slack]
+        PD[PagerDuty]
+    end
+
+    APP1 -->|scrape| SC
+    APP2 -->|scrape| SC
+    APP3 -->|scrape| SC
+    SC --> TSDB
+    TSDB --> RULE
+    RULE -->|alert fire| AM
+    AM --> SL
+    AM --> PD
+    TSDB -->|PromQL query| DASH
 ```
-App ──/actuator/prometheus──▶ Prometheus ──▶ Grafana
-     (메트릭 노출)              (수집/저장)     (시각화/알림)
-```
+
+Prometheus가 각 서비스의 `/actuator/prometheus` 엔드포인트를 주기적으로 긁어간다(Pull 방식). 수집된 메트릭은 TSDB에 저장되고, Grafana가 PromQL로 조회해서 대시보드에 그린다. 알림은 Prometheus의 alerting rule이 발화하면 Alertmanager를 거쳐 Slack이나 PagerDuty로 간다.
 
 ```yaml
 # application.yml
@@ -336,7 +410,43 @@ payment-service 로그를 보면:
 
 커넥션 풀이 고갈된 거다. 이 시간대에 배치 작업이 돌면서 커넥션을 점유하고 있었다. 배치 작업과 API 서빙이 같은 커넥션 풀을 공유하는 게 원인이다.
 
-이렇게 메트릭(에러율 급등 감지) → 로그(에러 내용 확인) → 트레이스(병목 서비스 특정) → 메트릭(근본 원인 확인)으로 이어지는 흐름이 Observability의 핵심이다.
+이 과정을 다이어그램으로 정리하면 다음과 같다.
+
+```mermaid
+flowchart TD
+    ALERT["Grafana 알림 수신<br/>order-service 5xx 에러율 5% 초과"]
+
+    subgraph 1단계_메트릭
+        M1["Grafana 대시보드에서 시간대 좁히기"]
+        M2["uri별 에러율 분리<br/>→ POST /api/orders에서만 에러 발생"]
+    end
+
+    subgraph 2단계_로그
+        L1["Kibana 또는 Grafana+Loki에서<br/>level:ERROR AND service:order-service 검색"]
+        L2["에러 로그 확인<br/>→ payment-service 호출 타임아웃<br/>traceId: f7a2b3c4d5e6"]
+    end
+
+    subgraph 3단계_트레이스
+        T1["Jaeger에서 traceId 검색"]
+        T2["타임라인 확인<br/>→ payment-service 호출에서 5001ms 소요"]
+    end
+
+    subgraph 4단계_근본원인
+        R1["payment-service Grafana 대시보드 확인"]
+        R2["DB 커넥션 풀 고갈 확인<br/>→ 배치 작업이 커넥션 점유"]
+    end
+
+    ALERT --> M1
+    M1 --> M2
+    M2 -->|"에러 발생 서비스 특정"| L1
+    L1 --> L2
+    L2 -->|"traceId 획득"| T1
+    T1 --> T2
+    T2 -->|"병목 서비스 특정"| R1
+    R1 --> R2
+```
+
+메트릭(에러율 급등 감지) → 로그(에러 내용 확인) → 트레이스(병목 서비스 특정) → 메트릭(근본 원인 확인)으로 이어지는 흐름이 Observability의 핵심이다.
 
 ---
 
