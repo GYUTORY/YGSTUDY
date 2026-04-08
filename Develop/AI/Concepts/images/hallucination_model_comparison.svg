@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="claude-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="gpt-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="gemini-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="580" fill="url(#bg2)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">모델별 할루시네이션 취약 영역 비교</text>
+  <text x="450" y="55" text-anchor="middle" fill="#64748b" font-size="12">영역별 상대적 할루시네이션 빈도 (낮을수록 정확)</text>
+
+  <!-- Legend -->
+  <rect x="260" y="68" width="14" height="14" rx="3" fill="url(#claude-bar)"/>
+  <text x="280" y="80" fill="#c084fc" font-size="12" font-weight="600">Claude</text>
+  <rect x="360" y="68" width="14" height="14" rx="3" fill="url(#gpt-bar)"/>
+  <text x="380" y="80" fill="#34d399" font-size="12" font-weight="600">GPT-4o</text>
+  <rect x="460" y="68" width="14" height="14" rx="3" fill="url(#gemini-bar)"/>
+  <text x="480" y="80" fill="#60a5fa" font-size="12" font-weight="600">Gemini</text>
+
+  <!-- Y axis labels and horizontal bars -->
+  <!-- Category 1: 존재하지 않는 API -->
+  <text x="190" y="128" text-anchor="end" fill="#e2e8f0" font-size="13">존재하지 않는 API</text>
+  <rect x="200" y="110" width="180" height="14" rx="3" fill="url(#claude-bar)" opacity="0.85"/>
+  <rect x="200" y="128" width="220" height="14" rx="3" fill="url(#gpt-bar)" opacity="0.85"/>
+  <rect x="200" y="146" width="250" height="14" rx="3" fill="url(#gemini-bar)" opacity="0.85"/>
+  <text x="386" y="122" fill="#c084fc" font-size="11">중</text>
+  <text x="426" y="140" fill="#34d399" font-size="11">중상</text>
+  <text x="456" y="158" fill="#60a5fa" font-size="11">상</text>
+
+  <!-- Category 2: 구버전 API 사용 -->
+  <text x="190" y="198" text-anchor="end" fill="#e2e8f0" font-size="13">구버전 API 사용</text>
+  <rect x="200" y="180" width="260" height="14" rx="3" fill="url(#claude-bar)" opacity="0.85"/>
+  <rect x="200" y="198" width="200" height="14" rx="3" fill="url(#gpt-bar)" opacity="0.85"/>
+  <rect x="200" y="216" width="170" height="14" rx="3" fill="url(#gemini-bar)" opacity="0.85"/>
+  <text x="466" y="192" fill="#c084fc" font-size="11">상</text>
+  <text x="406" y="210" fill="#34d399" font-size="11">중</text>
+  <text x="376" y="228" fill="#60a5fa" font-size="11">중하</text>
+
+  <!-- Category 3: 시그니처/파라미터 오류 -->
+  <text x="190" y="268" text-anchor="end" fill="#e2e8f0" font-size="13">시그니처/파라미터 오류</text>
+  <rect x="200" y="250" width="160" height="14" rx="3" fill="url(#claude-bar)" opacity="0.85"/>
+  <rect x="200" y="268" width="230" height="14" rx="3" fill="url(#gpt-bar)" opacity="0.85"/>
+  <rect x="200" y="286" width="200" height="14" rx="3" fill="url(#gemini-bar)" opacity="0.85"/>
+  <text x="366" y="262" fill="#c084fc" font-size="11">중하</text>
+  <text x="436" y="280" fill="#34d399" font-size="11">중상</text>
+  <text x="406" y="298" fill="#60a5fa" font-size="11">중</text>
+
+  <!-- Category 4: 긴 코드 일관성 -->
+  <text x="190" y="338" text-anchor="end" fill="#e2e8f0" font-size="13">긴 코드 일관성 실패</text>
+  <rect x="200" y="320" width="120" height="14" rx="3" fill="url(#claude-bar)" opacity="0.85"/>
+  <rect x="200" y="338" width="280" height="14" rx="3" fill="url(#gpt-bar)" opacity="0.85"/>
+  <rect x="200" y="356" width="180" height="14" rx="3" fill="url(#gemini-bar)" opacity="0.85"/>
+  <text x="326" y="332" fill="#c084fc" font-size="11">하</text>
+  <text x="486" y="350" fill="#34d399" font-size="11">상</text>
+  <text x="386" y="368" fill="#60a5fa" font-size="11">중</text>
+
+  <!-- Category 5: 과잉 확신 (틀리면서 단언) -->
+  <text x="190" y="408" text-anchor="end" fill="#e2e8f0" font-size="13">과잉 확신 (틀린 단언)</text>
+  <rect x="200" y="390" width="130" height="14" rx="3" fill="url(#claude-bar)" opacity="0.85"/>
+  <rect x="200" y="408" width="300" height="14" rx="3" fill="url(#gpt-bar)" opacity="0.85"/>
+  <rect x="200" y="426" width="220" height="14" rx="3" fill="url(#gemini-bar)" opacity="0.85"/>
+  <text x="336" y="402" fill="#c084fc" font-size="11">하</text>
+  <text x="506" y="420" fill="#34d399" font-size="11">최상</text>
+  <text x="426" y="438" fill="#60a5fa" font-size="11">중상</text>
+
+  <!-- Category 6: 비 Google 생태계 -->
+  <text x="190" y="478" text-anchor="end" fill="#e2e8f0" font-size="13">비주류 라이브러리</text>
+  <rect x="200" y="460" width="200" height="14" rx="3" fill="url(#claude-bar)" opacity="0.85"/>
+  <rect x="200" y="478" width="210" height="14" rx="3" fill="url(#gpt-bar)" opacity="0.85"/>
+  <rect x="200" y="496" width="290" height="14" rx="3" fill="url(#gemini-bar)" opacity="0.85"/>
+  <text x="406" y="472" fill="#c084fc" font-size="11">중</text>
+  <text x="416" y="490" fill="#34d399" font-size="11">중</text>
+  <text x="496" y="508" fill="#60a5fa" font-size="11">상</text>
+
+  <!-- Scale bar -->
+  <line x1="200" y1="525" x2="800" y2="525" stroke="#333366" stroke-width="1"/>
+  <text x="200" y="545" fill="#64748b" font-size="11" text-anchor="middle">낮음</text>
+  <text x="500" y="545" fill="#64748b" font-size="11" text-anchor="middle">할루시네이션 빈도</text>
+  <text x="800" y="545" fill="#64748b" font-size="11" text-anchor="middle">높음</text>
+
+  <!-- Note -->
+  <text x="450" y="570" text-anchor="middle" fill="#475569" font-size="10">* 2024~2025년 코딩 벤치마크 및 실무 사용 경험 기반 상대 비교. 모델 업데이트에 따라 변동 가능</text>
+</svg>
