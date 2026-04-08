@@ -1,1 +1,7 @@
 title: Infrastructure as Code
+nav:
+  - Terraform.md
+  - Terraform_기초.md
+  - Ansible.md
+  - Terragrunt.md
+  - Pulumi.md
