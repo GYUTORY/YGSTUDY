@@ -1,391 +1,454 @@
 ---
-title: Java
-tags: [language, java, 객체지향-프로그래밍-oop, interface, functionalinterface]
-updated: 2025-08-10
+title: "Java 함수형 인터페이스 (Functional Interface)"
+tags: [Java, FunctionalInterface, Lambda, Stream, java.util.function]
+updated: 2026-04-09
 ---
 
-## 1. 함수형 인터페이스란?
+# Java 함수형 인터페이스 (Functional Interface)
 
-## 배경
-**함수형 인터페이스**는 **하나의 추상 메서드만 가지는 인터페이스**를 의미합니다. Java 8부터 람다식을 통해 이러한 인터페이스를 구현할 수 있습니다.
+함수형 인터페이스는 **추상 메서드가 딱 하나인 인터페이스**다. Java 8에서 람다식과 함께 도입됐고, `java.util.function` 패키지에 자주 쓰는 것들이 미리 정의되어 있다.
 
-- 추상 메서드가 **하나만 존재**해야 함.
-- `@FunctionalInterface` 어노테이션으로 함수형 인터페이스임을 명시 가능 (선택 사항).
-- Java의 기본 제공 함수형 인터페이스(`Runnable`, `Callable`, `Supplier` 등)도 많음.
+추상 메서드가 하나이기 때문에 컴파일러가 람다식을 보고 "이 코드가 어떤 메서드를 구현하는지" 추론할 수 있다. 이것이 람다식이 동작하는 근본적인 이유다.
+
+---
+
+## 1. 함수형 인터페이스의 조건
+
+추상 메서드가 정확히 하나여야 한다. `default` 메서드나 `static` 메서드는 몇 개가 있어도 상관없다. `Object` 클래스의 메서드(`toString`, `equals`, `hashCode`)를 오버라이드하는 것도 추상 메서드 카운트에 포함되지 않는다.
 
 ```java
 @FunctionalInterface
-interface Process {
-    void run(); // 단 하나의 추상 메서드
-}
-```
+interface Converter<F, T> {
+    T convert(F from);  // 추상 메서드 1개 → 함수형 인터페이스
 
----
-
-람다식은 **익명 함수(Anonymous Function)**의 간결한 표현으로, 함수형 인터페이스의 단일 추상 메서드를 구현하는 데 사용됩니다.
-
-```java
-(매개변수) -> { 구현부 }
-```
-
-1. **매개변수**: 함수의 입력값.
-2. **화살표(->)**: 매개변수와 구현부를 구분.
-3. **구현부**: 함수가 수행할 작업.
-
-#### 예제
-```java
-() -> System.out.println("람다식 사용 예제");
-```
-
-위 코드는 매개변수가 없고, `System.out.println()`을 실행하는 람다식을 표현한 것입니다.
-
----
-
-```java
-() -> System.out.println("람다식 사용 예제");
-```
-
-위 코드는 매개변수가 없고, `System.out.println()`을 실행하는 람다식을 표현한 것입니다.
-
----
-
-```java
-hello(new Process() {
-    @Override
-    public void run() {
-        System.out.println("익명 클래스 사용");
+    // default, static은 개수 제한 없음
+    default Converter<F, T> andThen(Converter<T, ?> after) {
+        return f -> after.convert(this.convert(f));
     }
-});
-```
 
-```java
-hello(() -> System.out.println("람다식 사용"));
-```
-
-람다식은 익명 클래스를 단순화한 표현으로 볼 수 있습니다.
-
-람다식:
-```java
-() -> System.out.println("람다식 사용")
-```
-
-컴파일러가 변환:
-```java
-new Process() {
-    @Override
-    public void run() {
-        System.out.println("람다식 사용");
-    }
+    // Object의 메서드 오버라이드는 추상 메서드로 치지 않음
+    String toString();
 }
 ```
 
----
-
-- 함수형 인터페이스를 구현하려면 추상 메서드를 반드시 재정의해야 함.
-- 컴파일러가 람다식을 함수형 인터페이스의 단일 추상 메서드에 매핑.
-
-#### 예제: 함수형 인터페이스와 람다식
-```java
-@FunctionalInterface
-interface Process {
-    void run();
-}
-
-public class LambdaExample {
-    public static void main(String[] args) {
-        Process process = () -> System.out.println("람다식 동작");
-        process.run(); // 출력: 람다식 동작
-    }
-}
-```
-
-`Process` 인터페이스는 `run()`이라는 추상 메서드 하나를 가지고 있으므로, 컴파일러는 `()->{}` 코드 블록을 자동으로 `run()` 메서드의 구현으로 간주합니다.
-
----
+`@FunctionalInterface`를 붙이면 컴파일러가 조건을 검증해준다. 추상 메서드가 2개 이상이면 컴파일 에러가 난다. 이 어노테이션은 선택 사항이지만, 실수 방지용으로 붙이는 게 좋다.
 
 ```java
 @FunctionalInterface
-interface Process {
-    void run();
-}
-
-public class LambdaExample {
-    public static void main(String[] args) {
-        Process process = () -> System.out.println("람다식 동작");
-        process.run(); // 출력: 람다식 동작
-    }
+interface InvalidExample {
+    void methodA();
+    void methodB();  // 컴파일 에러: 추상 메서드가 2개
 }
 ```
 
-`Process` 인터페이스는 `run()`이라는 추상 메서드 하나를 가지고 있으므로, 컴파일러는 `()->{}` 코드 블록을 자동으로 `run()` 메서드의 구현으로 간주합니다.
-
 ---
 
-#### 익명 클래스
+## 2. 익명 클래스에서 람다식으로
+
+람다식이 등장하기 전에는 인터페이스를 즉석에서 구현하려면 익명 클래스를 써야 했다. 람다식은 이 익명 클래스의 보일러플레이트를 제거한 것이다.
+
+### 변환 과정
+
+```
+┌─────────────────────────────────────────────┐
+│         익명 클래스 (Anonymous Class)          │
+│                                             │
+│  new Process() {                            │
+│      @Override                              │
+│      public void run() {                    │
+│          System.out.println("실행");         │
+│      }                                      │
+│  };                                         │
+└──────────────────┬──────────────────────────┘
+                   │
+                   │  1단계: 컴파일러가 타입을 추론
+                   │  → Process 인터페이스의 run() 메서드임을 앎
+                   │
+                   ▼
+┌─────────────────────────────────────────────┐
+│         클래스 선언부 제거                      │
+│                                             │
+│  () -> {                                    │
+│      System.out.println("실행");             │
+│  }                                          │
+└──────────────────┬──────────────────────────┘
+                   │
+                   │  2단계: 구현부가 한 줄이면
+                   │  → 중괄호와 세미콜론 제거
+                   │
+                   ▼
+┌─────────────────────────────────────────────┐
+│         최종 람다식                            │
+│                                             │
+│  () -> System.out.println("실행")            │
+└─────────────────────────────────────────────┘
+```
+
+실제 코드로 비교하면 이렇다.
+
 ```java
+// 익명 클래스
 hello(new Process() {
     @Override
     public void run() {
         System.out.println("주사위 값 출력");
     }
 });
-```
 
-#### 람다식
-```java
+// 람다식
 hello(() -> System.out.println("주사위 값 출력"));
 ```
 
----
+컴파일러 입장에서 보면, `hello()` 메서드의 파라미터 타입이 `Process`이고, `Process`에는 추상 메서드가 `run()` 하나뿐이니, 람다식의 구현부가 곧 `run()`의 구현이라는 것을 추론한다. `@Override`가 없어도 동작하는 이유가 이것이다.
+
+### 람다식 문법 정리
 
 ```java
-hello(new Process() {
-    @Override
-    public void run() {
-        System.out.println("주사위 값 출력");
-    }
-});
-```
+// 파라미터 없음
+() -> System.out.println("hello")
 
-```java
-hello(() -> System.out.println("주사위 값 출력"));
-```
+// 파라미터 1개 - 괄호 생략 가능
+x -> x * 2
 
----
+// 파라미터 2개
+(x, y) -> x + y
 
-1. **`Runnable`**: 매개변수 없이 동작 수행.
-2. **`Consumer<T>`**: 입력값을 소비하고 반환값 없음.
-3. **`Supplier<T>`**: 값을 반환하지만 입력값 없음.
-4. **`Function<T, R>`**: 입력값을 받아 변환 후 반환.
-
-#### 예제: `Runnable` 사용
-```java
-Runnable runnable = () -> System.out.println("Runnable 동작");
-runnable.run();
-```
-
----
-
-
-람다식과 함수형 인터페이스는 Java에서 함수형 프로그래밍 스타일을 도입하기 위한 중요한 도구입니다. 익명 클래스의 간결한 대안으로, 코드를 더욱 읽기 쉽고 유지보수 가능하게 만듭니다.
-
-- **람다식**: 함수형 인터페이스의 단일 추상 메서드를 구현하는 축약 문법.
-- **함수형 인터페이스**: 람다식의 기반이 되는 단일 추상 메서드를 가진 인터페이스.
-
-이를 올바르게 이해하고 활용하면 Java 프로그래밍의 생산성을 크게 향상시킬 수 있습니다.
-
-
-
-
-
-
-- Java의 람다식과 함수형 인터페이스는 코드의 간결성과 가독성을 높이는 데 중요한 역할을 합니다.
-- 이 문서에서는 람다식이 동작하는 원리와 함수형 인터페이스의 개념을 자세히 설명하고, 예제를 통해 이를 이해할 수 있도록 합니다.
-
----
-
-```java
-() -> System.out.println("람다식 사용 예제");
-```
-
-위 코드는 매개변수가 없고, `System.out.println()`을 실행하는 람다식을 표현한 것입니다.
-
----
-
-```java
-() -> System.out.println("람다식 사용 예제");
-```
-
-위 코드는 매개변수가 없고, `System.out.println()`을 실행하는 람다식을 표현한 것입니다.
-
----
-
-```java
-hello(new Process() {
-    @Override
-    public void run() {
-        System.out.println("익명 클래스 사용");
-    }
-});
-```
-
-```java
-hello(() -> System.out.println("람다식 사용"));
-```
-
-람다식은 익명 클래스를 단순화한 표현으로 볼 수 있습니다.
-
-람다식:
-```java
-() -> System.out.println("람다식 사용")
-```
-
-컴파일러가 변환:
-```java
-new Process() {
-    @Override
-    public void run() {
-        System.out.println("람다식 사용");
-    }
+// 구현부가 여러 줄이면 중괄호 필요
+(x, y) -> {
+    int sum = x + y;
+    return sum;
 }
+
+// 타입 명시 (보통 생략)
+(String s) -> s.length()
 ```
 
 ---
 
-- 함수형 인터페이스를 구현하려면 추상 메서드를 반드시 재정의해야 함.
-- 컴파일러가 람다식을 함수형 인터페이스의 단일 추상 메서드에 매핑.
+## 3. java.util.function 패키지
+
+Java가 기본 제공하는 함수형 인터페이스들이다. 직접 만들기 전에 여기 있는 것을 먼저 확인한다. 대부분의 경우 커스텀 인터페이스를 만들 필요가 없다.
+
+### 핵심 4가지 인터페이스
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                    java.util.function 핵심 구조                    │
+├───────────────┬───────────┬───────────┬───────────────────────────┤
+│               │  입력 없음  │  입력 있음  │  입력 2개                  │
+├───────────────┼───────────┼───────────┼───────────────────────────┤
+│  반환 없음     │ Runnable  │Consumer<T>│ BiConsumer<T,U>           │
+│  (void)       │ () → void │ T → void  │ (T,U) → void             │
+├───────────────┼───────────┼───────────┼───────────────────────────┤
+│  반환 있음     │Supplier<T>│Function   │ BiFunction<T,U,R>         │
+│               │ () → T    │<T,R>      │ (T,U) → R                │
+│               │           │ T → R     │                           │
+├───────────────┼───────────┼───────────┼───────────────────────────┤
+│  boolean 반환  │    -      │Predicate  │ BiPredicate<T,U>          │
+│               │           │<T>        │ (T,U) → boolean           │
+│               │           │ T→boolean │                           │
+├───────────────┼───────────┼───────────┼───────────────────────────┤
+│  같은 타입     │    -      │Unary      │ BinaryOperator<T>         │
+│  입출력        │           │Operator<T>│ (T,T) → T                 │
+│               │           │ T → T     │                           │
+└───────────────┴───────────┴───────────┴───────────────────────────┘
+```
+
+> `Runnable`은 `java.lang` 패키지에 있지만, 개념상 함수형 인터페이스로 같이 분류한다.
+
+### 3.1 Function<T, R> — 변환
+
+입력 하나를 받아 다른 타입으로 변환해서 반환한다. Stream의 `map()`에서 가장 많이 쓴다.
 
 ```java
+Function<String, Integer> strLength = s -> s.length();
+Function<String, Integer> strLength2 = String::length;  // 메서드 참조
+
+int len = strLength.apply("hello");  // 5
+```
+
+`andThen()`과 `compose()`로 체이닝할 수 있다.
+
+```java
+Function<String, String> trim = String::trim;
+Function<String, String> toUpper = String::toUpperCase;
+
+// trim 실행 후 toUpper 실행
+Function<String, String> trimAndUpper = trim.andThen(toUpper);
+trimAndUpper.apply("  hello  ");  // "HELLO"
+
+// compose는 반대 순서: toUpper 먼저, trim은 그 결과에
+Function<String, String> upperThenTrim = trim.compose(toUpper);
+```
+
+### 3.2 Consumer\<T\> — 소비
+
+값을 받아서 처리하고 반환값이 없다. `forEach()`에서 사용한다.
+
+```java
+Consumer<String> printer = s -> System.out.println(s);
+Consumer<String> printer2 = System.out::println;  // 메서드 참조
+
+List.of("a", "b", "c").forEach(printer2);
+```
+
+### 3.3 Supplier\<T\> — 생성
+
+파라미터 없이 값을 반환한다. 팩토리 패턴이나 지연 초기화에서 쓴다.
+
+```java
+Supplier<LocalDateTime> now = LocalDateTime::now;
+Supplier<List<String>> listFactory = ArrayList::new;
+
+LocalDateTime time = now.get();
+List<String> newList = listFactory.get();
+```
+
+실무에서 자주 보는 패턴은 `Optional`과 함께 사용하는 것이다.
+
+```java
+// findById가 null이면 Supplier가 제공하는 기본값 사용
+User user = Optional.ofNullable(findById(id))
+    .orElseGet(() -> new User("guest"));  // Supplier<User>
+```
+
+### 3.4 Predicate\<T\> — 조건 판단
+
+값을 받아 `boolean`을 반환한다. `filter()`에서 사용한다.
+
+```java
+Predicate<String> isNotEmpty = s -> s != null && !s.isEmpty();
+Predicate<Integer> isPositive = n -> n > 0;
+
+// 조합
+Predicate<String> isShortAndNotEmpty = isNotEmpty.and(s -> s.length() < 10);
+Predicate<String> isEmptyOrNull = isNotEmpty.negate();
+```
+
+Stream에서 쓰면 이렇다.
+
+```java
+List<String> names = List.of("Kim", "", "Lee", null, "Park");
+
+List<String> valid = names.stream()
+    .filter(Objects::nonNull)
+    .filter(isNotEmpty)
+    .collect(Collectors.toList());
+// ["Kim", "Lee", "Park"]
+```
+
+### 3.5 UnaryOperator\<T\>와 BinaryOperator\<T\>
+
+`Function<T, T>`와 `BiFunction<T, T, T>`의 특수 형태다. 입력 타입과 반환 타입이 같을 때 쓴다.
+
+```java
+UnaryOperator<String> toUpper = String::toUpperCase;
+BinaryOperator<Integer> sum = Integer::sum;
+
+toUpper.apply("hello");  // "HELLO"
+sum.apply(3, 5);          // 8
+```
+
+`List.replaceAll()`은 `UnaryOperator`를 받는다.
+
+```java
+List<String> names = new ArrayList<>(List.of("kim", "lee", "park"));
+names.replaceAll(String::toUpperCase);
+// ["KIM", "LEE", "PARK"]
+```
+
+---
+
+## 4. 메서드 참조 (Method Reference)
+
+람다식이 기존 메서드를 그대로 호출하기만 하면, 메서드 참조로 더 줄일 수 있다.
+
+```
+┌──────────────────┬──────────────────────────┬────────────────────────┐
+│ 종류              │ 문법                      │ 동일한 람다식             │
+├──────────────────┼──────────────────────────┼────────────────────────┤
+│ 정적 메서드 참조   │ Integer::parseInt        │ s -> Integer.parseInt(s)│
+│ 인스턴스 메서드    │ String::length           │ s -> s.length()        │
+│ (임의 객체)       │                          │                        │
+│ 인스턴스 메서드    │ System.out::println      │ s -> System.out        │
+│ (특정 객체)       │                          │      .println(s)       │
+│ 생성자 참조       │ ArrayList::new           │ () -> new ArrayList<>()│
+└──────────────────┴──────────────────────────┴────────────────────────┘
+```
+
+```java
+// 정적 메서드 참조
+Function<String, Integer> parser = Integer::parseInt;
+
+// 인스턴스 메서드 참조 (임의 객체의)
+Function<String, String> upper = String::toUpperCase;
+
+// 인스턴스 메서드 참조 (특정 객체의)
+Consumer<String> print = System.out::println;
+
+// 생성자 참조
+Supplier<List<String>> listFactory = ArrayList::new;
+Function<String, StringBuilder> sbFactory = StringBuilder::new;
+```
+
+메서드 참조를 쓸지 람다식을 쓸지는 가독성으로 판단한다. 단순한 위임이면 메서드 참조가 낫고, 변환 로직이 들어가면 람다식이 읽기 편하다.
+
+```java
+// 메서드 참조가 나은 경우
+list.stream().map(String::toUpperCase)
+
+// 람다식이 나은 경우 - 로직이 섞여 있을 때
+list.stream().map(s -> s.substring(0, 3).toUpperCase())
+```
+
+---
+
+## 5. 람다식과 변수 캡처
+
+람다식 내부에서 외부 변수를 참조할 수 있다. 단, 그 변수는 `final`이거나 사실상 final(effectively final)이어야 한다.
+
+```java
+String prefix = "USER";  // effectively final - 값을 재할당하지 않음
+
+Function<String, String> addPrefix = name -> prefix + "_" + name;
+addPrefix.apply("kim");  // "USER_kim"
+```
+
+```java
+String prefix = "USER";
+prefix = "ADMIN";  // 재할당 발생
+
+// 컴파일 에러: Variable used in lambda expression should be final or effectively final
+Function<String, String> addPrefix = name -> prefix + "_" + name;
+```
+
+이 제약이 있는 이유는 람다식이 별도 스레드에서 실행될 수 있기 때문이다. 외부 변수를 자유롭게 수정할 수 있으면 동시성 문제가 생긴다. 실제로 람다식은 외부 변수의 값을 복사해서 사용한다(캡처).
+
+값을 변경해야 하는 경우 `AtomicInteger`나 배열 같은 래퍼를 쓰는 편법이 있지만, 그런 상황이면 람다식 대신 다른 방식을 쓰는 게 맞다.
+
+```java
+// 이런 코드는 쓰지 마라
+AtomicInteger count = new AtomicInteger(0);
+list.forEach(item -> count.incrementAndGet());  // 동작하지만 의도가 불명확
+
+// 이렇게
+long count = list.stream().count();
+```
+
+---
+
+## 6. 실무에서 겪는 문제들
+
+### 제네릭과 함수형 인터페이스
+
+제네릭 타입 파라미터에 primitive 타입을 쓸 수 없어서, `Function<Integer, Integer>` 같은 코드에서 오토박싱이 발생한다. 성능이 중요한 코드에서는 primitive 특화 인터페이스를 써야 한다.
+
+```java
+// 오토박싱 발생 - int → Integer → int
+Function<Integer, Integer> square = n -> n * n;
+
+// 오토박싱 없음 - IntUnaryOperator
+IntUnaryOperator squarePrimitive = n -> n * n;
+```
+
+primitive 특화 인터페이스 목록:
+
+| 인터페이스 | 시그니처 | 대응 |
+|---|---|---|
+| `IntFunction<R>` | `int → R` | `Function<Integer, R>` |
+| `ToIntFunction<T>` | `T → int` | `Function<T, Integer>` |
+| `IntUnaryOperator` | `int → int` | `UnaryOperator<Integer>` |
+| `IntBinaryOperator` | `(int, int) → int` | `BinaryOperator<Integer>` |
+| `IntPredicate` | `int → boolean` | `Predicate<Integer>` |
+| `IntConsumer` | `int → void` | `Consumer<Integer>` |
+| `IntSupplier` | `() → int` | `Supplier<Integer>` |
+
+`Long`, `Double` 변형도 같은 패턴으로 존재한다 (`LongFunction`, `DoubleFunction` 등).
+
+### 체크 예외 처리
+
+`java.util.function`의 인터페이스들은 체크 예외를 던지지 않도록 선언되어 있다. 체크 예외를 던지는 코드를 람다식에 넣으면 컴파일 에러가 난다.
+
+```java
+// 컴파일 에러: IOException은 체크 예외
+Function<String, String> readFile = path -> Files.readString(Path.of(path));
+```
+
+해결 방법은 몇 가지가 있다.
+
+```java
+// 방법 1: 람다 안에서 try-catch
+Function<String, String> readFile = path -> {
+    try {
+        return Files.readString(Path.of(path));
+    } catch (IOException e) {
+        throw new UncheckedIOException(e);
+    }
+};
+
+// 방법 2: 체크 예외를 던지는 함수형 인터페이스 직접 정의
 @FunctionalInterface
-interface Process {
-    void run();
+interface ThrowingFunction<T, R> {
+    R apply(T t) throws Exception;
 }
 
-public class LambdaExample {
-    public static void main(String[] args) {
-        Process process = () -> System.out.println("람다식 동작");
-        process.run(); // 출력: 람다식 동작
-    }
-}
-```
-
-`Process` 인터페이스는 `run()`이라는 추상 메서드 하나를 가지고 있으므로, 컴파일러는 `()->{}` 코드 블록을 자동으로 `run()` 메서드의 구현으로 간주합니다.
-
----
-
-```java
-@FunctionalInterface
-interface Process {
-    void run();
+// 방법 3: 래퍼 메서드
+static <T, R> Function<T, R> unchecked(ThrowingFunction<T, R> f) {
+    return t -> {
+        try {
+            return f.apply(t);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    };
 }
 
-public class LambdaExample {
-    public static void main(String[] args) {
-        Process process = () -> System.out.println("람다식 동작");
-        process.run(); // 출력: 람다식 동작
-    }
-}
+// 사용
+List<String> contents = paths.stream()
+    .map(unchecked(path -> Files.readString(Path.of(path))))
+    .collect(Collectors.toList());
 ```
 
-`Process` 인터페이스는 `run()`이라는 추상 메서드 하나를 가지고 있으므로, 컴파일러는 `()->{}` 코드 블록을 자동으로 `run()` 메서드의 구현으로 간주합니다.
+실무에서는 방법 3처럼 유틸리티 메서드를 하나 만들어두고 재사용하는 경우가 많다.
 
----
+### 람다식의 this
 
-```java
-hello(new Process() {
-    @Override
-    public void run() {
-        System.out.println("주사위 값 출력");
-    }
-});
-```
+람다식 안에서 `this`는 람다식을 감싸고 있는 클래스의 인스턴스를 가리킨다. 익명 클래스와 다른 점이다.
 
 ```java
-hello(() -> System.out.println("주사위 값 출력"));
-```
+class OrderService {
+    private String name = "OrderService";
 
----
+    public void process() {
+        // 익명 클래스의 this → 익명 클래스 인스턴스
+        Runnable anon = new Runnable() {
+            @Override
+            public void run() {
+                // this.name → 컴파일 에러. 익명 클래스에 name 필드 없음
+                System.out.println(OrderService.this.name);
+            }
+        };
 
-```java
-hello(new Process() {
-    @Override
-    public void run() {
-        System.out.println("주사위 값 출력");
-    }
-});
-```
-
-```java
-hello(() -> System.out.println("주사위 값 출력"));
-```
-
----
-
-1. **`Runnable`**: 매개변수 없이 동작 수행.
-2. **`Consumer<T>`**: 입력값을 소비하고 반환값 없음.
-3. **`Supplier<T>`**: 값을 반환하지만 입력값 없음.
-4. **`Function<T, R>`**: 입력값을 받아 변환 후 반환.
-
-
-
-
-
-# Java 람다식과 함수형 인터페이스
-
-## 2. 람다식이란?
-
-## 3. 람다식의 동작 원리
-
-람다식은 **컴파일러가 함수형 인터페이스의 단일 추상 메서드를 구현한 익명 클래스의 인스턴스로 변환**합니다.
-
-### 예제 1: 익명 클래스 vs 람다식
-
-## 4. `@Override` 없이 동작하는 이유
-
-람다식은 함수형 인터페이스의 **단일 추상 메서드(SAM: Single Abstract Method)**와 연결됩니다. 컴파일러는 이를 자동으로 구현하므로 `@Override`를 명시하지 않아도 됩니다.
-
-## 5. 람다식의 장점
-
-1. **간결성**:
-    - 불필요한 익명 클래스 정의를 없애고, 코드를 단순화.
-2. **가독성**:
-    - 코드의 목적과 흐름이 명확하게 보임.
-3. **표준화된 문법**:
-    - Java에서 함수형 프로그래밍을 지원.
-
-## 6. 람다식과 함수형 인터페이스의 실제 활용
-
-### 예제 1: 주사위 값 출력
-```java
-import java.util.Random;
-
-public class LambdaExample {
-    public static void main(String[] args) {
-        hello(() -> {
-            int randomValue = new Random().nextInt(6) + 1;
-            System.out.println("주사위 = " + randomValue);
-        });
-    }
-
-    public static void hello(Process process) {
-        process.run();
+        // 람다식의 this → OrderService 인스턴스
+        Runnable lambda = () -> {
+            System.out.println(this.name);  // "OrderService"
+        };
     }
 }
 ```
 
-출력 예:
-```
-주사위 = 4
-```
+이 차이 때문에 익명 클래스를 람다식으로 기계적으로 변환하면 `this`의 의미가 바뀔 수 있다. IDE의 자동 변환 기능을 쓸 때 주의한다.
 
-### 예제 2: 반복 작업 수행
+### 직렬화 문제
+
+람다식은 기본적으로 직렬화를 지원하지 않는다. 분산 환경(Spark, Hadoop 등)에서 람다식을 직렬화해야 하면 `Serializable`을 캐스팅해야 한다.
+
 ```java
-hello(() -> {
-    for (int i = 0; i < 3; i++) {
-        System.out.println("i = " + i);
-    }
-});
+// 직렬화 불가
+Comparator<String> comp = (a, b) -> a.compareTo(b);
+
+// 직렬화 가능 - 캐스팅
+Comparator<String> comp = (Comparator<String> & Serializable) (a, b) -> a.compareTo(b);
 ```
 
-출력 예:
-```
-i = 0
-i = 1
-i = 2
-```
-
----
-
-## 7. 함수형 인터페이스와 기본 제공 인터페이스
-
-Java에서는 자주 사용하는 함수형 인터페이스를 기본 제공하고 있습니다.
-
-## 8. 주의사항
-
-1. **단일 추상 메서드만 허용**:
-    - 함수형 인터페이스에는 반드시 하나의 추상 메서드만 존재해야 함.
-2. **람다식에서 상태 관리**:
-    - 람다식 내부에서 외부 변수를 수정하려면 `final` 또는 사실상 `final`이어야 함.
-
----
-
+가능하면 람다식의 직렬화는 피하는 게 좋다. 내부 구현에 의존하는 부분이 많아서 Java 버전이 바뀌면 역직렬화가 실패할 수 있다.
