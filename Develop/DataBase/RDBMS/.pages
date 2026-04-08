@@ -8,5 +8,7 @@ nav:
   - 읽기_전용_복제본.md
   - 쿼리_옵티마이저.md
   - DB_Modeling.md
+  - Hierarchical_Data_Modeling.md
+  - Data_Type_Selection.md
   - CDC_Pipeline.md
   - ClickHouse.md
