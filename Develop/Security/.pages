@@ -11,4 +11,5 @@ nav:
   - OWASP_Top_10.md
   - API_Input_Validation.md
   - ISMS.md
+  - Zero_Trust_Architecture.md
   - 보안_심화_및_취약점_분석.md
