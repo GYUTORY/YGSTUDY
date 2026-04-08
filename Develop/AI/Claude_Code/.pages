@@ -2,4 +2,5 @@ nav:
   - Claude_Code.md
   - Claude_Code_Tips.md
   - Claude_Code_Orchestration.md
+  - Claude_Code_Worktree.md
   - Claude_Code_Troubleshooting.md
