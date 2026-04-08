@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="good" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="danger" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#6366f1"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="500" fill="url(#bg3)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">에이전트 장기 실행 시 할루시네이션 누적</text>
+
+  <!-- Timeline -->
+  <line x1="60" y1="90" x2="840" y2="90" stroke="#333366" stroke-width="2"/>
+
+  <!-- Turn 1 - Good -->
+  <circle cx="120" cy="90" r="22" fill="#12122a" stroke="#22c55e" stroke-width="2.5"/>
+  <text x="120" y="95" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="700">턴 1</text>
+  <rect x="60" y="120" width="130" height="70" rx="6" fill="#0f2a1a" stroke="#22c55e" stroke-width="1"/>
+  <text x="125" y="140" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="600">UserService 생성</text>
+  <text x="125" y="158" text-anchor="middle" fill="#86efac" font-size="10">save(), findById()</text>
+  <text x="125" y="175" text-anchor="middle" fill="#86efac" font-size="10">정상 코드</text>
+
+  <!-- Arrow -->
+  <line x1="152" y1="90" x2="228" y2="90" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Turn 3 - Hallucination starts -->
+  <circle cx="270" cy="90" r="22" fill="#12122a" stroke="#f59e0b" stroke-width="2.5"/>
+  <text x="270" y="95" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700">턴 3</text>
+  <rect x="205" y="120" width="140" height="85" rx="6" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1"/>
+  <text x="275" y="140" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">Controller 작성 중</text>
+  <text x="275" y="158" text-anchor="middle" fill="#fcd34d" font-size="10">findByEmail() 호출</text>
+  <text x="275" y="176" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="700">← 이 메서드는 없다</text>
+  <text x="275" y="194" text-anchor="middle" fill="#94a3b8" font-size="9">컨텍스트에서 턴 1 코드를</text>
+  <text x="275" y="206" text-anchor="middle" fill="#94a3b8" font-size="9">정확히 참조하지 못함</text>
+
+  <!-- Arrow -->
+  <line x1="302" y1="90" x2="378" y2="90" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+
+  <!-- Turn 5 - Propagation -->
+  <circle cx="420" cy="90" r="22" fill="#12122a" stroke="#ef4444" stroke-width="2.5"/>
+  <text x="420" y="95" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="700">턴 5</text>
+  <rect x="355" y="120" width="140" height="85" rx="6" fill="#2a0f0f" stroke="#ef4444" stroke-width="1"/>
+  <text x="425" y="140" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="600">Repository 추가</text>
+  <text x="425" y="158" text-anchor="middle" fill="#fca5a5" font-size="10">findByEmail() 구현</text>
+  <text x="425" y="176" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="700">← 턴 3의 착각을 따라감</text>
+  <text x="425" y="194" text-anchor="middle" fill="#94a3b8" font-size="9">자기 강화 루프:</text>
+  <text x="425" y="206" text-anchor="middle" fill="#94a3b8" font-size="9">이전 출력을 사실로 전제</text>
+
+  <!-- Arrow -->
+  <line x1="452" y1="90" x2="528" y2="90" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+
+  <!-- Turn 8 - Full contamination -->
+  <circle cx="570" cy="90" r="22" fill="#12122a" stroke="#dc2626" stroke-width="3"/>
+  <text x="570" y="95" text-anchor="middle" fill="#dc2626" font-size="12" font-weight="700">턴 8</text>
+  <rect x="505" y="120" width="140" height="85" rx="6" fill="#2a0505" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="575" y="140" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="600">테스트 코드 작성</text>
+  <text x="575" y="158" text-anchor="middle" fill="#fca5a5" font-size="10">findByEmail() 테스트</text>
+  <text x="575" y="176" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="700">← 테스트까지 오염</text>
+  <text x="575" y="194" text-anchor="middle" fill="#94a3b8" font-size="9">코드와 테스트가 모두</text>
+  <text x="575" y="206" text-anchor="middle" fill="#94a3b8" font-size="9">잘못된 전제에 기반</text>
+
+  <!-- Result -->
+  <rect x="680" y="102" width="190" height="105" rx="8" fill="#1a0a0a" stroke="#dc2626" stroke-width="2"/>
+  <text x="775" y="125" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="700">결과</text>
+  <text x="775" y="148" text-anchor="middle" fill="#fca5a5" font-size="11">컴파일은 되지만</text>
+  <text x="775" y="166" text-anchor="middle" fill="#fca5a5" font-size="11">findByEmail()이</text>
+  <text x="775" y="184" text-anchor="middle" fill="#fca5a5" font-size="11">원래 스펙에 없었음을</text>
+  <text x="775" y="202" text-anchor="middle" fill="#ef4444" font-size="11" font-weight="700">아무도 모른다</text>
+
+  <!-- Contamination spread visualization -->
+  <text x="450" y="250" text-anchor="middle" fill="#c084fc" font-size="14" font-weight="700">할루시네이션 전파 범위</text>
+
+  <!-- File boxes showing contamination -->
+  <rect x="60" y="270" width="160" height="50" rx="6" fill="#0f2a1a" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="140" y="292" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="600">UserService.java</text>
+  <text x="140" y="310" text-anchor="middle" fill="#86efac" font-size="10">정상 (findByEmail 없음)</text>
+
+  <rect x="250" y="270" width="160" height="50" rx="6" fill="#2a0f0f" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="330" y="292" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="600">UserController.java</text>
+  <text x="330" y="310" text-anchor="middle" fill="#ef4444" font-size="10">오염 — 없는 메서드 호출</text>
+
+  <rect x="440" y="270" width="160" height="50" rx="6" fill="#2a0f0f" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="520" y="292" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="600">UserRepository.java</text>
+  <text x="520" y="310" text-anchor="middle" fill="#ef4444" font-size="10">오염 — 불필요한 메서드</text>
+
+  <rect x="630" y="270" width="160" height="50" rx="6" fill="#2a0f0f" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="710" y="292" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="600">UserServiceTest.java</text>
+  <text x="710" y="310" text-anchor="middle" fill="#ef4444" font-size="10">오염 — 잘못된 테스트</text>
+
+  <!-- Contamination arrows -->
+  <path d="M330,270 Q330,255 240,255 Q150,255 140,270" fill="none" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3"/>
+  <path d="M520,270 Q520,250 430,250 Q330,250 330,270" fill="none" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3"/>
+  <path d="M710,270 Q710,245 620,245 Q520,245 520,270" fill="none" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- Mitigation section -->
+  <rect x="60" y="345" width="780" height="140" rx="8" fill="#12122a" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="450" y="370" text-anchor="middle" fill="#c084fc" font-size="14" font-weight="700">대응: 누적 차단 방법</text>
+
+  <!-- Method 1 -->
+  <rect x="80" y="385" width="170" height="85" rx="6" fill="#1a1a2e" stroke="#22c55e" stroke-width="1"/>
+  <text x="165" y="405" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="600">주기적 코드 갱신</text>
+  <text x="165" y="425" text-anchor="middle" fill="#94a3b8" font-size="10">매 5턴마다</text>
+  <text x="165" y="440" text-anchor="middle" fill="#94a3b8" font-size="10">실제 파일을 다시 읽어서</text>
+  <text x="165" y="455" text-anchor="middle" fill="#94a3b8" font-size="10">컨텍스트 갱신</text>
+
+  <!-- Method 2 -->
+  <rect x="270" y="385" width="170" height="85" rx="6" fill="#1a1a2e" stroke="#3b82f6" stroke-width="1"/>
+  <text x="355" y="405" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="600">작업 단위 분리</text>
+  <text x="355" y="425" text-anchor="middle" fill="#94a3b8" font-size="10">기능 단위로 세션을 끊어</text>
+  <text x="355" y="440" text-anchor="middle" fill="#94a3b8" font-size="10">컨텍스트 오염 범위를</text>
+  <text x="355" y="455" text-anchor="middle" fill="#94a3b8" font-size="10">제한한다</text>
+
+  <!-- Method 3 -->
+  <rect x="460" y="385" width="170" height="85" rx="6" fill="#1a1a2e" stroke="#f59e0b" stroke-width="1"/>
+  <text x="545" y="405" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">중간 검증 포인트</text>
+  <text x="545" y="425" text-anchor="middle" fill="#94a3b8" font-size="10">파일 하나 수정할 때마다</text>
+  <text x="545" y="440" text-anchor="middle" fill="#94a3b8" font-size="10">컴파일/테스트 실행으로</text>
+  <text x="545" y="455" text-anchor="middle" fill="#94a3b8" font-size="10">즉시 검증</text>
+
+  <!-- Method 4 -->
+  <rect x="650" y="385" width="170" height="85" rx="6" fill="#1a1a2e" stroke="#a855f7" stroke-width="1"/>
+  <text x="735" y="405" text-anchor="middle" fill="#c084fc" font-size="11" font-weight="600">독립 검증 에이전트</text>
+  <text x="735" y="425" text-anchor="middle" fill="#94a3b8" font-size="10">생성과 검증을</text>
+  <text x="735" y="440" text-anchor="middle" fill="#94a3b8" font-size="10">별도 컨텍스트로 분리해</text>
+  <text x="735" y="455" text-anchor="middle" fill="#94a3b8" font-size="10">같은 방향 오류 방지</text>
+</svg>

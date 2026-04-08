@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 540" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
+    </marker>
+    <linearGradient id="hd" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+  </defs>
+
+  <rect width="780" height="540" rx="12" fill="#f8fafc"/>
+  <rect x="0" y="0" width="780" height="48" rx="12" fill="url(#hd)"/>
+  <rect x="0" y="36" width="780" height="12" fill="url(#hd)"/>
+  <text x="390" y="32" text-anchor="middle" fill="white" font-size="17" font-weight="700">BPE 토크나이저: 인코딩과 디코딩 과정</text>
+
+  <!-- ENCODING SECTION -->
+  <text x="40" y="80" font-size="14" font-weight="700" fill="#1e40af">인코딩 (텍스트 → 토큰 ID)</text>
+
+  <!-- Step 1: Original text -->
+  <rect x="40" y="95" width="700" height="42" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="390" y="114" text-anchor="middle" font-size="13" font-weight="600" fill="#1e40af">원본 텍스트:</text>
+  <text x="390" y="130" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">"서버가 요청을 처리한다"</text>
+
+  <line x1="390" y1="137" x2="390" y2="155" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- Step 2: UTF-8 bytes -->
+  <rect x="40" y="158" width="700" height="60" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="60" y="178" font-size="12" font-weight="700" fill="#4338ca">1단계: UTF-8 바이트 분해</text>
+  <text x="60" y="196" font-size="11" fill="#6366f1">한국어 한 글자 = 3바이트</text>
+  <!-- Byte boxes -->
+  <rect x="280" y="170" width="36" height="22" rx="3" fill="#c7d2fe"/><text x="298" y="186" text-anchor="middle" font-size="9" font-weight="600" fill="#4338ca">ec</text>
+  <rect x="320" y="170" width="36" height="22" rx="3" fill="#c7d2fe"/><text x="338" y="186" text-anchor="middle" font-size="9" font-weight="600" fill="#4338ca">84</text>
+  <rect x="360" y="170" width="36" height="22" rx="3" fill="#c7d2fe"/><text x="378" y="186" text-anchor="middle" font-size="9" font-weight="600" fill="#4338ca">9c</text>
+  <rect x="404" y="170" width="36" height="22" rx="3" fill="#a5b4fc"/><text x="422" y="186" text-anchor="middle" font-size="9" font-weight="600" fill="#4338ca">eb</text>
+  <rect x="444" y="170" width="36" height="22" rx="3" fill="#a5b4fc"/><text x="462" y="186" text-anchor="middle" font-size="9" font-weight="600" fill="#4338ca">b2</text>
+  <rect x="484" y="170" width="36" height="22" rx="3" fill="#a5b4fc"/><text x="502" y="186" text-anchor="middle" font-size="9" font-weight="600" fill="#4338ca">84</text>
+  <rect x="528" y="170" width="36" height="22" rx="3" fill="#818cf8" opacity="0.4"/><text x="546" y="186" text-anchor="middle" font-size="9" fill="#4338ca">...</text>
+  <text x="298" y="208" text-anchor="middle" font-size="9" fill="#64748b">서</text>
+  <text x="462" y="208" text-anchor="middle" font-size="9" fill="#64748b">버</text>
+
+  <line x1="390" y1="218" x2="390" y2="236" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- Step 3: Byte pair merging -->
+  <rect x="40" y="239" width="700" height="68" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="60" y="259" font-size="12" font-weight="700" fill="#92400e">2단계: 빈도 기반 바이트 쌍 병합 (학습 시 구축된 어휘 사전 사용)</text>
+
+  <!-- Merge visualization -->
+  <rect x="80" y="268" width="56" height="24" rx="4" fill="#fde68a"/><text x="108" y="285" text-anchor="middle" font-size="9" font-weight="600" fill="#92400e">ec 84</text>
+  <text x="148" y="285" text-anchor="middle" font-size="12" fill="#92400e">→</text>
+  <rect x="158" y="268" width="50" height="24" rx="4" fill="#fbbf24"/><text x="183" y="285" text-anchor="middle" font-size="9" font-weight="700" fill="#78350f">tok_A</text>
+
+  <rect x="260" y="268" width="80" height="24" rx="4" fill="#fde68a"/><text x="300" y="285" text-anchor="middle" font-size="9" font-weight="600" fill="#92400e">tok_A + 9c</text>
+  <text x="352" y="285" text-anchor="middle" font-size="12" fill="#92400e">→</text>
+  <rect x="362" y="268" width="50" height="24" rx="4" fill="#f59e0b"/><text x="387" y="285" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">tok_B</text>
+  <text x="432" y="285" text-anchor="middle" font-size="10" fill="#92400e">(= "서")</text>
+
+  <text x="60" y="300" font-size="10" fill="#a16207">빈도가 높은 쌍부터 반복 병합 → 자주 나오는 단어는 적은 토큰으로 표현됨</text>
+
+  <line x1="390" y1="307" x2="390" y2="325" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- Step 4: Final tokens -->
+  <rect x="40" y="328" width="700" height="50" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="60" y="348" font-size="12" font-weight="700" fill="#166534">3단계: 최종 토큰 ID 시퀀스</text>
+
+  <rect x="200" y="355" width="60" height="18" rx="3" fill="#bbf7d0"/><text x="230" y="368" text-anchor="middle" font-size="10" font-weight="600" fill="#166534">23491</text>
+  <rect x="268" y="355" width="60" height="18" rx="3" fill="#bbf7d0"/><text x="298" y="368" text-anchor="middle" font-size="10" font-weight="600" fill="#166534">8837</text>
+  <rect x="336" y="355" width="60" height="18" rx="3" fill="#bbf7d0"/><text x="366" y="368" text-anchor="middle" font-size="10" font-weight="600" fill="#166534">52301</text>
+  <rect x="404" y="355" width="60" height="18" rx="3" fill="#bbf7d0"/><text x="434" y="368" text-anchor="middle" font-size="10" font-weight="600" fill="#166534">7129</text>
+  <rect x="472" y="355" width="60" height="18" rx="3" fill="#bbf7d0"/><text x="502" y="368" text-anchor="middle" font-size="10" font-weight="600" fill="#166534">44510</text>
+  <text x="200" y="378" font-size="8" fill="#64748b" text-anchor="middle">서버</text>
+  <text x="268" y="378" font-size="8" fill="#64748b" text-anchor="middle">가</text>
+  <text x="352" y="378" font-size="8" fill="#64748b" text-anchor="middle">요청</text>
+  <text x="420" y="378" font-size="8" fill="#64748b" text-anchor="middle">을</text>
+  <text x="506" y="378" font-size="8" fill="#64748b" text-anchor="middle">처리한다</text>
+
+  <!-- Divider -->
+  <line x1="40" y1="400" x2="740" y2="400" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="6 3"/>
+
+  <!-- DECODING SECTION -->
+  <text x="40" y="425" font-size="14" font-weight="700" fill="#166534">디코딩 (토큰 ID → 텍스트)</text>
+
+  <!-- Token IDs input -->
+  <rect x="40" y="440" width="220" height="38" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.2"/>
+  <text x="150" y="464" text-anchor="middle" font-size="12" font-weight="600" fill="#166534">[23491, 8837, 52301, ...]</text>
+
+  <line x1="260" y1="459" x2="290" y2="459" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- Vocab lookup -->
+  <rect x="295" y="440" width="180" height="38" rx="6" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.2"/>
+  <text x="385" y="455" text-anchor="middle" font-size="11" font-weight="600" fill="#4338ca">어휘 사전에서 역매핑</text>
+  <text x="385" y="470" text-anchor="middle" font-size="10" fill="#6366f1">ID → 바이트 시퀀스</text>
+
+  <line x1="475" y1="459" x2="505" y2="459" stroke="#475569" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- UTF-8 decode -->
+  <rect x="510" y="440" width="220" height="38" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+  <text x="620" y="455" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">UTF-8 디코딩</text>
+  <text x="620" y="470" text-anchor="middle" font-size="10" fill="#3b82f6">바이트 → "서버가 요청을 처리한다"</text>
+
+  <!-- Comparison note -->
+  <rect x="40" y="495" width="700" height="35" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="1"/>
+  <text x="390" y="517" text-anchor="middle" font-size="11" font-weight="600" fill="#991b1b">영어 "The server processes requests" → 5토큰  |  한국어 "서버가 요청을 처리한다" → 8~12토큰 (모델마다 다름)</text>
+</svg>

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="bar-normal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="bar-halluc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="900" height="520" fill="url(#bg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">LLM 토큰 생성 과정에서 할루시네이션 발생 메커니즘</text>
+
+  <!-- Input context -->
+  <rect x="30" y="60" width="840" height="44" rx="8" fill="#1e1e3a" stroke="#4f46e5" stroke-width="1.5"/>
+  <text x="50" y="86" fill="#a5b4fc" font-size="13" font-weight="600">입력 컨텍스트:</text>
+  <text x="175" y="86" fill="#cbd5e1" font-size="13" font-family="monospace">import requests; response = requests.</text>
+  <rect x="490" y="72" width="8" height="18" fill="#a855f7" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0.2;0.8" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="108" x2="450" y2="130" stroke="#6366f1" stroke-width="2"/>
+  <polygon points="445,128 455,128 450,138" fill="#6366f1"/>
+
+  <!-- Probability distribution section -->
+  <rect x="30" y="142" width="840" height="220" rx="8" fill="#12122a" stroke="#333366" stroke-width="1"/>
+  <text x="50" y="168" fill="#c084fc" font-size="14" font-weight="600">다음 토큰 확률 분포 (softmax 출력)</text>
+
+  <!-- Bar chart -->
+  <!-- get -->
+  <rect x="80" y="195" width="80" height="140" rx="4" fill="url(#bar-normal)" opacity="0.9"/>
+  <text x="120" y="345" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">get</text>
+  <text x="120" y="190" text-anchor="middle" fill="#a5b4fc" font-size="12" font-weight="700">42%</text>
+
+  <!-- post -->
+  <rect x="185" y="220" width="80" height="115" rx="4" fill="url(#bar-normal)" opacity="0.9"/>
+  <text x="225" y="345" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">post</text>
+  <text x="225" y="215" text-anchor="middle" fill="#a5b4fc" font-size="12">31%</text>
+
+  <!-- put -->
+  <rect x="290" y="280" width="80" height="55" rx="4" fill="url(#bar-normal)" opacity="0.9"/>
+  <text x="330" y="345" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">put</text>
+  <text x="330" y="275" text-anchor="middle" fill="#a5b4fc" font-size="12">12%</text>
+
+  <!-- session -->
+  <rect x="395" y="302" width="80" height="33" rx="4" fill="url(#bar-normal)" opacity="0.7"/>
+  <text x="435" y="345" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">session</text>
+  <text x="435" y="297" text-anchor="middle" fill="#a5b4fc" font-size="11">7%</text>
+
+  <!-- delete -->
+  <rect x="500" y="312" width="80" height="23" rx="4" fill="url(#bar-normal)" opacity="0.6"/>
+  <text x="540" y="345" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">delete</text>
+  <text x="540" y="308" text-anchor="middle" fill="#a5b4fc" font-size="11">5%</text>
+
+  <!-- get_async (hallucination) -->
+  <rect x="605" y="318" width="80" height="17" rx="4" fill="url(#bar-halluc)" opacity="0.9" filter="url(#glow)"/>
+  <text x="645" y="345" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="700">get_async</text>
+  <text x="645" y="314" text-anchor="middle" fill="#fca5a5" font-size="11">2%</text>
+
+  <!-- fetch -->
+  <rect x="710" y="324" width="80" height="11" rx="4" fill="url(#bar-halluc)" opacity="0.7"/>
+  <text x="750" y="345" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="600">fetch</text>
+  <text x="750" y="320" text-anchor="middle" fill="#fca5a5" font-size="11">1%</text>
+
+  <!-- Legend -->
+  <rect x="560" y="160" width="12" height="12" rx="2" fill="#6366f1"/>
+  <text x="578" y="171" fill="#94a3b8" font-size="11">실제 존재하는 메서드</text>
+  <rect x="560" y="178" width="12" height="12" rx="2" fill="#ef4444"/>
+  <text x="578" y="189" fill="#94a3b8" font-size="11">존재하지 않는 메서드 (할루시네이션)</text>
+
+  <!-- Temperature annotation -->
+  <rect x="30" y="370" width="410" height="140" rx="8" fill="#1a1a2e" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="50" y="395" fill="#fbbf24" font-size="13" font-weight="600">Temperature 낮음 (0.0~0.3)</text>
+  <text x="50" y="415" fill="#94a3b8" font-size="12">→ "get" (42%) 선택 확률이 압도적</text>
+  <text x="50" y="435" fill="#94a3b8" font-size="12">→ 할루시네이션 확률 낮음</text>
+  <text x="50" y="460" fill="#fbbf24" font-size="13" font-weight="600">Temperature 높음 (0.8~1.0)</text>
+  <text x="50" y="480" fill="#94a3b8" font-size="12">→ "get_async" (2%) 같은 토큰도 선택 가능</text>
+  <text x="50" y="500" fill="#fca5a5" font-size="12">→ 존재하지 않는 메서드가 생성될 수 있음</text>
+
+  <!-- Key insight -->
+  <rect x="460" y="370" width="410" height="140" rx="8" fill="#1a1a2e" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="480" y="395" fill="#c084fc" font-size="13" font-weight="700">핵심: LLM은 "존재 여부"가 아닌</text>
+  <text x="480" y="415" fill="#c084fc" font-size="13" font-weight="700">"등장 확률"로 토큰을 고른다</text>
+  <text x="480" y="445" fill="#94a3b8" font-size="12">학습 데이터에서 requests.get_async가</text>
+  <text x="480" y="465" fill="#94a3b8" font-size="12">비슷한 맥락에서 등장한 적이 있으면</text>
+  <text x="480" y="485" fill="#94a3b8" font-size="12">실제로 존재하지 않더라도 확률값을 갖는다.</text>
+  <text x="480" y="505" fill="#94a3b8" font-size="12">이게 할루시네이션의 근본 원인이다.</text>
+</svg>
