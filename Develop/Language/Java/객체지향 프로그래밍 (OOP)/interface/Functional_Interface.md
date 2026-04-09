@@ -49,39 +49,17 @@ interface InvalidExample {
 
 ### 변환 과정
 
-```
-┌─────────────────────────────────────────────┐
-│         익명 클래스 (Anonymous Class)          │
-│                                             │
-│  new Process() {                            │
-│      @Override                              │
-│      public void run() {                    │
-│          System.out.println("실행");         │
-│      }                                      │
-│  };                                         │
-└──────────────────┬──────────────────────────┘
-                   │
-                   │  1단계: 컴파일러가 타입을 추론
-                   │  → Process 인터페이스의 run() 메서드임을 앎
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│         클래스 선언부 제거                      │
-│                                             │
-│  () -> {                                    │
-│      System.out.println("실행");             │
-│  }                                          │
-└──────────────────┬──────────────────────────┘
-                   │
-                   │  2단계: 구현부가 한 줄이면
-                   │  → 중괄호와 세미콜론 제거
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│         최종 람다식                            │
-│                                             │
-│  () -> System.out.println("실행")            │
-└─────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["<b>익명 클래스</b><br/>new Process() {<br/>&nbsp;&nbsp;@Override<br/>&nbsp;&nbsp;public void run() {<br/>&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(&quot;실행&quot;);<br/>&nbsp;&nbsp;}<br/>};"]
+    -->|"1단계: 컴파일러가 타입 추론<br/>Process의 run() 메서드임을 앎"| B
+    B["<b>클래스 선언부 제거</b><br/>() -> {<br/>&nbsp;&nbsp;System.out.println(&quot;실행&quot;);<br/>}"]
+    -->|"2단계: 구현부가 한 줄이면<br/>중괄호와 세미콜론 제거"| C
+    C["<b>최종 람다식</b><br/>() -> System.out.println(&quot;실행&quot;)"]
+
+    style A fill:#fee2e2,stroke:#b91c1c,color:#000
+    style B fill:#fef3c7,stroke:#b45309,color:#000
+    style C fill:#d1fae5,stroke:#047857,color:#000
 ```
 
 실제 코드로 비교하면 이렇다.
@@ -131,27 +109,54 @@ Java가 기본 제공하는 함수형 인터페이스들이다. 직접 만들기
 
 ### 핵심 4가지 인터페이스
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                    java.util.function 핵심 구조                    │
-├───────────────┬───────────┬───────────┬───────────────────────────┤
-│               │  입력 없음  │  입력 있음  │  입력 2개                  │
-├───────────────┼───────────┼───────────┼───────────────────────────┤
-│  반환 없음     │ Runnable  │Consumer<T>│ BiConsumer<T,U>           │
-│  (void)       │ () → void │ T → void  │ (T,U) → void             │
-├───────────────┼───────────┼───────────┼───────────────────────────┤
-│  반환 있음     │Supplier<T>│Function   │ BiFunction<T,U,R>         │
-│               │ () → T    │<T,R>      │ (T,U) → R                │
-│               │           │ T → R     │                           │
-├───────────────┼───────────┼───────────┼───────────────────────────┤
-│  boolean 반환  │    -      │Predicate  │ BiPredicate<T,U>          │
-│               │           │<T>        │ (T,U) → boolean           │
-│               │           │ T→boolean │                           │
-├───────────────┼───────────┼───────────┼───────────────────────────┤
-│  같은 타입     │    -      │Unary      │ BinaryOperator<T>         │
-│  입출력        │           │Operator<T>│ (T,T) → T                 │
-│               │           │ T → T     │                           │
-└───────────────┴───────────┴───────────┴───────────────────────────┘
+```mermaid
+block-beta
+    columns 4
+    block:header:4
+        columns 4
+        h0[""] h1["입력 없음"] h2["입력 있음"] h3["입력 2개"]
+    end
+    block:row1:4
+        columns 4
+        r1h["반환 없음\n(void)"]
+        r1c1["Runnable\n() → void"]
+        r1c2["Consumer‹T›\nT → void"]
+        r1c3["BiConsumer‹T,U›\n(T,U) → void"]
+    end
+    block:row2:4
+        columns 4
+        r2h["반환 있음"]
+        r2c1["Supplier‹T›\n() → T"]
+        r2c2["Function‹T,R›\nT → R"]
+        r2c3["BiFunction‹T,U,R›\n(T,U) → R"]
+    end
+    block:row3:4
+        columns 4
+        r3h["boolean 반환"]
+        r3c1["—"]
+        r3c2["Predicate‹T›\nT → boolean"]
+        r3c3["BiPredicate‹T,U›\n(T,U) → boolean"]
+    end
+    block:row4:4
+        columns 4
+        r4h["같은 타입\n입출력"]
+        r4c1["—"]
+        r4c2["UnaryOperator‹T›\nT → T"]
+        r4c3["BinaryOperator‹T›\n(T,T) → T"]
+    end
+
+    style r1c1 fill:#dbeafe,stroke:#2563eb,color:#000
+    style r1c2 fill:#dbeafe,stroke:#2563eb,color:#000
+    style r1c3 fill:#dbeafe,stroke:#2563eb,color:#000
+    style r2c1 fill:#fef3c7,stroke:#b45309,color:#000
+    style r2c2 fill:#fef3c7,stroke:#b45309,color:#000
+    style r2c3 fill:#fef3c7,stroke:#b45309,color:#000
+    style r3c1 fill:#f3e8ff,stroke:#7c3aed,color:#000
+    style r3c2 fill:#f3e8ff,stroke:#7c3aed,color:#000
+    style r3c3 fill:#f3e8ff,stroke:#7c3aed,color:#000
+    style r4c1 fill:#d1fae5,stroke:#047857,color:#000
+    style r4c2 fill:#d1fae5,stroke:#047857,color:#000
+    style r4c3 fill:#d1fae5,stroke:#047857,color:#000
 ```
 
 > `Runnable`은 `java.lang` 패키지에 있지만, 개념상 함수형 인터페이스로 같이 분류한다.
@@ -263,17 +268,20 @@ names.replaceAll(String::toUpperCase);
 
 람다식이 기존 메서드를 그대로 호출하기만 하면, 메서드 참조로 더 줄일 수 있다.
 
-```
-┌──────────────────┬──────────────────────────┬────────────────────────┐
-│ 종류              │ 문법                      │ 동일한 람다식             │
-├──────────────────┼──────────────────────────┼────────────────────────┤
-│ 정적 메서드 참조   │ Integer::parseInt        │ s -> Integer.parseInt(s)│
-│ 인스턴스 메서드    │ String::length           │ s -> s.length()        │
-│ (임의 객체)       │                          │                        │
-│ 인스턴스 메서드    │ System.out::println      │ s -> System.out        │
-│ (특정 객체)       │                          │      .println(s)       │
-│ 생성자 참조       │ ArrayList::new           │ () -> new ArrayList<>()│
-└──────────────────┴──────────────────────────┴────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph ref["메서드 참조 4가지 형태"]
+        direction TB
+        A["<b>정적 메서드 참조</b><br/>Integer::parseInt<br/><i>= s → Integer.parseInt(s)</i>"]
+        B["<b>인스턴스 메서드 참조 (임의 객체)</b><br/>String::length<br/><i>= s → s.length()</i>"]
+        C["<b>인스턴스 메서드 참조 (특정 객체)</b><br/>System.out::println<br/><i>= s → System.out.println(s)</i>"]
+        D["<b>생성자 참조</b><br/>ArrayList::new<br/><i>= () → new ArrayList<>()</i>"]
+    end
+
+    style A fill:#dbeafe,stroke:#2563eb,color:#000
+    style B fill:#fef3c7,stroke:#b45309,color:#000
+    style C fill:#f3e8ff,stroke:#7c3aed,color:#000
+    style D fill:#d1fae5,stroke:#047857,color:#000
 ```
 
 ```java
@@ -337,7 +345,113 @@ long count = list.stream().count();
 
 ---
 
-## 6. 실무에서 겪는 문제들
+## 6. java.util.function 밖의 함수형 인터페이스
+
+`java.util.function` 패키지 외에도 JDK에는 Java 8 이전부터 존재하던 함수형 인터페이스가 여러 개 있다. 추상 메서드가 하나라는 조건만 만족하면 `@FunctionalInterface` 어노테이션이 없어도 람다식으로 쓸 수 있다.
+
+```mermaid
+flowchart TB
+    FI["<b>함수형 인터페이스</b><br/>추상 메서드 1개"]
+
+    subgraph juf["java.util.function"]
+        F["Function‹T,R›"]
+        C["Consumer‹T›"]
+        S["Supplier‹T›"]
+        P["Predicate‹T›"]
+    end
+
+    subgraph legacy["JDK 레거시 (Java 8 이전부터 존재)"]
+        COMP["Comparator‹T›<br/>compare(T, T) → int"]
+        CALL["Callable‹V›<br/>call() → V throws Exception"]
+        RUN["Runnable<br/>run() → void"]
+    end
+
+    FI --> juf
+    FI --> legacy
+
+    style FI fill:#f3e8ff,stroke:#7c3aed,color:#000
+    style COMP fill:#fef3c7,stroke:#b45309,color:#000
+    style CALL fill:#dbeafe,stroke:#2563eb,color:#000
+    style RUN fill:#d1fae5,stroke:#047857,color:#000
+```
+
+### Comparator\<T\>
+
+`java.util.Comparator<T>`는 `compare(T o1, T o2)` 하나만 추상 메서드로 가지고 있어서 함수형 인터페이스다. `@FunctionalInterface` 어노테이션도 붙어 있다.
+
+`equals(Object)`를 오버라이드하고 있지만, `Object`의 메서드이기 때문에 추상 메서드 카운트에 포함되지 않는다. `reversed()`, `thenComparing()` 같은 건 전부 `default` 메서드다.
+
+```java
+// 익명 클래스로 쓰던 코드
+Collections.sort(users, new Comparator<User>() {
+    @Override
+    public int compare(User a, User b) {
+        return a.getName().compareTo(b.getName());
+    }
+});
+
+// 람다식
+users.sort((a, b) -> a.getName().compareTo(b.getName()));
+
+// Comparator 정적 메서드 활용 — 가장 읽기 좋다
+users.sort(Comparator.comparing(User::getName));
+```
+
+`Comparator.comparing()`은 `Function<T, U>`를 받아서 `Comparator<T>`를 반환한다. 함수형 인터페이스끼리 조합되는 구조다. 여러 조건을 연결할 때는 `thenComparing()`을 쓴다.
+
+```java
+users.sort(
+    Comparator.comparing(User::getAge)
+        .thenComparing(User::getName)
+        .reversed()
+);
+```
+
+정수 비교할 때 `(a, b) -> a.getAge() - b.getAge()` 같은 산술 방식은 `Integer.MAX_VALUE` 근처에서 오버플로우가 난다. `Comparator.comparingInt()`를 쓴다.
+
+### Callable\<V\>
+
+`java.util.concurrent.Callable<V>`는 `V call() throws Exception` 하나만 가지고 있다. `Supplier<T>`와 시그니처가 비슷한데, 결정적인 차이는 체크 예외를 던질 수 있다는 점이다.
+
+```java
+// Supplier<T>:  T get()                  — 체크 예외 불가
+// Callable<V>:  V call() throws Exception — 체크 예외 가능
+```
+
+`ExecutorService.submit()`에 넘기는 용도로 설계됐다.
+
+```java
+ExecutorService executor = Executors.newFixedThreadPool(4);
+
+Future<String> future = executor.submit(() -> {
+    // Callable<String> — 체크 예외를 던져도 컴파일 에러 없음
+    return Files.readString(Path.of("/data/config.json"));
+});
+
+String content = future.get();  // 블로킹 대기, ExecutionException으로 감싸서 전달
+```
+
+람다식 안에서 체크 예외를 던져야 하는 비동기 작업이면 `Callable`을, 체크 예외가 필요 없으면 `Supplier`를 쓴다. `CompletableFuture.supplyAsync()`는 `Supplier`를 받기 때문에, 체크 예외를 던지는 코드를 넣으려면 try-catch로 감싸야 한다.
+
+### Runnable
+
+`java.lang.Runnable`은 Java 1.0부터 있던 인터페이스다. `void run()` 하나만 있어서 함수형 인터페이스 조건을 만족한다.
+
+`Consumer<T>`와 비교하면, `Runnable`은 파라미터를 받지 않고 반환값도 없다. `() -> void` 시그니처다.
+
+```java
+// 스레드 생성
+new Thread(() -> System.out.println("별도 스레드에서 실행")).start();
+
+// CompletableFuture에서 반환값이 필요 없는 비동기 작업
+CompletableFuture.runAsync(() -> sendNotification(userId));
+```
+
+`Runnable`과 `Callable<Void>`는 기능적으로 같아 보이지만, `Callable<Void>`는 `return null;`을 명시해야 하고 체크 예외를 던질 수 있다는 차이가 있다. 반환값 없이 체크 예외도 필요 없으면 `Runnable`이 맞다.
+
+---
+
+## 7. 실무에서 겪는 문제들
 
 ### 제네릭과 함수형 인터페이스
 
@@ -452,3 +566,9 @@ Comparator<String> comp = (Comparator<String> & Serializable) (a, b) -> a.compar
 ```
 
 가능하면 람다식의 직렬화는 피하는 게 좋다. 내부 구현에 의존하는 부분이 많아서 Java 버전이 바뀌면 역직렬화가 실패할 수 있다.
+
+---
+
+## 관련 문서
+
+- [함수형 인터페이스 실무 활용](../../자바 디자인 패턴 및 원칙/Java_Functional_Interface.md) — JDK/Spring에서의 활용, 커스텀 함수형 인터페이스 설계
