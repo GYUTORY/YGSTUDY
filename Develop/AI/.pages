@@ -1,6 +1,7 @@
 nav:
   - Claude
   - Claude_Code
+  - CodeSight
   - Codex
   - Grok
   - GitHub_Copilot
