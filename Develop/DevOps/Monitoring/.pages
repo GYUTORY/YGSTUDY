@@ -1,1 +1,7 @@
 title: Monitoring
+nav:
+  - Prometheus.md
+  - Prometheus_메트릭_수집.md
+  - Grafana.md
+  - Grafana_Prometheus_대시보드.md
+  - OpenTelemetry.md
