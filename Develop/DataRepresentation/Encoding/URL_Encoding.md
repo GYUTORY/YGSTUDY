@@ -1,7 +1,7 @@
 ---
 title: URL 인코딩 (Percent Encoding)
 tags: [encoding, url, percent-encoding, web]
-updated: 2026-03-24
+updated: 2026-04-10
 ---
 
 # URL 인코딩 (Percent Encoding)
@@ -36,6 +36,27 @@ A-Z a-z 0-9 - _ . ~
 "가" → UTF-8 바이트: 0xEA 0xB0 0x80 → %EA%B0%80
 "서울" → %EC%84%9C%EC%9A%B8
 ```
+
+아래 다이어그램은 한글 "가"가 퍼센트 인코딩되는 전체 흐름이다.
+
+```mermaid
+flowchart LR
+    A["문자: 가"] --> B["UTF-8 변환"]
+    B --> C["0xEA"]
+    B --> D["0xB0"]
+    B --> E["0x80"]
+    C --> F["%EA"]
+    D --> G["%B0"]
+    E --> H["%80"]
+    F --> I["%EA%B0%80"]
+    G --> I
+    H --> I
+
+    style A fill:#f9f9f9,stroke:#333
+    style I fill:#e8f5e9,stroke:#2e7d32
+```
+
+각 바이트 앞에 `%`를 붙여서 16진수로 표현하는 것이 퍼센트 인코딩의 전부다. 한글은 UTF-8에서 3바이트이므로 `%XX` 3개가 나온다. 영문 알파벳은 1바이트이므로 `%XX` 1개로 끝난다.
 
 브라우저 주소창에 `https://example.com/검색?q=서울` 이라고 입력하면, 실제 요청은 이렇게 나간다.
 
@@ -199,6 +220,25 @@ app.get('/cities/:name', (req, res) => {
 1차 인코딩: %EC%84%9C%EC%9A%B8
 2차 인코딩: %25EC%2584%259C%25EC%259A%25B8  (% → %25)
 ```
+
+아래 흐름도로 보면 이중 인코딩이 왜 문제인지 한눈에 보인다.
+
+```mermaid
+flowchart TD
+    A["원본: 서울"] -->|"1차 인코딩"| B["%EC%84%9C%EC%9A%B8"]
+    B -->|"2차 인코딩 (% → %25)"| C["%25EC%2584%259C%25EC%259A%25B8"]
+    C -->|"서버 디코딩 (1회)"| D["%EC%84%9C%EC%9A%B8 ← 문자열 그대로"]
+    D -.->|"한글 복원 안 됨"| E["서울 ✗"]
+
+    B -->|"정상 경로: 서버 디코딩"| F["서울 ← 정상 복원"]
+
+    style A fill:#f9f9f9,stroke:#333
+    style C fill:#ffebee,stroke:#c62828
+    style D fill:#fff3e0,stroke:#e65100
+    style F fill:#e8f5e9,stroke:#2e7d32
+```
+
+서버는 보통 디코딩을 한 번만 수행한다. 이중 인코딩된 값은 1회 디코딩 후에도 퍼센트 인코딩 문자열이 남아서, 원본 한글로 돌아오지 않는다.
 
 이렇게 되면 서버에서 한 번 디코딩해도 `%EC%84%9C%EC%9A%B8`이 나오고, 한글로 복원되지 않는다.
 
