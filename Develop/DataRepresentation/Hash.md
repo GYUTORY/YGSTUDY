@@ -1,7 +1,7 @@
 ---
 title: "해시와 체크섬"
-tags: [hash, checksum, md5, sha-256, crc32, bcrypt, data-integrity]
-updated: 2026-03-25
+tags: [hash, checksum, md5, sha-256, sha-3, crc32, bcrypt, data-integrity, birthday-paradox]
+updated: 2026-04-09
 ---
 
 # 해시와 체크섬
@@ -11,6 +11,39 @@ updated: 2026-03-25
 임의 길이의 데이터를 고정 길이의 값으로 변환하는 함수다. 같은 입력은 항상 같은 출력을 만들고, 출력값만으로 원래 입력을 복원할 수 없다(단방향성).
 
 체크섬은 데이터 전송이나 저장 과정에서 오류가 발생했는지 확인하는 값이다. 해시 함수로 체크섬을 만들 수 있지만, 모든 체크섬이 해시인 건 아니다. CRC32처럼 단순 오류 검출용 알고리즘도 체크섬에 포함된다.
+
+### 해시 함수 내부 동작 흐름
+
+암호학적 해시 함수는 대부분 비슷한 구조로 동작한다. 입력 데이터를 일정 크기 블록으로 나누고, 각 블록을 순서대로 압축 함수에 통과시켜 최종 해시값을 만든다.
+
+```mermaid
+flowchart LR
+    A["원본 데이터"] --> B["패딩 추가<br/>(블록 크기 배수로)"]
+    B --> C["블록 분할"]
+    C --> D["블록 1"]
+    C --> E["블록 2"]
+    C --> F["블록 N"]
+
+    IV["초기값(IV)"] --> G["압축 함수"]
+    D --> G
+    G --> H["중간 해시"]
+    E --> H
+    H --> I["압축 함수"]
+    I --> J["..."]
+    F --> J
+    J --> K["압축 함수"]
+    K --> L["최종 해시값"]
+
+    style A fill:#f5f5f5,stroke:#333
+    style L fill:#d4edda,stroke:#333
+    style G fill:#fff3cd,stroke:#333
+    style I fill:#fff3cd,stroke:#333
+    style K fill:#fff3cd,stroke:#333
+```
+
+이 구조를 **Merkle-Damgard 구조**라고 한다. MD5, SHA-1, SHA-256 모두 이 방식이다. SHA-3는 이 구조 대신 스펀지(Sponge) 구조를 쓰는데, 뒤에서 설명한다.
+
+핵심은 압축 함수가 **이전 블록의 출력**과 **현재 블록의 데이터**를 받아서 새 해시값을 만든다는 것이다. 첫 번째 블록은 미리 정해진 초기값(IV)을 사용한다. 이 체이닝 덕분에 입력의 어느 부분이 바뀌어도 최종 해시값이 완전히 달라진다.
 
 ---
 
@@ -182,9 +215,40 @@ public class CacheKeyGenerator {
 
 서로 다른 입력 A, B에 대해 `hash(A) == hash(B)`인 경우다. 비둘기집 원리상 해시 함수는 반드시 충돌이 존재한다. 입력 공간은 무한인데 출력 공간은 유한하기 때문이다.
 
-### Birthday Attack
+### Birthday Attack (생일 역설)
 
-해시 출력이 n비트이면, 약 2^(n/2)개의 입력만 시도하면 50% 확률로 충돌을 찾을 수 있다. MD5(128비트)는 약 2^64번 시도로 충돌을 찾을 수 있고, 현대 하드웨어로 충분히 가능하다. SHA-256(256비트)은 2^128번이 필요해서 현실적으로 불가능하다.
+23명만 모여도 같은 생일인 사람이 있을 확률이 50%를 넘는다. 직관적으로는 365명은 있어야 할 것 같지만 실제로는 훨씬 적은 수로 충분하다. 해시 충돌도 같은 원리다.
+
+```mermaid
+graph TB
+    subgraph "Birthday Paradox — 충돌 확률"
+        direction TB
+        N1["사람 수: 10명<br/>확률: 11.7%"]
+        N2["사람 수: 23명<br/>확률: 50.7%"]
+        N3["사람 수: 50명<br/>확률: 97.0%"]
+        N4["사람 수: 70명<br/>확률: 99.9%"]
+
+        N1 --> N2 --> N3 --> N4
+    end
+
+    subgraph "해시 함수에 적용"
+        direction TB
+        H1["출력 n비트 → 가능한 해시값 2^n개"]
+        H2["약 2^(n/2)개 입력이면<br/>충돌 확률 50%"]
+        H3["MD5 (128비트) → 2^64번 시도<br/>현대 하드웨어로 가능"]
+        H4["SHA-256 (256비트) → 2^128번 시도<br/>현실적으로 불가능"]
+
+        H1 --> H2 --> H3 --> H4
+    end
+
+    style N2 fill:#fff3cd,stroke:#333
+    style H3 fill:#fee,stroke:#c00
+    style H4 fill:#d4edda,stroke:#333
+```
+
+핵심 공식은 이렇다. 해시 출력이 n비트이면, 약 **2^(n/2)**개의 입력만 시도하면 50% 확률로 충돌 쌍을 찾을 수 있다. 특정 입력과 같은 해시를 찾는 것(역상 공격, 2^n번 필요)보다 "아무 충돌이든 찾는 것"이 훨씬 쉽다는 점이 중요하다.
+
+MD5(128비트)는 약 2^64번 시도로 충돌을 찾을 수 있고, 2004년에 실제로 성공했다. SHA-256(256비트)은 2^128번이 필요해서 현재 기술로는 불가능하다.
 
 ### 실무에서 충돌이 문제가 되는 경우
 
@@ -220,6 +284,102 @@ public class CacheKeyGenerator {
 | 해시 테이블 (HashMap 등) | 언어/프레임워크 기본값 사용 |
 
 **xxHash**는 비암호학적 해시 함수로, MD5보다 훨씬 빠르다. 보안이 필요 없는 체크섬이나 해시 테이블 용도로 쓴다.
+
+---
+
+## SHA-256 vs SHA-3: 성능 차이와 구조적 차이
+
+SHA-256과 SHA-3는 둘 다 안전한 해시 함수지만, 내부 구조가 완전히 다르다.
+
+### 구조 비교
+
+| 항목 | SHA-256 (SHA-2 계열) | SHA-3-256 (Keccak) |
+|------|---------------------|---------------------|
+| 내부 구조 | Merkle-Damgard | 스펀지(Sponge) |
+| 상태 크기 | 256비트 | 1600비트 |
+| 블록 크기 | 512비트 | 1088비트 (rate) |
+| 라운드 수 | 64 | 24 |
+| 길이 확장 공격 | 취약 (HMAC으로 방어) | 면역 |
+| 가변 길이 출력 | 불가 | 가능 (SHAKE128/256) |
+
+SHA-3의 스펀지 구조는 Merkle-Damgard와 근본적으로 다르다. 입력을 흡수(absorb)하고 출력을 짜내는(squeeze) 방식이다.
+
+```mermaid
+flowchart LR
+    subgraph "SHA-256 (Merkle-Damgard)"
+        direction LR
+        A1["IV"] --> C1["압축"]
+        B1["블록1"] --> C1
+        C1 --> C2["압축"]
+        B2["블록2"] --> C2
+        C2 --> R1["256비트 해시"]
+    end
+
+    subgraph "SHA-3 (Sponge)"
+        direction LR
+        S0["0 상태<br/>(1600비트)"] --> X1["XOR + f"]
+        P1["블록1"] --> X1
+        X1 --> X2["XOR + f"]
+        P2["블록2"] --> X2
+        X2 --> SQ["Squeeze"]
+        SQ --> R2["256비트 해시"]
+    end
+
+    style R1 fill:#d4edda,stroke:#333
+    style R2 fill:#e8f4fd,stroke:#333
+```
+
+SHA-3에서 내부 상태 1600비트 중 rate(r) 부분만 외부와 데이터를 주고받고, capacity(c) 부분은 외부에 노출되지 않는다. SHA-3-256은 r=1088, c=512이다. c가 출력 길이의 2배(512 = 256 x 2)여서, Birthday Attack 기준으로 256비트 수준의 보안을 보장한다.
+
+### 소프트웨어 성능
+
+일반적인 x86 서버 CPU에서의 처리 속도 비교다.
+
+| 알고리즘 | 처리량 (대략) | 비고 |
+|---------|-------------|------|
+| SHA-256 | ~500 MB/s | Intel SHA Extensions 지원 시 ~2 GB/s 이상 |
+| SHA-3-256 | ~300 MB/s | 하드웨어 가속 없는 순수 소프트웨어 |
+| SHA-512 | ~700 MB/s | 64비트 연산에 최적화, 64비트 CPU에서 SHA-256보다 빠름 |
+| SHAKE256 | ~300 MB/s | SHA-3와 동일 엔진, 출력 길이 가변 |
+
+수치는 CPU 아키텍처, 컴파일러, 구현체에 따라 크게 달라진다. 위 값은 OpenSSL 기준 대략적인 수준이다.
+
+SHA-256이 소프트웨어에서 SHA-3보다 보통 빠르다. 이유가 있다. SHA-256은 32비트 정수 연산 위주고, 현대 CPU에는 SHA-NI(SHA New Instructions)라는 전용 명령어셋이 있다. Intel Goldmont(2016), AMD Zen(2017) 이후 CPU에서 지원한다. SHA-3는 64비트 XOR과 비트 회전 연산 위주인데, 범용 명령어로 처리해야 해서 하드웨어 가속 효과가 적다.
+
+반면 SHA-3는 **하드웨어 구현**(FPGA, ASIC)에서는 SHA-256보다 효율적인 경우가 있다. IoT 디바이스나 임베디드 환경에서 SHA-3가 선택되는 이유 중 하나다.
+
+### 실무에서 SHA-3를 선택하는 경우
+
+대부분의 서버 애플리케이션에서는 SHA-256이면 된다. SHA-3를 선택하는 경우는 몇 가지로 한정된다.
+
+**길이 확장 공격 방어가 필요할 때**: SHA-256은 Merkle-Damgard 구조 특성상 `hash(message)`를 알면 `message`를 모르더라도 `hash(message || padding || extra)`를 계산할 수 있다. 이게 길이 확장 공격이다. 보통 HMAC으로 감싸서 방어하는데, SHA-3는 구조적으로 이 공격이 불가능하다.
+
+```python
+# SHA-256으로 단순히 key + message를 해싱하면 길이 확장 공격에 노출된다
+import hashlib
+bad_mac = hashlib.sha256(secret_key + message).hexdigest()  # 위험
+
+# HMAC으로 감싸야 안전하다
+import hmac
+good_mac = hmac.new(secret_key, message, hashlib.sha256).hexdigest()  # 안전
+
+# SHA-3는 단순 프리픽스 방식도 안전하다 (하지만 관례상 HMAC을 쓰는 게 낫다)
+safe_mac = hashlib.sha3_256(secret_key + message).hexdigest()
+```
+
+**가변 길이 출력이 필요할 때**: SHAKE128, SHAKE256은 원하는 만큼 출력을 뽑을 수 있다. 키 유도(Key Derivation)나 마스크 생성에 쓴다.
+
+```python
+from hashlib import shake_256
+
+# 32바이트 출력
+shake_256(b"input data").hexdigest(32)
+
+# 64바이트 출력 — 같은 입력에서 더 긴 출력을 뽑을 수 있다
+shake_256(b"input data").hexdigest(64)
+```
+
+**SHA-2와 다른 계열이 필요할 때**: 규정상 두 가지 독립적인 해시 알고리즘을 요구하는 경우가 있다. SHA-2에서 취약점이 발견될 경우를 대비하는 것이다.
 
 ---
 

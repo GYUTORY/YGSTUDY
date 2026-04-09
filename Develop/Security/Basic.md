@@ -1,7 +1,7 @@
 ---
 title: 보안 기초 개념
 tags: [security, CIA-triad, authentication, authorization, encryption, hash, defense-in-depth, input-validation, error-handling, logging]
-updated: 2026-03-29
+updated: 2026-04-09
 ---
 
 # 보안 기초 개념
@@ -9,6 +9,31 @@ updated: 2026-03-29
 ## CIA 트라이어드
 
 보안을 이야기할 때 가장 먼저 나오는 개념이다. 기밀성(Confidentiality), 무결성(Integrity), 가용성(Availability) 세 가지로 구성된다.
+
+```mermaid
+graph TD
+    CIA["보안의 3요소<br/>(CIA Triad)"]
+
+    CIA --> C["기밀성<br/>Confidentiality"]
+    CIA --> I["무결성<br/>Integrity"]
+    CIA --> A["가용성<br/>Availability"]
+
+    C --> C1["허가 없이 데이터를<br/>볼 수 없어야 한다"]
+    C --> C2["암호화, 접근 제어,<br/>HTTPS"]
+
+    I --> I1["데이터가 변조되지<br/>않았음을 보장한다"]
+    I --> I2["해시 체크섬, JWT 서명,<br/>디지털 서명"]
+
+    A --> A1["필요할 때 서비스가<br/>정상 동작해야 한다"]
+    A --> A2["이중화, 로드밸런싱,<br/>DDoS 방어"]
+
+    style CIA fill:#f5f5f5,stroke:#333,font-weight:bold
+    style C fill:#fce4ec,stroke:#c62828
+    style I fill:#e8f5e9,stroke:#2e7d32
+    style A fill:#e3f2fd,stroke:#1565c0
+```
+
+세 가지가 항상 동시에 만족되진 않는다. 기밀성을 극단적으로 높이면 접근 절차가 복잡해져 가용성이 떨어진다. 보안 설계는 이 세 가지의 균형을 잡는 일이다.
 
 ### 기밀성 (Confidentiality)
 
@@ -38,8 +63,6 @@ sha256sum downloaded-file.tar.gz
 서비스가 필요할 때 정상 동작해야 한다. 아무리 기밀성과 무결성을 잘 지켜도, 서버가 다운되면 의미가 없다.
 
 DDoS 공격이 가용성을 노리는 대표적인 사례다. 실무에서는 장애 대응과도 연결되는데, 단일 서버 구성이면 그 서버가 죽는 순간 가용성이 0이 된다. 이중화, 로드밸런싱, 자동 복구 같은 인프라 설계가 가용성과 직결된다.
-
-세 가지가 항상 동시에 만족되진 않는다. 기밀성을 극단적으로 높이면 접근 절차가 복잡해져 가용성이 떨어진다. 보안 설계는 이 세 가지의 균형을 잡는 일이다.
 
 ---
 
@@ -124,6 +147,27 @@ HTTPS가 두 방식을 조합한 대표 사례다. TLS 핸드셰이크에서 비
 ## 해시와 암호화의 차이
 
 실무에서 이 둘을 혼동하면 보안 사고가 난다.
+
+```mermaid
+flowchart LR
+    subgraph "해시 (단방향)"
+        H_IN["원본 데이터"] --> H_FN["해시 함수<br/>SHA-256, bcrypt"]
+        H_FN --> H_OUT["해시값<br/>(고정 길이)"]
+        H_OUT -. "복원 불가 ✕" .-> H_IN
+    end
+
+    subgraph "암호화 (양방향)"
+        E_IN["원본 데이터"] -- "키로 암호화" --> E_FN["암호화 함수<br/>AES, RSA"]
+        E_FN --> E_OUT["암호문"]
+        E_OUT -- "키로 복호화" --> E_BACK["원본 데이터"]
+    end
+
+    style H_FN fill:#fff3cd,stroke:#333
+    style H_OUT fill:#fce4ec,stroke:#c62828
+    style E_FN fill:#e3f2fd,stroke:#1565c0
+    style E_OUT fill:#e8f5e9,stroke:#2e7d32
+    style E_BACK fill:#e8f5e9,stroke:#2e7d32
+```
 
 ### 해시 (Hash)
 
@@ -212,23 +256,44 @@ GRANT SELECT ON mydb.products TO 'order_service'@'10.0.0.%';
 
 웹 서비스 기준으로 계층별 방어 구조를 보면:
 
-```
-[사용자 요청]
-    ↓
-[1. 네트워크 계층] — 방화벽, WAF, DDoS 방어
-    ↓
-[2. 전송 계층] — TLS/HTTPS
-    ↓
-[3. 애플리케이션 계층] — 입력값 검증, 인증/인가
-    ↓
-[4. 데이터 계층] — 암호화 저장, 접근 제어
-    ↓
-[5. 모니터링] — 로그, 이상 탐지, 알림
-```
+```mermaid
+flowchart TB
+    REQ["사용자 요청"] --> L1
 
-WAF가 SQL 인젝션을 막더라도, 애플리케이션에서 파라미터 바인딩을 하지 않으면 WAF 우회 시 바로 뚫린다. 반대로 애플리케이션에서 완벽히 방어해도, 네트워크 계층 보안이 없으면 DDoS로 서비스가 죽는다.
+    subgraph L1["1. 네트워크 계층"]
+        L1D["방화벽 · WAF · DDoS 방어<br/>IP 차단, Rate Limiting"]
+    end
+
+    L1 --> L2
+    subgraph L2["2. 전송 계층"]
+        L2D["TLS/HTTPS<br/>데이터 전송 구간 암호화"]
+    end
+
+    L2 --> L3
+    subgraph L3["3. 애플리케이션 계층"]
+        L3D["입력값 검증 · 인증/인가<br/>CSRF 토큰, CORS 설정"]
+    end
+
+    L3 --> L4
+    subgraph L4["4. 데이터 계층"]
+        L4D["암호화 저장 · 접근 제어<br/>최소 권한, 파라미터 바인딩"]
+    end
+
+    L4 --> L5
+    subgraph L5["5. 모니터링"]
+        L5D["로그 · 이상 탐지 · 알림<br/>보안 이벤트 감사 추적"]
+    end
+
+    style L1 fill:#ffebee,stroke:#c62828
+    style L2 fill:#fff3e0,stroke:#e65100
+    style L3 fill:#fff9c4,stroke:#f9a825
+    style L4 fill:#e8f5e9,stroke:#2e7d32
+    style L5 fill:#e3f2fd,stroke:#1565c0
+```
 
 각 계층이 독립적으로 방어하고, 한 계층이 뚫려도 다음 계층에서 막는 구조를 만든다.
+
+WAF가 SQL 인젝션을 막더라도, 애플리케이션에서 파라미터 바인딩을 하지 않으면 WAF 우회 시 바로 뚫린다. 반대로 애플리케이션에서 완벽히 방어해도, 네트워크 계층 보안이 없으면 DDoS로 서비스가 죽는다.
 
 Spring 기반 웹 애플리케이션에서 심층 방어가 적용된 예:
 
