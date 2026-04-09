@@ -1,36 +1,97 @@
 ---
 title: Node.js 기본 개념과 구조
 tags: [framework, node, nodejs의-구조-및-작동-원리, nodejs, javascript-runtime]
-updated: 2025-08-15
+updated: 2026-04-09
 ---
 
 # Node.js 기본 개념과 구조
 
 ## 배경
 
-Node.js는 JavaScript 실행 환경(Run-time Environment)으로, 웹 브라우저가 아닌 컴퓨터에서 JavaScript를 실행할 수 있도록 만들어진 프로그램입니다.
+Node.js는 JavaScript 실행 환경(Runtime)이다. 브라우저가 아닌 서버에서 JavaScript를 실행할 수 있게 해준다.
 
 ### Node.js의 특징
-- JavaScript를 브라우저 밖에서도 실행 가능
-- 싱글 스레드 기반의 이벤트 루프(Event Loop) 모델 활용
-- 비동기 논블로킹 I/O(Non-Blocking I/O)를 지원하여 빠른 성능 제공
-- 내장된 HTTP 서버 기능을 통해 별도의 웹 서버 없이 서버 구축 가능
-- V8 엔진과 libuv 라이브러리를 기반으로 동작
+- JavaScript를 브라우저 밖에서 실행한다
+- 싱글 스레드 기반의 이벤트 루프(Event Loop) 모델로 동작한다
+- 비동기 논블로킹 I/O(Non-Blocking I/O)를 지원한다
+- HTTP 서버가 내장되어 있어 별도 웹 서버 없이 서버를 만들 수 있다
+- V8 엔진과 libuv 라이브러리 위에서 동작한다
 
 ### Node.js의 필요성
-- **서버 사이드 JavaScript**: 브라우저 외부에서 JavaScript 실행
-- **비동기 처리**: 효율적인 I/O 작업 처리
-- **풀스택 개발**: 프론트엔드와 백엔드에서 동일한 언어 사용
-- **빠른 개발**: 풍부한 npm 생태계 활용
+- **서버 사이드 JavaScript**: 프론트엔드와 백엔드를 같은 언어로 작성한다
+- **비동기 I/O**: 동시 접속이 많은 I/O 바운드 서버에 적합하다
+- **npm 생태계**: 라이브러리가 많아 프로토타이핑이 빠르다
 
 ## 핵심
 
+### Node.js의 전체 구조
+
+Node.js는 V8 엔진과 libuv 라이브러리를 활용하여 동작한다. 아래 그림은 Node.js 내부에서 JavaScript 코드가 실행되기까지 거치는 계층 구조다.
+
+```mermaid
+graph TB
+    subgraph APP["JavaScript 애플리케이션"]
+        A1["app.js / server.js"]
+    end
+
+    subgraph NODEJS["Node.js"]
+        direction TB
+        B1["Node.js API<br/>(fs, http, net, crypto 등)"]
+        B2["Node.js Bindings<br/>(C++ 바인딩 레이어)"]
+    end
+
+    subgraph ENGINE["런타임 엔진"]
+        direction LR
+        C1["V8 엔진<br/>JS 파싱 → 컴파일 → 실행"]
+        C2["libuv<br/>이벤트 루프 · 비동기 I/O"]
+    end
+
+    subgraph OS["운영체제"]
+        D1["파일 시스템"]
+        D2["네트워크"]
+        D3["스레드 풀"]
+    end
+
+    A1 --> B1
+    B1 --> B2
+    B2 --> C1
+    B2 --> C2
+    C2 --> D1
+    C2 --> D2
+    C2 --> D3
+
+    style APP fill:#2d333b,stroke:#539bf5,color:#adbac7
+    style NODEJS fill:#2d333b,stroke:#57ab5a,color:#adbac7
+    style ENGINE fill:#2d333b,stroke:#e5534b,color:#adbac7
+    style OS fill:#2d333b,stroke:#c69026,color:#adbac7
+```
+
+JavaScript 코드는 Node.js API를 호출하고, C++ 바인딩 레이어를 거쳐 V8(코드 실행)과 libuv(비동기 I/O)로 나뉘어 처리된다. libuv가 운영체제의 파일 시스템, 네트워크, 스레드 풀과 직접 통신한다.
+
 ### Node.js의 핵심 요소
 
-Node.js는 V8 엔진과 libuv 라이브러리를 활용하여 동작합니다.
-
 #### V8 엔진
-V8은 구글이 만든 오픈소스 JavaScript 엔진입니다. 크롬 브라우저와 안드로이드 브라우저에서도 사용되며, JavaScript 코드를 빠르게 실행하도록 최적화되어 있습니다. Just-In-Time (JIT) 컴파일을 통해 JavaScript 코드를 즉시 기계어로 변환하여 성능을 향상시킵니다.
+V8은 구글이 만든 오픈소스 JavaScript 엔진이다. 크롬 브라우저와 안드로이드 브라우저에서도 사용된다. Just-In-Time (JIT) 컴파일로 JavaScript 코드를 기계어로 변환해서 실행한다.
+
+```mermaid
+graph LR
+    subgraph V8["V8 엔진 내부 파이프라인"]
+        direction LR
+        S1["JavaScript<br/>소스 코드"] --> S2["Parser<br/>(구문 분석)"]
+        S2 --> S3["AST<br/>(추상 구문 트리)"]
+        S3 --> S4["Ignition<br/>(인터프리터)<br/>→ 바이트코드 생성"]
+        S4 --> S5["TurboFan<br/>(최적화 컴파일러)<br/>→ 기계어 변환"]
+    end
+
+    S4 -- "자주 호출되는 함수<br/>(Hot Function)" --> S5
+    S5 -- "최적화 해제<br/>(Deoptimization)" --> S4
+
+    style V8 fill:#2d333b,stroke:#539bf5,color:#adbac7
+```
+
+V8은 처음에 Ignition 인터프리터로 바이트코드를 만들어 빠르게 실행을 시작한다. 반복 호출되는 함수(Hot Function)가 감지되면 TurboFan이 해당 코드를 기계어로 최적화 컴파일한다. 타입이 바뀌는 등 최적화 가정이 깨지면 다시 바이트코드 실행으로 돌아간다(Deoptimization).
+
+실무에서 주의할 점: 함수에 넘기는 인자 타입이 계속 바뀌면 TurboFan이 최적화와 해제를 반복하게 된다. 성능이 중요한 경로에서는 인자 타입을 일관되게 유지하는 게 좋다.
 
 ```javascript
 // V8 엔진이 실행하는 JavaScript 코드
@@ -43,9 +104,47 @@ console.log(doubled); // [2, 4, 6, 8, 10]
 ```
 
 #### libuv 라이브러리
-Node.js의 비동기 I/O 모델을 담당하는 라이브러리입니다. 이벤트 기반(Event-Driven) 및 논블로킹(Non-Blocking) I/O 모델을 구현하며, 멀티플랫폼(Windows, Linux, macOS)에서 동작 가능합니다.
+Node.js의 비동기 I/O 모델을 담당하는 C 라이브러리다. 이벤트 기반(Event-Driven) 및 논블로킹(Non-Blocking) I/O 모델을 구현하며, Windows·Linux·macOS에서 동작한다.
+
+```mermaid
+graph TB
+    subgraph LIBUV["libuv 아키텍처"]
+        direction TB
+        EL["이벤트 루프<br/>(메인 스레드)"]
+        
+        subgraph ASYNC_IO["비동기 I/O 처리"]
+            direction LR
+            NET["네트워크 I/O<br/>(epoll / kqueue / IOCP)"]
+            TP["스레드 풀<br/>(기본 4개 스레드)"]
+        end
+        
+        subgraph TP_WORK["스레드 풀이 처리하는 작업"]
+            direction LR
+            W1["파일 I/O<br/>(fs 모듈)"]
+            W2["DNS 조회<br/>(dns.lookup)"]
+            W3["압축<br/>(zlib)"]
+            W4["crypto<br/>(암호화 연산)"]
+        end
+    end
+
+    EL --> NET
+    EL --> TP
+    TP --> W1
+    TP --> W2
+    TP --> W3
+    TP --> W4
+
+    style LIBUV fill:#2d333b,stroke:#57ab5a,color:#adbac7
+    style ASYNC_IO fill:#1c2128,stroke:#539bf5,color:#adbac7
+    style TP_WORK fill:#1c2128,stroke:#c69026,color:#adbac7
+```
+
+네트워크 I/O(TCP, UDP, HTTP)는 OS 커널의 비동기 메커니즘(Linux의 epoll, macOS의 kqueue, Windows의 IOCP)을 직접 사용한다. 파일 I/O, DNS 조회, 암호화 연산처럼 OS 레벨에서 비동기를 지원하지 않는 작업은 스레드 풀에서 처리한다.
+
+스레드 풀 기본 크기는 4개다. `UV_THREADPOOL_SIZE` 환경 변수로 최대 1024까지 늘릴 수 있다. 파일 I/O가 많은 서버에서 스레드 풀이 부족하면 fs 콜백이 지연되는 현상이 생긴다.
 
 libuv의 주요 역할:
+
 - **이벤트 루프(Event Loop) 관리**
 - **비동기 파일 입출력 (fs 모듈)**
 - **네트워크 통신 관리 (HTTP, TCP, UDP)**
@@ -74,7 +173,7 @@ console.log('비동기 작업 시작');
 
 ### 이벤트 기반(Event-Driven) 프로그래밍
 
-이벤트가 발생하면 미리 등록해둔 콜백 함수를 실행하는 방식입니다. 이벤트 리스너(Event Listener)를 활용하여 특정 이벤트가 발생할 때 동작을 정의합니다.
+이벤트가 발생하면 미리 등록해둔 콜백 함수를 실행하는 방식이다. 이벤트 리스너(Event Listener)로 특정 이벤트 발생 시 동작을 정의한다.
 
 ```javascript
 // 이벤트 기반 프로그래밍 예제
@@ -95,30 +194,66 @@ myEmitter.emit('event', 'Hello, Event-Driven Programming!');
 
 ### 이벤트 루프(Event Loop) 구조
 
-Node.js의 이벤트 루프는 6단계로 구성되어 있습니다:
+Node.js의 이벤트 루프는 6단계를 반복하며 실행된다. 각 단계 사이에 마이크로태스크(nextTick, Promise)가 처리된다.
 
-#### 1. Timers (타이머)
-- `setTimeout()`, `setInterval()` 등의 타이머 콜백 실행
-- 지정된 시간이 지난 콜백들을 실행
+```mermaid
+graph TD
+    START(["이벤트 루프 시작"]) --> T
 
-#### 2. Pending callbacks (대기 중인 콜백)
-- 이전 루프에서 지연된 I/O 콜백들을 실행
-- TCP 오류 콜백 등이 여기서 실행됨
+    T["1. Timers<br/>setTimeout, setInterval 콜백"]
+    T --> MT1["마이크로태스크 처리<br/>(nextTick → Promise)"]
+    MT1 --> P
 
-#### 3. Idle, prepare (유휴, 준비)
-- 내부적으로 사용되며, 일반적인 애플리케이션 개발에서는 거의 사용되지 않음
+    P["2. Pending Callbacks<br/>지연된 I/O 콜백<br/>(TCP 오류 등)"]
+    P --> MT2["마이크로태스크 처리"]
+    MT2 --> I
 
-#### 4. Poll (폴링)
-- 새로운 I/O 이벤트를 기다림
-- 새로운 연결이나 데이터를 기다림
+    I["3. Idle, Prepare<br/>(libuv 내부 용도)"]
+    I --> MT3["마이크로태스크 처리"]
+    MT3 --> PO
 
-#### 5. Check (확인)
-- `setImmediate()`로 예약된 콜백이 실행됨
-- Poll 단계가 완료된 직후 실행
+    PO["4. Poll<br/>새 I/O 이벤트 대기 및 처리<br/>(파일 읽기 완료, 네트워크 데이터 수신)"]
+    PO --> MT4["마이크로태스크 처리"]
+    MT4 --> C
 
-#### 6. Close callbacks (닫기 콜백)
-- 소켓 연결 종료, `process.exit()` 등 실행
-- 리소스 정리 작업 수행
+    C["5. Check<br/>setImmediate 콜백"]
+    C --> MT5["마이크로태스크 처리"]
+    MT5 --> CL
+
+    CL["6. Close Callbacks<br/>socket.on&#40;'close'&#41; 등<br/>리소스 정리"]
+    CL --> MT6["마이크로태스크 처리"]
+    MT6 --> CHECK{{"처리할 작업이<br/>남아있는가?"}}
+
+    CHECK -- "예" --> T
+    CHECK -- "아니오" --> END(["프로세스 종료"])
+
+    style T fill:#2d333b,stroke:#539bf5,color:#adbac7
+    style P fill:#2d333b,stroke:#539bf5,color:#adbac7
+    style I fill:#2d333b,stroke:#636e7b,color:#768390
+    style PO fill:#2d333b,stroke:#e5534b,color:#adbac7
+    style C fill:#2d333b,stroke:#539bf5,color:#adbac7
+    style CL fill:#2d333b,stroke:#539bf5,color:#adbac7
+    style MT1 fill:#1c2128,stroke:#c69026,color:#c69026
+    style MT2 fill:#1c2128,stroke:#c69026,color:#c69026
+    style MT3 fill:#1c2128,stroke:#c69026,color:#c69026
+    style MT4 fill:#1c2128,stroke:#c69026,color:#c69026
+    style MT5 fill:#1c2128,stroke:#c69026,color:#c69026
+    style MT6 fill:#1c2128,stroke:#c69026,color:#c69026
+```
+
+각 단계의 역할:
+
+**1. Timers** — `setTimeout()`, `setInterval()`로 예약한 콜백을 실행한다. 정확한 시간 보장이 아니라 "최소 지연 시간" 이후 실행이다.
+
+**2. Pending Callbacks** — 이전 루프에서 지연된 시스템 콜백을 처리한다. TCP 연결 오류 콜백이 대표적이다.
+
+**3. Idle, Prepare** — libuv 내부에서 사용하는 단계다. 애플리케이션 코드에서 직접 다룰 일은 없다.
+
+**4. Poll** — 이벤트 루프에서 가장 중요한 단계다. 새 I/O 이벤트를 가져와서 콜백을 실행한다. 대기 중인 타이머나 setImmediate가 없으면 여기서 블로킹하며 새 이벤트를 기다린다.
+
+**5. Check** — `setImmediate()` 콜백이 실행된다. Poll 단계가 끝난 직후 실행되므로, I/O 콜백 안에서 `setImmediate()`를 호출하면 다음 `setTimeout(fn, 0)`보다 먼저 실행된다.
+
+**6. Close Callbacks** — `socket.on('close')` 같은 종료 이벤트 콜백을 처리한다.
 
 ```javascript
 // 이벤트 루프 단계별 실행 예제
@@ -918,9 +1053,5 @@ readable.pipe(transform).pipe(process.stdout);
 ```
 
 ### 결론
-Node.js는 V8 엔진과 libuv를 기반으로 한 강력한 JavaScript 런타임입니다.
-이벤트 기반 비동기 프로그래밍 모델을 통해 높은 성능을 제공합니다.
-적절한 모듈 시스템과 npm 생태계를 활용하여 빠른 개발이 가능합니다.
-성능 최적화와 디버깅 도구를 활용하여 안정적인 애플리케이션을 구축해야 합니다.
-Node.js의 핵심 개념을 이해하고 실전에서 활용할 수 있는 능력을 기르는 것이 중요합니다.
+Node.js는 V8 엔진과 libuv 위에서 동작하는 JavaScript 런타임이다. 이벤트 루프 기반 비동기 모델 덕분에 싱글 스레드로도 동시 접속을 잘 처리한다. 다만 CPU 집약적인 작업에는 약하니, Worker Threads나 별도 프로세스로 분리하는 방법을 알아둬야 한다.
 
