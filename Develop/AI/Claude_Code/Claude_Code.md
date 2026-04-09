@@ -1,7 +1,7 @@
 ---
 title: Claude Code
 tags: [ai, claude-code, anthropic, cli, agentic-coding]
-updated: 2026-04-05
+updated: 2026-04-09
 ---
 
 # Claude Code
@@ -121,7 +121,142 @@ Claude Code는 내부적으로 다양한 도구를 사용한다.
 | **NotebookEdit** | Jupyter 노트북 편집 |
 | **TodoWrite** | 작업 목록 관리 |
 
-### 3.4 권한 모델
+### 3.4 하네스 아키텍처
+
+Claude Code는 LLM이 도구를 직접 실행하는 게 아니다. **하네스(Harness)**라는 실행 환경이 중간에 있고, 이 하네스가 도구 호출을 가로채서 권한 검사, 샌드박스 적용, 실행, 결과 반환까지 전부 관리한다.
+
+#### 전체 구조
+
+```mermaid
+graph TB
+    subgraph 사용자 환경
+        A[사용자 입력]
+    end
+
+    subgraph 하네스 Harness
+        B[메시지 루프]
+        C[도구 호출 파서]
+        D[권한 검사]
+        E[샌드박스 레이어]
+        F[도구 실행기]
+        G[결과 수집기]
+        H[Hook 실행기]
+    end
+
+    subgraph LLM
+        I[Claude 모델]
+    end
+
+    subgraph 도구
+        J[Read / Write / Edit]
+        K[Bash]
+        L[Glob / Grep]
+        M[Agent 서브에이전트]
+        N[MCP 서버 도구]
+    end
+
+    A --> B
+    B --> I
+    I -->|도구 호출 요청| C
+    C --> H
+    H -->|PreToolUse Hook| D
+    D -->|승인| E
+    D -->|거부| G
+    E --> F
+    F --> J & K & L & M & N
+    J & K & L & M & N -->|실행 결과| G
+    G --> H
+    H -->|PostToolUse Hook| B
+    B -->|최종 응답| A
+```
+
+핵심은 LLM이 "Read로 파일 읽고 싶다"고 요청하면, 하네스가 그 요청을 받아서 권한 확인 → 샌드박스 적용 → 실행 → 결과 전달 순서로 처리한다는 것이다. LLM은 실행 결과만 돌려받는다.
+
+#### 도구 호출 처리 파이프라인
+
+하나의 도구 호출이 실행되는 과정을 단계별로 보면 다음과 같다.
+
+```mermaid
+flowchart LR
+    A[LLM 응답에서<br/>도구 호출 파싱] --> B[PreToolUse<br/>Hook 실행]
+    B --> C{Hook 결과}
+    C -->|block| H[실행 차단<br/>→ 결과 반환]
+    C -->|pass / 없음| D{권한 검사}
+    D -->|deny 매칭| H
+    D -->|allow 매칭| F[도구 실행]
+    D -->|매칭 없음| E[사용자에게<br/>승인 요청]
+    E -->|승인| F
+    E -->|거부| H
+    F --> G[PostToolUse<br/>Hook 실행]
+    G --> I[결과를 LLM<br/>컨텍스트에 추가]
+```
+
+이 파이프라인에서 주목할 점:
+
+- **Hook이 권한 검사보다 먼저 실행된다.** PreToolUse Hook에서 `block`을 반환하면 권한 검사 자체를 건너뛰고 바로 차단한다. 팀 정책을 Hook으로 강제할 수 있는 이유다.
+- **deny가 allow보다 우선한다.** settings.json의 deny 목록에 매칭되면 allow에 있어도 차단된다.
+- **매칭되는 규칙이 없으면 사용자에게 물어본다.** Ask Mode에서는 대부분의 도구 호출이 여기에 해당한다.
+
+#### 권한 모드별 동작
+
+```mermaid
+flowchart TD
+    A[도구 호출 요청] --> B{권한 모드}
+
+    B -->|Ask Mode| C{allow 목록?}
+    C -->|매칭| F[자동 승인]
+    C -->|미매칭| D[사용자에게 승인 요청]
+
+    B -->|Auto-Accept| E{도구 종류}
+    E -->|읽기 도구<br/>Read, Glob, Grep| F
+    E -->|쓰기 도구<br/>Write, Edit, Bash| D
+
+    B -->|Full Auto| F
+
+    D -->|승인| F
+    D -->|거부| G[실행 차단]
+    F --> H[샌드박스 적용 후 실행]
+```
+
+| 모드 | 읽기 도구 | 쓰기 도구 | 적합한 상황 |
+|------|----------|----------|------------|
+| Ask Mode | 승인 필요 | 승인 필요 | 처음 사용하거나 민감한 프로젝트에서 작업할 때 |
+| Auto-Accept | 자동 승인 | 승인 필요 | 일상적인 개발 작업. 파일 탐색은 자유롭게, 수정은 확인하면서 진행 |
+| Full Auto | 자동 승인 | 자동 승인 | 신뢰할 수 있는 환경에서 반복 작업을 돌릴 때. CI/CD와 비슷한 맥락 |
+
+Full Auto 모드에서도 `settings.json`의 deny 목록은 여전히 적용된다. `rm -rf`를 deny에 넣어두면 Full Auto에서도 차단된다.
+
+#### 샌드박스 계층
+
+하네스는 도구 실행 시 여러 겹의 샌드박스를 적용한다.
+
+```mermaid
+graph TB
+    subgraph "샌드박스 계층 구조"
+        A["프로세스 격리<br/>각 Bash 명령은 독립 프로세스로 실행"]
+        B["파일시스템 범위 제한<br/>프로젝트 디렉토리 기준으로 접근 범위 제한"]
+        C["네트워크 제한<br/>Bash 명령의 외부 네트워크 접근 제한"]
+        D["시간 제한 (Timeout)<br/>Bash 기본 2분, 최대 10분"]
+    end
+
+    A --> B --> C --> D
+
+    style A fill:#2d2d2d,stroke:#666,color:#e0e0e0
+    style B fill:#2d2d2d,stroke:#666,color:#e0e0e0
+    style C fill:#2d2d2d,stroke:#666,color:#e0e0e0
+    style D fill:#2d2d2d,stroke:#666,color:#e0e0e0
+```
+
+| 계층 | 적용 대상 | 동작 |
+|------|----------|------|
+| 프로세스 격리 | Bash 도구 | 각 명령이 별도 프로세스에서 실행. 이전 명령의 셸 상태(변수, alias)가 유지되지 않는다 |
+| 파일시스템 범위 | Read, Write, Edit | 프로젝트 디렉토리 바깥의 파일 접근을 제한한다 |
+| 네트워크 제한 | Bash 도구 | 샌드박스 모드에서 외부 네트워크 요청을 차단한다. `dangerouslyDisableSandbox` 옵션으로 해제 가능하지만 권장하지 않는다 |
+| 시간 제한 | Bash 도구 | 기본 2분(120초) 타임아웃. 빌드나 테스트처럼 오래 걸리는 작업은 최대 10분까지 설정 가능 |
+
+Bash 도구의 `dangerouslyDisableSandbox` 옵션이 이름에 "dangerously"가 들어간 이유가 있다. 샌드박스를 끄면 네트워크 제한이 풀리면서 외부에 요청을 보낼 수 있게 된다. CI 환경이 아니면 쓸 일이 거의 없다.
+
+### 3.5 권한 모델
 
 도구 실행 전 사용자 승인을 요청하는 구조다.
 

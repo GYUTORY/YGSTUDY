@@ -1,6 +1,7 @@
 nav:
   - LLM.md
   - LLM_Agent.md
+  - Agent_Harness.md
   - LLM_Security.md
   - AI_Hallucination.md
   - Prompt_Engineering.md
