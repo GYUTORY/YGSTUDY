@@ -177,6 +177,8 @@ class ConflictError extends AppError {
 
 Express에서 에러가 어떻게 흘러가는지 이해하는 게 먼저다. `next(error)`를 호출하면 일반 미들웨어를 전부 건너뛰고, 파라미터 4개짜리 에러 미들웨어로 직접 넘어간다.
 
+![Express 에러 전파 흐름](images/error_flow_express.svg)
+
 ```mermaid
 flowchart TD
     A[클라이언트 요청] --> B[미들웨어 1: bodyParser 등]
@@ -283,6 +285,8 @@ app.use((req, res) => {
 
 NestJS는 Express와 구조가 다르다. Guard, Interceptor, Pipe를 거치면서 에러가 발생할 수 있고, 최종적으로 Exception Filter가 모든 에러를 잡는다.
 
+![NestJS 에러 전파 흐름](images/error_flow_nestjs.svg)
+
 ```mermaid
 flowchart TD
     A[클라이언트 요청] --> B[Guard: 인증/인가]
@@ -363,6 +367,8 @@ throw new ConflictException('Email already exists');
 ## Fastify 에러 처리
 
 Fastify는 Express, NestJS와 에러 처리 방식이 다르다. 자체 에러 핸들링 메커니즘이 있고, JSON Schema 기반 유효성 검증이 내장되어 있다.
+
+![Fastify 에러 처리 흐름](images/error_flow_fastify.svg)
 
 ### setErrorHandler
 
@@ -494,6 +500,8 @@ Express에서 이걸 하려면 Router 단위로 에러 미들웨어를 분리해
 ## 세 프레임워크 에러 처리 비교
 
 에러가 발생했을 때 각 프레임워크가 어떤 경로로 에러를 처리하는지 한눈에 비교한 다이어그램이다.
+
+![Express vs NestJS vs Fastify 에러 처리 비교](images/error_flow_comparison.svg)
 
 ```mermaid
 flowchart LR

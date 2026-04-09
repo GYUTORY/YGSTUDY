@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="ext-orange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3d1f00"/>
+      <stop offset="100%" stop-color="#2d1600"/>
+    </linearGradient>
+    <linearGradient id="builtin-amber" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3d2e00"/>
+      <stop offset="100%" stop-color="#2d2200"/>
+    </linearGradient>
+    <marker id="arrowO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb923c"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="460" fill="url(#bg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" fill="#fb923c" font-size="17" font-weight="700">Hapi 요청 라이프사이클</text>
+  <text x="450" y="55" text-anchor="middle" fill="#64748b" font-size="11">가장 세분화된 라이프사이클 — Extension Point로 각 단계에 로직 삽입. 인증/검증이 프레임워크 내장.</text>
+
+  <!-- Row 1: 5 steps -->
+  <!-- Step 1: onRequest -->
+  <rect x="30" y="80" width="130" height="60" rx="8" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="95" y="103" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="700">onRequest</text>
+  <text x="95" y="119" text-anchor="middle" fill="#94a3b8" font-size="9">URL 리라이트</text>
+  <text x="95" y="132" text-anchor="middle" fill="#94a3b8" font-size="9">메서드 오버라이드</text>
+
+  <line x1="160" y1="110" x2="185" y2="110" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 2: 라우트 매칭 -->
+  <rect x="185" y="80" width="120" height="60" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="245" y="105" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">라우트 매칭</text>
+  <text x="245" y="125" text-anchor="middle" fill="#94a3b8" font-size="9">정적 테이블 기반</text>
+
+  <line x1="305" y1="110" x2="330" y2="110" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 3: onPreAuth -->
+  <rect x="330" y="80" width="120" height="60" rx="8" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="390" y="103" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="700">onPreAuth</text>
+  <text x="390" y="119" text-anchor="middle" fill="#94a3b8" font-size="9">인증 전 처리</text>
+  <text x="390" y="132" text-anchor="middle" fill="#94a3b8" font-size="9">IP 차단 등</text>
+
+  <line x1="450" y1="110" x2="475" y2="110" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 4: 인증 -->
+  <rect x="475" y="75" width="130" height="70" rx="8" fill="url(#builtin-amber)" stroke="#f59e0b" stroke-width="2"/>
+  <text x="540" y="98" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700">인증</text>
+  <text x="540" y="114" text-anchor="middle" fill="#94a3b8" font-size="9">server.auth.strategy()</text>
+  <text x="540" y="128" text-anchor="middle" fill="#94a3b8" font-size="9">프레임워크 내장</text>
+  <text x="540" y="140" text-anchor="middle" fill="#f59e0b" font-size="8">실행 시점 보장</text>
+
+  <line x1="605" y1="110" x2="630" y2="110" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 5: onCredentials -->
+  <rect x="630" y="80" width="120" height="60" rx="8" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="690" y="103" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="700">onCredentials</text>
+  <text x="690" y="119" text-anchor="middle" fill="#94a3b8" font-size="9">인증 성공 후</text>
+  <text x="690" y="132" text-anchor="middle" fill="#94a3b8" font-size="9">권한 체크 전</text>
+
+  <!-- Down connector -->
+  <line x1="690" y1="140" x2="690" y2="175" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Row 2 (right to left) -->
+  <!-- Step 6: onPostAuth -->
+  <rect x="630" y="175" width="120" height="55" rx="8" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="690" y="198" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="700">onPostAuth</text>
+  <text x="690" y="216" text-anchor="middle" fill="#94a3b8" font-size="9">권한 검증 완료</text>
+
+  <line x1="630" y1="202" x2="605" y2="202" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 7: 입력값 검증 -->
+  <rect x="475" y="170" width="130" height="65" rx="8" fill="url(#builtin-amber)" stroke="#f59e0b" stroke-width="2"/>
+  <text x="540" y="193" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700">입력값 검증</text>
+  <text x="540" y="210" text-anchor="middle" fill="#94a3b8" font-size="9">Joi 기반</text>
+  <text x="540" y="224" text-anchor="middle" fill="#94a3b8" font-size="9">라우트 설정에 선언</text>
+
+  <line x1="475" y1="202" x2="450" y2="202" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 8: onPreHandler -->
+  <rect x="330" y="175" width="120" height="55" rx="8" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="390" y="198" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="700">onPreHandler</text>
+  <text x="390" y="216" text-anchor="middle" fill="#94a3b8" font-size="9">핸들러 전 처리</text>
+
+  <line x1="330" y1="202" x2="305" y2="202" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 9: 핸들러 -->
+  <rect x="185" y="175" width="120" height="55" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="2.5"/>
+  <text x="245" y="200" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">핸들러</text>
+  <text x="245" y="218" text-anchor="middle" fill="#94a3b8" font-size="9">handler(request, h)</text>
+
+  <!-- Down connector -->
+  <line x1="245" y1="230" x2="245" y2="265" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Row 3 -->
+  <!-- Step 10: onPostHandler -->
+  <rect x="185" y="265" width="120" height="55" rx="8" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="245" y="288" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="700">onPostHandler</text>
+  <text x="245" y="306" text-anchor="middle" fill="#94a3b8" font-size="9">응답 변환</text>
+
+  <line x1="305" y1="292" x2="330" y2="292" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 11: 응답 검증 -->
+  <rect x="330" y="265" width="120" height="55" rx="8" fill="url(#builtin-amber)" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="390" y="288" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">응답 검증</text>
+  <text x="390" y="306" text-anchor="middle" fill="#94a3b8" font-size="9">선택적 (Joi)</text>
+
+  <line x1="450" y1="292" x2="475" y2="292" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 12: onPreResponse -->
+  <rect x="475" y="265" width="130" height="55" rx="8" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="540" y="288" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="700">onPreResponse</text>
+  <text x="540" y="306" text-anchor="middle" fill="#94a3b8" font-size="9">에러 응답 포맷팅</text>
+
+  <line x1="605" y1="292" x2="630" y2="292" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowO)"/>
+
+  <!-- Step 13: 응답 전송 -->
+  <rect x="630" y="265" width="120" height="55" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="690" y="295" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">응답 전송</text>
+
+  <!-- Legend -->
+  <rect x="30" y="345" width="840" height="95" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="50" y="368" fill="#f59e0b" font-size="11" font-weight="700">Hapi 라이프사이클 특징</text>
+  <text x="50" y="388" fill="#94a3b8" font-size="10">인증과 입력값 검증이 프레임워크 레벨에서 정해진 단계에 실행됨. "이 미들웨어 순서가 맞나?" 고민할 일이 없다.</text>
+  <text x="50" y="405" fill="#94a3b8" font-size="10">h.continue로 다음 단계로, h.response().takeover()로 나머지 건너뛰고 즉시 응답.</text>
+  <text x="50" y="425" fill="#94a3b8" font-size="10">Boom을 안 쓰고 일반 Error를 throw하면 500 처리 + 에러 메시지 클라이언트에 미노출 (보안 의도).</text>
+
+  <rect x="620" y="358" width="12" height="12" rx="3" fill="url(#ext-orange)" stroke="#fb923c" stroke-width="1"/>
+  <text x="638" y="369" fill="#fb923c" font-size="10">Extension Point (server.ext)</text>
+  <rect x="620" y="376" width="12" height="12" rx="3" fill="url(#builtin-amber)" stroke="#f59e0b" stroke-width="1"/>
+  <text x="638" y="387" fill="#f59e0b" font-size="10">프레임워크 내장 기능</text>
+</svg>

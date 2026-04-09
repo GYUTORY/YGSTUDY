@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399"/>
+    </marker>
+    <marker id="arrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="520" fill="url(#bg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700">Express vs NestJS vs Fastify 에러 처리 비교</text>
+  <text x="450" y="50" text-anchor="middle" fill="#64748b" font-size="11">에러가 발생했을 때 각 프레임워크가 에러를 잡아서 응답하는 경로</text>
+
+  <!-- ===== EXPRESS COLUMN ===== -->
+  <rect x="20" y="65" width="270" height="440" rx="10" fill="#0a1628" stroke="#34d399" stroke-width="1.5"/>
+  <text x="155" y="90" text-anchor="middle" fill="#34d399" font-size="14" font-weight="700">Express</text>
+
+  <rect x="55" y="105" width="200" height="30" rx="5" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="155" y="125" text-anchor="middle" fill="#e2e8f0" font-size="10">요청 수신</text>
+
+  <line x1="155" y1="135" x2="155" y2="150" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <rect x="55" y="150" width="200" height="30" rx="5" fill="#065f46" stroke="#34d399" stroke-width="1"/>
+  <text x="155" y="170" text-anchor="middle" fill="#34d399" font-size="10">미들웨어 체인</text>
+
+  <line x1="155" y1="180" x2="155" y2="195" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <rect x="55" y="195" width="200" height="30" rx="5" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+  <text x="155" y="215" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">라우트 핸들러</text>
+
+  <!-- Error path -->
+  <line x1="155" y1="225" x2="155" y2="255" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowR)"/>
+
+  <rect x="40" y="255" width="230" height="55" rx="6" fill="#1e1018" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="155" y="275" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="700">next(error) 수동 호출</text>
+  <text x="155" y="293" text-anchor="middle" fill="#94a3b8" font-size="9">빠뜨리면 요청 hang</text>
+  <text x="155" y="305" text-anchor="middle" fill="#94a3b8" font-size="9">Express 4: asyncHandler 필수</text>
+
+  <line x1="155" y1="310" x2="155" y2="330" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <rect x="40" y="330" width="230" height="40" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="155" y="347" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">에러 미들웨어 (인자 4개)</text>
+  <text x="155" y="363" text-anchor="middle" fill="#94a3b8" font-size="9">(err, req, res, next) => {}</text>
+
+  <line x1="155" y1="370" x2="155" y2="390" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <rect x="70" y="390" width="170" height="28" rx="5" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="155" y="409" text-anchor="middle" fill="#fca5a5" font-size="10">에러 응답</text>
+
+  <!-- Express key -->
+  <rect x="40" y="430" width="230" height="30" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="155" y="450" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600">핵심: 수동 전파, 순서 의존</text>
+
+  <!-- ===== NESTJS COLUMN ===== -->
+  <rect x="310" y="65" width="270" height="440" rx="10" fill="#0a1628" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="445" y="90" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="700">NestJS</text>
+
+  <rect x="345" y="105" width="200" height="30" rx="5" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="445" y="125" text-anchor="middle" fill="#e2e8f0" font-size="10">요청 수신</text>
+
+  <line x1="445" y1="135" x2="445" y2="150" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <rect x="345" y="150" width="200" height="30" rx="5" fill="#1e293b" stroke="#a78bfa" stroke-width="1"/>
+  <text x="445" y="170" text-anchor="middle" fill="#a78bfa" font-size="10">Guard → Interceptor → Pipe</text>
+
+  <line x1="445" y1="180" x2="445" y2="195" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <rect x="345" y="195" width="200" height="30" rx="5" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="445" y="215" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Controller 메서드</text>
+
+  <!-- Error path -->
+  <line x1="445" y1="225" x2="445" y2="255" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowR)"/>
+
+  <rect x="330" y="255" width="230" height="55" rx="6" fill="#1e1018" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="445" y="275" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="700">throw → 자동 라우팅</text>
+  <text x="445" y="293" text-anchor="middle" fill="#94a3b8" font-size="9">어디서든 throw하면 자동 포착</text>
+  <text x="445" y="305" text-anchor="middle" fill="#94a3b8" font-size="9">Pipe 검증 실패도 자동 처리</text>
+
+  <line x1="445" y1="310" x2="445" y2="330" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <rect x="330" y="330" width="230" height="40" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="445" y="347" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">Exception Filter</text>
+  <text x="445" y="363" text-anchor="middle" fill="#94a3b8" font-size="9">@Catch() 데코레이터</text>
+
+  <line x1="445" y1="370" x2="445" y2="390" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <rect x="360" y="390" width="170" height="28" rx="5" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="445" y="409" text-anchor="middle" fill="#fca5a5" font-size="10">에러 응답</text>
+
+  <!-- NestJS key -->
+  <rect x="330" y="430" width="230" height="30" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="445" y="450" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600">핵심: 자동 전파, 데코레이터 기반</text>
+
+  <!-- ===== FASTIFY COLUMN ===== -->
+  <rect x="600" y="65" width="280" height="440" rx="10" fill="#0a1628" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="740" y="90" text-anchor="middle" fill="#fb923c" font-size="14" font-weight="700">Fastify</text>
+
+  <rect x="640" y="105" width="200" height="30" rx="5" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="740" y="125" text-anchor="middle" fill="#e2e8f0" font-size="10">요청 수신</text>
+
+  <line x1="740" y1="135" x2="740" y2="150" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <rect x="640" y="150" width="200" height="30" rx="5" fill="#1e293b" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="740" y="170" text-anchor="middle" fill="#fb923c" font-size="10" font-weight="600">Schema 검증 (Ajv)</text>
+
+  <line x1="740" y1="180" x2="740" y2="195" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <rect x="640" y="195" width="200" height="30" rx="5" fill="#1e293b" stroke="#fb923c" stroke-width="1"/>
+  <text x="740" y="215" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">라우트 핸들러</text>
+
+  <!-- Error path -->
+  <line x1="740" y1="225" x2="740" y2="255" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowR)"/>
+
+  <rect x="620" y="255" width="240" height="55" rx="6" fill="#1e1018" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="740" y="275" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="700">throw → 자동 라우팅</text>
+  <text x="740" y="293" text-anchor="middle" fill="#94a3b8" font-size="9">Schema 검증 실패도 자동 전파</text>
+  <text x="740" y="305" text-anchor="middle" fill="#94a3b8" font-size="9">플러그인별 스코프 에러 핸들러</text>
+
+  <line x1="740" y1="310" x2="740" y2="330" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <rect x="620" y="330" width="240" height="40" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="740" y="347" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">setErrorHandler()</text>
+  <text x="740" y="363" text-anchor="middle" fill="#94a3b8" font-size="9">명시적 메서드 호출</text>
+
+  <line x1="740" y1="370" x2="740" y2="390" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <rect x="655" y="390" width="170" height="28" rx="5" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="740" y="409" text-anchor="middle" fill="#fca5a5" font-size="10">에러 응답</text>
+
+  <!-- Fastify key -->
+  <rect x="620" y="430" width="240" height="30" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="740" y="450" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600">핵심: 자동 전파, 스코프별 분리</text>
+
+  <!-- Bottom legend -->
+  <line x1="100" y1="490" x2="150" y2="490" stroke="#34d399" stroke-width="2"/>
+  <text x="160" y="494" fill="#94a3b8" font-size="10">정상 흐름</text>
+
+  <line x1="280" y1="490" x2="330" y2="490" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="340" y="494" fill="#94a3b8" font-size="10">에러 흐름</text>
+
+  <rect x="470" y="483" width="14" height="14" rx="2" fill="#f59e0b"/>
+  <text x="494" y="494" fill="#94a3b8" font-size="10">에러 핸들러</text>
+</svg>
