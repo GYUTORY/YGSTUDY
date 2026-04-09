@@ -1,7 +1,7 @@
 ---
 title: Node.js 에러 처리
 tags: [nodejs, error-handling, express, nestjs, fastify, middleware, global-handler, custom-error]
-updated: 2026-04-08
+updated: 2026-04-09
 ---
 
 # Node.js 에러 처리
@@ -26,6 +26,47 @@ Node.js 에러는 크게 두 종류다.
 | **Operational** (운영 에러) | DB 연결 실패, 타임아웃, 400 에러 | O | try/catch, 재시도 |
 | **Programmer** (프로그래밍 에러) | TypeError, null 참조, 잘못된 인자 | X | 코드 수정 |
 
+아래 다이어그램으로 보면 구조가 잡힌다.
+
+```mermaid
+graph TD
+    A["Node.js 에러"] --> B["Operational Error<br/>(운영 에러)"]
+    A --> C["Programmer Error<br/>(프로그래밍 에러)"]
+
+    B --> B1["네트워크/인프라"]
+    B --> B2["클라이언트 입력"]
+    B --> B3["외부 서비스"]
+
+    B1 --> B1a["DB 연결 실패<br/>ECONNREFUSED"]
+    B1 --> B1b["요청 타임아웃<br/>ETIMEDOUT"]
+    B1 --> B1c["디스크 풀<br/>ENOSPC"]
+
+    B2 --> B2a["잘못된 JSON"]
+    B2 --> B2b["필수 필드 누락"]
+    B2 --> B2c["권한 없음"]
+
+    B3 --> B3a["외부 API 5xx"]
+    B3 --> B3b["응답 파싱 실패"]
+
+    C --> C1["타입 에러"]
+    C --> C2["로직 에러"]
+    C --> C3["참조 에러"]
+
+    C1 --> C1a["TypeError:<br/>Cannot read property of null"]
+    C2 --> C2a["잘못된 배열 인덱스<br/>off-by-one"]
+    C3 --> C3a["ReferenceError:<br/>미선언 변수 접근"]
+
+    style A fill:#34495e,color:#fff
+    style B fill:#27ae60,color:#fff
+    style C fill:#c0392b,color:#fff
+    style B1 fill:#2ecc71,color:#fff
+    style B2 fill:#2ecc71,color:#fff
+    style B3 fill:#2ecc71,color:#fff
+    style C1 fill:#e74c3c,color:#fff
+    style C2 fill:#e74c3c,color:#fff
+    style C3 fill:#e74c3c,color:#fff
+```
+
 이 둘을 구분하는 게 중요하다. Operational 에러는 catch해서 처리하면 되지만, Programmer 에러를 catch로 무시하면 버그가 숨어버린다.
 
 ```javascript
@@ -48,7 +89,49 @@ user.name;  // TypeError: Cannot read property 'name' of null
 
 ## 커스텀 에러 클래스
 
-운영 에러와 프로그래밍 에러를 구분하려면 `isOperational` 플래그를 쓴다. 이걸 기준으로 글로벌 핸들러에서 처리 방식을 나눈다.
+운영 에러와 프로그래밍 에러를 구분하려면 `isOperational` 플래그를 쓴다. 이걸 기준으로 글로벌 핸들러에서 처리 방식을 나눈다. 커스텀 에러 클래스의 상속 구조는 다음과 같다.
+
+```mermaid
+classDiagram
+    class Error {
+        +string message
+        +string stack
+        +string name
+    }
+
+    class AppError {
+        +number statusCode
+        +string errorCode
+        +boolean isOperational = true
+    }
+
+    class NotFoundError {
+        +statusCode = 404
+        +errorCode = "NOT_FOUND"
+    }
+
+    class ValidationError {
+        +statusCode = 400
+        +errorCode = "VALIDATION_ERROR"
+        +object[] errors
+    }
+
+    class UnauthorizedError {
+        +statusCode = 401
+        +errorCode = "UNAUTHORIZED"
+    }
+
+    class ConflictError {
+        +statusCode = 409
+        +errorCode = "CONFLICT"
+    }
+
+    Error <|-- AppError
+    AppError <|-- NotFoundError
+    AppError <|-- ValidationError
+    AppError <|-- UnauthorizedError
+    AppError <|-- ConflictError
+```
 
 ```javascript
 class AppError extends Error {
@@ -409,6 +492,55 @@ fastify.register(async (instance) => {
 Express에서 이걸 하려면 Router 단위로 에러 미들웨어를 분리해야 하는데, 미들웨어 순서를 잘못 잡으면 에러가 글로벌 핸들러로 빠지는 경우가 있다. Fastify는 플러그인 캡슐화 덕분에 이런 문제가 없다.
 
 ## 세 프레임워크 에러 처리 비교
+
+에러가 발생했을 때 각 프레임워크가 어떤 경로로 에러를 처리하는지 한눈에 비교한 다이어그램이다.
+
+```mermaid
+flowchart LR
+    subgraph Express["Express"]
+        direction TB
+        E1["요청"] --> E2["미들웨어 체인"]
+        E2 --> E3["라우트 핸들러"]
+        E3 -- "에러 발생" --> E4["next(error) 수동 호출"]
+        E4 --> E5["에러 미들웨어<br/>(파라미터 4개)"]
+        E5 --> E6["응답"]
+
+        style E4 fill:#e74c3c,color:#fff
+        style E5 fill:#f39c12,color:#fff
+    end
+
+    subgraph NestJS["NestJS"]
+        direction TB
+        N1["요청"] --> N2["Guard"]
+        N2 --> N3["Interceptor"]
+        N3 --> N4["Pipe"]
+        N4 --> N5["Controller"]
+        N5 -- "throw" --> N6["Exception Filter<br/>(자동 라우팅)"]
+        N4 -- "검증 실패" --> N6
+        N2 -- "인가 실패" --> N6
+        N6 --> N7["응답"]
+
+        style N6 fill:#f39c12,color:#fff
+    end
+
+    subgraph Fastify["Fastify"]
+        direction TB
+        F1["요청"] --> F2["Schema 검증"]
+        F2 -- "검증 실패" --> F5["setErrorHandler<br/>(자동 라우팅)"]
+        F2 -- "통과" --> F3["preHandler 훅"]
+        F3 --> F4["라우트 핸들러"]
+        F4 -- "throw" --> F5
+        F5 --> F6["응답"]
+
+        style F5 fill:#f39c12,color:#fff
+    end
+```
+
+세 프레임워크의 핵심 차이:
+
+- **Express**: `next(error)`를 직접 호출해야 에러가 전파된다. 호출 안 하면 요청이 행(hang) 걸린다.
+- **NestJS**: Guard, Interceptor, Pipe, Controller 어디서든 throw하면 Exception Filter가 자동으로 잡는다.
+- **Fastify**: Schema 검증이 핸들러 실행 전에 자동으로 돌아간다. throw하면 `setErrorHandler`가 바로 받는다.
 
 | 항목 | Express | NestJS | Fastify |
 |------|---------|--------|---------|
