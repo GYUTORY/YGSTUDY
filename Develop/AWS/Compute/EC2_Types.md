@@ -108,6 +108,88 @@ graph TB
 
 vCPU 2개 기준으로 메모리만 비교해도 차이가 크다. T3는 1GB, C5는 4GB, R5는 16GB다. 같은 CPU 자원에서 메모리가 16배 차이가 난다. 워크로드의 병목이 어디인지에 따라 카테고리를 고르는 이유가 여기 있다.
 
+#### 카테고리별 CPU:메모리 비율
+
+같은 vCPU 수에서 카테고리에 따라 메모리가 얼마나 달라지는지, 비율로 보면 차이가 명확하다.
+
+```mermaid
+%%{init: {'theme': 'base'}}%%
+graph LR
+    subgraph RATIO["vCPU 1개당 메모리 비율"]
+        direction TB
+
+        C_R["<b>컴퓨팅 (C5)</b><br/>vCPU : 메모리 = 1 : 2<br/>██░░░░░░░░░░░░░░ 2GB"]
+        T_R["<b>범용 (T3)</b><br/>vCPU : 메모리 = 1 : 4<br/>████░░░░░░░░░░░░ 4GB"]
+        M_R["<b>범용 (M5)</b><br/>vCPU : 메모리 = 1 : 4<br/>████░░░░░░░░░░░░ 4GB"]
+        R_R["<b>메모리 (R5)</b><br/>vCPU : 메모리 = 1 : 8<br/>████████░░░░░░░░ 8GB"]
+        X_R["<b>메모리 (X1)</b><br/>vCPU : 메모리 = 1 : 16<br/>████████████████ 16GB"]
+    end
+
+    style C_R fill:#ff6b6b,color:#fff
+    style T_R fill:#4a9eff,color:#fff
+    style M_R fill:#4a9eff,color:#fff
+    style R_R fill:#51cf66,color:#fff
+    style X_R fill:#2b8a3e,color:#fff
+```
+
+C5는 CPU당 메모리가 2GB밖에 안 된다. CPU 연산에 리소스를 몰아준 결과다. 반면 X1은 CPU당 16GB로, 메모리를 극단적으로 많이 준다. 워크로드가 CPU 바운드인지 메모리 바운드인지에 따라 이 비율이 가성비를 결정한다.
+
+#### 카테고리별 리소스 분배 성향
+
+각 카테고리가 CPU, 메모리, 네트워크, 스토리지 중 어디에 리소스를 집중하는지 한눈에 보면 이렇다.
+
+```mermaid
+%%{init: {'theme': 'base'}}%%
+graph TB
+    subgraph GP["범용 (General Purpose)"]
+        direction LR
+        GP_CPU["CPU<br/>●●●○○"]
+        GP_MEM["메모리<br/>●●●○○"]
+        GP_NET["네트워크<br/>●●●○○"]
+        GP_DISK["스토리지<br/>●●○○○"]
+    end
+
+    subgraph CO["컴퓨팅 (Compute)"]
+        direction LR
+        CO_CPU["CPU<br/>●●●●●"]
+        CO_MEM["메모리<br/>●●○○○"]
+        CO_NET["네트워크<br/>●●●○○"]
+        CO_DISK["스토리지<br/>●●○○○"]
+    end
+
+    subgraph MO["메모리 (Memory)"]
+        direction LR
+        MO_CPU["CPU<br/>●●●○○"]
+        MO_MEM["메모리<br/>●●●●●"]
+        MO_NET["네트워크<br/>●●●○○"]
+        MO_DISK["스토리지<br/>●●○○○"]
+    end
+
+    subgraph SO["스토리지 (Storage)"]
+        direction LR
+        SO_CPU["CPU<br/>●●●○○"]
+        SO_MEM["메모리<br/>●●●●○"]
+        SO_NET["네트워크<br/>●●●●○"]
+        SO_DISK["스토리지<br/>●●●●●"]
+    end
+
+    subgraph AC["가속 컴퓨팅 (Accelerated)"]
+        direction LR
+        AC_CPU["CPU<br/>●●●○○"]
+        AC_MEM["메모리<br/>●●●●○"]
+        AC_NET["네트워크<br/>●●●●●"]
+        AC_DISK["스토리지<br/>●●●○○"]
+    end
+
+    style GP fill:#4a9eff,color:#fff
+    style CO fill:#ff6b6b,color:#fff
+    style MO fill:#51cf66,color:#fff
+    style SO fill:#ffd43b,color:#333
+    style AC fill:#cc5de8,color:#fff
+```
+
+범용은 모든 리소스가 고르게 배분된다. 나머지 카테고리는 이름 그대로 특정 리소스에 몰려 있다. 가속 컴퓨팅은 GPU가 핵심인데 위 그림에서는 빠져 있다 — GPU를 별도로 장착하는 구조라서 CPU/메모리/네트워크/스토리지 배분과는 별개다.
+
 ### 1. 범용 (General Purpose) 인스턴스
 
 CPU, 메모리, 네트워크가 균형 잡힌 유형이다. 특정 리소스를 극단적으로 쓰지 않는 대부분의 워크로드에 맞다.
@@ -164,6 +246,24 @@ t3.xlarge  (4 vCPU, 16GB RAM)  → $120/월  (2배)
 
 CPU 성능에 리소스를 집중한 유형이다.
 
+```mermaid
+%%{init: {'theme': 'base'}}%%
+graph LR
+    subgraph C_COMPARE["C5 시리즈 — 같은 가격대에서 CPU를 더 준다"]
+        direction TB
+        C5L["<b>C5.large</b><br/>2 vCPU / 4GB 메모리<br/>CPU:메모리 = 1:2"]
+        M5L["<b>M5.large (범용 비교)</b><br/>2 vCPU / 8GB 메모리<br/>CPU:메모리 = 1:4"]
+    end
+
+    C5L -.- NOTE["같은 2 vCPU인데<br/>C5는 메모리를 반으로 줄여서<br/>CPU당 단가가 더 낮다"]
+
+    style C5L fill:#ff6b6b,color:#fff
+    style M5L fill:#4a9eff,color:#fff
+    style NOTE fill:#f8f9fa,color:#333,stroke:#dee2e6
+```
+
+메모리를 줄인 대신 CPU당 단가가 M5보다 낮다. CPU 연산이 병목이고 메모리는 많이 안 쓰는 워크로드에서 비용 대비 성능이 좋다.
+
 #### 주요 시리즈
 - **C 시리즈 (C7g, C6g, C5)**: Intel/AMD/Graviton 프로세서 선택 가능
 
@@ -176,6 +276,30 @@ CPU 성능에 리소스를 집중한 유형이다.
 ### 3. 메모리 (Memory Optimized) 인스턴스
 
 메모리에 리소스를 집중한 유형이다. 데이터를 메모리에 올려놓고 처리하는 워크로드에 쓴다.
+
+```mermaid
+%%{init: {'theme': 'base'}}%%
+graph TB
+    subgraph MEM_SCALE["메모리 인스턴스 — R과 X의 메모리 스케일 차이"]
+        direction LR
+        R5L["<b>R5.large</b><br/>2 vCPU / 16GB<br/>████████"]
+        R5X["<b>R5.xlarge</b><br/>4 vCPU / 32GB<br/>████████████████"]
+        X1_16["<b>X1.16xlarge</b><br/>64 vCPU / 976GB<br/>━━━━━━━━ (TB급)"]
+        X1_32["<b>X1.32xlarge</b><br/>128 vCPU / 1,952GB<br/>━━━━━━━━━━━━━━━━ (2TB급)"]
+    end
+
+    R5L --- R_NOTE["R 시리즈: GB 단위<br/>Redis, Elasticsearch"]
+    X1_16 --- X_NOTE["X 시리즈: TB 단위<br/>SAP HANA, 대규모 인메모리 DB"]
+
+    style R5L fill:#51cf66,color:#fff
+    style R5X fill:#51cf66,color:#fff
+    style X1_16 fill:#2b8a3e,color:#fff
+    style X1_32 fill:#2b8a3e,color:#fff
+    style R_NOTE fill:#f8f9fa,color:#333,stroke:#dee2e6
+    style X_NOTE fill:#f8f9fa,color:#333,stroke:#dee2e6
+```
+
+R 시리즈와 X 시리즈는 둘 다 메모리 카테고리지만 규모가 다르다. R5.large는 16GB, X1.32xlarge는 1,952GB(약 2TB)다. 대부분의 인메모리 캐시나 DB는 R 시리즈로 충분하고, X 시리즈는 SAP HANA처럼 TB 단위 메모리가 필수인 경우에만 쓴다.
 
 #### 주요 시리즈
 - **R 시리즈 (R7g, R6g, R5)**: 인메모리 DB, 캐시 서버용
@@ -191,6 +315,35 @@ CPU 성능에 리소스를 집중한 유형이다.
 
 로컬 디스크 I/O 성능에 리소스를 집중한 유형이다.
 
+```mermaid
+%%{init: {'theme': 'base'}}%%
+graph TB
+    subgraph STORAGE_COMPARE["I 시리즈 vs D 시리즈 — 스토리지 특성 비교"]
+        direction LR
+
+        subgraph I_SERIES["I3 시리즈 (NVMe SSD)"]
+            direction TB
+            I_TYPE["랜덤 I/O에 강함"]
+            I_IOPS["IOPS: 최대 300만+"]
+            I_CAP["용량: 최대 15.2TB"]
+            I_USE["DB, 캐시, 검색엔진"]
+        end
+
+        subgraph D_SERIES["D2 시리즈 (HDD)"]
+            direction TB
+            D_TYPE["순차 I/O에 강함"]
+            D_THRU["처리량: 최대 3.5GB/s"]
+            D_CAP["용량: 최대 48TB"]
+            D_USE["HDFS, 로그, DW"]
+        end
+    end
+
+    style I_SERIES fill:#ffd43b,color:#333
+    style D_SERIES fill:#fab005,color:#333
+```
+
+I 시리즈는 NVMe SSD 기반으로 IOPS가 높다. DB나 Elasticsearch처럼 랜덤 읽기/쓰기가 많은 워크로드에 맞다. D 시리즈는 HDD 기반으로 용량이 크고 순차 읽기/쓰기 처리량이 높다. Kafka, HDFS처럼 대용량 데이터를 순차적으로 쓰는 경우에 쓴다. 둘 다 로컬 스토리지라서 인스턴스가 종료되면 데이터가 사라진다는 점에 주의해야 한다.
+
 #### 주요 시리즈
 - **I 시리즈 (I4i, I3)**: NVMe SSD 기반, 랜덤 I/O가 빠르다
 - **D 시리즈 (D3, D2)**: HDD 기반, 대용량 순차 읽기/쓰기에 맞다
@@ -204,6 +357,38 @@ CPU 성능에 리소스를 집중한 유형이다.
 ### 5. 가속 컴퓨팅 (Accelerated Computing) 인스턴스
 
 GPU 또는 FPGA를 장착한 유형이다. 가격이 비싸기 때문에 GPU가 정말 필요한 워크로드인지 먼저 확인해야 한다.
+
+```mermaid
+%%{init: {'theme': 'base'}}%%
+graph TB
+    subgraph GPU_COMPARE["P 시리즈 vs G 시리즈 — 용도와 비용 차이"]
+        direction LR
+
+        subgraph P_SERIES["P 시리즈 (학습용)"]
+            direction TB
+            P_GPU["GPU: A100, V100"]
+            P_MEM["GPU 메모리: 40~80GB"]
+            P_COST["p3.2xlarge: $3.06/h"]
+            P_USE["대규모 모델 학습"]
+        end
+
+        subgraph G_SERIES["G 시리즈 (추론/렌더링)"]
+            direction TB
+            G_GPU["GPU: T4, A10G"]
+            G_MEM["GPU 메모리: 16~24GB"]
+            G_COST["g4dn.xlarge: $0.526/h"]
+            G_USE["추론 서빙, 렌더링"]
+        end
+    end
+
+    P_SERIES -.- DIFF["P는 G보다 6배 비싸다<br/>추론만 할 거면 G 시리즈가 맞다"]
+
+    style P_SERIES fill:#cc5de8,color:#fff
+    style G_SERIES fill:#9775fa,color:#fff
+    style DIFF fill:#f8f9fa,color:#333,stroke:#dee2e6
+```
+
+P 시리즈는 고성능 GPU로 학습에 맞고, G 시리즈는 추론과 렌더링에 맞다. 가격 차이가 크기 때문에 모델 학습이 아니라 추론 서빙만 하는데 P 시리즈를 쓰면 비용이 낭비된다. 학습은 P 시리즈나 SageMaker로, 서빙은 G 시리즈로 분리하는 게 일반적이다.
 
 #### 주요 시리즈
 - **P 시리즈 (P5, P4d, P3)**: NVIDIA GPU로 ML 모델 학습
@@ -556,6 +741,33 @@ CloudWatch에서 아래 지표를 보고 인스턴스 타입을 조정한다.
 | R5.large | 2 | 16GB | 최대 10 Gbps | EBS only | 같은 vCPU인데 메모리가 4배 |
 | I3.large | 2 | 15GB | 최대 10 Gbps | 475GB NVMe SSD | 로컬 NVMe SSD가 붙는다 |
 | G4dn.xlarge | 4 | 16GB | 최대 25 Gbps | 125GB NVMe SSD | NVIDIA T4 GPU 포함 |
+
+#### 인스턴스 크기가 커지면 네트워크도 커진다
+
+네트워크 대역폭은 인스턴스 크기에 비례한다. 같은 시리즈에서 크기만 올려도 네트워크 성능이 바뀐다.
+
+```mermaid
+%%{init: {'theme': 'base'}}%%
+graph LR
+    subgraph NET["M5 시리즈 — 크기별 네트워크 대역폭"]
+        direction TB
+        M5L["<b>m5.large</b><br/>최대 10 Gbps<br/>██░░░░░░░░"]
+        M5X["<b>m5.xlarge</b><br/>최대 10 Gbps<br/>██░░░░░░░░"]
+        M5_2X["<b>m5.2xlarge</b><br/>최대 10 Gbps<br/>██░░░░░░░░"]
+        M5_4X["<b>m5.4xlarge</b><br/>최대 10 Gbps<br/>██░░░░░░░░"]
+        M5_12X["<b>m5.12xlarge</b><br/>12 Gbps<br/>████░░░░░░"]
+        M5_24X["<b>m5.24xlarge</b><br/>25 Gbps<br/>██████████"]
+    end
+
+    style M5L fill:#4a9eff,color:#fff
+    style M5X fill:#4a9eff,color:#fff
+    style M5_2X fill:#4a9eff,color:#fff
+    style M5_4X fill:#4a9eff,color:#fff
+    style M5_12X fill:#339af0,color:#fff
+    style M5_24X fill:#1c7ed6,color:#fff
+```
+
+m5.large부터 m5.4xlarge까지는 네트워크 대역폭이 "최대 10 Gbps"로 같다. 실제로는 버스트 기반이라 항상 10 Gbps를 쓸 수 있는 건 아니다. m5.12xlarge부터 전용 대역폭이 보장되기 시작한다. 네트워크가 병목인 서비스(대용량 파일 전송, 분산 처리 등)에서는 이 차이가 중요하다.
 
 ### 정리
 

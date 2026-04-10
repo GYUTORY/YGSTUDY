@@ -100,6 +100,28 @@ aws ec2 stop-instances \
 
 AMI는 인스턴스의 스냅샷이다. OS, 설치된 소프트웨어, 설정, 데이터를 모두 포함한다. AMI로부터 동일한 구성의 인스턴스를 여러 대 만들 수 있다.
 
+### AMI 구조와 인스턴스 생성 흐름
+
+```mermaid
+flowchart LR
+    subgraph AMI["AMI 구성"]
+        direction TB
+        ROOT["루트 EBS 스냅샷<br/>(OS + 소프트웨어)"]
+        DATA["추가 EBS 스냅샷<br/>(데이터 볼륨)"]
+        META["메타데이터<br/>(아키텍처, 커널, 블록 디바이스 매핑)"]
+    end
+
+    AMI -- "RunInstances" --> EC2_1["인스턴스 A<br/>ap-northeast-2a"]
+    AMI -- "RunInstances" --> EC2_2["인스턴스 B<br/>ap-northeast-2b"]
+    AMI -- "CopyImage" --> AMI2["AMI 복사본<br/>(us-east-1)"]
+    AMI2 -- "RunInstances" --> EC2_3["인스턴스 C<br/>us-east-1a"]
+
+    style AMI fill:#dbeafe,stroke:#2563eb
+    style AMI2 fill:#dbeafe,stroke:#2563eb
+```
+
+하나의 AMI에서 여러 인스턴스를 만들 수 있고, 다른 리전으로 복사해서 동일한 환경을 배포할 수 있다. AMI는 리전 단위 리소스라서, 다른 리전에서 쓰려면 반드시 복사해야 한다.
+
 ### AMI 종류
 
 | 종류 | 설명 |
@@ -242,6 +264,37 @@ ssh -i my-key.pem ec2-user@10.0.1.50
 ## ENI (Elastic Network Interface)
 
 ENI는 VPC 안에서 인스턴스에 붙는 가상 네트워크 카드다. 인스턴스를 만들면 기본 ENI(eth0)가 자동으로 생성된다.
+
+### ENI 구조
+
+```mermaid
+flowchart TB
+    subgraph VPC["VPC (10.0.0.0/16)"]
+        subgraph SubnetA["퍼블릭 서브넷 (10.0.1.0/24)"]
+            direction TB
+            ENI0["eth0 (Primary ENI)<br/>Private: 10.0.1.50<br/>Public: 54.180.x.x<br/>SG: sg-web"]
+        end
+
+        subgraph SubnetB["프라이빗 서브넷 (10.0.2.0/24)"]
+            direction TB
+            ENI1["eth1 (Secondary ENI)<br/>Private: 10.0.2.50<br/>SG: sg-mgmt"]
+        end
+
+        EC2["EC2 인스턴스"]
+
+        ENI0 --- EC2
+        ENI1 --- EC2
+    end
+
+    Internet["인터넷"] --> ENI0
+    Admin["관리자<br/>(VPN 접속)"] --> ENI1
+
+    style EC2 fill:#60a5fa,stroke:#2563eb,color:#fff
+    style ENI0 fill:#fbbf24,stroke:#d97706
+    style ENI1 fill:#fbbf24,stroke:#d97706
+```
+
+하나의 인스턴스에 ENI를 여러 개 붙이면, 서브넷별로 네트워크를 분리할 수 있다. 위 그림처럼 서비스 트래픽은 퍼블릭 서브넷의 eth0으로, 관리 트래픽은 프라이빗 서브넷의 eth1로 받는 구성이 가능하다.
 
 ### ENI가 가지는 것
 
@@ -431,6 +484,43 @@ cloud-init init
 
 ### 종류
 
+```mermaid
+flowchart TB
+    subgraph cluster["Cluster — 같은 랙에 밀집"]
+        direction LR
+        subgraph rack_c["랙 1"]
+            C1["인스턴스"] ~~~ C2["인스턴스"] ~~~ C3["인스턴스"]
+        end
+    end
+
+    subgraph spread["Spread — 랙마다 1개씩 분산"]
+        direction LR
+        subgraph rack_s1["랙 1"]
+            S1["인스턴스"]
+        end
+        subgraph rack_s2["랙 2"]
+            S2["인스턴스"]
+        end
+        subgraph rack_s3["랙 3"]
+            S3["인스턴스"]
+        end
+    end
+
+    subgraph partition["Partition — 파티션 단위로 격리"]
+        direction LR
+        subgraph part1["파티션 1<br/>(랙 그룹 A)"]
+            P1["인스턴스"] ~~~ P2["인스턴스"]
+        end
+        subgraph part2["파티션 2<br/>(랙 그룹 B)"]
+            P3["인스턴스"] ~~~ P4["인스턴스"]
+        end
+    end
+
+    style cluster fill:#dbeafe,stroke:#2563eb
+    style spread fill:#dcfce7,stroke:#16a34a
+    style partition fill:#fef3c7,stroke:#d97706
+```
+
 **Cluster Placement Group**
 
 - 같은 AZ의 같은 랙(rack)에 인스턴스를 모아 배치한다.
@@ -476,6 +566,34 @@ aws ec2 run-instances \
 ## Instance Profile
 
 EC2 인스턴스에 IAM Role을 부여하는 방법이다. 인스턴스에서 AWS API를 호출할 때 Access Key를 직접 넣는 대신 Instance Profile을 쓴다.
+
+### Instance Profile 동작 구조
+
+```mermaid
+flowchart LR
+    IAM_Role["IAM Role<br/>(MyEC2Role)"]
+    Policy["IAM Policy<br/>(S3 ReadOnly 등)"]
+    Profile["Instance Profile<br/>(MyEC2Profile)"]
+    EC2["EC2 인스턴스"]
+    IMDS["IMDS<br/>169.254.169.254"]
+    STS["STS<br/>(임시 자격 증명)"]
+    S3["S3 등<br/>AWS 서비스"]
+
+    Policy -- "연결" --> IAM_Role
+    IAM_Role -- "포함" --> Profile
+    Profile -- "연결" --> EC2
+
+    EC2 -- "자격 증명 요청" --> IMDS
+    IMDS -- "STS에서 발급받은<br/>임시 AccessKey/SecretKey" --> EC2
+    STS -. "자동 갱신 (6시간)" .-> IMDS
+    EC2 -- "API 호출<br/>(임시 자격 증명)" --> S3
+
+    style EC2 fill:#60a5fa,stroke:#2563eb,color:#fff
+    style IAM_Role fill:#c084fc,stroke:#9333ea,color:#fff
+    style IMDS fill:#fbbf24,stroke:#d97706
+```
+
+콘솔에서는 EC2에 "IAM Role을 연결한다"고 표시되지만, 실제로는 IAM Role → Instance Profile → EC2 순서로 연결된다. 인스턴스 안에서는 IMDS를 통해 STS가 발급한 임시 자격 증명을 받아서 AWS API를 호출한다.
 
 ### 왜 Instance Profile을 써야 하는가
 

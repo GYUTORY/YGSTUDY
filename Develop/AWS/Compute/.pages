@@ -1,1 +1,9 @@
 title: Compute
+nav:
+  - EC2.md
+  - EC2_Types.md
+  - EC2_T-시리즈.md
+  - EC2_Purchase_Options.md
+  - Auto_Scaling.md
+  - Lambda.md
+  - Elastic_Beanstalk.md
