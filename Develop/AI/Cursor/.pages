@@ -1,2 +1,4 @@
 nav:
   - Cursor.md
+  - Cursor_Rules.md
+  - Cursor_Context_Management.md
