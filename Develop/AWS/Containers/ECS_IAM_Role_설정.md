@@ -1,12 +1,54 @@
 ---
 title: ECS IAM Role 설정 — Task Role, Execution Role, ECR 권한
 tags: [aws, ecs, iam, ecr, containers, role]
-updated: 2026-04-06
+updated: 2026-04-11
 ---
 
 # ECS IAM Role 설정
 
 ECS에서 컨테이너를 띄우려면 IAM Role 두 개를 구분해야 한다. Task Role과 Execution Role이다. 이 두 역할의 범위가 다른데, 처음 설정할 때 혼동하면 배포 시점에 권한 에러가 난다.
+
+---
+
+## 전체 구조
+
+아래 다이어그램은 ECS Task에서 두 IAM Role이 각각 어디에서, 누구에 의해 사용되는지를 보여준다.
+
+```mermaid
+graph TB
+    subgraph TaskDefinition["Task Definition"]
+        ER["executionRoleArn"]
+        TR["taskRoleArn"]
+    end
+
+    subgraph InfraLayer["컨테이너 기동 단계 (ECS 에이전트)"]
+        ECR["ECR<br/>이미지 Pull"]
+        CWL["CloudWatch Logs<br/>로그 드라이버 설정"]
+        SEC["Secrets Manager / SSM<br/>환경 변수 주입"]
+    end
+
+    subgraph AppLayer["런타임 단계 (애플리케이션 코드)"]
+        S3["S3"]
+        DDB["DynamoDB"]
+        SQS["SQS"]
+        OTHER["기타 AWS 서비스"]
+    end
+
+    ER -->|Execution Role| ECR
+    ER -->|Execution Role| CWL
+    ER -->|Execution Role| SEC
+    TR -->|Task Role| S3
+    TR -->|Task Role| DDB
+    TR -->|Task Role| SQS
+    TR -->|Task Role| OTHER
+
+    style ER fill:#f4a261,stroke:#e76f51,color:#000
+    style TR fill:#2a9d8f,stroke:#264653,color:#fff
+    style InfraLayer fill:#fef3e2,stroke:#e76f51
+    style AppLayer fill:#e0f5f0,stroke:#2a9d8f
+```
+
+핵심은 **시점**이 다르다는 것이다. Execution Role은 컨테이너가 뜨기 전에 쓰이고, Task Role은 컨테이너가 뜬 후에 쓰인다.
 
 ---
 
@@ -57,6 +99,39 @@ Task Definition의 `taskRoleArn`에 지정한다.
 | Task Role | 컨테이너 안의 애플리케이션 | 런타임에 AWS API를 호출할 때 |
 
 두 역할을 분리하지 않으면 애플리케이션에 과도한 권한이 부여되거나, 반대로 이미지 pull조차 실패할 수 있다.
+
+---
+
+## IAM 권한 흐름
+
+ECS Task가 시작되어 실행되기까지 IAM 권한이 어떤 순서로 적용되는지 정리하면 아래와 같다.
+
+```mermaid
+sequenceDiagram
+    participant User as 배포 요청<br/>(CI/CD, 콘솔)
+    participant ECS as ECS 서비스
+    participant Agent as ECS 에이전트
+    participant ECR as ECR
+    participant SM as Secrets Manager<br/>/ SSM
+    participant App as 컨테이너<br/>(애플리케이션)
+    participant AWS as S3, SQS 등<br/>AWS 서비스
+
+    User->>ECS: RunTask / UpdateService
+    ECS->>Agent: Task 배치
+
+    Note over Agent: Execution Role 사용 구간
+    Agent->>ECR: 이미지 Pull<br/>(ecr:BatchGetImage 등)
+    ECR-->>Agent: 이미지 반환
+    Agent->>SM: 시크릿/파라미터 조회<br/>(secretsmanager:GetSecretValue)
+    SM-->>Agent: 값 반환
+    Agent->>Agent: 컨테이너 기동 +<br/>환경 변수 주입
+
+    Note over App: Task Role 사용 구간
+    App->>AWS: API 호출<br/>(s3:PutObject 등)
+    AWS-->>App: 응답
+```
+
+Execution Role 구간에서 권한이 없으면 Task는 `STOPPED` 상태로 빠지고 CloudWatch Logs에 아무것도 남지 않는다. Task Role 구간에서 권한이 없으면 컨테이너는 떠 있지만 애플리케이션 로그에 `AccessDenied` 에러가 찍힌다. 에러가 발생한 시점을 보면 어느 Role의 문제인지 바로 구분할 수 있다.
 
 ---
 
@@ -413,7 +488,36 @@ Trust Policy의 `Principal.Service`가 `ecs-tasks.amazonaws.com`인지 확인한
 
 ## 디버깅 흐름 정리
 
-ECS Task가 실패했을 때 확인하는 순서:
+ECS Task가 실패했을 때 확인하는 순서를 다이어그램으로 정리했다.
+
+```mermaid
+flowchart TD
+    START["Task 실패 발생"] --> CHECK["stopped reason 확인<br/>aws ecs describe-tasks"]
+    CHECK --> TYPE{에러 유형}
+
+    TYPE -->|CannotPullContainerError| ECR_CHK["Execution Role 점검"]
+    ECR_CHK --> ECR1["executionRoleArn 지정 여부"]
+    ECR1 --> ECR2["ECR 권한 정책 확인"]
+    ECR2 --> ECR3["이미지 URI 오타 확인"]
+    ECR3 --> ECR4["VPC 엔드포인트 확인<br/>(Private Subnet인 경우)"]
+
+    TYPE -->|ResourceInitializationError| SEC_CHK["시크릿 권한 점검"]
+    SEC_CHK --> SEC1["secretsmanager / ssm 권한"]
+    SEC1 --> SEC2["시크릿 ARN 정확성"]
+    SEC2 --> SEC3["KMS 커스텀 키 사용 시<br/>kms:Decrypt 권한"]
+    SEC3 --> SEC4["VPC 엔드포인트 확인"]
+
+    TYPE -->|exitCode != 0| APP_CHK["CloudWatch Logs 확인"]
+    APP_CHK --> APP1["애플리케이션 에러 로그 분석"]
+
+    TYPE -->|AccessDenied| ROLE_CHK["Task Role 점검"]
+    ROLE_CHK --> ROLE1["taskRoleArn 지정 여부"]
+    ROLE1 --> ROLE2["Action / Resource 범위"]
+    ROLE2 --> ROLE3["Trust Policy의 Principal<br/>ecs-tasks.amazonaws.com 확인"]
+
+    style START fill:#e76f51,stroke:#264653,color:#fff
+    style TYPE fill:#264653,stroke:#264653,color:#fff
+```
 
 **1단계: Task stopped reason 확인**
 ```bash
