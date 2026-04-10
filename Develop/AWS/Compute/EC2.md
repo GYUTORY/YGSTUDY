@@ -1,7 +1,7 @@
 ---
 title: EC2
 tags: [aws, ec2, compute, instance, ami, security-group, elastic-ip, eni, imds, user-data, placement-group]
-updated: 2026-04-10
+updated: 2026-04-11
 ---
 
 # EC2
@@ -9,6 +9,63 @@ updated: 2026-04-10
 EC2(Elastic Compute Cloud)는 AWS에서 가상 서버를 빌려 쓰는 서비스다. 물리 서버를 직접 관리하지 않고도 원하는 OS, 사양의 서버를 몇 분 안에 만들 수 있다.
 
 이 문서는 인스턴스 유형이나 구매 옵션이 아닌, EC2를 실제로 운영할 때 알아야 하는 기본기를 다룬다.
+
+### EC2 기반 웹 서비스 구성 예시
+
+실제 운영 환경에서 EC2가 다른 AWS 서비스와 어떻게 연결되는지 전체 그림을 먼저 보자.
+
+```mermaid
+flowchart TB
+    User["사용자"] --> Route53["Route 53<br/>(DNS)"]
+    Route53 --> ALB["ALB<br/>(Application Load Balancer)"]
+
+    subgraph VPC["VPC (10.0.0.0/16)"]
+        subgraph PublicSubnet["퍼블릭 서브넷"]
+            ALB
+            NAT["NAT Gateway"]
+            Bastion["Bastion Host<br/>(EC2 t3.micro)"]
+        end
+
+        subgraph PrivateSubnetA["프라이빗 서브넷 A (AZ-a)"]
+            EC2_A["EC2 (App Server)<br/>Instance Profile 연결<br/>SG: sg-app"]
+        end
+
+        subgraph PrivateSubnetB["프라이빗 서브넷 B (AZ-b)"]
+            EC2_B["EC2 (App Server)<br/>Instance Profile 연결<br/>SG: sg-app"]
+        end
+
+        ALB -- "80/443" --> EC2_A
+        ALB -- "80/443" --> EC2_B
+
+        EC2_A --> NAT
+        EC2_B --> NAT
+    end
+
+    subgraph DataLayer["데이터 계층"]
+        RDS["RDS<br/>(Multi-AZ)"]
+        ElastiCache["ElastiCache<br/>(Redis)"]
+    end
+
+    EC2_A -- "3306" --> RDS
+    EC2_B -- "3306" --> RDS
+    EC2_A -- "6379" --> ElastiCache
+    EC2_B -- "6379" --> ElastiCache
+
+    NAT --> Internet["인터넷<br/>(외부 API 호출)"]
+    Admin["관리자"] -- "SSH (22)" --> Bastion
+    Bastion -- "SSH (22)" --> EC2_A
+    Bastion -- "SSH (22)" --> EC2_B
+
+    style VPC fill:#f0f9ff,stroke:#0ea5e9
+    style PublicSubnet fill:#dbeafe,stroke:#3b82f6
+    style PrivateSubnetA fill:#ede9fe,stroke:#8b5cf6
+    style PrivateSubnetB fill:#ede9fe,stroke:#8b5cf6
+    style DataLayer fill:#fef3c7,stroke:#f59e0b
+```
+
+이 구성에서 EC2 인스턴스는 프라이빗 서브넷에 배치하고, ALB를 통해서만 트래픽을 받는다. SSH 접속은 퍼블릭 서브넷의 Bastion Host를 경유한다. 외부 API 호출이 필요하면 NAT Gateway를 거친다.
+
+이 문서에서 다루는 보안 그룹, ENI, Instance Profile, User Data 같은 개념이 이 구성 안에서 어떤 역할을 하는지 알아두면 각 섹션을 이해하기 수월하다.
 
 ---
 
@@ -48,7 +105,35 @@ stateDiagram-v2
 
 ### Stop vs Terminate
 
-실무에서 가장 많이 혼동하는 부분이다.
+실무에서 가장 많이 혼동하는 부분이다. 리소스가 어떻게 되는지 한눈에 보자.
+
+```mermaid
+flowchart LR
+    subgraph stop["Stop (중지)"]
+        direction TB
+        S_EBS["EBS 루트 볼륨 → 유지"]
+        S_ISTORE["Instance Store → 삭제"]
+        S_PIP["Public IP → 해제 (재할당)"]
+        S_EIP["Elastic IP → 유지"]
+        S_PRIV["Private IP → 유지"]
+        S_ENI["ENI → 유지"]
+        S_HOST["물리 호스트 → 변경될 수 있음"]
+    end
+
+    subgraph term["Terminate (종료)"]
+        direction TB
+        T_EBS["EBS 루트 볼륨 → 기본 삭제"]
+        T_ISTORE["Instance Store → 삭제"]
+        T_PIP["Public IP → 해제"]
+        T_EIP["Elastic IP → 연결 해제 (IP 유지)"]
+        T_PRIV["Private IP → 해제"]
+        T_ENI_P["Primary ENI → 삭제"]
+        T_ENI_S["Secondary ENI → 분리 (유지)"]
+    end
+
+    style stop fill:#fef9c3,stroke:#ca8a04
+    style term fill:#fee2e2,stroke:#dc2626
+```
 
 **Stop (중지)**
 
@@ -242,6 +327,26 @@ EC2 인스턴스에 SSH로 접속할 때 사용하는 공개키/개인키 쌍이
 
 ### 동작 방식
 
+```mermaid
+sequenceDiagram
+    participant User as 사용자
+    participant Console as AWS 콘솔/CLI
+    participant EC2 as EC2 인스턴스
+
+    User->>Console: 1. 키 페어 생성 요청
+    Console-->>Console: 공개키/개인키 쌍 생성
+    Console->>Console: 공개키 저장
+    Console-->>User: 개인키(.pem) 다운로드 (이때 한 번만)
+
+    User->>Console: 2. 인스턴스 생성 (키 페어 지정)
+    Console->>EC2: 공개키를 ~/.ssh/authorized_keys에 등록
+
+    User->>User: chmod 400 my-key.pem
+    User->>EC2: 3. ssh -i my-key.pem ec2-user@IP
+    EC2->>EC2: authorized_keys와 대조
+    EC2-->>User: 접속 허용
+```
+
 1. 키 페어를 생성하면 AWS가 공개키를 보관하고, 개인키(.pem)를 사용자에게 다운로드시킨다.
 2. 인스턴스 생성 시 키 페어를 지정하면, 공개키가 인스턴스의 `~/.ssh/authorized_keys`에 들어간다.
 3. 개인키로 SSH 접속한다.
@@ -434,10 +539,30 @@ aws ec2 modify-instance-metadata-defaults \
 
 ### 기본 동작
 
+```mermaid
+flowchart TB
+    Launch["인스턴스 최초 부팅"] --> CloudInit["cloud-init 시작"]
+    CloudInit --> Decode["User Data<br/>base64 디코딩"]
+    Decode --> Check{"스크립트 형식?"}
+    Check -- "#!/bin/bash" --> Shell["셸 스크립트 실행<br/>(root 권한)"]
+    Check -- "#cloud-config" --> Config["cloud-init 디렉티브<br/>처리"]
+    Shell --> Log["실행 로그 기록<br/>/var/log/cloud-init-output.log"]
+    Config --> Log
+    Log --> Done{"실행 결과"}
+    Done -- "성공" --> Running["인스턴스 정상 동작"]
+    Done -- "실패" --> Error["인스턴스는 running 상태이지만<br/>설정이 불완전한 상태"]
+    Error -. "로그 확인 필요" .-> Debug["/var/log/cloud-init.log<br/>cloud-init status"]
+
+    style Error fill:#fee2e2,stroke:#dc2626
+    style Running fill:#dcfce7,stroke:#16a34a
+    style Debug fill:#fef3c7,stroke:#d97706
+```
+
 - 인스턴스 최초 부팅 시 root 권한으로 한 번만 실행된다.
 - 셸 스크립트(`#!/bin/bash`)나 cloud-init 디렉티브 형식을 쓸 수 있다.
 - 최대 16KB.
 - 실행 로그는 `/var/log/cloud-init-output.log`에서 확인한다.
+- User Data가 실패해도 인스턴스는 running 상태가 된다. 인스턴스가 떴다고 설정이 완료된 건 아니다. 반드시 로그를 확인해야 한다.
 
 ### 예제: 웹 서버 자동 설치
 
@@ -646,6 +771,42 @@ aws ec2 associate-iam-instance-profile \
 ---
 
 ## 운영 시 자주 겪는 문제
+
+### 문제 진단 흐름
+
+인스턴스에 문제가 생겼을 때 어떤 순서로 확인해야 하는지 정리한 흐름도다.
+
+```mermaid
+flowchart TB
+    Start["인스턴스 문제 발생"] --> Q1{"인스턴스가<br/>시작되는가?"}
+
+    Q1 -- "아니오" --> Q1A{"에러 메시지?"}
+    Q1A -- "InsufficientInstanceCapacity" --> A1["다른 AZ에서 시도<br/>또는 다른 인스턴스 타입 선택"]
+    Q1A -- "InstanceLimitExceeded" --> A2["Service Quotas에서<br/>한도 증가 요청"]
+    Q1A -- "기타" --> A3["describe-instances로<br/>StateReason 확인"]
+
+    Q1 -- "예" --> Q2{"Status Check<br/>결과는?"}
+
+    Q2 -- "System Status Check 실패" --> A4["AWS 인프라 문제<br/>→ Stop-Start로 호스트 이동"]
+    Q2 -- "Instance Status Check 실패" --> Q3{"접속 가능?"}
+
+    Q3 -- "예" --> A5["OS 로그 확인<br/>dmesg, /var/log/messages"]
+    Q3 -- "아니오" --> A6["get-console-output으로<br/>시스템 로그 확인"]
+
+    A6 --> Q4{"커널 패닉?<br/>디스크 풀?<br/>메모리 부족?"}
+    Q4 -- "커널 패닉" --> A7["Reboot 시도"]
+    Q4 -- "디스크 풀" --> A8["EBS 볼륨을 다른 인스턴스에<br/>마운트해서 정리"]
+    Q4 -- "메모리 부족" --> A9["인스턴스 타입 변경<br/>(Stop → 타입 변경 → Start)"]
+
+    style Start fill:#fee2e2,stroke:#dc2626
+    style A1 fill:#dcfce7,stroke:#16a34a
+    style A2 fill:#dcfce7,stroke:#16a34a
+    style A4 fill:#dcfce7,stroke:#16a34a
+    style A5 fill:#dcfce7,stroke:#16a34a
+    style A7 fill:#dcfce7,stroke:#16a34a
+    style A8 fill:#dcfce7,stroke:#16a34a
+    style A9 fill:#dcfce7,stroke:#16a34a
+```
 
 ### 인스턴스가 시작되지 않는 경우
 
