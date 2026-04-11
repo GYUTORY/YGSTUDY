@@ -1,7 +1,7 @@
 ---
 title: "브라우저 보안 헤더 종합 정리"
-tags: [security, http-headers, csp, hsts, nginx, spring-boot]
-updated: 2026-03-25
+tags: [security, http-headers, csp, hsts, nginx, spring-boot, devsecops, ci-cd]
+updated: 2026-04-11
 ---
 
 # 브라우저 보안 헤더 종합 정리
@@ -9,6 +9,30 @@ updated: 2026-03-25
 ## 왜 보안 헤더를 신경 써야 하는가
 
 서버가 응답할 때 붙이는 HTTP 헤더 몇 줄이 XSS, 클릭재킹, MIME 스니핑 같은 클라이언트 사이드 공격을 차단한다. 코드 한 줄 안 고치고 헤더만 추가해도 공격 표면이 줄어든다. [securityheaders.com](https://securityheaders.com)에서 자기 도메인을 찍어보면 현재 상태를 바로 확인할 수 있다.
+
+### 보안 헤더가 동작하는 위치
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant S as 서버 (Nginx/Spring)
+    participant A as 공격자
+
+    B->>S: GET /page HTTP/1.1
+    S-->>B: 200 OK + 보안 헤더 (CSP, HSTS, X-Frame-Options ...)
+    Note over B: 브라우저가 헤더 정책을 파싱하고 적용
+
+    A->>B: 악성 스크립트 삽입 시도 (XSS)
+    Note over B: CSP 정책 위반 → 스크립트 실행 차단
+
+    A->>B: 투명 iframe 오버레이 (클릭재킹)
+    Note over B: X-Frame-Options: DENY → iframe 렌더링 거부
+
+    A->>B: HTTP 다운그레이드 시도 (SSL 스트리핑)
+    Note over B: HSTS → 브라우저가 자체적으로 HTTPS 강제
+```
+
+보안 헤더는 서버가 응답에 붙이고, 브라우저가 해석해서 적용하는 구조다. 서버 측에서 아무리 잘 설정해도 브라우저가 해당 헤더를 지원하지 않으면 의미가 없다. 다만 주요 보안 헤더는 모든 모던 브라우저에서 지원하므로 실질적으로 문제가 되는 경우는 드물다.
 
 ---
 
@@ -400,15 +424,61 @@ CSP가 가장 까다롭다. 인라인 스크립트, 외부 CDN, 분석 도구(Go
 | Referrer-Policy | URL 경로에 포함된 민감 정보 유출 |
 | Permissions-Policy | 써드파티 스크립트의 브라우저 API 무단 접근 |
 
+### 보안 헤더 적용 우선순위
+
+어떤 헤더부터 넣어야 할지 판단이 안 되면 아래 순서를 따른다. 위에서 아래로 갈수록 설정 난이도가 올라간다.
+
+```mermaid
+flowchart TD
+    A["1. X-Content-Type-Options: nosniff<br/>(사이드 이펙트 없음, 바로 적용)"] --> B
+    B["2. X-Frame-Options: DENY<br/>(iframe 사용하지 않으면 바로 적용)"] --> C
+    C["3. Referrer-Policy: strict-origin-when-cross-origin<br/>(대부분 문제없음)"] --> D
+    D["4. Strict-Transport-Security<br/>(HTTPS 확인 후, max-age 짧게 시작)"] --> E
+    E["5. Permissions-Policy<br/>(안 쓰는 API 전부 차단)"] --> F
+    F["6. Content-Security-Policy<br/>(Report-Only로 시작, 점진 적용)"]
+
+    style A fill:#d4edda,stroke:#28a745
+    style B fill:#d4edda,stroke:#28a745
+    style C fill:#fff3cd,stroke:#ffc107
+    style D fill:#fff3cd,stroke:#ffc107
+    style E fill:#fff3cd,stroke:#ffc107
+    style F fill:#f8d7da,stroke:#dc3545
+```
+
+1~2번은 리스크가 거의 없으니 당장 넣는다. 3~5번은 서비스 상황에 따라 확인하고 넣는다. 6번(CSP)은 반드시 Report-Only 단계를 거쳐야 한다.
+
 ---
 
-## 헤더 점검 자동화
+## 보안 헤더 자동 검증 파이프라인
+
+보안 헤더 설정은 사람이 수동으로 확인하면 반드시 빠지는 날이 온다. Nginx 설정을 건드리거나 location 블록을 추가하면서 보안 헤더가 통째로 날아가는 건 흔한 사고다. 파이프라인에 자동 검증 단계를 넣어야 한다.
+
+### 파이프라인 구성 흐름
+
+```mermaid
+flowchart LR
+    A[코드 Push] --> B[빌드/테스트]
+    B --> C[스테이징 배포]
+    C --> D[보안 헤더 검증]
+    D -->|통과| E[securityheaders.com<br/>스캔]
+    E -->|A 이상| F[프로덕션 배포]
+    D -->|실패| G[파이프라인 중단<br/>+ Slack 알림]
+    E -->|B 이하| G
+```
+
+보안 헤더 검증은 스테이징 배포 직후, 프로덕션 배포 직전에 들어간다. 프로덕션에서 확인하는 게 아니라 스테이징에서 걸러야 한다.
+
+### 1단계: 헤더 존재 여부 검증 스크립트
 
 CI/CD 파이프라인에서 배포 후 보안 헤더를 자동으로 체크하는 스크립트:
 
 ```bash
 #!/bin/bash
-URL="https://example.com"
+# check-security-headers.sh
+set -euo pipefail
+
+URL="${1:?Usage: $0 <url>}"
+
 REQUIRED_HEADERS=(
     "strict-transport-security"
     "content-security-policy"
@@ -419,21 +489,275 @@ REQUIRED_HEADERS=(
 )
 
 MISSING=0
-HEADERS=$(curl -sI "$URL")
+HEADERS=$(curl -sI --max-time 10 "$URL")
 
 for header in "${REQUIRED_HEADERS[@]}"; do
-    if ! echo "$HEADERS" | grep -qi "$header"; then
+    if echo "$HEADERS" | grep -qi "$header"; then
+        VALUE=$(echo "$HEADERS" | grep -i "$header" | cut -d: -f2- | xargs)
+        echo "OK: $header: $VALUE"
+    else
         echo "MISSING: $header"
         MISSING=$((MISSING + 1))
     fi
 done
 
+echo "---"
 if [ $MISSING -gt 0 ]; then
-    echo "Security header check failed: $MISSING header(s) missing"
+    echo "FAIL: $MISSING header(s) missing"
     exit 1
 fi
 
-echo "All security headers present"
+echo "PASS: All security headers present"
 ```
 
 배포 파이프라인에 이 스크립트를 넣어두면 누군가 Nginx 설정을 수정하다가 보안 헤더를 날려먹어도 바로 잡힌다.
+
+### 2단계: 헤더 값 검증
+
+헤더가 있는 것만 확인하면 부족하다. `Content-Security-Policy: default-src *` 같이 의미 없는 값이 들어갈 수 있다. 헤더 값까지 검증하는 스크립트:
+
+```bash
+#!/bin/bash
+# validate-header-values.sh
+set -euo pipefail
+
+URL="${1:?Usage: $0 <url>}"
+HEADERS=$(curl -sI --max-time 10 "$URL")
+FAIL=0
+
+check_header_value() {
+    local header="$1"
+    local forbidden="$2"
+    local desc="$3"
+
+    VALUE=$(echo "$HEADERS" | grep -i "$header" | cut -d: -f2- | xargs)
+    if echo "$VALUE" | grep -qi "$forbidden"; then
+        echo "WARN: $header contains '$forbidden' — $desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# CSP에 unsafe-inline이 단독으로 쓰이면 경고
+CSP=$(echo "$HEADERS" | grep -i "content-security-policy" | cut -d: -f2-)
+if echo "$CSP" | grep -q "unsafe-inline" && ! echo "$CSP" | grep -q "nonce-"; then
+    echo "WARN: CSP has 'unsafe-inline' without nonce"
+    FAIL=$((FAIL + 1))
+fi
+
+# CSP에 unsafe-eval이 있으면 경고
+check_header_value "content-security-policy" "unsafe-eval" "eval() 허용은 XSS 위험"
+
+# CSP default-src가 *이면 경고
+check_header_value "content-security-policy" "default-src \*" "모든 출처 허용은 CSP 무의미"
+
+# HSTS max-age가 너무 짧으면 경고 (86400 = 1일 미만)
+HSTS_MAX=$(echo "$HEADERS" | grep -i "strict-transport-security" | grep -oP 'max-age=\K[0-9]+')
+if [ -n "$HSTS_MAX" ] && [ "$HSTS_MAX" -lt 86400 ]; then
+    echo "WARN: HSTS max-age=$HSTS_MAX (1일 미만 — 프로덕션에서는 최소 1년 권장)"
+    FAIL=$((FAIL + 1))
+fi
+
+if [ $FAIL -gt 0 ]; then
+    echo "---"
+    echo "WARN: $FAIL issue(s) found in header values"
+    exit 1
+fi
+
+echo "PASS: Header values look reasonable"
+```
+
+### 3단계: securityheaders.com 스캔 자동화
+
+securityheaders.com은 API를 제공한다. 배포 후 자동으로 스캔 결과를 확인하고, 등급이 기준 이하면 파이프라인을 멈추는 방식으로 사용한다.
+
+```bash
+#!/bin/bash
+# scan-securityheaders.sh
+set -euo pipefail
+
+URL="${1:?Usage: $0 <url>}"
+MIN_GRADE="${2:-A}"  # 기본 최소 등급: A
+
+SCAN_URL="https://securityheaders.com/?q=${URL}&followRedirects=on"
+
+# securityheaders.com은 응답 헤더에 X-Grade를 포함한다
+RESPONSE=$(curl -sI "$SCAN_URL" --max-time 30)
+GRADE=$(echo "$RESPONSE" | grep -i "x-grade" | cut -d: -f2 | xargs)
+
+if [ -z "$GRADE" ]; then
+    echo "ERROR: securityheaders.com에서 등급을 가져올 수 없음"
+    exit 1
+fi
+
+echo "securityheaders.com grade: $GRADE (minimum: $MIN_GRADE)"
+
+# 등급 비교 (A+ > A > B > C > D > E > F)
+grade_to_num() {
+    case "$1" in
+        "A+") echo 7 ;; "A") echo 6 ;; "B") echo 5 ;;
+        "C") echo 4 ;; "D") echo 3 ;; "E") echo 2 ;; "F") echo 1 ;;
+        *) echo 0 ;;
+    esac
+}
+
+ACTUAL=$(grade_to_num "$GRADE")
+REQUIRED=$(grade_to_num "$MIN_GRADE")
+
+if [ "$ACTUAL" -lt "$REQUIRED" ]; then
+    echo "FAIL: Grade $GRADE is below minimum $MIN_GRADE"
+    echo "Check details: $SCAN_URL"
+    exit 1
+fi
+
+echo "PASS: Grade $GRADE meets minimum $MIN_GRADE"
+```
+
+### GitHub Actions 파이프라인 예제
+
+위 스크립트들을 GitHub Actions에 통합한 구성:
+
+```yaml
+# .github/workflows/security-headers.yml
+name: Security Header Check
+
+on:
+  workflow_call:
+    inputs:
+      target_url:
+        required: true
+        type: string
+      min_grade:
+        required: false
+        type: string
+        default: 'A'
+
+jobs:
+  check-headers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for deployment
+        run: |
+          for i in $(seq 1 30); do
+            STATUS=$(curl -sI -o /dev/null -w "%{http_code}" "${{ inputs.target_url }}")
+            if [ "$STATUS" = "200" ]; then
+              echo "Service is up"
+              break
+            fi
+            echo "Waiting for deployment... ($i/30)"
+            sleep 10
+          done
+
+      - name: Check security headers exist
+        run: bash scripts/check-security-headers.sh "${{ inputs.target_url }}"
+
+      - name: Validate header values
+        run: bash scripts/validate-header-values.sh "${{ inputs.target_url }}"
+
+      - name: Scan with securityheaders.com
+        run: bash scripts/scan-securityheaders.sh "${{ inputs.target_url }}" "${{ inputs.min_grade }}"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"Security header check failed for ${{ inputs.target_url }}\"}"
+```
+
+메인 배포 워크플로우에서 호출하는 방식:
+
+```yaml
+# .github/workflows/deploy.yml
+jobs:
+  deploy-staging:
+    # ... 스테이징 배포 작업
+
+  security-check:
+    needs: deploy-staging
+    uses: ./.github/workflows/security-headers.yml
+    with:
+      target_url: "https://staging.example.com"
+      min_grade: "A"
+    secrets: inherit
+
+  deploy-production:
+    needs: security-check
+    # ... 프로덕션 배포 작업
+```
+
+### Jenkins 파이프라인 예제
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Deploy to Staging') {
+            steps {
+                // 스테이징 배포 로직
+            }
+        }
+
+        stage('Security Header Verification') {
+            steps {
+                sh 'bash scripts/check-security-headers.sh https://staging.example.com'
+                sh 'bash scripts/validate-header-values.sh https://staging.example.com'
+                sh 'bash scripts/scan-securityheaders.sh https://staging.example.com A'
+            }
+            post {
+                failure {
+                    slackSend(
+                        channel: '#security-alerts',
+                        message: "Security header check failed: ${env.BUILD_URL}"
+                    )
+                }
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                // 프로덕션 배포 로직
+            }
+        }
+    }
+}
+```
+
+### 정기 모니터링
+
+배포 시점 외에도 주기적으로 헤더 상태를 확인해야 한다. CDN 설정 변경이나 인프라 작업으로 보안 헤더가 빠지는 경우가 있다.
+
+```yaml
+# .github/workflows/scheduled-header-check.yml
+name: Scheduled Security Header Check
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 매주 월요일 오전 9시
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        url:
+          - https://www.example.com
+          - https://api.example.com
+          - https://admin.example.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check headers
+        run: bash scripts/check-security-headers.sh "${{ matrix.url }}"
+      - name: Scan grade
+        run: bash scripts/scan-securityheaders.sh "${{ matrix.url }}" A
+      - name: Alert on failure
+        if: failure()
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"Weekly security header check failed: ${{ matrix.url }}\"}"
+```
+
+배포 파이프라인의 검증과 주간 정기 스캔을 조합하면, 보안 헤더가 빠지는 상황을 두 단계로 잡을 수 있다.

@@ -13,4 +13,6 @@ nav:
   - ISMS.md
   - SSH_Key_Management.md
   - Zero_Trust_Architecture.md
+  - CORS_and_Security_Headers.md
+  - Container_Security.md
   - 보안_심화_및_취약점_분석.md
