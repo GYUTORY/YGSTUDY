@@ -1,7 +1,7 @@
 ---
 title: 로그 수집 파이프라인
 tags: [backend, logging, elk, loki, grafana, fluentd, filebeat, elasticsearch, pipeline]
-updated: 2026-03-29
+updated: 2026-04-11
 ---
 
 # 로그 수집 파이프라인
@@ -23,6 +23,60 @@ updated: 2026-03-29
 ## ELK 스택: Elasticsearch + Logstash + Kibana
 
 가장 널리 쓰이는 조합이다. 2024년 기준으로 대부분의 중·대규모 서비스가 ELK 또는 ELK 변형을 사용한다.
+
+### 전체 아키텍처
+
+```mermaid
+flowchart LR
+    subgraph servers["App Servers"]
+        A1["서버 1"]
+        A2["서버 2"]
+        A3["서버 N"]
+    end
+
+    subgraph collect["수집 계층"]
+        FB1["Filebeat"]
+        FB2["Filebeat"]
+        FB3["Filebeat"]
+    end
+
+    subgraph process["처리 계층"]
+        LS["Logstash<br/>파싱 · 변환 · 라우팅"]
+    end
+
+    subgraph storage["저장 계층"]
+        ES1["ES Hot 노드"]
+        ES2["ES Warm 노드"]
+        ES3["ES Cold 노드"]
+    end
+
+    KB["Kibana<br/>검색 · 대시보드"]
+
+    A1 --> FB1
+    A2 --> FB2
+    A3 --> FB3
+    FB1 --> LS
+    FB2 --> LS
+    FB3 --> LS
+    LS --> ES1
+    ES1 -.->|ILM| ES2
+    ES2 -.->|ILM| ES3
+    ES1 --> KB
+    ES2 --> KB
+    ES3 --> KB
+```
+
+대규모 환경에서는 Filebeat와 Logstash 사이에 Kafka를 넣어서 버퍼링한다. Elasticsearch가 일시적으로 처리를 못 해도 Kafka에 로그가 남아있어서 유실을 막는다.
+
+```mermaid
+flowchart LR
+    FB["Filebeat"] --> KF["Kafka<br/>버퍼"]
+    KF --> LS["Logstash"]
+    LS --> ES["Elasticsearch"]
+    ES --> KB["Kibana"]
+
+    style KF fill:#f5f5dc,stroke:#333
+```
 
 ### 구성 요소별 역할
 
@@ -170,12 +224,40 @@ Loki: 라벨만 인덱싱 → 전문 검색 느림 → 저장 비용 작음
 
 ### 구성
 
-```
-[App Server] → Promtail → Loki → Grafana
-                (수집)     (저장)   (조회/시각화)
+```mermaid
+flowchart LR
+    subgraph servers["App Servers"]
+        A1["서버 1"]
+        A2["서버 2"]
+        A3["서버 N"]
+    end
+
+    subgraph collect["수집 계층"]
+        P1["Promtail"]
+        P2["Promtail"]
+        P3["Promtail"]
+    end
+
+    subgraph loki_cluster["Loki"]
+        direction TB
+        IDX["인덱스<br/>(라벨만)"]
+        CHK["청크 저장소<br/>(로그 본문, 압축)"]
+    end
+
+    S3["Object Storage<br/>S3 / GCS"]
+    GF["Grafana<br/>LogQL 조회"]
+
+    A1 --> P1
+    A2 --> P2
+    A3 --> P3
+    P1 --> loki_cluster
+    P2 --> loki_cluster
+    P3 --> loki_cluster
+    CHK --> S3
+    loki_cluster --> GF
 ```
 
-Promtail은 Loki 전용 에이전트다. Filebeat 역할을 한다고 보면 된다.
+Promtail은 Loki 전용 에이전트다. Filebeat 역할을 한다고 보면 된다. Loki는 라벨 인덱스와 로그 청크를 분리해서 저장하는데, 청크는 S3 같은 오브젝트 스토리지에 넣을 수 있어서 저장 비용이 크게 줄어든다.
 
 ### Promtail 설정 예시
 
@@ -470,6 +552,38 @@ PUT _ilm/policy/log-retention
 ### 핫-웜-콜드 아키텍처
 
 Elasticsearch 노드를 용도별로 나눈다.
+
+```mermaid
+flowchart TB
+    subgraph hot["Hot 노드 (0~3일)"]
+        direction LR
+        H_SPEC["SSD · 고성능 CPU · 많은 메모리"]
+        H_DESC["실시간 쓰기/읽기<br/>가장 빈번하게 조회"]
+    end
+
+    subgraph warm["Warm 노드 (3~30일)"]
+        direction LR
+        W_SPEC["HDD · 보통 CPU"]
+        W_DESC["읽기만 발생<br/>shrink + forcemerge로 압축"]
+    end
+
+    subgraph cold["Cold 노드 (30~90일)"]
+        direction LR
+        C_SPEC["저가 HDD"]
+        C_DESC["거의 안 읽음<br/>감사/규정 목적 보관"]
+    end
+
+    DEL["삭제 (90일 이후)"]
+
+    hot -->|"ILM: min_age 3d"| warm
+    warm -->|"ILM: min_age 30d"| cold
+    cold -->|"ILM: min_age 90d"| DEL
+
+    style hot fill:#fee2e2,stroke:#b91c1c
+    style warm fill:#fef3c7,stroke:#b45309
+    style cold fill:#dbeafe,stroke:#1d4ed8
+    style DEL fill:#f3f4f6,stroke:#6b7280
+```
 
 ```
 Hot 노드:  SSD, 고성능 CPU → 최근 1~3일 로그 (읽기/쓰기 빈번)
