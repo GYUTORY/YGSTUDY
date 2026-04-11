@@ -1,446 +1,237 @@
 ---
 title: Docker Compose
-tags: [application-architecture, kubernetes, docker, docker-compose]
-updated: 2025-11-23
+tags: [docker, docker-compose, container, devops]
+updated: 2026-04-11
 ---
 
 # Docker Compose
 
-## 목차
-- [Docker Compose란?](#docker-compose란)
-- [파일 구조 및 주요 구성 요소](#파일-구조-및-주요-구성-요소)
-- [실전 예제](#실전-예제)
-- [명령어 및 운영 방법](#명령어-및-운영-방법)
-- [고급 활용 기법](#고급-활용-기법)
-- [리소스 제한 및 관리](#리소스-제한-및-관리)
-- [CI/CD 파이프라인 통합](#cicd-파이프라인-통합)
-- [성능 최적화 및 트러블슈팅](#성능-최적화-및-트러블슈팅)
-- [참고자료](#참고자료)
+## Docker Compose가 뭔가
+
+여러 컨테이너를 하나의 YAML 파일로 정의하고, `docker-compose up` 한 번으로 전부 띄우는 도구다.
+
+컨테이너를 하나씩 `docker run`으로 띄우다 보면 금방 한계가 온다. 웹 서버, DB, 캐시 서버를 각각 실행하면서 네트워크 연결, 볼륨 마운트, 환경 변수를 매번 커맨드라인에 적어야 한다. 팀원이 합류하면 이 과정을 문서로 공유해야 하고, 문서가 코드와 어긋나는 순간 "내 로컬에서는 되는데"가 시작된다.
+
+Compose는 이 문제를 해결한다. `docker-compose.yml`에 서비스 구성을 선언하면, 그 파일 자체가 인프라 명세서가 된다. git으로 버전 관리되니까 누가 언제 뭘 바꿨는지 추적할 수 있고, 새 팀원은 `docker-compose up -d`만 치면 된다.
+
+단, Compose는 단일 호스트 환경을 전제로 한다. 여러 서버에 컨테이너를 분산 배치하는 건 Kubernetes나 Docker Swarm 영역이다. 로컬 개발 환경이나 소규모 서비스 운영에 Compose를 쓰고, 규모가 커지면 오케스트레이션 도구로 넘어가는 게 일반적이다.
 
 ---
 
-## Docker Compose란?
+## Compose 파일 구조
 
-Docker Compose는 다중 컨테이너 Docker 애플리케이션을 정의하고 실행하기 위한 도구입니다. YAML 파일을 사용하여 애플리케이션의 서비스, 네트워크, 볼륨을 구성하고, 단일 명령어로 모든 서비스를 관리할 수 있습니다.
-
-### Docker Compose의 핵심 가치
-
-**1. 선언적 구성 관리**
-- docker-compose.yml 파일을 통해 인프라를 코드로 관리
-- 버전 관리 시스템을 통한 구성 변경 추적 가능
-- 재현 가능한 환경 구축
-
-**2. 서비스 오케스트레이션**
-- 여러 컨테이너 간의 의존성 관리
-- 서비스 간 통신 및 네트워킹 자동화
-- 로드 밸런싱 및 스케일링 지원
-
-**3. 개발 생산성 향상**
-- 복잡한 멀티 컨테이너 환경을 단순화
-- 개발, 테스트, 프로덕션 환경의 일관성 보장
-- 로컬 개발 환경과 프로덕션 환경의 차이 최소화
-
----
-
-## 파일 구조 및 주요 구성 요소
-
-### 기본 파일 구조
-
-Docker Compose는 YAML 형식의 구성 파일을 사용하며, 다음과 같은 계층적 구조를 가집니다:
+### 기본 골격
 
 ```yaml
-version: '3.8'  # Compose 파일 형식 버전
-services:       # 서비스 정의 섹션
-  service1:     # 개별 서비스 정의
-  service2:
-networks:       # 네트워크 정의 (선택사항)
-volumes:        # 볼륨 정의 (선택사항)
-secrets:        # 시크릿 정의 (선택사항)
-configs:        # 설정 파일 정의 (선택사항)
-```
-
-### 핵심 구성 요소 상세 분석
-
-**Services (서비스)**
-- Docker Compose의 핵심 구성 요소
-- 각 서비스는 하나의 컨테이너를 나타냄
-- 서비스 간 의존성, 네트워킹, 볼륨 마운트 등을 정의
-
-**Networks (네트워크)**
-- 서비스 간 통신을 위한 네트워크 정의
-- 기본적으로 모든 서비스는 동일한 네트워크에 연결
-- 사용자 정의 네트워크를 통한 세밀한 네트워킹 제어
-
-**Volumes (볼륨)**
-- 컨테이너 간 데이터 공유 및 영구 저장
-- 호스트 파일시스템과 컨테이너 간 데이터 바인딩
-- 데이터베이스 데이터, 로그 파일, 설정 파일 등에 활용
-
-### 주요 설정 옵션
-
-| 구성 요소 | 설명 | 주요 옵션 |
-|-----------|------|-----------|
-| **version** | Compose 파일 형식 버전 | 3.8, 3.9, 3.10 |
-| **services** | 컨테이너 서비스 정의 | image, build, ports, volumes |
-| **image** | 사용할 Docker 이미지 | 공식 이미지명 또는 커스텀 이미지 |
-| **build** | Dockerfile 기반 이미지 빌드 | context, dockerfile, args |
-| **ports** | 포트 매핑 | "호스트포트:컨테이너포트" |
-| **volumes** | 볼륨 마운트 | 호스트경로:컨테이너경로 |
-| **environment** | 환경 변수 설정 | KEY=VALUE 형식 |
-| **depends_on** | 서비스 의존성 | 서비스 시작 순서 제어 |
-| **networks** | 네트워크 연결 | 사용자 정의 네트워크 지정 |
-| **restart** | 재시작 정책 | no, always, on-failure |
-
----
-
-## 실전 예제
-
-### Node.js + MongoDB + Redis 스택
-
-다음은 Node.js 웹 애플리케이션, MongoDB 데이터베이스, Redis 캐시를 포함한 완전한 스택을 구성하는 예제입니다.
-
-**파일명: docker-compose.yml**
-```yaml
-version: '3.8'
-
 services:
-  # Node.js 웹 애플리케이션
-  app:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: production
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - MONGO_URL=mongodb://mongodb:27017/myapp
-      - REDIS_URL=redis://redis:6379
-      - PORT=3000
-    depends_on:
-      - mongodb
-      - redis
-    volumes:
-      - ./logs:/app/logs
-    networks:
-      - app-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # MongoDB 데이터베이스
-  mongodb:
-    image: mongo:6.0
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password123
-      - MONGO_INITDB_DATABASE=myapp
-    volumes:
-      - mongo-data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d
-    networks:
-      - app-network
-    restart: unless-stopped
-
-  # Redis 캐시
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes --requirepass redis123
-    volumes:
-      - redis-data:/data
-    networks:
-      - app-network
-    restart: unless-stopped
-
-  # Nginx 리버스 프록시
-  nginx:
+  web:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - app
-    networks:
-      - app-network
-    restart: unless-stopped
 
-volumes:
-  mongo-data:
-    driver: local
-  redis-data:
-    driver: local
-
-networks:
-  app-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-```
-
-### 구성 요소 상세 분석
-
-**애플리케이션 서비스 (app)**
-- `build` 섹션에서 Dockerfile을 사용한 이미지 빌드
-- `args`를 통한 빌드 시점 환경 변수 전달
-- `healthcheck`를 통한 서비스 상태 모니터링
-- `restart: unless-stopped`로 자동 재시작 정책 설정
-
-**데이터베이스 서비스 (mongodb)**
-- 초기 사용자 및 데이터베이스 설정
-- 볼륨을 통한 데이터 영구 저장
-- 초기화 스크립트 마운트를 통한 데이터베이스 설정
-
-**캐시 서비스 (redis)**
-- AOF(Append Only File) 활성화로 데이터 지속성 보장
-- 인증 비밀번호 설정으로 보안 강화
-
-**리버스 프록시 (nginx)**
-- SSL/TLS 종료 및 로드 밸런싱
-- 정적 파일 서빙 및 압축
-
----
-
-## 명령어 및 운영 방법
-
-### 기본 명령어
-
-**서비스 시작 및 실행**
-```bash
-# 모든 서비스 백그라운드 실행
-docker-compose up -d
-
-# 특정 서비스만 실행
-docker-compose up -d app mongodb
-
-# 이미지 재빌드 후 실행
-docker-compose up -d --build
-
-# 강제 재생성 후 실행
-docker-compose up -d --force-recreate
-```
-
-**서비스 상태 관리**
-```bash
-# 실행 중인 서비스 상태 확인
-docker-compose ps
-
-# 서비스 로그 확인
-docker-compose logs -f app
-
-# 특정 서비스 재시작
-docker-compose restart app
-
-# 서비스 중지
-docker-compose stop
-
-# 서비스 중지 및 리소스 정리
-docker-compose down
-
-# 볼륨까지 포함하여 완전 정리
-docker-compose down -v
-```
-
-### 고급 운영 명령어
-
-**스케일링 및 확장**
-```bash
-# 특정 서비스의 인스턴스 수 조정
-docker-compose up -d --scale app=3
-
-# 서비스 실행 순서 제어
-docker-compose up -d --no-deps app
-```
-
-**디버깅 및 모니터링**
-```bash
-# 서비스 내부 쉘 접근
-docker-compose exec app /bin/bash
-
-# 실시간 리소스 사용량 모니터링
-docker-compose top
-
-# 서비스 간 네트워크 연결 테스트
-docker-compose exec app ping mongodb
-```
-
-### 환경별 구성 관리
-
-**개발 환경 실행**
-```bash
-# 개발용 compose 파일 사용
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-```
-
-**프로덕션 환경 실행**
-```bash
-# 프로덕션용 compose 파일 사용
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
----
-
-## 고급 활용 기법
-
-### 환경 변수 관리
-
-**환경 변수 파일 (.env) 활용**
-```bash
-# .env 파일
-MONGO_USER=admin
-MONGO_PASSWORD=secure_password_123
-REDIS_PASSWORD=redis_secure_456
-NODE_ENV=production
-```
-
-**docker-compose.yml에서 환경 변수 사용**
-```yaml
-version: '3.8'
-
-services:
-  mongodb:
-    image: mongo:6.0
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-    volumes:
-      - mongo-data:/data/db
-
-  redis:
-    image: redis:7-alpine
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis-data:/data
-
-volumes:
-  mongo-data:
-  redis-data:
-```
-
-### 다중 환경 구성
-
-**기본 docker-compose.yml**
-```yaml
-version: '3.8'
-
-services:
-  app:
-    build: .
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-    depends_on:
-      - mongodb
-
-  mongodb:
-    image: mongo:6.0
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
-```
-
-**개발 환경 오버라이드 (docker-compose.dev.yml)**
-```yaml
-version: '3.8'
-
-services:
-  app:
+  api:
+    build: ./api
     ports:
       - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - DEBUG=true
+    depends_on:
+      - db
 
-  mongodb:
-    ports:
-      - "27017:27017"
+  db:
+    image: postgres:16
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+
+networks:
+  default:
+    driver: bridge
 ```
 
-**프로덕션 환경 오버라이드 (docker-compose.prod.yml)**
-```yaml
-version: '3.8'
+Compose 파일은 크게 `services`, `volumes`, `networks` 세 섹션으로 나뉜다.
 
+`version` 키는 Compose V2(2023년 이후 기본)부터 더 이상 필요 없다. 아직 쓰는 프로젝트가 많지만, 새로 작성할 때는 생략해도 된다.
+
+### 서비스 구성도
+
+아래는 전형적인 웹 애플리케이션의 Compose 서비스 구성이다. 각 서비스가 어떤 역할을 맡고, 어디서 외부 요청을 받는지 보여준다.
+
+```mermaid
+graph TB
+    subgraph "Docker Compose"
+        direction TB
+
+        subgraph "frontend-net"
+            nginx["Nginx<br/>:80, :443"]
+            app["App Server<br/>:3000"]
+        end
+
+        subgraph "backend-net (internal)"
+            app2["App Server"]
+            db["PostgreSQL<br/>:5432"]
+            redis["Redis<br/>:6379"]
+        end
+    end
+
+    client["클라이언트"] --> nginx
+    nginx --> app
+    app -. "같은 컨테이너" .- app2
+    app2 --> db
+    app2 --> redis
+
+    style nginx fill:#4a90d9,color:#fff
+    style app fill:#50b87a,color:#fff
+    style app2 fill:#50b87a,color:#fff
+    style db fill:#f5a623,color:#fff
+    style redis fill:#d9534f,color:#fff
+    style client fill:#eee,color:#333
+```
+
+Nginx는 외부 요청을 받아서 App Server로 프록시한다. App Server는 frontend-net과 backend-net 양쪽에 연결되어 있다. DB와 Redis는 backend-net에만 있으므로 외부에서 직접 접근할 수 없다. 이렇게 네트워크를 분리하면 DB 포트를 호스트에 노출하지 않아도 된다.
+
+### 서비스 의존성 관계
+
+```mermaid
+graph LR
+    nginx["Nginx"] -->|depends_on| app["App Server"]
+    app -->|depends_on| db["PostgreSQL"]
+    app -->|depends_on| redis["Redis"]
+    worker["Worker"] -->|depends_on| db
+    worker -->|depends_on| redis
+
+    style nginx fill:#4a90d9,color:#fff
+    style app fill:#50b87a,color:#fff
+    style db fill:#f5a623,color:#fff
+    style redis fill:#d9534f,color:#fff
+    style worker fill:#9b59b6,color:#fff
+```
+
+`depends_on`은 컨테이너 시작 순서만 제어한다. DB 컨테이너가 시작됐다고 해서 DB가 쿼리를 받을 준비가 된 건 아니다. 이 문제는 뒤에서 다룬다.
+
+---
+
+## 주요 설정 옵션
+
+### image vs build
+
+```yaml
 services:
-  app:
-    restart: always
+  # 이미 만들어진 이미지 사용
+  redis:
+    image: redis:7-alpine
+
+  # Dockerfile로 이미지 빌드
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+```
+
+`image`는 Docker Hub나 레지스트리에서 이미지를 가져온다. `build`는 Dockerfile로 이미지를 직접 만든다. 둘 다 지정하면 빌드한 이미지에 `image`에 지정한 이름을 붙인다.
+
+### ports
+
+```yaml
+ports:
+  - "3000:3000"     # 호스트 3000 → 컨테이너 3000
+  - "8080:80"       # 호스트 8080 → 컨테이너 80
+  - "127.0.0.1:5432:5432"  # localhost에서만 접근 가능
+```
+
+DB 포트를 호스트에 열 때는 `127.0.0.1`을 붙이는 습관을 들이자. 안 그러면 `0.0.0.0`에 바인딩되어서 같은 네트워크의 다른 장비에서도 접근 가능해진다. 개발 환경에서는 상관없다고 생각하기 쉽지만, 카페 WiFi에서 작업하다가 DB가 노출되는 경우가 실제로 있다.
+
+### volumes
+
+```yaml
+volumes:
+  - db-data:/var/lib/postgresql/data   # named volume
+  - ./app:/app                          # bind mount
+  - /app/node_modules                   # anonymous volume
+```
+
+named volume은 Docker가 관리하는 영역에 데이터를 저장한다. `docker-compose down`으로 컨테이너를 내려도 데이터가 남는다. `docker-compose down -v`를 하면 볼륨까지 삭제되니 주의해야 한다.
+
+bind mount는 호스트의 디렉토리를 컨테이너에 그대로 연결한다. 개발 중에 코드 변경을 실시간으로 반영할 때 쓴다. 다만 macOS에서는 bind mount가 느리다. `node_modules`처럼 파일 수가 많은 디렉토리는 anonymous volume으로 분리하면 체감 속도가 크게 좋아진다.
+
+### environment
+
+```yaml
+services:
+  api:
     environment:
       - NODE_ENV=production
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-
-  mongodb:
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
+      - DB_HOST=db
+    env_file:
+      - .env
 ```
 
-### 보안 및 시크릿 관리
+환경 변수를 인라인으로 넣을 수도 있고, `.env` 파일로 빼둘 수도 있다. `.env` 파일은 반드시 `.gitignore`에 추가해야 한다. 패스워드가 git 히스토리에 한번 들어가면 삭제하기 매우 까다롭다.
 
-**Docker Secrets 활용**
+### depends_on과 healthcheck
+
 ```yaml
-version: '3.8'
-
 services:
-  app:
-    image: myapp:latest
-    secrets:
-      - db_password
-      - api_key
-    environment:
-      - DB_PASSWORD_FILE=/run/secrets/db_password
-      - API_KEY_FILE=/run/secrets/api_key
+  api:
+    depends_on:
+      db:
+        condition: service_healthy
 
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
-  api_key:
-    file: ./secrets/api_key.txt
+  db:
+    image: postgres:16
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 ```
 
-### 네트워킹 및 서비스 디스커버리
+`depends_on`만 쓰면 컨테이너 시작 순서만 보장한다. DB 프로세스가 떴는지, 실제로 커넥션을 받을 수 있는지는 확인하지 않는다.
 
-**사용자 정의 네트워크 구성**
+`condition: service_healthy`를 쓰면 healthcheck가 통과할 때까지 기다린다. DB가 준비되기 전에 API 서버가 시작해서 커넥션 에러를 뿜는 문제를 여기서 잡는다.
+
+healthcheck 없이 해결하는 방법도 있다. API 서버 코드에서 DB 커넥션 재시도 로직을 넣는 건데, 어차피 프로덕션에서도 필요한 로직이라 둘 다 하는 게 맞다.
+
+---
+
+## 네트워크
+
+### 기본 동작
+
+Compose는 프로젝트 단위로 기본 네트워크를 하나 만든다. 같은 Compose 파일에 정의된 서비스는 서비스 이름으로 서로 통신할 수 있다.
+
 ```yaml
-version: '3.8'
-
 services:
-  app:
-    image: myapp:latest
-    networks:
-      - frontend
-      - backend
+  api:
+    image: myapi:latest
+    # api 컨테이너에서 "db"라는 호스트명으로 PostgreSQL에 접근 가능
+  db:
+    image: postgres:16
+```
 
-  mongodb:
-    image: mongo:6.0
-    networks:
-      - backend
+`api` 컨테이너 안에서 `db:5432`로 접근하면 PostgreSQL에 연결된다. Docker 내부 DNS가 서비스 이름을 컨테이너 IP로 변환해준다.
 
+### 네트워크 분리
+
+```yaml
+services:
   nginx:
     image: nginx:alpine
     networks:
       - frontend
-    depends_on:
-      - app
+
+  api:
+    build: ./api
+    networks:
+      - frontend
+      - backend
+
+  db:
+    image: postgres:16
+    networks:
+      - backend
 
 networks:
   frontend:
@@ -450,811 +241,474 @@ networks:
     internal: true
 ```
 
-### 모니터링 및 로깅
+`internal: true`로 설정한 네트워크는 외부 인터넷 접근이 차단된다. DB 컨테이너가 외부로 패킷을 보낼 이유가 없으니, backend 네트워크를 internal로 설정하면 보안이 한 단계 올라간다.
 
-**로그 드라이버 설정**
+네트워크 분리 구조를 다이어그램으로 보면 이렇다.
+
+```mermaid
+graph TB
+    subgraph "frontend (bridge)"
+        nginx["Nginx"]
+        api_f["API Server"]
+    end
+
+    subgraph "backend (bridge, internal)"
+        api_b["API Server"]
+        db["PostgreSQL"]
+        redis["Redis"]
+    end
+
+    internet["외부 트래픽"] --> nginx
+    nginx --> api_f
+    api_f -. "동일 컨테이너" .- api_b
+    api_b --> db
+    api_b --> redis
+    db -.-x|"차단"| internet
+
+    style internet fill:#eee,color:#333
+    style nginx fill:#4a90d9,color:#fff
+    style api_f fill:#50b87a,color:#fff
+    style api_b fill:#50b87a,color:#fff
+    style db fill:#f5a623,color:#fff
+    style redis fill:#d9534f,color:#fff
+```
+
+---
+
+## 다중 환경 구성
+
+Compose 파일 여러 개를 겹쳐서 사용할 수 있다. 기본 설정에 환경별 오버라이드를 얹는 방식이다.
+
+**docker-compose.yml** (공통)
 ```yaml
-version: '3.8'
-
 services:
-  app:
-    image: myapp:latest
+  api:
+    build: ./api
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+```
+
+**docker-compose.dev.yml** (개발 환경 오버라이드)
+```yaml
+services:
+  api:
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+```
+
+**docker-compose.prod.yml** (운영 환경 오버라이드)
+```yaml
+services:
+  api:
+    restart: always
+    environment:
+      - NODE_ENV=production
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  db:
+    restart: always
+```
+
+```bash
+# 개발 환경
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# 운영 환경
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+뒤에 지정한 파일이 앞의 파일을 덮어쓴다. 개발 환경에서는 소스 코드를 bind mount하고 DB 포트를 열고, 운영 환경에서는 리소스 제한을 걸고 재시작 정책을 설정한다.
+
+`docker-compose.override.yml`이라는 파일이 있으면 자동으로 로드된다. 개인 개발 설정을 여기에 넣고 `.gitignore`에 추가하면 팀원마다 다른 포트 번호를 쓰거나 디버그 모드를 켜는 게 가능하다.
+
+---
+
+## 리소스 제한
+
+컨테이너에 리소스 제한을 안 걸면, 하나의 서비스가 메모리를 다 잡아먹어서 다른 서비스까지 죽는 일이 생긴다. 특히 Java 애플리케이션은 JVM이 가용 메모리를 최대한 확보하려 하기 때문에 제한이 필수다.
+
+### 메모리
+
+```yaml
+services:
+  api:
+    image: myapi:latest
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+```
+
+- **limits**: 이 값을 넘기면 OOM Killer가 컨테이너를 죽인다
+- **reservations**: 최소 보장 메모리. 시스템 메모리가 부족할 때 이만큼은 확보해준다
+
+limits와 reservations의 차이를 그림으로 보면 이렇다.
+
+```
+메모리 사용량
+ │
+ │  ┌─── limits (512M) ─── 넘으면 OOM Kill
+ │  │
+ │  │  ← 이 구간은 여유가 있을 때만 쓸 수 있음
+ │  │
+ │  ├─── reservations (256M) ─── 항상 보장
+ │  │
+ │  │  ← 이 구간은 무조건 사용 가능
+ │  │
+ └──┘
+```
+
+DB처럼 메모리가 중요한 서비스는 `mem_swappiness: 0`을 추가로 설정해서 스왑을 쓰지 않게 해야 한다. 디스크로 스왑이 일어나면 쿼리 응답 시간이 수십 배 느려진다.
+
+### CPU
+
+```yaml
+services:
+  api:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+        reservations:
+          cpus: '0.5'
+```
+
+`cpus: '1.5'`는 1.5코어까지 사용 가능하다는 뜻이다. CPU 제한에 걸리면 스로틀링이 발생해서 응답 시간이 불규칙해진다. 평소 사용량의 1.5~2배 정도로 limits를 잡는 게 적당하다.
+
+`cpu_shares`라는 옵션도 있는데, 이건 상대적 가중치다. 모든 컨테이너가 CPU를 100% 쓰려고 할 때만 비율에 맞게 나눈다. 여유가 있으면 어떤 컨테이너든 자유롭게 쓸 수 있어서, limits보다 유연하다.
+
+### 디스크 I/O
+
+```yaml
+services:
+  db:
+    image: postgres:16
+    blkio_weight: 1000       # 높은 I/O 우선순위 (10~1000)
+    device_read_bps:
+      - "/dev/sda:50mb"
+    device_write_bps:
+      - "/dev/sda:30mb"
+
+  log-collector:
+    image: fluentd:latest
+    blkio_weight: 100        # 낮은 I/O 우선순위
+```
+
+DB는 디스크 I/O가 성능에 직결되므로 높은 우선순위를 주고, 로그 수집처럼 즉시성이 덜 중요한 서비스는 낮게 잡는다.
+
+### 프로세스와 파일 디스크립터
+
+```yaml
+services:
+  api:
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+```
+
+`pids_limit`은 컨테이너 내부에서 생성할 수 있는 프로세스 수 상한이다. fork bomb 같은 상황에서 호스트 전체가 죽는 걸 막아준다.
+
+`nofile`은 동시에 열 수 있는 파일 디스크립터 수인데, 소켓도 파일 디스크립터를 사용하므로 동시 접속이 많은 서비스에서는 기본값(1024)이 부족하다.
+
+---
+
+## 명령어 정리
+
+자주 쓰는 명령어만 모았다. Compose V2 기준이라 `docker compose`(하이픈 없음)로 실행한다.
+
+```bash
+# 서비스 실행/중지
+docker compose up -d              # 백그라운드 실행
+docker compose up -d --build      # 이미지 다시 빌드 후 실행
+docker compose down               # 중지 및 컨테이너 삭제
+docker compose down -v            # 볼륨까지 삭제 (DB 데이터 날아감)
+
+# 상태 확인
+docker compose ps                 # 실행 중인 서비스 목록
+docker compose logs -f api        # 특정 서비스 로그 실시간 확인
+docker compose top                # 각 컨테이너의 프로세스 목록
+
+# 디버깅
+docker compose exec api sh        # 컨테이너 내부 셸 접속
+docker compose exec api ping db   # 서비스 간 네트워크 확인
+
+# 특정 서비스만 조작
+docker compose up -d api          # api만 실행
+docker compose restart api        # api만 재시작
+docker compose up -d --no-deps api  # 의존 서비스 무시하고 api만 실행
+
+# 스케일링
+docker compose up -d --scale api=3  # api 인스턴스 3개로 늘림
+```
+
+`docker-compose`(하이픈)는 V1 CLI다. 2023년 7월에 EOL되었고, 이후 버전에서는 `docker compose`(공백)를 써야 한다. 기존 CI 스크립트에 `docker-compose`가 남아있다면 바꿔야 한다.
+
+---
+
+## 실전 예제: Spring Boot + PostgreSQL + Redis
+
+실제 프로젝트에서 쓸 법한 구성이다.
+
+```yaml
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/myapp
+      SPRING_DATASOURCE_USERNAME: myapp
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_REDIS_HOST: redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '1.0'
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_USER: myapp
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myapp"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  redis-data:
+```
+
+이 구성에서 짚어볼 점들:
+
+- DB 패스워드는 `${DB_PASSWORD}`로 `.env` 파일에서 가져온다. YAML에 패스워드를 직접 쓰면 안 된다
+- DB와 Redis 포트에 `127.0.0.1`을 붙였다. 개발 중에 호스트에서 직접 접속할 일이 있어서 포트를 열되, 외부 노출은 막는다
+- healthcheck로 의존 서비스가 준비될 때까지 기다린다
+- Redis에 `maxmemory`와 `eviction policy`를 설정했다. 안 하면 메모리를 무한정 쓰다가 OOM으로 죽는다
+- JVM 기반 서비스는 메모리 limits를 넉넉하게 잡아야 한다. JVM 힙 외에 metaspace, thread stack, native memory 등이 별도로 필요하다
+
+### 의존성 관계
+
+```mermaid
+graph LR
+    api["API Server<br/>(Spring Boot)"]
+    db["PostgreSQL"]
+    redis["Redis"]
+
+    api -->|"service_healthy"| db
+    api -->|"service_healthy"| redis
+
+    style api fill:#50b87a,color:#fff
+    style db fill:#f5a623,color:#fff
+    style redis fill:#d9534f,color:#fff
+```
+
+---
+
+## 트러블슈팅
+
+### 컨테이너가 시작하자마자 죽는 경우
+
+```bash
+docker compose logs api
+```
+
+로그를 먼저 확인한다. 대부분 환경 변수 누락이거나 의존 서비스 연결 실패다.
+
+`depends_on` 없이 쓰면 DB보다 API가 먼저 뜨는 경우가 있다. 컨테이너 생성 순서가 보장되지 않기 때문이다. healthcheck 기반 `depends_on`을 쓰거나, 애플리케이션에서 재시도 로직을 넣어야 한다.
+
+### 볼륨 권한 문제
+
+Linux에서는 컨테이너 내부 프로세스의 UID와 호스트 파일의 소유자가 다르면 권한 에러가 난다. PostgreSQL 컨테이너가 data 디렉토리에 쓸 수 없다는 에러를 내는 경우가 이것이다.
+
+```bash
+# 볼륨 데이터 초기화
+docker compose down -v
+docker compose up -d
+```
+
+named volume을 쓰면 Docker가 권한을 알아서 처리해준다. bind mount를 써야 하는 상황이면 Dockerfile에서 해당 UID로 디렉토리 소유권을 바꿔야 한다.
+
+### 포트 충돌
+
+```bash
+# 어떤 프로세스가 포트를 점유하고 있는지 확인
+lsof -i :3000
+```
+
+`docker compose up`할 때 "port is already allocated" 에러가 나면 호스트에서 해당 포트를 이미 사용 중이라는 뜻이다. 다른 Compose 프로젝트가 같은 포트를 쓰고 있을 수도 있다.
+
+### 이미지 캐시 문제
+
+코드를 바꿨는데 반영이 안 되면 이미지 캐시 때문이다.
+
+```bash
+docker compose build --no-cache api
+docker compose up -d api
+```
+
+`--no-cache`로 빌드하면 캐시를 무시하고 처음부터 다시 빌드한다. Dockerfile의 `COPY` 이전 레이어가 바뀌지 않으면 Docker는 캐시를 재사용하는데, 이 때문에 코드 변경이 반영 안 되는 경우가 있다.
+
+### 네트워크 문제 디버깅
+
+```bash
+# 서비스 간 DNS 확인
+docker compose exec api nslookup db
+
+# 네트워크 목록 확인
+docker network ls
+
+# 특정 네트워크에 연결된 컨테이너 확인
+docker network inspect <project>_default
+```
+
+서비스 이름으로 통신이 안 되면 두 서비스가 같은 네트워크에 있는지 확인한다. 네트워크를 명시적으로 설정했을 때 한쪽을 빠뜨리는 실수가 종종 있다.
+
+---
+
+## 운영 팁
+
+### 로그 관리
+
+컨테이너 로그는 기본적으로 json-file 드라이버로 저장된다. 로그 크기 제한을 안 걸면 디스크가 찬다.
+
+```yaml
+services:
+  api:
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    labels:
-      - "com.example.service=web"
-      - "com.example.version=1.0"
-
-  mongodb:
-    image: mongo:6.0
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://logserver:514"
 ```
 
----
+서비스마다 최대 10MB 파일 3개까지만 유지한다. 30MB를 넘으면 오래된 로그부터 삭제된다.
 
-## 리소스 제한 및 관리
+### Docker Secrets
 
-Docker Compose에서 컨테이너의 리소스를 제한하는 것은 시스템 안정성과 성능 최적화에 매우 중요합니다. 적절한 리소스 제한이 없으면 한 컨테이너가 전체 시스템의 리소스를 독점하여 다른 서비스에 영향을 줄 수 있습니다.
-
-### 메모리 제한
-
-#### 메모리 제한 옵션
-
-**기본 메모리 제한:**
-```yaml
-version: '3.8'
-
-services:
-  app:
-    image: myapp:latest
-    mem_limit: 512m        # 하드 리미트 (최대 메모리)
-    mem_reservation: 256m  # 소프트 리미트 (보장되는 메모리)
-```
-
-**상세 메모리 제어:**
-```yaml
-version: '3.8'
-
-services:
-  app:
-    image: myapp:latest
-    deploy:
-      resources:
-        limits:
-          memory: 512M      # 최대 메모리 사용량
-        reservations:
-          memory: 256M      # 최소 보장 메모리
-    mem_swappiness: 0       # 스왑 사용 비율 (0-100)
-    memswap_limit: 1g       # 메모리 + 스왑 총합 제한
-```
-
-#### 메모리 제한 동작 원리
-
-**하드 리미트 (limits):**
-- 컨테이너가 절대 초과할 수 없는 최대 메모리 양
-- 초과 시 OOM(Out of Memory) Killer가 컨테이너를 강제 종료
-- Linux cgroup의 `memory.limit_in_bytes` 값으로 설정됨
-
-**소프트 리미트 (reservations):**
-- 시스템이 컨테이너에 보장하려고 시도하는 메모리 양
-- 다른 컨테이너가 유휴 상태일 때 이 값보다 더 사용 가능
-- 메모리 경합 시 최소한 이 값은 보장받음
-
-**동작 시나리오:**
-```
-1. 정상 상황:
-   reservations(256M) ≤ 실제 사용(300M) ≤ limits(512M)
-   → 정상 동작
-
-2. 메모리 부족:
-   실제 사용 > limits(512M)
-   → OOM Killer 발동, 컨테이너 강제 종료
-
-3. 메모리 경합:
-   전체 시스템 메모리 부족
-   → reservations 값에 따라 메모리 재분배
-```
-
-#### 메모리 스왑 제어
-
-**mem_swappiness:**
-- 0-100 사이의 값으로 스왑 사용 경향성 설정
-- `0`: 스왑 최소화 (성능 우선)
-- `100`: 스왑 적극 사용 (메모리 절약 우선)
+환경 변수에 패스워드를 넣는 건 `docker inspect`로 누구나 볼 수 있어서 보안상 좋지 않다. Swarm 모드가 아니더라도 파일 기반 secrets를 쓸 수 있다.
 
 ```yaml
 services:
-  database:
-    image: postgres:13
-    mem_swappiness: 0        # 스왑 비활성화 (DB는 메모리 성능 중요)
-    mem_limit: 2g
-    
-  cache:
-    image: redis:7
-    mem_swappiness: 0        # 캐시도 스왑 비활성화
-    mem_limit: 1g
-    
-  worker:
-    image: worker:latest
-    mem_swappiness: 60       # 백그라운드 작업은 스왑 허용
-    mem_limit: 512m
-```
-
-#### OOM(Out of Memory) 동작 제어
-
-**oom_kill_disable:**
-```yaml
-services:
-  critical-service:
-    image: myapp:latest
-    mem_limit: 1g
-    oom_kill_disable: true   # OOM 발생 시에도 종료하지 않음 (주의!)
-```
-
-**oom_score_adj:**
-```yaml
-services:
-  high-priority:
-    image: important-app:latest
-    oom_score_adj: -500      # 낮은 값 = 종료 우선순위 낮음 (-1000 ~ 1000)
-    
-  low-priority:
-    image: worker:latest
-    oom_score_adj: 500       # 높은 값 = 종료 우선순위 높음
-```
-
-**OOM Score 동작:**
-```
-OOM Killer가 메모리 부족 시 종료할 프로세스 선택 기준:
-1. oom_score_adj 값이 높을수록 먼저 종료
-2. 메모리 사용량이 많을수록 점수 증가
-3. 시스템 프로세스는 보호됨
-
-예시:
-- nginx (oom_score_adj: -500, 100M 사용) → OOM Score: 낮음
-- worker (oom_score_adj: 500, 300M 사용) → OOM Score: 높음
-→ worker가 먼저 종료됨
-```
-
-### CPU 제한
-
-#### CPU 할당 방식
-
-**CPU Shares (상대적 비율):**
-```yaml
-services:
-  web:
-    image: nginx:alpine
-    cpu_shares: 1024        # 기본값 1024
-    
   api:
-    image: api:latest
-    cpu_shares: 2048        # web의 2배 CPU 시간 할당
-    
-  worker:
-    image: worker:latest
-    cpu_shares: 512         # web의 절반 CPU 시간 할당
+    secrets:
+      - db_password
+    environment:
+      DB_PASSWORD_FILE: /run/secrets/db_password
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
 ```
 
-**동작 원리:**
-- 모든 컨테이너가 CPU를 사용하려고 할 때만 적용
-- 절대적 제한이 아닌 상대적 우선순위
-- 유휴 CPU는 다른 컨테이너가 자유롭게 사용 가능
+애플리케이션에서 `DB_PASSWORD_FILE` 경로의 파일을 읽어서 패스워드로 사용한다. 공식 PostgreSQL, MySQL 이미지는 `*_FILE` 환경 변수를 기본 지원한다.
 
-**시나리오:**
-```
-총 CPU: 4코어
-web(1024) + api(2048) + worker(512) = 3584 shares
+### CI에서의 활용
 
-CPU 100% 사용 시:
-- web: 1024/3584 × 400% = 114% (1.14 코어)
-- api: 2048/3584 × 400% = 228% (2.28 코어)
-- worker: 512/3584 × 400% = 57% (0.57 코어)
-
-web만 사용 시:
-- web: 400% (4코어 모두 사용 가능)
-```
-
-**CPU 절대 제한:**
 ```yaml
+# docker-compose.test.yml
 services:
-  app:
-    image: myapp:latest
-    cpus: '1.5'             # 최대 1.5 코어 사용
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'       # deploy 방식으로도 가능
-        reservations:
-          cpus: '0.5'       # 최소 0.5 코어 보장
-```
-
-**cpus 옵션 상세:**
-- 소수점으로 코어 수 지정 가능
-- `0.5` = 1코어의 50% 사용
-- `2.0` = 2코어 전체 사용
-- 초과 시 CPU 스로틀링 발생
-
-#### CPU 코어 지정 (CPU Pinning)
-
-**특정 코어에 고정:**
-```yaml
-services:
-  high-performance:
-    image: compute:latest
-    cpuset_cpus: "0,1"      # CPU 0번, 1번 코어에만 실행
-    cpuset_mems: "0"        # NUMA 노드 0의 메모리만 사용
-    
-  database:
-    image: postgres:13
-    cpuset_cpus: "2-3"      # CPU 2번, 3번 코어에만 실행
-    cpuset_mems: "0"
-```
-
-**CPU Pinning 사용 이유:**
-```
-1. 성능 최적화:
-   - L1/L2 캐시 히트율 향상
-   - 컨텍스트 스위칭 감소
-   - NUMA 지역성 활용
-
-2. 격리 보장:
-   - 중요한 서비스를 특정 코어에 격리
-   - 다른 서비스의 영향 최소화
-
-3. 실시간 처리:
-   - 레이턴시에 민감한 애플리케이션
-   - CPU 이동으로 인한 지연 방지
-```
-
-**NUMA (Non-Uniform Memory Access) 고려:**
-```yaml
-services:
-  numa-aware:
-    image: myapp:latest
-    cpuset_cpus: "0-7"      # NUMA 노드 0의 코어
-    cpuset_mems: "0"        # NUMA 노드 0의 메모리
-    # 같은 NUMA 노드를 사용하여 메모리 액세스 속도 최적화
-```
-
-#### CPU 쿼터와 피리어드
-
-**세밀한 CPU 시간 제어:**
-```yaml
-services:
-  app:
-    image: myapp:latest
-    cpu_quota: 50000        # 마이크로초 단위 (50ms)
-    cpu_period: 100000      # 마이크로초 단위 (100ms)
-    # 결과: 100ms 중 50ms만 사용 가능 = 0.5 코어
-```
-
-**동작 원리:**
-```
-cpu_quota: 컨테이너가 cpu_period 동안 사용할 수 있는 최대 CPU 시간
-cpu_period: CPU 시간 측정 주기
-
-예시 1:
-cpu_period: 100000 (100ms)
-cpu_quota: 50000 (50ms)
-→ 100ms마다 50ms만 사용 가능 = 0.5 코어
-
-예시 2:
-cpu_period: 100000 (100ms)
-cpu_quota: 200000 (200ms)
-→ 100ms마다 200ms 사용 가능 = 2.0 코어
-
-실시간 제한:
-- 매 period마다 quota 리셋
-- quota 소진 시 다음 period까지 CPU 사용 차단
-- 스로틀링 발생
-```
-
-### 디스크 I/O 제한
-
-#### Block I/O 가중치
-
-**I/O 우선순위 설정:**
-```yaml
-services:
-  database:
-    image: postgres:13
-    blkio_weight: 1000          # 높은 I/O 우선순위
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    
-  logs:
-    image: logstash:latest
-    blkio_weight: 100           # 낮은 I/O 우선순위
-    volumes:
-      - log-data:/var/log
-```
-
-**blkio_weight 동작:**
-- 범위: 10-1000
-- 기본값: 500
-- CPU shares와 유사한 상대적 가중치
-- 높을수록 더 많은 I/O 대역폭 할당
-
-#### 디바이스별 I/O 제한
-
-**읽기/쓰기 속도 제한:**
-```yaml
-services:
-  app:
-    image: myapp:latest
-    device_read_bps:
-      - "/dev/sda:10mb"         # 초당 10MB 읽기 제한
-    device_write_bps:
-      - "/dev/sda:5mb"          # 초당 5MB 쓰기 제한
-    device_read_iops:
-      - "/dev/sda:1000"         # 초당 1000번 읽기 제한
-    device_write_iops:
-      - "/dev/sda:500"          # 초당 500번 쓰기 제한
-```
-
-**IOPS vs BPS:**
-```
-BPS (Bytes Per Second):
-- 처리량 중심 제한
-- 대용량 순차 I/O에 효과적
-- 예: 대용량 파일 읽기/쓰기
-
-IOPS (I/O Operations Per Second):
-- 작업 횟수 중심 제한
-- 소량 랜덤 I/O에 효과적
-- 예: 데이터베이스 트랜잭션
-
-사용 예시:
-- 데이터베이스: IOPS 제한 (많은 작은 쿼리)
-- 파일 저장소: BPS 제한 (큰 파일 전송)
-- 로그 수집: BPS 제한 (연속적인 쓰기)
-```
-
-#### 디스크 I/O 스케줄러
-
-**CFQ (Completely Fair Queuing) 설정:**
-```yaml
-services:
-  app:
-    image: myapp:latest
-    blkio_weight: 500
-    blkio_weight_device:
-      - "/dev/sda:800"          # sda에 대해서만 높은 가중치
-      - "/dev/sdb:200"          # sdb에 대해서는 낮은 가중치
-```
-
-### 네트워크 대역폭 제한
-
-Docker Compose에서는 기본적으로 네트워크 대역폭 제한을 직접 지원하지 않지만, tc(Traffic Control)를 사용하여 구현할 수 있습니다.
-
-```yaml
-services:
-  app:
-    image: myapp:latest
-    cap_add:
-      - NET_ADMIN
-    command: >
-      sh -c "tc qdisc add dev eth0 root tbf rate 1mbit burst 32kbit latency 400ms &&
-             /app/start.sh"
-```
-
-### 프로세스 수 제한
-
-**PID 제한:**
-```yaml
-services:
-  app:
-    image: myapp:latest
-    pids_limit: 100             # 최대 100개 프로세스
-```
-
-**동작:**
-- 컨테이너 내부에서 생성 가능한 최대 프로세스 수
-- fork bomb 공격 방지
-- 리소스 고갈 방지
-
-### 파일 디스크립터 제한
-
-**ulimits 설정:**
-```yaml
-services:
-  app:
-    image: myapp:latest
-    ulimits:
-      nofile:
-        soft: 65536             # 소프트 리미트
-        hard: 65536             # 하드 리미트
-      nproc:
-        soft: 4096
-        hard: 4096
-      memlock:
-        soft: -1                # 무제한
-        hard: -1
-```
-
-**주요 ulimit 옵션:**
-```
-nofile: 열 수 있는 파일 디스크립터 수
-  - 웹 서버, 데이터베이스에 중요
-  - 기본값(1024)은 고부하 시 부족
-
-nproc: 생성 가능한 최대 프로세스 수
-  - 멀티프로세스 애플리케이션에 중요
-  
-memlock: 잠글 수 있는 메모리 크기
-  - 공유 메모리, IPC에 필요
-  - Elasticsearch, Redis 등에서 사용
-
-stack: 스택 크기
-  - 재귀 함수가 많은 애플리케이션
-
-core: 코어 덤프 파일 크기
-  - 디버깅 시 필요
-```
-
-### 실전 리소스 프로파일
-
-**데이터베이스 프로파일:**
-```yaml
-services:
-  postgres:
-    image: postgres:13
-    deploy:
-      resources:
-        limits:
-          cpus: '4.0'
-          memory: 4G
-        reservations:
-          cpus: '2.0'
-          memory: 2G
-    mem_swappiness: 0           # 스왑 비활성화
-    blkio_weight: 1000          # 높은 I/O 우선순위
-    cpuset_cpus: "0-3"          # 전용 코어 할당
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
-      nproc:
-        soft: 4096
-        hard: 4096
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-```
-
-**웹 애플리케이션 프로파일:**
-```yaml
-services:
-  web:
-    image: nginx:alpine
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-    cpu_shares: 1024
-    mem_swappiness: 60
-    ulimits:
-      nofile:
-        soft: 10000
-        hard: 10000
-```
-
-**백그라운드 워커 프로파일:**
-```yaml
-services:
-  worker:
-    image: worker:latest
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-    cpu_shares: 512             # 낮은 CPU 우선순위
-    mem_swappiness: 100         # 스왑 적극 사용
-    blkio_weight: 300           # 낮은 I/O 우선순위
-    oom_score_adj: 500          # OOM 시 먼저 종료
-```
-
-**캐시 서버 프로파일:**
-```yaml
-services:
-  redis:
-    image: redis:7-alpine
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2G
-        reservations:
-          cpus: '1.0'
-          memory: 1G
-    mem_swappiness: 0           # 스왑 절대 금지
-    cpuset_cpus: "4-5"          # 전용 코어
-    ulimits:
-      nofile:
-        soft: 10240
-        hard: 10240
-    command: >
-      redis-server
-      --maxmemory 1800mb
-      --maxmemory-policy allkeys-lru
-```
-
-### 리소스 모니터링
-
-**Docker Stats 사용:**
-```bash
-# 실시간 리소스 사용량
-docker stats
-
-# Compose 서비스별 확인
-docker-compose ps -q | xargs docker stats
-```
-
-**cAdvisor 통합:**
-```yaml
-services:
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    ports:
-      - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-```
-
----
-
-## CI/CD 파이프라인 통합
-
-### GitHub Actions를 활용한 자동 배포
-
-**기본 배포 워크플로우**
-```yaml
-name: Deploy Application
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Run tests with Docker Compose
-        run: |
-          docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
-          docker-compose -f docker-compose.test.yml down
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Deploy to production
-        run: |
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-```
-
-### 테스트 환경 구성
-
-**테스트용 docker-compose.test.yml**
-```yaml
-version: '3.8'
-
-services:
-  app:
     build: .
+    command: npm test
     environment:
       - NODE_ENV=test
-      - MONGO_URL=mongodb://test-mongodb:27017/testdb
+      - DB_HOST=test-db
     depends_on:
-      - test-mongodb
-    command: npm test
+      test-db:
+        condition: service_healthy
 
-  test-mongodb:
-    image: mongo:6.0
+  test-db:
+    image: postgres:16-alpine
     environment:
-      - MONGO_INITDB_DATABASE=testdb
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: test
     tmpfs:
       - /data/db
-
-  test-redis:
-    image: redis:7-alpine
-    command: redis-server --save ""
-```
-
-### Blue-Green 배포 전략
-
-**배포 스크립트 (deploy.sh)**
-```bash
-#!/bin/bash
-
-# 현재 실행 중인 스택 확인
-CURRENT_STACK=$(docker-compose ps -q | wc -l)
-
-if [ $CURRENT_STACK -gt 0 ]; then
-    echo "Blue-Green 배포 시작..."
-    
-    # Green 환경 구축
-    docker-compose -f docker-compose.yml -f docker-compose.green.yml up -d --build
-    
-    # Health check
-    sleep 30
-    if curl -f http://localhost:8080/health; then
-        echo "Green 환경 배포 성공"
-        
-        # Blue 환경 중지
-        docker-compose -f docker-compose.yml -f docker-compose.blue.yml down
-        
-        # Green을 Blue로 변경
-        mv docker-compose.green.yml docker-compose.blue.yml
-    else
-        echo "Green 환경 배포 실패, 롤백"
-        docker-compose -f docker-compose.yml -f docker-compose.green.yml down
-    fi
-else
-    echo "초기 배포"
-    docker-compose -f docker-compose.yml -f docker-compose.blue.yml up -d --build
-fi
-```
-
----
-
-## 성능 최적화 및 트러블슈팅
-
-### 성능 최적화 기법
-
-**리소스 제한 및 예약**
-```yaml
-version: '3.8'
-
-services:
-  app:
-    image: myapp:latest
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
-```
-
-**볼륨 최적화**
-```yaml
-version: '3.8'
-
-services:
-  app:
-    image: myapp:latest
-    volumes:
-      # 성능 향상을 위한 tmpfs 사용
-      - type: tmpfs
-        target: /tmp
-        tmpfs:
-          size: 100M
-      # 바인드 마운트 최적화
-      - type: bind
-        source: ./app
-        target: /app
-        consistency: cached
-```
-
-### 일반적인 문제 해결
-
-**서비스 시작 순서 문제**
-```yaml
-version: '3.8'
-
-services:
-  app:
-    image: myapp:latest
-    depends_on:
-      mongodb:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  mongodb:
-    image: mongo:6.0
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      retries: 5
 ```
 
-**네트워크 연결 문제**
 ```bash
-# 네트워크 상태 확인
-docker network ls
-docker network inspect <network_name>
-
-# 서비스 간 연결 테스트
-docker-compose exec app ping mongodb
-docker-compose exec app nslookup mongodb
+docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+echo $?  # 테스트 종료 코드
+docker compose -f docker-compose.test.yml down
 ```
 
-### 모니터링 및 로그 관리
-
-**통합 모니터링 스택**
-```yaml
-version: '3.8'
-
-services:
-  app:
-    image: myapp:latest
-    labels:
-      - "prometheus.scrape=true"
-      - "prometheus.port=3000"
-      - "prometheus.path=/metrics"
-
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana-data:/var/lib/grafana
-```
+`--abort-on-container-exit` 옵션이 중요하다. 테스트 컨테이너가 끝나면 나머지 서비스도 같이 종료시킨다. `tmpfs`를 쓰면 디스크에 쓰지 않아서 테스트가 빠르고, 정리할 것도 없다.
 
 ---
 
-## 참고자료
+## 참고
 
-### 관련 문서
-
-- [Kubernetes 심화 전략](../Kubernetes_심화_전략.md) - Kubernetes와 Docker Compose 비교
-- [CI/CD 고급 패턴](../../CI_CD/고급_CI_CD_패턴.md) - Docker Compose를 활용한 CI/CD
-- [배포 전략](../../../Framework/Node/배포/배포_전략.md) - 컨테이너 배포 전략
-- [AWS ECS](../../../../AWS/Containers/ECS.md) - AWS 컨테이너 서비스
-- [Terraform 인프라 자동화](../../Infrastructure_as_Code/Terraform.md) - 인프라 자동화
-
----
-
-### 공식 문서
 - [Docker Compose 공식 문서](https://docs.docker.com/compose/)
-- [Docker Compose 파일 참조](https://docs.docker.com/compose/compose-file/)
-- [Docker Compose 명령어 참조](https://docs.docker.com/compose/reference/)
-
-### 관련 기술 문서
-- [Docker 공식 문서](https://docs.docker.com/)
-- [Dockerfile 모범 사례](https://docs.docker.com/develop/dev-best-practices/)
-- [Docker 보안 모범 사례](https://docs.docker.com/engine/security/)
-
-### 추가 학습 자료
-- [Docker Compose 네트워킹 가이드](https://docs.docker.com/compose/networking/)
-- [Docker Compose 볼륨 가이드](https://docs.docker.com/compose/compose-file/compose-file-v3/#volumes)
-- [Docker Compose 환경 변수 가이드](https://docs.docker.com/compose/environment-variables/)
-
-### 도구 및 플러그인
-- [Docker Compose VSCode 확장](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Portainer - Docker 관리 UI](https://www.portainer.io/)
-
+- [Compose 파일 레퍼런스](https://docs.docker.com/compose/compose-file/)
+- [Compose V2 마이그레이션](https://docs.docker.com/compose/migrate/)

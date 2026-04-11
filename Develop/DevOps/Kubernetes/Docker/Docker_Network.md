@@ -1,7 +1,7 @@
 ---
 title: Docker 네트워크
 tags: [docker, network, container, devops]
-updated: 2026-04-06
+updated: 2026-04-11
 ---
 
 # Docker 네트워크
@@ -25,17 +25,33 @@ Docker는 네 가지 기본 네트워크 드라이버를 제공한다.
 
 컨테이너를 만들면 기본으로 붙는 드라이버다. 호스트에 `docker0`라는 가상 브릿지 인터페이스가 생기고, 각 컨테이너는 veth 페어를 통해 이 브릿지에 연결된다.
 
-```
-호스트
-┌───────────────────────────────┐
-│         docker0 (bridge)      │
-│        172.17.0.1             │
-│      ┌─────┼─────┐           │
-│   veth0   veth1  veth2       │
-│   ┌───┐  ┌───┐  ┌───┐       │
-│   │.2 │  │.3 │  │.4 │       │
-│   └───┘  └───┘  └───┘       │
-└───────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Host["호스트 머신"]
+        direction TB
+        ETH["eth0 (물리 NIC)<br/>192.168.1.10"]
+        IPTABLES["iptables NAT"]
+        BRIDGE["docker0 (bridge)<br/>172.17.0.1/16"]
+        
+        ETH --- IPTABLES
+        IPTABLES --- BRIDGE
+        
+        subgraph Container1["컨테이너 A"]
+            VETH1["eth0 → veth 페어<br/>172.17.0.2"]
+        end
+        subgraph Container2["컨테이너 B"]
+            VETH2["eth0 → veth 페어<br/>172.17.0.3"]
+        end
+        subgraph Container3["컨테이너 C"]
+            VETH3["eth0 → veth 페어<br/>172.17.0.4"]
+        end
+        
+        BRIDGE --- VETH1
+        BRIDGE --- VETH2
+        BRIDGE --- VETH3
+    end
+    
+    INTERNET["외부 네트워크"] --- ETH
 ```
 
 같은 bridge 네트워크에 붙은 컨테이너끼리는 IP로 통신이 된다. 외부와 통신할 때는 호스트의 NAT를 거친다.
@@ -45,6 +61,26 @@ Docker는 네 가지 기본 네트워크 드라이버를 제공한다.
 ### host
 
 컨테이너가 호스트의 네트워크 네임스페이스를 그대로 쓴다. 네트워크 격리가 없다.
+
+```mermaid
+graph TB
+    subgraph Host["호스트 머신"]
+        direction TB
+        ETH["eth0 (물리 NIC)<br/>192.168.1.10"]
+        
+        subgraph NS["공유 네트워크 네임스페이스"]
+            HOST_STACK["호스트 네트워크 스택<br/>포트: 22, 3306, ..."]
+            CONT_A["컨테이너 A (nginx)<br/>포트: 80"]
+            CONT_B["컨테이너 B (app)<br/>포트: 8080"]
+        end
+        
+        ETH --- NS
+    end
+    
+    INTERNET["외부 네트워크"] --- ETH
+```
+
+bridge와 비교하면 구조 자체가 다르다. veth 페어도 없고, 브릿지도 없다. 컨테이너 프로세스가 호스트의 네트워크 스택을 직접 쓰기 때문에 NAT 변환 없이 패킷이 바로 나간다.
 
 ```bash
 docker run --network host nginx
@@ -73,11 +109,52 @@ docker run --network none alpine ip addr
 
 여러 Docker 호스트에 걸쳐 있는 컨테이너들을 하나의 네트워크로 묶는다. Docker Swarm이나 Kubernetes 환경에서 사용한다.
 
+```mermaid
+graph TB
+    subgraph Host1["호스트 A (192.168.1.10)"]
+        direction TB
+        ETH1["eth0"]
+        BR1["docker_gwbridge"]
+        VXLAN1["VXLAN 터널 엔드포인트"]
+        
+        subgraph OV1["overlay: my-overlay (10.0.1.0/24)"]
+            C1["컨테이너 A<br/>10.0.1.2"]
+            C2["컨테이너 B<br/>10.0.1.3"]
+        end
+        
+        C1 --- BR1
+        C2 --- BR1
+        BR1 --- VXLAN1
+        VXLAN1 --- ETH1
+    end
+    
+    subgraph Host2["호스트 B (192.168.1.11)"]
+        direction TB
+        ETH2["eth0"]
+        BR2["docker_gwbridge"]
+        VXLAN2["VXLAN 터널 엔드포인트"]
+        
+        subgraph OV2["overlay: my-overlay (10.0.1.0/24)"]
+            C3["컨테이너 C<br/>10.0.1.4"]
+            C4["컨테이너 D<br/>10.0.1.5"]
+        end
+        
+        C3 --- BR2
+        C4 --- BR2
+        BR2 --- VXLAN2
+        VXLAN2 --- ETH2
+    end
+    
+    ETH1 <-. "VXLAN 캡슐화<br/>(UDP 4789)" .-> ETH2
+```
+
+호스트 A의 컨테이너 A에서 호스트 B의 컨테이너 C로 패킷을 보내면, VXLAN이 원본 패킷을 UDP로 감싸서 호스트 간 물리 네트워크를 통해 전달한다. 컨테이너 입장에서는 같은 서브넷(10.0.1.0/24)에 있는 것처럼 보인다.
+
 ```bash
 docker network create --driver overlay my-overlay
 ```
 
-VXLAN으로 호스트 간 터널링을 하는 구조다. 단일 호스트 환경에서는 쓸 일이 없고, 멀티 호스트 오케스트레이션을 쓰기 시작하면 그때 알아보면 된다.
+단일 호스트 환경에서는 쓸 일이 없고, 멀티 호스트 오케스트레이션을 쓰기 시작하면 그때 알아보면 된다.
 
 ### 드라이버 선택 기준
 
@@ -220,9 +297,51 @@ docker port <container-id>  # 할당된 포트 확인
 
 `-p 8080:80`을 하면 Docker가 호스트의 iptables에 DNAT 규칙을 추가한다. 호스트의 8080 포트로 들어온 패킷을 컨테이너의 80 포트로 포워딩하는 규칙이다.
 
+아래는 외부 클라이언트가 호스트의 8080 포트로 요청을 보냈을 때 패킷이 컨테이너까지 도달하는 과정이다.
+
+```mermaid
+sequenceDiagram
+    participant Client as 클라이언트<br/>(외부)
+    participant ETH as eth0<br/>(호스트 NIC)
+    participant PRE as PREROUTING 체인<br/>(nat 테이블)
+    participant DOCKER as DOCKER 체인<br/>(nat 테이블)
+    participant FWD as FORWARD 체인<br/>(filter 테이블)
+    participant BRIDGE as docker0<br/>(bridge)
+    participant CONT as 컨테이너<br/>(172.17.0.2:80)
+    
+    Client->>ETH: dst: 192.168.1.10:8080
+    ETH->>PRE: 패킷 진입
+    PRE->>DOCKER: -j DOCKER 점프
+    Note over DOCKER: DNAT 규칙 매칭<br/>dst 8080 → 172.17.0.2:80
+    DOCKER->>FWD: dst가 172.17.0.2:80으로 변환됨
+    Note over FWD: DOCKER-USER 체인 먼저 평가<br/>→ 허용이면 ACCEPT
+    FWD->>BRIDGE: 패킷 전달
+    BRIDGE->>CONT: veth 페어를 통해 전달
+    CONT-->>Client: 응답 (MASQUERADE로 src 변환)
+```
+
+이 흐름에서 핵심은 두 가지다.
+
+1. **DNAT**: 목적지 주소를 호스트 IP:8080에서 컨테이너 IP:80으로 바꾼다. PREROUTING 단계에서 일어난다.
+2. **MASQUERADE**: 응답 패킷의 출발지 주소를 컨테이너 IP에서 호스트 IP로 바꾼다. POSTROUTING 단계에서 일어난다.
+
+실제 iptables에 어떤 규칙이 들어가는지 확인하면 다음과 같다.
+
 ```bash
-# Docker가 추가한 iptables 규칙 확인
-sudo iptables -t nat -L -n | grep 8080
+# DNAT 규칙 확인 (PREROUTING → DOCKER 체인)
+sudo iptables -t nat -L DOCKER -n --line-numbers
+# 출력 예시:
+# 1  DNAT  tcp  --  0.0.0.0/0  0.0.0.0/0  tcp dpt:8080 to:172.17.0.2:80
+
+# MASQUERADE 규칙 확인 (POSTROUTING)
+sudo iptables -t nat -L POSTROUTING -n
+# 출력 예시:
+# MASQUERADE  all  --  172.17.0.0/16  0.0.0.0/0
+
+# FORWARD 체인에서 컨테이너 포트 허용 규칙
+sudo iptables -L DOCKER -n
+# 출력 예시:
+# ACCEPT  tcp  --  0.0.0.0/0  172.17.0.2  tcp dpt:80
 ```
 
 이 과정에서 패킷이 NAT를 거치기 때문에 약간의 오버헤드가 있다. 대부분의 웹 서비스에서는 체감하기 어렵지만, 초당 수만 건의 요청을 처리하는 경우에는 `--network host`를 고려해볼 수 있다.
