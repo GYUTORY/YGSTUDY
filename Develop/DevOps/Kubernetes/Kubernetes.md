@@ -1,7 +1,7 @@
 ---
-title: Kubernetes 핵심 개념 가이드
+title: Kubernetes 핵심 개념 및 운영
 tags: [devops, kubernetes, k8s, container-orchestration, cloud-native]
-updated: 2026-03-01
+updated: 2026-04-12
 ---
 
 # Kubernetes (K8s)
@@ -23,10 +23,10 @@ Docker만으로 운영할 때의 한계:
 │ App  │       │      │       │      │
 └──────┘       └──────┘       └──────┘
 
-❌ 컨테이너가 죽으면 누가 재시작하나?
-❌ 트래픽이 몰리면 어떻게 확장하나?
-❌ 서버 3대에 어떻게 분배하나?
-❌ 새 버전 배포 시 무중단이 가능한가?
+- 컨테이너가 죽으면 누가 재시작하나?
+- 트래픽이 몰리면 어떻게 확장하나?
+- 서버 3대에 어떻게 분배하나?
+- 새 버전 배포 시 무중단이 가능한가?
 ```
 
 ```
@@ -41,10 +41,10 @@ Kubernetes로 운영할 때:
 │  │Pod   │     │Pod   │     │Pod   │    │
 │  └──────┘     └──────┘     └──────┘    │
 │                                         │
-│  ✅ 자동 재시작 (Self-healing)            │
-│  ✅ 자동 스케일링 (HPA)                   │
-│  ✅ 자동 스케줄링 (Scheduler)             │
-│  ✅ 무중단 배포 (Rolling Update)          │
+│  - 자동 재시작 (Self-healing)              │
+│  - 자동 스케일링 (HPA)                    │
+│  - 자동 스케줄링 (Scheduler)              │
+│  - 무중단 배포 (Rolling Update)           │
 └─────────────────────────────────────────┘
 ```
 
@@ -72,7 +72,7 @@ Kubernetes로 운영할 때:
 | **프로덕션 적합성** | 최적 | 개발/테스트 | 소규모 프로덕션 |
 | **커뮤니티** | 최대 | Docker 포함 | 축소 중 |
 
-📌 **실무 기준**: 프로덕션에는 Kubernetes, 로컬 개발에는 Docker Compose가 일반적이다.
+**실무 기준**: 프로덕션에는 Kubernetes, 로컬 개발에는 Docker Compose가 일반적이다.
 
 ---
 
@@ -129,6 +129,38 @@ kubectl apply → API Server → etcd (상태 저장)
                     kubelet (Pod 생성)
 ```
 
+```mermaid
+graph TB
+    subgraph CP["Control Plane"]
+        API["API Server"]
+        ETCD["etcd"]
+        SCHED["Scheduler"]
+        CM["Controller Manager"]
+    end
+
+    subgraph WN1["Worker Node 1"]
+        KL1["kubelet"]
+        KP1["kube-proxy"]
+        P1["Pod"]
+        P2["Pod"]
+    end
+
+    subgraph WN2["Worker Node 2"]
+        KL2["kubelet"]
+        KP2["kube-proxy"]
+        P3["Pod"]
+    end
+
+    API --> ETCD
+    API --> SCHED
+    API --> CM
+    API --> KL1
+    API --> KL2
+    KL1 --> P1
+    KL1 --> P2
+    KL2 --> P3
+```
+
 ### 2.3 데이터 플레인 (Worker Node)
 
 실제 애플리케이션 컨테이너가 실행되는 곳이다.
@@ -172,6 +204,42 @@ spec:
           cpu: "500m"
           memory: "256Mi"
 ```
+
+**Pod 라이프사이클:**
+
+Pod는 생성부터 종료까지 정해진 단계를 거친다. 각 단계에서 어떤 상태인지 파악하는 것이 트러블슈팅의 시작점이다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: kubectl apply
+    Pending --> Running: 스케줄링 + 이미지 Pull 완료
+    Running --> Succeeded: 정상 종료 (Job 등)
+    Running --> Failed: 비정상 종료
+    Running --> CrashLoopBackOff: 반복 실패
+    CrashLoopBackOff --> Running: 재시작 성공
+    Failed --> [*]
+    Succeeded --> [*]
+
+    note right of Pending
+        노드 선택 대기,
+        이미지 다운로드 중
+    end note
+
+    note right of Running
+        readinessProbe 통과 시
+        Service 트래픽 수신 시작
+    end note
+```
+
+각 Phase의 의미:
+
+| Phase | 의미 | 실무에서 확인할 것 |
+|-------|------|-------------------|
+| **Pending** | 스케줄링 대기 또는 이미지 Pull 중 | `kubectl describe pod`에서 Events 확인 |
+| **Running** | 컨테이너가 실행 중 | readinessProbe 통과 여부 확인 |
+| **Succeeded** | 모든 컨테이너가 정상 종료 | Job/CronJob에서 주로 발생 |
+| **Failed** | 컨테이너가 비정상 종료 | `kubectl logs --previous`로 원인 파악 |
+| **CrashLoopBackOff** | 재시작 반복 중 (backoff 지연 증가) | 로그 확인, OOM 여부 체크 |
 
 **멀티 컨테이너 패턴:**
 
@@ -334,12 +402,34 @@ spec:
                   number: 80
 ```
 
+```mermaid
+graph LR
+    Client["외부 클라이언트"] --> IC["Ingress Controller<br/>(Nginx/ALB)"]
+    IC -->|"/users"| US["user-service<br/>(ClusterIP)"]
+    IC -->|"/orders"| OS["order-service<br/>(ClusterIP)"]
+    US --> UP1["user Pod 1"]
+    US --> UP2["user Pod 2"]
+    OS --> OP1["order Pod 1"]
+    OS --> OP2["order Pod 2"]
 ```
-외부 트래픽 → Ingress Controller → Ingress 규칙 적용
-                                      │
-                   /users  →  user-service  → Pod
-                   /orders →  order-service → Pod
+
+네트워크 전체 흐름을 정리하면 이렇다:
+
+```mermaid
+graph TB
+    EXT["외부 트래픽"] --> LB["LoadBalancer / NodePort"]
+    LB --> ING["Ingress Controller"]
+    ING --> SVC["Service (ClusterIP)"]
+    SVC --> |"kube-proxy<br/>iptables/IPVS"| POD1["Pod 1"]
+    SVC --> |"kube-proxy<br/>iptables/IPVS"| POD2["Pod 2"]
+
+    POD1 <-->|"CNI 플러그인<br/>(Calico, Cilium 등)"| POD2
+
+    NP["NetworkPolicy"] -.->|"트래픽 필터링"| POD1
+    NP -.->|"트래픽 필터링"| POD2
 ```
+
+kube-proxy는 iptables 또는 IPVS 모드로 동작한다. 대규모 클러스터(Service 1,000개 이상)에서는 IPVS 모드가 성능이 낫다. iptables 모드는 규칙 수에 비례해서 latency가 증가하기 때문이다.
 
 #### NetworkPolicy
 
@@ -721,6 +811,31 @@ Step 3:  v1  v2  v2  v2
 완료:    v2  v2  v2
 ```
 
+```mermaid
+sequenceDiagram
+    participant User as 사용자
+    participant Deploy as Deployment Controller
+    participant RS1 as ReplicaSet v1
+    participant RS2 as ReplicaSet v2
+
+    User->>Deploy: 이미지 변경 (v1 → v2)
+    Deploy->>RS2: 새 ReplicaSet 생성
+    RS2->>RS2: v2 Pod 1개 생성
+    Note over RS2: readinessProbe 통과 대기
+    RS2-->>Deploy: Pod Ready
+    Deploy->>RS1: v1 Pod 1개 제거
+    RS2->>RS2: v2 Pod 1개 추가 생성
+    RS2-->>Deploy: Pod Ready
+    Deploy->>RS1: v1 Pod 1개 제거
+    RS2->>RS2: v2 Pod 1개 추가 생성
+    RS2-->>Deploy: Pod Ready
+    Deploy->>RS1: v1 Pod 마지막 1개 제거
+    Note over RS1: replicas: 0 (보관)
+    Note over RS2: replicas: 3 (활성)
+```
+
+Rolling Update에서 `maxSurge`와 `maxUnavailable` 설정이 중요하다. 둘 다 0이면 배포가 진행되지 않으니 주의해야 한다.
+
 ```bash
 # 이미지 업데이트 → 자동 Rolling Update
 kubectl set image deployment/api-server api=my-registry/api-server:2.0.0
@@ -810,7 +925,7 @@ Kubernetes 모니터링의 표준 스택은 **Prometheus + Grafana**이다.
 | **Deployment** | replicas_available | 사용 가능한 Pod 수 |
 | **Service** | request_duration_seconds | API 응답 시간 |
 
-📌 Prometheus 상세 설정은 [Prometheus 메트릭 수집 가이드](../Monitoring/Prometheus_메트릭_수집.md) 참조.
+Prometheus 상세 설정은 [Prometheus 메트릭 수집](../Monitoring/Prometheus_메트릭_수집.md) 참조.
 
 ### 7.2 로깅
 
@@ -881,7 +996,169 @@ metadata:
   namespace: production
 ```
 
-### 7.4 자동 스케일링
+### 7.4 Taints와 Tolerations
+
+Taint는 노드에 "이 노드에 아무 Pod나 배치하지 마라"는 제약을 거는 것이다. Toleration은 Pod에 "해당 Taint가 있어도 괜찮다"는 허용을 선언하는 것이다.
+
+실무에서 자주 쓰는 경우:
+
+- GPU 노드에 GPU 워크로드만 배치
+- 특정 노드를 특정 팀 전용으로 격리
+- 노드 유지보수 시 새 Pod 배치 방지
+
+```yaml
+# 노드에 Taint 추가
+# kubectl taint nodes gpu-node-1 gpu=true:NoSchedule
+```
+
+```yaml
+# Pod에 Toleration 선언
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-job
+spec:
+  tolerations:
+    - key: "gpu"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  containers:
+    - name: training
+      image: ml-training:1.0
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+```
+
+Taint effect에 따른 동작 차이:
+
+| Effect | 동작 |
+|--------|------|
+| **NoSchedule** | 새 Pod를 배치하지 않는다. 기존 Pod는 그대로 유지 |
+| **PreferNoSchedule** | 가능하면 배치하지 않지만, 다른 노드가 없으면 배치한다 |
+| **NoExecute** | 새 Pod 배치 금지 + 기존 Pod도 쫓아낸다 |
+
+NoExecute는 노드 장애나 유지보수 시 사용한다. `tolerationSeconds`를 지정하면 해당 시간이 지난 뒤에 퇴출된다.
+
+```yaml
+tolerations:
+  - key: "node.kubernetes.io/unreachable"
+    operator: "Exists"
+    effect: "NoExecute"
+    tolerationSeconds: 300    # 5분간 대기 후 퇴출
+```
+
+### 7.5 PodDisruptionBudget (PDB)
+
+노드 업그레이드, 스케일다운 같은 **자발적 중단(voluntary disruption)** 시 최소 가용 Pod 수를 보장한다. PDB가 없으면 `kubectl drain` 할 때 모든 Pod가 한꺼번에 내려갈 수 있다.
+
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+spec:
+  minAvailable: 2              # 최소 2개는 항상 살아 있어야 한다
+  selector:
+    matchLabels:
+      app: api-server
+```
+
+```yaml
+# 또는 maxUnavailable로 지정
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+spec:
+  maxUnavailable: 1            # 동시에 1개까지만 내릴 수 있다
+  selector:
+    matchLabels:
+      app: api-server
+```
+
+PDB를 설정해두면 `kubectl drain` 명령이 PDB를 존중한다. 예를 들어 replicas가 3이고 `minAvailable: 2`이면, drain 시 Pod를 하나씩만 내린다.
+
+주의사항:
+
+- **replicas 수와 맞지 않으면 drain이 영원히 안 끝난다.** `minAvailable: 3`인데 replicas가 3이면 Pod를 하나도 내릴 수 없다.
+- PDB는 자발적 중단에만 적용된다. 노드가 갑자기 죽는 비자발적 중단(involuntary disruption)에는 동작하지 않는다.
+
+### 7.6 Priority와 Preemption
+
+클러스터 리소스가 부족할 때 **어떤 Pod를 먼저 스케줄링하고, 어떤 Pod를 밀어낼 것인가**를 결정한다.
+
+```yaml
+# PriorityClass 정의
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: critical
+value: 1000000
+globalDefault: false
+description: "프로덕션 핵심 서비스용"
+preemptionPolicy: PreemptLowerPriority
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: batch-low
+value: 100
+globalDefault: false
+description: "배치 작업용, 밀려날 수 있음"
+```
+
+```yaml
+# Pod에서 PriorityClass 사용
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      priorityClassName: critical    # 이 Pod는 우선 배치
+      containers:
+        - name: payment
+          image: payment:2.0
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+```
+
+동작 흐름:
+
+```mermaid
+graph TD
+    NEW["새 Pod 생성<br/>(priority: 1000000)"] --> SCHED["Scheduler: 노드 확인"]
+    SCHED -->|"리소스 충분"| PLACE["정상 배치"]
+    SCHED -->|"리소스 부족"| CHECK["낮은 priority Pod 검색"]
+    CHECK --> EVICT["priority 100 Pod 퇴출"]
+    EVICT --> PLACE2["새 Pod 배치"]
+```
+
+실무에서 주로 이렇게 나눈다:
+
+| 용도 | value 범위 | 예시 |
+|------|-----------|------|
+| 시스템 컴포넌트 | 2,000,000,000 | kube-system Pod |
+| 프로덕션 핵심 | 1,000,000 | 결제, 인증 서비스 |
+| 프로덕션 일반 | 100,000 | API 서버, 웹 서버 |
+| 배치/작업 | 100~1,000 | 데이터 처리, 리포트 |
+
+Preemption이 발생하면 밀려난 Pod는 `Preempted` 상태가 된다. `kubectl get events`에서 확인할 수 있다. 배치 작업처럼 밀려도 괜찮은 워크로드에 낮은 priority를 부여하고, 결제처럼 절대 내려가면 안 되는 서비스에 높은 priority를 설정한다.
+
+### 7.7 자동 스케일링
 
 | 스케일러 | 대상 | 기준 | 동작 |
 |---------|------|------|------|
@@ -911,12 +1188,20 @@ spec:
           averageUtilization: 70
 ```
 
+```mermaid
+graph LR
+    TRAFFIC["트래픽 증가"] --> CPU["CPU 70% 초과"]
+    CPU --> HPA["HPA: Pod 추가"]
+    HPA --> PENDING["Pending Pod 발생<br/>(노드 리소스 부족)"]
+    PENDING --> CA["Cluster Autoscaler:<br/>노드 추가"]
+
+    TRAFFIC2["트래픽 감소"] --> CPU2["CPU 하락"]
+    CPU2 --> HPA2["HPA: Pod 축소"]
+    HPA2 --> IDLE["유휴 노드 발생"]
+    IDLE --> CA2["Cluster Autoscaler:<br/>노드 제거"]
 ```
-트래픽 증가 → CPU 70% 초과 → HPA가 Pod 추가
-  → 노드 리소스 부족 → Cluster Autoscaler가 노드 추가
-트래픽 감소 → CPU 하락 → HPA가 Pod 축소
-  → 노드 유휴 → Cluster Autoscaler가 노드 제거
-```
+
+HPA는 기본 15초 주기로 메트릭을 확인한다. 스케일업은 빠르지만 스케일다운은 기본 5분 안정화 기간(stabilization window)이 있다. 갑자기 Pod가 줄어서 트래픽을 못 받는 상황을 방지하기 위해서다.
 
 ---
 
@@ -934,7 +1219,7 @@ spec:
 | **장점** | AWS 생태계 통합 | 가장 성숙, 비용 효율 | AD/Azure 통합 |
 | **단점** | 비교적 높은 비용 | GCP 종속 | 학습 곡선 |
 
-📌 AWS EKS 상세는 [AWS EKS 가이드](../../AWS/Containers/EKS.md) 참조.
+AWS EKS 상세는 [AWS EKS](../../AWS/Containers/EKS.md) 참조.
 
 ### 관리형 vs 자체 구축
 

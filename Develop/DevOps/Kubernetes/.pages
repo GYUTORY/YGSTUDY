@@ -1,4 +1,6 @@
 title: Kubernetes
 nav:
   - Kubernetes.md
+  - Kubernetes_Operator_및_CRD.md
+  - Kustomize.md
   - Docker
