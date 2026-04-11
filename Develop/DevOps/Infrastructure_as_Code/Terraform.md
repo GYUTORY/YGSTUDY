@@ -1,7 +1,7 @@
 ---
 title: Terraform
 tags: [terraform, iac, infrastructure-as-code, devops, aws, hcl]
-updated: 2026-03-31
+updated: 2026-04-12
 ---
 
 # Terraform
@@ -25,6 +25,59 @@ CloudFormation은 AWS 전용이다. AWS만 쓴다면 괜찮지만, GCP나 Azure 
 Ansible은 절차적(procedural) 도구다. "EC2를 3개 만들어라"라고 쓰면 실행할 때마다 3개씩 추가된다. Terraform은 선언적이라서 "EC2가 3개여야 한다"고 쓰면 현재 2개일 때 1개만 추가한다.
 
 Pulumi는 Python/TypeScript 같은 범용 언어를 쓴다. 복잡한 조건 분기가 필요하면 Pulumi가 편하지만, HCL의 제약이 오히려 인프라 코드를 읽기 쉽게 만드는 경우가 많다.
+
+## 전체 구조
+
+Terraform의 핵심 구성요소와 그 관계를 먼저 파악하면 이후 내용이 잡히기 쉽다.
+
+```mermaid
+graph TB
+    subgraph "Terraform Core"
+        CLI["terraform CLI"]
+        Core["Core Engine<br/>(HCL 파싱, 의존성 그래프, diff 계산)"]
+    end
+
+    subgraph "Configuration (.tf 파일)"
+        Resource["resource 블록"]
+        Data["data 블록"]
+        Variable["variable / locals"]
+        Output["output 블록"]
+        Module["module 블록"]
+    end
+
+    subgraph "Provider Plugin"
+        AWS["AWS Provider"]
+        GCP["GCP Provider"]
+        K8s["Kubernetes Provider"]
+        ETC["..."]
+    end
+
+    subgraph "State"
+        StateFile["terraform.tfstate<br/>(현재 인프라 상태 JSON)"]
+        RemoteBackend["Remote Backend<br/>(S3, Terraform Cloud 등)"]
+    end
+
+    subgraph "실제 인프라"
+        Infra["AWS / GCP / Azure<br/>리소스"]
+    end
+
+    CLI --> Core
+    Core -->|".tf 파일 읽기"| Resource
+    Core -->|".tf 파일 읽기"| Data
+    Core -->|".tf 파일 읽기"| Variable
+    Core -->|".tf 파일 읽기"| Output
+    Core -->|".tf 파일 읽기"| Module
+    Core -->|"API 호출 위임"| AWS
+    Core -->|"API 호출 위임"| GCP
+    Core -->|"API 호출 위임"| K8s
+    AWS -->|"CRUD"| Infra
+    GCP -->|"CRUD"| Infra
+    K8s -->|"CRUD"| Infra
+    Core <-->|"상태 읽기/쓰기"| StateFile
+    StateFile -.->|"팀 환경"| RemoteBackend
+```
+
+Core Engine이 `.tf` 파일을 파싱해서 리소스 간 의존성 그래프를 만들고, Provider 플러그인을 통해 실제 클라우드 API를 호출한다. State 파일은 "Terraform이 알고 있는 인프라 상태"를 저장하는 중간 계층이다. plan은 `.tf` 파일(원하는 상태)과 State(현재 상태)를 비교해서 차이를 계산하고, apply는 그 차이를 Provider를 통해 실제 인프라에 반영한다.
 
 ## 핵심 개념
 
@@ -157,6 +210,37 @@ resource "aws_vpc" "main" {
 
 ## State 관리
 
+### plan/apply 워크플로우
+
+Terraform에서 인프라를 변경하는 흐름은 항상 init → plan → apply 순서다.
+
+```mermaid
+flowchart LR
+    A["terraform init"] --> B["terraform plan"]
+    B --> C{"변경사항<br/>확인"}
+    C -->|"승인"| D["terraform apply"]
+    C -->|"수정 필요"| E[".tf 파일 수정"]
+    E --> B
+
+    subgraph "plan 단계 내부"
+        direction TB
+        P1["State 파일 읽기<br/>(현재 상태)"] --> P2[".tf 파일 파싱<br/>(원하는 상태)"]
+        P2 --> P3["diff 계산"]
+        P3 --> P4["실행 계획 출력<br/>(+ 생성 / ~ 수정 / - 삭제)"]
+    end
+
+    subgraph "apply 단계 내부"
+        direction TB
+        A1["의존성 그래프 순서로<br/>Provider API 호출"] --> A2["리소스 생성/수정/삭제"]
+        A2 --> A3["State 파일 갱신"]
+    end
+
+    B -.-> P1
+    D -.-> A1
+```
+
+init은 Provider 플러그인 다운로드와 Backend 초기화를 한다. plan에서 변경 계획을 확인하고, apply에서 실제 반영한다. plan 결과에 `-`(삭제)가 포함되어 있으면 반드시 한 번 더 확인한다. 프로덕션에서 의도치 않은 삭제가 일어나면 복구가 어렵다.
+
 ### State가 뭔가
 
 Terraform은 `.tfstate` 파일에 현재 인프라 상태를 JSON으로 저장한다. `plan`을 실행하면 이 파일과 실제 인프라를 비교해서 차이를 계산한다.
@@ -259,6 +343,31 @@ import {
 ### 모듈이 필요한 이유
 
 비슷한 리소스 조합을 여러 환경에서 반복할 때 모듈로 묶는다. VPC + 서브넷 + NAT 게이트웨이 같은 조합이 대표적이다.
+
+```mermaid
+graph TB
+    subgraph "environments/dev/main.tf"
+        DevMain["module \"vpc\" {\n  source = ../../modules/vpc\n  name = dev\n  cidr = 10.0.0.0/16\n}"]
+    end
+
+    subgraph "environments/prod/main.tf"
+        ProdMain["module \"vpc\" {\n  source = ../../modules/vpc\n  name = prod\n  cidr = 10.1.0.0/16\n}"]
+    end
+
+    subgraph "modules/vpc/"
+        Vars["variables.tf<br/>- name<br/>- cidr_block<br/>- private_subnet_cidrs<br/>- azs"]
+        Main["main.tf<br/>- aws_vpc<br/>- aws_subnet<br/>- aws_nat_gateway"]
+        Out["outputs.tf<br/>- vpc_id<br/>- private_subnet_ids"]
+        Vars --> Main --> Out
+    end
+
+    DevMain -->|"variable 전달"| Vars
+    ProdMain -->|"variable 전달"| Vars
+    Out -->|"output 반환"| DevMain
+    Out -->|"output 반환"| ProdMain
+```
+
+모듈은 variable로 입력을 받고, output으로 결과를 내보내는 하나의 함수와 비슷하다. 환경별 main.tf에서 같은 모듈을 서로 다른 값으로 호출하면 동일한 구조의 인프라를 환경마다 재현할 수 있다.
 
 ```
 modules/

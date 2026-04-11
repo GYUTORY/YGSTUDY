@@ -1,7 +1,7 @@
 ---
 title: Terraform 기초
 tags: [devops, iac, terraform, aws, infrastructure]
-updated: 2026-03-29
+updated: 2026-04-12
 ---
 
 # Terraform 기초
@@ -208,6 +208,38 @@ terraform apply tfplan
 
 ---
 
+## State 파일과 실제 인프라의 관계
+
+Terraform은 HCL 코드, State 파일, 실제 인프라 세 가지를 비교해서 동작한다. 이 관계를 이해해야 plan 결과가 왜 그렇게 나오는지 판단할 수 있다.
+
+```mermaid
+flowchart TB
+    subgraph trio["Terraform의 삼각 비교"]
+        CODE["HCL 코드<br/>(main.tf)"]
+        STATE["State 파일<br/>(terraform.tfstate)"]
+        INFRA["실제 인프라<br/>(AWS, GCP 등)"]
+    end
+
+    CODE -- "terraform plan<br/>코드의 의도 확인" --> STATE
+    STATE -- "terraform refresh<br/>실제 상태와 동기화" --> INFRA
+    CODE -- "terraform apply<br/>코드대로 인프라 변경" --> INFRA
+
+    subgraph cases["불일치가 생기는 상황"]
+        CASE1["코드 ≠ State<br/>→ plan에 변경사항 표시"]
+        CASE2["State ≠ 인프라<br/>→ 콘솔에서 직접 수정한 경우"]
+        CASE3["코드 ≠ 인프라<br/>→ apply가 필요한 상태"]
+    end
+```
+
+| 상황 | 원인 | plan 결과 | 대응 |
+|------|------|-----------|------|
+| 코드 변경, State/인프라 그대로 | 정상 개발 흐름 | 변경사항 표시 | `apply` 실행 |
+| State에 있는데 인프라에 없음 | 콘솔에서 삭제 | 에러 또는 재생성 | `state rm` |
+| 인프라에 있는데 State에 없음 | 수동 생성 또는 state 유실 | 인식 못함 | `import` |
+| 코드/State 동일, 인프라만 다름 | 콘솔에서 수정 | 되돌리려는 변경 표시 | `apply -refresh-only` |
+
+---
+
 ## State 꼬임 해결법
 
 state가 꼬이면 plan이 이상하게 나오거나 apply가 실패한다. 가장 흔한 상황과 해결법을 정리한다.
@@ -275,6 +307,46 @@ moved {
 
 둘 다 리소스를 여러 개 만들 때 쓰는데, 실무에서 count로 시작했다가 for_each로 바꾸는 일이 잦다.
 
+### 인덱스 동작 비교
+
+아래 다이어그램에서 "B 삭제" 시 count와 for_each의 차이를 보면 왜 for_each가 안전한지 바로 알 수 있다.
+
+```mermaid
+flowchart TB
+    subgraph count_before["count: 삭제 전"]
+        direction LR
+        C0["[0] subnet-A<br/>10.0.1.0/24"]
+        C1["[1] subnet-B<br/>10.0.2.0/24"]
+        C2["[2] subnet-C<br/>10.0.3.0/24"]
+    end
+
+    subgraph count_after["count: subnet-B 삭제 후"]
+        direction LR
+        C0a["[0] subnet-A<br/>10.0.1.0/24<br/>변경 없음"]
+        C1a["[1] subnet-C ← B였던 인덱스<br/>10.0.3.0/24<br/>삭제 후 재생성"]
+        C2a["[2] 사라짐<br/>삭제"]
+    end
+
+    count_before --> count_after
+
+    subgraph each_before["for_each: 삭제 전"]
+        direction LR
+        E0["[&quot;a&quot;] subnet-A<br/>10.0.1.0/24"]
+        E1["[&quot;b&quot;] subnet-B<br/>10.0.2.0/24"]
+        E2["[&quot;c&quot;] subnet-C<br/>10.0.3.0/24"]
+    end
+
+    subgraph each_after["for_each: subnet-B 삭제 후"]
+        direction LR
+        E0a["[&quot;a&quot;] subnet-A<br/>10.0.1.0/24<br/>변경 없음"]
+        E2a["[&quot;c&quot;] subnet-C<br/>10.0.3.0/24<br/>변경 없음"]
+    end
+
+    each_before --> each_after
+```
+
+count는 인덱스가 밀리면서 `[1]`에 있던 B가 사라지고 C가 `[1]`로 내려온다. Terraform은 `[1]`의 내용이 바뀌었다고 판단해서 삭제 후 재생성한다. for_each는 키 기반이라 B만 삭제되고 나머지는 아무 영향이 없다.
+
 ### count의 문제
 
 count는 인덱스 기반이다. 리스트 중간 항목을 삭제하면 뒤의 인덱스가 전부 밀린다.
@@ -333,6 +405,222 @@ resource "aws_instance" "worker" {
 ```
 
 그 외에는 for_each를 쓴다. count에서 for_each로 바꾸면 state를 전부 옮겨야 하니까, 처음부터 for_each로 시작하는 게 낫다.
+
+---
+
+## 변수 타입 활용
+
+Terraform 변수는 `string`, `number`, `bool` 외에 `list`, `map`, `object` 타입을 지원한다. 실무에서는 리소스 설정을 변수로 뽑을 때 이 타입들을 자주 쓰게 된다.
+
+### list — 순서가 있는 같은 타입의 값
+
+```hcl
+variable "availability_zones" {
+  type    = list(string)
+  default = ["ap-northeast-2a", "ap-northeast-2c"]
+}
+
+resource "aws_subnet" "private" {
+  count             = length(var.availability_zones)
+  availability_zone = var.availability_zones[count.index]
+  cidr_block        = cidrsubnet("10.0.0.0/16", 8, count.index + 10)
+  vpc_id            = aws_vpc.main.id
+}
+```
+
+list는 인덱스로 접근한다. 순서가 바뀌면 리소스가 재생성될 수 있으니, 순서가 고정된 값에만 쓴다. AZ 목록처럼 거의 바뀌지 않는 값이 적합하다.
+
+### map — 키-값 쌍
+
+```hcl
+variable "instance_types" {
+  type = map(string)
+  default = {
+    dev     = "t3.micro"
+    staging = "t3.small"
+    prod    = "t3.medium"
+  }
+}
+
+resource "aws_instance" "app" {
+  instance_type = var.instance_types[terraform.workspace]
+  ami           = data.aws_ami.amazon_linux.id
+}
+```
+
+workspace 이름을 키로 써서 환경별 인스턴스 타입을 분기하는 패턴이다. `var.instance_types["dev"]`처럼 직접 키를 지정할 수도 있다.
+
+### object — 구조화된 설정 묶음
+
+여러 속성을 하나의 변수로 묶을 때 쓴다. DB 설정처럼 관련 있는 값들을 한 변수에 넣으면 `variables.tf`가 깔끔해진다.
+
+```hcl
+variable "database" {
+  type = object({
+    engine         = string
+    engine_version = string
+    instance_class = string
+    storage_gb     = number
+    multi_az       = bool
+  })
+  default = {
+    engine         = "mysql"
+    engine_version = "8.0"
+    instance_class = "db.t3.medium"
+    storage_gb     = 100
+    multi_az       = false
+  }
+}
+
+resource "aws_db_instance" "main" {
+  engine            = var.database.engine
+  engine_version    = var.database.engine_version
+  instance_class    = var.database.instance_class
+  allocated_storage = var.database.storage_gb
+  multi_az          = var.database.multi_az
+}
+```
+
+`tfvars`에서 환경별로 다른 object 값을 넘기면 된다.
+
+```hcl
+# prod.tfvars
+database = {
+  engine         = "mysql"
+  engine_version = "8.0"
+  instance_class = "db.r6g.large"
+  storage_gb     = 500
+  multi_az       = true
+}
+```
+
+### map(object) — 여러 리소스를 한 변수로 정의
+
+for_each와 조합하면 리소스 정의를 변수 하나로 관리할 수 있다.
+
+```hcl
+variable "buckets" {
+  type = map(object({
+    versioning = bool
+    lifecycle_days = number
+  }))
+  default = {
+    "logs" = {
+      versioning     = false
+      lifecycle_days = 30
+    }
+    "backups" = {
+      versioning     = true
+      lifecycle_days = 90
+    }
+  }
+}
+
+resource "aws_s3_bucket" "this" {
+  for_each = var.buckets
+  bucket   = "${var.project}-${each.key}"
+}
+
+resource "aws_s3_bucket_versioning" "this" {
+  for_each = { for k, v in var.buckets : k => v if v.versioning }
+  bucket   = aws_s3_bucket.this[each.key].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+```
+
+`for` 표현식에서 `if v.versioning`으로 필터링하면, versioning이 true인 버킷에만 설정이 적용된다.
+
+---
+
+## locals 블록 실무 패턴
+
+`locals`는 반복되는 표현식이나 계산 결과를 이름 붙여서 재사용할 때 쓴다. 변수와 다른 점은 외부에서 값을 주입하지 않는다는 것이다. 코드 내부에서만 쓰는 계산 결과를 정리하는 용도다.
+
+### 공통 태그 정리
+
+모든 리소스에 동일한 태그를 붙여야 할 때, 매번 복붙하면 하나 빠뜨리기 쉽다.
+
+```hcl
+locals {
+  common_tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+    Team        = var.team
+  }
+}
+
+resource "aws_instance" "app" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t3.micro"
+  tags          = merge(local.common_tags, { Name = "app-server" })
+}
+
+resource "aws_s3_bucket" "logs" {
+  bucket = "${var.project}-logs"
+  tags   = local.common_tags
+}
+```
+
+`merge`로 공통 태그에 리소스별 태그를 추가한다. 태그 정책이 바뀌면 `locals` 한 곳만 고치면 된다.
+
+### 이름 규칙 통일
+
+리소스 이름에 프로젝트명, 환경, 리전을 넣는 규칙이 있을 때 locals로 접두사를 만들어두면 이름이 일관된다.
+
+```hcl
+locals {
+  name_prefix = "${var.project}-${var.environment}"
+  region_short = {
+    "ap-northeast-2" = "apne2"
+    "us-east-1"      = "use1"
+    "eu-west-1"      = "euw1"
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = "${local.name_prefix}-vpc-${local.region_short[var.region]}"
+  }
+}
+```
+
+결과: `myapp-prod-vpc-apne2` 같은 이름이 자동으로 만들어진다.
+
+### 조건부 값 계산
+
+환경에 따라 달라지는 설정을 locals에서 미리 계산해두면 리소스 블록이 깔끔해진다.
+
+```hcl
+locals {
+  is_prod       = var.environment == "prod"
+  instance_type = local.is_prod ? "t3.large" : "t3.micro"
+  min_capacity  = local.is_prod ? 2 : 1
+  max_capacity  = local.is_prod ? 10 : 3
+}
+
+resource "aws_autoscaling_group" "app" {
+  min_size         = local.min_capacity
+  max_size         = local.max_capacity
+  desired_capacity = local.min_capacity
+}
+```
+
+삼항 연산자를 리소스 블록 안에 직접 쓰면 가독성이 떨어지니까, locals에서 계산하고 리소스에서는 결과만 참조하는 게 낫다.
+
+### 주의할 점
+
+locals를 너무 많이 쓰면 값의 출처를 추적하기 어려워진다. "이 값이 변수에서 온 건지, locals에서 계산한 건지, 다른 locals를 참조한 건지" 따라가야 하는 상황이 생긴다.
+
+기준은 이렇다:
+
+- 같은 표현식이 3번 이상 반복되면 locals로 뽑는다
+- 조건 분기가 복잡하면 locals에서 미리 계산한다
+- 한 번만 쓰는 단순한 값은 locals로 안 만든다
 
 ---
 
@@ -522,6 +810,34 @@ output "database_endpoint" {
 ---
 
 ## 기본 워크플로우 정리
+
+### init → plan → apply 흐름
+
+Terraform의 핵심 워크플로우는 세 단계다. 각 단계에서 무슨 일이 일어나는지 알아야 디버깅할 때 어디서 문제가 생겼는지 판단할 수 있다.
+
+```mermaid
+flowchart LR
+    subgraph init["terraform init"]
+        A1[".terraform/ 디렉토리 생성"] --> A2["Provider 플러그인 다운로드"]
+        A2 --> A3["Backend 초기화<br/>(S3, local 등)"]
+        A3 --> A4[".terraform.lock.hcl 생성/검증"]
+    end
+
+    subgraph plan["terraform plan"]
+        B1["State 파일 읽기"] --> B2["실제 인프라 상태 조회<br/>(AWS API 호출)"]
+        B2 --> B3["HCL 코드와 비교"]
+        B3 --> B4["변경 계획 생성<br/>(+create / ~update / -destroy)"]
+    end
+
+    subgraph apply["terraform apply"]
+        C1["Plan 재확인<br/>(또는 저장된 plan 사용)"] --> C2["Provider API 호출<br/>(리소스 생성/수정/삭제)"]
+        C2 --> C3["State 파일 갱신"]
+    end
+
+    init --> plan --> apply
+```
+
+`plan` 단계에서 실제 AWS API를 호출해서 현재 상태를 확인한다는 점이 중요하다. 코드만 보는 게 아니라, state와 실제 인프라를 삼각 비교한다.
 
 ```bash
 # 1. 프로젝트 초기화

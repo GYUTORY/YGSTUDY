@@ -1,7 +1,7 @@
 ---
 title: Terragrunt
 tags: [terragrunt, terraform, iac, infrastructure-as-code, devops, aws, multi-account]
-updated: 2026-04-08
+updated: 2026-04-12
 ---
 
 # Terragrunt
@@ -11,6 +11,38 @@ updated: 2026-04-08
 Gruntwork에서 만든 Terraform 래퍼(wrapper) 도구다. Terraform 코드를 직접 바꾸는 게 아니라, Terraform을 실행하기 전에 설정을 주입하고 모듈 간 의존성을 관리한다.
 
 Terraform만 쓸 때 환경이 3개(dev, staging, prod)만 돼도 같은 코드를 복사해서 변수만 바꾸는 작업이 반복된다. backend 설정도 환경마다 복붙해야 하고, 모듈 간 의존성도 수동으로 맞춰야 한다. Terragrunt는 이 반복 작업을 `terragrunt.hcl` 파일 하나로 정리한다.
+
+## Terraform과 Terragrunt의 역할 분리
+
+Terraform과 Terragrunt가 각각 어떤 영역을 담당하는지 정리하면 다음과 같다.
+
+```mermaid
+graph TB
+    subgraph Terragrunt["Terragrunt (래퍼 계층)"]
+        direction TB
+        TG1["backend 설정 자동 생성<br/>remote_state 블록"]
+        TG2["환경별 변수 주입<br/>inputs, include"]
+        TG3["모듈 간 의존성 관리<br/>dependency 블록"]
+        TG4["실행 순서 제어<br/>run-all, parallelism"]
+        TG5["provider 설정 생성<br/>generate 블록"]
+    end
+
+    subgraph Terraform["Terraform (실행 계층)"]
+        direction TB
+        TF1["리소스 정의<br/>resource, data 블록"]
+        TF2["모듈 구현<br/>variables.tf, outputs.tf"]
+        TF3["State 관리<br/>plan, apply, destroy"]
+        TF4["Provider 플러그인 실행<br/>AWS, GCP API 호출"]
+    end
+
+    Terragrunt -->|"terragrunt.hcl 설정을<br/>Terraform 변수로 변환"| Terraform
+    Terraform -->|"output 값을<br/>dependency로 전달"| Terragrunt
+
+    style Terragrunt fill:#1a1a2e,stroke:#e94560,color:#fff
+    style Terraform fill:#1a1a2e,stroke:#0f3460,color:#fff
+```
+
+Terragrunt는 "어떤 설정으로 실행할지"를 결정하고, Terraform은 "실제 인프라를 어떻게 만들지"를 정의한다. Terragrunt가 `backend.tf`와 `provider.tf`를 생성하고 변수를 주입한 다음, Terraform이 그 파일들을 읽어서 실제로 AWS API를 호출하는 구조다.
 
 ## Terraform만으로 부족해지는 시점
 
@@ -121,6 +153,36 @@ inputs = {
 
 `dependency`를 쓰면 Terragrunt가 실행 순서를 자동으로 결정한다. VPC → RDS → ECS 순서로 apply되고, 역순으로 destroy된다.
 
+```mermaid
+graph LR
+    subgraph apply["apply 순서"]
+        direction LR
+        A_VPC["VPC"] --> A_SG["Security Group"]
+        A_VPC --> A_RDS["RDS"]
+        A_SG --> A_ECS["ECS"]
+        A_RDS --> A_ECS
+    end
+
+    subgraph destroy["destroy 순서"]
+        direction RL
+        D_ECS["ECS"] --> D_RDS["RDS"]
+        D_ECS --> D_SG["Security Group"]
+        D_SG --> D_VPC["VPC"]
+        D_RDS --> D_VPC
+    end
+
+    style A_VPC fill:#0f3460,stroke:#333,color:#fff
+    style A_SG fill:#0f3460,stroke:#333,color:#fff
+    style A_RDS fill:#0f3460,stroke:#333,color:#fff
+    style A_ECS fill:#0f3460,stroke:#333,color:#fff
+    style D_VPC fill:#e94560,stroke:#333,color:#fff
+    style D_SG fill:#e94560,stroke:#333,color:#fff
+    style D_RDS fill:#e94560,stroke:#333,color:#fff
+    style D_ECS fill:#e94560,stroke:#333,color:#fff
+```
+
+VPC와 Security Group처럼 의존 관계가 없는 모듈은 병렬로 실행된다. `run-all apply`를 하면 Terragrunt가 이 DAG(방향 비순환 그래프)를 분석해서 가능한 모듈부터 동시에 처리한다.
+
 한 가지 주의할 점은, dependency가 아직 apply되지 않은 상태에서 `plan`을 돌리면 에러가 난다. 이때 `mock_outputs`를 쓴다:
 
 ```hcl
@@ -139,7 +201,42 @@ dependency "vpc" {
 
 ## 멀티 계정 디렉토리 구조
 
-실무에서 많이 쓰는 구조다. AWS 계정을 환경별로 분리하고, 리전도 나눈다.
+실무에서 많이 쓰는 구조다. AWS 계정을 환경별로 분리하고, 리전도 나눈다. 전체 구조를 그림으로 보면 설정 파일이 어떻게 상속되는지 파악하기 쉽다.
+
+```mermaid
+graph TB
+    ROOT["live/terragrunt.hcl<br/>(backend, provider 공통 설정)"]
+
+    ROOT --> ENV_DEV["_env/dev.hcl<br/>account: 111111111111<br/>instance: db.t3.micro"]
+    ROOT --> ENV_STG["_env/staging.hcl<br/>account: 555555555555<br/>instance: db.t3.small"]
+    ROOT --> ENV_PROD["_env/prod.hcl<br/>account: 999999999999<br/>instance: db.r6g.large"]
+
+    ENV_DEV --> DEV_VPC["dev/ap-northeast-2/vpc<br/>terragrunt.hcl"]
+    ENV_DEV --> DEV_RDS["dev/ap-northeast-2/rds<br/>terragrunt.hcl"]
+    ENV_DEV --> DEV_ECS["dev/ap-northeast-2/ecs<br/>terragrunt.hcl"]
+
+    ENV_PROD --> PROD_VPC["prod/ap-northeast-2/vpc<br/>terragrunt.hcl"]
+    ENV_PROD --> PROD_RDS["prod/ap-northeast-2/rds<br/>terragrunt.hcl"]
+    ENV_PROD --> PROD_ECS["prod/ap-northeast-2/ecs<br/>terragrunt.hcl"]
+    ENV_PROD --> PROD_CF["prod/us-east-1/cloudfront<br/>terragrunt.hcl"]
+
+    MODULES["modules/<br/>vpc/ | rds/ | ecs/"]
+
+    DEV_VPC -.->|"terraform.source"| MODULES
+    DEV_RDS -.->|"terraform.source"| MODULES
+    PROD_VPC -.->|"terraform.source"| MODULES
+    PROD_ECS -.->|"terraform.source"| MODULES
+
+    style ROOT fill:#e94560,stroke:#333,color:#fff
+    style ENV_DEV fill:#0f3460,stroke:#333,color:#fff
+    style ENV_STG fill:#0f3460,stroke:#333,color:#fff
+    style ENV_PROD fill:#0f3460,stroke:#333,color:#fff
+    style MODULES fill:#16213e,stroke:#333,color:#fff
+```
+
+루트 `terragrunt.hcl`에서 backend와 provider를 정의하고, `_env/` 파일이 환경별 변수를 갖고 있다. 각 모듈의 `terragrunt.hcl`은 `include`로 이 두 설정을 상속받고, `terraform.source`로 공유 모듈을 참조한다. 환경을 추가할 때 `_env/` 파일과 디렉토리만 복사하면 된다.
+
+트리 구조로 보면 다음과 같다.
 
 ```
 infrastructure/
