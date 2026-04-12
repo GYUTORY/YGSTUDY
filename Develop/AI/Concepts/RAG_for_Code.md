@@ -1,7 +1,7 @@
 ---
 title: RAG for Code (코드 기반 RAG)
 tags: [ai, rag, retrieval-augmented-generation, code, architecture]
-updated: 2026-03-27
+updated: 2026-04-12
 ---
 
 # RAG for Code
@@ -33,16 +33,30 @@ Cursor가 코드를 수정할 때:
 
 ### 2.1 기본 흐름
 
+```mermaid
+flowchart LR
+    subgraph 인덱싱["인덱싱 (오프라인)"]
+        direction TB
+        A[".ts / .java / .py\n설정 파일, 문서"] --> B["AST 기반 청킹\n(함수·클래스 단위)"]
+        B --> C["임베딩 생성\n(text-embedding-3-large)"]
+        C --> D[("벡터 DB\n(pgvector, Chroma)")]
+    end
+
+    subgraph 검색생성["검색-생성 (온라인)"]
+        direction TB
+        E["사용자 쿼리"] --> F["쿼리 임베딩"]
+        F --> G["유사도 검색\n(cosine similarity)"]
+        G --> H["컨텍스트 구성\n(top-k 코드 청크)"]
+        H --> I["LLM 코드 생성/수정"]
+    end
+
+    D --- G
+
+    style 인덱싱 fill:#1e293b,stroke:#475569,color:#e2e8f0
+    style 검색생성 fill:#1e293b,stroke:#475569,color:#e2e8f0
 ```
-코드베이스                    RAG 파이프라인                    LLM
-┌──────────┐     ┌─────────────────────────┐     ┌──────────┐
-│ .ts 파일  │────▶│ 1. 청킹 (Chunking)       │     │          │
-│ .java 파일│     │ 2. 임베딩 (Embedding)     │     │  코드    │
-│ .py 파일  │     │ 3. 벡터 DB 저장          │     │  생성    │
-│ 설정 파일  │     │ 4. 유사도 검색           │────▶│  /수정   │
-│ 문서      │     │ 5. 컨텍스트 구성          │     │          │
-└──────────┘     └─────────────────────────┘     └──────────┘
-```
+
+인덱싱과 검색-생성은 별도 프로세스다. 인덱싱은 코드가 변경될 때 비동기로 돌리고, 검색-생성은 사용자 요청마다 실행된다. 실제로 Cursor가 프로젝트를 열면 백그라운드에서 인덱싱부터 시작하는 게 이 구조다.
 
 ### 2.2 각 단계 설명
 
@@ -208,26 +222,32 @@ PR 변경 사항 → 관련 기존 코드 검색 → 패턴 일관성 체크
 
 ## 8. Agentic RAG (A-RAG)
 
-**Agentic RAG**는 단순 검색-생성을 넘어, AI 에이전트가 검색 방법을 **스스로 결정**하는 방식이다.
+**Agentic RAG**는 단순 검색-생성을 넘어, AI 에이전트가 검색 방법을 **스스로 결정**하는 방식이다. 기존 RAG와 가장 큰 차이는 **검색 루프**다. 기존 RAG는 검색을 한 번 하고 끝이지만, Agentic RAG는 검색 결과를 보고 부족하면 다시 검색한다. 검색 쿼리를 재작성하거나, 다른 소스에서 추가 검색하는 판단을 에이전트가 한다.
 
+```mermaid
+flowchart TD
+    Q["사용자 쿼리\n'주문 취소 시 환불 처리 버그 수정'"] --> Router
+
+    Router{"라우터\n(쿼리 분석)"}
+    Router -->|"키워드: cancel, refund"| S1["코드 검색\n(Grep / 벡터 검색)"]
+    Router -->|"관련 스키마 필요"| S2["DB 스키마 검색"]
+    Router -->|"테스트 패턴 참고"| S3["테스트 코드 검색"]
+
+    S1 --> Merge["컨텍스트 병합"]
+    S2 --> Merge
+    S3 --> Merge
+
+    Merge --> Judge{"Self-reflection\n충분한가?"}
+    Judge -->|"부족"| Rewrite["쿼리 재작성"]
+    Rewrite --> Router
+    Judge -->|"충분"| Gen["LLM 코드 생성/수정"]
+
+    style Router fill:#4f46e5,stroke:#6366f1,color:#e2e8f0
+    style Judge fill:#b45309,stroke:#d97706,color:#e2e8f0
+    style Gen fill:#15803d,stroke:#22c55e,color:#e2e8f0
 ```
-기존 RAG:
-  쿼리 → 검색 → 생성  (검색 한 번으로 끝)
 
-Agentic RAG:
-  쿼리 → 에이전트가 판단:
-    "이 질문은 DB 스키마가 필요하군"
-    → DB 스키마 검색
-    "관련 서비스 코드도 필요해"
-    → 서비스 레이어 코드 검색
-    "테스트 패턴도 참고하자"
-    → 테스트 코드 검색
-    "검색 결과가 부족하면 다시 검색"
-    → 재검색 (self-reflection)
-    → 모든 컨텍스트 조합하여 생성
-```
-
-기존 RAG와 가장 큰 차이는 **검색 루프**다. 기존 RAG는 검색을 한 번 하고 끝이지만, Agentic RAG는 검색 결과를 보고 부족하면 다시 검색한다. 검색 쿼리를 재작성하거나, 다른 소스에서 추가 검색하는 판단을 에이전트가 한다.
+위 다이어그램에서 핵심은 `Self-reflection → 쿼리 재작성 → 라우터` 루프다. 검색 결과가 질문에 답하기에 부족하면 에이전트가 스스로 쿼리를 바꿔서 재검색한다. 이 루프가 없으면 그냥 RAG다.
 
 ### 8.1 Agentic RAG의 핵심 구성 요소
 
@@ -257,6 +277,194 @@ Claude Code를 예로 들면:
 이런 식으로 Claude Code, Cursor 같은 AI 코딩 도구가 내부적으로 Agentic RAG를 수행한다.
 
 RAG 파이프라인의 구현 방법과 각 단계별 세부 사항은 [RAG 파이프라인](RAG_Pipeline.md) 문서를 참고한다.
+
+---
+
+## 9. 함수형 파이프라인으로 코드 검색-생성 체인 구성
+
+코드 RAG에서는 검색 대상이 다양하다. 함수 시그니처, import 관계, 테스트 코드, 설정 파일 등이 각각 다른 검색 방식을 요구한다. 이걸 하나의 함수에 때려넣으면 금방 관리가 안 된다.
+
+각 검색 단계를 독립 함수로 만들고, 파이프라인으로 합성하면 검색 방식을 바꾸거나 단계를 추가/제거하기 쉬워진다. 함수형 RAG의 일반적인 패턴은 [Functional RAG](Functional_RAG.md) 문서에서 다루므로, 여기서는 코드 RAG에 특화된 구성만 다룬다.
+
+### 9.1 코드 검색-생성 체인 구조
+
+```mermaid
+flowchart LR
+    Q["쿼리"] --> Parse["쿼리 파싱\n(의도 추출)"]
+    Parse --> Fork{"검색 분기"}
+
+    Fork -->|"구현체 필요"| VS["벡터 검색\n(시맨틱)"]
+    Fork -->|"정확한 심볼"| GS["Grep 검색\n(키워드)"]
+    Fork -->|"파일 구조"| FS["AST 검색\n(import/호출 그래프)"]
+
+    VS --> Merge["결과 병합 + 중복 제거"]
+    GS --> Merge
+    FS --> Merge
+
+    Merge --> Rerank["Reranking"]
+    Rerank --> Ctx["컨텍스트 구성\n(코드 + 메타데이터)"]
+    Ctx --> LLM["LLM\n(코드 생성)"]
+
+    style Fork fill:#4f46e5,stroke:#6366f1,color:#e2e8f0
+    style Merge fill:#b45309,stroke:#d97706,color:#e2e8f0
+    style LLM fill:#15803d,stroke:#22c55e,color:#e2e8f0
+```
+
+코드 검색에서는 벡터 검색만으로 부족한 경우가 많다. `UserService`라는 정확한 클래스명을 찾을 때는 Grep이 벡터 검색보다 정확하다. 반대로 "인증 관련 로직"처럼 의미 기반 검색은 벡터 검색이 맞다. 두 방식을 합치는 하이브리드 검색이 코드 RAG의 기본이다.
+
+### 9.2 코드 검색 함수 구현
+
+```python
+from dataclasses import dataclass, field
+from typing import Callable
+
+@dataclass(frozen=True)
+class CodeChunk:
+    file_path: str
+    symbol_name: str       # 함수명, 클래스명
+    content: str
+    language: str
+    chunk_type: str        # "function", "class", "module"
+    line_start: int
+    line_end: int
+    score: float = 0.0
+    metadata: dict = field(default_factory=dict)
+
+# 각 검색 방식을 같은 시그니처로 통일한다
+CodeRetriever = Callable[[str], list[CodeChunk]]
+
+def vector_code_search(vectorstore, k: int = 10) -> CodeRetriever:
+    """시맨틱 검색 — "인증 처리 로직" 같은 의미 기반 쿼리에 적합"""
+    def search(query: str) -> list[CodeChunk]:
+        results = vectorstore.similarity_search_with_score(query, k=k)
+        return [
+            CodeChunk(
+                file_path=doc.metadata["file_path"],
+                symbol_name=doc.metadata.get("symbol", ""),
+                content=doc.page_content,
+                language=doc.metadata.get("language", ""),
+                chunk_type=doc.metadata.get("chunk_type", "function"),
+                line_start=doc.metadata.get("line_start", 0),
+                line_end=doc.metadata.get("line_end", 0),
+                score=score
+            )
+            for doc, score in results
+        ]
+    return search
+
+def grep_code_search(codebase_path: str) -> CodeRetriever:
+    """키워드 검색 — 정확한 심볼명, 에러 메시지 등을 찾을 때"""
+    import subprocess
+    def search(query: str) -> list[CodeChunk]:
+        result = subprocess.run(
+            ["rg", "--json", "-l", query, codebase_path],
+            capture_output=True, text=True
+        )
+        # 매칭 파일에서 함수/클래스 단위로 CodeChunk 추출
+        # (실제 구현에서는 tree-sitter 등으로 AST 파싱 필요)
+        return _extract_chunks_from_matches(result.stdout, query)
+    return search
+```
+
+`CodeRetriever` 타입을 통일했기 때문에 벡터 검색이든 Grep이든 같은 방식으로 파이프라인에 끼워넣을 수 있다.
+
+### 9.3 하이브리드 검색 합성
+
+```python
+def hybrid_search(*retrievers: CodeRetriever) -> CodeRetriever:
+    """여러 검색기의 결과를 합치고 중복을 제거한다."""
+    def search(query: str) -> list[CodeChunk]:
+        all_chunks = []
+        seen_keys = set()
+
+        for retriever in retrievers:
+            for chunk in retriever(query):
+                key = (chunk.file_path, chunk.line_start)
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    all_chunks.append(chunk)
+
+        return all_chunks
+    return search
+
+def with_dependency_expansion(
+    retriever: CodeRetriever,
+    import_graph: dict[str, list[str]]
+) -> CodeRetriever:
+    """검색된 코드가 import하는 파일도 함께 가져온다."""
+    def search(query: str) -> list[CodeChunk]:
+        chunks = retriever(query)
+        expanded = list(chunks)
+        for chunk in chunks:
+            deps = import_graph.get(chunk.file_path, [])
+            for dep_path in deps[:3]:  # 의존성 최대 3개로 제한
+                expanded.extend(_read_file_as_chunks(dep_path))
+        return expanded
+    return search
+
+# 조합
+code_retriever = with_dependency_expansion(
+    retriever=hybrid_search(
+        vector_code_search(vectorstore, k=10),
+        grep_code_search("/app/src")
+    ),
+    import_graph=build_import_graph("/app/src")
+)
+```
+
+`with_dependency_expansion`은 검색된 파일의 import 대상까지 컨텍스트에 포함시킨다. 코드 수정에서는 현재 파일만 보면 안 되는 경우가 많다. `PaymentService`를 수정하려면 `PaymentService`가 호출하는 `RefundClient`도 봐야 한다.
+
+### 9.4 코드 생성 체인 구성
+
+검색 결과를 LLM에 넘길 때 코드의 메타데이터를 함께 전달하면 생성 품질이 올라간다.
+
+```python
+def format_code_context(chunks: list[CodeChunk]) -> str:
+    """검색된 코드 청크를 LLM 컨텍스트로 포맷팅한다."""
+    sections = []
+    for chunk in chunks:
+        header = f"# {chunk.file_path}:{chunk.line_start}-{chunk.line_end}"
+        if chunk.symbol_name:
+            header += f" ({chunk.symbol_name})"
+        sections.append(f"{header}\n```{chunk.language}\n{chunk.content}\n```")
+    return "\n\n".join(sections)
+
+def build_code_rag_chain(
+    retriever: CodeRetriever,
+    llm_client,
+    model: str = "gpt-4o"
+) -> Callable[[str], str]:
+    """코드 검색-생성 파이프라인을 하나의 함수로 합성한다."""
+
+    def chain(query: str) -> str:
+        chunks = retriever(query)
+        context = format_code_context(chunks)
+
+        response = llm_client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": (
+                    "코드베이스에서 검색된 관련 코드를 참고하여 답변한다. "
+                    "파일 경로와 라인 번호가 포함되어 있으므로 "
+                    "수정할 위치를 정확히 지정해서 답변한다."
+                )},
+                {"role": "user", "content": f"{context}\n\n---\n\n{query}"}
+            ]
+        )
+        return response.choices[0].message.content
+
+    return chain
+
+# 사용
+chain = build_code_rag_chain(
+    retriever=code_retriever,
+    llm_client=openai_client
+)
+
+answer = chain("OrderService.cancelOrder에서 환불 처리가 누락된 것 같다. 확인해줘")
+```
+
+이 구조에서 retriever만 교체하면 검색 방식이 바뀌고, `format_code_context`만 수정하면 LLM에 전달하는 포맷이 바뀐다. 각 부분이 독립적이므로 A/B 테스트도 단계별로 할 수 있다.
 
 ---
 

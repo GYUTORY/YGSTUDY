@@ -6,3 +6,5 @@ nav:
   - AI_Hallucination.md
   - Prompt_Engineering.md
   - RAG_for_Code.md
+  - RAG_Pipeline.md
+  - Functional_RAG.md

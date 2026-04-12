@@ -1,7 +1,7 @@
 ---
 title: RAG 파이프라인
-tags: [RAG, Vector DB, LangChain, LlamaIndex, Embedding, Retrieval]
-updated: 2026-03-27
+tags: [RAG, Vector DB, LangChain, LlamaIndex, Embedding, Retrieval, Functional Programming, Pipeline]
+updated: 2026-04-12
 ---
 
 # RAG 파이프라인
@@ -9,6 +9,32 @@ updated: 2026-03-27
 RAG(Retrieval-Augmented Generation)는 외부 문서를 검색해서 LLM의 답변에 근거를 붙이는 구조다. 개념은 단순한데, 실제로 파이프라인을 구축하면 문서 파싱부터 검색 품질, 비용 관리까지 손댈 곳이 많다.
 
 이 문서는 RAG 파이프라인을 직접 구축하고 운영할 때 필요한 내용을 다룬다.
+
+---
+
+## 전체 파이프라인 흐름
+
+RAG 파이프라인은 문서를 준비하는 **인덱싱 단계**와, 질문에 답변하는 **쿼리 단계**로 나뉜다.
+
+```mermaid
+flowchart LR
+    subgraph indexing ["인덱싱 (오프라인)"]
+        direction LR
+        A["원본 문서<br/>(PDF, HTML, DB)"] --> B["전처리<br/>파싱"] --> C["청킹<br/>Chunking"] --> D["임베딩<br/>Embedding"] --> E["벡터 DB<br/>저장"]
+    end
+
+    subgraph query ["쿼리 (온라인)"]
+        direction LR
+        Q["사용자 질문"] --> QE["질문 임베딩"] --> S["벡터 검색"] --> R["Reranking"] --> P["프롬프트 구성"] --> G["LLM 생성"] --> ANS["답변"]
+    end
+
+    E -.->|"유사도 검색"| S
+
+    style indexing fill:#f8fafc,stroke:#94a3b8
+    style query fill:#f8fafc,stroke:#94a3b8
+```
+
+인덱싱은 사용자 질문과 무관하게 미리 수행하고, 쿼리 단계에서 인덱싱된 벡터를 검색한다. Reranking은 선택 단계로, 벡터 검색 품질이 충분하면 생략해도 된다.
 
 ---
 
@@ -119,6 +145,43 @@ def extract_from_db(conn_str: str) -> list[dict]:
 
 ## 2. 청킹
 
+### 청킹-임베딩-검색의 데이터 변환 과정
+
+각 단계에서 데이터가 어떤 형태로 바뀌는지 구체적으로 보자.
+
+```mermaid
+flowchart TD
+    subgraph chunk ["청킹"]
+        direction TB
+        D["원본 문서 (3000자)"]
+        D -->|"500자 단위, 50자 overlap"| C1["chunk 1<br/>'RAG는 검색 증강 생성...'"]
+        D --> C2["chunk 2<br/>'벡터 DB에 문서를 저장...'"]
+        D --> C3["chunk 3<br/>'reranker는 검색 결과를...'"]
+    end
+
+    subgraph embed ["임베딩"]
+        direction TB
+        C1 -->|"text-embedding-3-small"| V1["[0.12, -0.34, 0.56, ...]<br/>1536차원 벡터"]
+        C2 --> V2["[-0.23, 0.45, 0.11, ...]"]
+        C3 --> V3["[0.67, -0.12, 0.33, ...]"]
+    end
+
+    subgraph search ["검색"]
+        direction TB
+        Q["질문: 'reranker란?'"] -->|"embed"| QV["[0.61, -0.08, 0.29, ...]"]
+        QV -->|"cosine similarity"| R["chunk 3 (0.92)<br/>chunk 1 (0.71)"]
+    end
+
+    V1 & V2 & V3 --> DB[("벡터 DB")]
+    DB --> R
+
+    style chunk fill:#dbeafe,stroke:#3b82f6
+    style embed fill:#e0e7ff,stroke:#6366f1
+    style search fill:#fef3c7,stroke:#f59e0b
+```
+
+질문 벡터와 저장된 chunk 벡터 사이의 코사인 유사도를 계산해서, 가장 가까운 k개를 가져온다. chunk 크기가 너무 크면 관련 없는 내용이 섞이고, 너무 작으면 문맥이 부족하다. 이 균형을 잡는 게 청킹의 핵심이다.
+
 ### 기본 청킹 방식
 
 청킹은 문서를 LLM이 처리할 수 있는 크기로 나누는 작업이다. 단순해 보이지만 청킹 방식에 따라 검색 품질이 크게 달라진다.
@@ -220,6 +283,24 @@ def split_with_tables(text: str, chunk_size: int = 500) -> list[str]:
 
 ## 3. 하이브리드 검색
 
+### 하이브리드 검색 흐름
+
+```mermaid
+flowchart LR
+    Q["사용자 질문"]
+    Q --> BM["BM25<br/>키워드 검색"]
+    Q --> VS["벡터<br/>유사도 검색"]
+    BM --> N1["점수 정규화<br/>(0~1)"]
+    VS --> N2["점수 정규화<br/>(0~1)"]
+    N1 -->|"weight: 0.3"| M["가중 합산"]
+    N2 -->|"weight: 0.7"| M
+    M --> TOP["상위 K개<br/>후보 문서"]
+
+    style BM fill:#fef3c7,stroke:#f59e0b
+    style VS fill:#dbeafe,stroke:#3b82f6
+    style M fill:#e0e7ff,stroke:#6366f1
+```
+
 ### 왜 하이브리드인가
 
 벡터 검색만 쓰면 정확한 키워드 매칭에 약하다. "에러 코드 E-4012"를 검색할 때, 의미적으로 비슷한 "오류가 발생했습니다" 같은 문서가 올라오고 정작 "E-4012"가 포함된 문서는 밀려난다.
@@ -298,6 +379,25 @@ def tokenize_korean(text: str) -> list[str]:
 ---
 
 ## 4. Reranker
+
+### Reranker 동작 과정
+
+```mermaid
+flowchart LR
+    subgraph stage1 ["1단계: 검색 (빠름)"]
+        Q["질문"] --> S["하이브리드 검색"]
+        S --> C["후보 30개"]
+    end
+
+    subgraph stage2 ["2단계: 재정렬 (정밀)"]
+        C --> RE["Cross-encoder<br/>query + doc 쌍 입력"]
+        RE --> SC["관련성 점수<br/>재계산"]
+        SC --> TOP["상위 5개 선택"]
+    end
+
+    style stage1 fill:#dbeafe,stroke:#3b82f6
+    style stage2 fill:#fef3c7,stroke:#f59e0b
+```
 
 ### 왜 필요한가
 
@@ -766,3 +866,205 @@ RAG 파이프라인의 비용은 크게 세 가지다.
 - 간단한 질문은 작은 모델(GPT-4o-mini)로 처리하고, 복잡한 질문만 큰 모델로 라우팅한다.
 - 컨텍스트에 넣는 문서 수를 줄인다. 5개면 충분한데 10개 넣을 필요 없다.
 - 임베딩 모델을 직접 호스팅하면 대량 처리 시 API 호출보다 저렴하다.
+
+---
+
+## 9. 함수형 합성으로 파이프라인 구성하기
+
+지금까지 본 예제 코드는 대부분 절차적이다. `answer_question` 함수 하나에 임베딩, 검색, reranking, LLM 호출이 전부 들어가 있고, 단계를 바꾸려면 함수 내부를 뜯어야 한다.
+
+함수형 합성 방식으로 파이프라인을 구성하면, 각 단계를 독립된 함수로 만들고 이를 조합해서 전체 파이프라인을 만든다. 단계를 바꿔 끼우거나, 중간에 로깅을 추가하거나, 실패 처리를 덧붙이는 게 쉬워진다.
+
+### 파이프라인 합성 구조
+
+```mermaid
+flowchart TB
+    subgraph compose ["함수형 합성 파이프라인"]
+        direction LR
+        R["retrieve<br/>str → list[Doc]"] -->|"pipe"| RR["rerank<br/>list[Doc] → list[Doc]"] -->|"pipe"| G["generate<br/>list[Doc] → str"]
+    end
+
+    subgraph swap ["구성요소 교체"]
+        direction TB
+        R1["vector_retrieve"] -.-> R
+        R2["bm25_retrieve"] -.-> R
+        RR1["cohere_rerank"] -.-> RR
+        RR2["cross_encoder_rerank"] -.-> RR
+        RR3["identity (패스스루)"] -.-> RR
+    end
+
+    style compose fill:#f8fafc,stroke:#94a3b8
+    style swap fill:#fef3c7,stroke:#f59e0b
+```
+
+### 기본 구현
+
+각 단계를 `Callable`로 정의하고, `pipe`로 합성한다.
+
+```python
+from dataclasses import dataclass, field, replace
+from typing import Callable
+from functools import reduce
+
+@dataclass(frozen=True)
+class Document:
+    id: str
+    text: str
+    metadata: dict = field(default_factory=dict)
+    score: float = 0.0
+
+@dataclass(frozen=True)
+class RAGState:
+    query: str
+    documents: list[Document] = field(default_factory=list)
+    context: str = ""
+    answer: str = ""
+
+Step = Callable[[RAGState], RAGState]
+
+def pipe(*steps: Step) -> Step:
+    """왼쪽에서 오른쪽으로 함수를 합성한다."""
+    return reduce(lambda f, g: lambda x: g(f(x)), steps)
+```
+
+`RAGState`를 `frozen=True`로 선언했다. 각 단계에서 `replace`로 새 상태를 만들기 때문에, 파이프라인 어느 지점에서든 이전 상태를 확인할 수 있다.
+
+```python
+def retrieval_step(embed_fn, search_fn, min_score: float = 0.5) -> Step:
+    def step(state: RAGState) -> RAGState:
+        vector = embed_fn(state.query)
+        docs = search_fn(vector, k=10)
+        filtered = [d for d in docs if d.score >= min_score]
+        return replace(state, documents=filtered)
+    return step
+
+def rerank_step(rerank_fn, top_n: int = 3) -> Step:
+    def step(state: RAGState) -> RAGState:
+        reranked = rerank_fn(state.query, state.documents)
+        return replace(state, documents=reranked[:top_n])
+    return step
+
+def generation_step(llm_fn, template: str) -> Step:
+    def step(state: RAGState) -> RAGState:
+        context = "\n\n---\n\n".join(d.text for d in state.documents)
+        prompt = template.format(context=context, question=state.query)
+        answer = llm_fn(prompt)
+        return replace(state, context=context, answer=answer)
+    return step
+```
+
+파이프라인 조립:
+
+```python
+# 벡터 검색 + Cohere reranker
+rag = pipe(
+    retrieval_step(embed_fn=openai_embed, search_fn=pinecone_search),
+    rerank_step(rerank_fn=cohere_rerank, top_n=3),
+    generation_step(llm_fn=openai_chat, template=PROMPT_TEMPLATE)
+)
+
+# BM25 검색, reranker 없이
+simple_rag = pipe(
+    retrieval_step(embed_fn=openai_embed, search_fn=bm25_search, min_score=0.3),
+    generation_step(llm_fn=openai_chat, template=PROMPT_TEMPLATE)
+)
+
+result = rag(RAGState(query="배포 절차가 어떻게 되나요?"))
+print(result.answer)
+```
+
+### 미들웨어로 기능을 덧붙인다
+
+파이프라인 단계에 로깅이나 타이밍 측정을 넣고 싶으면, 단계 함수 자체를 수정하지 말고 감싸는 함수를 만든다.
+
+```python
+import time
+import logging
+
+def with_logging(name: str, step: Step) -> Step:
+    def wrapper(state: RAGState) -> RAGState:
+        logging.info(f"[{name}] 시작 — query: {state.query[:50]}")
+        result = step(state)
+        doc_count = len(result.documents)
+        logging.info(f"[{name}] 완료 — documents: {doc_count}")
+        return result
+    return wrapper
+
+def with_timing(name: str, step: Step) -> Step:
+    def wrapper(state: RAGState) -> RAGState:
+        start = time.time()
+        result = step(state)
+        elapsed = time.time() - start
+        logging.info(f"[{name}] {elapsed:.3f}s")
+        return result
+    return wrapper
+
+# 미들웨어 적용
+rag = pipe(
+    with_timing("retrieval", with_logging("retrieval",
+        retrieval_step(embed_fn=openai_embed, search_fn=pinecone_search)
+    )),
+    with_timing("reranking",
+        rerank_step(rerank_fn=cohere_rerank, top_n=3)
+    ),
+    with_timing("generation",
+        generation_step(llm_fn=openai_chat, template=PROMPT_TEMPLATE)
+    ),
+)
+```
+
+원본 단계 함수를 건드리지 않고 기능을 덧붙이므로, 미들웨어 조합을 바꿔도 핵심 로직은 영향을 받지 않는다.
+
+### 조건부 분기
+
+검색 결과가 부족하면 쿼리를 확장해서 재검색하는 식의 분기가 필요할 때가 있다.
+
+```mermaid
+flowchart TD
+    R["검색"] --> C{"문서 >= 3개?"}
+    C -->|"Yes"| RR["Reranking"]
+    C -->|"No"| QE["쿼리 확장"] --> R2["재검색"] --> RR
+    RR --> G["생성"]
+
+    style C fill:#fef3c7,stroke:#f59e0b
+    style QE fill:#fee2e2,stroke:#ef4444
+```
+
+```python
+def branch(condition: Callable[[RAGState], bool], if_true: Step, if_false: Step) -> Step:
+    def step(state: RAGState) -> RAGState:
+        if condition(state):
+            return if_true(state)
+        return if_false(state)
+    return step
+
+def identity(state: RAGState) -> RAGState:
+    return state
+
+rag = pipe(
+    retrieval_step(embed_fn=openai_embed, search_fn=pinecone_search),
+    branch(
+        condition=lambda s: len(s.documents) >= 3,
+        if_true=identity,
+        if_false=pipe(
+            query_expansion_step,
+            retrieval_step(embed_fn=openai_embed, search_fn=pinecone_search)
+        )
+    ),
+    rerank_step(rerank_fn=cohere_rerank),
+    generation_step(llm_fn=openai_chat, template=PROMPT_TEMPLATE)
+)
+```
+
+`branch`도 `Step` 타입이므로 `pipe` 안에 자유롭게 조합된다. `branch` 안에 `pipe`를 넣고, `pipe` 안에 `branch`를 넣는 식으로 복잡한 흐름을 표현할 수 있다.
+
+### 함수형 방식이 맞는 경우와 아닌 경우
+
+파이프라인이 3단계 이하이고 바뀔 일이 없으면 절차적으로 짜는 게 낫다. 함수형 패턴은 다음 상황에서 쓸 만하다:
+
+- 검색 방식이나 reranker를 자주 바꿔가며 실험한다
+- 도메인별로 다른 파이프라인을 조합해야 한다
+- 파이프라인 단계별로 단위 테스트가 필요하다
+- 실패 처리 경로가 단계마다 다르다
+
+LangChain LCEL을 쓰면 `|` 연산자로 Runnable을 합성하는 구조가 이 함수형 패턴과 같은 원리다. 프레임워크가 함수형 합성을 강제하므로 별도로 `pipe`를 구현할 필요는 없지만, 원리를 알아두면 LCEL 코드를 읽고 커스터마이징하기 수월하다.
