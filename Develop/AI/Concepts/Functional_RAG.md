@@ -1,6 +1,6 @@
 ---
 title: Functional RAG
-tags: [RAG, Functional Programming, LangChain, LCEL, Pipeline, Python]
+tags: [RAG, Functional Programming, LangChain, LCEL, Pipeline, Python, Streaming, Testing]
 updated: 2026-04-12
 ---
 
@@ -86,7 +86,23 @@ Generator = Callable[[str, list[Document]], str]
 
 ### 2.2 함수 합성으로 파이프라인을 구성한다
 
-각 단계를 따로 만들었으면, 이를 합성해서 파이프라인을 만든다.
+각 단계를 따로 만들었으면, 이를 합성해서 파이프라인을 만든다. 전체 합성 구조를 그림으로 보면 다음과 같다.
+
+```mermaid
+graph LR
+    Q[query: str] --> R[Retriever]
+    R -->|list-Document| RR[Reranker]
+    RR -->|list-Document| G[Generator]
+    G -->|str| A[answer]
+
+    style Q fill:#f9f9f9,stroke:#333
+    style A fill:#f9f9f9,stroke:#333
+    style R fill:#e8f4fd,stroke:#2196F3
+    style RR fill:#e8f4fd,stroke:#2196F3
+    style G fill:#e8f4fd,stroke:#2196F3
+```
+
+각 블록은 `Callable`이고, 입력 타입과 출력 타입이 맞아야 합성이 된다. 중간에 Reranker를 빼려면 `lambda query, docs: docs`로 교체하면 되고, Retriever를 BM25로 바꾸려면 해당 블록만 갈아 끼우면 된다.
 
 ```python
 from functools import reduce
@@ -225,7 +241,33 @@ def bind_result(result: Result, f: Callable[[T], Result]) -> Result:
     return f(result.value)
 ```
 
-### 3.2 Result 기반 파이프라인
+### 3.2 Result가 파이프라인을 흐르는 구조
+
+Result 패턴에서 데이터가 파이프라인을 통과하는 흐름을 보자. 성공 경로와 실패 경로가 분리되는 게 핵심이다.
+
+```mermaid
+graph TD
+    Start[query] --> Retrieve[safe_retrieve]
+    Retrieve -->|Success-docs| Rerank[safe_rerank]
+    Retrieve -->|Failure| Skip1[rerank 건너뜀]
+    Rerank -->|Success-reranked| Generate[safe_generate]
+    Rerank -->|Failure fallback| Fallback[원본 docs 사용]
+    Fallback --> Generate
+    Generate -->|Success-answer| Done[Success: 최종 답변]
+    Generate -->|Failure| Err[Failure: stage=generation]
+    Skip1 --> Skip2[generate 건너뜀]
+    Skip2 --> ErrFinal[Failure: stage=retrieval]
+
+    style Start fill:#f9f9f9,stroke:#333
+    style Done fill:#d4edda,stroke:#28a745
+    style Err fill:#f8d7da,stroke:#dc3545
+    style ErrFinal fill:#f8d7da,stroke:#dc3545
+    style Fallback fill:#fff3cd,stroke:#ffc107
+```
+
+`bind_result`가 하는 일이 이 그림에 다 나와 있다. Success면 다음 함수를 실행하고, Failure면 나머지 단계를 전부 건너뛴다. reranker처럼 fallback이 있는 단계는 실패해도 Success로 복구되어 파이프라인이 계속 진행된다.
+
+### 3.3 Result 기반 파이프라인
 
 ```python
 def safe_retrieve(retriever: Retriever) -> Callable[[str], Result]:
@@ -594,7 +636,283 @@ def build_functional_rag(vectorstore, cohere_client, openai_client):
 
 ---
 
-## 7. 실무에서 주의할 점
+## 7. 단계별 단위 테스트 작성
+
+함수형 RAG의 가장 큰 이점은 각 단계를 독립적으로 테스트할 수 있다는 점이다. 외부 의존성 없이 입력-출력만 검증하면 된다.
+
+### 7.1 Retriever 테스트
+
+Retriever는 query를 받아 Document 리스트를 반환한다. 외부 벡터DB를 호출하는 실제 retriever 대신, 테스트에서는 결과가 정해진 fake retriever를 넣는다.
+
+```python
+import pytest
+
+def fake_retriever(query: str) -> list[Document]:
+    """테스트용 retriever. 쿼리에 상관없이 고정된 문서를 반환한다."""
+    return [
+        Document(id="1", text="Python은 인터프리터 언어다.", metadata={"source": "wiki"}, score=0.9),
+        Document(id="2", text="Python 3.12에서 성능이 개선됐다.", metadata={"source": "blog"}, score=0.7),
+    ]
+
+def empty_retriever(query: str) -> list[Document]:
+    return []
+
+def test_retriever_returns_documents():
+    docs = fake_retriever("Python이 뭔가요?")
+    assert len(docs) == 2
+    assert all(isinstance(d, Document) for d in docs)
+
+def test_retriever_empty_result():
+    docs = empty_retriever("존재하지 않는 주제")
+    assert docs == []
+```
+
+실제 벡터DB 연동 테스트는 통합 테스트에서 따로 한다. 단위 테스트에서는 retriever의 **인터페이스**(입력 타입, 출력 타입, 반환 구조)만 검증한다.
+
+### 7.2 Reranker 테스트
+
+Reranker는 query와 Document 리스트를 받아 점수가 재정렬된 Document 리스트를 반환한다. 테스트에서 확인할 것은 세 가지: 순서가 바뀌었는가, 점수가 갱신되었는가, 문서 개수가 top_n 이하인가.
+
+```python
+def fake_reranker(query: str, docs: list[Document]) -> list[Document]:
+    """점수 기준으로 역순 정렬하는 fake reranker."""
+    sorted_docs = sorted(docs, key=lambda d: d.score)
+    return [
+        replace(d, score=1.0 - i * 0.1, metadata={**d.metadata, "rerank_score": 1.0 - i * 0.1})
+        for i, d in enumerate(sorted_docs)
+    ]
+
+def test_reranker_changes_order():
+    docs = [
+        Document(id="1", text="A", metadata={}, score=0.5),
+        Document(id="2", text="B", metadata={}, score=0.9),
+    ]
+    reranked = fake_reranker("test", docs)
+    # 점수 낮은 문서가 먼저 와서 새 점수를 받는다
+    assert reranked[0].id == "1"
+    assert reranked[1].id == "2"
+
+def test_reranker_preserves_original_metadata():
+    docs = [Document(id="1", text="A", metadata={"source": "wiki"}, score=0.5)]
+    reranked = fake_reranker("test", docs)
+    assert reranked[0].metadata["source"] == "wiki"
+    assert "rerank_score" in reranked[0].metadata
+
+def test_reranker_with_empty_docs():
+    reranked = fake_reranker("test", [])
+    assert reranked == []
+```
+
+### 7.3 Result 래퍼 테스트
+
+`safe` 래퍼가 정상 동작하는지, 실패 시 Failure를 제대로 반환하는지 테스트한다.
+
+```python
+def test_safe_success():
+    fn = safe("test_stage", lambda x: x * 2)
+    result = fn(Success(5))
+    assert isinstance(result, Success)
+    assert result.value == 10
+
+def test_safe_failure_propagation():
+    """이전 단계에서 Failure가 오면 함수를 실행하지 않고 그대로 통과시킨다."""
+    fn = safe("test_stage", lambda x: x * 2)
+    failure = Failure(error="이전 단계 오류", stage="prev")
+    result = fn(failure)
+    assert isinstance(result, Failure)
+    assert result.stage == "prev"  # 이전 단계의 stage가 유지된다
+
+def test_safe_with_exception():
+    def exploding_fn(x):
+        raise ValueError("터짐")
+    
+    fn = safe("boom_stage", exploding_fn)
+    result = fn(Success("input"))
+    assert isinstance(result, Failure)
+    assert result.stage == "boom_stage"
+    assert "터짐" in result.error
+
+def test_safe_with_fallback():
+    def failing_fn(x):
+        raise RuntimeError("API 다운")
+    
+    fn = safe("rerank", failing_fn, fallback=lambda x: x)
+    result = fn(Success([Document(id="1", text="A", metadata={})]))
+    assert isinstance(result, Success)  # fallback이 작동해서 Success로 복구
+```
+
+### 7.4 파이프라인 통합 테스트
+
+개별 단계를 검증했으면, 전체 파이프라인을 fake 함수로 조립해서 통합 테스트를 한다. 외부 API 호출 없이 파이프라인 흐름만 검증하는 것이 목적이다.
+
+```python
+def fake_generator(query_and_docs: tuple) -> str:
+    query, docs = query_and_docs
+    return f"답변: {query}에 대해 {len(docs)}개 문서 참고"
+
+def test_full_pipeline_success():
+    pipeline = pipe(
+        safe("retrieval", lambda q: (q, fake_retriever(q))),
+        safe("reranking", lambda qd: (qd[0], fake_reranker(qd[0], qd[1]))),
+        safe("generation", fake_generator)
+    )
+    result = pipeline(Success("Python이 뭔가요?"))
+    assert isinstance(result, Success)
+    assert "2개 문서 참고" in result.value
+
+def test_pipeline_retrieval_failure():
+    def failing_retriever(q):
+        raise ConnectionError("벡터DB 연결 실패")
+    
+    pipeline = pipe(
+        safe("retrieval", lambda q: (q, failing_retriever(q))),
+        safe("reranking", lambda qd: qd),
+        safe("generation", fake_generator)
+    )
+    result = pipeline(Success("test"))
+    assert isinstance(result, Failure)
+    assert result.stage == "retrieval"
+```
+
+이 구조에서는 mock 라이브러리가 필요 없다. 함수 시그니처만 맞추면 어떤 구현체든 끼워넣을 수 있으므로, 테스트가 구현 세부사항에 의존하지 않는다.
+
+---
+
+## 8. 스트리밍 환경에서의 함수형 파이프라인
+
+LLM 응답을 스트리밍으로 받을 때 함수형 파이프라인을 어떻게 유지하는지가 실무에서 자주 나오는 문제다. retrieval과 reranking까지는 일반 함수로 처리하고, generation 단계에서만 스트리밍이 필요한 경우가 대부분이다.
+
+### 8.1 Generator를 iterator로 바꾸기
+
+스트리밍의 핵심은 generator 단계가 `str`이 아니라 `Iterator[str]`을 반환하게 만드는 것이다.
+
+```python
+from typing import Iterator
+
+def create_streaming_generator(llm_client, model: str = "gpt-4o") -> Callable:
+    def generate(query_and_docs: tuple) -> Iterator[str]:
+        query, docs = query_and_docs
+        context = "\n\n---\n\n".join(d.text for d in docs)
+        
+        stream = llm_client.chat.completions.create(
+            model=model,
+            messages=[{
+                "role": "user",
+                "content": f"다음 문서를 참고해서 답변하세요:\n\n{context}\n\n질문: {query}"
+            }],
+            stream=True
+        )
+        
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
+    
+    return generate
+```
+
+### 8.2 파이프라인에서 스트리밍 구간 분리
+
+파이프라인 전체를 스트리밍으로 만들 필요는 없다. retrieval, reranking은 한 번에 결과가 나오는 단계이고, 스트리밍이 필요한 건 generation뿐이다. 파이프라인을 "준비 단계"와 "스트리밍 단계"로 분리하면 된다.
+
+```mermaid
+graph LR
+    Q[query] --> Prep[준비 파이프라인]
+    Prep -->|Result: query + docs| Check{Success?}
+    Check -->|Yes| Stream[Streaming Generator]
+    Check -->|No| Err[Failure 반환]
+    Stream -->|Iterator-str| Client[클라이언트]
+
+    style Q fill:#f9f9f9,stroke:#333
+    style Prep fill:#e8f4fd,stroke:#2196F3
+    style Stream fill:#d4edda,stroke:#28a745
+    style Err fill:#f8d7da,stroke:#dc3545
+    style Client fill:#f9f9f9,stroke:#333
+```
+
+```python
+def build_streaming_rag(vectorstore, cohere_client, openai_client):
+    retrieve = create_vector_retriever(vectorstore, k=10)
+    rerank = create_reranker(cohere_client, top_n=3)
+    stream_generate = create_streaming_generator(openai_client)
+    
+    # 준비 단계: retrieval + reranking
+    prepare = pipe(
+        safe("retrieval", lambda q: (q, retrieve(q))),
+        safe("reranking", rerank, fallback=lambda qd: qd),
+    )
+    
+    def stream_pipeline(query: str) -> Union[Iterator[str], Failure]:
+        result = prepare(Success(query))
+        if isinstance(result, Failure):
+            return result
+        return stream_generate(result.value)
+    
+    return stream_pipeline
+```
+
+사용하는 쪽에서는 반환 타입을 보고 분기한다:
+
+```python
+pipeline = build_streaming_rag(vectorstore, cohere_client, openai_client)
+result = pipeline("Python GIL이 뭔가요?")
+
+if isinstance(result, Failure):
+    print(f"[{result.stage}] 오류: {result.error}")
+else:
+    for token in result:
+        print(token, end="", flush=True)
+```
+
+### 8.3 스트리밍 중 에러 처리
+
+스트리밍 도중에 연결이 끊기거나 API 오류가 발생하는 경우가 있다. iterator를 감싸서 에러를 잡으면 된다.
+
+```python
+def safe_stream(stage: str, stream_fn: Callable) -> Callable:
+    """스트리밍 generator를 에러 처리로 감싼다."""
+    def wrapper(query_and_docs):
+        try:
+            for token in stream_fn(query_and_docs):
+                yield token
+        except Exception as e:
+            # 이미 일부 토큰이 전송된 상태이므로,
+            # 에러 메시지를 마지막 토큰으로 내보낸다
+            yield f"\n\n[오류 발생: {stage} - {str(e)}]"
+    return wrapper
+```
+
+주의할 점이 하나 있다. 스트리밍 중 에러가 나면 이미 클라이언트에 일부 응답이 전달된 상태다. Result 패턴처럼 깔끔하게 Failure를 반환할 수가 없다. 위 코드처럼 에러 메시지를 마지막 chunk로 보내거나, SSE(Server-Sent Events)를 쓴다면 error 이벤트 타입으로 보내는 방법이 있다.
+
+### 8.4 LCEL에서의 스트리밍
+
+LCEL은 스트리밍을 기본 지원한다. `invoke` 대신 `stream`을 호출하면 된다.
+
+```python
+chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+# 스트리밍 호출
+for chunk in chain.stream("RAG에서 chunk 크기는 어떻게 정하나요?"):
+    print(chunk, end="", flush=True)
+```
+
+LCEL의 각 Runnable은 `stream` 메서드를 갖고 있고, 파이프라인의 마지막 Runnable이 스트리밍을 지원하면 전체 체인도 스트리밍이 된다. retriever나 prompt 단계는 스트리밍할 게 없으므로 결과를 한 번에 내보내고, LLM 단계에서만 토큰 단위로 스트리밍된다.
+
+비동기 스트리밍도 같은 구조다:
+
+```python
+async for chunk in chain.astream("RAG에서 chunk 크기는 어떻게 정하나요?"):
+    print(chunk, end="", flush=True)
+```
+
+---
+
+## 9. 실무에서 주의할 점
 
 ### 디버깅이 오히려 어려워지는 경우
 

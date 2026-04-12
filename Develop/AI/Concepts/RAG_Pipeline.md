@@ -40,6 +40,44 @@ flowchart LR
 
 ## 1. 문서 수집과 전처리
 
+### 전처리 파이프라인 흐름
+
+소스가 다르면 파싱 방식도 다르지만, 결과물은 동일한 형태(텍스트 + 메타데이터)로 통일해야 한다. 각 파서를 독립 함수로 분리하면, 소스가 추가되어도 파이프라인 뒷단에 영향이 없다.
+
+```mermaid
+flowchart LR
+    subgraph sources ["소스"]
+        direction TB
+        PDF["PDF"]
+        HTML["HTML"]
+        DB["DB"]
+    end
+
+    subgraph parsers ["파서 (소스별 독립)"]
+        direction TB
+        PP["pdf_parser<br/>PDF → text + meta"]
+        HP["html_parser<br/>HTML → text + meta"]
+        DP["db_extractor<br/>rows → text + meta"]
+    end
+
+    subgraph normalize ["정규화"]
+        direction TB
+        N["공통 전처리<br/>인코딩·null byte·메타데이터"]
+    end
+
+    PDF --> PP
+    HTML --> HP
+    DB --> DP
+    PP & HP & DP --> N
+    N --> OUT["list[dict]<br/>통일된 문서 포맷"]
+
+    style sources fill:#f1f5f9,stroke:#94a3b8
+    style parsers fill:#dbeafe,stroke:#3b82f6
+    style normalize fill:#e0e7ff,stroke:#6366f1
+```
+
+이 구조에서 각 파서는 `str → list[dict]` 타입의 함수다. 입력 포맷만 다르고 출력은 같으므로, 뒤에 나오는 함수형 합성 패턴(9절)에서 `pipe`로 연결할 때 파서를 갈아 끼우기 쉽다.
+
 ### 소스별 파싱
 
 문서 소스마다 파싱 방식이 다르고, 각각 고유한 문제가 있다.
@@ -181,6 +219,29 @@ flowchart TD
 ```
 
 질문 벡터와 저장된 chunk 벡터 사이의 코사인 유사도를 계산해서, 가장 가까운 k개를 가져온다. chunk 크기가 너무 크면 관련 없는 내용이 섞이고, 너무 작으면 문맥이 부족하다. 이 균형을 잡는 게 청킹의 핵심이다.
+
+### 청킹 방식별 특성
+
+어떤 방식으로 나누느냐에 따라 검색 결과가 달라진다. 문서 특성에 맞는 방식을 골라야 한다.
+
+```mermaid
+flowchart TD
+    DOC["원본 문서"]
+
+    DOC --> FC["고정 크기 청킹<br/>chunk_size=500"]
+    DOC --> SC["구조 기반 청킹<br/>heading·paragraph 단위"]
+    DOC --> SMC["시맨틱 청킹<br/>의미 경계에서 분리"]
+
+    FC --> FC_R["일괄 처리에 적합<br/>구현 단순<br/>문맥 끊김 가능성 있음"]
+    SC --> SC_R["기술 문서에 적합<br/>섹션 구조 보존<br/>크기 편차 큼"]
+    SMC --> SMC_R["대화형 텍스트에 적합<br/>정밀도 높음<br/>임베딩 비용 추가 발생"]
+
+    style FC fill:#dbeafe,stroke:#3b82f6
+    style SC fill:#fef3c7,stroke:#f59e0b
+    style SMC fill:#e0e7ff,stroke:#6366f1
+```
+
+고정 크기 청킹은 대부분의 상황에서 시작점으로 쓸 만하다. API 문서나 기술 문서처럼 heading이 명확하면 구조 기반 청킹이 낫고, 채팅 로그처럼 토픽이 자연스럽게 전환되는 텍스트는 시맨틱 청킹이 맞다. 시맨틱 청킹은 문장 간 임베딩 유사도를 계산해서 의미가 바뀌는 지점에서 자르는 방식인데, 임베딩 호출이 추가로 필요하므로 비용을 고려해야 한다.
 
 ### 기본 청킹 방식
 
@@ -445,7 +506,26 @@ results = rerank(query, candidates, top_k=5)
 
 ### 프롬프트 구성
 
-검색된 문서를 LLM에 전달하는 프롬프트 구성이 답변 품질에 직접 영향을 준다.
+검색된 문서를 어떤 구조로 LLM에 전달하느냐가 답변 품질에 직접 영향을 준다. 컨텍스트 윈도우 안에서 각 영역이 차지하는 비율을 의식해야 한다.
+
+```mermaid
+block-beta
+    columns 1
+    block:window["LLM 컨텍스트 윈도우"]
+        columns 1
+        A["시스템 프롬프트 / 지시문 (~200 토큰)"]
+        B["검색된 문서 컨텍스트 (3~5개, ~4000 토큰)"]
+        C["사용자 질문 (~100 토큰)"]
+        D["답변 생성 영역 (나머지)"]
+    end
+
+    style A fill:#e0e7ff,stroke:#6366f1
+    style B fill:#dbeafe,stroke:#3b82f6
+    style C fill:#fef3c7,stroke:#f59e0b
+    style D fill:#f1f5f9,stroke:#94a3b8
+```
+
+검색된 문서가 차지하는 영역이 가장 크다. 여기에 넣는 문서 수와 순서가 답변 품질을 결정한다.
 
 ```python
 def build_prompt(query: str, contexts: list[dict]) -> str:
@@ -675,6 +755,32 @@ class RAGPipeline:
 
 RAG 파이프라인의 품질을 측정하려면 생성된 답변과 검색 결과 양쪽을 평가해야 한다. RAGAS 프레임워크가 표준적인 평가 지표를 제공한다.
 
+### 평가 대상과 지표 매핑
+
+RAG는 검색과 생성 두 부분으로 나뉘므로, 평가 지표도 각각 다른 부분을 측정한다.
+
+```mermaid
+flowchart LR
+    subgraph retrieval ["검색 평가"]
+        CP["Context Precision<br/>관련 문서가 상위에 있나"]
+        CR["Context Recall<br/>필요한 정보가 빠짐없이 검색되었나"]
+    end
+
+    subgraph generation ["생성 평가"]
+        F["Faithfulness<br/>답변이 문서에 근거하나"]
+        AR["Answer Relevancy<br/>답변이 질문에 맞나"]
+    end
+
+    Q["질문"] --> retrieval
+    retrieval -->|"검색된 문서"| generation
+    generation --> A["답변"]
+
+    style retrieval fill:#dbeafe,stroke:#3b82f6
+    style generation fill:#fef3c7,stroke:#f59e0b
+```
+
+검색 지표가 낮으면 생성 품질을 아무리 올려도 소용없다. 파이프라인을 개선할 때는 검색 지표부터 확인하고, 검색이 충분한데 답변이 안 좋으면 그때 생성 쪽을 손본다.
+
 ### 주요 지표
 
 **Faithfulness (충실도)**
@@ -875,6 +981,35 @@ RAG 파이프라인의 비용은 크게 세 가지다.
 
 함수형 합성 방식으로 파이프라인을 구성하면, 각 단계를 독립된 함수로 만들고 이를 조합해서 전체 파이프라인을 만든다. 단계를 바꿔 끼우거나, 중간에 로깅을 추가하거나, 실패 처리를 덧붙이는 게 쉬워진다.
 
+### 단계별 타입 흐름
+
+함수형으로 파이프라인을 분리할 때 핵심은, 각 단계의 입력과 출력 타입이 명확해야 한다는 것이다. 타입이 맞아야 `pipe`로 합성할 수 있고, 단계를 교체할 때도 같은 타입 시그니처를 구현하기만 하면 된다.
+
+```mermaid
+flowchart LR
+    subgraph types ["각 단계의 입출력 타입"]
+        direction LR
+        E["embed<br/><code>str → Vector</code>"]
+        S["search<br/><code>Vector → list[Doc]</code>"]
+        RR["rerank<br/><code>(str, list[Doc]) → list[Doc]</code>"]
+        B["build_prompt<br/><code>(str, list[Doc]) → str</code>"]
+        G["generate<br/><code>str → str</code>"]
+    end
+
+    E --> S --> RR --> B --> G
+
+    style types fill:#f8fafc,stroke:#94a3b8
+    style E fill:#dbeafe,stroke:#3b82f6
+    style S fill:#dbeafe,stroke:#3b82f6
+    style RR fill:#e0e7ff,stroke:#6366f1
+    style B fill:#fef3c7,stroke:#f59e0b
+    style G fill:#fef3c7,stroke:#f59e0b
+```
+
+이 문서 앞부분에서 다룬 전처리(1절), 청킹(2절), 검색(3~4절), 생성(5절) 각각이 위 다이어그램의 한 블록에 대응한다. 절차적 코드에서는 이 경계가 모호한데, 함수형으로 분리하면 각 블록을 독립적으로 테스트하고 교체할 수 있다.
+
+실제로 `RAGState`를 도입하면 모든 단계가 `RAGState → RAGState` 타입으로 통일되어 합성이 더 쉬워진다. 아래에서 구체적인 구현을 살펴보자.
+
 ### 파이프라인 합성 구조
 
 ```mermaid
@@ -1068,3 +1203,33 @@ rag = pipe(
 - 실패 처리 경로가 단계마다 다르다
 
 LangChain LCEL을 쓰면 `|` 연산자로 Runnable을 합성하는 구조가 이 함수형 패턴과 같은 원리다. 프레임워크가 함수형 합성을 강제하므로 별도로 `pipe`를 구현할 필요는 없지만, 원리를 알아두면 LCEL 코드를 읽고 커스터마이징하기 수월하다.
+
+### Functional RAG와의 관계
+
+이 문서에서는 RAG 파이프라인의 각 단계(전처리, 청킹, 검색, reranking, 생성)가 무엇을 하는지와, 마지막 절에서 함수형 합성으로 이들을 조합하는 방법을 다뤘다.
+
+[Functional RAG](Functional_RAG.md) 문서는 이 합성 패턴 자체를 더 깊이 파고든다. 순수 함수 분리, 불변 Document 체인, `Result` 타입을 사용한 에러 전파, 스트리밍 파이프라인, 테스트 패턴 같은 내용이다.
+
+```mermaid
+flowchart LR
+    subgraph this ["이 문서 (RAG 파이프라인)"]
+        direction TB
+        T1["각 단계가 하는 일<br/>전처리·청킹·검색·생성"]
+        T2["파이프라인 구축과 운영<br/>평가·비용·스케일링"]
+        T3["함수형 합성 기초<br/>pipe·미들웨어·분기"]
+    end
+
+    subgraph func ["Functional RAG"]
+        direction TB
+        F1["합성 패턴 심화<br/>순수 함수·불변 데이터"]
+        F2["에러 처리<br/>Result 타입·fallback 체인"]
+        F3["실전 적용<br/>스트리밍·테스트·LCEL 매핑"]
+    end
+
+    T3 -->|"합성 원리를<br/>더 깊이"| F1
+
+    style this fill:#dbeafe,stroke:#3b82f6
+    style func fill:#e0e7ff,stroke:#6366f1
+```
+
+이 문서의 9절 코드를 운영 수준으로 발전시키려면 Functional RAG 문서의 에러 처리, 스트리밍 패턴을 참고한다. 반대로 Functional RAG 문서의 예제 코드가 어떤 맥락에서 쓰이는지 이해하려면 이 문서의 1~8절을 먼저 보는 게 좋다.
