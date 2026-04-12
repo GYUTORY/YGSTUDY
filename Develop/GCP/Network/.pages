@@ -1,2 +1,4 @@
 nav:
   - GCP_VPC.md
+  - Cloud_NAT.md
+  - Cloud_VPN.md
