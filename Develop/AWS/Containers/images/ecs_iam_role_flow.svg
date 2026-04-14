@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="Pretendard, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-exec" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#e76f51"/>
+    </marker>
+    <marker id="arrow-task" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2a9d8f"/>
+    </marker>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="520" rx="12" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">ECS IAM Role 권한 흐름</text>
+
+  <!-- Timeline bar -->
+  <rect x="60" y="56" width="780" height="28" rx="4" fill="#e2e8f0"/>
+  <rect x="60" y="56" width="360" height="28" rx="4" fill="#fef3e2"/>
+  <rect x="420" y="56" width="420" height="28" rx="4" fill="#e0f5f0"/>
+  <text x="240" y="74" text-anchor="middle" font-size="11" font-weight="600" fill="#e76f51">컨테이너 기동 단계</text>
+  <text x="630" y="74" text-anchor="middle" font-size="11" font-weight="600" fill="#2a9d8f">런타임 단계</text>
+
+  <!-- Task Definition box -->
+  <rect x="40" y="100" width="200" height="120" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="40" y="100" width="200" height="32" rx="8" fill="#334155"/>
+  <rect x="40" y="120" width="200" height="12" fill="#334155"/>
+  <text x="140" y="121" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Task Definition</text>
+
+  <rect x="56" y="145" width="168" height="26" rx="4" fill="#fef3e2" stroke="#f4a261" stroke-width="1"/>
+  <text x="140" y="163" text-anchor="middle" font-size="11" fill="#9a3412">executionRoleArn</text>
+
+  <rect x="56" y="180" width="168" height="26" rx="4" fill="#e0f5f0" stroke="#2a9d8f" stroke-width="1"/>
+  <text x="140" y="198" text-anchor="middle" font-size="11" fill="#115e59">taskRoleArn</text>
+
+  <!-- ECS Agent -->
+  <rect x="310" y="110" width="140" height="50" rx="8" fill="#fff" stroke="#e76f51" stroke-width="2" filter="url(#shadow)"/>
+  <text x="380" y="131" text-anchor="middle" font-size="11" font-weight="600" fill="#9a3412">ECS 에이전트</text>
+  <text x="380" y="147" text-anchor="middle" font-size="10" fill="#78716c">(Execution Role 사용)</text>
+
+  <!-- Arrow: TaskDef executionRole -> ECS Agent -->
+  <line x1="224" y1="158" x2="306" y2="135" stroke="#e76f51" stroke-width="1.5" marker-end="url(#arrow-exec)" stroke-dasharray="6,3"/>
+
+  <!-- Infra services -->
+  <rect x="280" y="195" width="100" height="42" rx="6" fill="#fff7ed" stroke="#f4a261" stroke-width="1" filter="url(#shadow)"/>
+  <text x="330" y="214" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">ECR</text>
+  <text x="330" y="228" text-anchor="middle" font-size="9" fill="#a8a29e">이미지 Pull</text>
+
+  <rect x="395" y="195" width="100" height="42" rx="6" fill="#fff7ed" stroke="#f4a261" stroke-width="1" filter="url(#shadow)"/>
+  <text x="445" y="214" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">CloudWatch</text>
+  <text x="445" y="228" text-anchor="middle" font-size="9" fill="#a8a29e">로그 드라이버</text>
+
+  <rect x="335" y="250" width="110" height="42" rx="6" fill="#fff7ed" stroke="#f4a261" stroke-width="1" filter="url(#shadow)"/>
+  <text x="390" y="269" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">Secrets / SSM</text>
+  <text x="390" y="283" text-anchor="middle" font-size="9" fill="#a8a29e">환경 변수 주입</text>
+
+  <!-- Arrows: Agent -> Infra services -->
+  <line x1="350" y1="160" x2="330" y2="191" stroke="#e76f51" stroke-width="1.5" marker-end="url(#arrow-exec)"/>
+  <line x1="400" y1="160" x2="445" y2="191" stroke="#e76f51" stroke-width="1.5" marker-end="url(#arrow-exec)"/>
+  <line x1="380" y1="160" x2="390" y2="246" stroke="#e76f51" stroke-width="1.5" marker-end="url(#arrow-exec)"/>
+
+  <!-- Divider -->
+  <line x1="520" y1="96" x2="520" y2="310" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Application container -->
+  <rect x="560" y="110" width="140" height="50" rx="8" fill="#fff" stroke="#2a9d8f" stroke-width="2" filter="url(#shadow)"/>
+  <text x="630" y="131" text-anchor="middle" font-size="11" font-weight="600" fill="#115e59">애플리케이션</text>
+  <text x="630" y="147" text-anchor="middle" font-size="10" fill="#78716c">(Task Role 사용)</text>
+
+  <!-- Arrow: TaskDef taskRole -> App -->
+  <line x1="224" y1="193" x2="556" y2="135" stroke="#2a9d8f" stroke-width="1.5" marker-end="url(#arrow-task)" stroke-dasharray="6,3"/>
+
+  <!-- App services -->
+  <rect x="540" y="195" width="80" height="42" rx="6" fill="#e0f5f0" stroke="#2a9d8f" stroke-width="1" filter="url(#shadow)"/>
+  <text x="580" y="214" text-anchor="middle" font-size="10" font-weight="600" fill="#115e59">S3</text>
+  <text x="580" y="228" text-anchor="middle" font-size="9" fill="#a8a29e">파일 업로드</text>
+
+  <rect x="635" y="195" width="80" height="42" rx="6" fill="#e0f5f0" stroke="#2a9d8f" stroke-width="1" filter="url(#shadow)"/>
+  <text x="675" y="214" text-anchor="middle" font-size="10" font-weight="600" fill="#115e59">DynamoDB</text>
+  <text x="675" y="228" text-anchor="middle" font-size="9" fill="#a8a29e">데이터 조회</text>
+
+  <rect x="730" y="195" width="80" height="42" rx="6" fill="#e0f5f0" stroke="#2a9d8f" stroke-width="1" filter="url(#shadow)"/>
+  <text x="770" y="214" text-anchor="middle" font-size="10" font-weight="600" fill="#115e59">SQS</text>
+  <text x="770" y="228" text-anchor="middle" font-size="9" fill="#a8a29e">메시지 전송</text>
+
+  <rect x="635" y="250" width="80" height="42" rx="6" fill="#e0f5f0" stroke="#2a9d8f" stroke-width="1" filter="url(#shadow)"/>
+  <text x="675" y="269" text-anchor="middle" font-size="10" font-weight="600" fill="#115e59">기타</text>
+  <text x="675" y="283" text-anchor="middle" font-size="9" fill="#a8a29e">AWS 서비스</text>
+
+  <!-- Arrows: App -> Services -->
+  <line x1="600" y1="160" x2="580" y2="191" stroke="#2a9d8f" stroke-width="1.5" marker-end="url(#arrow-task)"/>
+  <line x1="630" y1="160" x2="675" y2="191" stroke="#2a9d8f" stroke-width="1.5" marker-end="url(#arrow-task)"/>
+  <line x1="660" y1="160" x2="770" y2="191" stroke="#2a9d8f" stroke-width="1.5" marker-end="url(#arrow-task)"/>
+  <line x1="650" y1="160" x2="675" y2="246" stroke="#2a9d8f" stroke-width="1.5" marker-end="url(#arrow-task)"/>
+
+  <!-- Legend -->
+  <rect x="40" y="330" width="820" height="80" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="60" y="354" font-size="11" font-weight="600" fill="#475569">핵심 포인트</text>
+
+  <circle cx="72" cy="374" r="5" fill="#e76f51"/>
+  <text x="84" y="378" font-size="10" fill="#57534e">Execution Role: 컨테이너가 뜨기 전에 사용. ECR pull, 로그 설정, 시크릿 주입 담당</text>
+
+  <circle cx="72" cy="396" r="5" fill="#2a9d8f"/>
+  <text x="84" y="400" font-size="10" fill="#57534e">Task Role: 컨테이너가 뜬 후에 사용. 애플리케이션의 AWS API 호출 시 적용</text>
+
+  <!-- Failure annotations -->
+  <rect x="40" y="420" width="400" height="90" rx="8" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+  <text x="60" y="444" font-size="11" font-weight="600" fill="#991b1b">Execution Role 권한 부족 시</text>
+  <text x="60" y="462" font-size="10" fill="#7f1d1d">- Task가 STOPPED 상태로 전환</text>
+  <text x="60" y="478" font-size="10" fill="#7f1d1d">- CloudWatch Logs에 아무것도 안 남음</text>
+  <text x="60" y="494" font-size="10" fill="#7f1d1d">- stopped reason으로만 원인 파악 가능</text>
+
+  <rect x="460" y="420" width="400" height="90" rx="8" fill="#fefce8" stroke="#fde047" stroke-width="1"/>
+  <text x="480" y="444" font-size="11" font-weight="600" fill="#854d0e">Task Role 권한 부족 시</text>
+  <text x="480" y="462" font-size="10" fill="#713f12">- 컨테이너는 정상 실행</text>
+  <text x="480" y="478" font-size="10" fill="#713f12">- 애플리케이션 로그에 AccessDenied 에러</text>
+  <text x="480" y="494" font-size="10" fill="#713f12">- CloudWatch Logs에서 확인 가능</text>
+</svg>

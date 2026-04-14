@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="Pretendard, -apple-system, sans-serif">
+  <defs>
+    <marker id="a" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/>
+    </marker>
+    <filter id="s" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="900" height="560" rx="12" fill="#f8fafc"/>
+
+  <text x="450" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">ECS IAM 에러 메시지별 대응 흐름</text>
+
+  <!-- Error 1: CannotPullContainerError -->
+  <rect x="20" y="56" width="860" height="110" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1" filter="url(#s)"/>
+  <rect x="20" y="56" width="6" height="110" rx="3" fill="#dc2626"/>
+
+  <text x="44" y="78" font-size="12" font-weight="700" fill="#dc2626">CannotPullContainerError</text>
+  <text x="44" y="96" font-size="10" fill="#78716c">pull access denied ... repository does not exist or may require 'docker login'</text>
+
+  <!-- Flow boxes -->
+  <rect x="44" y="110" width="150" height="38" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+  <text x="119" y="130" text-anchor="middle" font-size="10" font-weight="600" fill="#991b1b">발생 시점</text>
+  <text x="119" y="143" text-anchor="middle" font-size="9" fill="#7f1d1d">컨테이너 기동 전</text>
+
+  <line x1="194" y1="129" x2="214" y2="129" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="218" y="110" width="130" height="38" rx="4" fill="#fff7ed" stroke="#f4a261" stroke-width="1"/>
+  <text x="283" y="130" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">문제 Role</text>
+  <text x="283" y="143" text-anchor="middle" font-size="9" fill="#9a3412">Execution Role</text>
+
+  <line x1="348" y1="129" x2="368" y2="129" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="372" y="106" width="240" height="48" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="388" y="124" font-size="9" fill="#475569">1) executionRoleArn 확인</text>
+  <text x="388" y="138" font-size="9" fill="#475569">2) ECR 권한 정책 (BatchGetImage 등)</text>
+  <text x="388" y="150" font-size="9" fill="#475569">3) 이미지 URI 오타 / 리포지토리 존재 여부</text>
+
+  <line x1="612" y1="129" x2="632" y2="129" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="636" y="106" width="230" height="48" rx="4" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1"/>
+  <text x="652" y="124" font-size="9" font-weight="600" fill="#065f46">확인 명령어</text>
+  <text x="652" y="138" font-size="9" fill="#065f46">aws ecr describe-repositories</text>
+  <text x="652" y="150" font-size="9" fill="#065f46">aws iam list-attached-role-policies</text>
+
+  <!-- Error 2: ResourceInitializationError -->
+  <rect x="20" y="180" width="860" height="110" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1" filter="url(#s)"/>
+  <rect x="20" y="180" width="6" height="110" rx="3" fill="#ea580c"/>
+
+  <text x="44" y="202" font-size="12" font-weight="700" fill="#ea580c">ResourceInitializationError</text>
+  <text x="44" y="220" font-size="10" fill="#78716c">unable to pull secrets ... failed to fetch secret</text>
+
+  <rect x="44" y="234" width="150" height="38" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+  <text x="119" y="254" text-anchor="middle" font-size="10" font-weight="600" fill="#991b1b">발생 시점</text>
+  <text x="119" y="267" text-anchor="middle" font-size="9" fill="#7f1d1d">컨테이너 기동 전</text>
+
+  <line x1="194" y1="253" x2="214" y2="253" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="218" y="234" width="130" height="38" rx="4" fill="#fff7ed" stroke="#f4a261" stroke-width="1"/>
+  <text x="283" y="254" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">문제 Role</text>
+  <text x="283" y="267" text-anchor="middle" font-size="9" fill="#9a3412">Execution Role</text>
+
+  <line x1="348" y1="253" x2="368" y2="253" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="372" y="230" width="240" height="48" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="388" y="248" font-size="9" fill="#475569">1) secretsmanager/ssm 권한 확인</text>
+  <text x="388" y="262" font-size="9" fill="#475569">2) 시크릿 ARN 정확성</text>
+  <text x="388" y="276" font-size="9" fill="#475569">3) KMS Decrypt 권한 / VPC 엔드포인트</text>
+
+  <line x1="612" y1="253" x2="632" y2="253" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="636" y="230" width="230" height="48" rx="4" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1"/>
+  <text x="652" y="248" font-size="9" font-weight="600" fill="#065f46">확인 명령어</text>
+  <text x="652" y="262" font-size="9" fill="#065f46">aws ecs describe-tasks (stoppedReason)</text>
+  <text x="652" y="276" font-size="9" fill="#065f46">aws iam simulate-principal-policy</text>
+
+  <!-- Error 3: AccessDenied -->
+  <rect x="20" y="304" width="860" height="110" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1" filter="url(#s)"/>
+  <rect x="20" y="304" width="6" height="110" rx="3" fill="#d97706"/>
+
+  <text x="44" y="326" font-size="12" font-weight="700" fill="#d97706">AccessDenied (런타임)</text>
+  <text x="44" y="344" font-size="10" fill="#78716c">An error occurred (AccessDenied) when calling the PutObject operation</text>
+
+  <rect x="44" y="358" width="150" height="38" rx="4" fill="#fefce8" stroke="#fde047" stroke-width="1"/>
+  <text x="119" y="378" text-anchor="middle" font-size="10" font-weight="600" fill="#854d0e">발생 시점</text>
+  <text x="119" y="391" text-anchor="middle" font-size="9" fill="#713f12">컨테이너 실행 중</text>
+
+  <line x1="194" y1="377" x2="214" y2="377" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="218" y="358" width="130" height="38" rx="4" fill="#e0f5f0" stroke="#2a9d8f" stroke-width="1"/>
+  <text x="283" y="378" text-anchor="middle" font-size="10" font-weight="600" fill="#115e59">문제 Role</text>
+  <text x="283" y="391" text-anchor="middle" font-size="9" fill="#115e59">Task Role</text>
+
+  <line x1="348" y1="377" x2="368" y2="377" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="372" y="354" width="240" height="48" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="388" y="372" font-size="9" fill="#475569">1) taskRoleArn 지정 여부</text>
+  <text x="388" y="386" font-size="9" fill="#475569">2) Action / Resource 범위 확인</text>
+  <text x="388" y="400" font-size="9" fill="#475569">3) 로컬 환경과 ECS 권한 차이 점검</text>
+
+  <line x1="612" y1="377" x2="632" y2="377" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="636" y="354" width="230" height="48" rx="4" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1"/>
+  <text x="652" y="372" font-size="9" font-weight="600" fill="#065f46">확인 명령어</text>
+  <text x="652" y="386" font-size="9" fill="#065f46">CloudWatch Logs 애플리케이션 로그</text>
+  <text x="652" y="400" font-size="9" fill="#065f46">aws iam simulate-principal-policy</text>
+
+  <!-- Error 4: AssumeRole failure -->
+  <rect x="20" y="428" width="860" height="110" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1" filter="url(#s)"/>
+  <rect x="20" y="428" width="6" height="110" rx="3" fill="#7c3aed"/>
+
+  <text x="44" y="450" font-size="12" font-weight="700" fill="#7c3aed">AssumeRole 실패</text>
+  <text x="44" y="468" font-size="10" fill="#78716c">is not authorized to perform: sts:AssumeRole</text>
+
+  <rect x="44" y="482" width="150" height="38" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+  <text x="119" y="502" text-anchor="middle" font-size="10" font-weight="600" fill="#991b1b">발생 시점</text>
+  <text x="119" y="515" text-anchor="middle" font-size="9" fill="#7f1d1d">Task 시작 시</text>
+
+  <line x1="194" y1="501" x2="214" y2="501" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="218" y="482" width="130" height="38" rx="4" fill="#f3e8ff" stroke="#c084fc" stroke-width="1"/>
+  <text x="283" y="502" text-anchor="middle" font-size="10" font-weight="600" fill="#6b21a8">문제 위치</text>
+  <text x="283" y="515" text-anchor="middle" font-size="9" fill="#6b21a8">Trust Policy</text>
+
+  <line x1="348" y1="501" x2="368" y2="501" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="372" y="478" width="240" height="48" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="388" y="496" font-size="9" fill="#475569">1) Principal.Service 확인</text>
+  <text x="388" y="510" font-size="9" fill="#475569">2) ecs-tasks.amazonaws.com 인지 확인</text>
+  <text x="388" y="524" font-size="9" fill="#475569">3) ecs.amazonaws.com (X) 혼동 주의</text>
+
+  <line x1="612" y1="501" x2="632" y2="501" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+
+  <rect x="636" y="478" width="230" height="48" rx="4" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1"/>
+  <text x="652" y="496" font-size="9" font-weight="600" fill="#065f46">확인 명령어</text>
+  <text x="652" y="510" font-size="9" fill="#065f46">aws iam get-role --role-name ROLE</text>
+  <text x="652" y="524" font-size="9" fill="#065f46">AssumeRolePolicyDocument 확인</text>
+</svg>

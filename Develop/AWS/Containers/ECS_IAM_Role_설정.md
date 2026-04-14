@@ -1,7 +1,7 @@
 ---
 title: ECS IAM Role 설정 — Task Role, Execution Role, ECR 권한
 tags: [aws, ecs, iam, ecr, containers, role]
-updated: 2026-04-11
+updated: 2026-04-14
 ---
 
 # ECS IAM Role 설정
@@ -47,6 +47,10 @@ graph TB
     style InfraLayer fill:#fef3e2,stroke:#e76f51
     style AppLayer fill:#e0f5f0,stroke:#2a9d8f
 ```
+
+아래 아키텍처 이미지는 두 Role의 사용 시점과 대상 서비스를 한눈에 보여준다.
+
+![ECS IAM Role 권한 흐름](images/ecs_iam_role_flow.svg)
 
 핵심은 **시점**이 다르다는 것이다. Execution Role은 컨테이너가 뜨기 전에 쓰이고, Task Role은 컨테이너가 뜬 후에 쓰인다.
 
@@ -419,6 +423,10 @@ resource "aws_ecs_task_definition" "app" {
 
 ## 권한 부족 시 에러와 해결
 
+각 에러 메시지가 발생했을 때 어떤 Role을 점검해야 하는지, 어떤 순서로 확인하는지를 아래 이미지로 정리했다.
+
+![ECS IAM 에러 메시지별 대응 흐름](images/ecs_iam_error_response.svg)
+
 ### 1. ECR 이미지 Pull 실패
 
 **에러 메시지:**
@@ -488,7 +496,9 @@ Trust Policy의 `Principal.Service`가 `ecs-tasks.amazonaws.com`인지 확인한
 
 ## 디버깅 흐름 정리
 
-ECS Task가 실패했을 때 확인하는 순서를 다이어그램으로 정리했다.
+ECS Task가 실패했을 때 확인하는 순서를 다이어그램으로 정리했다. 아래 이미지에서 에러 유형별 점검 순서를 한눈에 확인할 수 있다.
+
+![ECS IAM 디버깅 플로우차트](images/ecs_iam_debug_flow.svg)
 
 ```mermaid
 flowchart TD
