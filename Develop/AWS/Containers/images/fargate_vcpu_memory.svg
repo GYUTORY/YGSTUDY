@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 480" font-family="Pretendard, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="820" height="480" rx="12" fill="url(#bg2)"/>
+  <text x="410" y="35" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">Fargate vCPU / 메모리 유효 조합</text>
+  <text x="410" y="55" text-anchor="middle" fill="#94a3b8" font-size="12">이 조합 외의 값을 지정하면 Task Definition 등록 시 에러가 발생한다</text>
+
+  <!-- Column headers -->
+  <text x="90" y="90" text-anchor="middle" fill="#ff9900" font-size="13" font-weight="600">vCPU</text>
+  <text x="260" y="90" text-anchor="middle" fill="#ff9900" font-size="13" font-weight="600">메모리 범위</text>
+  <text x="520" y="90" text-anchor="middle" fill="#ff9900" font-size="13" font-weight="600">메모리 단위</text>
+  <text x="710" y="90" text-anchor="middle" fill="#ff9900" font-size="13" font-weight="600">주 용도</text>
+
+  <line x1="30" y1="100" x2="790" y2="100" stroke="#334155" stroke-width="1"/>
+
+  <!-- Row 1: 0.25 vCPU -->
+  <rect x="30" y="108" width="760" height="50" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <rect x="40" y="118" width="100" height="30" rx="15" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+  <text x="90" y="138" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="600">0.25</text>
+  <text x="260" y="138" text-anchor="middle" fill="#e2e8f0" font-size="12">0.5 GB ~ 2 GB</text>
+  <text x="520" y="138" text-anchor="middle" fill="#94a3b8" font-size="12">1 GB 단위</text>
+  <text x="710" y="138" text-anchor="middle" fill="#6b7280" font-size="11">경량 사이드카, 프록시</text>
+
+  <!-- Row 2: 0.5 vCPU -->
+  <rect x="30" y="168" width="760" height="50" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <rect x="40" y="178" width="100" height="30" rx="15" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+  <text x="90" y="198" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="600">0.5</text>
+  <text x="260" y="198" text-anchor="middle" fill="#e2e8f0" font-size="12">1 GB ~ 4 GB</text>
+  <text x="520" y="198" text-anchor="middle" fill="#94a3b8" font-size="12">1 GB 단위</text>
+  <text x="710" y="198" text-anchor="middle" fill="#6b7280" font-size="11">가벼운 API, 워커</text>
+
+  <!-- Row 3: 1 vCPU -->
+  <rect x="30" y="228" width="760" height="50" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <rect x="40" y="238" width="100" height="30" rx="15" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1"/>
+  <text x="90" y="258" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="600">1</text>
+  <text x="260" y="258" text-anchor="middle" fill="#e2e8f0" font-size="12">2 GB ~ 8 GB</text>
+  <text x="520" y="258" text-anchor="middle" fill="#94a3b8" font-size="12">1 GB 단위</text>
+  <text x="710" y="258" text-anchor="middle" fill="#6b7280" font-size="11">일반 웹 서비스</text>
+
+  <!-- Row 4: 2 vCPU -->
+  <rect x="30" y="288" width="760" height="50" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <rect x="40" y="298" width="100" height="30" rx="15" fill="#1e3a5f" stroke="#818cf8" stroke-width="1"/>
+  <text x="90" y="318" text-anchor="middle" fill="#a5b4fc" font-size="13" font-weight="600">2</text>
+  <text x="260" y="318" text-anchor="middle" fill="#e2e8f0" font-size="12">4 GB ~ 16 GB</text>
+  <text x="520" y="318" text-anchor="middle" fill="#94a3b8" font-size="12">1 GB 단위</text>
+  <text x="710" y="318" text-anchor="middle" fill="#6b7280" font-size="11">Java/Spring, 배치</text>
+
+  <!-- Row 5: 4 vCPU -->
+  <rect x="30" y="348" width="760" height="50" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <rect x="40" y="358" width="100" height="30" rx="15" fill="#1e3a5f" stroke="#a78bfa" stroke-width="1"/>
+  <text x="90" y="378" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="600">4</text>
+  <text x="260" y="378" text-anchor="middle" fill="#e2e8f0" font-size="12">8 GB ~ 30 GB</text>
+  <text x="520" y="378" text-anchor="middle" fill="#94a3b8" font-size="12">1 GB 단위</text>
+  <text x="710" y="378" text-anchor="middle" fill="#6b7280" font-size="11">고사양 연산, 데이터 처리</text>
+
+  <!-- Row 6: 8 vCPU -->
+  <rect x="30" y="408" width="760" height="50" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <rect x="40" y="418" width="100" height="30" rx="15" fill="#1e3a5f" stroke="#c084fc" stroke-width="1"/>
+  <text x="90" y="438" text-anchor="middle" fill="#d8b4fe" font-size="13" font-weight="600">8</text>
+  <text x="260" y="438" text-anchor="middle" fill="#e2e8f0" font-size="12">16 GB ~ 60 GB</text>
+  <text x="520" y="438" text-anchor="middle" fill="#94a3b8" font-size="12">4 GB 단위</text>
+  <text x="710" y="438" text-anchor="middle" fill="#6b7280" font-size="11">메모리 집약 워크로드</text>
+
+  <!-- Row 7: 16 vCPU -->
+  <rect x="30" y="458" width="385" height="18" rx="4" fill="none"/>
+  <text x="90" y="472" text-anchor="middle" fill="#94a3b8" font-size="11">16 vCPU: 32~120 GB (8 GB 단위)</text>
+  <text x="410" y="472" text-anchor="middle" fill="#6b7280" font-size="11">|</text>
+  <text x="600" y="472" text-anchor="middle" fill="#94a3b8" font-size="11">Windows 컨테이너는 1~4 vCPU만 지원</text>
+</svg>

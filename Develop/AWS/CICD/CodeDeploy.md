@@ -1,7 +1,7 @@
 ---
 title: AWS CodeDeploy
 tags: [aws, codedeploy, deployment, blue-green, canary, rolling, ec2, ecs, lambda]
-updated: 2026-01-18
+updated: 2026-04-14
 ---
 
 # AWS CodeDeploy
@@ -43,7 +43,27 @@ ssh server2
 - 자동 롤백
 - 다운타임 최소화 (Blue-Green)
 
-## 배포 전략
+## 배포 전략 개요
+
+CodeDeploy가 지원하는 배포 전략은 크게 세 가지다. 각각의 트래픽 전환 방식을 먼저 보자.
+
+```mermaid
+graph TB
+    subgraph Rolling["In-Place (Rolling)"]
+        direction LR
+        R1["v1 v1 v1 v1"] -->|"50%씩"| R2["v2 v2 v1 v1"] -->|"나머지"| R3["v2 v2 v2 v2"]
+    end
+
+    subgraph BlueGreen["Blue/Green"]
+        direction LR
+        BG1["Blue: v1<br/>Green: -"] -->|"Green 생성"| BG2["Blue: v1<br/>Green: v2"] -->|"트래픽 전환"| BG3["Blue: 대기<br/>Green: v2"]
+    end
+
+    subgraph Canary["Canary"]
+        direction LR
+        C1["100% → v1"] -->|"10% 전환"| C2["10% → v2<br/>90% → v1"] -->|"모니터링 후"| C3["100% → v2"]
+    end
+```
 
 ### In-Place (Rolling)
 
@@ -57,68 +77,84 @@ ssh server2
 5. 헬스 체크
 6. 로드 밸런서에 다시 추가
 
-**예시 (4대 서버, 50% 동시):**
-```
-Step 1: 서버 1, 2 배포 (서버 3, 4 운영)
-Step 2: 서버 3, 4 배포 (서버 1, 2 운영)
+4대 서버에서 50% 동시 배포하면 아래처럼 진행된다.
+
+```mermaid
+sequenceDiagram
+    participant ALB
+    participant S1 as 서버 1
+    participant S2 as 서버 2
+    participant S3 as 서버 3
+    participant S4 as 서버 4
+
+    Note over S1,S2: Step 1: 배포 대상
+    ALB-->>S1: 트래픽 중단
+    ALB-->>S2: 트래픽 중단
+    Note over S1: v1 → v2 배포
+    Note over S2: v1 → v2 배포
+    ALB->>S1: 트래픽 재개
+    ALB->>S2: 트래픽 재개
+
+    Note over S3,S4: Step 2: 배포 대상
+    ALB-->>S3: 트래픽 중단
+    ALB-->>S4: 트래픽 중단
+    Note over S3: v1 → v2 배포
+    Note over S4: v1 → v2 배포
+    ALB->>S3: 트래픽 재개
+    ALB->>S4: 트래픽 재개
 ```
 
-**장점:**
-- 비용 효율적 (추가 서버 불필요)
-- 간단
-
-**단점:**
-- 일시적 용량 감소
-- 롤백 느림 (다시 배포)
+비용이 들지 않고 설정이 간단하다. 대신 배포 중 용량이 줄어들고, 롤백하려면 다시 배포해야 해서 느리다.
 
 ### Blue-Green
 
 새 서버를 만들고 트래픽을 전환한다.
 
-**동작:**
-1. 새 인스턴스 (Green) 생성
-2. Green에 새 버전 배포
-3. 헬스 체크
-4. 로드 밸런서 트래픽을 Green으로 전환
-5. Blue 인스턴스는 대기 (또는 종료)
+```mermaid
+sequenceDiagram
+    participant ALB
+    participant Blue as Blue (v1)
+    participant Green as Green (v2)
 
-**예시:**
+    Note over Blue: 운영 중
+    ALB->>Blue: 프로덕션 트래픽
+
+    Note over Green: 인스턴스 생성 + 배포
+    Green->>Green: 헬스 체크 통과
+
+    ALB->>Green: 트래픽 전환
+    ALB-->>Blue: 트래픽 중단
+
+    Note over Blue: 대기 (롤백 대비) 또는 종료
 ```
-Before: ALB → Blue (v1.0)
-Deploy: ALB → Blue (v1.0) + Green (v2.0)
-After:  ALB → Green (v2.0)
-```
 
-**장점:**
-- 다운타임 없음
-- 빠른 롤백 (트래픽 다시 Blue로)
-- 안전
-
-**단점:**
-- 비용 증가 (배포 중 2배 리소스)
+다운타임 없이 배포되고, 롤백은 트래픽을 Blue로 되돌리면 끝이다. 배포 중 2배 리소스가 필요해서 비용이 늘어난다.
 
 ### Canary
 
 일부 트래픽만 새 버전으로 보낸다.
 
-**동작:**
-1. 10% 트래픽을 새 버전으로
-2. 10분 대기 및 모니터링
-3. 문제 없으면 나머지 90% 전환
+```mermaid
+sequenceDiagram
+    participant ALB
+    participant V1 as v1 (기존)
+    participant V2 as v2 (신규)
 
-**예시:**
+    ALB->>V1: 100% 트래픽
+    Note over V2: Canary 시작
+    ALB->>V2: 10% 트래픽
+    ALB->>V1: 90% 트래픽
+    Note over V2: 10분 모니터링
+    alt 정상
+        ALB->>V2: 100% 트래픽
+        ALB-->>V1: 종료
+    else 이상 감지
+        ALB->>V1: 100% 트래픽 (롤백)
+        ALB-->>V2: 종료
+    end
 ```
-Step 1: 10% → v2.0, 90% → v1.0 (10분)
-Step 2: 100% → v2.0
-```
 
-**장점:**
-- 위험 최소화
-- 문제 조기 발견
-
-**단점:**
-- 배포 시간 길어짐
-- 복잡
+위험을 최소화하고 문제를 일찍 발견할 수 있다. 배포 시간이 길어지고 설정이 복잡하다.
 
 ## EC2 배포
 
@@ -205,14 +241,22 @@ hooks:
 
 ### Lifecycle Hooks
 
-**순서:**
-1. **ApplicationStop**: 기존 애플리케이션 중지
-2. **DownloadBundle**: S3에서 새 버전 다운로드
-3. **BeforeInstall**: 설치 전 준비
-4. **Install**: 파일 복사
-5. **AfterInstall**: 설치 후 작업
-6. **ApplicationStart**: 애플리케이션 시작
-7. **ValidateService**: 헬스 체크
+EC2/온프레미스 배포에서 각 훅이 실행되는 순서와 역할이다.
+
+```mermaid
+graph TD
+    AS["ApplicationStop<br/>기존 앱 중지"] --> DB["DownloadBundle<br/>S3에서 다운로드"]
+    DB --> BI["BeforeInstall<br/>설치 전 준비"]
+    BI --> IN["Install<br/>파일 복사"]
+    IN --> AI["AfterInstall<br/>권한 설정, 환경 구성"]
+    AI --> ST["ApplicationStart<br/>앱 시작"]
+    ST --> VS["ValidateService<br/>헬스 체크"]
+
+    style DB fill:#e5e5e5,stroke:#999
+    style IN fill:#e5e5e5,stroke:#999
+```
+
+회색 단계(DownloadBundle, Install)는 CodeDeploy가 자동으로 처리하므로 스크립트를 작성하지 않는다. 나머지 5개 훅에 스크립트를 연결해서 배포 동작을 제어한다.
 
 ### 실무 스크립트
 
@@ -398,6 +442,8 @@ DeploymentReadyOption:
 
 ### appspec.yml (ECS)
 
+ECS용 appspec.yml은 EC2용과 구조가 다르다. 파일 복사 대신 Task Definition과 컨테이너 정보를 지정한다.
+
 ```yaml
 version: 0.0
 Resources:
@@ -416,17 +462,196 @@ Hooks:
   - AfterAllowTraffic: "LambdaFunctionToValidateAfterAllowingProductionTraffic"
 ```
 
+ECS 배포에서 Hooks는 Lambda 함수로 실행된다. EC2처럼 쉘 스크립트가 아니라, 각 훅 단계에서 Lambda를 호출해서 검증 로직을 수행한다.
+
+### ECS Lifecycle Hooks 흐름
+
+ECS Blue/Green 배포에서 Lifecycle Hook의 실행 순서다. EC2 배포와 훅 이름이 다르다.
+
+```mermaid
+graph TD
+    BI["BeforeInstall<br/>Green 태스크 세트 생성 전"] --> IN["Install<br/>Green 태스크 세트 생성<br/>(자동)"]
+    IN --> AI["AfterInstall<br/>Green 태스크 세트 생성 후"]
+    AI --> ATT["AfterAllowTestTraffic<br/>테스트 트래픽 전달 후<br/>검증 수행"]
+    ATT --> BAT["BeforeAllowTraffic<br/>프로덕션 트래픽 전환 전<br/>최종 검증"]
+    BAT --> SW["트래픽 전환<br/>(자동)"]
+    SW --> AAT["AfterAllowTraffic<br/>프로덕션 트래픽 전환 후<br/>상태 확인"]
+
+    style IN fill:#e5e5e5,stroke:#999
+    style SW fill:#e5e5e5,stroke:#999
+```
+
+실무에서 가장 많이 쓰는 훅은 `AfterAllowTestTraffic`이다. 테스트 리스너로 Green 태스크에 요청을 보내서 API 응답을 확인하는 Lambda를 연결한다. 여기서 실패하면 프로덕션 트래픽 전환 없이 바로 롤백된다.
+
 ### Blue-Green (ECS)
 
-**ALB 구성:**
-- Production Listener: Port 80 → Blue Target Group
-- Test Listener: Port 8080 → Green Target Group
+ECS Blue/Green 배포의 전체 흐름이다.
 
-**동작:**
-1. Green 작업 세트 배포
-2. Test Listener로 Green 검증 (포트 8080)
-3. Production Listener를 Green으로 전환
-4. Blue 작업 세트 종료
+```mermaid
+sequenceDiagram
+    participant CD as CodeDeploy
+    participant ECS as ECS Service
+    participant ALB as ALB
+    participant TG1 as Blue Target Group
+    participant TG2 as Green Target Group
+
+    Note over TG1: v1 태스크 실행 중
+    ALB->>TG1: 프로덕션 트래픽 (port 443)
+
+    CD->>ECS: Green 태스크 세트 생성 (v2)
+    ECS->>TG2: v2 태스크 등록
+    TG2->>TG2: 헬스 체크 대기
+
+    ALB->>TG2: 테스트 트래픽 (port 8443)
+    Note over CD: AfterAllowTestTraffic 훅 실행
+    
+    CD->>ALB: 프로덕션 리스너 → Green TG 전환
+    ALB->>TG2: 프로덕션 트래픽 (port 443)
+    ALB-->>TG1: 트래픽 중단
+
+    Note over TG1: 드레이닝 대기 후 종료
+```
+
+**ALB 구성:**
+
+- Production Listener: Port 443 → Blue Target Group
+- Test Listener: Port 8443 → Green Target Group
+
+테스트 리스너 포트는 보안 그룹에서 내부 IP 대역만 허용하는 게 일반적이다. 외부에서 Green 태스크에 직접 접근하면 안 된다.
+
+### ECS Blue/Green 실무 운영 이슈
+
+ECS Blue/Green은 설정만으로 끝나지 않는다. 운영하다 보면 아래 문제들을 마주치게 된다.
+
+#### 타겟 그룹 드레이닝 대기
+
+프로덕션 리스너가 Green으로 전환된 후, Blue 타겟 그룹의 기존 연결이 끊기기까지 시간이 걸린다. ALB 타겟 그룹의 `deregistration_delay` 설정(기본값 300초)만큼 기존 연결을 유지하면서 드레이닝한다.
+
+```mermaid
+sequenceDiagram
+    participant Client as 클라이언트
+    participant ALB
+    participant Blue as Blue TG (v1)
+    participant Green as Green TG (v2)
+
+    Note over ALB: 리스너 전환 시점
+    ALB->>Green: 신규 요청 → Green
+    Client->>ALB: 기존 연결 유지 요청
+    ALB->>Blue: 기존 연결 계속 처리
+    Note over Blue: deregistration_delay<br/>(기본 300초) 대기
+    Note over Blue: 드레이닝 완료 → 태스크 종료
+```
+
+문제가 되는 상황:
+
+- WebSocket이나 long polling 연결을 쓰는 서비스에서 드레이닝 시간이 300초를 넘기면 연결이 강제로 끊긴다. 클라이언트에서 재연결 로직이 없으면 에러가 발생한다.
+- 드레이닝 시간을 너무 짧게 잡으면(예: 30초) 진행 중인 요청이 중단된다. API 응답 시간이 긴 서비스에서 특히 문제가 된다.
+- CodeDeploy의 `terminationWaitTimeInMinutes`와 ALB의 `deregistration_delay`는 별도 설정이다. `terminationWaitTimeInMinutes`가 `deregistration_delay`보다 짧으면 드레이닝이 끝나기 전에 Blue 태스크가 종료된다.
+
+설정 예시:
+
+```bash
+# ALB 타겟 그룹 드레이닝 타임아웃 설정
+aws elbv2 modify-target-group-attributes \
+  --target-group-arn arn:aws:elasticloadbalancing:... \
+  --attributes Key=deregistration_delay.timeout_seconds,Value=120
+
+# CodeDeploy Blue 인스턴스 종료 대기 시간
+# terminationWaitTimeInMinutes는 deregistration_delay보다 길어야 한다
+```
+
+일반적인 API 서비스라면 `deregistration_delay`를 60~120초로, `terminationWaitTimeInMinutes`를 5분으로 설정한다.
+
+#### 롤백 시 Task Definition 리비전 관리
+
+ECS 배포는 Task Definition의 리비전 번호로 버전을 관리한다. 배포할 때마다 새 리비전이 생긴다. 롤백할 때 이 리비전 번호가 혼란을 일으키는 경우가 있다.
+
+```
+배포 히스토리:
+  리비전 5 (v1.0) ← 안정 버전
+  리비전 6 (v1.1) ← 배포 실패 → 롤백
+  리비전 7 (v1.0) ← 롤백으로 생성된 새 리비전 (내용은 리비전 5와 동일)
+```
+
+주의할 점:
+
+- 롤백하면 이전 리비전으로 돌아가는 게 아니라, 이전 리비전의 설정을 복사한 **새 리비전이 생성**된다. 리비전 번호만 보고 "리비전 5로 롤백했으니 리비전 5가 실행 중"이라고 착각하면 안 된다.
+- 롤백이 반복되면 리비전 번호가 빠르게 증가한다. "현재 리비전이 15인데, 실제로는 리비전 5의 이미지로 실행 중"인 상황이 생긴다. 리비전 번호 대신 이미지 태그로 현재 배포 버전을 확인하는 게 정확하다.
+- CI/CD 파이프라인에서 `task-definition.json`을 소스 코드와 함께 관리하고, 이미지 태그를 빌드 번호나 git commit hash로 지정하면 어떤 코드가 배포되어 있는지 추적하기 쉽다.
+
+현재 실행 중인 Task Definition 확인:
+
+```bash
+# 서비스에서 실제 실행 중인 Task Definition 확인
+aws ecs describe-services \
+  --cluster prod-cluster \
+  --services my-service \
+  --query 'services[0].taskDefinition'
+
+# 해당 리비전의 이미지 태그 확인
+aws ecs describe-task-definition \
+  --task-definition my-app:7 \
+  --query 'taskDefinition.containerDefinitions[0].image'
+```
+
+#### appspec.yml 훅 타임아웃 이슈
+
+ECS 배포의 각 Lifecycle Hook에는 Lambda 함수를 연결할 수 있고, 이 Lambda에는 타임아웃이 적용된다. 훅 타임아웃 기본값은 **1시간**이다.
+
+문제가 되는 상황:
+
+- `AfterAllowTestTraffic` 훅에서 통합 테스트를 돌리는데, 테스트가 실패하지 않고 **응답을 기다리면서 멈춰 있는 경우**가 있다. Green 태스크가 아직 완전히 기동하지 않았거나, 의존하는 외부 서비스가 느릴 때 발생한다. Lambda 자체 타임아웃(최대 15분)과 CodeDeploy 훅 타임아웃이 모두 지나야 배포가 실패 처리되므로, 최악의 경우 1시간 넘게 배포가 멈춰 있을 수 있다.
+- Lambda 함수가 `put_lifecycle_event_hook_execution_status`를 호출하지 않고 종료하면, CodeDeploy는 훅 타임아웃이 만료될 때까지 계속 대기한다. Lambda 코드에서 모든 분기(성공, 실패, 예외)에서 반드시 상태를 보고해야 한다.
+
+Lambda 훅 함수 작성 시 주의사항:
+
+```python
+import boto3
+import traceback
+
+codedeploy = boto3.client('codedeploy')
+
+def handler(event, context):
+    deployment_id = event['DeploymentId']
+    hook_id = event['LifecycleEventHookExecutionId']
+
+    try:
+        # Green 태스크에 테스트 요청
+        # 타임아웃을 반드시 설정해야 한다
+        response = requests.get(
+            'http://green-test-endpoint:8443/health',
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            status = 'Succeeded'
+        else:
+            status = 'Failed'
+
+    except Exception:
+        traceback.print_exc()
+        status = 'Failed'
+
+    # 어떤 경우에도 반드시 상태를 보고한다
+    # 이걸 빠뜨리면 훅 타임아웃까지 배포가 멈춘다
+    codedeploy.put_lifecycle_event_hook_execution_status(
+        deploymentId=deployment_id,
+        lifecycleEventHookExecutionId=hook_id,
+        status=status
+    )
+```
+
+훅 타임아웃 커스터마이징:
+
+```bash
+# Deployment Group 생성/업데이트 시 훅 타임아웃 변경은 불가
+# 대신 Lambda 함수의 타임아웃을 짧게 잡아서 제어한다
+# Lambda 타임아웃 권장: 60~300초 (테스트 범위에 따라 조절)
+
+aws lambda update-function-configuration \
+  --function-name AfterAllowTestTrafficHook \
+  --timeout 120
+```
 
 ### Canary (ECS)
 
@@ -436,12 +661,27 @@ Hooks:
 **Canary10Percent5Minutes:**
 10% 트래픽을 5분 동안 Green으로. 문제 없으면 나머지 90% 전환.
 
+```mermaid
+graph LR
+    subgraph Linear["Linear10PercentEvery1Minute"]
+        direction LR
+        L1["0%"] --> L2["10%"] --> L3["20%"] --> L4["..."] --> L5["100%"]
+    end
+
+    subgraph Can["Canary10Percent5Minutes"]
+        direction LR
+        C1["0%"] --> C2["10%<br/>(5분 대기)"] --> C3["100%"]
+    end
+```
+
 ```bash
 aws deploy create-deployment \
   --application-name MyECSApp \
   --deployment-group-name Production \
   --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes
 ```
+
+Linear는 트래픽을 균등하게 나눠서 점진적으로 전환한다. 전환 중 문제를 세밀하게 감지할 수 있지만 배포 시간이 길다. Canary는 소량의 트래픽으로 한 번 검증한 뒤 전체를 전환한다. 대부분의 서비스에서는 Canary10Percent5Minutes로 충분하다.
 
 ## Lambda 배포
 
