@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 620" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow4" x="-1%" y="-1%" width="102%" height="102%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="860" height="620" fill="#fafbfc" rx="8"/>
+
+  <!-- Title -->
+  <text x="430" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#2c3e50">인스턴스 타입별 ENI 제한과 Task 수</text>
+  <text x="430" y="50" text-anchor="middle" font-size="12" fill="#7f8c8d">awsvpc 모드 기준 — Trunking 유무에 따른 동시 Task 수 비교</text>
+
+  <!-- Table Header -->
+  <rect x="30" y="70" width="800" height="36" rx="4" fill="#2c3e50"/>
+  <text x="100" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="white">인스턴스 타입</text>
+  <text x="210" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="white">최대 ENI</text>
+  <text x="300" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="white">ENI당 IP</text>
+  <text x="400" y="86" text-anchor="middle" font-size="11" font-weight="bold" fill="white">awsvpc 기본</text>
+  <text x="400" y="100" text-anchor="middle" font-size="9" fill="#bdc3c7">ENI - 1</text>
+  <text x="520" y="86" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Trunking 시</text>
+  <text x="520" y="100" text-anchor="middle" font-size="9" fill="#bdc3c7">(ENI-1) × IP</text>
+  <text x="690" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Task 밀도 비교</text>
+
+  <!-- T3 계열 header -->
+  <rect x="30" y="106" width="800" height="24" rx="0" fill="#3498db" fill-opacity="0.1"/>
+  <text x="430" y="122" text-anchor="middle" font-size="11" font-weight="bold" fill="#2980b9">T3 계열 (범용 버스트)</text>
+
+  <!-- t3.nano -->
+  <rect x="30" y="130" width="800" height="34" fill="white" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="152" text-anchor="middle" font-size="11" fill="#555">t3.nano</text>
+  <text x="210" y="152" text-anchor="middle" font-size="11" fill="#555">2</text>
+  <text x="300" y="152" text-anchor="middle" font-size="11" fill="#555">2</text>
+  <rect x="370" y="140" width="60" height="18" rx="9" fill="#e74c3c" fill-opacity="0.15"/>
+  <text x="400" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#c0392b">1</text>
+  <rect x="490" y="140" width="60" height="18" rx="9" fill="#e74c3c" fill-opacity="0.15"/>
+  <text x="520" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#c0392b">2</text>
+  <rect x="600" y="143" width="12" height="10" rx="2" fill="#e74c3c"/>
+  <text x="620" y="153" font-size="10" fill="#888">테스트 용도만</text>
+
+  <!-- t3.micro -->
+  <rect x="30" y="164" width="800" height="34" fill="#fafbfc" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="186" text-anchor="middle" font-size="11" fill="#555">t3.micro</text>
+  <text x="210" y="186" text-anchor="middle" font-size="11" fill="#555">2</text>
+  <text x="300" y="186" text-anchor="middle" font-size="11" fill="#555">2</text>
+  <rect x="370" y="174" width="60" height="18" rx="9" fill="#e74c3c" fill-opacity="0.15"/>
+  <text x="400" y="187" text-anchor="middle" font-size="11" font-weight="bold" fill="#c0392b">1</text>
+  <rect x="490" y="174" width="60" height="18" rx="9" fill="#e74c3c" fill-opacity="0.15"/>
+  <text x="520" y="187" text-anchor="middle" font-size="11" font-weight="bold" fill="#c0392b">2</text>
+  <rect x="600" y="177" width="12" height="10" rx="2" fill="#e74c3c"/>
+  <text x="620" y="187" font-size="10" fill="#888">테스트/단일 서비스</text>
+
+  <!-- t3.small -->
+  <rect x="30" y="198" width="800" height="34" fill="white" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="220" text-anchor="middle" font-size="11" fill="#555">t3.small</text>
+  <text x="210" y="220" text-anchor="middle" font-size="11" fill="#555">3</text>
+  <text x="300" y="220" text-anchor="middle" font-size="11" fill="#555">4</text>
+  <rect x="370" y="208" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="400" y="221" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">2</text>
+  <rect x="490" y="208" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="520" y="221" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">8</text>
+  <rect x="600" y="211" width="40" height="10" rx="2" fill="#e67e22"/>
+  <text x="648" y="221" font-size="10" fill="#888">소규모 서비스</text>
+
+  <!-- t3.medium (highlighted) -->
+  <rect x="30" y="232" width="800" height="38" fill="#fff8e1" stroke="#FF9900" stroke-width="1.5" rx="2"/>
+  <text x="100" y="256" text-anchor="middle" font-size="11" font-weight="bold" fill="#FF9900">t3.medium</text>
+  <text x="210" y="256" text-anchor="middle" font-size="11" font-weight="bold" fill="#555">3</text>
+  <text x="300" y="256" text-anchor="middle" font-size="11" font-weight="bold" fill="#555">6</text>
+  <rect x="370" y="244" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.2"/>
+  <text x="400" y="257" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">2</text>
+  <rect x="490" y="244" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.2"/>
+  <text x="520" y="257" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">12</text>
+  <rect x="600" y="247" width="65" height="10" rx="2" fill="#27ae60"/>
+  <text x="673" y="257" font-size="10" fill="#888">가장 많이 사용</text>
+
+  <!-- t3.large -->
+  <rect x="30" y="270" width="800" height="34" fill="white" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="292" text-anchor="middle" font-size="11" fill="#555">t3.large</text>
+  <text x="210" y="292" text-anchor="middle" font-size="11" fill="#555">3</text>
+  <text x="300" y="292" text-anchor="middle" font-size="11" fill="#555">12</text>
+  <rect x="370" y="280" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="400" y="293" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">2</text>
+  <rect x="490" y="280" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="520" y="293" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">24</text>
+  <rect x="600" y="283" width="90" height="10" rx="2" fill="#27ae60"/>
+
+  <!-- t3.xlarge -->
+  <rect x="30" y="304" width="800" height="34" fill="#fafbfc" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="326" text-anchor="middle" font-size="11" fill="#555">t3.xlarge</text>
+  <text x="210" y="326" text-anchor="middle" font-size="11" fill="#555">4</text>
+  <text x="300" y="326" text-anchor="middle" font-size="11" fill="#555">15</text>
+  <rect x="370" y="314" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="400" y="327" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">3</text>
+  <rect x="490" y="314" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="520" y="327" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">45</text>
+  <rect x="600" y="317" width="130" height="10" rx="2" fill="#27ae60"/>
+
+  <!-- M5 계열 header -->
+  <rect x="30" y="338" width="800" height="24" rx="0" fill="#27ae60" fill-opacity="0.1"/>
+  <text x="430" y="354" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">M5 계열 (범용)</text>
+
+  <!-- m5.large -->
+  <rect x="30" y="362" width="800" height="34" fill="white" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="384" text-anchor="middle" font-size="11" fill="#555">m5.large</text>
+  <text x="210" y="384" text-anchor="middle" font-size="11" fill="#555">3</text>
+  <text x="300" y="384" text-anchor="middle" font-size="11" fill="#555">10</text>
+  <rect x="370" y="372" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="400" y="385" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">2</text>
+  <rect x="490" y="372" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="520" y="385" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">20</text>
+  <rect x="600" y="375" width="75" height="10" rx="2" fill="#27ae60"/>
+
+  <!-- m5.xlarge -->
+  <rect x="30" y="396" width="800" height="34" fill="#fafbfc" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="418" text-anchor="middle" font-size="11" fill="#555">m5.xlarge</text>
+  <text x="210" y="418" text-anchor="middle" font-size="11" fill="#555">4</text>
+  <text x="300" y="418" text-anchor="middle" font-size="11" fill="#555">15</text>
+  <rect x="370" y="406" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="400" y="419" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">3</text>
+  <rect x="490" y="406" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="520" y="419" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">45</text>
+  <rect x="600" y="409" width="130" height="10" rx="2" fill="#27ae60"/>
+
+  <!-- m5.4xlarge -->
+  <rect x="30" y="430" width="800" height="34" fill="white" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="452" text-anchor="middle" font-size="11" fill="#555">m5.4xlarge</text>
+  <text x="210" y="452" text-anchor="middle" font-size="11" fill="#555">8</text>
+  <text x="300" y="452" text-anchor="middle" font-size="11" fill="#555">30</text>
+  <rect x="370" y="440" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="400" y="453" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">7</text>
+  <rect x="490" y="440" width="60" height="18" rx="9" fill="#2980b9" fill-opacity="0.15"/>
+  <text x="520" y="453" text-anchor="middle" font-size="11" font-weight="bold" fill="#2980b9">210</text>
+  <rect x="600" y="443" width="190" height="10" rx="2" fill="#2980b9"/>
+
+  <!-- C5 계열 header -->
+  <rect x="30" y="464" width="800" height="24" rx="0" fill="#8e44ad" fill-opacity="0.1"/>
+  <text x="430" y="480" text-anchor="middle" font-size="11" font-weight="bold" fill="#8e44ad">C5 계열 (컴퓨팅 최적화)</text>
+
+  <!-- c5.large -->
+  <rect x="30" y="488" width="800" height="34" fill="white" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="510" text-anchor="middle" font-size="11" fill="#555">c5.large</text>
+  <text x="210" y="510" text-anchor="middle" font-size="11" fill="#555">3</text>
+  <text x="300" y="510" text-anchor="middle" font-size="11" fill="#555">10</text>
+  <rect x="370" y="498" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="400" y="511" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">2</text>
+  <rect x="490" y="498" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="520" y="511" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">20</text>
+  <rect x="600" y="501" width="75" height="10" rx="2" fill="#27ae60"/>
+
+  <!-- c5.xlarge -->
+  <rect x="30" y="522" width="800" height="34" fill="#fafbfc" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="544" text-anchor="middle" font-size="11" fill="#555">c5.xlarge</text>
+  <text x="210" y="544" text-anchor="middle" font-size="11" fill="#555">4</text>
+  <text x="300" y="544" text-anchor="middle" font-size="11" fill="#555">15</text>
+  <rect x="370" y="532" width="60" height="18" rx="9" fill="#e67e22" fill-opacity="0.15"/>
+  <text x="400" y="545" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">3</text>
+  <rect x="490" y="532" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="520" y="545" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">45</text>
+  <rect x="600" y="535" width="130" height="10" rx="2" fill="#27ae60"/>
+
+  <!-- c5.4xlarge -->
+  <rect x="30" y="556" width="800" height="34" fill="white" stroke="#f0f0f0" stroke-width="0.5"/>
+  <text x="100" y="578" text-anchor="middle" font-size="11" fill="#555">c5.4xlarge</text>
+  <text x="210" y="578" text-anchor="middle" font-size="11" fill="#555">8</text>
+  <text x="300" y="578" text-anchor="middle" font-size="11" fill="#555">30</text>
+  <rect x="370" y="566" width="60" height="18" rx="9" fill="#27ae60" fill-opacity="0.15"/>
+  <text x="400" y="579" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">7</text>
+  <rect x="490" y="566" width="60" height="18" rx="9" fill="#2980b9" fill-opacity="0.15"/>
+  <text x="520" y="579" text-anchor="middle" font-size="11" font-weight="bold" fill="#2980b9">210</text>
+  <rect x="600" y="569" width="190" height="10" rx="2" fill="#2980b9"/>
+
+  <!-- Footer note -->
+  <text x="430" y="608" text-anchor="middle" font-size="10" fill="#95a5a6">awsvpc 기본 Task = 최대 ENI - 1 (Primary 제외) / Trunking Task = (최대 ENI - 1) × ENI당 최대 IP / 바 길이 = Trunking 시 상대적 Task 밀도</text>
+</svg>

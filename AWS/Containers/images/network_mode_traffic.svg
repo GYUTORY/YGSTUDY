@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow3" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.1"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#3498db"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#27ae60"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#e67e22"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="680" fill="#fafbfc" rx="8"/>
+
+  <text x="450" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#2c3e50">네트워크 모드별 트래픽 흐름 비교</text>
+
+  <!-- ==================== awsvpc ==================== -->
+  <rect x="20" y="50" width="280" height="600" rx="10" fill="white" stroke="#3498db" stroke-width="1.5" filter="url(#shadow3)"/>
+  <rect x="20" y="50" width="280" height="30" rx="10" fill="#3498db"/>
+  <rect x="20" y="72" width="280" height="8" fill="#3498db"/>
+  <text x="160" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="white">awsvpc 모드</text>
+
+  <!-- Client -->
+  <rect x="120" y="92" width="100" height="30" rx="4" fill="#ecf0f1" stroke="#bdc3c7"/>
+  <text x="170" y="112" text-anchor="middle" font-size="10" fill="#555">Client</text>
+
+  <!-- ALB -->
+  <rect x="100" y="140" width="140" height="36" rx="4" fill="#eef6ff" stroke="#3498db" stroke-width="1.5"/>
+  <text x="170" y="162" text-anchor="middle" font-size="11" font-weight="bold" fill="#2980b9">ALB</text>
+
+  <!-- EC2 box -->
+  <rect x="40" y="200" width="240" height="280" rx="6" fill="#FFF8F0" stroke="#FF9900" stroke-width="1"/>
+  <text x="55" y="218" font-size="10" font-weight="bold" fill="#FF9900">EC2 인스턴스</text>
+
+  <!-- ENI 0 -->
+  <rect x="55" y="230" width="210" height="30" rx="4" fill="#fee" stroke="#e74c3c"/>
+  <text x="160" y="250" text-anchor="middle" font-size="10" fill="#c0392b">ENI 0 (Primary) — 인스턴스 관리</text>
+
+  <!-- ENI 1 + Task A -->
+  <rect x="55" y="274" width="100" height="50" rx="4" fill="#eef6ff" stroke="#3498db"/>
+  <text x="105" y="294" text-anchor="middle" font-size="10" font-weight="bold" fill="#2980b9">ENI 1</text>
+  <text x="105" y="310" text-anchor="middle" font-size="9" fill="#888">10.0.1.11</text>
+  <rect x="165" y="274" width="100" height="50" rx="4" fill="#e8f8f0" stroke="#27ae60"/>
+  <text x="215" y="294" text-anchor="middle" font-size="10" font-weight="bold" fill="#27ae60">Task A</text>
+  <text x="215" y="310" text-anchor="middle" font-size="9" fill="#888">SG: sg-web</text>
+
+  <!-- ENI 2 + Task B -->
+  <rect x="55" y="340" width="100" height="50" rx="4" fill="#eef6ff" stroke="#3498db"/>
+  <text x="105" y="360" text-anchor="middle" font-size="10" font-weight="bold" fill="#2980b9">ENI 2</text>
+  <text x="105" y="376" text-anchor="middle" font-size="9" fill="#888">10.0.1.12</text>
+  <rect x="165" y="340" width="100" height="50" rx="4" fill="#e8f8f0" stroke="#27ae60"/>
+  <text x="215" y="360" text-anchor="middle" font-size="10" font-weight="bold" fill="#27ae60">Task B</text>
+  <text x="215" y="376" text-anchor="middle" font-size="9" fill="#888">SG: sg-api</text>
+
+  <!-- ENI connection lines -->
+  <line x1="155" y1="299" x2="165" y2="299" stroke="#3498db" stroke-width="1.5"/>
+  <line x1="155" y1="365" x2="165" y2="365" stroke="#3498db" stroke-width="1.5"/>
+
+  <!-- Traffic arrows awsvpc -->
+  <path d="M170,122 L170,140" stroke="#3498db" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <path d="M140,176 L105,274" stroke="#3498db" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <path d="M200,176 L105,340" stroke="#3498db" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- awsvpc notes -->
+  <rect x="40" y="500" width="240" height="135" rx="6" fill="#f8f9fa" stroke="#eee"/>
+  <text x="55" y="520" font-size="10" font-weight="bold" fill="#2c3e50">특징</text>
+  <text x="55" y="538" font-size="10" fill="#555">- Task마다 전용 ENI/IP</text>
+  <text x="55" y="554" font-size="10" fill="#555">- Task별 보안 그룹 적용</text>
+  <text x="55" y="570" font-size="10" fill="#555">- ALB → Task IP 직접 라우팅</text>
+  <text x="55" y="586" font-size="10" fill="#555">- ENI 할당 10~30초 소요</text>
+  <text x="55" y="606" font-size="10" fill="#e74c3c">- ENI 한도 = Task 한도</text>
+  <text x="55" y="622" font-size="10" fill="#3498db">- Fargate: 이 모드만 지원</text>
+
+  <!-- ==================== bridge ==================== -->
+  <rect x="315" y="50" width="270" height="600" rx="10" fill="white" stroke="#27ae60" stroke-width="1.5" filter="url(#shadow3)"/>
+  <rect x="315" y="50" width="270" height="30" rx="10" fill="#27ae60"/>
+  <rect x="315" y="72" width="270" height="8" fill="#27ae60"/>
+  <text x="450" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="white">bridge 모드</text>
+
+  <!-- Client -->
+  <rect x="400" y="92" width="100" height="30" rx="4" fill="#ecf0f1" stroke="#bdc3c7"/>
+  <text x="450" y="112" text-anchor="middle" font-size="10" fill="#555">Client</text>
+
+  <!-- ALB -->
+  <rect x="380" y="140" width="140" height="36" rx="4" fill="#e8f8f0" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="450" y="162" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">ALB (동적 포트 매핑)</text>
+
+  <!-- EC2 box -->
+  <rect x="335" y="200" width="230" height="280" rx="6" fill="#FFF8F0" stroke="#FF9900" stroke-width="1"/>
+  <text x="350" y="218" font-size="10" font-weight="bold" fill="#FF9900">EC2 인스턴스</text>
+
+  <!-- Shared ENI -->
+  <rect x="350" y="230" width="200" height="36" rx="4" fill="#e8f8f0" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="450" y="248" text-anchor="middle" font-size="10" font-weight="bold" fill="#27ae60">ENI 0 (공유)</text>
+  <text x="450" y="260" text-anchor="middle" font-size="9" fill="#888">10.0.1.10</text>
+
+  <!-- Docker bridge -->
+  <rect x="350" y="278" width="200" height="24" rx="3" fill="#dfe6e9" stroke="#b2bec3"/>
+  <text x="450" y="294" text-anchor="middle" font-size="10" fill="#636e72">docker0 (172.17.0.1)</text>
+
+  <!-- Tasks -->
+  <rect x="350" y="315" width="95" height="55" rx="4" fill="white" stroke="#27ae60"/>
+  <text x="397" y="335" text-anchor="middle" font-size="10" font-weight="bold" fill="#27ae60">Task A</text>
+  <text x="397" y="350" text-anchor="middle" font-size="9" fill="#888">172.17.0.2</text>
+  <text x="397" y="363" text-anchor="middle" font-size="9" fill="#555">:32768</text>
+
+  <rect x="455" y="315" width="95" height="55" rx="4" fill="white" stroke="#27ae60"/>
+  <text x="502" y="335" text-anchor="middle" font-size="10" font-weight="bold" fill="#27ae60">Task B</text>
+  <text x="502" y="350" text-anchor="middle" font-size="9" fill="#888">172.17.0.3</text>
+  <text x="502" y="363" text-anchor="middle" font-size="9" fill="#555">:32769</text>
+
+  <rect x="350" y="382" width="95" height="55" rx="4" fill="white" stroke="#27ae60"/>
+  <text x="397" y="402" text-anchor="middle" font-size="10" font-weight="bold" fill="#27ae60">Task C</text>
+  <text x="397" y="417" text-anchor="middle" font-size="9" fill="#888">172.17.0.4</text>
+  <text x="397" y="430" text-anchor="middle" font-size="9" fill="#555">:32770</text>
+
+  <rect x="455" y="382" width="95" height="55" rx="4" fill="white" stroke="#27ae60"/>
+  <text x="502" y="402" text-anchor="middle" font-size="10" font-weight="bold" fill="#27ae60">Task D</text>
+  <text x="502" y="417" text-anchor="middle" font-size="9" fill="#888">172.17.0.5</text>
+  <text x="502" y="430" text-anchor="middle" font-size="9" fill="#555">:32771</text>
+
+  <!-- NAT/Port mapping indicator -->
+  <line x1="397" y1="302" x2="397" y2="315" stroke="#27ae60" stroke-width="1"/>
+  <line x1="502" y1="302" x2="502" y2="315" stroke="#27ae60" stroke-width="1"/>
+  <line x1="397" y1="370" x2="397" y2="382" stroke="#27ae60" stroke-width="1"/>
+  <line x1="502" y1="370" x2="502" y2="382" stroke="#27ae60" stroke-width="1"/>
+
+  <!-- Traffic arrows bridge -->
+  <path d="M450,122 L450,140" stroke="#27ae60" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <path d="M450,176 L450,230" stroke="#27ae60" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- bridge notes -->
+  <rect x="335" y="500" width="230" height="135" rx="6" fill="#f8f9fa" stroke="#eee"/>
+  <text x="350" y="520" font-size="10" font-weight="bold" fill="#2c3e50">특징</text>
+  <text x="350" y="538" font-size="10" fill="#555">- 모든 Task가 ENI 공유</text>
+  <text x="350" y="554" font-size="10" fill="#555">- 동적 포트 매핑 (iptables NAT)</text>
+  <text x="350" y="570" font-size="10" fill="#555">- docker0 브리지 네트워크</text>
+  <text x="350" y="586" font-size="10" fill="#555">- 보안 그룹: 인스턴스 레벨</text>
+  <text x="350" y="606" font-size="10" fill="#27ae60">- ENI 제한 없음, 높은 밀도</text>
+  <text x="350" y="622" font-size="10" fill="#e74c3c">- Fargate 미지원</text>
+
+  <!-- ==================== host ==================== -->
+  <rect x="600" y="50" width="280" height="600" rx="10" fill="white" stroke="#e67e22" stroke-width="1.5" filter="url(#shadow3)"/>
+  <rect x="600" y="50" width="280" height="30" rx="10" fill="#e67e22"/>
+  <rect x="600" y="72" width="280" height="8" fill="#e67e22"/>
+  <text x="740" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="white">host 모드</text>
+
+  <!-- Client -->
+  <rect x="690" y="92" width="100" height="30" rx="4" fill="#ecf0f1" stroke="#bdc3c7"/>
+  <text x="740" y="112" text-anchor="middle" font-size="10" fill="#555">Client</text>
+
+  <!-- No ALB needed indicator -->
+  <rect x="670" y="140" width="140" height="36" rx="4" fill="#fef5e7" stroke="#e67e22" stroke-width="1.5"/>
+  <text x="740" y="162" text-anchor="middle" font-size="11" font-weight="bold" fill="#e67e22">호스트 직접 접속</text>
+
+  <!-- EC2 box -->
+  <rect x="620" y="200" width="240" height="280" rx="6" fill="#FFF8F0" stroke="#FF9900" stroke-width="1"/>
+  <text x="635" y="218" font-size="10" font-weight="bold" fill="#FF9900">EC2 인스턴스</text>
+
+  <!-- Host network -->
+  <rect x="635" y="230" width="210" height="36" rx="4" fill="#fef5e7" stroke="#e67e22" stroke-width="1.5"/>
+  <text x="740" y="248" text-anchor="middle" font-size="10" font-weight="bold" fill="#e67e22">호스트 네트워크 스택</text>
+  <text x="740" y="260" text-anchor="middle" font-size="9" fill="#888">10.0.1.10</text>
+
+  <!-- Tasks directly on host -->
+  <rect x="635" y="286" width="210" height="55" rx="4" fill="white" stroke="#e67e22"/>
+  <text x="740" y="306" text-anchor="middle" font-size="10" font-weight="bold" fill="#e67e22">Task A</text>
+  <text x="740" y="322" text-anchor="middle" font-size="9" fill="#555">10.0.1.10:80 (호스트 포트 직접 사용)</text>
+  <text x="740" y="335" text-anchor="middle" font-size="9" fill="#888">네트워크 오버헤드 없음</text>
+
+  <rect x="635" y="355" width="210" height="55" rx="4" fill="white" stroke="#e67e22"/>
+  <text x="740" y="375" text-anchor="middle" font-size="10" font-weight="bold" fill="#e67e22">Task B</text>
+  <text x="740" y="391" text-anchor="middle" font-size="9" fill="#555">10.0.1.10:8080 (포트 달라야 함)</text>
+  <text x="740" y="404" text-anchor="middle" font-size="9" fill="#888">네트워크 오버헤드 없음</text>
+
+  <!-- Port conflict indicator -->
+  <rect x="635" y="424" width="210" height="40" rx="4" fill="#fff5f5" stroke="#e74c3c" stroke-dasharray="5,3"/>
+  <text x="740" y="442" text-anchor="middle" font-size="10" fill="#c0392b">같은 포트 사용 불가</text>
+  <text x="740" y="456" text-anchor="middle" font-size="9" fill="#888">:80 중복 → Task 배치 실패</text>
+
+  <!-- Traffic arrows host -->
+  <path d="M740,122 L740,140" stroke="#e67e22" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <path d="M740,176 L740,230" stroke="#e67e22" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+
+  <!-- host notes -->
+  <rect x="620" y="500" width="240" height="135" rx="6" fill="#f8f9fa" stroke="#eee"/>
+  <text x="635" y="520" font-size="10" font-weight="bold" fill="#2c3e50">특징</text>
+  <text x="635" y="538" font-size="10" fill="#555">- 호스트 네트워크 직접 사용</text>
+  <text x="635" y="554" font-size="10" fill="#555">- NAT/브리지 없음</text>
+  <text x="635" y="570" font-size="10" fill="#555">- 최저 레이턴시</text>
+  <text x="635" y="586" font-size="10" fill="#e74c3c">- 포트 충돌 위험</text>
+  <text x="635" y="606" font-size="10" fill="#e74c3c">- 네트워크 격리 없음</text>
+  <text x="635" y="622" font-size="10" fill="#e74c3c">- Fargate 미지원</text>
+</svg>
