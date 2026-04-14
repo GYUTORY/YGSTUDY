@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.1"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrRed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#ef4444"/>
+    </marker>
+    <marker id="arrGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#10b981"/>
+    </marker>
+    <marker id="arrDown" markerWidth="8" markerHeight="6" refX="4" refY="6" orient="auto">
+      <path d="M0,0 L4,6 L8,0" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="500" rx="12" fill="#f8fafc"/>
+  <text x="450" y="35" text-anchor="middle" font-size="18" font-weight="700" fill="#1e293b">ECS Blue/Green 롤백 프로세스</text>
+
+  <!-- Scenario 1: 훅 실패로 자동 롤백 (트래픽 전환 전) -->
+  <rect x="20" y="60" width="860" height="180" rx="10" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="40" y="85" font-size="13" font-weight="700" fill="#991b1b">시나리오 1: 훅 실패 — 트래픽 전환 전 자동 롤백</text>
+  <text x="40" y="100" font-size="10" fill="#b91c1c">AfterAllowTestTraffic 또는 BeforeAllowTraffic 훅에서 Lambda가 Failed 반환</text>
+
+  <!-- Normal state -->
+  <rect x="40" y="115" width="130" height="55" rx="6" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="105" y="140" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">Blue (v1)</text>
+  <text x="105" y="155" text-anchor="middle" font-size="9" fill="#3b82f6">프로덕션 트래픽</text>
+
+  <rect x="200" y="115" width="130" height="55" rx="6" fill="#bbf7d0" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="265" y="140" text-anchor="middle" font-size="11" font-weight="600" fill="#065f46">Green (v2)</text>
+  <text x="265" y="155" text-anchor="middle" font-size="9" fill="#065f46">테스트 트래픽</text>
+
+  <!-- Lambda fail -->
+  <line x1="330" y1="142" x2="368" y2="142" stroke="#ef4444" stroke-width="2" marker-end="url(#arrRed)"/>
+
+  <rect x="370" y="115" width="130" height="55" rx="6" fill="#fecaca" stroke="#ef4444" stroke-width="2" filter="url(#shadow)"/>
+  <text x="435" y="135" text-anchor="middle" font-size="11" font-weight="700" fill="#991b1b">Lambda 훅</text>
+  <text x="435" y="150" text-anchor="middle" font-size="11" font-weight="700" fill="#991b1b">Failed 반환</text>
+  <text x="435" y="163" text-anchor="middle" font-size="8" fill="#b91c1c">테스트 검증 실패</text>
+
+  <!-- Auto rollback -->
+  <line x1="500" y1="142" x2="538" y2="142" stroke="#ef4444" stroke-width="2" marker-end="url(#arrRed)"/>
+
+  <rect x="540" y="110" width="160" height="65" rx="6" fill="#fff" stroke="#ef4444" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="620" y="132" text-anchor="middle" font-size="11" font-weight="600" fill="#991b1b">자동 롤백</text>
+  <text x="620" y="148" text-anchor="middle" font-size="9" fill="#64748b">Green 태스크 세트 종료</text>
+  <text x="620" y="163" text-anchor="middle" font-size="9" fill="#64748b">프로덕션 트래픽 변경 없음</text>
+
+  <line x1="700" y1="142" x2="738" y2="142" stroke="#10b981" stroke-width="2" marker-end="url(#arrGreen)"/>
+
+  <rect x="740" y="115" width="120" height="55" rx="6" fill="#bfdbfe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+  <text x="800" y="140" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">Blue (v1)</text>
+  <text x="800" y="155" text-anchor="middle" font-size="9" fill="#3b82f6">프로덕션 유지</text>
+
+  <text x="800" y="200" text-anchor="middle" font-size="10" fill="#065f46">다운타임 없음</text>
+  <text x="800" y="215" text-anchor="middle" font-size="9" fill="#64748b">사용자 영향 없음</text>
+
+  <!-- Scenario 2: 프로덕션 전환 후 롤백 -->
+  <rect x="20" y="260" width="860" height="220" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
+  <text x="40" y="285" font-size="13" font-weight="700" fill="#9a3412">시나리오 2: 프로덕션 전환 후 롤백</text>
+  <text x="40" y="300" font-size="10" fill="#c2410c">CloudWatch Alarm 트리거 또는 수동 롤백 (aws deploy stop-deployment)</text>
+
+  <!-- Production running on Green -->
+  <rect x="40" y="315" width="130" height="55" rx="6" fill="#e5e5e5" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="105" y="340" text-anchor="middle" font-size="11" font-weight="600" fill="#6b7280">Blue (v1)</text>
+  <text x="105" y="355" text-anchor="middle" font-size="9" fill="#9ca3af">드레이닝 중</text>
+
+  <rect x="200" y="315" width="130" height="55" rx="6" fill="#bbf7d0" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="265" y="340" text-anchor="middle" font-size="11" font-weight="600" fill="#065f46">Green (v2)</text>
+  <text x="265" y="355" text-anchor="middle" font-size="9" fill="#065f46">프로덕션 트래픽</text>
+
+  <!-- Alarm -->
+  <line x1="330" y1="342" x2="368" y2="342" stroke="#ef4444" stroke-width="2" marker-end="url(#arrRed)"/>
+
+  <rect x="370" y="315" width="130" height="55" rx="6" fill="#fecaca" stroke="#ef4444" stroke-width="2" filter="url(#shadow)"/>
+  <text x="435" y="335" text-anchor="middle" font-size="11" font-weight="700" fill="#991b1b">이상 감지</text>
+  <text x="435" y="352" text-anchor="middle" font-size="9" fill="#b91c1c">에러율 급증</text>
+  <text x="435" y="365" text-anchor="middle" font-size="8" fill="#b91c1c">CloudWatch Alarm</text>
+
+  <!-- Rollback -->
+  <line x1="500" y1="342" x2="538" y2="342" stroke="#ef4444" stroke-width="2" marker-end="url(#arrRed)"/>
+
+  <rect x="540" y="310" width="160" height="65" rx="6" fill="#fff" stroke="#ef4444" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="620" y="332" text-anchor="middle" font-size="11" font-weight="600" fill="#991b1b">트래픽 롤백</text>
+  <text x="620" y="348" text-anchor="middle" font-size="9" fill="#64748b">ALB 리스너 → Blue TG</text>
+  <text x="620" y="363" text-anchor="middle" font-size="9" fill="#64748b">Green 태스크 세트 종료</text>
+
+  <line x1="700" y1="342" x2="738" y2="342" stroke="#10b981" stroke-width="2" marker-end="url(#arrGreen)"/>
+
+  <rect x="740" y="315" width="120" height="55" rx="6" fill="#bfdbfe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+  <text x="800" y="340" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">Blue (v1)</text>
+  <text x="800" y="355" text-anchor="middle" font-size="9" fill="#3b82f6">프로덕션 복구</text>
+
+  <!-- Warning note -->
+  <rect x="40" y="390" width="820" height="75" rx="6" fill="#fffbeb" stroke="#fbbf24" stroke-width="1"/>
+  <text x="60" y="413" font-size="11" font-weight="600" fill="#92400e">주의: Blue 태스크가 이미 종료된 경우</text>
+  <text x="60" y="430" font-size="10" fill="#78350f">terminationWaitTimeInMinutes가 지나서 Blue 태스크가 종료되었으면, 즉시 롤백이 불가능하다.</text>
+  <text x="60" y="447" font-size="10" fill="#78350f">새 배포를 생성해서 이전 Task Definition 리비전으로 배포해야 한다. 이때 새 리비전이 생성된다 (내용은 이전과 동일).</text>
+</svg>
