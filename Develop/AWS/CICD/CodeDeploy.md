@@ -468,6 +468,8 @@ ECS 배포에서 Hooks는 Lambda 함수로 실행된다. EC2처럼 쉘 스크립
 
 ECS Blue/Green 배포에서 Lifecycle Hook의 실행 순서다. EC2 배포와 훅 이름이 다르다.
 
+![ECS Blue/Green Lifecycle Hooks 실행 순서](images/ecs_lifecycle_hooks.svg)
+
 ```mermaid
 graph TD
     BI["BeforeInstall<br/>Green 태스크 세트 생성 전"] --> IN["Install<br/>Green 태스크 세트 생성<br/>(자동)"]
@@ -486,6 +488,8 @@ graph TD
 ### Blue-Green (ECS)
 
 ECS Blue/Green 배포의 전체 흐름이다.
+
+![ECS Blue/Green 배포 흐름](images/ecs_bluegreen_flow.svg)
 
 ```mermaid
 sequenceDiagram
@@ -740,6 +744,12 @@ def lambda_handler(event, context):
 ```
 
 ## 자동 롤백
+
+### 롤백 프로세스
+
+ECS Blue/Green 배포에서 롤백이 발생하는 두 가지 시나리오다. 트래픽 전환 전과 후에 따라 롤백 동작이 다르다.
+
+![ECS Blue/Green 롤백 프로세스](images/ecs_rollback_flow.svg)
 
 ### 조건
 
