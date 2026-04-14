@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 440" font-family="Pretendard, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="barFargate" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="barEC2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff9900"/>
+      <stop offset="100%" style="stop-color:#b45309"/>
+    </linearGradient>
+    <linearGradient id="barSpot" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#15803d"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="860" height="440" rx="12" fill="url(#bg3)"/>
+  <text x="430" y="35" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">월별 비용 비교 (1 vCPU, 2 GB 기준 · us-east-1)</text>
+
+  <!-- Legend -->
+  <rect x="230" y="50" width="14" height="14" rx="3" fill="url(#barFargate)"/>
+  <text x="250" y="62" fill="#93c5fd" font-size="12">Fargate 온디맨드</text>
+  <rect x="390" y="50" width="14" height="14" rx="3" fill="url(#barSpot)"/>
+  <text x="410" y="62" fill="#86efac" font-size="12">Fargate Spot</text>
+  <rect x="520" y="50" width="14" height="14" rx="3" fill="url(#barEC2)"/>
+  <text x="540" y="62" fill="#fbbf24" font-size="12">EC2 (t3.small 온디맨드)</text>
+
+  <!-- Chart area -->
+  <!-- Y axis -->
+  <line x1="100" y1="80" x2="100" y2="380" stroke="#334155" stroke-width="1"/>
+  <line x1="100" y1="380" x2="800" y2="380" stroke="#334155" stroke-width="1"/>
+
+  <!-- Y axis labels -->
+  <text x="90" y="385" text-anchor="end" fill="#64748b" font-size="11">$0</text>
+  <line x1="100" y1="320" x2="800" y2="320" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="90" y="325" text-anchor="end" fill="#64748b" font-size="11">$10</text>
+  <line x1="100" y1="260" x2="800" y2="260" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="90" y="265" text-anchor="end" fill="#64748b" font-size="11">$20</text>
+  <line x1="100" y1="200" x2="800" y2="200" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="90" y="205" text-anchor="end" fill="#64748b" font-size="11">$30</text>
+  <line x1="100" y1="140" x2="800" y2="140" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="90" y="145" text-anchor="end" fill="#64748b" font-size="11">$40</text>
+  <line x1="100" y1="80" x2="800" y2="80" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="90" y="85" text-anchor="end" fill="#64748b" font-size="11">$50</text>
+
+  <!-- Scenario 1: 24시간 상시 실행 -->
+  <!-- Fargate On-Demand: $35.8 -->
+  <rect x="140" y="165" width="50" height="215" rx="4" fill="url(#barFargate)"/>
+  <text x="165" y="158" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="600">$35.8</text>
+  <!-- Fargate Spot: $10.7 -->
+  <rect x="200" y="316" width="50" height="64" rx="4" fill="url(#barSpot)"/>
+  <text x="225" y="309" text-anchor="middle" fill="#86efac" font-size="11" font-weight="600">$10.7</text>
+  <!-- EC2: $15.0 -->
+  <rect x="260" y="290" width="50" height="90" rx="4" fill="url(#barEC2)"/>
+  <text x="285" y="283" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">$15.0</text>
+
+  <text x="215" y="405" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">24시간 상시 실행</text>
+  <text x="215" y="420" text-anchor="middle" fill="#64748b" font-size="10">(720시간/월)</text>
+
+  <!-- Scenario 2: 하루 8시간 -->
+  <!-- Fargate On-Demand: $11.9 -->
+  <rect x="400" y="309" width="50" height="71" rx="4" fill="url(#barFargate)"/>
+  <text x="425" y="302" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="600">$11.9</text>
+  <!-- Fargate Spot: $3.6 -->
+  <rect x="460" y="358" width="50" height="22" rx="4" fill="url(#barSpot)"/>
+  <text x="485" y="351" text-anchor="middle" fill="#86efac" font-size="11" font-weight="600">$3.6</text>
+  <!-- EC2: $15.0 (항상 켜져 있음) -->
+  <rect x="520" y="290" width="50" height="90" rx="4" fill="url(#barEC2)"/>
+  <text x="545" y="283" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">$15.0</text>
+
+  <text x="475" y="405" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">하루 8시간 실행</text>
+  <text x="475" y="420" text-anchor="middle" fill="#64748b" font-size="10">(240시간/월)</text>
+
+  <!-- Scenario 3: 하루 2시간 배치 -->
+  <!-- Fargate On-Demand: $3.0 -->
+  <rect x="650" y="362" width="50" height="18" rx="4" fill="url(#barFargate)"/>
+  <text x="675" y="355" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="600">$3.0</text>
+  <!-- Fargate Spot: $0.9 -->
+  <rect x="710" y="374" width="50" height="6" rx="3" fill="url(#barSpot)"/>
+  <text x="735" y="369" text-anchor="middle" fill="#86efac" font-size="11" font-weight="600">$0.9</text>
+
+  <text x="700" y="405" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">하루 2시간 배치</text>
+  <text x="700" y="420" text-anchor="middle" fill="#64748b" font-size="10">(60시간/월)</text>
+
+  <!-- Note -->
+  <text x="430" y="438" text-anchor="middle" fill="#64748b" font-size="10">* EC2는 인스턴스가 항상 실행되므로 사용 시간과 무관하게 비용 동일. 예약 인스턴스 적용 시 ~40% 절감 가능</text>
+</svg>
