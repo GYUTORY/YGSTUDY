@@ -1,7 +1,7 @@
 ---
 title: NestJS 마이크로서비스
 tags: [nestjs, microservice, grpc, redis, tcp, nats, node]
-updated: 2026-04-01
+updated: 2026-04-14
 ---
 
 # NestJS 마이크로서비스
@@ -9,6 +9,77 @@ updated: 2026-04-01
 NestJS는 HTTP 서버 프레임워크로 시작했지만, 내장 마이크로서비스 모듈을 가지고 있다. 별도 프레임워크 없이 `@nestjs/microservices` 하나로 TCP, Redis, gRPC, NATS, RabbitMQ, Kafka 등 여러 트랜스포트를 지원한다. 모놀리스에서 마이크로서비스로 전환할 때 기존 NestJS 코드를 거의 그대로 쓸 수 있다는 점이 실무에서 선택하는 이유다.
 
 다만 "NestJS 마이크로서비스 = 완전한 마이크로서비스 프레임워크"라고 보면 안 된다. NestJS가 해주는 건 서비스 간 메시지 송수신의 추상화일 뿐이고, 서비스 디스커버리, 분산 트레이싱, 서킷 브레이커 같은 건 직접 구성해야 한다.
+
+
+## 트랜스포트별 통신 흐름
+
+NestJS 마이크로서비스에서 각 트랜스포트가 메시지를 주고받는 방식은 근본적으로 다르다. TCP는 직접 연결, Redis/NATS는 브로커 경유, gRPC는 HTTP/2 스트림 기반이다.
+
+### TCP / gRPC — 직접 연결 방식
+
+```mermaid
+sequenceDiagram
+    participant C as API Gateway<br/>(NestJS HTTP)
+    participant S as Order Service<br/>(NestJS Microservice)
+
+    C->>S: TCP 커넥션 수립 / gRPC HTTP/2 채널
+    Note over C,S: 커넥션 유지 (keep-alive)
+
+    C->>S: send({ cmd: 'get_order' }, { orderId })
+    S-->>C: { id, status, ... }
+
+    C->>S: send({ cmd: 'create_order' }, payload)
+    S-->>C: { id, status: 'CREATED' }
+
+    Note over C,S: TCP — NestJS 자체 프로토콜<br/>gRPC — Protocol Buffers 직렬화
+```
+
+TCP와 gRPC는 클라이언트가 서버에 직접 연결한다. 중간 브로커가 없어서 레이턴시가 낮다. 차이점은 TCP가 NestJS 전용 프로토콜을 쓰는 반면, gRPC는 표준 프로토콜이라 다른 언어 서비스와 통신이 가능하다는 점이다.
+
+### Redis / NATS — 브로커 경유 방식
+
+```mermaid
+sequenceDiagram
+    participant A as Service A<br/>(Publisher)
+    participant B as Redis / NATS<br/>(Broker)
+    participant C as Service B<br/>(Subscriber)
+    participant D as Service C<br/>(Subscriber)
+
+    A->>B: emit('order_created', payload)
+    B->>C: 메시지 전달
+    B->>D: 메시지 전달
+    Note over C,D: 구독 중인 모든 서비스가 수신
+
+    A->>B: send({ cmd: 'get_order' }, data)
+    B->>C: 메시지 전달 (큐 그룹 시 1개만)
+    C-->>B: 응답
+    B-->>A: 응답 전달
+```
+
+브로커 기반은 서비스 간 직접 연결이 없다. 발행자는 수신자가 누구인지 모르고, 수신자는 발행자가 누구인지 모른다. 서비스 추가/제거가 자유롭다는 장점이 있지만, 브로커가 단일 장애점이 될 수 있다.
+
+Redis Pub/Sub은 구독자가 없으면 메시지가 사라진다. NATS도 기본은 at-most-once다. 메시지 유실이 문제가 되면 Kafka나 RabbitMQ를 써야 한다.
+
+### 하이브리드 구성 — HTTP + 마이크로서비스 동시 운영 흐름
+
+```mermaid
+flowchart LR
+    Client([외부 클라이언트])
+    GW[API Gateway<br/>HTTP :3000]
+    OS[Order Service<br/>TCP :3001]
+    PS[Payment Service<br/>gRPC :5000]
+    NS[Notification Service]
+    Redis[(Redis<br/>Pub/Sub)]
+
+    Client -->|REST API| GW
+    GW -->|send - TCP| OS
+    GW -->|findOne - gRPC| PS
+    OS -->|emit 'order_created'| Redis
+    Redis -->|subscribe| NS
+    Redis -->|subscribe| PS
+```
+
+실무에서 자주 보는 구조다. 외부에는 REST API를 노출하고, 내부 서비스 간에는 트랜스포트를 혼합해서 쓴다. 동기 호출이 필요한 곳은 TCP나 gRPC, 이벤트 전파가 필요한 곳은 Redis나 NATS를 쓴다.
 
 
 ## 트랜스포트 종류와 선택 기준
@@ -337,6 +408,88 @@ async function bootstrap() {
 ## gRPC 프로토 파일 관리
 
 gRPC를 쓰면 `.proto` 파일 관리가 프로젝트 규모에 따라 꽤 골치 아파진다.
+
+### gRPC Unary vs Streaming 메시지 교환
+
+gRPC는 네 가지 통신 패턴을 지원한다. NestJS에서는 Unary와 Server Streaming을 주로 쓴다.
+
+```mermaid
+sequenceDiagram
+    participant C as gRPC Client<br/>(NestJS / Go / Java)
+    participant S as gRPC Server<br/>(NestJS)
+
+    rect rgb(240, 240, 255)
+    Note over C,S: Unary RPC — 1요청 1응답
+    C->>S: FindOne(OrderById)
+    S-->>C: Order
+    end
+
+    rect rgb(240, 255, 240)
+    Note over C,S: Server Streaming — 1요청 N응답
+    C->>S: ListOrders(Query)
+    S-->>C: Order (1)
+    S-->>C: Order (2)
+    S-->>C: Order (3)
+    S-->>C: stream 종료
+    end
+
+    rect rgb(255, 240, 240)
+    Note over C,S: Client Streaming — N요청 1응답
+    C->>S: UploadChunk (1)
+    C->>S: UploadChunk (2)
+    C->>S: stream 종료
+    S-->>C: UploadResult
+    end
+
+    rect rgb(255, 255, 230)
+    Note over C,S: Bidirectional Streaming — N요청 N응답
+    C->>S: ChatMessage (1)
+    S-->>C: ChatReply (1)
+    C->>S: ChatMessage (2)
+    S-->>C: ChatReply (2)
+    end
+```
+
+Unary RPC는 `@GrpcMethod()`로 구현한다. Server Streaming은 `@GrpcStreamMethod()`를 써야 하는데, NestJS에서는 Observable을 리턴하면 자동으로 스트림 응답으로 변환된다.
+
+```typescript
+// Unary — 단건 조회
+@GrpcMethod('OrderService', 'FindOne')
+findOne(data: OrderById): Order {
+  return this.orderService.findById(data.id);
+}
+
+// Server Streaming — 여러 건 스트리밍
+@GrpcStreamMethod('OrderService', 'ListOrders')
+listOrders(data$: Observable<ListOrdersRequest>): Observable<Order> {
+  // 클라이언트 스트림을 받아서 서버 스트림으로 응답
+  return data$.pipe(
+    switchMap(query =>
+      from(this.orderService.findByCondition(query)),
+    ),
+  );
+}
+```
+
+Client Streaming과 Bidirectional Streaming은 NestJS에서 `@GrpcStreamMethod()`로 구현하는데, 핸들러가 `Observable`을 파라미터로 받고 `Observable`을 리턴하는 형태다. 단, NestJS의 gRPC 스트리밍 지원은 아직 제약이 있어서, 복잡한 스트리밍 로직이 필요하면 `@grpc/grpc-js`를 직접 쓰는 게 나을 수 있다.
+
+### gRPC 메시지 직렬화 과정
+
+```mermaid
+flowchart LR
+    subgraph Client ["클라이언트 (NestJS)"]
+        A[TypeScript 객체] -->|proto 정의 기반| B[Protocol Buffers<br/>바이너리 인코딩]
+    end
+
+    B -->|HTTP/2 프레임| N((네트워크))
+
+    subgraph Server ["서버 (NestJS / Go / Java)"]
+        N -->|HTTP/2 프레임| D[Protocol Buffers<br/>바이너리 디코딩]
+        D -->|proto 정의 기반| E[각 언어 객체<br/>TS Object / Go Struct]
+    end
+```
+
+gRPC 통신에서 `.proto` 파일이 양쪽에 동일해야 하는 이유가 여기에 있다. 바이너리 인코딩은 필드 번호 기반이라, proto 파일의 필드 번호가 맞지 않으면 데이터가 엉뚱한 필드에 들어간다. 필드 이름이 아니라 번호가 중요하다.
 
 ### 기본 프로토 파일 구조
 

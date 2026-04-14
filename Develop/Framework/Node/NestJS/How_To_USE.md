@@ -1,7 +1,7 @@
 ---
 title: NestJS 동작 과정과 핵심 문법
 tags: [framework, node, nestjs, typescript, di, decorator]
-updated: 2026-04-01
+updated: 2026-04-14
 ---
 
 # NestJS 동작 과정과 핵심 문법
@@ -44,6 +44,27 @@ async function bootstrap() {
 6. Express(또는 Fastify) 인스턴스에 라우트를 등록한다
 
 여기서 중요한 건 **4번**이다. 의존성 그래프에 순환이 있으면 부트스트랩 자체가 실패한다. 이 문제는 뒤에서 다룬다.
+
+### DI 컨테이너 동작 흐름
+
+부트스트랩에서 DI 컨테이너가 인스턴스를 생성하는 과정을 흐름으로 보면 이렇다:
+
+```mermaid
+flowchart TD
+    A["NestFactory.create(AppModule)"] --> B["@Module() 메타데이터 읽기"]
+    B --> C["imports 모듈 재귀 탐색"]
+    C --> D["providers를 IoC 컨테이너에 등록"]
+    D --> E{"의존성 그래프 생성"}
+    E -->|"순환 참조 없음"| F["의존성 순서대로 인스턴스 생성"]
+    E -->|"순환 참조 발생"| G["에러: Circular dependency detected"]
+    F --> H["생성자 파라미터에 인스턴스 주입"]
+    H --> I["컨트롤러 메서드 데코레이터 스캔"]
+    I --> J["라우트 테이블 생성"]
+    J --> K["Express/Fastify에 라우트 등록"]
+    K --> L["app.listen() 대기"]
+```
+
+예를 들어 `UsersController → UsersService → UsersRepository` 의존 관계가 있으면, 컨테이너는 `UsersRepository`부터 만들고, 그 인스턴스를 `UsersService` 생성자에 넣고, 다시 `UsersService` 인스턴스를 `UsersController` 생성자에 넣는다. 잎(leaf) 노드부터 루트 방향으로 올라가는 것이다.
 
 ---
 
@@ -98,6 +119,30 @@ Reflect.defineMetadata('design:paramtypes', [UsersRepository], UsersService);
 IoC 컨테이너는 이 `design:paramtypes`를 읽어서 `UsersService`를 만들 때 `UsersRepository` 인스턴스를 주입해야 한다는 걸 안다.
 
 **주의**: `@Injectable()`을 빼먹으면 `design:paramtypes` 메타데이터가 생성되지 않아서 DI가 실패한다. "왜 주입이 안 되지?" 할 때 가장 먼저 확인할 것이다.
+
+### 데코레이터 → 메타데이터 → 라우트 매핑
+
+데코레이터가 어떤 경로로 최종 라우트가 되는지 전체 흐름을 그림으로 보면 이렇다:
+
+```mermaid
+flowchart LR
+    subgraph 컴파일_타임["컴파일 타임"]
+        D1["@Controller('users')"] -->|"Reflect.defineMetadata<br/>'path' = 'users'"| M1["클래스 메타데이터"]
+        D2["@Get(':id')"] -->|"Reflect.defineMetadata<br/>'path' = ':id'<br/>'method' = 'GET'"| M2["메서드 메타데이터"]
+        D3["@Injectable()"] -->|"emitDecoratorMetadata"| M3["design:paramtypes<br/>[UsersService]"]
+    end
+
+    subgraph 부트스트랩["부트스트랩 시점"]
+        M1 --> S1["Reflect.getMetadata('path', Controller)"]
+        M2 --> S2["Reflect.getMetadata('path', method)"]
+        M3 --> S3["Reflect.getMetadata('design:paramtypes', class)"]
+        S1 --> R["라우트 등록: GET /users/:id → findOne()"]
+        S2 --> R
+        S3 --> DI["DI 컨테이너가 의존성 주입"]
+    end
+```
+
+결국 데코레이터는 메타데이터를 붙이는 것이고, 부트스트랩 시점에 NestJS가 그 메타데이터를 읽어서 라우트와 DI를 구성한다. 이 두 단계가 분리되어 있다는 걸 알면 디버깅할 때 어디를 봐야 하는지 감이 온다.
 
 ### tsconfig.json 필수 설정
 
