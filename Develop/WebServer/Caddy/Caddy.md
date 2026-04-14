@@ -1,7 +1,7 @@
 ---
 title: Caddy
-tags: [webserver, caddy, https, reverse-proxy, lets-encrypt]
-updated: 2026-04-07
+tags: [webserver, caddy, https, reverse-proxy, lets-encrypt, http3, xcaddy]
+updated: 2026-04-14
 ---
 
 # Caddy
@@ -10,7 +10,82 @@ updated: 2026-04-07
 
 Go로 만든 웹 서버. 2015년 Matt Holt가 처음 만들었고, 2020년에 v2로 전면 재작성됐다. 가장 큰 특징은 HTTPS가 기본값이라는 것이다. 도메인만 지정하면 Let's Encrypt나 ZeroSSL에서 인증서를 자동으로 발급받고 갱신까지 알아서 한다. Nginx에서 certbot 설정하고 cron 걸어두던 작업이 필요 없다.
 
-설정 파일(Caddyfile)이 단순해서 Nginx의 `nginx.conf`에 비하면 작성할 양이 확 줄어든다. 단, 고도로 세밀한 튜닝이 필요한 경우에는 Nginx가 더 나은 선택일 수 있다.
+설정 파일(Caddyfile)이 단순해서 Nginx의 `nginx.conf`에 비하면 작성할 양이 확 줄어든다. 단, 고도로 세밀한 튜닝이 필요한 경우에는 Nginx가 더 나은 선택일 수 있다. Nginx와의 상세 비교는 [Nginx vs Caddy](../Nginx_vs_Caddy.md) 문서를 참고한다.
+
+## 요청 처리 흐름
+
+Caddy가 클라이언트 요청을 받아서 응답을 돌려주기까지의 과정이다.
+
+```
+  클라이언트
+      │
+      ▼
+┌──────────────────────────────────────────────────┐
+│  1. 리스너 (Listener)                              │
+│     - TCP 연결 수락                                │
+│     - 443 포트: TLS 핸드셰이크 수행                 │
+│     - 443/udp 포트: QUIC 핸드셰이크 (HTTP/3)       │
+│     - 80 포트: 평문 HTTP 수신                       │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│  2. TLS 처리                                      │
+│     - 인증서 자동 선택 (SNI 기반)                   │
+│     - On-Demand TLS인 경우 여기서 인증서 발급       │
+│     - OCSP 스테이플링 응답 첨부                     │
+│     - HTTP 요청이면 HTTPS로 301 리다이렉트          │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│  3. 호스트 매칭 (Server Matching)                  │
+│     - Host 헤더 또는 SNI로 어떤 사이트 블록인지 결정 │
+│     - 매칭되는 사이트가 없으면 fallback 처리         │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│  4. 미들웨어 체인 (Handler Chain)                   │
+│     - 라우트 매칭: path, header, method 등 조건     │
+│     - 순서대로 미들웨어 실행:                        │
+│       encode → header → rewrite → try_files →     │
+│       reverse_proxy 또는 file_server               │
+│     - 각 미들웨어가 요청을 수정하거나 다음으로 넘김   │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│  5. 응답 반환                                      │
+│     - 미들웨어 체인을 역순으로 거치며 응답 가공      │
+│     - encode가 gzip/zstd 압축 적용                 │
+│     - header 미들웨어가 응답 헤더 추가               │
+│     - 로그 기록                                     │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+           클라이언트
+```
+
+Caddyfile에서 디렉티브를 나열하는 순서와 실제 실행 순서는 다르다. Caddy는 내부적으로 디렉티브마다 고정된 우선순위를 갖고 있다. 예를 들어 `encode`는 `reverse_proxy`보다 항상 먼저 실행된다. 이 순서를 직접 제어하려면 `route` 블록으로 감싸야 한다.
+
+```
+example.com {
+    # 이 순서로 실행되는 게 아니다
+    file_server
+    encode gzip
+    reverse_proxy localhost:8080
+}
+
+example.com {
+    # route 안에서는 작성 순서대로 실행된다
+    route {
+        encode gzip
+        reverse_proxy localhost:8080
+        file_server
+    }
+}
+```
 
 ## 설치
 
@@ -180,12 +255,57 @@ Caddyfile 맨 위에 중괄호로 감싸서 전역 옵션을 설정한다.
 
 ## 자동 HTTPS
 
-Caddy의 핵심 기능이다. 도메인 이름으로 사이트를 설정하면 다음이 자동으로 일어난다:
+Caddy의 핵심 기능이다. 도메인 이름으로 사이트를 설정하면 인증서 발급부터 갱신까지 전부 자동으로 처리된다.
 
-1. Let's Encrypt(기본) 또는 ZeroSSL에서 TLS 인증서 발급
-2. HTTP → HTTPS 301 리다이렉트
-3. 인증서 만료 전 자동 갱신
-4. OCSP 스테이플링
+### 자동 HTTPS 동작 과정
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Caddy 시작 / 설정 로드                                   │
+│  Caddyfile에서 도메인 목록 추출                            │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│  인증서 저장소 확인 (~/.local/share/caddy/ 또는 /data)    │
+│  ├─ 유효한 인증서 있음 → 바로 사용, 만료 30일 전 갱신 예약 │
+│  └─ 인증서 없음 또는 만료 → ACME 발급 시작                 │
+└──────────────┬──────────────────────────────────────────┘
+               │ (인증서 없는 경우)
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│  ACME 클라이언트 동작                                     │
+│                                                         │
+│  1) CA 선택: Let's Encrypt (기본) → 실패 시 ZeroSSL 폴백 │
+│  2) 챌린지 수행 (도메인 소유 증명):                        │
+│     ┌──────────────────────────────────────────────┐     │
+│     │ HTTP-01 (기본)                                │     │
+│     │ - 80 포트에서 /.well-known/acme-challenge/   │     │
+│     │   토큰 파일 서빙                              │     │
+│     │ - CA가 HTTP로 접근해서 토큰 검증               │     │
+│     ├──────────────────────────────────────────────┤     │
+│     │ TLS-ALPN-01                                   │     │
+│     │ - 443 포트에서 특수 TLS 인증서로 검증          │     │
+│     │ - 80 포트를 못 여는 환경에서 사용              │     │
+│     ├──────────────────────────────────────────────┤     │
+│     │ DNS-01                                        │     │
+│     │ - DNS TXT 레코드로 검증                       │     │
+│     │ - 와일드카드 인증서 발급 시 필수               │     │
+│     │ - DNS 프로바이더 모듈 필요 (별도 빌드)         │     │
+│     └──────────────────────────────────────────────┘     │
+│  3) CSR 생성 → CA에 제출 → 인증서 수신                    │
+│  4) 인증서 저장소에 보관                                   │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│  인증서 유지 관리 (백그라운드)                              │
+│  - 만료 30일 전 자동 갱신 시도                             │
+│  - 갱신 실패 시 점점 간격을 줄여가며 재시도                 │
+│  - OCSP 스테이플링: OCSP 응답을 주기적으로 갱신             │
+│  - 인증서 교체 시 프로세스 재시작 없이 즉시 적용            │
+└─────────────────────────────────────────────────────────┘
+```
 
 ### 동작 조건
 
@@ -243,38 +363,132 @@ localhost {
 
 처음 실행하면 시스템 trust store에 루트 인증서를 등록하는데, 이때 sudo 비밀번호를 물어본다.
 
-### Nginx와의 HTTPS 설정 비교
+### On-Demand TLS
 
-Nginx에서 Let's Encrypt를 쓰려면 이런 과정이 필요하다:
+일반 자동 HTTPS는 Caddy 시작 시점에 Caddyfile에 적힌 도메인의 인증서를 발급한다. On-Demand TLS는 다르다. 클라이언트가 TLS 핸드셰이크를 시작하는 시점에 인증서가 없으면 그때 발급한다.
 
-```bash
-# Nginx: certbot 설치, 인증서 발급, cron 등록
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d example.com
-# 갱신 cron 별도 설정 필요
+SaaS 서비스에서 고객이 커스텀 도메인을 붙이는 경우에 쓴다. 고객이 100개 도메인을 연결하든 10,000개를 연결하든 Caddyfile에 일일이 적지 않아도 된다.
+
 ```
-
-```nginx
-# Nginx: ssl 관련 설정을 직접 작성
-server {
-    listen 443 ssl;
-    server_name example.com;
-    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    # ... 추가 보안 헤더 설정
+{
+    on_demand_tls {
+        ask http://localhost:5555/check-domain
+        interval 2m
+        burst 5
+    }
 }
-```
 
-Caddy에서는:
-
-```
-example.com {
+https:// {
+    tls {
+        on_demand
+    }
     reverse_proxy localhost:8080
 }
 ```
 
-이게 전부다.
+`ask` 엔드포인트는 반드시 설정해야 한다. Caddy가 인증서를 발급하기 전에 이 URL로 도메인을 검증한다. 응답이 200이면 발급을 진행하고, 그 외에는 거부한다. 이걸 빠뜨리면 아무 도메인이나 인증서를 발급받을 수 있어서 Let's Encrypt rate limit을 빠르게 소진하게 된다.
+
+`ask` 엔드포인트 구현 예시:
+
+```go
+// 허용된 도메인인지 DB에서 확인
+func checkDomain(w http.ResponseWriter, r *http.Request) {
+    domain := r.URL.Query().Get("domain")
+    if isAllowedDomain(domain) {
+        w.WriteHeader(200)
+        return
+    }
+    w.WriteHeader(403)
+}
+```
+
+`interval`과 `burst`는 인증서 발급 속도를 제한한다. 위 설정은 2분 간격으로 최대 5개까지 발급을 허용한다. DDoS 등으로 대량의 미지 도메인 요청이 들어올 때 Let's Encrypt에 과도한 요청을 보내는 것을 방지한다.
+
+On-Demand TLS를 쓸 때 주의할 점:
+
+- 첫 번째 요청에서 인증서 발급이 일어나므로 TLS 핸드셰이크가 수 초 걸릴 수 있다
+- 발급된 인증서는 캐시되므로 두 번째 요청부터는 정상 속도다
+- `ask` 엔드포인트가 죽으면 새 도메인의 인증서를 발급할 수 없다
+
+## HTTP/3
+
+Caddy는 HTTP/3(QUIC)을 기본으로 지원한다. v2.6부터 별도 설정 없이 활성화되어 있다.
+
+### HTTP/3이 동작하는 방식
+
+HTTP/3은 TCP가 아니라 UDP 기반의 QUIC 프로토콜 위에서 동작한다. 기존 HTTP/2가 TCP 위에서 head-of-line blocking 문제를 겪는 것과 달리, QUIC은 스트림 단위로 독립적이라서 하나의 패킷 손실이 다른 스트림을 막지 않는다.
+
+```
+┌─────────────────────────────────────────┐
+│  HTTP/2 (TCP 기반)                       │
+│                                         │
+│  TCP 연결 1개                            │
+│  ├── 스트림 1 ──► 패킷 손실 발생!        │
+│  ├── 스트림 2 ──► 대기 (블로킹)          │
+│  └── 스트림 3 ──► 대기 (블로킹)          │
+│                                         │
+│  → 하나가 막히면 전부 대기한다            │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│  HTTP/3 (QUIC/UDP 기반)                  │
+│                                         │
+│  QUIC 연결 1개                           │
+│  ├── 스트림 1 ──► 패킷 손실 → 재전송     │
+│  ├── 스트림 2 ──► 정상 진행              │
+│  └── 스트림 3 ──► 정상 진행              │
+│                                         │
+│  → 손실된 스트림만 영향받는다             │
+└─────────────────────────────────────────┘
+```
+
+### Caddy에서 HTTP/3 설정
+
+기본적으로 활성화되어 있어서 따로 할 건 없다. 비활성화하거나 세부 설정이 필요한 경우:
+
+```
+{
+    servers {
+        protocols h1 h2 h3
+    }
+}
+```
+
+HTTP/3만 끄려면:
+
+```
+{
+    servers {
+        protocols h1 h2
+    }
+}
+```
+
+### Docker에서 HTTP/3
+
+HTTP/3은 UDP를 쓰므로 Docker에서 UDP 포트를 별도로 열어야 한다.
+
+```yaml
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3용 UDP 포트
+```
+
+`443:443/udp`를 빠뜨리면 HTTP/3 연결이 성립하지 않고 HTTP/2로 폴백된다. 서비스 자체는 동작하지만 HTTP/3의 이점을 못 받는다.
+
+### Alt-Svc 헤더
+
+Caddy는 HTTP/2 응답에 `Alt-Svc` 헤더를 자동으로 추가한다. 브라우저는 이 헤더를 보고 다음 요청부터 HTTP/3(QUIC)으로 전환한다.
+
+```
+Alt-Svc: h3=":443"; ma=2592000
+```
+
+HTTP/3이 실제로 동작하는지 확인하려면 브라우저 개발자 도구의 네트워크 탭에서 Protocol 컬럼을 확인한다. `h3`으로 표시되면 HTTP/3으로 연결된 것이다. 첫 번째 요청은 HTTP/2이고, Alt-Svc를 받은 후 두 번째 요청부터 HTTP/3으로 전환되는 게 정상이다.
 
 ## 리버스 프록시
 
@@ -370,8 +584,6 @@ example.com {
 }
 ```
 
-Nginx에서는 WebSocket마다 `proxy_set_header Upgrade`, `proxy_set_header Connection` 설정을 추가해야 하는데, Caddy에서는 그냥 된다.
-
 ## 정적 파일 서빙
 
 ### 기본 설정
@@ -436,41 +648,115 @@ example.com {
 }
 ```
 
-## Nginx와의 비교
+## xcaddy 플러그인 빌드
 
-| 항목 | Caddy | Nginx |
-|------|-------|-------|
-| HTTPS 설정 | 자동 (도메인만 지정) | certbot + 수동 설정 |
-| 설정 문법 | Caddyfile (간결) | nginx.conf (장황) |
-| WebSocket | 자동 처리 | 헤더 설정 필요 |
-| 언어 | Go | C |
-| 메모리 사용량 | 상대적으로 많음 | 적음 |
-| 성능 (정적 파일) | 충분히 빠름 | 약간 더 빠름 |
-| 모듈 생태계 | 작음 | 매우 큼 |
-| 설정 복잡도 | 낮음 | 높음 |
-| 실무 채택률 | 점점 늘어나는 중 | 압도적 |
+Caddy의 기본 바이너리에 포함되지 않는 기능(DNS 챌린지, 캐싱, rate limiting 등)은 모듈로 추가한다. `xcaddy`는 Go 모듈을 포함해서 Caddy 바이너리를 새로 컴파일하는 도구다.
 
-Caddy를 쓰면 좋은 경우:
+### 기본 사용법
 
-- 소규모~중규모 서비스에서 빠르게 HTTPS를 적용해야 할 때
-- 복잡한 Nginx 설정을 관리할 인력이 부족할 때
-- 사이드 프로젝트나 내부 도구에서 간단하게 리버스 프록시를 띄울 때
-- Docker 환경에서 인증서 관리를 자동화하고 싶을 때
+```bash
+# xcaddy 설치 (Go 1.21+ 필요)
+go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
-Nginx를 쓰면 좋은 경우:
+# DNS 챌린지 모듈 포함 빌드
+xcaddy build --with github.com/caddy-dns/cloudflare
 
-- 대규모 트래픽을 처리해야 할 때
-- 세밀한 성능 튜닝이 필요할 때
-- 이미 Nginx 기반 인프라가 구축되어 있을 때
-- OpenResty 같은 확장이 필요할 때
+# 여러 모듈을 한번에
+xcaddy build \
+    --with github.com/caddy-dns/cloudflare \
+    --with github.com/caddyserver/cache-handler \
+    --with github.com/mholt/caddy-ratelimit
+
+# 특정 Caddy 버전으로 빌드
+xcaddy build v2.8.4 --with github.com/caddy-dns/cloudflare
+```
+
+빌드하면 현재 디렉토리에 `caddy` 바이너리가 생성된다. 이걸 기존 바이너리와 교체하면 된다.
+
+```bash
+# 빌드된 바이너리 교체
+sudo mv caddy /usr/bin/caddy
+sudo systemctl restart caddy
+
+# 포함된 모듈 확인
+caddy list-modules | grep dns
+```
+
+### Docker에서 커스텀 빌드
+
+프로덕션에서 가장 많이 쓰는 방식이다. Multi-stage 빌드로 커스텀 Caddy 이미지를 만든다.
+
+```dockerfile
+FROM caddy:2-builder AS builder
+
+RUN xcaddy build \
+    --with github.com/caddy-dns/cloudflare \
+    --with github.com/caddyserver/cache-handler
+
+FROM caddy:2-alpine
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+```
+
+`caddy:2-builder` 이미지에 xcaddy와 Go 빌드 환경이 이미 들어있다. 빌드가 끝나면 바이너리만 런타임 이미지로 복사하므로 최종 이미지 크기가 작다.
+
+### 자주 쓰는 모듈
+
+| 모듈 | 용도 |
+|------|------|
+| `github.com/caddy-dns/cloudflare` | Cloudflare DNS 챌린지 |
+| `github.com/caddy-dns/route53` | AWS Route53 DNS 챌린지 |
+| `github.com/caddyserver/cache-handler` | HTTP 캐싱 (Varnish 대안) |
+| `github.com/mholt/caddy-ratelimit` | 요청 rate limiting |
+| `github.com/mholt/caddy-webdav` | WebDAV 서버 |
+| `github.com/greenpau/caddy-security` | 인증/인가 (JWT, OAuth2) |
+| `github.com/mholt/caddy-l4` | TCP/UDP 레이어 4 프록시 |
+
+### 모듈 개발
+
+Caddy 모듈은 Go 인터페이스를 구현하는 구조체다. 간단한 미들웨어 모듈의 골격:
+
+```go
+package mymodule
+
+import (
+    "net/http"
+    "github.com/caddyserver/caddy/v2"
+    "github.com/caddyserver/caddy/v2/caddyhttp"
+    "github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth"
+)
+
+func init() {
+    caddy.RegisterModule(MyMiddleware{})
+}
+
+type MyMiddleware struct{}
+
+func (MyMiddleware) CaddyModule() caddy.ModuleInfo {
+    return caddy.ModuleInfo{
+        ID:  "http.handlers.my_middleware",
+        New: func() caddy.Module { return new(MyMiddleware) },
+    }
+}
+
+func (m MyMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+    // 요청 처리 로직
+    return next.ServeHTTP(w, r)
+}
+
+var _ caddyhttp.MiddlewareHandler = (*MyMiddleware)(nil)
+```
+
+로컬에서 테스트할 때는 `xcaddy run`으로 모듈을 포함해서 바로 실행할 수 있다:
+
+```bash
+xcaddy run --with /path/to/my/module
+```
 
 ## Docker 환경 설정
 
 ### 기본 Docker Compose
 
 ```yaml
-version: "3.9"
-
 services:
   caddy:
     image: caddy:2-alpine
@@ -478,12 +764,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"  # HTTP/3
+      - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data      # 인증서 저장
-      - caddy_config:/config  # 설정 캐시
-      - ./site:/srv           # 정적 파일
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./site:/srv
 
 volumes:
   caddy_data:
@@ -495,8 +781,6 @@ volumes:
 ### 리버스 프록시 + 앱 서버
 
 ```yaml
-version: "3.9"
-
 services:
   caddy:
     image: caddy:2-alpine
