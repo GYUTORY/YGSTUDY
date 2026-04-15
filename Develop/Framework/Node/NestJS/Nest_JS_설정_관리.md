@@ -1,12 +1,44 @@
 ---
 title: NestJS 설정 관리
 tags: [nestjs, config, env, validation, node]
-updated: 2026-04-01
+updated: 2026-04-15
 ---
 
 # NestJS 설정 관리
 
 NestJS에서 환경변수를 다루는 건 단순해 보이지만, 설정 하나 잘못 넣어서 프로덕션 DB가 날아가는 일이 실제로 일어난다. `synchronize: true`가 프로덕션 TypeORM 설정에 들어가 있었는데 아무도 몰랐다가, 엔티티 수정 후 배포하면서 테이블 컬럼이 드랍된 사례는 한 번쯤 들어봤을 것이다. ConfigModule을 제대로 설정하고, 환경변수를 검증하고, 환경별로 분리하는 방법을 정리한다.
+
+
+## ConfigModule 초기화 흐름
+
+NestJS 앱이 시작되면 ConfigModule은 다음 순서로 동작한다.
+
+```mermaid
+flowchart TD
+    A["NestFactory.create(AppModule)"] --> B["ConfigModule.forRoot() 실행"]
+    B --> C{"envFilePath 지정?"}
+    C -- "Yes" --> D[".env 파일 순서대로 로딩"]
+    C -- "No" --> E["프로젝트 루트 .env 로딩"]
+    D --> F["시스템 환경변수와 병합<br/>(시스템 환경변수 우선)"]
+    E --> F
+    F --> G{"load 옵션 있음?"}
+    G -- "Yes" --> H["registerAs 팩토리 함수 실행<br/>(네임스페이스별 설정 객체 생성)"]
+    G -- "No" --> I{"검증 설정 있음?"}
+    H --> I
+    I -- "validationSchema (Joi)" --> J["Joi 스키마로 전체 환경변수 검증"]
+    I -- "validate (class-validator)" --> K["커스텀 validate 함수 실행"]
+    I -- "없음" --> L["검증 생략"]
+    J --> M{"검증 통과?"}
+    K --> M
+    M -- "실패" --> N["에러 throw → 앱 시작 중단"]
+    M -- "성공" --> O["ConfigService에 설정값 등록"]
+    L --> O
+    O --> P{"isGlobal: true?"}
+    P -- "Yes" --> Q["전역 모듈로 등록<br/>(모든 모듈에서 주입 가능)"]
+    P -- "No" --> R["import한 모듈에서만 사용 가능"]
+```
+
+앱이 시작되는 시점에 환경변수 로딩 → 설정 객체 생성 → 검증이 순서대로 일어난다. 검증에 실패하면 앱 자체가 뜨지 않기 때문에, 잘못된 설정으로 런타임에 장애가 나는 걸 막을 수 있다.
 
 
 ## ConfigModule 기본 설정
@@ -34,6 +66,30 @@ export class AppModule {}
 ## .env 파일 로딩 순서
 
 ConfigModule은 기본적으로 프로젝트 루트의 `.env` 파일을 읽는다. 여러 환경 파일을 사용하려면 `envFilePath` 옵션을 쓴다.
+
+다음은 `NODE_ENV=development`일 때 환경변수 값이 결정되는 우선순위다. 위에 있을수록 우선순위가 높다.
+
+```mermaid
+flowchart TD
+    subgraph priority ["환경변수 우선순위 (위가 높음)"]
+        direction TB
+        SYS["1. 시스템 환경변수 / Docker ENV / CI 변수<br/>export DB_HOST=prod-db"]
+        LOCAL_ENV["2. .env.development.local<br/>개인 로컬 오버라이드 (git 미추적)"]
+        ENV_SPECIFIC["3. .env.development<br/>환경별 공통 설정"]
+        COMMON_LOCAL["4. .env.local<br/>환경 무관 로컬 오버라이드 (git 미추적)"]
+        DEFAULT["5. .env<br/>기본값"]
+    end
+
+    SYS --- LOCAL_ENV --- ENV_SPECIFIC --- COMMON_LOCAL --- DEFAULT
+
+    style SYS fill:#ef4444,color:#fff
+    style LOCAL_ENV fill:#f97316,color:#fff
+    style ENV_SPECIFIC fill:#eab308,color:#000
+    style COMMON_LOCAL fill:#22c55e,color:#fff
+    style DEFAULT fill:#3b82f6,color:#fff
+```
+
+같은 키가 여러 파일에 있으면 우선순위가 높은 쪽이 이긴다. 시스템 환경변수가 항상 `.env` 파일보다 우선한다는 점이 핵심이다.
 
 ```typescript
 ConfigModule.forRoot({
@@ -322,6 +378,36 @@ env/
   .env.example
 ```
 
+환경별로 설정이 어떻게 흘러가는지 그림으로 보면 이렇다.
+
+```mermaid
+flowchart LR
+    subgraph dev ["Development"]
+        D_ENV[".env.development<br/>DB_HOST=localhost<br/>JWT_SECRET=dev-secret"]
+        D_SYNC["synchronize: true"]
+    end
+
+    subgraph stg ["Staging"]
+        S_ENV[".env.staging<br/>DB_HOST=staging-db.internal<br/>JWT_SECRET=${STAGING_JWT_SECRET}"]
+        S_SYNC["synchronize: false"]
+    end
+
+    subgraph prod ["Production"]
+        P_SECRET["Secrets Manager / Vault<br/>.env 파일 없음"]
+        P_SYNC["synchronize: false (하드코딩)"]
+    end
+
+    D_ENV --> APP["NestJS App<br/>ConfigModule"]
+    S_ENV --> APP
+    P_SECRET --> APP
+
+    style dev fill:#dbeafe,color:#000
+    style stg fill:#fef3c7,color:#000
+    style prod fill:#fee2e2,color:#000
+```
+
+개발 환경에서는 `.env` 파일에 값을 직접 넣고, 스테이징에서는 일부 값을 CI/CD에서 주입하며, 프로덕션에서는 `.env` 파일 자체를 쓰지 않고 시크릿 관리 서비스에서 가져온다.
+
 ### 환경별 .env 파일
 
 ```ini
@@ -366,6 +452,26 @@ JWT_SECRET=${STAGING_JWT_SECRET}
 ## 동적 모듈에서 설정 주입
 
 NestJS의 동적 모듈은 `forRoot()`, `forRootAsync()`로 설정을 받는다. `forRootAsync()`에서 ConfigService를 주입해 환경변수 기반으로 설정하는 패턴이 가장 많이 쓰인다.
+
+`forRootAsync` + ConfigService 조합이 어떻게 동작하는지 흐름을 보면 이렇다.
+
+```mermaid
+sequenceDiagram
+    participant App as AppModule
+    participant CM as ConfigModule
+    participant CS as ConfigService
+    participant TM as TypeOrmModule
+    participant DB as PostgreSQL
+
+    App->>CM: forRoot() — .env 파일 로딩 + 검증
+    CM->>CS: 설정값 등록 (네임스페이스별)
+    App->>TM: forRootAsync({ useFactory, inject: [ConfigService] })
+    TM->>CS: get('database.host'), get('database.port')...
+    CS-->>TM: 설정값 반환
+    TM->>DB: 반환된 설정으로 커넥션 풀 생성
+```
+
+ConfigModule이 먼저 초기화되고, 그 다음에 다른 동적 모듈의 `useFactory`가 실행된다. ConfigModule에 `isGlobal: true`가 있으면 별도 import 없이 어떤 모듈에서든 ConfigService를 주입받을 수 있다.
 
 ### TypeORM 설정
 

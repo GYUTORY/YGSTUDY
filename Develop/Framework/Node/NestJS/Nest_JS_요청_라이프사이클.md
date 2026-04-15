@@ -1,7 +1,7 @@
 ---
 title: NestJS 요청 라이프사이클
 tags: [nestjs, lifecycle, middleware, guard, interceptor, pipe, node]
-updated: 2026-04-01
+updated: 2026-04-15
 ---
 
 # NestJS 요청 라이프사이클
@@ -31,6 +31,81 @@ Client Response
 ```
 
 주의할 점은 **Interceptor의 after 처리와 Exception Filter는 실행 순서가 반대**라는 것이다. before 처리는 Global → Controller → Route 순이지만, after 처리와 에러 핸들링은 Route → Controller → Global 순으로 버블링된다. 스택처럼 동작한다고 생각하면 된다.
+
+### 전체 흐름 다이어그램
+
+아래 다이어그램은 정상 처리 경로와 예외 발생 시 경로를 함께 보여준다. 각 레이어에서 예외가 발생하면 Exception Filter로 바로 넘어간다는 점이 핵심이다.
+
+```mermaid
+flowchart TD
+    Client(["Client Request"])
+    MW["Middleware\n(Global → Module → Route)\n\nreq/res/next 접근\nExpress 미들웨어와 동일"]
+    GD["Guard\n(Global → Controller → Route)\n\ncanActivate() 판단\nExecutionContext 접근 가능"]
+    INT_B["Interceptor - before\n(Global → Controller → Route)\n\nnext.handle() 호출 전 로직"]
+    PP["Pipe\n(Global → Controller → Route Param)\n\n파라미터 변환/검증"]
+    HD["Route Handler\n\n비즈니스 로직 실행"]
+    INT_A["Interceptor - after\n(Route → Controller → Global)\n\nnext.handle() 반환값 가공\nmap, tap 등 RxJS 연산자"]
+    EF["Exception Filter\n(Route → Controller → Global)\n\n예외 → HTTP 응답 변환"]
+    RES(["Client Response"])
+
+    Client --> MW
+    MW -->|next 호출| GD
+    GD -->|canActivate: true| INT_B
+    INT_B --> PP
+    PP -->|변환/검증 통과| HD
+    HD --> INT_A
+    INT_A --> RES
+
+    GD -->|canActivate: false| EF
+    PP -->|검증 실패| EF
+    HD -->|예외 발생| EF
+    EF --> RES
+
+    style Client fill:#e2e8f0,stroke:#64748b,color:#1e293b
+    style RES fill:#e2e8f0,stroke:#64748b,color:#1e293b
+    style MW fill:#dbeafe,stroke:#3b82f6,color:#1e293b
+    style GD fill:#fef3c7,stroke:#f59e0b,color:#1e293b
+    style INT_B fill:#d1fae5,stroke:#10b981,color:#1e293b
+    style INT_A fill:#d1fae5,stroke:#10b981,color:#1e293b
+    style PP fill:#ede9fe,stroke:#8b5cf6,color:#1e293b
+    style HD fill:#fce7f3,stroke:#ec4899,color:#1e293b
+    style EF fill:#fee2e2,stroke:#ef4444,color:#1e293b
+```
+
+### 실행 순서와 스코프 비교
+
+각 레이어가 언제 실행되고, 무엇에 접근할 수 있는지 한눈에 비교한 그림이다.
+
+```mermaid
+flowchart LR
+    subgraph before ["요청 방향 →  (Global → Controller → Route)"]
+        direction LR
+        M["Middleware\nreq, res, next"]
+        G["Guard\nExecutionContext\nReflector"]
+        IB["Interceptor before\nExecutionContext\nCallHandler"]
+        P["Pipe\nvalue\nArgumentMetadata"]
+        H["Handler"]
+    end
+
+    subgraph after ["← 응답 방향  (Route → Controller → Global)"]
+        direction RL
+        IA["Interceptor after\nObservable 가공"]
+        F["Exception Filter\nArgumentsHost"]
+    end
+
+    M --> G --> IB --> P --> H
+    H -.-> IA -.-> F
+
+    style M fill:#dbeafe,stroke:#3b82f6,color:#1e293b
+    style G fill:#fef3c7,stroke:#f59e0b,color:#1e293b
+    style IB fill:#d1fae5,stroke:#10b981,color:#1e293b
+    style P fill:#ede9fe,stroke:#8b5cf6,color:#1e293b
+    style H fill:#fce7f3,stroke:#ec4899,color:#1e293b
+    style IA fill:#d1fae5,stroke:#10b981,color:#1e293b
+    style F fill:#fee2e2,stroke:#ef4444,color:#1e293b
+```
+
+다이어그램에서 확인할 수 있는 것처럼, Middleware는 `req`/`res`만 알고 "어떤 핸들러가 실행될지"는 모른다. Guard부터 `ExecutionContext`가 주어지면서 핸들러/컨트롤러 메타데이터에 접근할 수 있게 된다. 이 차이 때문에 인증/인가 같은 로직은 Middleware가 아니라 Guard에서 처리해야 한다.
 
 
 ## Middleware
