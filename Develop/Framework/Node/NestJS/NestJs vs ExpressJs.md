@@ -270,6 +270,38 @@ NestJS는 역할별로 구분된 레이어가 있다. Guard는 인증/인가, Pi
 
 ## 주요 기능 비교
 
+### 주요 기능 비교 개요
+
+두 프레임워크가 같은 기능을 어떤 방식으로 제공하는지 한눈에 보면 차이가 분명하다.
+
+```mermaid
+graph LR
+    subgraph Express["Express.js"]
+        direction TB
+        ET["타입 시스템"] --- ET1["JavaScript 기본<br/>TypeScript는 별도 설정"]
+        EM["미들웨어"] --- EM1["함수 체인<br/>(req, res, next)"]
+        ER["라우팅"] --- ER1["app.get(), app.post()<br/>수동 등록"]
+        ED["DB 통합"] --- ED1["직접 설정<br/>ORM 선택 자유"]
+        EV["유효성 검사"] --- EV1["별도 라이브러리<br/>joi, express-validator"]
+        EA["API 문서화"] --- EA1["swagger-jsdoc<br/>수동 작성"]
+    end
+
+    subgraph Nest["NestJS"]
+        direction TB
+        NT["타입 시스템"] --- NT1["TypeScript 내장<br/>컴파일 타임 체크"]
+        NM["미들웨어"] --- NM1["Guard, Pipe, Interceptor<br/>역할별 분리"]
+        NR["라우팅"] --- NR1["@Controller, @Get<br/>데코레이터 선언"]
+        ND["DB 통합"] --- ND1["공식 모듈 제공<br/>TypeORM, Prisma 등"]
+        NV["유효성 검사"] --- NV1["class-validator<br/>DTO + Pipe 자동 적용"]
+        NA["API 문서화"] --- NA1["@nestjs/swagger<br/>데코레이터에서 자동 생성"]
+    end
+
+    style Express fill:#f5f5f5,stroke:#333
+    style Nest fill:#f5f5f5,stroke:#333
+```
+
+Express.js는 각 기능마다 라이브러리를 골라서 직접 조합해야 한다. 자유도가 높지만, 프로젝트마다 조합이 달라서 팀 간 이동 시 적응 비용이 생긴다. NestJS는 공식 모듈이 있어서 대부분의 프로젝트가 비슷한 구조를 가진다.
+
 ### 1. 타입 시스템
 
 #### Express.js
@@ -339,6 +371,79 @@ export class UsersController {
 ---
 
 ## 성능 및 확장성
+
+### 앱 부트스트랩과 확장 방식 비교
+
+프로젝트가 커질 때 각 프레임워크가 어떻게 확장되는지 비교한다. Express.js는 수평으로 미들웨어와 라우터가 늘어나고, NestJS는 모듈 트리가 깊어진다.
+
+```mermaid
+graph TB
+    subgraph Express["Express.js 확장 패턴"]
+        direction TB
+        EA["app.js"] --> EG1["라우터 그룹 1<br/>/api/v1"]
+        EA --> EG2["라우터 그룹 2<br/>/api/v2"]
+        EA --> EG3["라우터 그룹 3<br/>/admin"]
+        EG1 --> ER1["users.js"]
+        EG1 --> ER2["orders.js"]
+        EG1 --> ER3["products.js"]
+        EG2 --> ER4["users.js"]
+        EG2 --> ER5["orders.js"]
+        EA --> EMW["미들웨어 20개+<br/>순서 관리가 핵심"]
+    end
+
+    subgraph Nest["NestJS 확장 패턴"]
+        direction TB
+        NM["AppModule"] --> NM1["UsersModule"]
+        NM --> NM2["OrdersModule"]
+        NM --> NM3["ProductsModule"]
+        NM --> NM4["SharedModule"]
+        NM1 -->|import| NM4
+        NM2 -->|import| NM4
+        NM3 -->|import| NM4
+        NM4 --> NS1["LoggerService"]
+        NM4 --> NS2["CacheService"]
+        NM4 --> NS3["AuthGuard"]
+    end
+
+    style Express fill:#f5f5f5,stroke:#333
+    style Nest fill:#f5f5f5,stroke:#333
+    style NM4 fill:#e8f5e9,stroke:#388e3c
+    style EMW fill:#fff3e0,stroke:#f57c00
+```
+
+Express.js는 라우터 파일이 늘어날수록 `app.js`가 비대해진다. 미들웨어 등록 순서를 실수하면 인증이 안 된 요청이 통과하거나 CORS가 안 먹는 문제가 생긴다. NestJS는 SharedModule로 공통 기능을 묶고, 필요한 모듈에서 import하는 방식이라 중복 코드가 줄어든다.
+
+### 테스트 구조 비교
+
+확장성에서 빠질 수 없는 부분이 테스트다. 프로젝트가 커질수록 테스트 작성과 유지보수 비용이 달라진다.
+
+```mermaid
+graph TB
+    subgraph Express["Express.js 테스트"]
+        direction TB
+        ET1["테스트 파일"] -->|supertest| ET2["Express App 전체 로드"]
+        ET2 --> ET3["실제 미들웨어 실행"]
+        ET2 --> ET4["실제 DB 연결 필요"]
+        ET1 -->|jest.mock| ET5["모듈 단위 mock<br/>require 경로 기반"]
+        ET5 -.->|깨지기 쉬움| ET6["파일 경로 변경 시<br/>mock도 수정 필요"]
+    end
+
+    subgraph Nest["NestJS 테스트"]
+        direction TB
+        NT1["테스트 파일"] -->|Testing.createTestingModule| NT2["필요한 모듈만 로드"]
+        NT2 --> NT3["DI로 mock 주입"]
+        NT3 --> NT4["Service만 테스트"]
+        NT3 --> NT5["Controller만 테스트"]
+        NT3 --> NT6["E2E 테스트"]
+    end
+
+    style Express fill:#f5f5f5,stroke:#333
+    style Nest fill:#f5f5f5,stroke:#333
+    style ET6 fill:#ffcccc,stroke:#cc0000
+    style NT3 fill:#e8f5e9,stroke:#388e3c
+```
+
+Express.js에서 단위 테스트를 작성하려면 `jest.mock()`으로 의존 모듈을 하나하나 교체해야 한다. 파일 경로가 바뀌면 mock 설정도 같이 깨진다. NestJS는 `Test.createTestingModule()`로 테스트용 모듈을 만들고, DI 컨테이너를 통해 가짜 구현체를 주입한다. Service 하나만 테스트하고 싶으면 그 Service와 의존성만 등록하면 된다.
 
 ### Express.js
 - **장점**: 가벼운 오버헤드, 빠른 시작 시간, 낮은 메모리 사용량
@@ -416,6 +521,45 @@ graph TD
 ### NestJS
 - **장점**: 활발한 개발, 공식 모듈 지원, 체계적인 문서
 - **단점**: 상대적으로 작은 커뮤니티, 제한된 서드파티 패키지
+
+---
+
+## 프레임워크 전환 시 대응 관계
+
+Express.js에서 NestJS로 전환하거나, 반대로 NestJS 개념을 Express.js에서 구현할 때 각 개념이 어떻게 매핑되는지 정리한다.
+
+```mermaid
+graph LR
+    subgraph Express["Express.js 개념"]
+        E1["app.use()"]
+        E2["router.get()"]
+        E3["require() / import"]
+        E4["에러 미들웨어"]
+        E5["express-validator"]
+        E6["passport.js"]
+    end
+
+    subgraph Nest["NestJS 개념"]
+        N1["@Module + Middleware"]
+        N2["@Controller + @Get"]
+        N3["@Injectable + DI"]
+        N4["Exception Filter"]
+        N5["Pipe + class-validator"]
+        N6["Guard + @UseGuards"]
+    end
+
+    E1 -->|대응| N1
+    E2 -->|대응| N2
+    E3 -->|대응| N3
+    E4 -->|대응| N4
+    E5 -->|대응| N5
+    E6 -->|대응| N6
+
+    style Express fill:#f5f5f5,stroke:#333
+    style Nest fill:#f5f5f5,stroke:#333
+```
+
+Express.js 경험이 있다면 NestJS로 넘어갈 때 이 매핑을 머릿속에 두면 학습 속도가 빨라진다. `app.use()`로 하던 것의 대부분이 NestJS에서는 Module, Guard, Interceptor, Pipe 중 하나로 분류된다. 기존 Express.js 미들웨어를 NestJS에서 그대로 쓸 수도 있지만, NestJS 방식으로 재구현하는 편이 테스트와 유지보수에 유리하다.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: NestJS 마이크로서비스
 tags: [nestjs, microservice, grpc, redis, tcp, nats, node]
-updated: 2026-04-14
+updated: 2026-04-15
 ---
 
 # NestJS 마이크로서비스
@@ -9,6 +9,59 @@ updated: 2026-04-14
 NestJS는 HTTP 서버 프레임워크로 시작했지만, 내장 마이크로서비스 모듈을 가지고 있다. 별도 프레임워크 없이 `@nestjs/microservices` 하나로 TCP, Redis, gRPC, NATS, RabbitMQ, Kafka 등 여러 트랜스포트를 지원한다. 모놀리스에서 마이크로서비스로 전환할 때 기존 NestJS 코드를 거의 그대로 쓸 수 있다는 점이 실무에서 선택하는 이유다.
 
 다만 "NestJS 마이크로서비스 = 완전한 마이크로서비스 프레임워크"라고 보면 안 된다. NestJS가 해주는 건 서비스 간 메시지 송수신의 추상화일 뿐이고, 서비스 디스커버리, 분산 트레이싱, 서킷 브레이커 같은 건 직접 구성해야 한다.
+
+
+## 트랜스포트 계층 구조
+
+NestJS 마이크로서비스의 핵심은 트랜스포트를 추상화하는 계층 구조다. 애플리케이션 코드는 트랜스포트가 뭔지 모른 채 `@MessagePattern`, `@EventPattern`, `ClientProxy`만 쓰면 되고, 실제 프로토콜 처리는 아래 계층이 담당한다.
+
+```mermaid
+flowchart TB
+    subgraph App ["애플리케이션 코드"]
+        direction LR
+        MP["@MessagePattern<br/>@EventPattern"]
+        CP["ClientProxy<br/>send() / emit()"]
+    end
+
+    subgraph Abstract ["NestJS 추상화 계층"]
+        direction LR
+        SER["ServerFactory<br/>메시지 디시리얼라이즈<br/>패턴 매칭 → 핸들러 실행"]
+        CLI["ClientProxyFactory<br/>메시지 시리얼라이즈<br/>응답 Observable 관리"]
+    end
+
+    subgraph Transport ["트랜스포트 구현체"]
+        direction LR
+        T1["ServerTCP<br/>ClientTCP"]
+        T2["ServerRedis<br/>ClientRedis"]
+        T3["ServerGrpc<br/>ClientGrpc"]
+        T4["ServerNats<br/>ClientNats"]
+        T5["ServerRMQ<br/>ClientRMQ"]
+        T6["ServerKafka<br/>ClientKafka"]
+    end
+
+    subgraph Infra ["인프라"]
+        direction LR
+        I1["TCP Socket"]
+        I2["Redis Server"]
+        I3["gRPC / HTTP/2"]
+        I4["NATS Server"]
+        I5["RabbitMQ"]
+        I6["Kafka Broker"]
+    end
+
+    MP --> SER
+    CP --> CLI
+    SER --> Transport
+    CLI --> Transport
+    T1 --> I1
+    T2 --> I2
+    T3 --> I3
+    T4 --> I4
+    T5 --> I5
+    T6 --> I6
+```
+
+이 구조 덕분에 트랜스포트를 바꿀 때 애플리케이션 코드를 수정할 필요가 없다. `bootstrap()`에서 `Transport.TCP`를 `Transport.REDIS`로 바꾸면 끝이다. 다만 트랜스포트마다 특성이 다르기 때문에(메시지 영속성, 큐 그룹 지원 여부 등), 단순히 옵션만 바꿔서 되는 게 아니라 아키텍처 차원에서 고려해야 할 부분이 있다.
 
 
 ## 트랜스포트별 통신 흐름
@@ -206,6 +259,69 @@ NATS는 기본적으로 at-most-once 전달이다. JetStream을 활성화하면 
 | 다른 언어 서비스와 통신, 높은 성능 필요 | gRPC |
 | 경량 메시징, 로드 밸런싱 필요 | NATS |
 | 메시지 영속성, 순서 보장 필요 | Kafka, RabbitMQ |
+
+
+## 메시지 처리 내부 흐름
+
+`send()`나 `emit()`을 호출하면 NestJS 내부에서 어떤 과정을 거치는지 알아야 디버깅할 때 어디서 문제가 생겼는지 파악할 수 있다.
+
+### send() — 요청-응답 처리 흐름
+
+```mermaid
+flowchart LR
+    subgraph Client ["호출 측 서비스"]
+        A["client.send(pattern, data)"]
+        B["ClientProxy<br/>시리얼라이즈"]
+        C["응답 대기<br/>(Observable)"]
+    end
+
+    subgraph Network ["트랜스포트"]
+        D["요청 전송<br/>+ correlationId"]
+        E["응답 수신"]
+    end
+
+    subgraph Server ["수신 측 서비스"]
+        F["메시지 수신<br/>디시리얼라이즈"]
+        G["패턴 매칭<br/>@MessagePattern"]
+        H["파이프·가드<br/>인터셉터 실행"]
+        I["핸들러 실행<br/>리턴값 직렬화"]
+    end
+
+    A --> B --> D --> F --> G --> H --> I
+    I --> E --> C
+```
+
+`send()`는 내부적으로 고유한 `correlationId`를 생성해서 요청과 응답을 매칭한다. 응답이 돌아오면 이 ID로 어떤 요청의 응답인지 구분한다. 여러 요청을 동시에 보내도 꼬이지 않는 이유가 이것이다.
+
+### emit() — 이벤트 발행 처리 흐름
+
+```mermaid
+flowchart LR
+    subgraph Publisher ["발행 측 서비스"]
+        A["client.emit(event, data)"]
+        B["ClientProxy<br/>시리얼라이즈"]
+    end
+
+    subgraph Network ["트랜스포트"]
+        C["이벤트 발행"]
+    end
+
+    subgraph Sub1 ["구독 서비스 A"]
+        D["이벤트 수신"]
+        E["@EventPattern<br/>핸들러 실행"]
+    end
+
+    subgraph Sub2 ["구독 서비스 B"]
+        F["이벤트 수신"]
+        G["@EventPattern<br/>핸들러 실행"]
+    end
+
+    A --> B --> C
+    C --> D --> E
+    C --> F --> G
+```
+
+`emit()`은 응답을 기다리지 않는다. `correlationId`도 생성하지 않는다. 발행 측은 수신 측의 처리 결과를 알 수 없다. 이벤트 핸들러에서 에러가 나도 발행 측에 전파되지 않기 때문에, 수신 측에서 자체적으로 에러 핸들링과 재시도 로직을 구현해야 한다.
 
 
 ## @MessagePattern vs @EventPattern

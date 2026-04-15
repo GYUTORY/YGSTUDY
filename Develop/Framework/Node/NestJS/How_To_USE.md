@@ -1,7 +1,7 @@
 ---
 title: NestJS 동작 과정과 핵심 문법
 tags: [framework, node, nestjs, typescript, di, decorator]
-updated: 2026-04-14
+updated: 2026-04-15
 ---
 
 # NestJS 동작 과정과 핵심 문법
@@ -179,7 +179,37 @@ export class UsersModule {}
 - 다른 모듈에서 쓰게 하려면 반드시 `exports`에 넣어야 한다
 - `imports`에 다른 모듈을 넣으면, 그 모듈이 `exports`한 프로바이더를 사용할 수 있다
 
-자주 하는 실수: `UsersModule`에서 `UsersService`를 exports하지 않고, `OrdersModule`에서 `UsersService`를 주입하려고 하면 런타임에 에러가 난다. 에러 메시지가 "Nest can't resolve dependencies"로 나오는데, exports를 빠뜨린 경우가 대부분이다.
+모듈 간 의존성이 어떻게 흐르는지 그림으로 보면 이렇다:
+
+```mermaid
+flowchart LR
+    subgraph UsersModule
+        UC["UsersController"]
+        US["UsersService"]
+        UC -.->|"주입"| US
+    end
+
+    subgraph DatabaseModule
+        DS["DatabaseService"]
+    end
+
+    subgraph OrdersModule
+        OC["OrdersController"]
+        OS["OrdersService"]
+        OC -.->|"주입"| OS
+        OS -.->|"주입"| US2["UsersService"]
+    end
+
+    DatabaseModule -->|"exports: [DatabaseService]"| UsersModule
+    UsersModule -->|"exports: [UsersService]"| OrdersModule
+    US -.->|"주입"| DS
+
+    style DS fill:#dbeafe,stroke:#2563eb
+    style US fill:#dbeafe,stroke:#2563eb
+    style US2 fill:#dbeafe,stroke:#2563eb
+```
+
+`exports`에 넣지 않은 프로바이더는 해당 모듈 외부에서 접근할 수 없다. `UsersModule`에서 `UsersService`를 exports하지 않고 `OrdersModule`에서 주입하려고 하면 "Nest can't resolve dependencies" 에러가 난다. exports를 빠뜨린 경우가 대부분이다.
 
 ### 글로벌 모듈
 
@@ -373,13 +403,27 @@ export class RequestContextService {
 
 이게 성능에 미치는 영향이 크다. 싱글톤이었던 서비스가 요청마다 새로 생성되니까 GC 부담이 늘어난다. REQUEST 스코프가 전파되는 범위를 꼭 확인해야 한다.
 
-```typescript
-// 의존성 체인 예시
-// UsersController → UsersService → RequestContextService(REQUEST)
-// → UsersService도 REQUEST로 승격
-// → UsersController도 REQUEST로 승격
-// 결과: 요청마다 컨트롤러, 서비스 전부 새로 생성
+```mermaid
+flowchart TD
+    subgraph before["적용 전 - 모두 싱글톤"]
+        A1["UsersController<br/>DEFAULT"] --> B1["UsersService<br/>DEFAULT"] --> C1["RequestContextService<br/>DEFAULT"]
+    end
+
+    subgraph after["적용 후 - 스코프 버블링"]
+        A2["UsersController<br/>⬆ REQUEST로 승격"] --> B2["UsersService<br/>⬆ REQUEST로 승격"] --> C2["RequestContextService<br/>REQUEST"]
+    end
+
+    before -.->|"RequestContextService에<br/>REQUEST 스코프 적용"| after
+
+    style C2 fill:#fecaca,stroke:#dc2626
+    style B2 fill:#fef3c7,stroke:#d97706
+    style A2 fill:#fef3c7,stroke:#d97706
+    style A1 fill:#d1fae5,stroke:#059669
+    style B1 fill:#d1fae5,stroke:#059669
+    style C1 fill:#d1fae5,stroke:#059669
 ```
+
+하나의 프로바이더에 REQUEST 스코프를 적용했을 뿐인데, 그걸 직간접적으로 의존하는 모든 프로바이더가 REQUEST 스코프로 승격된다. 요청마다 컨트롤러, 서비스 전부 새로 생성하게 되는 것이다.
 
 #### TRANSIENT 스코프
 
@@ -455,6 +499,35 @@ export class OrdersService {
 ### 순환 참조를 피하는 방법
 
 `forwardRef`는 임시 해결책이다. 가능하면 설계를 바꾸는 게 맞다.
+
+```mermaid
+flowchart LR
+    subgraph problem["순환 참조 문제"]
+        direction LR
+        A["UsersService"] -->|"의존"| B["OrdersService"]
+        B -->|"의존"| A
+    end
+
+    subgraph solution1["해결 1: 중간 서비스"]
+        direction LR
+        C["UsersService"] --> E["UserOrderService"]
+        D["OrdersService"] --> E
+    end
+
+    subgraph solution2["해결 2: 이벤트 기반"]
+        direction LR
+        F["UsersService"] -->|"이벤트 발행"| G["EventEmitter"]
+        G -->|"이벤트 구독"| H["OrdersService"]
+    end
+
+    problem -.-> solution1
+    problem -.-> solution2
+
+    style A fill:#fecaca,stroke:#dc2626
+    style B fill:#fecaca,stroke:#dc2626
+    style E fill:#d1fae5,stroke:#059669
+    style G fill:#dbeafe,stroke:#2563eb
+```
 
 1. **중간 서비스 도입**: `UsersService`와 `OrdersService`가 서로를 직접 호출하는 대신, `UserOrderService` 같은 조합 서비스를 만든다
 2. **이벤트 기반 통신**: 한쪽이 이벤트를 발행하고 다른 쪽이 구독하는 방식. `@nestjs/event-emitter`를 쓰면 된다
@@ -543,16 +616,28 @@ getEmail(@CurrentUser('email') email: string) {
 
 요청이 들어오면 거치는 순서:
 
-```
-클라이언트 요청
-  → 미들웨어 (Middleware)
-    → 가드 (Guard)
-      → 인터셉터 (pre-handler)
-        → 파이프 (Pipe)
-          → 핸들러 (Controller method)
-        → 인터셉터 (post-handler)
-      → 예외 필터 (Exception Filter)
-  → 클라이언트 응답
+```mermaid
+flowchart TD
+    A["클라이언트 요청"] --> B["미들웨어<br/>Middleware"]
+    B --> C["가드<br/>Guard"]
+    C -->|"canActivate() = true"| D["인터셉터<br/>pre-handler"]
+    C -->|"canActivate() = false"| X["ForbiddenException"]
+    D --> E["파이프<br/>Pipe - 변환/검증"]
+    E -->|"검증 통과"| F["핸들러<br/>Controller method"]
+    E -->|"검증 실패"| Y["BadRequestException"]
+    F --> G["인터셉터<br/>post-handler"]
+    G --> H["클라이언트 응답"]
+    
+    X --> EF["예외 필터<br/>Exception Filter"]
+    Y --> EF
+    F -->|"예외 발생"| EF
+    EF --> H
+
+    style A fill:#e2e8f0,stroke:#475569
+    style H fill:#e2e8f0,stroke:#475569
+    style EF fill:#fecaca,stroke:#dc2626
+    style X fill:#fecaca,stroke:#dc2626
+    style Y fill:#fecaca,stroke:#dc2626
 ```
 
 각 단계의 역할:
