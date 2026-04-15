@@ -1,4 +1,5 @@
 nav:
   - Claude.md
   - Claude_Expert_Usage.md
+  - Claude_API_Advanced.md
   - Claude_Agent.md
