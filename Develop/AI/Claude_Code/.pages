@@ -1,5 +1,6 @@
 nav:
   - Claude_Code.md
+  - Claude_Code_Agent.md
   - Claude_Code_Tips.md
   - Claude_Code_Orchestration.md
   - Claude_Code_Worktree.md
