@@ -2,7 +2,10 @@ title: API Design
 nav:
   - API_Design_Patterns.md
   - API_Versioning.md
+  - API_Pagination_Patterns.md
   - Polling_and_Webhook.md
   - API_Security_Patterns.md
+  - API_Idempotency.md
+  - API_Caching.md
   - API_Abuse_Prevention.md
   - m_TLS_Service_Auth.md
