@@ -5,4 +5,7 @@ nav:
   - Nest_JS_요청_라이프사이클.md
   - Nest_JS_설정_관리.md
   - Nest_JS_마이크로서비스.md
+  - Nest_JS_인증_JWT_Passport.md
+  - Nest_JS_테스트.md
+  - Nest_JS_Type_ORM_연동.md
   - 실전_예제.md
