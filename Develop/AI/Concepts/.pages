@@ -5,6 +5,7 @@ nav:
   - LLM_Security.md
   - AI_Hallucination.md
   - Prompt_Engineering.md
+  - Ultra_Review.md
   - RAG_for_Code.md
   - RAG_Pipeline.md
   - Functional_RAG.md
