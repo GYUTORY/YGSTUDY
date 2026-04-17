@@ -3,6 +3,7 @@ nav:
   - Claude_Code_Agent.md
   - Claude_Code_Memory.md
   - Claude_Code_Tips.md
+  - Claude_Code_Routine.md
   - Claude_Code_Orchestration.md
   - Claude_Code_Worktree.md
   - Claude_Code_Troubleshooting.md
