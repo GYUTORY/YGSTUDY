@@ -2,4 +2,5 @@ title: NoSQL
 nav:
   - NoSQL.md
   - MongoDB.md
+  - Couch_DB.md
   - Redis
