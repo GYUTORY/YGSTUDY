@@ -22,7 +22,7 @@ hide:
 
 <nav class="yg-pillbar">
   <div class="yg-pillbar-inner">
-    <a class="yg-pill active" href="#featured">전체</a>
+    <a class="yg-pill active" href="#categories">전체</a>
     <a class="yg-pill" href="AI/Claude_Code/Claude_Code/">AI</a>
     <a class="yg-pill" href="Backend/API/API_Design_Patterns/">Backend</a>
     <a class="yg-pill" href="DevOps/Kubernetes/Kubernetes/">DevOps</a>
@@ -37,121 +37,6 @@ hide:
     <a class="yg-pill" href="Language/Java/Java 기본 개념/String 불변 객체/">Language</a>
   </div>
 </nav>
-
-<section id="featured" class="yg-section">
-  <div class="yg-section-head">
-    <h2 class="yg-section-title">최근 추천 글</h2>
-    <a class="yg-section-link" href="#categories">전체 카테고리 →</a>
-  </div>
-
-  <div class="yg-grid">
-
-    <a class="yg-card" href="DevOps/Kubernetes/Kubernetes/">
-      <div class="yg-thumb yg-thumb-k8s">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ DevOps</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>Kubernetes 운영의 핵심 패턴</h3><span class="yg-card-rating">★ 4.9</span></div>
-        <p class="yg-card-cat">DevOps · Infrastructure</p>
-        <p>실제 프로덕션 환경에서 마주친 K8s 운영 이슈와 해결 방법.</p>
-        <p class="yg-card-price"><u>5분 분량</u></p>
-      </div>
-    </a>
-
-    <a class="yg-card" href="DataBase/NoSQL/Redis/Redis_Cache_Strategy/">
-      <div class="yg-thumb yg-thumb-redis">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ Database</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>Redis 캐시 전략 비교</h3><span class="yg-card-rating">★ 4.8</span></div>
-        <p class="yg-card-cat">Database · Caching</p>
-        <p>Cache-Aside, Write-Through, Write-Behind 패턴 차이.</p>
-        <p class="yg-card-price"><u>3분 분량</u></p>
-      </div>
-    </a>
-
-    <a class="yg-card" href="Security/Zero_Trust_Architecture/">
-      <div class="yg-thumb yg-thumb-sec">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ Security</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>Zero Trust 보안 모델</h3><span class="yg-card-rating">★ 4.7</span></div>
-        <p class="yg-card-cat">Security · Architecture</p>
-        <p>경계 기반 보안의 한계와 Zero Trust로의 전환.</p>
-        <p class="yg-card-price"><u>4분 분량</u></p>
-      </div>
-    </a>
-
-    <a class="yg-card" href="GCP/Data/Big_Query/">
-      <div class="yg-thumb yg-thumb-bq">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ GCP</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>BigQuery로 로그 분석하기</h3><span class="yg-card-rating">★ 4.8</span></div>
-        <p class="yg-card-cat">GCP · Data</p>
-        <p>대규모 로그 분석 파이프라인 구축기.</p>
-        <p class="yg-card-price"><u>6분 분량</u></p>
-      </div>
-    </a>
-
-    <a class="yg-card" href="AI/Claude_Code/Claude_Code_Worktree/">
-      <div class="yg-thumb yg-thumb-ai">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ AI</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>Claude Code 워크트리 활용</h3><span class="yg-card-rating">★ 4.9</span></div>
-        <p class="yg-card-cat">AI · Tooling</p>
-        <p>병렬 작업을 위한 git worktree와 Claude Code의 시너지.</p>
-        <p class="yg-card-price"><u>4분 분량</u></p>
-      </div>
-    </a>
-
-    <a class="yg-card" href="DevSecOps/Dev_Sec_Ops/">
-      <div class="yg-thumb yg-thumb-devops">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ DevSecOps</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>DevSecOps 도입 가이드</h3><span class="yg-card-rating">★ 4.6</span></div>
-        <p class="yg-card-cat">DevOps · Security</p>
-        <p>개발 파이프라인에 보안을 자연스럽게 녹여내는 방법.</p>
-        <p class="yg-card-price"><u>5분 분량</u></p>
-      </div>
-    </a>
-
-    <a class="yg-card" href="Framework/Java/Spring/Spring_WebFlux/">
-      <div class="yg-thumb yg-thumb-spring">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ Framework</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>Spring WebFlux 리액티브 입문</h3><span class="yg-card-rating">★ 4.7</span></div>
-        <p class="yg-card-cat">Spring · Reactive</p>
-        <p>WebFlux의 비동기 프로그래밍 모델과 사용 사례.</p>
-        <p class="yg-card-price"><u>7분 분량</u></p>
-      </div>
-    </a>
-
-    <a class="yg-card" href="AWS/Compute/Auto_Scaling/">
-      <div class="yg-thumb yg-thumb-aws">
-        <div class="yg-heart">♡</div>
-        <span class="yg-thumb-label">★ AWS</span>
-      </div>
-      <div class="yg-card-body">
-        <div class="yg-card-meta"><h3>Auto Scaling 전략 설계</h3><span class="yg-card-rating">★ 4.5</span></div>
-        <p class="yg-card-cat">AWS · Compute</p>
-        <p>트래픽 변동에 대응하는 오토스케일링 패턴.</p>
-        <p class="yg-card-price"><u>5분 분량</u></p>
-      </div>
-    </a>
-
-  </div>
-</section>
 
 <section id="categories" class="yg-section">
   <div class="yg-section-head">
