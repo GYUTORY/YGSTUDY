@@ -1,3 +1,4 @@
 title: Caddy
 nav:
   - Caddy.md
+  - Rate_Limiting.md
