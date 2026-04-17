@@ -1,1 +1,6 @@
 title: Authentication
+nav:
+  - Authentication_Strategy.md
+  - Auth_Strategy_Deep_Dive.md
+  - MSA_Auth.md
+  - RBAC_ABAC.md
