@@ -1,0 +1,4 @@
+title: DDD 심화
+nav:
+  - DDD_Building_Blocks.md
+  - Domain_Event.md

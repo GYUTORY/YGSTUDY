@@ -2,6 +2,7 @@ title: Architecture
 nav:
   - Clean_Architecture.md
   - DDD.md
+  - DDD
   - 시스템_설계_및_아키텍처_패턴.md
   - Design Pattern
   - MSA
