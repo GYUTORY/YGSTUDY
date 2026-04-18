@@ -1,3 +1,6 @@
 title: Algorithm
 nav:
   - Brute_Force.md
+  - Time_Complexity.md
+  - Sorting.md
+  - Binary_Search.md
