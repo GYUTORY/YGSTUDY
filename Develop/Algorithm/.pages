@@ -4,3 +4,6 @@ nav:
   - Time_Complexity.md
   - Sorting.md
   - Binary_Search.md
+  - Dynamic_Programming.md
+  - Greedy.md
+  - Graph_Traversal.md
