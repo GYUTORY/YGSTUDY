@@ -1,6 +1,7 @@
 nav:
   - index.md
   - Language
+  - Algorithm
   - Framework
   - Application Architecture
   - Backend
