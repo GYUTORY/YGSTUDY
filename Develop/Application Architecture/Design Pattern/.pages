@@ -2,6 +2,7 @@ title: Design Pattern
 nav:
   - Creational_Pattern.md
   - Behavioral_Pattern.md
+  - Behavioral_Pattern_Advanced.md
   - Singleton_Pattern.md
   - Factory Method.md
   - Abstract_Factory_Pattern.md
