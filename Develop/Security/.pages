@@ -12,6 +12,7 @@ nav:
   - API_Input_Validation.md
   - ISMS.md
   - SSH_Key_Management.md
+  - Server_Attack_Defense.md
   - Zero_Trust_Architecture.md
   - CORS_and_Security_Headers.md
   - Container_Security.md
