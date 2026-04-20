@@ -269,6 +269,10 @@
          <lastmod>2026-04-20</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Deployment_Strategies/</loc>
+         <lastmod>2026-04-20</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_ENI_%EC%A0%9C%ED%95%9C%EA%B3%BC_Task_%ED%95%9C%EA%B3%84/</loc>
          <lastmod>2026-04-20</lastmod>
     </url>
@@ -277,7 +281,15 @@
          <lastmod>2026-04-20</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Networking_Modes/</loc>
+         <lastmod>2026-04-20</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Service_Auto_Scaling/</loc>
+         <lastmod>2026-04-20</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Task_Definition/</loc>
          <lastmod>2026-04-20</lastmod>
     </url>
     <url>
