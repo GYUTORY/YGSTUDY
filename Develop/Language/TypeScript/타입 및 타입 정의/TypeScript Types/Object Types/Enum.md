@@ -1,404 +1,329 @@
 ---
-title: TypeScript Enum 가이드
+title: TypeScript Enum
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, object-types, enum]
-updated: 2025-12-16
+updated: 2026-04-20
 ---
 
-# TypeScript Enum 가이드
+# TypeScript Enum
 
 ## 배경
 
-TypeScript에서 Enum은 이름과 연결된 상수 값들의 집합을 정의하는 데이터 타입입니다.
+Enum은 관련된 상수 묶음에 이름을 붙여 쓰는 문법이다. 다른 언어에서 넘어온 사람이 TypeScript에서 가장 먼저 찾게 되는 기능이기도 하다. 문제는 TypeScript의 Enum이 단순한 타입 레벨 개념이 아니라, **런타임에 실제 객체로 존재하는 독특한 구조**라는 점이다. 이 특성 때문에 번들 크기, 트리 셰이킹, 라이브러리 호환성에서 생각지 못한 이슈가 생긴다.
 
-### Enum의 필요성
-- **상수 집합**: 관련된 상수들을 하나의 그룹으로 관리
-- **타입 안전성**: 미리 정의된 값만 사용하도록 제한
-- **코드 가독성**: 의미 있는 이름으로 값 표현
-- **유지보수성**: 중앙화된 상수 관리로 변경 용이
+실무에서는 팀 컨벤션으로 "Enum 대신 union literal을 써라"고 못 박아 둔 곳이 많다. 이유는 뒤에서 컴파일 결과를 비교하며 설명한다.
 
-### 기본 개념
-- **열거형**: 이름과 값이 연결된 상수 집합
-- **멤버**: Enum 내의 개별 상수
-- **역매핑**: 값으로부터 이름을 찾는 기능
-- **자동 증가**: 명시적 값 없이 자동으로 증가하는 숫자
+## 숫자 Enum (Numeric Enum)
 
-## 핵심
+### 동작
 
-### 1. 기본 Enum 선언
-
-#### 숫자 Enum
 ```typescript
 enum Direction {
-    Up = 1,
-    Down,
-    Left,
-    Right
+    Up,      // 0
+    Down,    // 1
+    Left,    // 2
+    Right,   // 3
 }
 
-// 사용 예시
-let playerDirection: Direction = Direction.Up;
-console.log(playerDirection); // 1
-
-let oppositeDirection: Direction = Direction.Down;
-console.log(oppositeDirection); // 2
-```
-
-#### 문자열 Enum
-```typescript
-enum Status {
-    Pending = 'PENDING',
-    Approved = 'APPROVED',
-    Rejected = 'REJECTED'
-}
-
-// 사용 예시
-let currentStatus: Status = Status.Pending;
-console.log(currentStatus); // 'PENDING'
-
-if (currentStatus === Status.Pending) {
-    console.log('처리 중입니다.');
-}
-```
-
-### 2. Enum 값 접근과 역매핑
-
-#### 멤버 접근
-```typescript
-enum Color {
-    Red = 'RED',
-    Green = 'GREEN',
-    Blue = 'BLUE'
-}
-
-// 멤버 이름으로 값 접근
-console.log(Color.Red); // 'RED'
-console.log(Color.Green); // 'GREEN'
-
-// 값으로 멤버 이름 접근 (숫자 Enum에서만 가능)
-enum NumberEnum {
-    One = 1,
-    Two = 2,
-    Three = 3
-}
-
-console.log(NumberEnum[1]); // 'One'
-console.log(NumberEnum[2]); // 'Two'
-```
-
-#### Enum 반복
-```typescript
-enum DaysOfWeek {
-    Sunday = 0,
-    Monday = 1,
-    Tuesday = 2,
-    Wednesday = 3,
-    Thursday = 4,
-    Friday = 5,
-    Saturday = 6
-}
-
-// Enum의 모든 키 가져오기
-const dayNames = Object.keys(DaysOfWeek).filter(key => isNaN(Number(key)));
-console.log(dayNames); // ['Sunday', 'Monday', 'Tuesday', ...]
-
-// Enum의 모든 값 가져오기
-const dayValues = Object.values(DaysOfWeek).filter(value => !isNaN(Number(value)));
-console.log(dayValues); // [0, 1, 2, 3, 4, 5, 6]
-```
-
-### 3. 고급 Enum 패턴
-
-#### 계산된 멤버
-```typescript
-enum FileAccess {
-    None = 0,
-    Read = 1 << 0,    // 1
-    Write = 1 << 1,   // 2
-    ReadWrite = Read | Write  // 3
-}
-
-// 사용 예시
-let permissions: FileAccess = FileAccess.Read | FileAccess.Write;
-console.log(permissions); // 3
-
-if (permissions & FileAccess.Read) {
-    console.log('읽기 권한이 있습니다.');
-}
-```
-
-#### const Enum
-```typescript
-const enum UserRole {
-    Admin = 'ADMIN',
-    User = 'USER',
-    Guest = 'GUEST'
-}
-
-// 사용 예시
-let role: UserRole = UserRole.Admin;
-console.log(role); // 'ADMIN'
-
-// 컴파일 시 인라인으로 대체됨
-// let role = 'ADMIN';
-```
-
-## 예시
-
-### 1. 실제 사용 사례
-
-#### 게임 상태 관리
-```typescript
-enum GameState {
-    Loading = 'LOADING',
-    Menu = 'MENU',
-    Playing = 'PLAYING',
-    Paused = 'PAUSED',
-    GameOver = 'GAME_OVER'
-}
-
-class Game {
-    private currentState: GameState = GameState.Loading;
-
-    setState(newState: GameState): void {
-        this.currentState = newState;
-        this.handleStateChange();
-    }
-
-    private handleStateChange(): void {
-        switch (this.currentState) {
-            case GameState.Loading:
-                console.log('게임 로딩 중...');
-                break;
-            case GameState.Menu:
-                console.log('메인 메뉴 표시');
-                break;
-            case GameState.Playing:
-                console.log('게임 진행 중');
-                break;
-            case GameState.Paused:
-                console.log('게임 일시정지');
-                break;
-            case GameState.GameOver:
-                console.log('게임 종료');
-                break;
-        }
-    }
-
-    getState(): GameState {
-        return this.currentState;
-    }
-}
-
-// 사용 예시
-const game = new Game();
-game.setState(GameState.Playing); // "게임 진행 중"
-game.setState(GameState.Paused);  // "게임 일시정지"
-```
-
-#### HTTP 상태 코드
-```typescript
 enum HttpStatus {
     OK = 200,
     Created = 201,
     BadRequest = 400,
-    Unauthorized = 401,
-    NotFound = 404,
-    InternalServerError = 500
 }
-
-class ApiResponse<T> {
-    constructor(
-        public status: HttpStatus,
-        public data: T | null,
-        public message: string
-    ) {}
-
-    isSuccess(): boolean {
-        return this.status >= 200 && this.status < 300;
-    }
-
-    isError(): boolean {
-        return this.status >= 400;
-    }
-}
-
-// 사용 예시
-const successResponse = new ApiResponse(HttpStatus.OK, { id: 1, name: '홍길동' }, '성공');
-const errorResponse = new ApiResponse(HttpStatus.NotFound, null, '사용자를 찾을 수 없습니다.');
-
-console.log(successResponse.isSuccess()); // true
-console.log(errorResponse.isError());     // true
 ```
 
-### 2. 고급 패턴
+값을 생략하면 0부터 시작해 자동 증가한다. 중간에 값을 지정하면 그 뒤부터 이어서 증가한다.
 
-#### 비트 플래그 Enum
+### 컴파일 결과
+
+```typescript
+// 원본
+enum Direction { Up, Down, Left, Right }
+
+// 컴파일 후 (JavaScript)
+var Direction;
+(function (Direction) {
+    Direction[Direction["Up"] = 0] = "Up";
+    Direction[Direction["Down"] = 1] = "Down";
+    Direction[Direction["Left"] = 2] = "Left";
+    Direction[Direction["Right"] = 3] = "Right";
+})(Direction || (Direction = {}));
+```
+
+`Direction[0] === "Up"`과 `Direction.Up === 0`이 둘 다 성립하는 역매핑 구조가 만들어진다. 숫자 키로도, 문자 키로도 조회 가능한 양방향 맵이다.
+
+### 숫자 Enum의 위험
+
+숫자 Enum은 타입 안전성이 생각보다 약하다. 정의되지 않은 숫자를 그대로 받아들인다.
+
+```typescript
+enum Direction { Up, Down, Left, Right }
+
+function move(dir: Direction) {
+    console.log(dir);
+}
+
+move(Direction.Up); // OK
+move(999);          // OK (컴파일 에러 안 남)
+```
+
+API에서 받은 숫자를 그대로 Enum 타입 파라미터로 넘기는 코드가 꽤 많은데, 위처럼 아무 숫자나 통과시켜 버린다. 5년 전에 이걸로 결제 상태 코드가 엉뚱한 값으로 DB에 들어간 적이 있다. 숫자 Enum을 쓸 거면 경계값 검증을 따로 해야 한다.
+
+## 문자열 Enum (String Enum)
+
+### 동작
+
+```typescript
+enum OrderStatus {
+    Pending = 'PENDING',
+    Paid = 'PAID',
+    Shipped = 'SHIPPED',
+    Cancelled = 'CANCELLED',
+}
+```
+
+문자열 Enum은 모든 멤버에 값을 명시해야 한다. 자동 증가가 없다.
+
+### 컴파일 결과
+
+```typescript
+// 컴파일 후
+var OrderStatus;
+(function (OrderStatus) {
+    OrderStatus["Pending"] = "PENDING";
+    OrderStatus["Paid"] = "PAID";
+    OrderStatus["Shipped"] = "SHIPPED";
+    OrderStatus["Cancelled"] = "CANCELLED";
+})(OrderStatus || (OrderStatus = {}));
+```
+
+숫자 Enum과 달리 **역매핑이 없다**. `OrderStatus["Pending"] === "PENDING"` 한 방향만 성립한다. `OrderStatus["PAID"]`로 이름을 얻을 수 없다.
+
+### 실무 관점에서의 차이
+
+숫자 Enum과 달리 문자열 Enum은 타입 체크가 엄격하다.
+
+```typescript
+enum OrderStatus { Pending = 'PENDING', Paid = 'PAID' }
+
+function updateStatus(status: OrderStatus) {}
+
+updateStatus(OrderStatus.Pending);  // OK
+updateStatus('PENDING');            // 에러 (Type '"PENDING"' is not assignable to OrderStatus)
+```
+
+같은 값의 문자열 리터럴이라도 Enum 멤버로 대체할 수 없다. 이 동작이 보안적으로 유리하지만, 외부 JSON에서 파싱한 문자열을 바로 넘기지 못하는 불편함이 있다. 파싱 단계에서 명시적으로 Enum 멤버로 변환해 줘야 한다.
+
+```typescript
+const raw = 'PAID';
+
+// 이렇게는 안 됨
+// updateStatus(raw);
+
+// 이렇게 해야 함
+if (Object.values(OrderStatus).includes(raw as OrderStatus)) {
+    updateStatus(raw as OrderStatus);
+}
+```
+
+## const enum
+
+### 동작과 컴파일 결과
+
+`const`를 붙이면 컴파일 결과가 완전히 달라진다.
+
+```typescript
+const enum LogLevel {
+    Debug = 0,
+    Info = 1,
+    Warn = 2,
+    Error = 3,
+}
+
+function log(level: LogLevel, msg: string) {
+    if (level >= LogLevel.Warn) console.error(msg);
+}
+
+log(LogLevel.Error, 'boom');
+```
+
+컴파일 후:
+
+```javascript
+// const enum은 아예 사라지고, 사용처가 값으로 치환된다
+function log(level, msg) {
+    if (level >= 2 /* LogLevel.Warn */) console.error(msg);
+}
+
+log(3 /* LogLevel.Error */, 'boom');
+```
+
+`LogLevel` 객체 자체가 번들에 포함되지 않는다. 리터럴만 남아 번들 크기가 줄고 런타임 객체 접근 비용도 없어진다.
+
+### const enum의 함정
+
+성능상 이점만 보면 무조건 쓰고 싶지만, 실무에서 권장되지 않는 경우가 많다.
+
+**1. `isolatedModules`에서 에러가 난다**
+
+Babel, esbuild, swc 같은 single-file transpiler는 const enum을 제대로 처리하지 못한다. 한 파일만 보고 컴파일하는 구조라 다른 파일의 const enum 값을 알 수 없기 때문이다.
+
+```
+// tsconfig에 isolatedModules: true 설정 시
+// Cannot re-export a type when 'isolatedModules' is enabled.
+// 'const' enums ... cannot be used in single-file transpilation.
+```
+
+Next.js, Vite 같은 도구들이 기본적으로 isolatedModules를 켜 두기 때문에 실질적으로 const enum을 못 쓴다.
+
+**2. 라이브러리로 배포할 때 문제가 된다**
+
+라이브러리가 const enum을 export하면 소비자 쪽 코드가 `preserveConstEnums`나 컴파일 설정에 따라 깨진다. 그래서 공개 패키지에서는 const enum을 거의 쓰지 않는다.
+
+**3. 어차피 대안이 더 낫다**
+
+아래 설명할 union literal 패턴이 const enum보다 번들 크기가 더 작고(0바이트) 이런 함정도 없다.
+
+## enum 대신 union literal 패턴
+
+실무에서 가장 많이 쓰는 대안이다. 일반 객체 + `as const` + `typeof`/`keyof` 조합.
+
+### 기본 패턴
+
+```typescript
+// Enum 대신
+const OrderStatus = {
+    Pending: 'PENDING',
+    Paid: 'PAID',
+    Shipped: 'SHIPPED',
+    Cancelled: 'CANCELLED',
+} as const;
+
+type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+// type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED'
+
+function updateStatus(status: OrderStatus) {
+    console.log(status);
+}
+
+updateStatus(OrderStatus.Pending); // OK
+updateStatus('PAID');              // OK (문자열 Enum과 다르게 리터럴도 허용)
+updateStatus('UNKNOWN');           // 에러
+```
+
+타입과 값이 같은 이름을 공유하는 TypeScript의 네임스페이스 분리 덕분에 Enum 같은 사용감을 낸다.
+
+### 컴파일 결과 비교
+
+| 작성 방식 | 번들에 남는 코드 |
+|----------|----------------|
+| 숫자 Enum | 역매핑 포함된 IIFE 객체 전체 |
+| 문자열 Enum | 단방향 객체 |
+| const enum | 없음 (리터럴로 인라인) |
+| `as const` 객체 + union | `{ Pending: 'PENDING', ... }` 객체만 (트리 셰이킹 가능) |
+| 순수 union literal | 없음 (타입만) |
+
+순수 union literal은 아예 런타임 값이 없다.
+
+```typescript
+type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
+
+function updateStatus(status: OrderStatus) {}
+updateStatus('PAID'); // OK
+```
+
+타입 전용으로 쓸 수 있으면 이게 가장 가볍다. 값 목록을 런타임에서 순회할 필요가 있을 때만 `as const` 객체 패턴으로 넘어가면 된다.
+
+### 객체 패턴이 Enum보다 나은 이유
+
+**1. 트리 셰이킹이 된다**
+
+Enum은 IIFE로 감싸져 있어 번들러가 사용되지 않는 멤버를 제거하지 못한다. `as const` 객체는 단순 객체 리터럴이라 미사용 필드를 제거할 여지가 있다.
+
+**2. 외부 문자열과 자연스럽게 호환된다**
+
+```typescript
+// 문자열 Enum
+enum Role { Admin = 'ADMIN' }
+function setRole(r: Role) {}
+setRole('ADMIN'); // 에러
+
+// union literal
+type Role = 'ADMIN' | 'USER';
+function setRole(r: Role) {}
+setRole('ADMIN'); // OK
+```
+
+API 응답 JSON을 파싱한 문자열을 바로 함수에 넘길 수 있다. 백엔드 응답을 다루는 코드에서 훨씬 편하다.
+
+**3. 선언 병합 같은 Enum 특유의 함정이 없다**
+
+같은 이름의 Enum이 두 군데에서 선언되면 조용히 병합된다. 의도치 않은 충돌이 생길 수 있는데 union literal은 이런 동작이 없다.
+
+### 값 순회가 필요한 경우
+
+`as const` 객체 패턴을 쓰면 값 목록 순회도 된다.
+
+```typescript
+const OrderStatus = {
+    Pending: 'PENDING',
+    Paid: 'PAID',
+    Shipped: 'SHIPPED',
+    Cancelled: 'CANCELLED',
+} as const;
+
+type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+
+const allStatuses = Object.values(OrderStatus);
+// ['PENDING', 'PAID', 'SHIPPED', 'CANCELLED']
+
+function isOrderStatus(v: string): v is OrderStatus {
+    return allStatuses.includes(v as OrderStatus);
+}
+```
+
+타입 가드까지 자연스럽게 엮인다. Enum의 역매핑이나 `Object.values` 필터링 같은 복잡한 처리가 필요 없다.
+
+## 실무 판단 기준
+
+어떤 걸 쓸지 고를 때 기준은 대략 이렇다.
+
+- **순수하게 타입 체크만 필요** → union literal (`'A' | 'B' | 'C'`)
+- **값 목록을 런타임에서 쓸 일이 있음** → `as const` 객체 + `typeof`/`keyof`
+- **기존 코드와의 일관성 때문에 Enum을 유지해야 함** → 문자열 Enum 선택 (숫자 Enum 피하기)
+- **내부 번들만 관리하고 번들 크기가 크리티컬** → const enum (단, isolatedModules와 충돌 없는 환경만)
+
+새 프로젝트에서 Enum을 도입할 이유는 거의 없다고 본다. 기존 코드에서 Enum을 걷어낼 때는 문자열 Enum을 동일한 문자열 값의 union literal로 치환하는 게 가장 안전하다. 값이 동일해 API 호환성이 유지된다.
+
+## 비트 플래그에 대해
+
+과거 C 스타일 비트 플래그를 Enum으로 흉내 내는 패턴이 유명하다.
+
 ```typescript
 enum Permission {
     None = 0,
-    Read = 1 << 0,      // 1
-    Write = 1 << 1,     // 2
-    Execute = 1 << 2,   // 4
-    Delete = 1 << 3,    // 8
-    Admin = Read | Write | Execute | Delete  // 15
+    Read = 1 << 0,
+    Write = 1 << 1,
+    Execute = 1 << 2,
 }
 
-class User {
-    constructor(
-        public name: string,
-        public permissions: Permission
-    ) {}
-
-    hasPermission(permission: Permission): boolean {
-        return (this.permissions & permission) === permission;
-    }
-
-    addPermission(permission: Permission): void {
-        this.permissions |= permission;
-    }
-
-    removePermission(permission: Permission): void {
-        this.permissions &= ~permission;
-    }
-}
-
-// 사용 예시
-const user = new User('홍길동', Permission.Read | Permission.Write);
-console.log(user.hasPermission(Permission.Read));   // true
-console.log(user.hasPermission(Permission.Execute)); // false
-
-user.addPermission(Permission.Execute);
-console.log(user.hasPermission(Permission.Execute)); // true
+const perm = Permission.Read | Permission.Write;
+if (perm & Permission.Read) { /* ... */ }
 ```
 
-#### Enum과 Union Types 조합
+TypeScript 타입 시스템은 비트 연산 결과를 정확히 추적하지 못한다. `Permission.Read | Permission.Write`의 결과 타입이 `Permission`으로 좁혀지는데 실제로는 정의되지 않은 3이라는 값이다. 권한 시스템은 `Set<string>`이나 `readonly string[]`로 표현하는 편이 타입 안전성과 가독성 둘 다 유리하다.
+
 ```typescript
-enum NotificationType {
-    Email = 'EMAIL',
-    SMS = 'SMS',
-    Push = 'PUSH'
-}
+type Permission = 'read' | 'write' | 'execute';
 
-type NotificationConfig = {
-    [K in NotificationType]: {
-        enabled: boolean;
-        template: string;
-    };
-};
-
-const notificationConfig: NotificationConfig = {
-    [NotificationType.Email]: {
-        enabled: true,
-        template: 'email-template.html'
-    },
-    [NotificationType.SMS]: {
-        enabled: false,
-        template: 'sms-template.txt'
-    },
-    [NotificationType.Push]: {
-        enabled: true,
-        template: 'push-template.json'
-    }
-};
-
-class NotificationService {
-    sendNotification(type: NotificationType, message: string): void {
-        const config = notificationConfig[type];
-        if (config.enabled) {
-            console.log(`${type} 알림 전송: ${message}`);
-        } else {
-            console.log(`${type} 알림이 비활성화되어 있습니다.`);
-        }
-    }
-}
-
-// 사용 예시
-const notificationService = new NotificationService();
-notificationService.sendNotification(NotificationType.Email, '환영합니다!');
-notificationService.sendNotification(NotificationType.SMS, '인증 코드: 123456');
-```
-
-## 운영 팁
-
-### 성능 최적화
-
-#### const Enum 사용
-```typescript
-// 일반 Enum (런타임에 객체 생성)
-enum RegularEnum {
-    Value1 = 'VALUE1',
-    Value2 = 'VALUE2'
-}
-
-// const Enum (컴파일 시 인라인으로 대체)
-const enum ConstEnum {
-    Value1 = 'VALUE1',
-    Value2 = 'VALUE2'
-}
-
-// 사용 시 성능 차이
-let regularValue = RegularEnum.Value1; // 런타임에 객체 접근
-let constValue = ConstEnum.Value1;     // 컴파일 시 'VALUE1'로 대체
-```
-
-### 에러 처리
-
-#### Enum 유효성 검사
-```typescript
-enum UserType {
-    Admin = 'ADMIN',
-    User = 'USER',
-    Guest = 'GUEST'
-}
-
-function isValidUserType(value: string): value is UserType {
-    return Object.values(UserType).includes(value as UserType);
-}
-
-function createUser(type: string, name: string) {
-    if (!isValidUserType(type)) {
-        throw new Error(`유효하지 않은 사용자 타입: ${type}`);
-    }
-    
-    return {
-        type: type as UserType,
-        name: name
-    };
-}
-
-// 사용 예시
-try {
-    const user1 = createUser('ADMIN', '관리자'); // 성공
-    const user2 = createUser('INVALID', '사용자'); // 오류
-} catch (error) {
-    console.error(error.message);
+function hasPermission(perms: ReadonlySet<Permission>, required: Permission) {
+    return perms.has(required);
 }
 ```
+
+디스크 용량 절감이 목적인 시스템이 아니면 비트 플래그를 쓸 이유가 별로 없다.
 
 ## 참고
 
-### Enum vs Union Types 비교표
-
-| 특징 | Enum | Union Types |
-|------|------|-------------|
-| **런타임 존재** | ✅ 객체로 존재 | ❌ 타입만 존재 |
-| **역매핑** | ✅ 지원 | ❌ 지원 안함 |
-| **자동 증가** | ✅ 지원 | ❌ 지원 안함 |
-| **번들 크기** | 더 큼 | 더 작음 |
-| **타입 안전성** | ✅ 높음 | ✅ 높음 |
-
-### Enum 사용 권장사항
-
-1. **명명 규칙**: Enum 이름은 PascalCase, 멤버는 UPPER_SNAKE_CASE
-2. **값 할당**: 명시적 값 할당으로 의도 명확화
-3. **const Enum**: 성능이 중요한 경우 const enum 사용
-4. **문서화**: 복잡한 Enum은 JSDoc으로 문서화
-
-### 결론
-TypeScript의 Enum은 관련된 상수들을 체계적으로 관리하는 강력한 도구입니다.
-숫자 Enum과 문자열 Enum을 상황에 맞게 선택하여 사용하세요.
-const enum을 활용하여 성능을 최적화하세요.
-비트 플래그 Enum으로 복잡한 권한 시스템을 구현할 수 있습니다.
-Enum과 Union Types의 차이를 이해하고 적절한 상황에서 사용하세요.
-Enum의 역매핑 기능을 활용하여 값과 이름 간의 양방향 변환을 수행하세요.
-
+- TypeScript Handbook — Enums: https://www.typescriptlang.org/docs/handbook/enums.html
+- tsconfig `isolatedModules` 관련: https://www.typescriptlang.org/tsconfig#isolatedModules
+- `preserveConstEnums`: https://www.typescriptlang.org/tsconfig#preserveConstEnums
