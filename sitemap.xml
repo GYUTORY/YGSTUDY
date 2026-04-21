@@ -257,6 +257,10 @@
          <lastmod>2026-04-21</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/App_Mesh/</loc>
+         <lastmod>2026-04-21</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECR/</loc>
          <lastmod>2026-04-21</lastmod>
     </url>
@@ -266,6 +270,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Capacity_Providers/</loc>
+         <lastmod>2026-04-21</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Container_Dependencies/</loc>
          <lastmod>2026-04-21</lastmod>
     </url>
     <url>
@@ -294,6 +302,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Service_Auto_Scaling/</loc>
+         <lastmod>2026-04-21</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Sidecar_Patterns/</loc>
          <lastmod>2026-04-21</lastmod>
     </url>
     <url>
