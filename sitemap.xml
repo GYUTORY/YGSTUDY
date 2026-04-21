@@ -273,6 +273,10 @@
          <lastmod>2026-04-21</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Cluster_Configuration/</loc>
+         <lastmod>2026-04-21</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Container_Dependencies/</loc>
          <lastmod>2026-04-21</lastmod>
     </url>
@@ -302,6 +306,14 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Service_Auto_Scaling/</loc>
+         <lastmod>2026-04-21</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Service_Connect/</loc>
+         <lastmod>2026-04-21</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Service_Definition/</loc>
          <lastmod>2026-04-21</lastmod>
     </url>
     <url>
