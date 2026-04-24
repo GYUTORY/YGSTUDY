@@ -11,6 +11,7 @@ nav:
   - Rate_Limiting.md
   - Spring Boot Profiles.md
   - Boot2.0__vs__Boot3.0.md
+  - Spring_Boot_Migration_2_to_3.md
   - Gradle__vs__Maven.md
   - SLF4J.md
   - Lombok.md
