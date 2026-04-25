@@ -6,6 +6,7 @@ nav:
   - Secrets_Manager.md
   - Secrets_Manager_vs_KMS.md
   - Cognito.md
+  - Cognito_Deep_Dive.md
   - ACM.md
   - WAF.md
   - Shield.md
