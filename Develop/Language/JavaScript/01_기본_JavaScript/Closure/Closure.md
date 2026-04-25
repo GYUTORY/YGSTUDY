@@ -1,611 +1,223 @@
 ---
-title: JavaScript Closure (클로저)
-tags: [language, javascript, 01기본javascript, closure, functional-programming]
-updated: 2025-08-10
+title: JavaScript 클로저와 렉시컬 스코프 심화
+tags: [language, javascript, 01기본javascript, closure, lexical-scope, scope, var, let]
+updated: 2026-04-25
 ---
 
-# JavaScript Closure (클로저)
+# JavaScript 클로저와 렉시컬 스코프 심화
 
-## 배경
+## 클로저를 이해하려면 렉시컬 스코프부터 봐야 한다
 
-JavaScript의 Closure(클로저)는 함수가 자신이 선언된 환경(Lexical Scope)의 변수를 기억하고 접근할 수 있는 개념입니다. 함수가 실행된 이후에도 외부 함수의 변수에 접근할 수 있는 기능을 제공합니다.
+클로저를 "함수가 자신이 선언된 환경의 변수를 기억하는 것"이라고 정의해놓고 끝나는 글이 많은데, 실무에서 클로저 관련 버그를 디버깅하다 보면 그 정의만으로는 부족하다. 진짜로 봐야 하는 건 **자바스크립트 엔진이 함수를 만들 때 어떤 환경 레코드(Environment Record)를 함수 객체의 내부 슬롯 `[[Environment]]`에 박아두느냐**다.
 
-### 클로저의 필요성
-- **데이터 은닉**: 외부에서 직접 접근할 수 없는 private 변수 생성
-- **상태 유지**: 함수 호출 간에 상태 정보 보존
-- **함수형 프로그래밍**: 고차 함수와 콜백 함수 구현
-- **모듈 패턴**: 캡슐화된 코드 구조 생성
+함수가 호출되면 새로운 실행 컨텍스트가 만들어지고, 그 안에 LexicalEnvironment가 생성된다. 이 환경의 outer 참조는 **함수가 호출된 위치가 아니라 함수가 정의된 위치의 환경**을 가리킨다. 이게 렉시컬 스코프(정적 스코프)의 정체다. 동적 스코프 언어(예전 Lisp 일부 방언)에서는 호출자의 환경을 따라가지만, 자바스크립트는 절대 그렇게 동작하지 않는다.
 
-### 기본 개념
-- **렉시컬 스코프**: 함수가 선언된 위치에 따라 스코프가 결정되는 방식
-- **스코프 체인**: 변수를 찾기 위해 거슬러 올라가는 경로
-- **클로저**: 함수와 그 함수가 선언된 렉시컬 환경의 조합
-- **메모리 관리**: 클로저로 인한 메모리 누수 방지
-
-## 핵심
-
-### 1. 클로저의 기본 원리
-
-#### 클로저의 정의
 ```javascript
-function outerFunction(outerVariable) {
-    return function innerFunction(innerVariable) {
-        console.log(`Outer: ${outerVariable}, Inner: ${innerVariable}`);
-    };
-}
-
-const newFunction = outerFunction("Hello");
-newFunction("World"); // Outer: Hello, Inner: World
-```
-
-#### 클로저의 동작 원리
-```javascript
-function createCounter() {
-    let count = 0; // 외부 함수의 변수
-    
-    return function() {
-        count++; // 내부 함수에서 외부 변수 접근
-        return count;
-    };
-}
-
-const counter1 = createCounter();
-const counter2 = createCounter();
-
-console.log(counter1()); // 1
-console.log(counter1()); // 2
-console.log(counter2()); // 1 (별도의 클로저)
-console.log(counter1()); // 3
-```
-
-#### 렉시컬 스코프와 클로저
-```javascript
-let globalVariable = "Global";
+let x = 'global';
 
 function outer() {
-    let outerVariable = "Outer";
-    
-    function inner() {
-        let innerVariable = "Inner";
-        
-        function deepest() {
-            console.log(globalVariable); // "Global"
-            console.log(outerVariable);  // "Outer"
-            console.log(innerVariable);  // "Inner"
-        }
-        
-        return deepest;
-    }
-    
-    return inner;
-}
-
-const innerFunc = outer();
-const deepestFunc = innerFunc();
-deepestFunc();
-```
-
-### 2. 클로저의 활용 사례
-
-#### 데이터 은닉 (Encapsulation)
-```javascript
-function createBankAccount(initialBalance) {
-    let balance = initialBalance; // private 변수
-    
-    return {
-        deposit: function(amount) {
-            if (amount > 0) {
-                balance += amount;
-                console.log(`입금: ${amount}, 잔액: ${balance}`);
-            }
-        },
-        
-        withdraw: function(amount) {
-            if (amount > 0 && amount <= balance) {
-                balance -= amount;
-                console.log(`출금: ${amount}, 잔액: ${balance}`);
-                return amount;
-            } else {
-                console.log('잔액 부족');
-                return 0;
-            }
-        },
-        
-        getBalance: function() {
-            return balance;
-        }
+    let x = 'outer';
+    return function inner() {
+        console.log(x);
     };
 }
 
-const account = createBankAccount(1000);
-account.deposit(500);  // 입금: 500, 잔액: 1500
-account.withdraw(200); // 출금: 200, 잔액: 1300
-console.log(account.getBalance()); // 1300
-
-// balance 변수에 직접 접근 불가
-// console.log(account.balance); // undefined
-```
-
-#### 상태 유지
-```javascript
-function createTimer() {
-    let startTime = Date.now();
-    let isRunning = false;
-    
-    return {
-        start: function() {
-            if (!isRunning) {
-                startTime = Date.now();
-                isRunning = true;
-                console.log('타이머 시작');
-            }
-        },
-        
-        stop: function() {
-            if (isRunning) {
-                isRunning = false;
-                const elapsed = Date.now() - startTime;
-                console.log(`경과 시간: ${elapsed}ms`);
-                return elapsed;
-            }
-        },
-        
-        getStatus: function() {
-            return {
-                isRunning,
-                elapsed: isRunning ? Date.now() - startTime : 0
-            };
-        }
-    };
+function caller() {
+    let x = 'caller';
+    const fn = outer();
+    fn();
 }
 
-const timer = createTimer();
-timer.start();
-setTimeout(() => {
-    timer.stop();
-}, 1000);
+caller(); // 'outer'
 ```
 
-#### 함수 팩토리
+여기서 `inner`가 `caller`의 `x`를 못 쓰는 이유는 단순하다. `inner`의 `[[Environment]]`는 `outer` 호출 시점의 환경을 가리키고, 그 환경의 outer는 전역이다. `caller`는 호출 스택에만 있을 뿐 스코프 체인에는 끼어들 수 없다.
+
+### 클로저는 특수 기능이 아니라 부산물이다
+
+다른 언어에서 클로저를 따로 지원하는 문법이 있는 경우가 있는데, 자바스크립트에서는 모든 함수가 자동으로 클로저다. 일급 함수와 렉시컬 스코프, 가비지 컬렉션 세 가지가 합쳐지면 클로저는 자연스럽게 따라온다. 함수가 변수처럼 다른 함수의 반환값으로 빠져나가도, 그 함수가 참조하는 환경 레코드는 GC가 수거하지 않으니까 변수는 살아있다.
+
+이 점이 중요한 이유는 의도하지 않은 클로저가 잡히는 경우가 있기 때문이다. 예를 들어 콜백 안에서 외부 거대한 객체의 작은 필드 하나만 쓰더라도, 클로저가 잡고 있는 건 환경 레코드 전체이므로 외부 객체가 통째로 살아남는다. 이건 뒤에서 다시 다룬다.
+
+## var 캡처 버그: 5년차도 한 번씩 박는다
+
+`var`로 선언한 반복 변수가 setTimeout 콜백에서 모두 동일한 값으로 찍히는 문제는 자바스크립트 면접의 단골이지만, 실무에서도 의외로 자주 등장한다. 특히 오래된 코드베이스를 유지보수하거나, 트랜스파일된 ES5 코드를 디버깅할 때 마주친다.
+
 ```javascript
-function createMultiplier(factor) {
-    return function(number) {
-        return number * factor;
-    };
+for (var i = 0; i < 3; i++) {
+    setTimeout(function () {
+        console.log(i);
+    }, 100);
 }
-
-const double = createMultiplier(2);
-const triple = createMultiplier(3);
-const quadruple = createMultiplier(4);
-
-console.log(double(5));   // 10
-console.log(triple(5));   // 15
-console.log(quadruple(5)); // 20
+// 출력: 3, 3, 3
 ```
 
-### 3. 고급 클로저 패턴
+기대값이 0, 1, 2인데 3이 세 번 찍힌다. 처음 보면 "i를 캡처했는데 왜 0이 안 나오지?" 싶은데, 실제로는 캡처가 정확하게 동작한 결과다. 문제는 무엇을 캡처했는가다.
 
-#### 모듈 패턴
+### 원인: 단일 바인딩, 단일 슬롯
+
+`var`로 선언된 변수는 함수 스코프(또는 전역 스코프)에 단 하나의 바인딩만 만든다. 위 코드에서 `i`는 for 루프 블록이 아니라 그 for 루프를 감싸는 함수(또는 모듈) 레벨에 단 하나의 슬롯으로 존재한다. 반복할 때마다 같은 슬롯의 값을 0 → 1 → 2 → 3으로 덮어쓸 뿐이다.
+
+setTimeout에 등록된 세 개의 콜백 함수는 모두 같은 환경을 `[[Environment]]`로 가지고, 그 환경 안의 동일한 `i` 슬롯을 참조한다. 100ms 뒤 콜백이 실행될 때쯤이면 루프는 이미 끝났고 `i`는 종료 조건인 3에 도달한 상태다. 그래서 셋 다 3을 본다.
+
+콜백이 캡처한 건 "0이라는 값"이 아니라 "i라는 변수의 위치"라는 점이 핵심이다. 클로저는 값을 복사해서 가져가지 않는다. 환경 레코드를 참조로 잡는다.
+
+### 디버깅 사례: 동적으로 생성된 이벤트 핸들러
+
+실제로 겪었던 사례 하나. 메뉴 항목을 동적으로 그리고 각 항목에 클릭 핸들러를 다는 코드가 있었다.
+
 ```javascript
-const calculator = (function() {
-    // private 변수들
-    let history = [];
-    let result = 0;
-    
-    // private 함수들
-    function addToHistory(operation, value) {
-        history.push({
-            operation,
-            value,
-            timestamp: new Date()
+function attachHandlers(menuItems) {
+    for (var idx = 0; idx < menuItems.length; idx++) {
+        var item = menuItems[idx];
+        item.element.addEventListener('click', function () {
+            // 어떤 항목을 클릭해도 마지막 항목의 데이터로 분석 이벤트 전송
+            sendAnalytics(item.id, item.name);
         });
     }
-    
-    function validateNumber(num) {
-        if (typeof num !== 'number' || isNaN(num)) {
-            throw new Error('유효하지 않은 숫자입니다.');
-        }
-    }
-    
-    // public API
-    return {
-        add: function(num) {
-            validateNumber(num);
-            result += num;
-            addToHistory('add', num);
-            return this;
-        },
-        
-        subtract: function(num) {
-            validateNumber(num);
-            result -= num;
-            addToHistory('subtract', num);
-            return this;
-        },
-        
-        multiply: function(num) {
-            validateNumber(num);
-            result *= num;
-            addToHistory('multiply', num);
-            return this;
-        },
-        
-        divide: function(num) {
-            validateNumber(num);
-            if (num === 0) {
-                throw new Error('0으로 나눌 수 없습니다.');
-            }
-            result /= num;
-            addToHistory('divide', num);
-            return this;
-        },
-        
-        getResult: function() {
-            return result;
-        },
-        
-        getHistory: function() {
-            return [...history]; // 복사본 반환
-        },
-        
-        clear: function() {
-            result = 0;
-            history = [];
-            return this;
-        }
-    };
-})();
-
-// 사용 예시
-try {
-    calculator
-        .add(10)
-        .multiply(2)
-        .subtract(5);
-    
-    console.log('결과:', calculator.getResult()); // 15
-    console.log('히스토리:', calculator.getHistory());
-} catch (error) {
-    console.error('계산 오류:', error.message);
 }
 ```
 
-#### 이벤트 핸들러에서의 클로저
+QA에서 "어떤 메뉴를 눌러도 마지막 메뉴의 분석 데이터가 전송된다"는 리포트가 들어왔다. 보고를 처음 받았을 때는 sendAnalytics 함수의 인자 처리 문제로 의심했지만, 디버거로 핸들러 안에서 `item`을 찍어보니 항상 마지막 메뉴 객체였다.
+
+원인은 동일하다. `var item`은 attachHandlers 함수 스코프에 단 하나만 존재하고, 모든 클릭 핸들러는 같은 슬롯을 본다. 루프가 끝난 시점에 `item`은 마지막 항목으로 고정된다.
+
+### IIFE로 우회하던 시절
+
+ES6 이전에는 IIFE(즉시 실행 함수 표현식)로 새로운 함수 스코프를 만들어 변수를 격리했다.
+
 ```javascript
-function createButtonHandler(buttonId) {
-    let clickCount = 0;
-    
-    return function(event) {
-        clickCount++;
-        console.log(`버튼 ${buttonId} 클릭 횟수: ${clickCount}`);
-        
-        // 클릭 횟수에 따른 다른 동작
-        if (clickCount === 1) {
-            console.log('첫 번째 클릭!');
-        } else if (clickCount === 5) {
-            console.log('5번째 클릭! 특별한 이벤트 발생!');
-        }
-        
-        // 이벤트 객체도 사용 가능
-        console.log('클릭 위치:', event.clientX, event.clientY);
-    };
+for (var i = 0; i < 3; i++) {
+    (function (capturedI) {
+        setTimeout(function () {
+            console.log(capturedI);
+        }, 100);
+    })(i);
 }
-
-// 여러 버튼에 각각 다른 핸들러 할당
-const button1Handler = createButtonHandler('btn1');
-const button2Handler = createButtonHandler('btn2');
-
-// 실제 DOM 이벤트에 연결하는 예시
-// document.getElementById('button1').addEventListener('click', button1Handler);
-// document.getElementById('button2').addEventListener('click', button2Handler);
+// 출력: 0, 1, 2
 ```
 
-## 예시
+매 반복마다 IIFE가 호출되고, 그 호출마다 새로운 함수 실행 컨텍스트가 만들어지며, 그 안의 `capturedI` 매개변수가 별개의 슬롯으로 존재한다. 콜백은 그 슬롯을 캡처하므로 값이 격리된다.
 
-### 1. 실제 사용 사례
+동작은 하지만 코드가 더러워진다. 단점이 명확하다.
 
-#### 캐시 시스템
+- 함수 호출 비용이 추가된다. 반복 횟수가 많고 핫패스에 있다면 무시 못 할 오버헤드다.
+- 디버거에서 스택 트레이스가 한 단계 더 깊어진다. 익명 함수가 끼어들어 호출 흐름이 읽기 어렵다.
+- 매개변수 이름과 변수 이름이 분리되어 가독성이 떨어진다. `capturedI`를 다시 `i`로 받는 식의 이름 중복이 흔했다.
+- this 바인딩이 IIFE 안에서 달라진다. 화살표 함수 도입 전에는 `var self = this` 같은 별도 패턴을 또 써야 했다.
+
+이런 우회법이 패턴화되었다는 사실 자체가 언어의 결함을 시사한다. ES6의 `let`/`const`는 이걸 문법 차원에서 해결했다.
+
+## let과 const: 블록마다 새로운 바인딩
+
+`let`을 쓰면 IIFE 없이도 의도한 대로 동작한다.
+
 ```javascript
-function createCache() {
-    const cache = new Map();
-    let hitCount = 0;
-    let missCount = 0;
-    
-    return {
-        get: function(key) {
-            if (cache.has(key)) {
-                hitCount++;
-                console.log(`캐시 히트: ${key}`);
-                return cache.get(key);
-            } else {
-                missCount++;
-                console.log(`캐시 미스: ${key}`);
-                return null;
-            }
-        },
-        
-        set: function(key, value) {
-            cache.set(key, value);
-            console.log(`캐시 저장: ${key}`);
-        },
-        
-        clear: function() {
-            cache.clear();
-            console.log('캐시 초기화');
-        },
-        
-        getStats: function() {
-            return {
-                size: cache.size,
-                hitCount,
-                missCount,
-                hitRate: hitCount / (hitCount + missCount)
-            };
-        }
-    };
+for (let i = 0; i < 3; i++) {
+    setTimeout(function () {
+        console.log(i);
+    }, 100);
 }
-
-const cache = createCache();
-
-// 사용 예시
-cache.set('user:1', { id: 1, name: 'Alice' });
-cache.set('user:2', { id: 2, name: 'Bob' });
-
-console.log(cache.get('user:1')); // 캐시 히트
-console.log(cache.get('user:3')); // 캐시 미스
-console.log(cache.getStats());
+// 출력: 0, 1, 2
 ```
 
-#### 설정 관리자
+흔한 설명은 "let은 블록 스코프라서"인데, 이것만으로는 왜 매 반복마다 다른 값이 보존되는지 설명이 부족하다. 단순히 블록 스코프라면 루프가 끝난 뒤 `i`가 사라질 뿐, 콜백이 0/1/2를 각각 보는 이유는 안 풀린다.
+
+### 사양에서 정의한 동작: 매 반복 새 환경 생성
+
+ECMAScript 사양의 `ForBodyEvaluation` 알고리즘을 보면, for 루프의 초기화에 `let`이나 `const`가 쓰이면 매 반복마다 `CreatePerIterationEnvironment`라는 단계가 호출된다. 이 단계는 다음을 한다.
+
+1. 새로운 선언적 환경 레코드(declarative environment record)를 만든다.
+2. 직전 반복의 환경에서 루프 변수의 현재 값을 읽어 새 환경에 복사한다.
+3. 그 새 환경을 현재 반복의 LexicalEnvironment로 설정한다.
+
+즉, 반복 횟수만큼 별개의 바인딩이 만들어진다. 첫 반복에서 만들어진 콜백은 첫 반복의 환경(거기 `i`는 0)을 캡처하고, 두 번째 반복의 콜백은 두 번째 환경(`i`는 1)을 캡처한다. 이래서 IIFE 없이 격리가 된다.
+
+### 바이트코드 관점에서의 차이
+
+V8의 Ignition 인터프리터가 생성하는 바이트코드 수준에서 차이를 보면 더 명확해진다. 디스어셈블리를 직접 본 사람은 알겠지만, V8은 변수를 컨텍스트(context) 슬롯에 둘지 스택 슬롯에 둘지 컴파일 시점에 결정한다. 클로저로 캡처되는 변수는 컨텍스트 슬롯에 들어가야 하고, 그렇지 않으면 스택 슬롯에서 빠르게 처리된다.
+
+`var i`로 선언된 루프 변수가 클로저에 캡처되면, V8은 외부 함수의 컨텍스트에 `i` 슬롯을 하나 만들고 매 반복마다 그 슬롯에 값을 쓴다. 콜백 함수의 `[[Environment]]`는 그 외부 컨텍스트를 가리킨다. 모든 콜백이 같은 슬롯을 본다.
+
+`let i`로 선언된 루프 변수는 다르다. V8은 매 반복마다 새로운 블록 컨텍스트를 할당하는 코드(`CreateBlockContext` 또는 유사한 바이트코드)를 삽입한다. 이 컨텍스트는 직전 반복의 값으로 초기화되고, 그 반복 동안 만들어지는 클로저는 이 새 컨텍스트를 잡는다. 컨텍스트 객체가 매번 새로 생성되니 메모리 할당이 발생하고, 이것이 `let` 루프가 `var` 루프보다 약간 느릴 수 있는 이유다(요즘 V8은 캡처되지 않는 경우 최적화로 컨텍스트 생성을 생략한다).
+
+이 동작은 직관과 다르게 보일 수 있다. `let`은 단순히 "블록 안에서만 보이는 var"가 아니라, **for 루프와 결합될 때 매 반복 새 환경을 만들어내는** 별개의 의미론을 가진다. 사양에 명시된 동작이고, 엔진은 이를 충실히 구현한다.
+
+### 사소한 함정: const와 for-of/for-in
+
 ```javascript
-function createConfigManager(defaultConfig) {
-    let config = { ...defaultConfig };
-    let changeListeners = [];
-    
-    return {
-        get: function(key) {
-            return config[key];
-        },
-        
-        set: function(key, value) {
-            const oldValue = config[key];
-            config[key] = value;
-            
-            // 변경 리스너 호출
-            changeListeners.forEach(listener => {
-                listener(key, value, oldValue);
-            });
-        },
-        
-        getAll: function() {
-            return { ...config };
-        },
-        
-        reset: function() {
-            config = { ...defaultConfig };
-            changeListeners.forEach(listener => {
-                listener('reset', config, null);
-            });
-        },
-        
-        onChange: function(listener) {
-            changeListeners.push(listener);
-        },
-        
-        removeListener: function(listener) {
-            const index = changeListeners.indexOf(listener);
-            if (index > -1) {
-                changeListeners.splice(index, 1);
-            }
-        }
-    };
+for (const x of [1, 2, 3]) {
+    setTimeout(() => console.log(x), 100);
 }
-
-const config = createConfigManager({
-    theme: 'light',
-    language: 'ko',
-    notifications: true
-});
-
-// 설정 변경 리스너 등록
-config.onChange((key, newValue, oldValue) => {
-    console.log(`설정 변경: ${key} = ${newValue} (이전: ${oldValue})`);
-});
-
-config.set('theme', 'dark');
-config.set('language', 'en');
+// 0, 1, 2 ... 가 아니라 1, 2, 3
 ```
 
-### 2. 고급 패턴
+for-of/for-in에서 `const`를 써도 매 반복 새 바인딩이 만들어지므로 문제없이 동작한다. 일반 for문에서 `const i = 0`은 반복마다 재할당해야 하므로 쓸 수 없지만, for-of에서는 매 반복이 새 선언이라 `const`가 자연스럽다.
 
-#### 커링 (Currying)
+## 메모리 누수: 환경 전체가 잡힌다
+
+클로저가 메모리를 잡는 단위는 "참조하는 변수" 하나가 아니라 **함수가 정의된 시점의 환경 레코드 전체**다. 이걸 모르면 누수 원인을 잘못 짚는다.
+
 ```javascript
-function curry(fn) {
-    return function curried(...args) {
-        if (args.length >= fn.length) {
-            return fn.apply(this, args);
-        } else {
-            return function(...moreArgs) {
-                return curried.apply(this, args.concat(moreArgs));
-            };
-        }
+function setup() {
+    const huge = new Array(1_000_000).fill('x');
+    const small = 'just a string';
+
+    return function () {
+        console.log(small);
     };
 }
 
-// 사용 예시
-function add(a, b, c) {
-    return a + b + c;
-}
-
-const curriedAdd = curry(add);
-
-console.log(curriedAdd(1)(2)(3));     // 6
-console.log(curriedAdd(1, 2)(3));     // 6
-console.log(curriedAdd(1)(2, 3));     // 6
-console.log(curriedAdd(1, 2, 3));     // 6
+const fn = setup();
 ```
 
-#### 메모이제이션 (Memoization)
+반환된 함수는 `small`만 쓴다. 그래도 `huge`는 GC되지 않을 가능성이 있다. V8은 어떤 변수가 클로저에 캡처되는지 정적 분석을 통해 컨텍스트 슬롯에 무엇을 넣을지 정한다. 일반적으로는 `small`만 컨텍스트에 들어가고 `huge`는 스택에 머물다 사라진다. 하지만 같은 함수 안에 다른 클로저가 있어서 `huge`도 캡처되거나, `eval`이 호출되거나, with 문이 있거나 하면 V8은 보수적으로 동작해 환경 전체를 컨텍스트에 올린다. 이러면 `huge`는 `fn`이 살아있는 동안 메모리에 남는다.
+
+실무에서 자주 보는 패턴 하나. 어떤 객체에 이벤트 리스너를 달아두고 객체 참조를 어딘가에 보관하면, 리스너가 닫고 있는 환경이 통째로 살아남는다. SPA에서 컴포넌트 언마운트 시 리스너 해제를 빠뜨리면 컴포넌트가 보유했던 거대한 상태가 GC되지 않고 누적된다. Chrome DevTools의 Memory 탭에서 retainer 트리를 따라가면 환경 레코드 → 함수 객체 → 리스너 등록 위치 순으로 잡혀 있는 게 보인다.
+
+### 진단 절차
+
+메모리 누수를 의심할 때 보통 이런 순서로 본다.
+
+1. DevTools Memory > Heap snapshot을 두 시점에 찍고 비교한다.
+2. Comparison 뷰에서 "Delta"가 양수인 객체를 본다. 특히 Closure 타입이 늘어나면 의심된다.
+3. 해당 클로저의 retainer 체인을 따라가서 어디서 참조를 잡고 있는지 확인한다.
+4. 캡처된 환경에서 의도하지 않은 큰 변수가 잡혀있는지 본다.
+
+해결 방법은 상황별로 다르다. 리스너는 해제하면 되고, 캐시는 WeakMap으로 옮기면 키 객체가 사라질 때 자동 해제된다. 클로저 자체가 필요 없어진 경우 변수에 null을 대입해서 참조를 끊어야 한다.
+
+## 클로저로 상태를 캡슐화하기
+
+자바스크립트가 private 필드(#field)를 도입하기 전에는 클로저가 사실상 유일한 캡슐화 수단이었다. 지금도 함수형 스타일을 선호하거나 빌드 타깃이 낮은 경우 클로저 기반 모듈을 쓴다.
+
 ```javascript
-function memoize(fn) {
-    const cache = new Map();
-    
-    return function(...args) {
-        const key = JSON.stringify(args);
-        
-        if (cache.has(key)) {
-            console.log('캐시에서 반환');
-            return cache.get(key);
+function createRateLimiter(maxCalls, windowMs) {
+    let timestamps = [];
+
+    return function tryCall() {
+        const now = Date.now();
+        timestamps = timestamps.filter(t => now - t < windowMs);
+
+        if (timestamps.length >= maxCalls) {
+            return false;
         }
-        
-        console.log('계산 수행');
-        const result = fn.apply(this, args);
-        cache.set(key, result);
-        return result;
+
+        timestamps.push(now);
+        return true;
     };
 }
 
-// 사용 예시
-const expensiveCalculation = memoize(function(n) {
-    console.log(`계산 중: ${n}`);
-    return n * n;
-});
-
-console.log(expensiveCalculation(5)); // 계산 수행, 계산 중: 5, 25
-console.log(expensiveCalculation(5)); // 캐시에서 반환, 25
-console.log(expensiveCalculation(6)); // 계산 수행, 계산 중: 6, 36
+const limiter = createRateLimiter(5, 1000);
 ```
 
-## 운영 팁
+`timestamps` 배열은 `tryCall` 외에서는 절대 접근할 수 없다. 외부에서 임의로 비우거나 조작할 방법이 없다. 클래스의 private 필드와 비슷한 보호를 제공하지만, 차이가 있다. 클래스 인스턴스는 메서드를 프로토타입에 두므로 인스턴스 수가 늘어나도 메서드 객체는 하나만 존재한다. 클로저 기반은 인스턴스마다 함수 객체가 새로 만들어지므로 메모리 사용량이 더 크다.
 
-### 성능 최적화
+수만 개의 인스턴스를 만드는 핫패스에서는 클래스 + private 필드가 유리하고, 수십 개 이하의 모듈성 객체에서는 클로저가 코드가 더 깔끔하다. 둘 다 쓰는 코드베이스도 흔하다.
 
-#### 메모리 누수 방지
-```javascript
-// 문제가 있는 코드: 메모리 누수 가능성
-function createProblematicClosure() {
-    const largeData = new Array(1000000).fill('data');
-    
-    return function() {
-        console.log('클로저 실행');
-        // largeData를 참조하지만 실제로는 사용하지 않음
-    };
-}
+## 알아두면 디버깅에 도움 되는 사실들
 
-// 해결 방법 1: 필요 없는 클로저 해제
-let closure = createProblematicClosure();
-closure(); // 사용 후
-closure = null; // 참조 해제
-
-// 해결 방법 2: 필요한 데이터만 클로저에 포함
-function createOptimizedClosure() {
-    const smallData = '필요한 데이터만';
-    
-    return function() {
-        console.log(smallData);
-    };
-}
-
-// 해결 방법 3: WeakMap 사용 (가능한 경우)
-const privateData = new WeakMap();
-
-function createWeakMapClosure() {
-    const obj = {};
-    privateData.set(obj, 'private data');
-    
-    return function() {
-        return privateData.get(obj);
-    };
-}
-```
-
-### 에러 처리
-
-#### 클로저에서의 안전한 에러 처리
-```javascript
-function createSafeClosure() {
-    let state = 'initial';
-    let errorCount = 0;
-    
-    return {
-        execute: function(operation) {
-            try {
-                if (errorCount > 3) {
-                    throw new Error('너무 많은 오류가 발생했습니다.');
-                }
-                
-                // 안전한 작업 수행
-                const result = operation();
-                state = 'success';
-                return result;
-                
-            } catch (error) {
-                errorCount++;
-                state = 'error';
-                console.error('클로저 실행 오류:', error.message);
-                
-                // 오류 복구 시도
-                if (errorCount <= 3) {
-                    console.log('오류 복구 시도 중...');
-                    return null;
-                } else {
-                    throw error;
-                }
-            }
-        },
-        
-        getState: function() {
-            return { state, errorCount };
-        },
-        
-        reset: function() {
-            state = 'initial';
-            errorCount = 0;
-        }
-    };
-}
-
-const safeClosure = createSafeClosure();
-
-// 사용 예시
-try {
-    safeClosure.execute(() => {
-        throw new Error('테스트 오류');
-    });
-} catch (error) {
-    console.log('최종 오류:', error.message);
-}
-
-console.log('상태:', safeClosure.getState());
-```
-
-## 참고
-
-### 클로저 vs 일반 함수 비교표
-
-| 구분 | 클로저 | 일반 함수 |
-|------|--------|-----------|
-| **상태 유지** | 가능 | 불가능 |
-| **데이터 은닉** | 가능 | 불가능 |
-| **메모리 사용량** | 높음 | 낮음 |
-| **성능** | 약간 느림 | 빠름 |
-| **복잡성** | 높음 | 낮음 |
-
-### 클로저 사용 권장사항
-
-| 상황 | 권장사항 | 이유 |
-|------|----------|------|
-| **데이터 은닉 필요** | 클로저 사용 | 캡슐화 구현 |
-| **상태 유지 필요** | 클로저 사용 | 함수 간 상태 공유 |
-| **모듈 패턴** | 클로저 사용 | private 변수 구현 |
-| **단순한 계산** | 일반 함수 | 성능 최적화 |
-| **메모리 제약** | 일반 함수 | 메모리 효율성 |
-
-### 결론
-클로저는 JavaScript의 강력한 기능으로 데이터 은닉과 상태 유지를 가능하게 합니다.
-렉시컬 스코프를 기반으로 외부 변수에 접근할 수 있습니다.
-모듈 패턴과 함수형 프로그래밍에서 핵심적인 역할을 합니다.
-메모리 누수를 방지하기 위해 적절한 참조 해제가 필요합니다.
-성능과 복잡성을 고려하여 적절한 상황에서 사용하세요.
-클로저를 활용하여 안전하고 유지보수하기 쉬운 코드를 작성하세요.
-
+- 화살표 함수도 동일하게 클로저다. this를 어휘적으로 잡는다는 점이 일반 함수와 다를 뿐, 변수 캡처 메커니즘은 똑같다.
+- `Function.prototype.toString()`은 함수의 소스 텍스트만 반환하고 캡처된 변수는 보여주지 않는다. 캡처 상태를 보려면 디버거 Scope 패널을 봐야 한다.
+- Chrome DevTools에서 함수 객체 옆에 [[Scopes]] 항목을 펼치면 캡처된 환경 레코드를 직접 볼 수 있다. var/let의 차이를 눈으로 확인할 때 유용하다.
+- 클로저로 잡힌 변수에는 외부에서 직접 접근할 수 없지만, 디버거를 붙이면 평가 컨텍스트를 통해 접근 가능하다. 보안 경계로 클로저에 의존하지 말 것.
+- async 함수의 await 이후 코드도 클로저로 동작한다. await 시점에 캡처된 변수들이 마이크로태스크 큐에서 재개될 때까지 살아있다.
