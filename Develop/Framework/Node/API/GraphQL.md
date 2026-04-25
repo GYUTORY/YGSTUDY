@@ -75,7 +75,7 @@ graph TB
 
 ## GraphQL 구조
 
-### Schema 정의
+### 1⃣ Schema 정의
 
 Schema는 GraphQL의 핵심으로, API에서 사용 가능한 모든 타입과 작업을 정의합니다.
 
