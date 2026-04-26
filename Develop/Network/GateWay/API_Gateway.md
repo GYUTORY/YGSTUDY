@@ -531,6 +531,6 @@ static_resources:
 - [Kong Gateway 공식 문서](https://docs.konghq.com/gateway/)
 - [Envoy Proxy 공식 문서](https://www.envoyproxy.io/docs)
 - [게이트웨이 개요](Definition.md) — 게이트웨이 기본 개념
-- [MSA 아키텍처](../../Application Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — 마이크로서비스 패턴
+- [MSA 아키텍처](../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — 마이크로서비스 패턴
 - [Kubernetes Ingress](../../DevOps/Kubernetes/Kubernetes.md) — K8s 인그레스 라우팅
 - [Nginx 리버스 프록시](../../WebServer/Nginx/Reverse_Proxy_and_Load_Balancing.md) — Nginx LB 설정

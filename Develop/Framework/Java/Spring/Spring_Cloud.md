@@ -1182,6 +1182,6 @@ services:
 - [Resilience4j 공식 문서](https://resilience4j.readme.io/docs)
 - [Spring Cloud Bus](https://docs.spring.io/spring-cloud-bus/reference/)
 - [HashiCorp Vault](https://developer.hashicorp.com/vault/docs)
-- [MSA](../../../Application Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — MSA 아키텍처 패턴
+- [MSA](../../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — MSA 아키텍처 패턴
 - [Resilience](../../../Backend/Resilience/Fault_Tolerance.md) — Circuit Breaker, Retry
 - [메시지 큐](../../../Backend/Messaging/Message_Queue.md) — 이벤트 기반 통신

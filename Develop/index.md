@@ -24,17 +24,25 @@ hide:
   <div class="yg-pillbar-inner">
     <a class="yg-pill active" href="#categories">전체</a>
     <a class="yg-pill" href="AI/Claude_Code/Claude_Code/">AI</a>
+    <a class="yg-pill" href="AI/Cursor/Cursor/">Cursor</a>
+    <a class="yg-pill" href="AI/Concepts/RAG_for_Code/">RAG</a>
+    <a class="yg-pill" href="AI/Concepts/Prompt_Engineering/">Prompt</a>
     <a class="yg-pill" href="Backend/API/API_Design_Patterns/">Backend</a>
-    <a class="yg-pill" href="DevOps/Kubernetes/Kubernetes/">DevOps</a>
+    <a class="yg-pill" href="Architecture/Clean_Architecture/">Clean Arch</a>
+    <a class="yg-pill" href="Architecture/MSA/Saga_패턴_및_분산_트랜잭션/">MSA</a>
+    <a class="yg-pill" href="DevOps/Kubernetes/Kubernetes/">Kubernetes</a>
+    <a class="yg-pill" href="DevOps/CI_CD/GitHub_Actions/">CI/CD</a>
+    <a class="yg-pill" href="DevOps/Kubernetes/Docker/Docker_Basic/">Docker</a>
+    <a class="yg-pill" href="DataBase/NoSQL/Redis/Redis/">Redis</a>
     <a class="yg-pill" href="DataBase/NoSQL/NoSQL/">Database</a>
     <a class="yg-pill" href="Security/HTTPS_and_TLS/">Security</a>
     <a class="yg-pill" href="AWS/Compute/Auto_Scaling/">AWS</a>
     <a class="yg-pill" href="GCP/Data/Big_Query/">GCP</a>
     <a class="yg-pill" href="Network/Protocol/Protocol/">Network</a>
-    <a class="yg-pill" href="Application Architecture/Clean_Architecture/">Architecture</a>
     <a class="yg-pill" href="Linux/기본_명령어/기본_명령어/">Linux</a>
-    <a class="yg-pill" href="Framework/Java/Spring/Bean/">Framework</a>
-    <a class="yg-pill" href="Language/Java/Java 기본 개념/String 불변 객체/">Language</a>
+    <a class="yg-pill" href="Framework/Java/Spring/Bean/">Spring</a>
+    <a class="yg-pill" href="Language/Java/Java 기본 개념/String 불변 객체/">Java</a>
+    <a class="yg-pill" href="Language/TypeScript/TypeScript 기본 개념/Export_Default와_Default_New/">TypeScript</a>
   </div>
 </nav>
 
@@ -50,7 +58,7 @@ hide:
     <a class="yg-cat" data-cat="aws" href="AWS/Compute/Auto_Scaling/"><span></span>AWS</a>
     <a class="yg-cat" data-cat="security" href="Security/HTTPS_and_TLS/"><span></span>Security</a>
     <a class="yg-cat" data-cat="network" href="Network/Protocol/Protocol/"><span></span>Network</a>
-    <a class="yg-cat" data-cat="arch" href="Application Architecture/Clean_Architecture/"><span></span>Architecture</a>
+    <a class="yg-cat" data-cat="arch" href="Architecture/Clean_Architecture/"><span></span>Architecture</a>
     <a class="yg-cat" data-cat="framework" href="Framework/Java/Spring/Bean/"><span></span>Framework</a>
     <a class="yg-cat" data-cat="language" href="Language/Java/Java 기본 개념/String 불변 객체/"><span></span>Language</a>
     <a class="yg-cat" data-cat="linux" href="Linux/기본_명령어/기본_명령어/"><span></span>Linux</a>

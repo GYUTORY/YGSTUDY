@@ -697,4 +697,4 @@ public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerCont
 - [RabbitMQ 공식 문서](https://www.rabbitmq.com/documentation.html)
 - [Spring for Apache Kafka](https://docs.spring.io/spring-kafka/reference/)
 - [Spring AMQP](https://docs.spring.io/spring-amqp/reference/)
-- [메시지 큐 및 분산 락](../Application Architecture/MSA/메시지_큐_및_분산_락.md)
+- [메시지 큐 및 분산 락](../../Architecture/MSA/메시지_큐_및_분산_락.md)

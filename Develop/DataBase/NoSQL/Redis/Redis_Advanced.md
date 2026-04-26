@@ -1715,4 +1715,4 @@ Sentinel 또는 Cluster를 구성하고, 자동 페일오버가 정상 동작하
 - [Redis 다루기](Redis%20다루기.md) — Redis 기본 사용법
 - [Redis 개요](Redis.md) — Redis 데이터 타입과 아키텍처
 - [Caching 전략](../../../Backend/Caching/Caching_Strategies.md) — 캐싱 패턴
-- [분산 트랜잭션](../../../Application%20Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — 분산 시스템 패턴
+- [분산 트랜잭션](../../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — 분산 시스템 패턴
