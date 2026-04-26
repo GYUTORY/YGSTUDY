@@ -6,4 +6,7 @@ nav:
   - EC2_Purchase_Options.md
   - Auto_Scaling.md
   - Lambda.md
+  - Lambda_Cold_Start_심화.md
+  - Lambda_VPC_연동.md
+  - Lambda_배포_패키징.md
   - Elastic_Beanstalk.md
