@@ -17,6 +17,7 @@ nav:
   - 분산_캐싱_패턴.md
   - 장애_격리_패턴.md
   - 마이크로서비스_운영_및_장애_대응.md
+  - MSA_Operations_Incident_Response_Deep_Dive.md
   - MSA_테스트_전략.md
   - 설정_관리_및_Secret_관리.md
   - API_버전_관리.md
