@@ -4,6 +4,7 @@ nav:
   - AES.md
   - RSA.md
   - SHA.md
+  - End_to_End_Encryption.md
   - OAuth.md
   - Basic.md
   - Threat_Modeling.md
