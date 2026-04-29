@@ -4,8 +4,11 @@ nav:
   - AES.md
   - RSA.md
   - SHA.md
+  - Password_Hashing.md
   - End_to_End_Encryption.md
   - OAuth.md
+  - JWT.md
+  - Web_Authn_Passkeys.md
   - Basic.md
   - Threat_Modeling.md
   - XSS.md
