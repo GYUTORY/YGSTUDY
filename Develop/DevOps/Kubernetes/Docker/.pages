@@ -2,6 +2,7 @@ title: Docker
 nav:
   - Docker_Basic.md
   - Dockerfile.md
+  - Docker_Build_Kit.md
   - Docker_Compose.md
   - Docker_Compose_Port_Forwarding.md
   - Docker_Network.md
