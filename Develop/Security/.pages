@@ -14,12 +14,15 @@ nav:
   - Threat_Modeling.md
   - XSS.md
   - CSRF.md
+  - SQL_Injection.md
+  - Command_Injection.md
   - OWASP_Top_10.md
   - API_Input_Validation.md
   - File_Upload_Security.md
   - ISMS.md
   - SSH_Key_Management.md
   - Server_Attack_Defense.md
+  - D_Do_S_Defense.md
   - Zero_Trust_Architecture.md
   - CORS_and_Security_Headers.md
   - Container_Security.md
