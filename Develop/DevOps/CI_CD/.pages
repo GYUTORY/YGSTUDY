@@ -1,5 +1,6 @@
 title: CI/CD
 nav:
   - GitHub_Actions.md
+  - Jenkins.md
   - Bitbucket_Pipeline.md
   - Vercel.md
