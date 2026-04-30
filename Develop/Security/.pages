@@ -8,6 +8,7 @@ nav:
   - End_to_End_Encryption.md
   - OAuth.md
   - JWT.md
+  - Session_Management.md
   - Web_Authn_Passkeys.md
   - Basic.md
   - Threat_Modeling.md
@@ -15,10 +16,12 @@ nav:
   - CSRF.md
   - OWASP_Top_10.md
   - API_Input_Validation.md
+  - File_Upload_Security.md
   - ISMS.md
   - SSH_Key_Management.md
   - Server_Attack_Defense.md
   - Zero_Trust_Architecture.md
   - CORS_and_Security_Headers.md
   - Container_Security.md
+  - Supply_Chain_Security.md
   - 보안_심화_및_취약점_분석.md
