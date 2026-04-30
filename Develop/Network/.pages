@@ -4,6 +4,8 @@ nav:
   - Domain
   - GateWay
   - Proxy
+  - Security
   - ...
 - Tunneling.md
 - URL_and_URI.md
+- CORS.md
