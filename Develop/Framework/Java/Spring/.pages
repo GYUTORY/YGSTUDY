@@ -3,6 +3,7 @@ nav:
   - Bean.md
   - Spring_Security.md
   - Spring_Data_JPA.md
+  - Spring_Data_JPA_Advanced.md
   - Spring_MVC_REST_API.md
   - Spring_WebFlux.md
   - Spring_Batch.md
