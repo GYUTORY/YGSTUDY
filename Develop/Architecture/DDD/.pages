@@ -1,4 +1,5 @@
 title: DDD 심화
 nav:
+  - Bounded_Context.md
   - DDD_Building_Blocks.md
   - Domain_Event.md
