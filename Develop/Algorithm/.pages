@@ -6,4 +6,5 @@ nav:
   - Binary_Search.md
   - Dynamic_Programming.md
   - Greedy.md
+  - Greedy_Deep_Dive.md
   - Graph_Traversal.md
