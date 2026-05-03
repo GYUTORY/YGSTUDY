@@ -7,6 +7,9 @@ nav:
   - Reverse_Proxy.md
   - Static_File_Serving.md
   - SSL_TLS.md
+  - Headers_CORS.md
+  - Authentication.md
   - Admin_API.md
   - Logging_Monitoring.md
   - Docker_Caddy.md
+  - Nginx_To_Caddy_Migration.md
