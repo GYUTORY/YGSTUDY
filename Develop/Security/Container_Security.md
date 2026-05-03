@@ -1,7 +1,7 @@
 ---
 title: Docker 컨테이너 보안
-tags: [security, docker, kubernetes, container, devsecops, trivy, snyk]
-updated: 2026-04-11
+tags: [security, docker, kubernetes, container, devsecops, trivy, snyk, cosign]
+updated: 2026-05-03
 ---
 
 # Docker 컨테이너 보안
@@ -453,6 +453,73 @@ CMD ["node", "dist/index.js"]
 
 ---
 
+## 베이스 이미지 선택
+
+베이스 이미지는 그 자체로 공격 표면이 된다. 깔린 패키지가 많을수록 CVE도 비례해서 늘어난다. 같은 Node.js 앱을 다른 베이스로 빌드해보면 차이가 명확하다.
+
+| 베이스 이미지 | 크기 | 패키지 수 | 일반적인 CVE 수 | 셸 |
+|---|---|---|---|---|
+| `node:20` (Debian full) | ~1.1GB | 400+ | 200~400 | bash |
+| `node:20-slim` | ~250MB | 100~ | 30~80 | bash |
+| `node:20-alpine` | ~180MB | 50~ | 10~30 | sh (busybox) |
+| `gcr.io/distroless/nodejs20-debian12` | ~150MB | 최소 | 5~15 | 없음 |
+| `scratch` (정적 바이너리만) | 바이너리 크기 | 0 | 0 | 없음 |
+
+실제로 `node:20`에서 `node:20-alpine`으로만 바꿔도 Trivy가 잡아내는 CVE의 80% 이상이 사라지는 경우가 많다.
+
+### Alpine을 쓸 때 주의할 점
+
+Alpine은 musl libc를 쓴다. glibc 기반 바이너리(prebuilt npm 패키지, Node.js native addon, `node-gyp` 컴파일된 모듈 등)는 그대로 동작하지 않는다. 자주 깨지는 패키지:
+
+- `bcrypt` — `bcryptjs`로 교체하거나 빌드 도구 추가 설치 필요
+- `sharp` — Alpine용 prebuilt가 따로 있다 (`@img/sharp-libvips-linuxmusl-x64`)
+- Puppeteer/Playwright — Chromium 의존성 때문에 Alpine에서 매우 까다롭다. 차라리 `-slim` 쓰는 게 낫다
+- DNS resolver 동작 차이 — Alpine은 `/etc/nsswitch.conf`를 안 쓴다. `getaddrinfo`가 다르게 동작해서 search domain 처리가 달라진다
+
+Python의 경우 `python:3.12-alpine`은 wheel이 없어서 native 패키지를 매번 컴파일한다. 빌드 시간이 5배 이상 느려지고 이미지 크기도 결국 비슷해진다. Python은 `python:3.12-slim`이 더 합리적이다.
+
+### Distroless
+
+Google이 관리한다. 셸, 패키지 매니저, 심지어 `ls`도 없다. 런타임 + 앱만 들어있다.
+
+```dockerfile
+# Java
+FROM gcr.io/distroless/java21-debian12
+COPY target/app.jar /app.jar
+CMD ["app.jar"]
+
+# Python
+FROM gcr.io/distroless/python3-debian12
+COPY app.py /
+CMD ["/app.py"]
+
+# 정적 바이너리(Go, Rust)
+FROM gcr.io/distroless/static-debian12
+COPY server /server
+ENTRYPOINT ["/server"]
+```
+
+태그 컨벤션:
+- `:latest` — 최소 런타임 (셸 없음)
+- `:debug` — busybox 셸 포함, 개발/디버깅용
+- `:nonroot` — UID 65532로 실행
+
+### Scratch
+
+진짜 빈 이미지다. Go나 Rust처럼 정적 바이너리로 컴파일되는 언어에서만 쓸 수 있다.
+
+```dockerfile
+FROM scratch
+COPY --from=builder /app/server /server
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+USER 1000:1000
+ENTRYPOINT ["/server"]
+```
+
+`ca-certificates`를 안 넣으면 HTTPS 요청이 인증서 검증 실패로 다 깨진다. 처음 scratch로 빌드하는 사람들이 자주 하는 실수다. 타임존이 필요하면 `/usr/share/zoneinfo`도 복사해야 한다.
+
+---
+
 ## Secrets 관리
 
 ### 환경변수의 위험성
@@ -514,6 +581,64 @@ docker build --secret id=npmrc,src=.npmrc -t myapp .
 
 ---
 
+## 이미지 서명 — Cosign
+
+스캔이 "이 이미지에 알려진 취약점이 있는가"라면, 서명은 "이 이미지가 진짜 우리가 빌드한 게 맞는가"를 증명한다. 공급망 공격(누군가 레지스트리 자격증명을 탈취해서 악성 이미지를 같은 태그로 덮어쓰는 식)에 대비하는 게 목적이다.
+
+```bash
+# 키 페어 생성
+cosign generate-key-pair
+
+# 서명
+cosign sign --key cosign.key ghcr.io/myorg/myapp:1.2.3
+
+# 검증
+cosign verify --key cosign.pub ghcr.io/myorg/myapp:1.2.3
+```
+
+키 관리가 부담스러우면 keyless 서명을 쓴다. Sigstore의 OIDC 기반 인증으로 GitHub Actions의 토큰을 사용해 서명한다:
+
+```yaml
+- name: Sign image
+  env:
+    COSIGN_EXPERIMENTAL: "1"
+  run: cosign sign ghcr.io/${{ github.repository }}/myapp@${{ steps.build.outputs.digest }}
+```
+
+서명 키가 따로 없고, GitHub Actions의 OIDC 토큰으로 Sigstore Fulcio에 단기 인증서를 발급받아 서명한다. 키 유출 걱정이 없다.
+
+K8s에서는 admission controller로 서명 검증을 강제한다. Kyverno로 설정하는 예:
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signature
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/myorg/*"
+          attestors:
+            - entries:
+                - keys:
+                    publicKeys: |
+                      -----BEGIN PUBLIC KEY-----
+                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+                      -----END PUBLIC KEY-----
+```
+
+서명되지 않은 이미지나 다른 키로 서명된 이미지는 Pod 생성이 거부된다. 사이드카로 들어오는 third-party 이미지(Istio proxy, Datadog agent 등)는 그쪽 공개키로 별도 정책을 작성해야 한다.
+
+---
+
 ## Kubernetes Pod Security Standards
 
 Kubernetes 1.25부터 PodSecurityPolicy(PSP)가 제거되고, Pod Security Standards(PSS)로 대체됐다. 네임스페이스 레벨에서 레이블로 적용한다.
@@ -550,33 +675,116 @@ metadata:
   namespace: myapp
 spec:
   securityContext:
+    # Pod-level: 모든 컨테이너에 공통 적용
     runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
   containers:
     - name: app
-      image: myapp:latest
+      image: myapp:1.2.3
       securityContext:
+        # Container-level: Pod-level을 덮어쓴다
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
         runAsNonRoot: true
         capabilities:
           drop:
             - ALL
+          add:
+            - NET_BIND_SERVICE  # 1024 미만 포트 바인딩이 필요한 경우만
       volumeMounts:
         - name: tmp
           mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache/myapp
   volumes:
     - name: tmp
       emptyDir:
         sizeLimit: 64Mi
+    - name: cache
+      emptyDir:
+        sizeLimit: 256Mi
 ```
 
-`capabilities.drop: ALL`은 Linux capability를 전부 제거한다. 대부분의 앱은 capability 없이 동작한다. 특정 capability가 필요한 경우(예: 포트 80 바인딩에 `NET_BIND_SERVICE`)만 `add`로 추가한다.
+### Pod-level vs Container-level securityContext
+
+같은 필드가 양쪽에 있을 때 Container-level이 우선한다. 다만 일부 필드는 한쪽에서만 설정 가능하다.
+
+| 필드 | Pod | Container |
+|---|---|---|
+| `runAsUser`, `runAsGroup`, `runAsNonRoot` | O | O (덮어쓰기) |
+| `fsGroup`, `fsGroupChangePolicy` | O | X |
+| `supplementalGroups` | O | X |
+| `seccompProfile` | O | O |
+| `allowPrivilegeEscalation` | X | O |
+| `readOnlyRootFilesystem` | X | O |
+| `capabilities` | X | O |
+| `privileged` | X | O |
+
+`fsGroup`은 Pod 전체에 적용된다. 마운트된 볼륨의 그룹 소유자를 이 GID로 강제로 바꾼다. PVC를 마운트할 때 이걸 안 잡아주면 컨테이너 안의 non-root 유저가 볼륨에 못 쓰는 경우가 흔하다. `fsGroupChangePolicy: OnRootMismatch`를 안 걸면 큰 볼륨에서 마운트할 때마다 모든 파일 권한을 재귀적으로 바꾸느라 Pod 시작이 몇 분씩 걸리기도 한다.
+
+### Linux Capabilities — 자주 쓰이는 것
+
+`capabilities.drop: ALL`이 기본이고, 정말 필요한 것만 add로 돌려준다. 자주 필요한 capability:
+
+| Capability | 언제 필요한가 |
+|---|---|
+| `NET_BIND_SERVICE` | 1024 미만 포트(80, 443 등) 바인딩 |
+| `CHOWN` | 컨테이너 시작 시 파일 소유자 변경 (대부분 불필요) |
+| `DAC_OVERRIDE` | 파일 권한 무시하고 읽기/쓰기 (가능하면 피한다) |
+| `SETUID`, `SETGID` | nginx 같이 마스터/워커 분리되는 프로세스의 유저 전환 |
+| `NET_ADMIN`, `SYS_ADMIN` | 네트워크/시스템 관리. 거의 root와 동급. 절대 그냥 주지 않는다 |
+
+대안으로 `setcap`을 이미지 빌드 시 적용해서 capability 없이도 1024 미만 포트를 바인딩할 수 있다:
+
+```dockerfile
+RUN setcap 'cap_net_bind_service=+ep' /usr/local/bin/myapp
+```
+
+이렇게 하면 K8s에서 `NET_BIND_SERVICE`도 안 줘도 된다. 다만 컨테이너 안에서 실행 권한을 가진 다른 바이너리에 capability가 상속되지 않도록 주의해야 한다.
+
+### PodSecurityPolicy(PSP)는 죽었다
+
+K8s 1.21에서 deprecated, 1.25에서 완전 제거됐다. 아직 PSP 매니페스트를 들고 있는 클러스터가 있다면 PSS(Pod Security Standards)나 OPA Gatekeeper, Kyverno 같은 정책 엔진으로 마이그레이션해야 한다. PSP 시절엔 RBAC와 묶여있어서 디버깅이 지옥이었는데, PSS는 네임스페이스 레이블 하나로 끝나서 훨씬 단순하다.
+
+복잡한 정책(특정 이미지 레지스트리만 허용, 라벨 강제 등)이 필요하면 Kyverno를 권한다:
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-trusted-registry
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-image-registry
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: "이미지는 ghcr.io/myorg/ 또는 내부 레지스트리에서만 가져올 수 있다"
+        pattern:
+          spec:
+            containers:
+              - image: "ghcr.io/myorg/* | registry.internal.com/*"
+```
 
 ---
 
 ## NetworkPolicy
+
+![방화벽으로 네트워크를 분리한 DMZ 구성도 — NetworkPolicy의 기본 차단 개념과 유사](../assets/images/auto/보안/506d8891.svg)
+
+![이중 방화벽 DMZ 다이어그램 — 필요한 트래픽만 허용하는 분리 정책 시각화](../assets/images/auto/보안/4143dc9f.svg)
+
+![격리 기반 보안 시스템 다이어그램 — 횡이동 차단을 위한 네트워크 분리 개념](../assets/images/auto/보안/d47e7ba5.png)
+
 
 기본적으로 Kubernetes Pod은 클러스터 내 모든 Pod과 통신할 수 있다. 하나의 Pod이 뚫리면 횡이동(lateral movement)이 가능하다는 뜻이다.
 
@@ -677,3 +885,28 @@ image: myapp:1.2.3
 ```
 
 **`--privileged` 플래그**: 모든 Linux capability를 부여하고, 모든 디바이스에 접근 가능하게 하며, seccomp과 AppArmor를 비활성화한다. 컨테이너 격리가 사실상 없어진다. GPU 사용이나 특수한 하드웨어 접근이 필요한 경우가 아니면 쓰지 않는다.
+
+**hostPath 볼륨**: `/`, `/etc`, `/var/run/docker.sock`, `/proc` 같은 경로를 hostPath로 마운트하면 컨테이너에서 호스트 파일시스템을 그대로 본다. 노드의 kubelet 인증서 같은 걸 읽으면 클러스터 전체 권한으로 이어진다. PSS Restricted 레벨에서는 hostPath 자체가 막힌다.
+
+**커널 공유의 한계**: 커널 익스플로잇(예: dirty pipe, dirty cow)이 터지면 컨테이너 격리가 무력화된다. 멀티테넌시가 필요한 SaaS나 고객 코드를 실행하는 환경(Lambda, CI runner 같은)에서는 일반 컨테이너 격리만으로 부족하다. gVisor(Google), Kata Containers(VM 기반)가 대안이다. EKS는 노드 그룹별로 RuntimeClass를 다르게 줄 수 있다:
+
+```yaml
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+handler: runsc
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: untrusted-workload
+spec:
+  runtimeClassName: gvisor
+  containers:
+    - name: app
+      image: customer-code:latest
+```
+
+성능은 일반 runc 대비 시스템콜 많은 워크로드에서 30~50% 느려진다. 트레이드오프를 감수할 만한 격리가 필요한 케이스에만 쓴다.
+
