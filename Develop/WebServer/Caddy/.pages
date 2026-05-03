@@ -3,3 +3,6 @@ nav:
   - Caddy.md
   - Rate_Limiting.md
   - Subdomain_Routing.md
+  - Reverse_Proxy.md
+  - Admin_API.md
+  - Logging_Monitoring.md
