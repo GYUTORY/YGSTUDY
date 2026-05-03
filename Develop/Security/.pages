@@ -1,6 +1,7 @@
 title: Security
 nav:
   - HTTPS_and_TLS.md
+  - Mutual_TLS.md
   - AES.md
   - RSA.md
   - SHA.md
@@ -21,8 +22,10 @@ nav:
   - File_Upload_Security.md
   - ISMS.md
   - SSH_Key_Management.md
+  - Secrets_Management.md
   - Server_Attack_Defense.md
   - D_Do_S_Defense.md
+  - Rate_Limiting.md
   - Zero_Trust_Architecture.md
   - CORS_and_Security_Headers.md
   - Container_Security.md
