@@ -4,5 +4,6 @@ nav:
   - Rate_Limiting.md
   - Subdomain_Routing.md
   - Reverse_Proxy.md
+  - SSL_TLS.md
   - Admin_API.md
   - Logging_Monitoring.md
