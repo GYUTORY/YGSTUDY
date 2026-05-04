@@ -30,4 +30,7 @@ nav:
   - CORS_and_Security_Headers.md
   - Container_Security.md
   - Supply_Chain_Security.md
+  - Security_Logging_and_Auditing.md
+  - Security_Testing_SAST_DAST_IAST.md
+  - Incident_Response.md
   - 보안_심화_및_취약점_분석.md
