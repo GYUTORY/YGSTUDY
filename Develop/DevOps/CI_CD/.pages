@@ -4,3 +4,4 @@ nav:
   - Jenkins.md
   - Bitbucket_Pipeline.md
   - Vercel.md
+  - Verdaccio.md
