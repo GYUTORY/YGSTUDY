@@ -1,7 +1,7 @@
 ---
 title: Buffer
-tags: [datarepresentation, buffer, java, nodejs, python]
-updated: 2026-03-25
+tags: [datarepresentation, buffer, java, nodejs, python, netty, zero-copy]
+updated: 2026-05-06
 ---
 
 # Buffer (버퍼)
@@ -160,6 +160,114 @@ try (FileChannel channel = FileChannel.open(Path.of("huge_file.dat"))) {
 ```
 
 Kafka가 로그 세그먼트를 읽을 때 이 방식을 쓴다. 다만 `MappedByteBuffer`는 명시적으로 해제하는 API가 없어서(Java 19 이전), 매핑한 파일을 삭제하려고 하면 Windows에서 파일 락이 걸리는 문제가 있다.
+
+### 멀티스레드 환경에서의 ByteBuffer 공유
+
+ByteBuffer는 스레드 안전하지 않다. 두 스레드가 동시에 한 ByteBuffer를 읽기만 해도 position이 망가진다. 서로 다른 영역을 동시에 처리하고 싶다면 `duplicate()`, `slice()`, `asReadOnlyBuffer()`로 뷰를 만들어 써야 한다.
+
+```java
+ByteBuffer original = ByteBuffer.allocate(1024);
+fillData(original);
+original.flip();
+
+// 메모리는 같지만 position/limit/mark가 독립인 새 ByteBuffer
+ByteBuffer dup = original.duplicate();
+
+// 현재 position부터 limit까지를 잘라서 새 ByteBuffer로
+ByteBuffer slc = original.slice();
+
+// 읽기 전용 뷰 — 데이터 보호
+ByteBuffer ro = original.asReadOnlyBuffer();
+
+executor.submit(() -> readRange(dup));
+executor.submit(() -> readRange(slc));
+```
+
+주의해야 할 점이 하나 있다. 메모리는 공유한다. 한쪽에서 `put()`으로 데이터를 변경하면 다른 쪽에도 보인다. 동시 쓰기는 그대로 데이터 레이스다. "한 스레드가 쓰고 끝난 뒤 여러 스레드가 읽는다" 같은 happens-before 보장이 있어야 한다(volatile, synchronized, CountDownLatch, Phaser 등).
+
+내부적으로 `slice()`와 `duplicate()`는 같은 native address나 byte[] 참조를 공유하지만 인덱싱 메타데이터만 새로 만든다. 그래서 거의 비용이 없다. 성능 손해 걱정 말고 자유롭게 만들어 쓰면 된다.
+
+---
+
+## Netty ByteBuf
+
+Netty를 직접 쓰지 않더라도 Spring WebFlux, Reactor Netty, gRPC Java를 쓰면 결국 내부에서 만난다. ByteBuf는 ByteBuffer가 가진 답답한 점을 해결하려고 만든 버퍼다.
+
+### ByteBuf vs ByteBuffer
+
+| 항목 | ByteBuffer | ByteBuf |
+|------|-----------|---------|
+| 포인터 | position 1개 — flip()으로 모드 전환 | readerIndex/writerIndex 분리 — flip 불필요 |
+| 크기 변경 | 고정. 모자라면 새 버퍼 만들고 복사 | 자동 확장 (writeXxx 호출 시) |
+| 메모리 관리 | GC + Cleaner | 참조 카운트 기반 수동 release |
+| 풀링 | 직접 구현 | PooledByteBufAllocator 기본 제공 |
+| 메서드 체이닝 | 일부만 | 전부 가능 |
+
+```java
+// ByteBuf는 flip이 없다. write 후 read를 바로 한다.
+ByteBuf buf = Unpooled.buffer(256);
+buf.writeInt(42);
+buf.writeBytes("hello".getBytes());
+
+int value = buf.readInt();  // readerIndex가 자동 증가
+String str = buf.readCharSequence(5, StandardCharsets.UTF_8).toString();
+```
+
+### Pooled vs Unpooled, Heap vs Direct
+
+조합이 4가지다.
+
+```java
+// Unpooled — 매번 new. 짧은 코드, 테스트, 단발성 작업에 쓴다.
+ByteBuf u1 = Unpooled.buffer(1024);          // unpooled heap
+ByteBuf u2 = Unpooled.directBuffer(1024);    // unpooled direct
+
+// Pooled — 풀에서 빌리고 반납. 운영 코드는 거의 이걸 쓴다.
+ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
+ByteBuf p1 = alloc.heapBuffer(1024);
+ByteBuf p2 = alloc.directBuffer(1024);
+```
+
+Netty 4.1부터 `PooledByteBufAllocator`가 기본 allocator다. jemalloc 스타일의 arena/chunk 기반 풀이라 sub-microsecond 단위로 할당이 끝난다. 동일한 처리량에서 GC 부담이 1/10 수준으로 떨어진다.
+
+### refCnt — 참조 카운트 수동 관리
+
+ByteBuf의 가장 큰 함정이다. 풀에서 빌린 버퍼를 반납 안 하면 풀이 고갈된다.
+
+```java
+ByteBuf buf = alloc.directBuffer(1024);
+// refCnt = 1
+buf.writeBytes(data);
+
+ByteBuf retained = buf.retain();  // refCnt = 2 — 다른 곳에서도 쓴다고 표시
+processAsync(retained);
+
+buf.release();  // refCnt = 1
+// processAsync 내부에서 release()를 또 호출하면 refCnt = 0이 되어 풀로 반납
+```
+
+`release()`를 빼먹으면 처음에는 멀쩡해 보인다. 그러다 트래픽이 일정 수준을 넘으면 갑자기 `LEAK: ByteBuf.release() was not called` 경고가 로그에 쏟아지고 응답 지연이 치솟는다. Netty의 누수 탐지기는 샘플링으로 동작하는데 운영 기본값은 SIMPLE 레벨(약 1%)이다.
+
+```bash
+# 누수 의심 상황에서는 PARANOID(100%)로 올려서 재현한다
+-Dio.netty.leakDetection.level=PARANOID
+```
+
+ChannelHandler에서 ByteBuf를 받으면 처리 후 release할지 다음 핸들러로 넘길지 명확히 해야 한다. `SimpleChannelInboundHandler`는 자동으로 release하지만, `ChannelInboundHandlerAdapter`는 직접 호출해야 한다. 이 차이를 모르면 누수가 난다.
+
+```java
+public class MyHandler extends ChannelInboundHandlerAdapter {
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        ByteBuf buf = (ByteBuf) msg;
+        try {
+            // 처리
+        } finally {
+            buf.release();  // 빼먹으면 풀 누수
+        }
+    }
+}
+```
 
 ---
 
@@ -370,6 +478,71 @@ readable.on('data', (chunk) => {
 
 `pipe()`를 안 쓰고 직접 이벤트로 처리할 때 배압 제어를 빠뜨리면, 소스가 빠르고 대상이 느린 경우 Node.js 프로세스 메모리가 수 GB까지 올라간다.
 
+### Off-heap 메모리 누수 디버깅
+
+Direct ByteBuffer 누수는 힙 덤프로 안 보인다. RSS는 계속 늘어나는데 힙 사용량은 정상이라면 십중팔구 네이티브 메모리 누수다. 이런 상황에서 쓸 수 있는 도구들이 있다.
+
+**Native Memory Tracking 활성화**
+
+NMT를 켜고 시작한다. 운영 부하 영향은 5~10% 정도라 일시적으로는 켜도 된다.
+
+```bash
+java -XX:NativeMemoryTracking=detail \
+     -XX:+UnlockDiagnosticVMOptions \
+     -jar app.jar
+```
+
+부하를 받기 전에 베이스라인을 잡아둔다.
+
+```bash
+jcmd <pid> VM.native_memory baseline
+```
+
+시간이 흐른 뒤 차이를 본다.
+
+```bash
+jcmd <pid> VM.native_memory summary.diff
+```
+
+`Internal` 카테고리가 계속 증가하면 Direct Buffer 또는 JNI 할당이 의심된다. `Other`가 늘어나면 외부 라이브러리(JNI 모듈, GZIP 인플레이터 등)다.
+
+**Direct Buffer 사용량 직접 확인**
+
+JMX의 `BufferPoolMXBean`이 가장 정확하다.
+
+```java
+List<BufferPoolMXBean> pools =
+    ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);
+
+for (BufferPoolMXBean pool : pools) {
+    System.out.printf("%s: count=%d, used=%d, capacity=%d%n",
+        pool.getName(), pool.getCount(),
+        pool.getMemoryUsed(), pool.getTotalCapacity());
+}
+// direct: count=247, used=129826816, capacity=129826816
+// mapped: count=3, used=2147483648, capacity=2147483648
+```
+
+Prometheus의 `jvm_buffer_pool_used_bytes` 메트릭으로 그래프를 그려두면 누수 시점을 잡기 쉽다. 누수가 있으면 톱니 모양이 아니라 우상향 선이 나온다.
+
+**pmap으로 RSS 해부**
+
+JVM 외부에서 보면 결국 OS가 보는 메모리는 RSS다. 프로세스가 실제 점유한 메모리 영역을 보려면 pmap이 가장 빠르다.
+
+```bash
+pmap -x <pid> | sort -k 3 -n -r | head -30
+```
+
+JVM 힙은 한 덩어리의 큰 매핑으로 보인다. 작은 anon 매핑이 수십~수백 개 늘어난다면 풀링 안 된 Direct Buffer가 의심스럽다. `64MB` 단위 매핑이 점점 늘어나는 패턴은 glibc의 `MALLOC_ARENA`가 의심된다 — 이때는 `MALLOC_ARENA_MAX=2`로 제한해본다.
+
+**그 외 도구**
+
+- `async-profiler --alloc` — Direct Buffer 할당 스택 트레이스
+- Netty의 `ResourceLeakDetector` — ByteBuf 누수만 잡아낸다
+- jemalloc 프로파일러 — `MALLOC_CONF=prof:true` 환경변수로 켜고 jeprof로 분석
+
+대부분의 사례에서 원인은 셋 중 하나다. 풀링을 안 쓰거나, refCnt 관리가 잘못됐거나, JNI 라이브러리 버그다.
+
 ### 버퍼 크기를 잘못 잡았을 때
 
 **너무 작게 잡은 경우**
@@ -452,6 +625,60 @@ http.createServer((req, res) => {
 }).listen(8080);
 ```
 
+**sendfile의 한계**
+
+sendfile은 만능이 아니다. 쓸 수 있는 경우가 좁다.
+
+- 파일 → 소켓 단방향만 된다. 메모리 → 소켓이나 소켓 → 파일은 안 된다.
+- TLS가 끼면 유저 공간으로 데이터를 가져와 암호화해야 하니 zero-copy 효과가 사라진다. kTLS(커널 TLS)를 켜면 다시 살아나지만 인증서/세션 셋업은 여전히 유저 공간 몫이다.
+- HTTP/2처럼 한 TCP 연결로 여러 스트림을 다중화하면 작은 청크가 많아져 sendfile 호출 비용이 복사 비용을 잡아먹는다.
+- 파일 내용을 변형해서 보내야 한다면 (압축, 삽입, 헤더 부착) 결국 유저 공간을 거쳐야 한다.
+
+**splice — 파이프 경유 zero-copy**
+
+sendfile이 못 하는 조합을 splice로 해결한다. 양쪽 fd가 무엇이든 pipe를 중간에 끼우면 된다.
+
+```c
+int pipefd[2];
+pipe(pipefd);
+splice(src_fd, NULL, pipefd[1], NULL, len, SPLICE_F_MOVE);
+splice(pipefd[0], NULL, dst_fd, NULL, len, SPLICE_F_MOVE);
+```
+
+socket → file이나 socket → socket 같은 패턴을 유저 공간 복사 없이 처리할 수 있다. nginx의 일부 빌드와 HAProxy가 splice를 사용한다.
+
+**MSG_ZEROCOPY (Linux 4.14+)**
+
+`send()`에 `MSG_ZEROCOPY` 플래그를 넘기면 유저 공간 버퍼를 복사 없이 NIC로 보낸다. 비동기다. 커널이 NIC 전송 완료를 알리기 전에 버퍼를 수정하면 데이터가 깨진다. 완료 알림은 errqueue로 받아야 한다.
+
+```c
+int one = 1;
+setsockopt(sock, SOL_SOCKET, SO_ZEROCOPY, &one, sizeof(one));
+send(sock, buf, len, MSG_ZEROCOPY);
+// recvmsg(sock, &msg, MSG_ERRQUEUE)로 완료 폴링
+```
+
+64KB 미만 버퍼에서는 페이지 핀/언핀 비용이 복사 비용보다 커서 오히려 느려진다. CDN처럼 큰 청크를 많이 보내는 워크로드에서만 의미가 있다.
+
+**io_uring (Linux 5.1+)**
+
+진짜 비동기 I/O 인터페이스다. SQ(Submission Queue)와 CQ(Completion Queue) 두 개의 링 버퍼를 커널과 공유한다. 한 syscall로 수백 개의 I/O를 큐잉할 수 있어서 syscall 자체가 거의 사라진다.
+
+```c
+struct io_uring ring;
+io_uring_queue_init(256, &ring, 0);
+
+struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
+io_uring_prep_read(sqe, fd, buf, len, offset);
+io_uring_submit(&ring);
+
+struct io_uring_cqe *cqe;
+io_uring_wait_cqe(&ring, &cqe);
+// cqe->res에 실제 read 결과
+```
+
+JVM에는 표준 io_uring API가 없다. Netty 5의 incubator 모듈(`netty-incubator-transport-io_uring`)이나 Helidon Níma가 사용한다. PostgreSQL 17부터 io_uring 기반 비동기 I/O가 들어왔다. 운영체제 커널 버전이 5.6 이상이면 stable, 그 이하라면 보안 패치 이슈로 비활성화된 배포판도 있다.
+
 ### 버퍼 풀링
 
 매번 버퍼를 할당/해제하면 GC 부담이 크다. 서버처럼 요청이 반복되는 환경에서는 미리 만들어둔 버퍼를 돌려쓰는 게 낫다.
@@ -487,6 +714,238 @@ public class ByteBufferPool {
 ```
 
 Netty의 `PooledByteBufAllocator`가 이 패턴의 프로덕션 레벨 구현이다. 직접 풀링을 만들기보다 프레임워크가 제공하는 걸 쓰는 게 맞다.
+
+### 버퍼 오버플로와 보안
+
+C/C++의 클래식한 버퍼 오버플로는 Java/Node.js에서는 메모리 안전성 덕분에 거의 안 일어난다. 대신 다른 종류의 함정이 있다.
+
+**Node.js Buffer.allocUnsafe — 메모리 내용 유출**
+
+`Buffer.allocUnsafe()`는 초기화 안 된 메모리를 그대로 반환한다. V8 힙 외부의 메모리 풀에서 가져오는데, 이전 요청이 사용한 데이터가 그대로 남아있다. 인증 토큰, 다른 사용자 응답 조각이 그대로 클라이언트에게 흘러갈 수 있다.
+
+```javascript
+// 위험한 패턴
+function buildResponse(userId) {
+    const buf = Buffer.allocUnsafe(1024);
+    const written = buf.write(`user:${userId}\n`, 0, 'utf8');
+    // written 바이트만 새로 쓰였다. 그 뒤는 이전 메모리 그대로.
+    return buf;  // 이 버퍼를 그대로 응답으로 보내면 메모리 유출
+}
+```
+
+실제로 2017~2018년 사이 Node.js 생태계에서 비슷한 케이스의 CVE가 여러 건 났다. `ws`(WebSocket 라이브러리), `bson`, `mongodb` 드라이버의 일부 버전에서 unsafe 버퍼를 외부로 노출하는 버그가 있었다. Node.js 8.x부터 `Buffer()` 생성자가 deprecated된 이유 중 하나다.
+
+```javascript
+// 안전한 패턴
+const buf = Buffer.allocUnsafe(1024);
+const written = buf.write(`user:${userId}\n`, 0, 'utf8');
+return buf.subarray(0, written);  // 실제 쓴 영역만 잘라서 반환
+```
+
+원칙은 단순하다. 외부로 나가는 데이터 만들기에는 `Buffer.alloc()`을 쓴다. `allocUnsafe()`는 바로 전체를 덮어쓰는 경우(파일 read 결과를 받는 버퍼 등)에만 쓴다.
+
+**Java DirectByteBuffer — JNI 경계 검증**
+
+JNI에서 Direct ByteBuffer를 raw 포인터로 받아 처리할 때, capacity 검증을 빼먹으면 다른 객체의 메모리를 덮어쓸 수 있다. `(*env)->GetDirectBufferAddress()`가 반환한 주소는 그냥 포인터다. 항상 `(*env)->GetDirectBufferCapacity()`로 한계를 확인해야 한다.
+
+**프로토콜 길이 필드 검증**
+
+직접 짠 바이너리 프로토콜 파서에서 가장 흔한 보안 버그다.
+
+```java
+// 위험한 코드
+int length = buf.getInt();              // 클라이언트가 보낸 길이
+byte[] payload = new byte[length];      // length가 -1이거나 1GB라면?
+buf.get(payload);
+```
+
+상한선 검증을 빼먹으면, 악의적 클라이언트가 4바이트만 보내고 length=Integer.MAX_VALUE를 박아 OOM을 유발하거나, 음수를 보내서 `NegativeArraySizeException`으로 핸들러를 죽일 수 있다.
+
+```java
+// 방어 코드
+int length = buf.getInt();
+if (length < 0 || length > MAX_PAYLOAD_SIZE) {
+    throw new ProtocolException("invalid length: " + length);
+}
+byte[] payload = new byte[length];
+buf.get(payload);
+```
+
+Netty의 `LengthFieldBasedFrameDecoder`처럼 검증된 디코더를 쓰면 이런 실수를 막아준다. 직접 길이 기반 프레이밍을 짜야 한다면 항상 max length 파라미터를 받도록 설계한다.
+
+### 데이터베이스와 메시지 큐의 버퍼
+
+서버 코드 안의 버퍼만 보면 절반만 본 것이다. 운영에서는 DB와 미들웨어의 버퍼가 시스템 성능을 좌우한다.
+
+**PostgreSQL shared_buffers**
+
+PostgreSQL은 자체 버퍼 풀(`shared_buffers`)에 페이지를 캐싱한다. 기본값은 128MB로 매우 작다. 8KB 페이지 기준 16,384개 페이지밖에 못 담는다.
+
+```ini
+# postgresql.conf
+shared_buffers = 8GB        # 보통 RAM의 25%
+effective_cache_size = 24GB # OS 페이지 캐시까지 합쳐서 옵티마이저에게 알려주는 값
+work_mem = 64MB             # 정렬/해시조인 작업 메모리. 쿼리당 할당
+maintenance_work_mem = 1GB  # VACUUM, CREATE INDEX 등에 쓰는 메모리
+```
+
+`shared_buffers`를 너무 크게 잡으면 OS 페이지 캐시와 이중 캐싱이 일어나 메모리 효율이 떨어진다. 25% 권장값은 이 이중 캐싱을 고려한 수치다. 32GB 이상부터는 효과가 점점 떨어진다는 보고가 많다.
+
+**Kafka — page cache 의존**
+
+Kafka 브로커는 자체 버퍼 캐시를 만들지 않는다. 프로듀서가 보낸 메시지는 segment 파일에 append되고, OS 페이지 캐시가 그 데이터를 캐싱한다. 컨슈머가 읽을 때도 sendfile zero-copy로 page cache → 소켓으로 직접 보낸다.
+
+```bash
+# 브로커 JVM heap은 작아도 된다 (보통 6GB면 충분)
+# 대신 호스트 RAM을 충분히 줘서 page cache가 넉넉해야 한다
+free -h
+```
+
+Kafka 호스트의 메모리 이슈는 JVM heap이 아니라 page cache가 줄어들 때 생긴다. 동일 호스트의 다른 프로세스가 메모리를 점유하면 page cache가 evict되고, 컨슈머가 디스크에서 읽기 시작하면서 latency가 수 ms → 수십 ms로 치솟는다. 그래서 Kafka 브로커는 보통 다른 프로세스와 안 섞는다.
+
+**Redis — client output buffer limit**
+
+Redis 클라이언트마다 출력 버퍼가 따로 있다. pub/sub 구독자가 메시지를 못 따라가거나, replica 동기화가 늦어지면 이 버퍼가 무한정 커진다. 메모리 폭발을 막으려면 limit을 설정해야 한다.
+
+```
+# redis.conf
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit replica 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+```
+
+`replica 256mb 64mb 60`는 하드 리밋 256MB, 소프트 리밋 64MB가 60초 이상 지속되면 연결을 끊는다는 뜻이다. replica의 lag가 커지면 마스터에서 강제로 끊고 풀 리싱크를 다시 시작한다. 이 동작을 모르면 "왜 멀쩡하던 replica가 갑자기 끊어지지?" 로 한참 헤맨다.
+
+`CLIENT LIST` 명령으로 현재 클라이언트별 출력 버퍼 사용량을 볼 수 있다.
+
+```
+> CLIENT LIST
+id=42 addr=10.0.0.5:43210 ... omem=10485760 oll=128 ...
+```
+
+`omem`이 출력 버퍼 바이트, `oll`이 큐에 쌓인 명령 수다. `omem`이 꾸준히 늘어나는 클라이언트가 있다면 그쪽 컨슈머가 못 따라오고 있다는 신호다.
+
+### 캐시 라인 정렬과 false sharing
+
+CPU는 메모리를 바이트 단위가 아니라 캐시 라인 단위로 읽는다. 일반 x86은 64바이트, 일부 ARM 서버는 128바이트다. 두 스레드가 별개의 변수를 수정해도 같은 캐시 라인에 있으면 캐시 라인이 코어 사이를 핑퐁한다. 이게 false sharing이다.
+
+```java
+class BadCounter {
+    long count1;  // 같은 캐시 라인에 들어감
+    long count2;
+}
+```
+
+두 스레드가 각각 count1, count2를 갱신하면 락은 안 걸려도 캐시 라인은 공유된다. 한 코어가 자기 캐시를 갱신할 때마다 다른 코어의 캐시 라인은 invalidate된다. 멀티코어인데 싱글 스레드보다 느려진다.
+
+```java
+// 패딩으로 직접 해결
+class PaddedCounter {
+    long count1;
+    long p1, p2, p3, p4, p5, p6, p7;  // 56바이트 패딩 → 64바이트 경계
+    long count2;
+}
+
+// 또는 Java 8+의 @Contended (-XX:-RestrictContended 필요)
+class GoodCounter {
+    @sun.misc.Contended long count1;
+    @sun.misc.Contended long count2;
+}
+```
+
+대형 ByteBuffer를 여러 스레드가 영역을 나눠 쓸 때도 같은 문제다. 스레드 A가 0~63바이트, B가 64~127바이트를 쓰면 안전하다. A가 0~50, B가 51~100이면 51~63 부분이 같은 캐시 라인이라 false sharing이 일어난다. 영역 분할은 항상 64바이트 단위로 끊어야 한다.
+
+운영에서는 perf로 잡는다.
+
+```bash
+perf c2c record -- java -jar app.jar
+perf c2c report
+```
+
+`HITM`(remote cache hit modified) 비율이 높은 라인이 false sharing 후보다. LMAX Disruptor가 RingBuffer 시퀀스 변수에 패딩을 넣는 이유가 이 문제 때문이다.
+
+### 백프레셔 수치 모니터링
+
+스트림 백프레셔는 개념만 알면 안 되고 수치로 본 적이 있어야 한다.
+
+**Node.js highWaterMark**
+
+스트림 내부 버퍼의 임계값이다.
+
+| 스트림 종류 | 기본값 |
+|------------|--------|
+| Readable (Buffer 모드) | 16 KB |
+| Readable (Object 모드) | 16 |
+| Writable (Buffer 모드) | 16 KB |
+| Writable (Object 모드) | 16 |
+
+`writable.write()`가 false를 반환하는 시점이 highWaterMark 초과 시점이다. 디스크 쓰기가 느린 환경에서 16KB는 너무 작아서 일시정지/재개가 너무 자주 반복된다.
+
+```javascript
+const stream = fs.createWriteStream('output.bin', {
+    highWaterMark: 1024 * 1024,  // 1MB로 늘림
+});
+
+let backpressureCount = 0;
+const wrap = stream.write.bind(stream);
+stream.write = (chunk) => {
+    const ok = wrap(chunk);
+    if (!ok) backpressureCount++;
+    return ok;
+};
+```
+
+운영 환경에서는 `stream.writableLength`(현재 버퍼 사용량)와 `stream.writableHighWaterMark` 비율을 prom-client로 메트릭으로 노출하면 백프레셔 패턴이 보인다.
+
+**Project Reactor (Java)**
+
+Reactor의 `Flux`는 `onBackpressureBuffer`, `onBackpressureDrop`, `onBackpressureLatest` 중 어느 걸 쓰는지에 따라 동작이 다르다.
+
+```java
+flux
+    .onBackpressureBuffer(10_000,
+        dropped -> log.warn("dropped: {}", dropped),
+        BufferOverflowStrategy.DROP_OLDEST)
+    .subscribe(consumer);
+```
+
+버퍼가 10,000개를 넘으면 가장 오래된 것부터 drop한다. drop 콜백에서 카운터를 올려 메트릭으로 노출하면 운영 중 데이터 유실량이 보인다.
+
+**튜닝 기준**
+
+백프레셔 발생 자체는 비정상이 아니다. 시스템이 살아 있고 흐름 제어가 작동한다는 신호다. 문제가 되는 패턴은 따로 있다.
+
+- 1초에 수백~수천 회 발생 — highWaterMark가 너무 작거나 컨슈머가 비정상적으로 느리다.
+- 한 번 발생하면 회복이 안 됨 — 컨슈머 처리량이 프로듀서보다 영구적으로 작다. 스케일링 또는 큐 분리가 필요하다.
+- drop이 임계치 이상 — 데이터 유실이다. 정합성 요구가 있는 서비스라면 SLO 위반이다.
+
+`writableLength / writableHighWaterMark` 비율이 80% 이상에 머물면 highWaterMark를 키워도 의미 없다. 컨슈머 자체를 손봐야 한다. highWaterMark를 키우는 건 일시적 burst 흡수에는 도움이 되지만 장기 처리량 부족은 못 막는다.
+
+---
+
+## 언어별 버퍼 타입 선택
+
+같은 작업이라도 언어마다 어떤 버퍼를 쓸지가 다르다. 프로젝트 초기에 정해두지 않으면 코드베이스가 일관성을 잃는다.
+
+| 상황 | Java | Node.js | Python |
+|------|------|---------|--------|
+| 일반 파일/소켓 I/O | ByteBuffer.allocate | Buffer.alloc | bytes/bytearray |
+| 고성능 네트워크 (Netty 사용) | PooledByteBuf (direct) | — | — |
+| 대용량 파일 매핑 | MappedByteBuffer | mmap-io | mmap 모듈 |
+| 복사 없이 슬라이싱 | ByteBuffer.slice | Buffer.subarray | memoryview |
+| 외부로 나가는 데이터 | ByteBuffer.allocate | Buffer.alloc (allocUnsafe 금지) | bytes |
+| 바이너리 프로토콜 파싱 | Netty ByteBuf 또는 ByteBuffer | Buffer + readUInt* | struct.unpack |
+| 멀티스레드 공유 읽기 | duplicate / slice / asReadOnlyBuffer | (단일 스레드) | memoryview + Lock |
+| zero-copy 파일 전송 | FileChannel.transferTo | stream.pipe | os.sendfile |
+| 풀링 필요한 고처리량 | PooledByteBufAllocator | bl(buffer-list) | 직접 풀 구현 |
+| 짧은 단발성 처리 | byte[] 또는 ByteBuffer.wrap | Buffer.from | bytes |
+
+선택할 때 기억할 만한 점.
+
+- Java에서 응답 속도가 중요하다면 처음부터 Netty ByteBuf로 가는 게 낫다. ByteBuffer로 시작했다가 나중에 옮기면 손이 너무 간다.
+- Node.js에서 외부로 나가는 데이터에는 `allocUnsafe`를 쓰지 않는다. 보안 취약점이다.
+- Python에서 대용량 데이터를 슬라이싱하며 다룬다면 함수 시그니처를 처음부터 `memoryview`로 받게 짠다. 그래야 호출자가 복사 없이 넘길 수 있다.
+- 단발성 짧은 처리라면 풀링/Direct를 따지지 말고 가장 단순한 타입을 쓴다. 풀링은 GC 부담이 측정될 만큼 클 때만 의미가 있다.
 
 ---
 
