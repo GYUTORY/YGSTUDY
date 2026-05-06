@@ -1,5 +1,6 @@
 title: Backend
 nav:
+  - Architecture
   - Authentication
   - API
   - Messaging
