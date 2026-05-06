@@ -8,8 +8,10 @@ nav:
   - Password_Hashing.md
   - End_to_End_Encryption.md
   - OAuth.md
+  - SSO_SAML_OIDC.md
   - JWT.md
   - Session_Management.md
+  - Cookie_Security.md
   - Web_Authn_Passkeys.md
   - Basic.md
   - Threat_Modeling.md
@@ -24,6 +26,7 @@ nav:
   - SSH_Key_Management.md
   - Secrets_Management.md
   - Server_Attack_Defense.md
+  - DNS_Security.md
   - D_Do_S_Defense.md
   - Rate_Limiting.md
   - Zero_Trust_Architecture.md
