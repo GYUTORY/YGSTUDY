@@ -1,7 +1,7 @@
 ---
 title: ECS 인프라와 Task Definition의 관계
-tags: [aws, ecs, task-definition, cluster, capacity-provider, fargate, ec2, eni, iam]
-updated: 2026-04-20
+tags: [aws, ecs, task-definition, cluster, capacity-provider, fargate, ec2, eni, iam, service-discovery, alb, auto-scaling, blue-green]
+updated: 2026-05-06
 ---
 
 # ECS 인프라와 Task Definition의 관계
@@ -230,6 +230,315 @@ EC2 launch type에는 한 개 더 있는 권한이 있다. **인스턴스 프로
 
 Fargate는 Instance Profile이 없다. executionRole과 taskRole만 있다.
 
+## 서비스 디스커버리: Cloud Map과 Service Connect
+
+ECS Task는 Auto Scaling으로 인해 IP가 자주 바뀐다. 그래서 Service-to-Service 통신을 IP로 박아두면 곧바로 깨진다. ECS는 두 가지 디스커버리 메커니즘을 제공한다 — **AWS Cloud Map(서비스 디스커버리)**과 **Service Connect**다. 둘 다 같은 문제를 풀지만 동작 방식이 다르다.
+
+### Cloud Map 기반 서비스 디스커버리
+
+Cloud Map은 Route 53 Private Hosted Zone을 백엔드로 쓰는 디스커버리다. ECS Service가 Task를 띄울 때마다 Task의 ENI IP를 A 레코드로 등록하고, Task가 죽으면 레코드를 제거한다. 클라이언트는 `api.internal.example.local` 같은 도메인을 DNS 조회해서 IP 목록을 받는다.
+
+```bash
+aws servicediscovery create-private-dns-namespace \
+  --name internal.example.local \
+  --vpc vpc-0abc1234
+
+aws servicediscovery create-service \
+  --name api \
+  --dns-config "NamespaceId=ns-xxxx,DnsRecords=[{Type=A,TTL=10}],RoutingPolicy=MULTIVALUE" \
+  --health-check-custom-config FailureThreshold=1
+```
+
+Service 생성 시 `serviceRegistries`에 위 Cloud Map Service를 연결한다.
+
+```json
+{
+  "serviceName": "api-service",
+  "taskDefinition": "api:42",
+  "desiredCount": 4,
+  "launchType": "FARGATE",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": ["subnet-aaa", "subnet-bbb"],
+      "securityGroups": ["sg-app"],
+      "assignPublicIp": "DISABLED"
+    }
+  },
+  "serviceRegistries": [
+    {
+      "registryArn": "arn:aws:servicediscovery:ap-northeast-2:111122223333:service/srv-xxxx"
+    }
+  ]
+}
+```
+
+이 방식의 약점은 **DNS 캐싱**이다. Task가 죽어도 클라이언트의 DNS 리졸버나 JVM 같은 플랫폼이 IP를 캐싱해두면 죽은 Task로 계속 요청을 보낸다. Java는 기본 `networkaddress.cache.ttl`이 무한대(`-1`)에 가까운 적도 있어서, ECS 환경에서는 반드시 30초 이하로 낮춰야 한다.
+
+```java
+// JVM 시작 옵션 또는 java.security 파일
+networkaddress.cache.ttl=10
+networkaddress.cache.negative.ttl=0
+```
+
+또 하나, MULTIVALUE 라우팅은 한 번에 최대 8개 IP만 반환한다. desiredCount가 50인 Service라도 클라이언트는 8개 후보만 받고 그 안에서 분산한다. 클라이언트 측 로드밸런싱 라이브러리(예: gRPC `round_robin`)와 잘 맞춰야 한다.
+
+### Service Connect (2022 이후)
+
+Service Connect는 Cloud Map의 한계를 보완하기 위해 나왔다. 각 Task에 **Envoy 프록시 사이드카**를 자동으로 끼워넣고, 클라이언트가 짧은 도메인(`api`)으로 호출하면 프록시가 헬시한 인스턴스로 라우팅한다. DNS 캐싱이 끼어들 자리가 없고 L7 메트릭(요청 수, 지연, 5xx)이 자동으로 CloudWatch에 찍힌다.
+
+```json
+{
+  "serviceName": "api-service",
+  "taskDefinition": "api:42",
+  "serviceConnectConfiguration": {
+    "enabled": true,
+    "namespace": "prod",
+    "services": [
+      {
+        "portName": "http",
+        "discoveryName": "api",
+        "clientAliases": [
+          { "port": 8080, "dnsName": "api" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Task Definition 쪽에는 `portMappings`에 `name`을 추가해야 한다.
+
+```json
+"portMappings": [
+  { "name": "http", "containerPort": 8080, "protocol": "tcp" }
+]
+```
+
+Service Connect의 비용은 Envoy 사이드카가 Task당 약 64MB 메모리와 약간의 CPU를 더 먹는다는 점이다. 메모리가 빠듯한 Task Definition이면 `memory`를 올려야 한다. 그리고 namespace는 클러스터 단위가 아니라 **Cloud Map namespace 단위**라서, 여러 클러스터의 Service가 같은 namespace를 공유할 수 있다. 이 점이 Cloud Map과 Service Connect의 경계가 모호한 이유다 — Service Connect도 내부적으로는 Cloud Map을 쓴다.
+
+실무에서는 신규 마이크로서비스 통신은 Service Connect로 깔고, 외부 접근(인터넷, 다른 VPC)은 ALB로 분리하는 패턴이 흔하다. 자세한 비교는 [ECS Service Connect](ECS_Service_Connect.md)에 따로 있다.
+
+## ALB와 ECS Service 연동
+
+외부 트래픽을 받는 Service는 보통 ALB 뒤에 둔다. ALB와 ECS의 연결 지점은 **Target Group**이고, 이 Target Group의 종류가 launch type과 networkMode에 따라 달라진다.
+
+### Target Group의 두 가지 모드
+
+ALB Target Group의 `targetType`은 ECS에서 두 값 중 하나를 쓴다.
+
+| targetType | 사용 케이스 | 등록되는 대상 |
+| --- | --- | --- |
+| `ip` | awsvpc 모드 (Fargate 또는 EC2) | Task의 ENI IP |
+| `instance` | bridge 또는 host 모드 | EC2 인스턴스 ID + 호스트 포트 |
+
+awsvpc Task는 Task마다 고유 IP가 있어서 Target Group이 IP를 직접 추적한다. bridge 모드는 같은 인스턴스에서 여러 Task가 다른 호스트 포트(동적 포트)로 떠 있으니 인스턴스 ID + 포트 조합으로 추적해야 한다.
+
+### awsvpc + IP 타입 Target Group
+
+```bash
+aws elbv2 create-target-group \
+  --name api-tg \
+  --protocol HTTP \
+  --port 8080 \
+  --vpc-id vpc-0abc1234 \
+  --target-type ip \
+  --health-check-path /health \
+  --health-check-interval-seconds 15 \
+  --healthy-threshold-count 2 \
+  --unhealthy-threshold-count 3 \
+  --deregistration-delay.timeout_seconds 30
+```
+
+Service 정의에서 `loadBalancers`로 Target Group을 묶는다.
+
+```json
+{
+  "serviceName": "api-service",
+  "taskDefinition": "api:42",
+  "desiredCount": 4,
+  "launchType": "FARGATE",
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:...:targetgroup/api-tg/abc",
+      "containerName": "api",
+      "containerPort": 8080
+    }
+  ],
+  "healthCheckGracePeriodSeconds": 60,
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": ["subnet-aaa", "subnet-bbb"],
+      "securityGroups": ["sg-app"]
+    }
+  }
+}
+```
+
+`healthCheckGracePeriodSeconds`는 Task가 RUNNING이 된 직후 일정 시간 동안 ALB 헬스체크 실패를 무시하는 옵션이다. JVM처럼 부팅 시간이 긴 앱은 이 값을 60~120으로 둬야 첫 헬스체크 한두 번 실패로 Task가 재시작되는 사고가 안 난다.
+
+### bridge 모드 + Instance 타입 + 동적 포트
+
+```json
+{
+  "family": "legacy-api",
+  "networkMode": "bridge",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "111122223333.dkr.ecr.ap-northeast-2.amazonaws.com/legacy-api:1.0",
+      "memory": 1024,
+      "portMappings": [
+        { "containerPort": 8080, "hostPort": 0, "protocol": "tcp" }
+      ]
+    }
+  ]
+}
+```
+
+`hostPort: 0`이 핵심이다. ECS Agent가 32768~60999 범위에서 포트를 동적 할당하고, ALB Target Group이 해당 인스턴스 + 포트를 자동 등록한다. 정적 포트로 두면 같은 인스턴스에 같은 Service의 Task 두 개가 못 올라간다 — 이 한계가 동적 포트의 존재 이유다.
+
+### ALB와 ECS의 묵계: 보안그룹 체인
+
+ALB → ECS Task 통신에서 가장 자주 막히는 게 보안그룹 설정이다. 정석은 이렇다.
+
+```
+ALB SG (sg-alb)
+  Inbound:  0.0.0.0/0 :443
+  Outbound: 전체 허용
+
+Task SG (sg-app)
+  Inbound:  sg-alb (소스 SG 참조) :8080
+  Outbound: 전체 허용 (또는 RDS/외부 API SG로 제한)
+```
+
+Task SG의 인바운드는 IP 대역이 아니라 **ALB SG를 소스로 참조**해야 한다. ALB의 ENI IP는 가용영역마다 여러 개고 가끔 바뀌기 때문에 IP로 박으면 끊긴다. SG ID로 참조하면 ALB가 어떤 ENI를 쓰든 자동으로 반영된다.
+
+### 경로 기반 라우팅과 Listener Rule
+
+한 ALB에 여러 ECS Service를 연결하는 게 흔하다. Listener Rule로 경로별 분기한다.
+
+```bash
+aws elbv2 create-rule \
+  --listener-arn arn:aws:elasticloadbalancing:...:listener/app/main/abc \
+  --priority 100 \
+  --conditions Field=path-pattern,Values='/api/*' \
+  --actions Type=forward,TargetGroupArn=arn:aws:.../targetgroup/api-tg/abc
+
+aws elbv2 create-rule \
+  --listener-arn arn:aws:elasticloadbalancing:...:listener/app/main/abc \
+  --priority 200 \
+  --conditions Field=path-pattern,Values='/admin/*' \
+  --actions Type=forward,TargetGroupArn=arn:aws:.../targetgroup/admin-tg/abc
+```
+
+Listener Rule은 우선순위 숫자가 낮을수록 먼저 평가된다. 새 Service를 붙일 때 `priority` 충돌을 피하려고 100단위로 띄워두는 관행이 있다. Rule 개수는 Listener당 100개 한도라 마이크로서비스가 많아지면 ALB 분리나 Service Connect로 옮겨야 한다.
+
+## Service Auto Scaling
+
+ECS Service의 desiredCount는 사람이 손으로 바꾸는 게 아니라 **Application Auto Scaling**이 메트릭을 보고 조정한다. 정책은 세 종류다.
+
+### Target Tracking (가장 많이 쓴다)
+
+CPU 50%, 메모리 70% 같은 목표값을 정하면 Auto Scaling이 그 값을 유지하려고 desiredCount를 자동 조절한다. CloudWatch 알람 두 개(스케일 아웃용, 스케일 인용)가 자동으로 만들어진다.
+
+```bash
+aws application-autoscaling register-scalable-target \
+  --service-namespace ecs \
+  --resource-id service/prod-cluster/api-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --min-capacity 4 \
+  --max-capacity 40
+
+aws application-autoscaling put-scaling-policy \
+  --policy-name api-cpu-target \
+  --service-namespace ecs \
+  --resource-id service/prod-cluster/api-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration '{
+    "TargetValue": 50.0,
+    "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+    },
+    "ScaleInCooldown": 300,
+    "ScaleOutCooldown": 60
+  }'
+```
+
+`ScaleOutCooldown`은 짧게(60초), `ScaleInCooldown`은 길게(300초) 두는 게 보통이다. 트래픽 폭주에는 빨리 대응하고, 가라앉을 때는 천천히 줄여야 진동이 안 생긴다.
+
+Target Tracking의 함정 하나 — CPU 평균을 메트릭으로 쓰면 짧은 스파이크에는 둔감하다. 5분 평균이라 30초짜리 스파이크는 잡히지 않는다. P99 latency나 ALB의 `RequestCountPerTarget`을 쓰는 게 더 정확하다.
+
+```bash
+aws application-autoscaling put-scaling-policy \
+  --policy-name api-rcpt \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration '{
+    "TargetValue": 1000.0,
+    "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ALBRequestCountPerTarget",
+      "ResourceLabel": "app/main-alb/abc/targetgroup/api-tg/def"
+    }
+  }'
+```
+
+`RequestCountPerTarget`은 1분 단위라 반응이 빠르다. Task당 처리 가능한 RPS를 미리 측정해서 그 80% 정도를 목표값으로 잡는다.
+
+### Step Scaling (세밀한 제어)
+
+CPU 70% 넘으면 +2개, 90% 넘으면 +5개처럼 단계별 스케일링이 필요하면 Step Scaling을 쓴다. CloudWatch 알람을 직접 만들고 단계별 조정량을 정의한다.
+
+```bash
+aws application-autoscaling put-scaling-policy \
+  --policy-name api-step-out \
+  --service-namespace ecs \
+  --resource-id service/prod-cluster/api-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --policy-type StepScaling \
+  --step-scaling-policy-configuration '{
+    "AdjustmentType": "ChangeInCapacity",
+    "MetricAggregationType": "Average",
+    "Cooldown": 60,
+    "StepAdjustments": [
+      { "MetricIntervalLowerBound": 0,  "MetricIntervalUpperBound": 20, "ScalingAdjustment": 2 },
+      { "MetricIntervalLowerBound": 20, "ScalingAdjustment": 5 }
+    ]
+  }'
+```
+
+Target Tracking이 알아서 잘 해주니 Step Scaling은 점점 덜 쓰이지만, 비대칭 스케일링(스케일 아웃은 공격적, 스케일 인은 보수적)이 필요할 때 여전히 유효하다.
+
+### Scheduled Scaling (예측 가능한 트래픽)
+
+광고 캠페인이 매일 9시에 시작되거나, 주말이 평일보다 트래픽이 많은 패턴이 있으면 시간 기반 스케일링이 가장 정확하다.
+
+```bash
+aws application-autoscaling put-scheduled-action \
+  --service-namespace ecs \
+  --resource-id service/prod-cluster/api-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --scheduled-action-name morning-rush \
+  --schedule "cron(50 8 * * ? *)" \
+  --timezone "Asia/Seoul" \
+  --scalable-target-action MinCapacity=20,MaxCapacity=80
+```
+
+이 스케줄은 매일 8시 50분에 minCapacity를 20으로 올린다. 9시 정각 트래픽이 들이닥치기 전에 워밍업이 끝나도록 10분 앞당겼다. Target Tracking과 Scheduled를 함께 걸어두면 시간 기반으로 바닥선을 올리고, 그 위에서 Target Tracking이 돌면서 미세 조정한다.
+
+### 스케일 아웃이 빨리 안 되는 진짜 이유
+
+"Auto Scaling을 켰는데도 트래픽 급증에 못 따라온다"는 호소는 흔하다. 원인은 거의 단일하지 않다. 체인을 따라가면 다음 지연이 누적된다.
+
+1. CloudWatch 메트릭 발행 지연 (ECS 메트릭은 보통 1분 단위)
+2. 알람 평가 주기 (기본 1분, 평가 기간 3개)
+3. Step/Target Tracking 결정
+4. ECS가 Task 추가 요청
+5. (EC2면) Capacity Provider가 ASG에 desired +N
+6. EC2 인스턴스 부팅(3~5분) 또는 Fargate ENI 할당(30초~1분)
+7. Task의 컨테이너 부팅 + 헬스체크 통과
+
+총합 5~10분이 흔하다. 그래서 트래픽 패턴을 미리 알 수 있다면 Scheduled Scaling으로 바닥을 깔아두는 게 가장 확실하다. 자세한 정책 튜닝은 [ECS Service Auto Scaling](ECS_Service_Auto_Scaling.md)에 있다.
+
 ## 실무 트러블슈팅
 
 현업에서 "Task가 안 뜬다"는 보고를 받으면 대부분 아래 네 가지 중 하나다. ECS Service 이벤트(`describe-services` → `events[]`)에 원인이 직접 찍히므로 가장 먼저 이걸 읽어야 한다.
@@ -320,6 +629,27 @@ sequenceDiagram
 
 이 과정에서 인프라는 **최대 20개 분량의 자원을 동시에 점유**한다. 서브넷 IP가 빠듯하면 여기서 터진다. `/24` 서브넷에 desiredCount 200을 돌리는 Service를 배포하면, 배포 순간 400개 IP를 요구하니 서브넷이 감당하지 못한다. 배포 때만 터지고 평상시에는 멀쩡하게 돌아가는 이유가 이것이다.
 
+deploymentConfiguration은 Service 정의에서 다음처럼 잡는다.
+
+```json
+{
+  "serviceName": "api-service",
+  "taskDefinition": "api:42",
+  "desiredCount": 10,
+  "deploymentController": { "type": "ECS" },
+  "deploymentConfiguration": {
+    "minimumHealthyPercent": 100,
+    "maximumPercent": 200,
+    "deploymentCircuitBreaker": {
+      "enable": true,
+      "rollback": true
+    }
+  }
+}
+```
+
+`deploymentCircuitBreaker`는 새 revision의 Task가 일정 횟수 연속 실패하면 자동으로 이전 revision으로 되돌린다. 임계값은 desiredCount에 따라 자동 계산된다(대략 10% 또는 최소 10회). 이 옵션은 무조건 켜두는 게 좋다 — 새벽 배포에서 Task가 무한 재시작 루프를 도는 사고를 한 번이라도 겪었다면 안 켤 이유가 없다.
+
 대책은 세 가지다.
 
 첫째, `maximumPercent`를 100~125로 낮춘다. 대신 배포 중 가용 용량이 줄어서 트래픽 급증에 취약해진다.
@@ -349,6 +679,99 @@ EC2 launch type에서 Capacity Provider managed termination protection을 켜면
 
 이 플래그가 없으면 스케일 인 이벤트 때 ASG가 "남은 인스턴스 중 아무거나"를 골라 죽이고, 그 인스턴스 위에 있던 Task들이 예고 없이 SIGKILL당한다. managed termination protection은 대부분의 프로덕션 환경에서 켜야 하는 기본 옵션이다.
 
+### Blue/Green 배포: CodeDeploy 연동
+
+Rolling Update는 새 Task와 기존 Task가 같은 Target Group에 섞여 들어간다. 배포 중 사용자가 두 버전을 동시에 만난다는 뜻이다. 인터페이스 호환성이 보장되면 문제없지만, DB 스키마 변경이나 응답 포맷 변경이 끼면 깨진다. Blue/Green은 새 버전을 **별도 Target Group**에 띄워두고, 헬스체크를 통과한 뒤 ALB Listener 한 번에 트래픽을 전환한다.
+
+Service 정의에 `deploymentController.type`을 `CODE_DEPLOY`로 바꾸면 ECS가 직접 배포를 끝내지 않고 CodeDeploy로 위임한다.
+
+```json
+{
+  "serviceName": "api-service",
+  "taskDefinition": "api:42",
+  "desiredCount": 10,
+  "deploymentController": { "type": "CODE_DEPLOY" },
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:.../targetgroup/api-blue/abc",
+      "containerName": "api",
+      "containerPort": 8080
+    }
+  ]
+}
+```
+
+Service 정의에는 Blue Target Group 하나만 들어간다. Green Target Group은 CodeDeploy DeploymentGroup에서 따로 지정한다.
+
+```bash
+aws deploy create-deployment-group \
+  --application-name api-app \
+  --deployment-group-name api-bg \
+  --service-role-arn arn:aws:iam::111122223333:role/CodeDeployECSRole \
+  --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+  --ecs-services serviceName=api-service,clusterName=prod-cluster \
+  --load-balancer-info '{
+    "targetGroupPairInfoList": [{
+      "targetGroups": [
+        { "name": "api-blue" },
+        { "name": "api-green" }
+      ],
+      "prodTrafficRoute": { "listenerArns": ["arn:aws:.../listener/abc"] },
+      "testTrafficRoute": { "listenerArns": ["arn:aws:.../listener/test/def"] }
+    }]
+  }' \
+  --blue-green-deployment-configuration '{
+    "terminateBlueInstancesOnDeploymentSuccess": {
+      "action": "TERMINATE",
+      "terminationWaitTimeInMinutes": 30
+    },
+    "deploymentReadyOption": {
+      "actionOnTimeout": "STOP_DEPLOYMENT",
+      "waitTimeInMinutes": 60
+    }
+  }'
+```
+
+`prodTrafficRoute`는 실사용자 트래픽이 흐르는 ALB Listener다. `testTrafficRoute`는 별도 포트(예: 8443)에서 운영자만 접근하는 검증용 Listener다. Green Task가 떠 있는 동안 운영자가 testTrafficRoute로 사전 검증하고, 통과하면 prodTrafficRoute의 forward 대상을 Blue → Green으로 swap한다.
+
+배포 단위는 `appspec.yaml`로 정의한다.
+
+```yaml
+version: 0.0
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: arn:aws:ecs:ap-northeast-2:111122223333:task-definition/api:43
+        LoadBalancerInfo:
+          ContainerName: api
+          ContainerPort: 8080
+        PlatformVersion: LATEST
+Hooks:
+  - BeforeInstall:       arn:aws:lambda:ap-northeast-2:...:function:db-migrate
+  - AfterAllowTestTraffic: arn:aws:lambda:ap-northeast-2:...:function:smoke-test
+  - BeforeAllowTraffic:  arn:aws:lambda:ap-northeast-2:...:function:final-check
+  - AfterAllowTraffic:   arn:aws:lambda:ap-northeast-2:...:function:notify-slack
+```
+
+각 Hook은 Lambda 함수이고, `Failed` 결과를 반환하면 CodeDeploy가 자동으로 롤백한다(prodTrafficRoute를 Blue로 되돌린다). `AfterAllowTestTraffic`에서 smoke test가 실패하면 Green Task는 그대로 남고 사용자에게는 영향이 없다 — 이게 Blue/Green의 본질적 가치다.
+
+`terminationWaitTimeInMinutes: 30`은 트래픽 전환 후 30분 동안 Blue를 살려두는 옵션이다. 배포 후 30분 내에 문제가 발견되면 CLI 한 번으로 즉시 Blue로 되돌릴 수 있다. 30분이 지나면 Blue Task가 정리되고 다음 배포 때까지는 Rolling 수준의 롤백 비용을 다시 부담해야 한다.
+
+Blue/Green의 인프라 비용은 명확하다 — **배포 윈도우 동안 desiredCount의 2배** 자원이 점유된다. desiredCount 100인 Service면 배포 중 200개 분량의 ENI/IP/CPU가 동시에 산다. Fargate는 빈 호스트 요금이 없어서 부담이 적지만, EC2 launch type에서 ASG 인스턴스가 부족하면 그대로 배포 실패다. 배포 정책을 Blue/Green으로 바꾸기 전에 ASG 최대 용량을 확인하는 게 순서다.
+
+CodeDeploy의 사전 정의된 트래픽 전환 정책은 세 가지다.
+
+| Deployment Config | 동작 |
+| --- | --- |
+| `ECSAllAtOnce` | 100% 트래픽 한 번에 전환 |
+| `ECSLinear10PercentEvery1Minutes` | 1분마다 10%씩 점진 전환(10분 소요) |
+| `ECSCanary10Percent5Minutes` | 10% 전환 후 5분 관찰 → 통과 시 90% 전환 |
+
+`ECSCanary*`는 카나리 분량에서 5xx 메트릭이나 latency 알람이 트리거되면 자동 롤백된다. 운영 중인 마이크로서비스는 보통 `ECSLinear` 또는 `ECSCanary`를 쓰고, dev/staging은 시간 절약을 위해 `ECSAllAtOnce`를 쓴다.
+
+자세한 배포 전략 비교는 [ECS Deployment Strategies](ECS_Deployment_Strategies.md)에 있다.
+
 ### 롤백의 인프라 비용
 
 revision `:8`에서 장애가 나서 `:7`로 롤백하면 방금 겪은 rolling update를 역방향으로 한 번 더 한다. 즉 인프라 자원을 다시 한 번 최대 2배까지 점유한다. 배포 직후 곧바로 롤백하는 상황에서 서브넷 IP가 바닥나는 게 흔한 이유다. 배포가 실패하면 `:7`이 아직 살아 있는 상태라 `:8`만 제거되니 영향이 적지만, 배포가 성공한 뒤 `:7`이 이미 사라진 상태에서 롤백하는 건 전체 재배포와 같다.
@@ -367,4 +790,6 @@ ECS에서 Task Definition은 선언이고, 실제 자원을 점유하는 건 Tas
 - [ECS Networking Modes](ECS_Networking_Modes.md)
 - [ECS ENI 제한과 Task 한계](ECS_ENI_제한과_Task_한계.md)
 - [ECS IAM Role 설정](ECS_IAM_Role_설정.md)
+- [ECS Service Connect](ECS_Service_Connect.md)
+- [ECS Service Auto Scaling](ECS_Service_Auto_Scaling.md)
 - [ECS Deployment Strategies](ECS_Deployment_Strategies.md)
