@@ -1,7 +1,7 @@
 ---
 title: Claude
 tags: [ai, claude, anthropic, llm, api]
-updated: 2026-04-08
+updated: 2026-05-07
 ---
 
 # Claude
@@ -396,6 +396,26 @@ sequenceDiagram
 
 캐시 히트 시 입력 토큰 비용이 90% 줄어든다. 긴 system prompt나 대량의 참고 문서를 반복 전송할 때 효과가 크다. 첫 요청에서 캐시 쓰기 비용이 25% 추가되지만, 두 번째 요청부터 바로 회수된다.
 
+캐시 TTL은 두 가지가 있다. 기본값은 5분이고, 2025년에 1시간 TTL이 추가됐다. 1시간 TTL은 캐시 쓰기 비용이 기본 요금의 2배(5분 TTL은 1.25배)라 단가가 비싸지만, 5분 안에 후속 요청이 안 들어오는 패턴에서 유리하다. 야간 배치, 사용자 세션이 띄엄띄엄 들어오는 챗봇, 다단계 에이전트의 도구 호출 사이 간격이 긴 경우 같은 상황이다.
+
+```python
+message = client.messages.create(
+    model="claude-sonnet-4-6",
+    max_tokens=1024,
+    extra_headers={"anthropic-beta": "extended-cache-ttl-2025-04-11"},
+    system=[
+        {
+            "type": "text",
+            "text": long_system_prompt,
+            "cache_control": {"type": "ephemeral", "ttl": "1h"}
+        }
+    ],
+    messages=messages
+)
+```
+
+`ttl` 필드를 빼면 5분이 적용된다. 비용 계산을 잘못하면 1시간 TTL이 더 비싸지는 경우가 있다. 캐시 히트 빈도와 캐시 쓰기 비용 증가분을 비교해야 한다. 캐시 히트가 시간당 5번 미만이면 보통 5분 TTL이 더 싸다.
+
 ---
 
 ## 5. 컨텍스트 윈도우
@@ -682,7 +702,9 @@ if response.stop_reason == "max_tokens":
 
 ### 8.3 이미지 전송
 
-이미지는 base64로 인코딩해서 보낸다. URL 직접 전달도 가능하다.
+이미지를 보내는 방법은 두 가지다. base64로 인코딩해 전송하거나, 공개 URL을 직접 넘긴다. 어느 쪽이든 입력 토큰 과금은 같다.
+
+**base64 방식** — 로컬 파일이나 사설 스토리지에 있는 이미지에 쓴다.
 
 ```python
 import base64
@@ -715,6 +737,37 @@ message = client.messages.create(
 )
 ```
 
+**URL 방식** — 이미지가 이미 공개 URL로 호스팅되어 있을 때 쓴다. base64 인코딩과 페이로드 부풀림을 피할 수 있어서 대용량이나 다수 이미지를 보낼 때 편하다.
+
+```python
+message = client.messages.create(
+    model="claude-sonnet-4-6",
+    max_tokens=1024,
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "url",
+                        "url": "https://example.com/static/error-screenshot.png"
+                    }
+                },
+                {
+                    "type": "text",
+                    "text": "이 스크린샷에서 에러 원인을 찾아줘"
+                }
+            ],
+        }
+    ],
+)
+```
+
+URL 방식은 Anthropic 서버가 해당 URL을 직접 fetch한다. 인증이 필요한 URL이나 사내망 URL은 못 쓴다. presigned URL을 만들어서 임시로 공개하는 식으로 우회해야 하는 경우가 있다. fetch 실패 시 400 에러가 떨어지니 유효성 체크를 클라이언트 쪽에 따로 두는 편이 안전하다. PDF도 `type: "document"`로 같은 base64/URL 양쪽 모두 보낼 수 있다.
+
+지원하는 포맷은 PNG, JPEG, GIF, WebP다. 한 메시지에 이미지를 여러 개 넣을 때는 이미지 사이에 짧은 텍스트 라벨을 끼워 두면 모델이 어떤 이미지에 대한 답인지 헷갈리지 않는다.
+
 ---
 
 ## 9. Extended Thinking
@@ -743,6 +796,79 @@ for block in response.content:
 ```
 
 thinking에 할당한 토큰도 출력 토큰으로 과금된다. 단순한 질문에 thinking을 켜면 비용만 늘고 답변 품질 차이는 거의 없다. 복잡한 수학 문제, 다단계 논리 추론, 대규모 코드 분석 같은 작업에서만 켜는 게 좋다.
+
+### 9.1 멀티턴에서 thinking 블록 재전송
+
+Extended Thinking을 켠 채로 멀티턴 대화나 도구 호출 루프를 돌릴 때 자주 빠지는 함정이 있다. 직전 assistant 응답에 포함된 `thinking` 블록을 다음 요청에 그대로 다시 넣어줘야 한다는 점이다. 이때 각 thinking 블록의 `signature` 필드를 절대 빠뜨리거나 변경하면 안 된다.
+
+`signature`는 Anthropic 서버가 해당 thinking 블록이 진짜 모델이 만든 추론이라는 것을 검증하는 무결성 토큰이다. 멀티턴에서 thinking 블록을 다시 보낼 때 signature가 누락되거나 손상되면 400 에러(`invalid_request_error`)가 떨어진다. 텍스트만 추출해서 다시 넣는 식으로 처리하면 매번 실패한다.
+
+```python
+# 1차 응답 — thinking + text 블록
+first = client.messages.create(
+    model="claude-opus-4-6",
+    max_tokens=8000,
+    thinking={"type": "enabled", "budget_tokens": 4000},
+    tools=tools,
+    messages=[{"role": "user", "content": "환자 X의 검사 결과를 보고 다음 단계를 정해줘"}]
+)
+
+# 2차 요청 — assistant 응답을 그대로 messages에 추가
+# thinking 블록의 signature까지 포함해서 통째로 넘긴다
+messages = [
+    {"role": "user", "content": "환자 X의 검사 결과를 보고 다음 단계를 정해줘"},
+    {"role": "assistant", "content": first.content},  # thinking + tool_use + text 모두 보존
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": json.dumps(lab_result, ensure_ascii=False)
+            }
+        ]
+    }
+]
+
+second = client.messages.create(
+    model="claude-opus-4-6",
+    max_tokens=8000,
+    thinking={"type": "enabled", "budget_tokens": 4000},
+    tools=tools,
+    messages=messages
+)
+```
+
+핵심은 `first.content`를 통째로 넘기는 것이다. SDK 응답 객체를 직접 넣으면 signature가 자동으로 보존된다. 직렬화해서 저장했다가 다시 보내야 한다면 thinking 블록의 모든 필드(`type`, `thinking`, `signature`)를 그대로 보존해야 한다.
+
+흔히 겪는 실수가 몇 개 있다.
+
+- thinking 블록을 로깅 목적으로 텍스트만 뽑아 저장해두고, 그 텍스트로 블록을 재구성해서 보내면 signature가 없어 실패한다.
+- 도구 호출 루프에서 assistant 응답의 `text` 블록만 골라 추가하고 `thinking` 블록을 누락하는 경우다. tool_use가 끼어 있는 응답이라면 thinking 블록도 같이 들어가 있어야 한다.
+- 응답을 DB에 저장해서 며칠 뒤 이어쓰려는 경우, signature는 모델 버전과 묶여 있어 모델이 바뀌면 무효화될 수 있다. 모델 업그레이드 후 과거 thinking 블록을 재전송하면 거부될 수 있으니, 모델을 바꿀 때는 thinking 블록을 빼거나 새로 시작하는 게 안전하다.
+- 스트리밍으로 받았다면 `event: content_block_delta`에서 thinking 텍스트가 분할로 들어오고 마지막에 `signature_delta`로 signature가 전달된다. 이 signature를 받기 전에 끊으면 다음 요청에서 못 쓴다.
+
+스트리밍에서 signature 누적 예시는 이렇다.
+
+```python
+with client.messages.stream(
+    model="claude-opus-4-6",
+    max_tokens=8000,
+    thinking={"type": "enabled", "budget_tokens": 4000},
+    messages=[{"role": "user", "content": prompt}]
+) as stream:
+    for event in stream:
+        # signature는 event 종료 시점에 final message에 포함된다
+        pass
+    final = stream.get_final_message()
+
+# final.content 안의 thinking 블록은 signature가 채워진 상태
+next_messages = [
+    {"role": "user", "content": prompt},
+    {"role": "assistant", "content": final.content},
+    {"role": "user", "content": "추가 질문"}
+]
+```
 
 ---
 
