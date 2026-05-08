@@ -1,7 +1,7 @@
 ---
 title: ECS 인프라와 Task Definition의 관계
-tags: [aws, ecs, task-definition, cluster, capacity-provider, fargate, ec2, eni, iam, service-discovery, alb, auto-scaling, blue-green]
-updated: 2026-05-06
+tags: [aws, ecs, task-definition, cluster, capacity-provider, fargate, ec2, eni, iam, service-discovery, alb, auto-scaling, blue-green, lifecycle, run-task]
+updated: 2026-05-08
 ---
 
 # ECS 인프라와 Task Definition의 관계
@@ -124,6 +124,209 @@ Fargate에서는 태스크 레벨 `cpu`, `memory`가 필수이고 이 값이 mic
 EC2에서는 반대로 태스크 레벨 값은 선택이고, 컨테이너 레벨에서 실제 리소스 제한이 걸린다. 컨테이너 레벨에서 `memory`(hard limit)와 `memoryReservation`(soft limit) 중 적어도 하나는 있어야 한다. 이 값이 없으면 컨테이너가 인스턴스 메모리를 전부 먹을 수도 있다. 스케줄러가 인스턴스의 남은 메모리에서 빼는 값은 `memoryReservation`(있을 때) 또는 `memory`이기 때문에, 두 값을 다르게 쓰면 **오버커밋**이 가능해진다.
 
 오버커밋은 실무에서 종종 쓰는 패턴이다. 예를 들어 평균적으로 512MB를 쓰지만 피크에 1GB까지 올라가는 워커가 있다면 `memoryReservation: 512`, `memory: 1024`로 잡는다. 스케줄러는 512MB 기준으로 배치하니 인스턴스당 태스크를 더 많이 띄울 수 있고, 실제 피크에서만 1GB까지 허용된다. 단 모든 태스크가 동시에 피크를 치면 인스턴스 OOM이 발생한다. 이건 Kubernetes의 request/limit와 정확히 같은 개념이다.
+
+## Task 라이프사이클 상태 머신
+
+Task는 RunTask 호출이나 Service의 신규 배치 결정이 떨어지는 순간 PROVISIONING으로 태어나서 STOPPED로 끝나는 단방향 흐름을 따른다. `describe-tasks` 응답에는 `lastStatus`와 `desiredStatus`가 함께 찍히는데, 두 값이 다르면 전이 중이라는 신호다. `lastStatus: PENDING` + `desiredStatus: RUNNING`은 아직 컨테이너가 안 떴지만 RUNNING으로 가고 있다는 뜻이고, `lastStatus: RUNNING` + `desiredStatus: STOPPED`는 종료 절차가 시작됐다는 뜻이다.
+
+```mermaid
+graph LR
+    Start((Task 생성)) --> PROV[PROVISIONING]
+    PROV --> PEND[PENDING]
+    PROV -.ENI 실패.-> STOP[STOPPED]
+    PEND --> ACT[ACTIVATING]
+    PEND -.이미지 pull 실패.-> STOP
+    ACT --> RUN[RUNNING]
+    ACT -.컨테이너 즉시 종료.-> STOP
+    RUN --> DEACT[DEACTIVATING]
+    DEACT --> STPG[STOPPING]
+    STPG --> DEPRO[DEPROVISIONING]
+    DEPRO --> STOP
+```
+
+각 상태에서 무엇이 진행되는지 단계별로 정리한다.
+
+### PROVISIONING
+
+스케줄러가 배치 결정을 내린 직후의 첫 상태다. 진행되는 일은 launch type별로 다르다.
+
+- Fargate: 새 micro-VM이 부팅되고 ENI가 attach된다. AWS가 Firecracker 위에 띄운다.
+- EC2 + awsvpc: 기존 인스턴스에 secondary ENI를 새로 만들어 attach한다. 서브넷에서 사설 IP를 받고 보안그룹을 바인딩한다.
+- EC2 + bridge/host: ENI 작업이 없어서 PROVISIONING이 거의 즉시 끝난다.
+
+ENI Trunking이 켜진 인스턴스는 trunk ENI에 branch ENI를 붙이는 방식이라 일반 secondary ENI보다 빠르다. 비-Trunking 환경에서는 ENI attach가 평균 5~15초 걸린다.
+
+서브넷 IP가 없거나 계정 ENI Quota가 차면 PROVISIONING에서 곧장 STOPPED로 떨어진다. `stoppedReason`에 `CannotCreateNetworkInterface: ... insufficient free addresses` 같은 메시지가 찍힌다.
+
+### PENDING
+
+ENI는 준비됐고 컨테이너만 안 뜬 상태다. 이 단계가 길어지면 원인은 거의 **이미지 pull**이다. 1GB 이미지를 같은 리전 ECR에서 pull하면 보통 10~20초, 크로스 리전이거나 Docker Hub면 1분 이상도 흔하다. Fargate는 ECR pull through cache나 SOCI 인덱스가 없으면 매 Task마다 풀스캔으로 받기 때문에 EC2보다 더 오래 걸린다.
+
+이미지 pull 실패가 가장 잦은 STOPPED 사유다. `stoppedReason`이 `CannotPullContainerError`로 찍히는데 보통 두 가지다.
+
+- ECR 권한 부족: executionRole에 `AmazonECSTaskExecutionRolePolicy`(또는 `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`)가 빠진 경우.
+- 네트워크 미연결: private 서브넷에서 ECR VPC Endpoint나 NAT Gateway가 없는 경우.
+
+이미지가 받아지면 컨테이너 객체가 생성되고 ACTIVATING으로 넘어간다.
+
+### ACTIVATING
+
+컨테이너 start 호출과 부수 작업이 동시에 진행되는 짧은 단계다.
+
+- 컨테이너 프로세스가 실제로 시작된다(docker start 또는 containerd).
+- Service Connect가 켜져 있으면 Envoy 사이드카가 함께 뜬다.
+- ALB Target Group에 Task의 IP/포트가 register된다(awsvpc 기준).
+- Container-level `healthCheck`가 정의돼 있으면 첫 헬스체크가 시작된다.
+
+ALB register는 ACTIVATING에서 시작되지만, ALB 자체 헬스체크가 통과해서 `healthy`로 바뀌는 시점은 RUNNING 진입 후다. ECS는 컨테이너 start까지만 ACTIVATING으로 묶고, 그 뒤는 RUNNING + ALB unhealthy 상태로 표시한다.
+
+Container-level `healthCheck`가 있으면 첫 헬스체크 통과까지 ACTIVATING이 유지된다. `startPeriod`(기본 0초) 동안의 실패는 카운트되지 않으므로 JVM처럼 부팅이 느린 앱은 `startPeriod: 60` 이상으로 잡는다.
+
+### RUNNING
+
+컨테이너가 떠 있고 ECS가 정상으로 인식하는 상태다. 다만 다음 두 가지는 별도로 봐야 한다.
+
+- ECS의 `lastStatus: RUNNING`은 컨테이너가 실행 중이라는 뜻일 뿐, 트래픽 받을 준비가 끝났다는 보장이 아니다.
+- ALB Target의 `healthy` 여부는 ECS 상태와 무관하게 Target Group이 따로 추적한다.
+
+이 차이 때문에 "Task는 RUNNING인데 502가 난다" 케이스가 생긴다. ALB 헬스체크가 아직 통과 못 했거나, `healthCheckGracePeriodSeconds`가 너무 짧아서 첫 헬스체크 실패로 ECS가 Task를 죽이고 다시 띄우는 루프에 빠진 경우다.
+
+### DEACTIVATING
+
+종료 트리거가 들어와서 ALB deregister가 진행되는 단계다. 트리거는 다음 중 하나다.
+
+- Service의 desiredCount 감소 (Auto Scaling 또는 수동)
+- 새 revision 배포 중 구버전 Task 교체
+- `aws ecs stop-task` 직접 호출
+- Task 헬스체크 실패로 Service가 자체 교체
+
+ECS가 ALB Target Group에 deregister 호출을 보내면 ALB는 Target을 `draining` 상태로 바꾼다. 이 시점부터 새 요청은 안 가지만 진행 중인 요청은 계속 처리된다. `deregistration_delay.timeout_seconds`(기본 300초)가 지나야 STOPPING으로 넘어간다.
+
+ALB가 안 붙은 Task(스케줄 배치만 있고 Target Group이 없는 Task)는 DEACTIVATING이 거의 즉시 끝난다.
+
+### STOPPING
+
+컨테이너에 SIGTERM이 들어가는 단계다. 컨테이너는 `stopTimeout`(기본 30초, Fargate 최댓값 120초) 안에 종료해야 한다. 시간을 넘기면 SIGKILL로 강제 종료된다.
+
+graceful shutdown 훅이 없는 앱은 SIGTERM을 받자마자 종료해버려서 in-flight 요청이 끊긴다. ALB의 `deregistration_delay`와 `stopTimeout`이 따로 노는 문제와도 맞물리는데, 자세한 건 아래 "Draining의 진짜 의미" 섹션에 정리돼 있다.
+
+`essential: true` 컨테이너가 먼저 죽으면 같은 Task의 다른 컨테이너도 같이 STOPPING에 들어간다. Envoy나 X-Ray daemon 같은 사이드카는 메인 컨테이너 종료 신호에 맞춰 같이 빠지도록 `dependsOn`을 걸어두는 게 보통이다.
+
+### DEPROVISIONING
+
+컨테이너가 다 죽고 인프라 자원을 반납하는 단계다.
+
+- ENI를 detach하고 삭제한다(Fargate는 micro-VM 자체가 사라진다).
+- 서브넷 IP가 풀로 돌아간다 — 다만 즉시는 아니고 1~5분 정도 지연이 있다.
+- 로그가 CloudWatch Logs에 마지막으로 flush된다.
+
+서브넷 IP 회수가 즉시가 아니라는 점이 중요하다. 대량 배포로 Task를 한꺼번에 교체하면 죽은 Task의 ENI가 아직 살아 있어서 신규 Task가 IP를 못 받는 시나리오가 생긴다. `describe-network-interfaces`에 `status: available`인 ENI가 비정상적으로 많이 보이면 이 현상이다.
+
+### STOPPED
+
+종착점이다. `stoppedReason`, `stopCode`, 각 컨테이너의 `exitCode`가 기록된다. STOPPED 상태의 Task는 1시간 동안 `describe-tasks` 응답에 남고 그 뒤로는 사라진다. 장기 보존이 필요하면 EventBridge로 Task State Change 이벤트를 받아 별도 저장한다.
+
+`stopCode` 값으로 종료 원인을 분류한다.
+
+| stopCode | 의미 |
+| --- | --- |
+| `TaskFailedToStart` | PROVISIONING/PENDING/ACTIVATING 중 실패. ENI, 이미지, 헬스체크 문제 |
+| `EssentialContainerExited` | essential 컨테이너가 정상 또는 비정상 종료 |
+| `UserInitiated` | StopTask API 또는 Service 축소로 종료 |
+| `ServiceSchedulerInitiated` | 배포 또는 헬스체크 실패로 Service가 교체 |
+| `SpotInterruption` | Fargate Spot 회수 또는 EC2 Spot 종료 |
+| `TerminationNotice` | EC2 인스턴스 종료로 인한 종료 |
+
+장애 조사 시 `stopCode + stoppedReason + 각 컨테이너 exitCode + lastStatus가 어디서 멈췄는지`를 같이 봐야 원인이 좁혀진다.
+
+## Service Task와 Standalone Task
+
+Task를 띄우는 방법은 두 가지다 — Service가 관리하는 **Service Task**와 RunTask로 직접 띄우는 **Standalone Task**. 같은 Task Definition을 써도 라이프사이클 관리 주체가 달라서 동작 차이가 크다.
+
+| 항목 | Service Task | Standalone Task |
+| --- | --- | --- |
+| 생성 방법 | `CreateService` → 자동 배치 | `RunTask` 호출 |
+| 죽었을 때 | Service가 즉시 재시작 | 다시 안 뜸 |
+| Auto Scaling | Application Auto Scaling 적용 가능 | 적용 불가 |
+| ALB / Target Group | `loadBalancers`로 자동 등록 | 등록 안 됨 (수동 register-targets는 가능하지만 권장 X) |
+| Service Connect | 자동 사이드카 주입 | 적용 불가 |
+| Cloud Map 등록 | 자동 | 수동만 가능 |
+| 종료 시점 | 배포·축소·StopTask | 컨테이너 정상 종료 또는 StopTask |
+| 사용 케이스 | 24/7 실행되는 API/워커 | 배치 작업, 마이그레이션, 일회성 잡 |
+
+### Service Task
+
+Service는 "desiredCount만큼의 Task를 항상 살려둔다"는 약속을 지키는 컨트롤 루프다. Task가 어떤 이유로든 STOPPED로 떨어지면 Service Scheduler가 새 Task를 자동으로 띄워서 카운트를 회복한다. 이 재시작은 별도의 Restart Policy가 있는 게 아니라 Service의 reconciliation loop에서 나오는 동작이라, 재시작 횟수 제한이 없다. 같은 Task가 무한 재시작 루프를 도는 게 가능하다는 뜻이다(대신 `deploymentCircuitBreaker`로 막는다).
+
+Service Task만이 받는 기능은 다음과 같다.
+
+- ALB/NLB Target Group 자동 등록·해제
+- Application Auto Scaling으로 desiredCount 자동 조정
+- Service Connect 자동 사이드카 주입
+- Rolling Update / Blue-Green 배포
+- minimumHealthyPercent / maximumPercent 기반 안전 배포
+
+### Standalone Task
+
+`aws ecs run-task`로 띄우는 Task다. 한 번 실행되고 정상 종료(`exitCode: 0`)든 비정상 종료든 끝나면 그걸로 끝이다. ECS가 다시 띄워주지 않는다.
+
+```bash
+aws ecs run-task \
+  --cluster prod-cluster \
+  --launch-type FARGATE \
+  --task-definition db-migrate:12 \
+  --network-configuration 'awsvpcConfiguration={subnets=[subnet-aaa],securityGroups=[sg-app],assignPublicIp=DISABLED}' \
+  --started-by "deploy-pipeline-build-1234"
+```
+
+대표 사용 케이스는 다음과 같다.
+
+- DB 마이그레이션: 배포 파이프라인에서 새 revision 배포 직전에 실행
+- 일회성 데이터 작업: 백필, ETL 잡
+- 정기 배치: EventBridge Scheduler에서 cron으로 트리거
+- 운영 작업: ssh 대신 ExecuteCommand로 진단 컨테이너 띄우기
+
+Standalone Task가 죽으면 알림은 EventBridge의 ECS Task State Change 이벤트로 받는다. `lastStatus: STOPPED`가 찍히는 순간 Lambda나 SNS로 라우팅해서 실패 시 재실행 여부를 직접 정한다.
+
+EventBridge Scheduler로 정기 실행할 때 주의할 점 하나 — 같은 시각에 두 번 트리거되는 경우가 드물게 있다. 멱등성이 없는 작업(예: 결제 정산)은 Standalone Task 자체에 idempotency key를 박는 게 안전하다.
+
+ALB는 Standalone Task에 못 붙는다. Target Group에 IP를 수동으로 register-targets 호출로 박을 수는 있지만, Task가 죽어도 자동 deregister가 안 돼서 dead target이 영원히 남는다. 외부 트래픽을 받아야 한다면 Service로 만드는 게 정답이다.
+
+### desiredCount, runningCount, pendingCount의 의미
+
+Service Task에만 적용되는 카운터 세 개가 있다. `describe-services` 응답에 항상 들어 있고, Service의 컨트롤 루프가 이 값을 보고 새 Task를 띄울지 말지 결정한다.
+
+| 카운터 | 의미 | 라이프사이클 상태 매핑 |
+| --- | --- | --- |
+| `desiredCount` | Service가 유지하려는 목표 Task 수 | 어떤 상태에도 매핑 안 됨 (목표값) |
+| `pendingCount` | 띄우는 중이지만 아직 RUNNING 아닌 Task 수 | PROVISIONING, PENDING, ACTIVATING |
+| `runningCount` | 현재 RUNNING 상태인 Task 수 | RUNNING |
+
+세 값의 관계는 정상 상태에서 `runningCount + pendingCount = desiredCount`이지만, 배포 중이거나 장애 중에는 깨진다.
+
+배포 중에는 `runningCount`가 일시적으로 `desiredCount`보다 커진다. `maximumPercent: 200`이라면 desiredCount 10인 Service가 배포 중 runningCount 20까지 올라간다. pendingCount는 신규 Task 10개가 PROVISIONING~ACTIVATING을 거치는 동안 0에서 10 사이를 오간다.
+
+장애 중에는 반대 패턴이다. 새 Task가 계속 실패해서 ACTIVATING → STOPPED 루프를 돌면 pendingCount는 잠깐 올랐다가 사라지고, runningCount는 desiredCount보다 한참 적은 채로 고정된다. 이게 길어지면 deploymentCircuitBreaker가 트리거된다.
+
+DEACTIVATING과 STOPPING 상태인 Task는 어느 카운터에도 안 잡힌다. ECS는 종료 중인 Task를 "이미 빠진" 것으로 간주하기 때문이다. `aws ecs list-tasks --desired-status STOPPED`로 본 개수는 카운터에 반영되지 않는다.
+
+CloudWatch에는 `ECS/ContainerInsights` 네임스페이스로 `RunningTaskCount`, `PendingTaskCount`, `DesiredTaskCount` 메트릭이 자동 발행된다. 이 셋의 차이로 알람을 거는 게 가장 흔한 패턴이다.
+
+```bash
+# pendingCount가 5분 이상 0이 아니면 알람 (배포가 멈췄거나 자원 부족)
+aws cloudwatch put-metric-alarm \
+  --alarm-name api-stuck-pending \
+  --metric-name PendingTaskCount \
+  --namespace ECS/ContainerInsights \
+  --statistic Maximum \
+  --period 60 \
+  --evaluation-periods 5 \
+  --threshold 0 \
+  --comparison-operator GreaterThanThreshold \
+  --dimensions Name=ServiceName,Value=api-service Name=ClusterName,Value=prod-cluster
+```
+
+`runningCount < desiredCount` 알람도 자주 쓴다. Auto Scaling이 정상 동작 중인 Service에서 이 두 값이 5분 이상 다르면 거의 확실히 자원 부족이거나 배치 실패다.
 
 ## Fargate와 EC2 launch type의 차이
 
