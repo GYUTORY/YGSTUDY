@@ -312,91 +312,208 @@ body {
 }
 
 /* ================================================
-   SIDEBAR
+   SIDEBAR — Sticky + 가독성 개선
    ================================================ */
 
-:root { --md-sidebar-width: 10.5rem; }
+:root {
+  --md-sidebar-width: 16rem;     /* 한글 메뉴 잘림 방지 (10.5 → 16rem) */
+  --md-sidebar-secondary: 13rem; /* TOC */
+}
+
+/* 사이드바 고정 — Material 기본 sticky가 동작하도록 명시 */
+.md-sidebar {
+  position: sticky !important;
+  top: 56px !important;             /* header 높이 */
+  height: calc(100vh - 56px) !important;
+  align-self: flex-start;
+  width: var(--md-sidebar-width);
+}
+.md-sidebar--secondary {
+  width: var(--md-sidebar-secondary);
+}
 
 .md-sidebar--primary {
   border-right: var(--whisper-border);
 }
 
 .md-sidebar__scrollwrap {
+  height: 100%;
+  max-height: calc(100vh - 56px) !important;
   overflow-y: auto;
+  overflow-x: hidden;
   overflow-anchor: none;
   scroll-behavior: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+  padding: 0.4rem 0.4rem 1.2rem;
 }
-.md-sidebar__scrollwrap::-webkit-scrollbar { width: 4px; }
+.md-sidebar__scrollwrap::-webkit-scrollbar { width: 6px; }
 .md-sidebar__scrollwrap::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
 }
-.md-sidebar__scrollwrap::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
+.md-sidebar__scrollwrap::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.32); }
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+}
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
 
 .md-nav__toggle ~ .md-nav { transition: none; }
-.md-nav__item { overflow: hidden; }
 
-.md-nav__link {
-  font-size: 0.82rem;
-  padding: 0.28rem 0.6rem;
+/* 항목 자체에는 overflow 걸지 않음 (활성 배경/텍스트가 부모와 겹쳐 보이는 버그의 원인) */
+.md-nav__item { overflow: visible; }
+
+/* 사이드바 타이틀 */
+.md-nav--primary > .md-nav__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--warm-gray-500);
+  padding: 0.6rem 0.6rem 0.4rem;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 기본 링크 — 한 줄 유지하되 폰트/색 강화 */
+.md-nav__link {
+  font-size: 0.92rem;
+  padding: 0.45rem 0.6rem;
+  color: var(--text);
   transition: color 0.15s ease, background-color 0.15s ease;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
   max-width: 100%;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: -0.1px;
   border-radius: var(--radius-sm);
+  line-height: 1.45;
+  gap: 0.35rem;
 }
 .md-nav__link .md-ellipsis {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: block;
+  min-width: 0;
+  flex: 1;
 }
 .md-nav__link:hover {
-  color: var(--notion-black);
+  color: var(--notion-blue);
   background: var(--warm-white);
 }
-.md-nav__link--active {
+.md-nav__link--active,
+.md-nav__item .md-nav__link--active {
   color: var(--notion-blue) !important;
-  font-weight: 600;
+  font-weight: 700;
   background: var(--badge-blue-bg);
 }
-[data-md-color-scheme="slate"] .md-nav__link--active {
-  background: rgba(98, 174, 240, 0.12);
+[data-md-color-scheme="slate"] .md-nav__link {
+  color: #ebe8e3;
+}
+[data-md-color-scheme="slate"] .md-nav__link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+[data-md-color-scheme="slate"] .md-nav__link--active,
+[data-md-color-scheme="slate"] .md-nav__item .md-nav__link--active {
+  color: #62aef0 !important;
+  background: rgba(98, 174, 240, 0.18);
 }
 
-/* 1depth */
+/* 1depth (상위 카테고리: Language, Algorithm 등) */
 .md-nav__item--nested > .md-nav__link {
-  font-weight: 600;
-  font-size: 0.82rem;
+  font-weight: 700;
+  font-size: 0.95rem;
   color: var(--text);
-  letter-spacing: 0;
+  letter-spacing: -0.15px;
 }
-/* 2depth+ */
-.md-nav__item--nested .md-nav .md-nav__link {
-  font-size: 0.75rem;
-  font-weight: 400;
-  padding: 0.2rem 0.6rem;
-  color: var(--warm-gray-500);
+[data-md-color-scheme="slate"] .md-nav__item--nested > .md-nav__link {
+  color: #ffffff;
 }
 
-/* TOC */
-.md-nav--secondary .md-nav__link {
-  font-size: 0.82rem;
+/* 2depth+ (하위 항목) */
+.md-nav__item--nested .md-nav .md-nav__link {
+  font-size: 0.86rem;
+  font-weight: 500;
+  padding: 0.36rem 0.6rem;
   color: var(--warm-gray-500);
+}
+[data-md-color-scheme="slate"] .md-nav__item--nested .md-nav .md-nav__link {
+  color: #cfccc7;
+}
+
+/* 들여쓰기 시각 가이드 — 좌측 가는 라인 */
+.md-nav__item--nested .md-nav {
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  margin-left: 0.6rem;
+  padding-left: 0.3rem;
+}
+[data-md-color-scheme="slate"] .md-nav__item--nested .md-nav {
+  border-left-color: rgba(255, 255, 255, 0.08);
+}
+
+/* nested toggle 화살표 */
+.md-nav__icon {
+  color: var(--warm-gray-500);
+  flex-shrink: 0;
+}
+[data-md-color-scheme="slate"] .md-nav__icon {
+  color: #cfccc7;
+}
+
+/* TOC (목차) */
+.md-nav--secondary .md-nav__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--warm-gray-500);
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.md-nav--secondary .md-nav__link {
+  font-size: 0.86rem;
+  color: var(--warm-gray-500);
+  font-weight: 500;
 }
 .md-nav--secondary .md-nav__link:hover {
-  color: var(--notion-black);
+  color: var(--notion-blue);
+  background: var(--warm-white);
 }
 .md-nav--secondary .md-nav__link--active {
   color: var(--notion-blue) !important;
-  font-weight: 600;
+  font-weight: 700;
+}
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link {
+  color: #c0bdb8;
+}
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link--active {
+  color: #62aef0 !important;
+}
+
+/* 모바일 드로어에서는 sticky 해제 (드로어 자체가 fixed) */
+@media (max-width: 76.1875em) {
+  .md-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    height: 100% !important;
+    width: auto;
+  }
+  .md-sidebar__scrollwrap {
+    max-height: 100% !important;
+  }
 }
 
 /* ================================================
@@ -1087,8 +1204,9 @@ body {
   .md-header__inner { padding: 0 16px; }
 }
 
-/* 가로 스크롤 안전장치 — 어떤 음수 마진/오버플로우도 viewport 밖으로 안 새도록 */
-html, body { overflow-x: hidden; }
+/* 가로 스크롤 안전장치 — `clip`은 sticky를 깨지 않음 (`hidden`은 깸) */
+html { overflow-x: clip; }
+body { overflow-x: clip; }
 
 /* 모바일: pillbar 더 컴팩트하게 + 좌우 끝 페이드로 스와이프 affordance 표시 */
 @media (max-width: 768px) {
