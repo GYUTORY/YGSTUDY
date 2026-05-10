@@ -1,6 +1,6 @@
 site_name: YGSTUDY
 site_url: https://gyutory.github.io/YGSTUDY/
-site_description: 백엔드 개발자를 위한 기술 문서 모음
+site_description: 백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것
 site_author: GYUTORY
 
 repo_name: GYUTORY/YGSTUDY
@@ -32,7 +32,6 @@ theme:
     - navigation.instant.progress
     - navigation.tracking
     - navigation.indexes
-    - navigation.top
     - navigation.footer
     - search.suggest
     - search.highlight
