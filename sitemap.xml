@@ -845,6 +845,18 @@
          <lastmod>2026-05-11</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Backend/Architecture/CQRS_Pattern/</loc>
+         <lastmod>2026-05-11</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Backend/Architecture/Event_Driven_Architecture/</loc>
+         <lastmod>2026-05-11</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Backend/Architecture/Microservices_Architecture/</loc>
+         <lastmod>2026-05-11</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Backend/Authentication/Auth_Strategy_Deep_Dive/</loc>
          <lastmod>2026-05-11</lastmod>
     </url>
