@@ -4,3 +4,4 @@ nav:
   - Microservices_Architecture.md
   - Event_Driven_Architecture.md
   - CQRS_Pattern.md
+  - Hexagonal_Architecture.md
