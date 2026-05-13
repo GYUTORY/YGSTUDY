@@ -1,503 +1,350 @@
 ---
 title: AWS Route 53
-tags: [aws, networking-and-content-delivery, route-53, dns]
-updated: 2026-01-18
+tags: [aws, networking, route-53, dns]
+updated: 2026-05-14
 ---
 
 # AWS Route 53
 
-## 개요
+## Route 53의 세 가지 역할
 
-Route 53은 AWS의 DNS(Domain Name System) 서비스다. 도메인 이름을 IP 주소로 변환한다.
+Route 53은 한 서비스에 세 가지 기능이 묶여 있다. 셋이 서로 독립이라 따로 쓰는 경우가 많다.
 
-**이름의 유래:**
-- Route: 경로를 찾아주는 역할
-- 53: DNS 프로토콜이 사용하는 포트 번호
+- 도메인 등록 기관(Registrar): `.com`, `.net`, `.io`, `.co.kr` 등 약 400개 TLD를 직접 등록.
+- 권한 있는(authoritative) DNS: Public/Private Hosted Zone에서 레코드를 응답.
+- 헬스 체크와 라우팅 정책: 엔드포인트 상태를 보고 다른 IP로 응답을 바꾸거나 비율로 분배.
 
-### DNS의 기본 개념
+다른 곳에서 산 도메인도 Route 53으로 DNS만 관리하는 구성이 흔하다. 가비아·후이즈·GoDaddy에서 도메인을 사고, 호스팅 존을 생성한 뒤 발급된 4개의 네임서버를 도메인 등록 사이트에 등록하면 된다. 변경 전파는 TTL과 NS 캐시 때문에 길게는 48시간까지 본다. `dig +trace example.com NS`로 실제 권한 NS가 Route 53으로 넘어왔는지 확인하는 게 빠르다.
 
-DNS는 도메인 이름을 IP 주소로 변환하는 시스템이다.
+이 문서는 일반 DNS 개념(A·CNAME·MX·TTL이 무엇인지)은 건너뛰고 Route 53에서만 나오는 동작을 다룬다.
 
-**DNS 동작 과정:**
-1. 사용자가 브라우저에 도메인 입력
-2. 로컬 DNS 서버에 'example.com의 IP가 뭐야?'라고 질의
-3. Route 53이 '192.168.1.1'이라고 응답
-4. 브라우저가 해당 IP로 연결
+---
 
-### 도메인 구조
+## Alias 레코드와 CNAME의 차이
+
+Route 53에서 가장 자주 쓰는 기능이 Alias다. 표면적으로 CNAME과 비슷해 보이지만 차이가 크다.
+
+| 항목 | CNAME | Alias (A/AAAA) |
+|---|---|---|
+| 루트(zone apex) 도메인 적용 | 불가능 (RFC 1034) | 가능 |
+| 같은 이름에 다른 레코드 공존 | 불가능 | 가능 (예: MX와 공존) |
+| 쿼리 과금 | 일반 쿼리 요금 부과 | AWS 리소스 대상이면 무과금 |
+| TTL | 사용자가 지정 | Route 53이 자동 관리 |
+| 응답 방식 | 별도 도메인 이름을 돌려줌 | 클라이언트에 IP를 바로 돌려줌 |
+| 연결 대상 | 임의 도메인 | 정해진 AWS 리소스 또는 같은 호스팅 존 내 다른 레코드 |
+
+Alias가 가리킬 수 있는 대상은 정해져 있다.
+
+- CloudFront 배포
+- Application/Network/Gateway Load Balancer
+- API Gateway
+- S3 정적 웹사이트 호스팅 버킷
+- Elastic Beanstalk 환경
+- VPC Interface Endpoint
+- Global Accelerator
+- 같은 호스팅 존 안의 다른 레코드
+
+ALB의 DNS 이름(`my-alb-1234.ap-northeast-2.elb.amazonaws.com`)은 ALB 노드의 IP가 바뀔 때마다 내부 A 레코드도 바뀐다. CNAME으로 묶으면 한 단계 더 조회해야 하고, Alias는 Route 53이 ALB의 현재 IP를 응답에 바로 넣어준다. 응답 한 번이 줄어드는 것보다 더 큰 차이는 과금이다. Alias로 AWS 리소스를 가리키는 쿼리는 청구되지 않는다. 트래픽이 많은 사이트에서 월 청구액이 눈에 띄게 다르다.
+
+루트 도메인(`example.com`)을 ALB나 CloudFront에 붙여야 하면 선택지는 Alias뿐이다. 콘솔에서 레코드 타입은 A로 잡고 "Alias" 토글을 켠 뒤 대상을 선택한다.
 
 ```
-www.example.com
-│   │      │
-│   │      └── TLD (Top Level Domain): .com, .net, .org
-│   └────────── Second Level Domain: example
-└────────────── Subdomain: www
+example.com         A     ALIAS  → d12345.cloudfront.net
+www.example.com     A     ALIAS  → d12345.cloudfront.net
+api.example.com     A     ALIAS  → my-alb-1234.ap-northeast-2.elb.amazonaws.com
 ```
 
-- TLD (Top Level Domain): 최상위 도메인 (.com, .net, .org 등)
-- Second Level Domain: 실제 도메인 이름 (example)
-- Subdomain: 하위 도메인 (www, mail, blog 등)
+같은 이름에 Alias A 레코드와 MX 레코드를 같이 둘 수 있다. 회사 도메인 루트에 웹과 메일이 같이 사는 흔한 구성에서 유용하다.
 
-### 루트도메인과 서브도메인
+한 가지 주의할 점은 Alias 대상이 다른 계정의 리소스이면 콘솔에서 바로 선택되지 않는다. 이 경우 CloudFormation이나 CLI로 `AliasTarget.HostedZoneId`와 `DNSName`을 직접 지정해야 한다.
 
-**루트도메인 (Root Domain):**
-루트도메인은 TLD 바로 아래의 도메인이다. `example.com`이 루트도메인이다. 루트도메인은 도메인의 최상위 레벨이며, 서브도메인을 만들 수 있는 기준점이 된다.
+---
 
-루트도메인은 보통 A 레코드로 직접 IP 주소를 매핑한다. `example.com`을 `192.168.1.1`로 연결하면 루트도메인에 접근할 수 있다.
+## 라우팅 정책 7종
 
-**서브도메인 (Subdomain):**
-서브도메인은 루트도메인 앞에 추가하는 이름이다. `www.example.com`, `api.example.com`, `mail.example.com`이 모두 서브도메인이다.
+라우팅 정책은 같은 레코드 이름에 여러 응답 후보를 두고, 쿼리마다 어느 응답을 돌려줄지 결정하는 규칙이다. Health Check를 붙이면 비정상 응답은 자동으로 제외된다.
 
-서브도메인은 독립적으로 DNS 레코드를 가질 수 있다. `www.example.com`은 웹 서버로, `api.example.com`은 API 서버로, `mail.example.com`은 메일 서버로 연결할 수 있다.
+### Simple
 
-**루트도메인과 서브도메인 사용 시나리오:**
+가장 단순한 형태. 한 레코드에 응답 하나(혹은 여러 IP를 라운드로빈)만 둔다. Health Check를 붙일 수 없다. Route 53을 그냥 DNS로만 쓰는 경우.
 
-루트도메인(`example.com`)을 메인 웹사이트로 사용하고, 서브도메인을 다른 용도로 사용하는 경우:
-- `example.com` → 메인 웹사이트 (A 레코드: 192.168.1.1)
-- `www.example.com` → 메인 웹사이트 별칭 (CNAME: example.com)
-- `api.example.com` → API 서버 (A 레코드: 192.168.1.2)
-- `admin.example.com` → 관리자 페이지 (A 레코드: 192.168.1.3)
-- `mail.example.com` → 메일 서버 (MX 레코드)
+사용 시점: 트래픽이 한 곳으로만 가고, 장애 시 다른 곳으로 돌릴 필요가 없을 때.
 
-**실무에서 주의할 점:**
-루트도메인에 CNAME 레코드를 설정할 수 없다. RFC 1034 표준에 따라 루트도메인은 반드시 A 레코드나 AAAA 레코드여야 한다. 서브도메인만 CNAME을 사용할 수 있다.
+### Weighted
 
-루트도메인을 ALB나 CloudFront에 연결하려면 A 레코드를 사용하고, 별칭(Alias) 레코드를 활성화해야 한다. Route 53의 별칭 레코드는 CNAME과 유사하지만 루트도메인에서도 사용할 수 있다.
-
-## Route 53 핵심 기능
-
-### 도메인 등록 및 관리
-
-Route 53은 도메인 등록 기관(Registrar) 역할도 수행한다. 400개 이상의 TLD를 지원한다.
-
-**도메인 등록 과정:**
-1. 도메인 이름 검색 및 가용성 확인
-2. 등록 기간 선택 (1-10년)
-3. 연락처 정보 입력
-4. 개인정보 보호 서비스 선택
-5. 결제 및 등록 완료
-
-**주요 TLD별 연간 비용:**
-- .com: $12.00
-- .net: $12.00
-- .org: $15.00
-- .io: $40.00
-- .co.kr: $15.00
-
-**실무 팁:**
-도메인은 Route 53에서 등록하지 않아도 DNS 관리는 가능하다. 다른 곳에서 등록한 도메인도 Route 53으로 관리할 수 있다.
-
-### Route 53과 다른 도메인 등록 사이트 비교
-
-**후이즈(Whois)와 Route 53:**
-후이즈는 도메인 정보 조회 서비스다. Route 53은 도메인 등록과 DNS 관리를 모두 제공한다.
-
-**주요 도메인 등록 사이트 비교:**
-
-| 항목 | Route 53 | 후이즈 | GoDaddy | Namecheap | 가비아 |
-|------|----------|--------|---------|-----------|--------|
-| 도메인 등록 | 지원 | 정보 조회만 | 지원 | 지원 | 지원 |
-| DNS 관리 | 자동 통합 | 없음 | 별도 설정 | 별도 설정 | 별도 설정 |
-| AWS 통합 | 완전 통합 | 없음 | 수동 설정 | 수동 설정 | 수동 설정 |
-| 비용 | $12-40/년 | 무료(조회만) | $10-15/년 | $8-12/년 | ₩15,000-20,000/년 |
-| DNS 쿼리 비용 | $0.40/백만 | 없음 | 무료(제한적) | 무료(제한적) | 무료(제한적) |
-| 헬스 체크 | 지원 | 없음 | 없음 | 없음 | 없음 |
-| 고급 라우팅 | 지원 | 없음 | 없음 | 없음 | 없음 |
-
-**Route 53을 선택하는 경우:**
-- AWS 인프라를 사용하는 경우
-- 헬스 체크와 장애 조치가 필요한 경우
-- 지연 시간 기반 라우팅이 필요한 경우
-- CloudFront, ALB 등 AWS 서비스와 직접 연동이 필요한 경우
-
-**다른 등록 사이트를 선택하는 경우:**
-- 도메인 등록 비용이 저렴한 곳을 찾는 경우
-- AWS를 사용하지 않는 경우
-- 단순한 DNS 설정만 필요한 경우
-
-**실무에서 자주 겪는 상황:**
-GoDaddy나 Namecheap에서 도메인을 구매하고 Route 53으로 DNS를 관리하는 경우가 많다. 이 경우 도메인 등록 사이트에서 네임서버를 Route 53의 네임서버로 변경해야 한다.
-
-Route 53 호스팅 영역을 생성하면 네임서버 주소가 자동으로 생성된다. 예: `ns-123.awsdns-12.com`, `ns-456.awsdns-45.net` 등 4개의 네임서버가 제공된다. 이 주소를 도메인 등록 사이트의 네임서버 설정에 입력하면 Route 53이 DNS를 관리한다.
-
-**주의사항:**
-네임서버 변경은 최대 48시간까지 걸릴 수 있다. TTL 설정에 따라 다르지만, 보통 몇 시간 내에 반영된다. 변경 후 `dig` 명령어로 네임서버가 변경되었는지 확인한다.
-
-### DNS 레코드 관리
-
-DNS 레코드는 도메인과 실제 서버를 연결하는 핵심 설정이다.
-
-**주요 DNS 레코드 타입:**
-
-| 레코드 타입 | 설명 | 용도 | 예시 |
-|------------|------|------|------|
-| A | IPv4 주소 매핑 | 웹서버 연결 | example.com → 192.168.1.1 |
-| AAAA | IPv6 주소 매핑 | IPv6 지원 | example.com → 2001:db8::1 |
-| CNAME | 도메인 별칭 | 서브도메인 연결 | www.example.com → example.com |
-| MX | 메일 서버 지정 | 이메일 서비스 | example.com → mail.example.com |
-| TXT | 텍스트 정보 | 도메인 검증, SPF | example.com → "v=spf1 include:_spf.google.com ~all" |
-| NS | 네임서버 지정 | DNS 위임 | example.com → ns1.route53.com |
-| PTR | 역방향 DNS | IP → 도메인 | 192.168.1.1 → example.com |
-
-### A 레코드와 CNAME 레코드 상세
-
-**A 레코드 (Address Record):**
-A 레코드는 도메인 이름을 IPv4 주소로 직접 매핑한다. `example.com`을 `192.168.1.1`로 연결하면, 사용자가 `example.com`에 접속하면 `192.168.1.1`로 연결된다.
-
-A 레코드는 루트도메인과 서브도메인 모두에 사용할 수 있다. 루트도메인에는 반드시 A 레코드나 AAAA 레코드가 필요하다.
-
-**A 레코드 사용 예시:**
-```
-example.com          A    192.168.1.1
-api.example.com      A    192.168.1.2
-admin.example.com    A    192.168.1.3
-```
-
-**A 레코드의 특징:**
-- 도메인을 IP 주소로 직접 연결
-- 루트도메인에서 사용 가능
-- 여러 IP 주소를 설정하면 라운드 로빈 방식으로 분산
-- IP 주소가 변경되면 레코드를 수정해야 함
-
-**CNAME 레코드 (Canonical Name Record):**
-CNAME 레코드는 도메인 이름을 다른 도메인 이름으로 연결한다. `www.example.com`을 `example.com`으로 연결하면, `www.example.com`에 접속하면 `example.com`의 IP 주소로 연결된다.
-
-CNAME은 서브도메인에서만 사용할 수 있다. 루트도메인에는 CNAME을 설정할 수 없다.
-
-**CNAME 레코드 사용 예시:**
-```
-www.example.com      CNAME    example.com
-blog.example.com     CNAME    example.com
-shop.example.com     CNAME    example.com
-```
-
-**CNAME 레코드의 특징:**
-- 도메인을 다른 도메인으로 연결
-- 루트도메인에서 사용 불가 (RFC 1034 표준)
-- 대상 도메인의 IP가 변경되면 자동으로 반영됨
-- DNS 조회가 한 단계 더 필요해 약간 느릴 수 있음
-
-**A 레코드 vs CNAME 레코드 선택 기준:**
-
-**A 레코드를 사용하는 경우:**
-- 루트도메인에 설정해야 하는 경우
-- IP 주소가 고정되어 있는 경우
-- DNS 조회 성능이 중요한 경우
-- 서브도메인이 각각 다른 IP를 가져야 하는 경우
-
-**CNAME 레코드를 사용하는 경우:**
-- 서브도메인을 루트도메인으로 연결하는 경우
-- IP 주소가 자주 변경될 수 있는 경우
-- 여러 서브도메인이 같은 IP를 가리켜야 하는 경우
-- ALB나 CloudFront 같은 AWS 서비스와 연결하는 경우 (별칭 레코드 사용 권장)
-
-**실무에서 자주 겪는 문제:**
-
-**문제 1: 루트도메인에 CNAME 설정 시도**
-루트도메인에 CNAME을 설정하려고 하면 오류가 발생한다. 루트도메인은 반드시 A 레코드여야 한다.
-
-해결 방법: Route 53의 별칭(Alias) 레코드를 사용한다. 별칭 레코드는 CNAME과 유사하지만 루트도메인에서도 사용할 수 있다.
-
-**문제 2: CNAME과 다른 레코드 타입 충돌**
-같은 이름에 CNAME과 다른 레코드 타입을 동시에 설정할 수 없다. `www.example.com`에 CNAME을 설정했다면, 같은 이름에 A 레코드를 설정할 수 없다.
-
-해결 방법: CNAME을 제거하고 A 레코드로 변경하거나, A 레코드를 제거하고 CNAME으로 변경한다.
-
-**문제 3: CNAME 체인**
-CNAME이 다른 CNAME을 가리키는 경우가 있다. `www.example.com` → `example.com` → `another.com` 같은 경우다. 이 경우 DNS 조회가 여러 번 발생해 성능이 저하될 수 있다.
-
-해결 방법: 가능하면 CNAME 체인을 피하고, 직접 IP 주소를 가리키는 A 레코드를 사용한다.
-
-**Route 53 별칭 레코드:**
-Route 53은 별칭(Alias) 레코드를 제공한다. 별칭 레코드는 CNAME과 유사하지만 루트도메인에서도 사용할 수 있고, DNS 조회 비용이 발생하지 않는다.
-
-별칭 레코드는 AWS 리소스(ALB, CloudFront, S3 등)와 직접 연결할 수 있다. `example.com`을 ALB에 연결하려면 별칭 레코드를 사용한다.
-
-**별칭 레코드 사용 예시:**
-```
-example.com          A    ALIAS    dualstack.my-alb-1234567890.ap-northeast-2.elb.amazonaws.com
-www.example.com      A    ALIAS    dualstack.my-alb-1234567890.ap-northeast-2.elb.amazonaws.com
-```
-
-별칭 레코드는 Route 53에서만 제공하는 기능이다. 다른 DNS 서비스에서는 사용할 수 없다.
-
-**별칭 레코드와 CNAME의 차이:**
-- 별칭 레코드는 루트도메인에서 사용 가능, CNAME은 불가능
-- 별칭 레코드는 DNS 쿼리 비용이 발생하지 않음
-- 별칭 레코드는 AWS 리소스와 직접 연결 가능
-- 별칭 레코드는 TTL 설정 불가 (Route 53이 자동 관리)
-
-**별칭 레코드 사용 시나리오:**
-ALB에 연결하는 경우, ALB의 DNS 이름이 자동으로 변경될 수 있다. 별칭 레코드를 사용하면 ALB의 IP 주소 변경이 자동으로 반영된다. CNAME을 사용하면 TTL 동안 이전 IP가 캐시될 수 있다.
-
-**TTL (Time To Live):**
-DNS 레코드의 캐시 유지 시간이다. DNS 서버가 레코드를 얼마나 오래 캐시할지 결정한다.
-
-**TTL 값에 따른 영향:**
-- 짧은 TTL (60-300초): 변경이 빠르게 반영되지만 DNS 쿼리 비용 증가
-- 긴 TTL (3600초 이상): 변경 반영이 느리지만 DNS 쿼리 비용 감소
-
-**실무에서 TTL 설정:**
-- 자주 변경하지 않는 레코드: 3600초(1시간)
-- 배포나 장애 조치가 예상되는 경우: 300초(5분)
-- 긴급 변경이 필요한 경우: 60초
-
-**주의사항:**
-TTL을 너무 짧게 설정하면 DNS 쿼리 비용이 증가한다. Route 53은 월 $0.40/백만 쿼리를 청구한다. TTL이 60초인 레코드가 하루에 100만 번 조회되면, 매일 $0.40가 발생한다. TTL을 3600초로 늘리면 쿼리 수가 크게 감소한다.
-
-### 호스팅 영역 (Hosted Zone)
-
-호스팅 영역은 특정 도메인의 DNS 레코드들을 관리하는 컨테이너다.
-
-**Public Hosted Zone (공개 영역):**
-- 인터넷에서 누구나 접근 가능
-- 웹사이트, 이메일 서버 등에 사용
-- 월 $0.50 비용
-
-**Private Hosted Zone (비공개 영역):**
-- VPC 내부에서만 사용
-- 내부 서비스, 데이터베이스 등에 사용
-- 월 $0.50 비용
-
-**실무 팁:**
-Private Hosted Zone은 VPC 내부 서비스의 도메인을 관리할 때 유용하다.
-
-### 트래픽 라우팅 정책
-
-Route 53은 다양한 조건에 따라 트래픽을 분배할 수 있는 라우팅 정책을 제공한다.
-
-**단순 라우팅 (Simple Routing):**
-- 가장 기본적인 라우팅 방식
-- 단일 서버로 운영하는 웹사이트에 적합
-- 하나의 도메인을 하나의 IP로 연결
-
-**가중치 라우팅 (Weighted Routing):**
-- 트래픽을 비율에 따라 분배
-- A/B 테스트, 점진적 배포에 활용
-- 예: 서버 A(70%), 서버 B(30%)
-
-**지리적 라우팅 (Geolocation Routing):**
-- 사용자의 지리적 위치에 따라 서버 선택
-- 지역별 콘텐츠 제공, 규정 준수에 활용
-- 예: 미국 사용자 → 미국 서버, 아시아 사용자 → 아시아 서버
-
-**지연 시간 라우팅 (Latency-based Routing):**
-- 가장 빠른 응답 시간을 제공하는 서버 선택
-- 여러 리전에 서버를 배포한 경우 사용
-- Route 53이 실시간으로 지연 시간 측정
-
-**장애 조치 라우팅 (Failover Routing):**
-- Primary 서버 장애 시 Secondary 서버로 자동 전환
-- 고가용성 구성에 필수
-- 헬스 체크와 연동하여 자동 장애 감지
-
-**다중값 라우팅 (Multivalue Answer Routing):**
-- 여러 IP 주소 중 무작위로 선택
-- 단순한 로드 밸런싱 효과
-- 헬스 체크와 연동하여 정상 서버만 응답
-
-**실무 팁:**
-장애 조치 라우팅은 헬스 체크와 함께 사용하면 고가용성을 확보할 수 있다.
-
-### 헬스 체크 (Health Check)
-
-서버의 상태를 지속적으로 모니터링하여 정상 작동 여부를 확인한다.
-
-**헬스 체크 타입:**
-- HTTP/HTTPS: 웹 서버 상태 확인
-- TCP: 포트 연결성 확인
-- CALCULATED: 여러 헬스 체크 결과를 조합
-
-**헬스 체크 설정:**
-- 간격: 10초, 30초 (기본값)
-- 타임아웃: 2초, 3초, 4초, 5초, 6초, 7초, 8초, 9초, 10초
-- 실패 임계값: 1-10 (연속 실패 횟수)
-- 성공 임계값: 1-10 (연속 성공 횟수)
-
-**헬스 체크 활용:**
-- 장애 조치 라우팅과 연동
-- 다중값 라우팅에서 정상 서버만 응답
-- CloudWatch 알림 설정
-
-**실무 팁:**
-헬스 체크는 장애 조치 라우팅과 함께 사용하면 자동으로 장애를 감지하고 전환할 수 있다.
-
-## 실무 활용 사례
-
-### 단일 웹사이트 운영
+같은 이름에 여러 레코드를 만들고 각자에 0~255의 weight를 준다. 응답 비율은 `해당 weight / 전체 weight 합`이다.
 
 ```
-도메인 등록 → Public Hosted Zone 생성 → A 레코드 설정 → CNAME으로 www 서브도메인 연결
+api.example.com  A  10.0.1.1   weight=90   set-id="prod"
+api.example.com  A  10.0.1.2   weight=10   set-id="canary"
 ```
 
-### 다중 리전 배포
+위 설정이면 약 10%가 canary로 간다. 점진 배포(canary → 25% → 50% → 100%)나 A/B 테스트에 쓴다. weight 0으로 두면 응답에서 빠진다(완전 차단).
 
-- 여러 AWS 리전에 서버 배포
-- 지연 시간 라우팅으로 최적 서버 선택
-- 각 리전별 헬스 체크 설정
+실무에서 흔히 빠지는 함정은 TTL이다. 60초로 두지 않으면 비율 조정이 천천히 반영된다. 또 클라이언트 DNS 캐시가 우리 손을 떠나 있어서 정확한 90/10이 나오지 않는다. 큰 표본에서만 비율에 수렴한다.
 
-### 고가용성 구성
+### Latency
 
-- Primary/Secondary 서버 구성
-- 장애 조치 라우팅 설정
-- 헬스 체크로 자동 장애 감지 및 전환
+리전마다 같은 이름으로 레코드를 만들고 `region`을 지정한다. 사용자의 DNS 리졸버 위치를 기준으로 가장 지연이 적은 리전이 응답으로 돌아간다.
 
-### A/B 테스트
+```
+app.example.com  A  ALIAS → alb-tokyo     region=ap-northeast-1
+app.example.com  A  ALIAS → alb-virginia  region=us-east-1
+app.example.com  A  ALIAS → alb-frankfurt region=eu-central-1
+```
 
-- 가중치 라우팅으로 트래픽 분배
-- 점진적 배포 (10% → 50% → 100%)
-- 실시간 트래픽 조정
+사용 시점: 같은 애플리케이션을 멀티 리전에 배포해 사용자별로 가까운 리전에 붙이고 싶을 때. 단, 기준이 사용자의 IP가 아니라 사용자가 쓰는 리졸버의 IP라 ISP에 따라 엉뚱한 리전이 나올 수 있다. 정확한 위치 기반 분배가 필요하면 Geolocation을 쓴다.
 
-**실무 팁:**
-가중치 라우팅을 사용하면 점진적 배포가 가능하다. 문제가 발생하면 가중치를 조정해 빠르게 롤백할 수 있다.
+### Failover
+
+Primary와 Secondary 두 레코드를 만든다. Primary에 붙인 Health Check가 정상이면 Primary, 비정상이면 Secondary가 응답된다.
+
+```
+www.example.com  A  ALIAS → alb-primary   failover=PRIMARY   hc=health-check-id
+www.example.com  A  ALIAS → s3-maintenance failover=SECONDARY
+```
+
+Primary가 ALB, Secondary가 S3 정적 사이트("점검 중입니다" 페이지)인 구성이 흔하다. Primary와 Secondary가 둘 다 비정상이면 Route 53은 Primary로 응답한다(아무것도 안 돌려주는 것보다 낫다는 판단).
+
+### Geolocation
+
+사용자의 IP가 속한 대륙·국가·미국 주(state) 단위로 응답을 분리한다. 매칭 안 되는 트래픽을 위해 `Default` 레코드를 반드시 만들어야 한다. 만들지 않으면 매칭 실패한 지역은 NXDOMAIN을 받는다.
+
+```
+www.example.com  A → ip-korea   geolocation=KR
+www.example.com  A → ip-japan   geolocation=JP
+www.example.com  A → ip-eu      geolocation=continent-EU
+www.example.com  A → ip-default geolocation=Default
+```
+
+사용 시점: 컴플라이언스(EU 트래픽은 EU에서만 처리), 언어별 사이트 분기, 특정 국가 차단(NXDOMAIN 의도). Latency와 달리 사용자 IP의 GeoIP 매핑 기준이라 더 결정적이다.
+
+### Geoproximity
+
+지리적으로 가까운 리소스로 보내되, 각 리소스에 `bias`(-99 ~ +99)를 줘서 영향 반경을 늘리거나 줄일 수 있다. 일반 콘솔에서는 보이지 않고 Traffic Flow(트래픽 정책 시각 편집기) 안에서 쓴다.
+
+```
+서울 리소스: bias=+30   → 서울이 더 멀리까지 트래픽을 끌어옴
+도쿄 리소스: bias=0
+```
+
+사용 시점: 단순한 거리 계산만으로는 잘못 분배되는 경우. 서울 리전 용량을 늘려서 더 많은 트래픽을 끌어와야 할 때 bias를 양수로 올린다. 반대로 트래픽을 줄여야 하면 음수로.
+
+비AWS 리소스도 위경도(latitude/longitude)로 직접 좌표를 넣어 등록할 수 있다.
+
+### Multi-Value Answer
+
+같은 이름에 최대 8개의 레코드를 두고, Route 53이 응답할 때 그중 정상인 것들을 무작위로 골라서 반환한다. 클라이언트는 받은 IP 중 하나에 붙는다. Health Check가 가능한 Simple이라고 보면 된다.
+
+```
+api.example.com  A  10.0.1.1  hc=hc-1
+api.example.com  A  10.0.1.2  hc=hc-2
+api.example.com  A  10.0.1.3  hc=hc-3
+```
+
+ALB만큼은 아니지만 DNS 단에서 가벼운 분산과 장애 격리가 필요할 때. ALB가 못 들어가는 환경(예: TCP가 아닌 UDP 서비스, 또는 멀티 리전에서 ALB 앞단을 두고 싶을 때)에 쓴다.
+
+---
+
+## Health Check
+
+Route 53 Health Check는 3가지 형태로 만든다.
+
+### 엔드포인트 모니터
+
+전 세계 Route 53 healthchecker 노드(15개 이상의 위치)에서 지정한 엔드포인트로 주기적으로 요청을 보낸다.
+
+- 프로토콜: HTTP, HTTPS, HTTP STR MATCH, HTTPS STR MATCH, TCP
+- 요청 간격: 30초(Standard) 또는 10초(Fast, 비용 추가)
+- 실패 임계값: 1~10회 연속 실패하면 Unhealthy로 전환
+- 위치별 다수결: 18% 이상의 위치에서 정상이면 정상 판정
+
+`STR MATCH`는 응답 본문에 특정 문자열이 있어야 정상으로 친다. `/health`가 200을 돌려줘도 본문이 `{"db":"down"}`이면 비정상으로 잡는 식. 단순한 200 체크보다 한 단계 더 정확하다.
+
+엔드포인트가 사설 IP에 있으면 헬스체커가 접근할 수 없다. 사설 리소스를 보려면 CloudWatch 알람 기반 헬스 체크를 쓰거나, NLB·ALB의 외부 리스너를 통해 우회한다.
+
+### CloudWatch Alarm 기반
+
+이미 만들어 둔 CloudWatch 알람의 상태를 Health Check로 가져다 쓴다. RDS 연결 수, Lambda 에러율, 사용자 정의 메트릭 등 엔드포인트 직접 호출로는 알 수 없는 신호를 헬스로 만들 때 쓴다. 사설 VPC 안 리소스를 모니터링하려면 사실상 이 방법이다.
+
+알람이 `ALARM` 상태면 헬스도 Unhealthy. 데이터 부족 시 동작은 옵션으로 정한다(`Healthy`, `Unhealthy`, `Last known status`).
+
+### Calculated
+
+여러 Health Check를 부울식으로 결합한다. "Primary DB가 정상이고, ALB도 정상일 때만 Primary 리전을 정상으로 친다" 같은 복합 조건을 만든다.
+
+```
+calculated-hc = (db-hc 정상) AND (alb-hc 정상) AND (cache-hc 정상)
+```
+
+최대 256개의 child health check 중 N개 이상 정상이면 통과, 같은 조합을 표현할 수 있다. Failover Routing에 이 calculated 결과를 연결하면 의존 서비스 전체가 살아 있을 때만 Primary를 응답하게 된다.
+
+### Failover와의 동작
+
+Health Check가 Unhealthy로 바뀌어도 즉시 페일오버되는 게 아니다. 시퀀스는 다음과 같다.
+
+1. 헬스체커 위치들에서 요청 실패가 누적 → 실패 임계값 도달 → Health Check가 Unhealthy로 전환
+2. Route 53 권한 응답이 해당 레코드를 후보에서 제외
+3. 클라이언트가 다음 DNS 쿼리를 보낼 때 새 응답(Secondary)을 받음
+4. 단, 클라이언트와 중간 리졸버에 캐시된 응답은 TTL이 끝나야 새로 묻는다
+
+페일오버 체감 시간은 `Health Check 감지 시간 + DNS TTL`이다. 30초 간격×3회 실패 + TTL 60초면 최악의 경우 약 3분 반. Health Check를 Fast(10초)로 두고 TTL을 60초로 줄이는 게 일반적인 튜닝이다. 단 둘 다 비용이 늘어난다.
+
+---
+
+## Private Hosted Zone과 VPC Resolver
+
+### VPC DNS Resolver
+
+VPC를 만들면 자동으로 부여되는 DNS 리졸버가 있다. 두 가지 주소로 접근한다.
+
+- VPC CIDR의 `.2` 주소: VPC CIDR이 `10.0.0.0/16`이면 `10.0.0.2`
+- 링크-로컬 주소: `169.254.169.253`
+
+EC2의 `/etc/resolv.conf`에 들어가는 nameserver가 이 주소다. 인스턴스가 어떤 도메인을 물으면 이 리졸버가 처리한다. 처리 순서는 다음과 같다.
+
+1. VPC에 연결된 Private Hosted Zone에 매칭되는 레코드가 있으면 그것을 응답
+2. 아니면 Resolver Outbound 규칙에 매칭되는지 확인 → 매칭되면 지정한 외부 리졸버로 포워딩
+3. 아니면 퍼블릭 DNS로 재귀 해석
+
+VPC 단위 옵션 두 개를 켜야 정상 동작한다.
+
+- `enableDnsSupport`: VPC의 DNS 리졸버를 사용할지
+- `enableDnsHostnames`: EC2에 퍼블릭 DNS 이름을 부여할지
+
+콘솔에서 만들면 보통 켜져 있지만, Terraform이나 CloudFormation으로 만든 VPC가 둘 다 꺼져 있어서 Private Hosted Zone이 해석이 안 되는 사고가 종종 난다.
+
+### Private Hosted Zone
+
+특정 VPC에서만 응답하는 호스팅 존이다. `internal.company.com` 같은 사내용 도메인을 외부에 노출하지 않고 쓰고 싶을 때 사용한다.
+
+```
+internal.company.com         (Private Hosted Zone)
+  ├─ db.internal.company.com       A → 10.0.1.50
+  ├─ cache.internal.company.com    A → 10.0.1.51
+  └─ kafka.internal.company.com    A → 10.0.1.52  (CNAME으로 NLB 가능)
+```
+
+같은 도메인 이름을 Public과 Private 둘 다에 만들 수 있다(Split-View DNS). 같은 `api.example.com`이 VPC 안에서는 사설 IP를, 인터넷에서는 ALB의 퍼블릭 IP를 응답하게 한다.
+
+여러 VPC에 같은 PHZ를 연결할 수 있다. 다른 계정의 VPC도 가능한데, 이 경우 `CreateVPCAssociationAuthorization`을 먼저 호출해야 한다.
+
+주의할 점: PHZ는 VPC 외부에서 보이지 않는다. 온프레미스 사무실 PC가 VPN으로 VPC에 들어와도 자신의 PC는 회사 DNS를 쓰므로 PHZ 도메인을 못 푼다. 이를 풀려면 Resolver Endpoint가 필요하다.
+
+---
+
+## Resolver Endpoint (Inbound / Outbound)
+
+온프레미스와 AWS 사이의 DNS 해석을 양방향으로 잇는 기능이다. VPC 안에 ENI를 만들어 그 IP가 DNS 서버 역할을 한다. AZ당 최소 2개 ENI를 두라고 권장한다.
+
+### Inbound Resolver Endpoint
+
+방향: 온프레미스 → AWS
+
+VPC 안에 ENI를 만들고, 그 IP를 온프레미스 DNS에 conditional forwarder로 등록한다. 사내 PC가 `db.internal.company.com`을 물으면 사내 DNS가 inbound endpoint로 포워딩 → endpoint가 VPC의 Resolver를 거쳐 PHZ에서 응답.
+
+```
+[온프레 PC] → [사내 DNS]
+              "internal.company.com이면 10.0.1.10, 10.0.1.11로 포워딩"
+            → [Inbound Endpoint ENI 10.0.1.10] → [VPC Resolver] → [PHZ]
+```
+
+### Outbound Resolver Endpoint
+
+방향: AWS → 온프레미스
+
+VPC 안의 EC2가 `corp.local`(사내 AD 도메인)을 물어야 할 때 사용한다. Resolver Rule을 만들어 `corp.local` 도메인은 사내 DNS IP(예: `192.168.1.10`)로 포워딩하도록 등록한다.
+
+```
+[EC2] → [VPC Resolver]
+        Resolver Rule: "corp.local이면 192.168.1.10으로 포워딩"
+      → [Outbound Endpoint ENI] → [VPN/Direct Connect] → [사내 DNS]
+```
+
+Resolver Rule은 여러 VPC, 다른 계정과 RAM(Resource Access Manager)으로 공유 가능하다. 조직 전체가 같은 규칙으로 사내 DNS를 바라보게 만든다.
+
+가격은 ENI당 시간 과금($0.125/시간, AZ 2개면 시간당 $0.25, 월 약 $180)이라 작은 환경에서는 부담이다. 트래픽이 적으면 EC2 위에 BIND나 Unbound를 직접 띄우는 게 더 싸다.
+
+---
+
+## Route 53 Application Recovery Controller (ARC)
+
+멀티 리전 페일오버를 정밀하게 통제하는 별도 서비스다. 일반 Failover Routing보다 비싸지만, "Health Check 자동 판정"이 아니라 "사람 또는 자동화가 결정하는 명시적 스위치"가 필요한 환경에 쓴다. 금융권에서 자주 본다.
+
+### Routing Control
+
+리전마다 ON/OFF 스위치를 만든다. Route 53의 일반 레코드 위에 이 스위치를 얹어, ON인 리전만 트래픽을 받게 한다. 스위치를 사람이 직접 토글하거나 람다로 토글한다.
+
+이 스위치는 5개 리전에 분산된 클러스터 엔드포인트로 동작한다. 5개 중 3개 이상이 살아 있으면 토글이 작동하므로, 리전 장애 자체로 페일오버 명령이 막히는 일을 줄인다.
+
+### Safety Rule
+
+"Primary와 Secondary를 동시에 OFF로 만들지 못한다" 같은 안전 규칙을 걸어둔다. 운영자가 실수로 모든 리전을 닫는 사고를 막는다.
+
+### Readiness Check
+
+각 리전이 페일오버를 받을 준비가 되었는지(스케일링, RDS 복제 지연, ECS 태스크 수 등) 자동으로 검증한다. Routing Control과 별개로 동작하고, 검증 결과를 콘솔에서 본다.
+
+### Zonal Shift / Zonal Autoshift
+
+AZ 단위로 트래픽을 빼는 기능. AZ 한 곳에 문제가 생긴 게 의심되면 명령 한 줄로 ALB·NLB에서 해당 AZ를 빼서 회피한다. Autoshift는 AWS가 내부적으로 회색 장애를 감지했을 때 자동으로 옮긴다.
+
+---
 
 ## 비용 구조
 
-**도메인 등록 비용:**
-- 연간 $12-40 (TLD에 따라 상이)
-- 개인정보 보호 서비스: 연간 $4
+US 리전 기준 2024년 가격. 정확한 금액은 매년 조금씩 바뀐다.
 
-**호스팅 영역 비용:**
-- Public/Private: 월 $0.50
-- 쿼리 비용: 월 $0.40/백만 쿼리
+### Hosted Zone
 
-**고급 라우팅 비용:**
-- 지연 시간 기반: 월 $0.60/백만 쿼리
-- 지리적 라우팅: 월 $0.70/백만 쿼리
+- 호스팅 존당 월 $0.50 (Public/Private 동일)
+- 25개 초과분은 호스팅 존당 월 $0.10
+- 호스팅 존을 만든 시점에 일할 계산되지 않고 그 달 전체 요금이 부과된다. 테스트로 잠깐 만들었다 지우면 그 달 분은 그대로 청구된다.
 
-**헬스 체크 비용:**
-- 기본: 월 $0.50/체크
-- 추가 엔드포인트: 월 $0.50/체크
+### DNS 쿼리
 
-**실무 팁:**
-TTL을 길게 설정하면 DNS 쿼리 비용을 절감할 수 있다.
+- Standard 쿼리: 백만 건당 $0.40 (월 10억 건까지)
+- 10억 건 초과: 백만 건당 $0.20
+- Latency / Geolocation / Geoproximity / Multi-Value Routing 쿼리: 백만 건당 $0.60 (10억 초과 $0.30)
+- Alias가 가리키는 대상이 AWS 리소스이면 그 쿼리는 무료
 
-## 보안 고려사항
+쿼리 비용 절감은 TTL 늘리기가 핵심이다. 같은 도메인에 하루 1억 건이 들어오는 사이트라면 TTL 60초보다 TTL 300초가 단순히 다음 쿼리까지의 간격을 5배로 늘려 비용도 1/5에 가깝게 떨어진다. 단 IP 변경 시 반영 지연이 그만큼 길어지니 운영 정책과 조정한다.
 
-### DNSSEC (DNS Security Extensions)
+### Health Check
 
-- DNS 응답의 무결성 보장
-- 도메인 스푸핑 공격 방지
-- Route 53에서 자동 관리
+- AWS 엔드포인트 기준 헬스 체크: 월 $0.50
+- AWS 외부 엔드포인트(인터넷 IP): 월 $0.75
+- Fast Interval(10초): 위 금액에 $1.00 추가
+- HTTPS, STR MATCH, Latency 측정 옵션: 각각 $1.00 추가
 
-### IAM 정책 설정
+여러 ALB를 가리키는 헬스 체크 100개면 월 $50이다. 그렇게 큰 금액은 아니지만, 검증용으로 만들었던 헬스 체크가 안 지워져서 쌓이는 경우가 흔하다. 분기마다 사용하지 않는 헬스 체크는 정리한다.
 
-- 최소 권한 원칙 적용
-- 도메인별 접근 권한 제어
-- API 호출 로깅
+### Resolver Endpoint
 
-### 도메인 도용 방지
+- ENI당 시간 $0.125 (AZ 두 개면 시간당 $0.25, 월 약 $180)
+- Resolver 쿼리 처리: 1억 건까지 백만 건당 $0.40
 
-- 도메인 잠금 기능
-- 이메일 인증 강화
-- 정기적인 도메인 상태 확인
+### ARC
 
-**실무 팁:**
-DNSSEC을 활성화하면 DNS 스푸핑 공격을 방지할 수 있다.
+- Routing Control 클러스터: 월 $2.50
+- Routing Control 자체는 별도 과금 없음
+- Readiness Check, Safety Rule도 별도 과금 없음
 
-## AWS 서비스와의 통합
+### TTL과 캐싱으로 비용 줄이기
 
-**CloudFront:**
-- CDN과 DNS 통합
-- 지연 시간 감소
-- 글로벌 엣지 로케이션 활용
+쿼리는 클라이언트 → ISP 리졸버 → 권한 NS(Route 53) 순으로 흐른다. Route 53에 청구되는 건 ISP 리졸버까지 도달한 쿼리뿐이다. ISP 리졸버가 캐시를 가지고 있으면 우리에게는 비용이 발생하지 않는다.
 
-**ALB/NLB:**
-- 로드 밸런서와 DNS 연동
-- 헬스 체크 통합
-- 자동 스케일링 지원
+- 자주 안 바뀌는 레코드: TTL 3600~86400
+- 페일오버 대상 레코드: TTL 60~120 (Health Check 감지 시간 + α)
+- 가중치/카나리 레코드: TTL 60 (비율 조정 반영 지연이 영향)
 
-**ACM (AWS Certificate Manager):**
-- SSL 인증서 자동 검증
-- DNS-01 챌린지 지원
-- 인증서 자동 갱신
+CloudFront 같은 Alias 대상은 어차피 무료이므로 TTL을 신경 쓸 이유가 없다. 비AWS IP를 가리키는 A 레코드, 외부 도메인을 가리키는 CNAME이 비용 절감의 주 대상이다.
 
-**CloudWatch:**
-- DNS 쿼리 수 모니터링
-- 헬스 체크 상태 추적
-- 알림 및 대시보드 구성
-
-**CloudTrail:**
-- API 호출 로깅
-- 설정 변경 이력 추적
-- 보안 감사 지원
-
-**실무 팁:**
-CloudFront와 Route 53을 함께 사용하면 CDN과 DNS가 통합되어 성능이 향상된다.
-
-## 실무 고려사항
-
-### DNS 설계
-
-- 적절한 TTL 설정 (300-3600초)
-- CNAME vs A 레코드 적절한 선택
-- 서브도메인 구조 체계적 설계
-
-### 고가용성
-
-- 다중 AZ 배포
-- 헬스 체크 적극 활용
-- 장애 조치 계획 수립
-
-### 성능
-
-- 지연 시간 기반 라우팅 활용
-- CloudFront와 연동
-- DNS 캐싱 TTL 조정
-
-### 보안
-
-- DNSSEC 활성화
-- IAM 정책 세밀하게 설정
-- 정기적인 보안 점검
-
-### 모니터링
-
-- CloudWatch 알림 설정
-- 헬스 체크 상태 모니터링
-- 비용 추적 및 관리
-
-**실무 팁:**
-헬스 체크와 장애 조치 라우팅을 함께 사용하면 고가용성을 확보할 수 있다.
-
-## VPC Endpoint와 PrivateLink
-
-### VPC Endpoint
-
-VPC 내부에서 퍼블릭 인터넷을 거치지 않고 AWS 서비스에 사설로 연결하는 엔드포인트다.
-
-**Gateway VPC Endpoint:**
-- 라우팅 테이블에 목적지로 추가
-- S3, DynamoDB에 사용
-- 무료 제공
-
-**Interface VPC Endpoint:**
-- ENI(네트워크 인터페이스)로 연결
-- 대부분의 AWS 서비스에 사용
-- PrivateLink 기반
-- 시간당 $0.01 비용
-
-### PrivateLink
-
-서비스 제공자 VPC의 NLB를 고객 VPC의 인터페이스 엔드포인트로 노출하여 사설 통신을 가능하게 하는 서비스다.
-
-**주요 특징:**
-- VPC 간 사설 연결
-- 인터넷 트래픽 없음
-- 보안성 향상
-- 네트워크 성능 개선
-
-**실무 활용:**
-- S3 프라이빗 액세스
-- ECR 프라이빗 액세스
-- RDS 프라이빗 액세스
-- 서드파티 서비스 연동
-
-**실무 팁:**
-VPC Endpoint를 사용하면 인터넷 트래픽 없이 AWS 서비스에 접근할 수 있어 보안이 강화된다.
+---
 
 ## 참고
 
-- AWS Route 53 공식 문서: https://docs.aws.amazon.com/route53/
-- AWS Well-Architected Framework: https://aws.amazon.com/architecture/well-architected/
-- VPC Endpoint 가이드: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints.html
+- Route 53 공식 문서: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/
+- Resolver Endpoint 가이드: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver.html
+- Application Recovery Controller: https://docs.aws.amazon.com/r53recovery/latest/dg/
+- Route 53 가격: https://aws.amazon.com/route53/pricing/
