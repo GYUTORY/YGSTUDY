@@ -9,4 +9,5 @@ nav:
   - Nest_JS_인증_JWT_Passport.md
   - Nest_JS_테스트.md
   - Nest_JS_Type_ORM_연동.md
+  - Nest_JS_AWS_Secrets_Manager_KMS.md
   - 실전_예제.md
