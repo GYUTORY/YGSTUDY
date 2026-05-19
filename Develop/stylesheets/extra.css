@@ -320,8 +320,8 @@ body {
    ================================================ */
 
 :root {
-  --md-sidebar-width: 16rem;     /* 한글 메뉴 잘림 방지 (10.5 → 16rem) */
-  --md-sidebar-secondary: 13rem; /* TOC */
+  --md-sidebar-width: 12rem;     /* 컴팩트 사이드바 */
+  --md-sidebar-secondary: 10rem; /* TOC */
 }
 
 /* 사이드바 고정 — Material 기본 sticky가 동작하도록 명시 */
@@ -377,8 +377,8 @@ body {
 
 /* 기본 링크 — 한 줄 유지하되 폰트/색 강화 */
 .md-nav__link {
-  font-size: 0.92rem;
-  padding: 0.45rem 0.6rem;
+  font-size: 0.68rem;
+  padding: 0.2rem 0.45rem;
   color: var(--text);
   transition: color 0.15s ease, background-color 0.15s ease;
   white-space: nowrap;
@@ -389,8 +389,8 @@ body {
   font-weight: 500;
   letter-spacing: -0.1px;
   border-radius: var(--radius-sm);
-  line-height: 1.45;
-  gap: 0.35rem;
+  line-height: 1.3;
+  gap: 0.28rem;
 }
 .md-nav__link .md-ellipsis {
   white-space: nowrap;
@@ -407,7 +407,7 @@ body {
 .md-nav__link--active,
 .md-nav__item .md-nav__link--active {
   color: var(--notion-blue) !important;
-  font-weight: 700;
+  font-weight: 600;
   background: var(--badge-blue-bg);
 }
 [data-md-color-scheme="slate"] .md-nav__link {
@@ -425,31 +425,83 @@ body {
 
 /* 1depth (상위 카테고리: Language, Algorithm 등) */
 .md-nav__item--nested > .md-nav__link {
-  font-weight: 700;
-  font-size: 0.95rem;
+  font-weight: 600;
+  font-size: 0.7rem;
   color: var(--text);
-  letter-spacing: -0.15px;
+  letter-spacing: -0.05px;
 }
 [data-md-color-scheme="slate"] .md-nav__item--nested > .md-nav__link {
   color: #ffffff;
 }
 
-/* 2depth+ (하위 항목) */
+/* 2depth+ (하위 항목) — 기본 fallback */
 .md-nav__item--nested .md-nav .md-nav__link {
-  font-size: 0.86rem;
+  font-size: 0.66rem;
   font-weight: 500;
-  padding: 0.36rem 0.6rem;
+  padding: 0.18rem 0.45rem;
   color: var(--warm-gray-500);
 }
 [data-md-color-scheme="slate"] .md-nav__item--nested .md-nav .md-nav__link {
   color: #cfccc7;
 }
 
+/* ================================================
+   SIDEBAR — Depth-based hierarchy (대→중→소→세분류)
+   ================================================ */
+
+/* L1 대분류: Language / Algorithm / Framework / AI / AWS ... */
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link {
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: -0.15px;
+  padding: 0.32rem 0.55rem;
+  color: var(--text);
+}
+
+/* L2 중분류: AI > Claude Code, Framework > Node.js ... */
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  padding: 0.26rem 0.5rem;
+  color: var(--text);
+}
+
+/* L3 소분류: Claude Code > Claude Code, Claude Code 하네... */
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+  font-size: 0.66rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  color: var(--warm-gray-500);
+}
+
+/* L4+ 세분류: 더 깊은 항목 */
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item .md-nav__link {
+  font-size: 0.6rem;
+  font-weight: 500;
+  padding: 0.18rem 0.45rem;
+  color: var(--warm-gray-300);
+}
+
+/* 다크모드 색 위계 */
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link {
+  color: #ffffff;
+}
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+  color: #ebe8e3;
+}
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+  color: #b7b3ad;
+}
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item .md-nav__link {
+  color: #8c8a85;
+}
+
 /* 들여쓰기 시각 가이드 — 좌측 가는 라인 */
 .md-nav__item--nested .md-nav {
   border-left: 1px solid rgba(0, 0, 0, 0.08);
-  margin-left: 0.6rem;
-  padding-left: 0.3rem;
+  margin-left: 0.55rem;
+  padding-left: 0.25rem;
 }
 [data-md-color-scheme="slate"] .md-nav__item--nested .md-nav {
   border-left-color: rgba(255, 255, 255, 0.08);
@@ -466,18 +518,24 @@ body {
 
 /* TOC (목차) */
 .md-nav--secondary .md-nav__title {
-  font-size: 0.72rem;
+  font-size: 0.58rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--warm-gray-500);
   background: transparent !important;
   box-shadow: none !important;
+  padding: 0.35rem 0.5rem;
 }
 .md-nav--secondary .md-nav__link {
-  font-size: 0.86rem;
+  font-size: 0.64rem;
   color: var(--warm-gray-500);
   font-weight: 500;
+  padding: 0.18rem 0.45rem;
+  line-height: 1.3;
+}
+.md-nav--secondary .md-nav .md-nav__link {
+  font-size: 0.62rem;
 }
 .md-nav--secondary .md-nav__link:hover {
   color: var(--notion-blue);
@@ -485,7 +543,7 @@ body {
 }
 .md-nav--secondary .md-nav__link--active {
   color: var(--notion-blue) !important;
-  font-weight: 700;
+  font-weight: 600;
 }
 [data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link {
   color: #c0bdb8;
