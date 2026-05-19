@@ -17,6 +17,6 @@ nav:
   - 로깅
   - 파일_처리
   - View_Engine
+  - Functional_Programming.md
   - ...
   - README.md
-- Functional_Programming.md
