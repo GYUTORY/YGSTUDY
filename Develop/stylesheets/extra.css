@@ -330,18 +330,18 @@ body {
    본문 좌우 빈 공간이 과도하게 보이는 문제를 완화.
    ================================================ */
 .md-grid {
-  max-width: 90rem;
+  max-width: 100rem;
 }
 
 @media (min-width: 100em) {
   .md-grid {
-    max-width: 96rem;
+    max-width: 110rem;
   }
 }
 
 @media (min-width: 125em) {
   .md-grid {
-    max-width: 110rem;
+    max-width: 125rem;
   }
 }
 
