@@ -541,6 +541,10 @@
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Network/Elastic_Network_Interface/</loc>
+         <lastmod>2026-05-20</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Network/Nat_Gateway/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
@@ -573,6 +577,10 @@
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Network/Site_to_Site_VPN/</loc>
+         <lastmod>2026-05-20</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Network/Transit_Gateway/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
@@ -582,6 +590,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Network/VPC_Endpoints/</loc>
+         <lastmod>2026-05-20</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Network/VPC_Flow_Logs/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
