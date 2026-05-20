@@ -11,4 +11,7 @@ nav:
   - Nest_JS_테스트.md
   - Nest_JS_Type_ORM_연동.md
   - Nest_JS_AWS_Secrets_Manager_KMS.md
+  - Nest_JS_Graph_QL.md
+  - Nest_JS_Web_Socket_Gateway.md
+  - Nest_JS_Cache_Module.md
   - 실전_예제.md
