@@ -3,7 +3,9 @@ nav:
   - EC2.md
   - EC2_Types.md
   - EC2_T-시리즈.md
+  - EC2_Nitro_System.md
   - EC2_Purchase_Options.md
+  - EC2_Fleet.md
   - Auto_Scaling.md
   - Lambda.md
   - Lambda_Cold_Start_심화.md
