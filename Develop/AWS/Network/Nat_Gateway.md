@@ -1,661 +1,238 @@
 ---
 title: AWS NAT Gateway
-tags: [aws, vpc, natgateway]
-updated: 2025-12-02
+tags: [aws, vpc, natgateway, network]
+updated: 2026-05-20
 ---
 
-# AWS NAT Gateway: 프라이빗 서브넷의 인터넷 연결 솔루션
+# AWS NAT Gateway
 
-## 목차
-1. [NAT Gateway란 무엇인가?](#nat-gateway란-무엇인가)
-2. [NAT Gateway의 필요성](#nat-gateway의-필요성)
-3. [NAT Gateway vs NAT Instance](#nat-gateway-vs-nat-instance)
-4. [NAT Gateway의 작동 원리](#nat-gateway의-작동-원리)
-5. [NAT Gateway 설정 및 구성](#nat-gateway-설정-및-구성)
-6. [고가용성 및 장애 복구](#고가용성-및-장애-복구)
-7. [비용 최적화](#비용-최적화)
-8. [보안 고려사항](#보안-고려사항)
-9. [모니터링 및 로깅](#모니터링-및-로깅)
-10. [실제 사용 사례](#실제-사용-사례)
-11. [문제 해결](#문제-해결)
-12. [모범 사례](#모범-사례)
+프라이빗 서브넷의 인스턴스를 인터넷으로 내보낼 때 거의 무조건 만나는 컴포넌트다. 설치는 클릭 몇 번이라 쉬워 보이지만, 운영하다 보면 포트 고갈, AZ 간 비용 폭탄, Lambda VPC 연결 이슈 같은 함정이 차례로 나온다. 한 번 데이고 나면 비로소 동작 원리를 다시 보게 되는 부류의 서비스다.
 
----
+## NAT가 실제로 하는 일
 
-## NAT Gateway란 무엇인가?
+NAT Gateway는 5-tuple(소스 IP, 소스 포트, 대상 IP, 대상 포트, 프로토콜)을 기반으로 연결 상태를 추적한다. 프라이빗 인스턴스가 외부로 패킷을 보내면 NAT Gateway가 다음 변환을 수행한다.
 
-### NAT의 정의
-- NAT(Network Address Translation)는 네트워크 주소 변환 기술로, 프라이빗 IP 주소를 퍼블릭 IP 주소로 변환하여 인터넷 통신을 가능하게 합니다.
-- 이는 IPv4 주소 부족 문제를 해결하고 보안을 강화하는 중요한 기술입니다.
+원본 패킷의 소스 IP는 NAT Gateway의 EIP로 바뀐다. 소스 포트는 NAT Gateway가 자체적으로 보유한 임시 포트 풀에서 새로 하나를 할당받아 매핑 테이블에 기록한다. 외부에서 응답이 돌아오면 이 매핑 테이블을 역방향으로 조회해 원래 프라이빗 IP와 포트를 복원하고, 라우팅 테이블에 따라 인스턴스로 되돌린다.
 
-### AWS NAT Gateway의 특징
-- **완전 관리형 서비스**: AWS가 인프라 관리, 패치, 보안 업데이트를 담당
-- **고가용성**: 자동으로 다중 AZ에 배포되어 단일 장애점 제거
-- **자동 확장**: 트래픽에 따라 자동으로 확장되며 대역폭 제한 없음
-- **보안 강화**: 프라이빗 서브넷의 리소스들이 인터넷에 직접 노출되지 않음
+여기서 중요한 게 포트 풀이다. 하나의 NAT Gateway에 붙은 단일 EIP는 동일 대상 IP·포트 조합에 대해 약 55,000개의 포트만 동시에 매핑할 수 있다. 예를 들어 100대의 컨테이너가 동일한 외부 API(`api.example.com:443`)를 호출하면 이 모든 연결이 한 EIP의 동일한 대상으로 다중화된다. 평소엔 충분해 보이지만, 캠페인 시작이나 배치 작업이 동시에 떨어지는 순간 ErrorPortAllocation이 튀어 오른다.
 
----
+다른 대상이면 같은 소스 포트를 재사용할 수 있다. 즉 `8.8.8.8:53`으로 가는 연결과 `1.1.1.1:53`으로 가는 연결은 같은 32768 포트를 동시에 쓸 수 있다. 진짜 한계는 "EIP × 동일 대상"마다 ~55K이라는 점이다. 외부 호출이 특정 API 한 곳으로 쏠리면 NAT Gateway 자체의 처리량이 남아돌아도 포트가 먼저 말라버린다.
 
-## NAT Gateway의 필요성
+또 하나, 끝난 연결의 포트가 곧바로 풀에 반환되지 않는다. TCP는 기본적으로 350초 정도 idle timeout이 적용된 뒤 매핑이 해제된다. 단시간에 짧은 연결을 대량으로 맺는 패턴은 실제로 동시 활성 연결보다 훨씬 많은 포트를 점유한다.
 
-AWS VPC에서 프라이빗 서브넷은 보안상 인터넷과 직접 연결되지 않습니다. 하지만 다음 상황에서 인터넷 접근이 필요합니다:
+```mermaid
+sequenceDiagram
+    participant App as 프라이빗 EC2
+    participant NAT as NAT Gateway
+    participant IGW as Internet Gateway
+    participant API as 외부 API
 
-### 주요 사용 사례
-1. **소프트웨어 업데이트**: EC2 인스턴스에서 보안 패치나 애플리케이션 업데이트 다운로드
-2. **외부 API 호출**: 애플리케이션이 외부 서비스(결제, 지도, 날씨 등) API 호출
-3. **패키지 설치**: yum, apt, pip, npm 등을 통한 패키지 설치
-4. **로그 전송**: CloudWatch, 외부 로깅 서비스로 로그 전송
-5. **백업**: S3나 외부 스토리지로 데이터 백업
-
-### 보안상의 이점
-- 프라이빗 리소스의 IP 주소를 외부에 노출하지 않음
-- 인바운드 트래픽 차단으로 보안 강화
-- 아웃바운드 트래픽만 허용하는 단방향 통신
-
-### 기본 아키텍처
-```
-인터넷
-    ↑
-Internet Gateway
-    ↑
-퍼블릭 서브넷 (AZ-A)
-    ↑
-NAT Gateway
-    ↑
-프라이빗 서브넷 (AZ-A)
-    ↑
-EC2 인스턴스 (프라이빗)
+    App->>NAT: src=10.0.1.10:48231 dst=1.2.3.4:443
+    NAT->>NAT: 매핑 기록 (10.0.1.10:48231 ↔ EIP:51002)
+    NAT->>IGW: src=EIP:51002 dst=1.2.3.4:443
+    IGW->>API: 패킷 전송
+    API-->>IGW: 응답 src=1.2.3.4:443 dst=EIP:51002
+    IGW-->>NAT: 응답 전달
+    NAT->>NAT: 매핑 역조회
+    NAT-->>App: dst=10.0.1.10:48231
 ```
 
----
+## 다중 AZ에서 흔히 밟는 함정
 
-## NAT Gateway vs NAT Instance
+NAT Gateway는 AZ 단위 리소스다. `ap-northeast-2a`에 만든 NAT Gateway는 그 AZ에서만 살아 있다. 해당 AZ에 장애가 나면 NAT도 같이 죽는다. 그래서 운영 환경에서는 AZ마다 NAT Gateway를 하나씩 둔다.
 
-### 비교표
+여기서 첫 번째 함정. 라우팅 테이블을 AZ별로 분리하지 않고 프라이빗 서브넷 전부를 한 개의 라우팅 테이블에 묶어 두면, 모든 AZ의 트래픽이 그 라우팅 테이블이 가리키는 단 하나의 NAT Gateway로 빨려 들어간다. AZ-A의 NAT가 죽었을 때 트래픽을 AZ-B로 옮기려고 그렇게 했을 수도 있지만, 평상시에는 AZ-B와 AZ-C의 인스턴스가 죄다 AZ-A로 우회한다. 그러면 AZ 간 데이터 전송 요금(GB당 $0.01)이 그대로 발생한다.
 
-| 특징 | NAT Gateway | NAT Instance |
-|------|-------------|--------------|
-| **관리 복잡도** | 완전 관리형, 설정 불필요 | 수동 관리, 설정 필요 |
-| **가용성** | 자동 다중 AZ 배포 | 수동으로 다중 AZ 구성 필요 |
-| **확장성** | 자동 확장, 대역폭 제한 없음 | 인스턴스 타입에 따른 제한 |
-| **보안** | AWS 관리, 자동 패치 | 수동 보안 관리 필요 |
-| **비용** | 시간당 요금 + 데이터 처리량 | EC2 인스턴스 비용 |
-| **대역폭** | 최대 45 Gbps | 인스턴스 타입에 따라 제한 |
+내부 트래픽은 한 방향만 과금되는 게 아니다. 인스턴스 → NAT Gateway 구간과 NAT Gateway → 인스턴스(응답) 구간 양쪽에 발생한다. 즉 1GB의 외부 호출이 실제로는 2GB의 AZ 간 트래픽으로 환산된다. 여기에 NAT 처리량 요금($0.045/GB)이 따로 붙는다. 평상시 트래픽이 큰 서비스라면 라우팅 테이블 잘못 묶은 것 하나로 월 청구서가 두 배로 뛰는 일이 흔하다.
 
-### NAT Gateway의 장점
-- **관리 편의성**: AWS가 모든 인프라 관리
-- **안정성**: 99.99% 가용성 보장
-- **성능**: 높은 처리량과 낮은 지연시간
-- **보안**: 자동 보안 업데이트
+해결은 단순하다. AZ마다 라우팅 테이블을 하나씩 만들고, 각 라우팅 테이블의 `0.0.0.0/0`은 같은 AZ의 NAT Gateway를 가리키게 한다.
 
-### NAT Instance의 장점
-- **세밀한 제어**: 커스텀 설정 가능
-- **비용 효율성**: 낮은 트래픽에서는 더 저렴할 수 있음
-- **특수 요구사항**: 특별한 네트워크 구성이 필요한 경우
-
-### 언제 NAT Gateway를 사용해야 하는가?
-- **프로덕션 환경**: 안정성과 보안이 중요한 경우
-- **높은 트래픽**: 대용량 데이터 처리가 필요한 경우
-- **관리 효율성**: 인프라 관리 부담을 줄이고 싶은 경우
-- **규정 준수**: 보안 정책이 엄격한 환경
-
----
-
-## NAT Gateway의 작동 원리
-
-### NAT 프로세스 상세 설명
-
-#### 1. 아웃바운드 트래픽 처리
-1. **요청 시작**: 프라이빗 서브넷의 EC2 인스턴스가 외부 서버에 요청
-2. **라우팅**: 프라이빗 서브넷의 라우팅 테이블이 NAT Gateway로 트래픽 전달
-3. **주소 변환**: NAT Gateway가 프라이빗 IP를 퍼블릭 IP로 변환
-4. **인터넷 전송**: Internet Gateway를 통해 인터넷으로 전송
-5. **응답 수신**: 외부 서버의 응답이 NAT Gateway로 돌아옴
-6. **역방향 변환**: NAT Gateway가 퍼블릭 IP를 원래 프라이빗 IP로 변환
-7. **응답 전달**: EC2 인스턴스로 응답 전달
-
-#### 2. 연결 추적 (Connection Tracking)
-NAT Gateway는 각 연결을 추적하여 응답을 올바른 인스턴스로 라우팅합니다:
-- **소스 IP**: 프라이빗 IP 주소
-- **소스 포트**: 임시 포트 번호
-- **대상 IP**: 외부 서버 IP
-- **대상 포트**: 외부 서버 포트
-- **프로토콜**: TCP/UDP
-
-### NAT Gateway의 제한사항
-- **인바운드 트래픽 불가**: 외부에서 프라이빗 리소스로 직접 접근 불가
-- **포트 포워딩 불가**: 특정 포트를 특정 인스턴스로 포워딩 불가
-- **프로토콜 제한**: TCP, UDP, ICMP만 지원 (다른 프로토콜은 지원하지 않음)
-
----
-
-## NAT Gateway 설정 및 구성
-
-### 사전 요구사항
-1. **VPC 생성**: NAT Gateway를 배포할 VPC
-2. **퍼블릭 서브넷**: NAT Gateway가 위치할 퍼블릭 서브넷
-3. **Elastic IP**: NAT Gateway에 할당할 고정 IP 주소
-4. **Internet Gateway**: 퍼블릭 서브넷을 인터넷에 연결
-5. **라우팅 테이블**: 프라이빗 서브넷의 라우팅 구성
-
-### AWS CLI를 통한 설정
-
-#### 1단계: Elastic IP 할당
-```bash
-aws ec2 allocate-address --domain vpc
-```
-
-#### 2단계: NAT Gateway 생성
-```bash
-aws ec2 create-nat-gateway \
-    --subnet-id subnet-12345678 \
-    --allocation-id eipalloc-12345678 \
-    --tag-specifications 'ResourceType=natgateway,Tags=[{Key=Name,Value=MyNATGateway}]'
-```
-
-#### 3단계: 라우팅 테이블 구성
-```bash
-aws ec2 create-route \
-    --route-table-id rtb-12345678 \
-    --destination-cidr-block 0.0.0.0/0 \
-    --nat-gateway-id nat-12345678
-```
-
-### AWS 콘솔을 통한 설정
-
-#### 1. VPC 콘솔 접속
-1. AWS 콘솔에서 VPC 서비스로 이동
-2. 좌측 메뉴에서 "NAT Gateway" 선택
-3. "Create NAT Gateway" 클릭
-
-#### 2. NAT Gateway 구성
-- **Name tag**: NAT Gateway의 이름 지정
-- **Subnet**: 퍼블릭 서브넷 선택
-- **Elastic IP allocation ID**: 기존 EIP 선택 또는 새로 생성
-- **Tags**: 추가 태그 설정 (선택사항)
-
-#### 3. 라우팅 테이블 업데이트
-1. VPC 콘솔에서 "Route Tables" 선택
-2. 프라이빗 서브넷의 라우팅 테이블 선택
-3. "Routes" 탭에서 "Edit routes" 클릭
-4. "Add route"로 0.0.0.0/0을 NAT Gateway로 라우팅 추가
-
-### Terraform을 통한 설정
 ```hcl
-# Elastic IP
-resource "aws_eip" "nat" {
-  domain = "vpc"
-  tags = {
-    Name = "NAT Gateway EIP"
+# AZ별 NAT Gateway
+resource "aws_nat_gateway" "az" {
+  for_each      = aws_subnet.public
+  allocation_id = aws_eip.nat[each.key].id
+  subnet_id     = each.value.id
+}
+
+# AZ별 프라이빗 라우팅 테이블
+resource "aws_route_table" "private" {
+  for_each = aws_subnet.private
+  vpc_id   = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.az[each.key].id
   }
 }
 
-# NAT Gateway
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
-
-  tags = {
-    Name = "Main NAT Gateway"
-  }
-
-  depends_on = [aws_internet_gateway.main]
-}
-
-# 프라이빗 서브넷 라우팅
-resource "aws_route" "private_nat_gateway" {
-  route_table_id         = aws_route_table.private.id
-  destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.main.id
+resource "aws_route_table_association" "private" {
+  for_each       = aws_subnet.private
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.private[each.key].id
 }
 ```
 
----
+두 번째 함정은 장애 대응이다. AZ-A의 NAT Gateway가 죽었을 때 AZ-A 인스턴스들이 자동으로 AZ-B의 NAT로 우회해 주지 않는다. AZ-A 라우팅 테이블을 손으로 수정해 NAT를 AZ-B 쪽으로 돌려야 한다. 자동화하려면 Route 53 헬스체크와 Lambda를 묶거나, NAT Gateway 모니터링용 별도 람다가 라우팅 테이블을 갱신하도록 짜야 한다. 다만 AZ-A 워크로드 자체가 죽었을 가능성이 더 크니, NAT만 살려서 의미가 있는지부터 따져야 한다.
 
-## 고가용성 및 장애 복구
+## 포트 고갈(ErrorPortAllocation) 대응
 
-### 다중 AZ 구성
-NAT Gateway는 단일 AZ에 배포되므로, 고가용성을 위해서는 각 AZ마다 별도의 NAT Gateway를 구성해야 합니다.
+`ErrorPortAllocation` 메트릭이 0이 아닌 값으로 잡히기 시작하면 그 시점부터는 일부 외부 연결이 실패한다. 애플리케이션 로그에는 `connection timeout`이나 `connection refused`로 보일 텐데 NAT 쪽에서 패킷이 그냥 드롭되는 것이라 원인을 찾기가 까다롭다.
 
-#### 권장 아키텍처
-```
-                    인터넷
-                       ↑
-                Internet Gateway
-                       ↑
-        ┌─────────────────────────────┐
-        │                             │
-    퍼블릭 서브넷-A              퍼블릭 서브넷-B
-        │                             │
-    NAT Gateway-A                NAT Gateway-B
-        │                             │
-    프라이빗 서브넷-A            프라이빗 서브넷-B
-        │                             │
-    EC2 인스턴스들-A            EC2 인스턴스들-B
-```
+원인은 거의 항상 셋 중 하나다.
 
-#### 다중 NAT Gateway 설정
+첫째, 외부 호출이 소수의 동일한 대상(IP+포트)으로 집중된다. 결제 게이트웨이, 외부 검색 API, 푸시 알림 서비스 같은 곳으로 트래픽이 쏠리는 경우다. 이때는 NAT Gateway에 secondary IP를 추가하면 포트 풀이 IP 수만큼 늘어난다. 한 NAT Gateway에 최대 8개의 EIP를 붙일 수 있고, 그러면 동일 대상에 대해 약 55K × 8 = 약 44만 포트까지 확장된다. EIP를 추가했을 때 어떤 출발지 IP가 어떤 EIP를 쓰는지는 NAT Gateway 내부 해시로 결정되니, 특정 인스턴스를 특정 EIP에 묶으려는 시도는 의미가 없다.
+
 ```bash
-# AZ-A용 NAT Gateway
-aws ec2 create-nat-gateway \
-    --subnet-id subnet-public-a \
-    --allocation-id eip-a
-
-# AZ-B용 NAT Gateway  
-aws ec2 create-nat-gateway \
-    --subnet-id subnet-public-b \
-    --allocation-id eip-b
-
-# 각 프라이빗 서브넷의 라우팅 테이블에 해당 AZ의 NAT Gateway 연결
+# secondary IP 할당
+aws ec2 associate-nat-gateway-address \
+    --nat-gateway-id nat-0abcd1234 \
+    --allocation-ids eipalloc-aaa eipalloc-bbb
 ```
 
-### 장애 복구 전략
+둘째, 애플리케이션이 연결을 재사용하지 않고 매 요청마다 새 TCP 연결을 맺는다. HTTP 클라이언트의 keep-alive 설정을 끄거나, 풀 크기를 너무 작게 잡았거나, 매번 짧게 끊는 패턴이 그렇다. Node.js의 `http.Agent`, Python의 `requests.Session`, Java의 OkHttp `ConnectionPool` 모두 기본 keep-alive를 켜놓되 풀 크기와 idle timeout을 조정해 NAT의 매핑 수명과 어긋나지 않게 맞추는 게 좋다.
 
-#### 1. 자동 장애 복구
-- NAT Gateway는 AWS에서 자동으로 관리되므로 하드웨어 장애 시 자동 복구
-- 다중 AZ 구성으로 AZ 장애 시에도 서비스 지속
+셋째, NAT를 통하지 말아야 할 트래픽까지 NAT로 가고 있다. S3, DynamoDB, ECR, CloudWatch Logs 같은 AWS 서비스로 가는 트래픽이 NAT Gateway를 거치면 포트와 처리량을 모두 잡아먹는다. 다음 절에서 다룬다.
 
-#### 2. 수동 장애 복구
+운영 중에 ErrorPortAllocation이 튀면 즉시 다음 순서로 본다.
+
+1. CloudWatch에서 `ActiveConnectionCount`가 동시에 비정상적으로 높은지 확인. 높다면 트래픽 패턴 자체가 문제다.
+2. VPC Flow Logs에서 NAT Gateway ENI의 destination IP 분포를 뽑는다. 한두 곳으로 집중되어 있으면 secondary EIP 추가가 즉효다.
+3. ECR, S3, CloudWatch Logs로의 흐름이 보이면 VPC Endpoint로 분리한다.
+
+## 비용이 폭발하는 진짜 이유
+
+NAT Gateway는 시간당 요금($0.045/시간, 월 약 $32)보다 처리량 요금($0.045/GB)이 청구서를 무겁게 만든다. 1TB가 NAT를 통과하면 $46이 추가된다. 외부 API 호출만 있을 때는 별 게 아니지만, S3나 DynamoDB로 가는 트래픽이 NAT를 거치고 있으면 청구서가 단숨에 수백 달러로 뛴다.
+
+가장 흔한 사례가 ECR이다. ECS나 EKS 노드가 컨테이너 이미지를 ECR에서 받아오는데, ECR은 퍼블릭 엔드포인트라 NAT Gateway를 통과한다. 이미지 한 개가 500MB라면 노드 100대가 새 버전을 받을 때마다 50GB가 NAT를 지난다. 배포가 잦으면 이 비용만 월 수십만 원이 된다.
+
+해결은 VPC Endpoint다. S3, DynamoDB는 Gateway Endpoint로 무료(시간당 요금 없음)다. ECR, CloudWatch Logs, Secrets Manager, KMS, STS 같은 서비스는 Interface Endpoint로 붙이면 시간당 $0.01 정도, 처리량 요금은 GB당 $0.01이라 NAT보다 훨씬 싸다. Interface Endpoint를 AZ 수만큼 둬야 한다는 점은 알아둘 것.
+
+```hcl
+# S3 Gateway Endpoint (무료)
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.ap-northeast-2.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [for rt in aws_route_table.private : rt.id]
+}
+
+# ECR Interface Endpoint
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.ap-northeast-2.ecr.api"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [for s in aws_subnet.private : s.id]
+  private_dns_enabled = true
+  security_group_ids  = [aws_security_group.endpoint.id]
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.ap-northeast-2.ecr.dkr"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [for s in aws_subnet.private : s.id]
+  private_dns_enabled = true
+  security_group_ids  = [aws_security_group.endpoint.id]
+}
+```
+
+ECR Endpoint를 붙일 때는 `ecr.api`와 `ecr.dkr` 두 개를 모두 만들어야 한다. 그리고 이미지 레이어가 S3에 저장되므로 S3 Gateway Endpoint도 함께 있어야 NAT를 완전히 우회한다. 셋 중 하나라도 빠지면 이미지 풀의 일부가 NAT로 새어 나간다.
+
+비용 분석은 VPC Flow Logs를 켜고 NAT Gateway ENI의 트래픽을 destination 기준으로 집계한다. AWS의 IP 범위 JSON과 매칭해서 어느 서비스로 얼마나 가는지 보면, VPC Endpoint로 옮길 후보가 명확해진다.
+
+## NAT Instance를 쓸 때가 있는가
+
+거의 없다. 다음 두 경우 정도다.
+
+소규모 개발/스테이징 환경에서 비용이 우선인 경우. t4g.nano 한 대(월 약 $3)에 SNAT을 켜면 NAT Gateway($32 + 처리량)보다 한참 싸다. 트래픽이 적고, 가용성 요구도 없다는 전제다.
+
+특수한 요구사항이 있을 때. 예를 들어 아웃바운드 SNAT의 소스 포트를 특정 범위로 강제하거나, 외부에 노출할 EIP를 한 번 더 변환해야 하거나, NAT 인스턴스 위에 iptables 규칙을 직접 얹어야 하는 경우다. NAT Gateway는 사용자가 손댈 여지가 거의 없으므로 이런 요구는 NAT Instance 또는 자체 구축이 답이 된다.
+
+다만 NAT Instance를 쓰는 순간 직접 관리해야 할 게 다 돌아온다. AMI 패치, source/destination check 비활성화, 가용성 구성, 인스턴스 타입에 따른 네트워크 처리량 한계, 헬스체크 등 모두 본인 몫이다. 운영 부담을 감안하면 어지간한 프로덕션은 NAT Gateway가 답이다.
+
+## Lambda VPC 연결과 NAT 부하
+
+Lambda를 VPC에 붙이면 함수 인스턴스마다 ENI가 필요하다. 2019년 이후로는 Hyperplane ENI로 ENI 한 개를 여러 함수 인스턴스가 공유하므로 콜드 스타트 지연과 ENI 한계 문제는 많이 줄었다. 그러나 NAT 부하 패턴은 여전히 신경 써야 한다.
+
+VPC Lambda가 외부 API를 호출하면 그 트래픽은 무조건 NAT Gateway를 거친다. 함수 동시 실행 수가 수천 단위로 치솟으면 동일 외부 API로 가는 연결이 폭증해 포트 고갈을 부른다. Lambda는 매 호출마다 새 TCP 연결을 맺기 쉬운 구조(콜드 스타트 후 핸들러 외부에서 클라이언트를 만들지 않으면 그렇게 된다)라서 NAT 매핑이 빠르게 쌓인다.
+
+대응은 두 가지다. 첫째, 핸들러 함수 바깥에서 HTTP 클라이언트와 DB 커넥션을 초기화한다. 컨테이너 재사용 동안 같은 클라이언트가 살아 있어 keep-alive가 동작한다. 둘째, AWS 서비스로의 호출이라면 Lambda를 VPC에 넣지 말거나, VPC Endpoint를 붙여 NAT를 우회한다. Lambda가 S3/DynamoDB만 부르는데 VPC 안에 있다면 거의 항상 잘못된 구성이다.
+
+Lambda가 RDS Proxy를 통해 RDS에 붙는다면 VPC에 있어야 하니 NAT Gateway 의존이 생긴다. 이때 외부 API 호출이 잦은 함수와 RDS만 부르는 함수를 분리하면 NAT 부하를 줄이기 쉽다.
+
+## 디버깅 순서
+
+프라이빗 인스턴스에서 외부로 안 나간다는 신고가 들어오면 다음 순서대로 본다. 위에서부터 차례로 확인하면 거의 모든 케이스가 잡힌다.
+
+1. **인스턴스에서 직접 외부 IP를 친다.** `curl -v https://1.1.1.1` 또는 `nc -zv 1.1.1.1 443`. DNS 문제와 라우팅 문제를 분리하기 위해 도메인이 아닌 IP를 쓴다.
+2. **라우팅 테이블 확인.** 인스턴스가 속한 서브넷의 라우팅 테이블에 `0.0.0.0/0 → nat-xxxx`가 있는지 본다. 새 서브넷을 추가했을 때 라우팅 테이블 연결을 빠뜨려 메인 라우팅 테이블(인터넷 라우트 없음)에 묶여 있는 경우가 흔하다.
+3. **NAT Gateway 상태 확인.** AWS 콘솔에서 `available` 상태인지, EIP가 정상적으로 붙어 있는지 본다. NAT Gateway 자체가 죽는 경우는 드물지만, 누군가 실수로 EIP를 해제한 사례가 의외로 있다.
+4. **보안 그룹 아웃바운드 규칙.** 기본 SG는 아웃바운드 전체 허용이지만, 정책상 묶어 둔 환경에서는 443만 열려 있는 경우가 있다. 외부 API가 다른 포트를 쓰면 막힌다.
+5. **NACL 확인.** 보안 그룹과 달리 NACL은 stateless다. 아웃바운드 규칙뿐 아니라 인바운드 규칙에도 ephemeral 포트 범위(1024-65535)가 열려 있어야 응답이 돌아온다. 직접 만든 NACL일 때 자주 빠뜨린다.
+6. **VPC Flow Logs.** 위 단계가 깔끔한데 여전히 실패하면 Flow Logs로 ACCEPT/REJECT를 확인한다. NAT Gateway의 ENI에서 패킷이 보이는지, 어디서 끊기는지 추적할 수 있다.
+
+라우팅 테이블과 NACL은 한 번 잘못 건드리면 영향 범위가 크니, 운영 환경에서는 Reachability Analyzer를 먼저 돌리는 게 안전하다.
+
+## Reachability Analyzer 활용
+
+콘솔에서 VPC → Reachability Analyzer로 들어가 소스(인스턴스 ENI)와 대상(IGW)을 지정하면 패킷이 어느 컴포넌트에서 통과하고 어디서 막히는지를 그림으로 보여준다. 라우팅 테이블, 보안 그룹, NACL, NAT Gateway까지 한 번에 체크한다.
+
 ```bash
-# NAT Gateway 상태 확인
-aws ec2 describe-nat-gateways --nat-gateway-ids nat-12345678
-
-# 필요시 NAT Gateway 재생성
-aws ec2 delete-nat-gateway --nat-gateway-id nat-12345678
-aws ec2 create-nat-gateway --subnet-id subnet-12345678 --allocation-id eip-12345678
-```
-
-#### 3. 모니터링 및 알림
-```bash
-# CloudWatch 알림 설정
-aws cloudwatch put-metric-alarm \
-    --alarm-name "NATGatewayError" \
-    --alarm-description "NAT Gateway error rate alarm" \
-    --metric-name ErrorPortAllocation \
-    --namespace AWS/NATGateway \
-    --statistic Sum \
-    --period 300 \
-    --threshold 1 \
-    --comparison-operator GreaterThanThreshold
-```
-
----
-
-## 비용 최적화
-
-### NAT Gateway 비용 구조
-- **시간당 요금**: 약 $0.045/시간 (약 $32.40/월)
-- **데이터 처리량**: $0.045/GB
-- **Elastic IP**: 할당된 EIP에 대한 시간당 요금
-
-### 비용 최적화 방법
-
-#### 1. NAT Instance 사용 고려
-낮은 트래픽 환경에서는 NAT Instance가 더 비용 효율적일 수 있습니다:
-- **t3.nano**: 약 $3.50/월
-- **t3.micro**: 약 $7.00/월
-
-#### 2. 트래픽 최적화
-- **캐싱 전략**: CDN 사용으로 반복 요청 감소
-- **로컬 패키지 저장소**: 내부 패키지 저장소 구축
-- **프록시 서버**: 프라이빗 서브넷 내 프록시 서버 구성
-
-#### 3. 다중 AZ 최적화
-- **필요한 경우에만**: 실제로 다중 AZ가 필요한 경우에만 구성
-- **트래픽 분산**: 각 AZ의 트래픽을 균등하게 분산
-
-#### 4. 자동화된 비용 모니터링
-```bash
-# CloudWatch 비용 알림 설정
-aws cloudwatch put-metric-alarm \
-    --alarm-name "NATGatewayCost" \
-    --alarm-description "NAT Gateway cost alarm" \
-    --metric-name BytesOutToDestination \
-    --namespace AWS/NATGateway \
-    --statistic Sum \
-    --period 86400 \
-    --threshold 1000000000 \
-    --comparison-operator GreaterThanThreshold
-```
-
-### 비용 비교 시나리오
-
-#### 시나리오 1: 낮은 트래픽 (1GB/일)
-- **NAT Gateway**: $32.40/월 + $1.35/월 = $33.75/월
-- **NAT Instance (t3.nano)**: $3.50/월 + $1.35/월 = $4.85/월
-
-#### 시나리오 2: 중간 트래픽 (10GB/일)
-- **NAT Gateway**: $32.40/월 + $13.50/월 = $45.90/월
-- **NAT Instance (t3.micro)**: $7.00/월 + $13.50/월 = $20.50/월
-
-#### 시나리오 3: 높은 트래픽 (100GB/일)
-- **NAT Gateway**: $32.40/월 + $135.00/월 = $167.40/월
-- **NAT Instance (t3.small)**: $14.00/월 + $135.00/월 = $149.00/월
-
----
-
-## 보안 고려사항
-
-### NAT Gateway의 보안 특징
-1. **단방향 통신**: 아웃바운드 트래픽만 허용
-2. **IP 숨김**: 프라이빗 IP 주소가 외부에 노출되지 않음
-3. **연결 추적**: 각 연결을 추적하여 응답을 올바른 인스턴스로 라우팅
-
-### 추가 보안 조치
-
-#### 1. 네트워크 ACL (NACL) 구성
-```bash
-# HTTPS (443) 허용
-aws ec2 create-network-acl-entry \
-    --network-acl-id acl-12345678 \
-    --ingress false \
-    --rule-number 100 \
-    --protocol tcp \
-    --port-range From=443,To=443 \
-    --cidr-block 0.0.0.0/0 \
-    --rule-action allow
-
-# HTTP (80) 허용 (필요한 경우)
-aws ec2 create-network-acl-entry \
-    --network-acl-id acl-12345678 \
-    --ingress false \
-    --rule-number 200 \
-    --protocol tcp \
-    --port-range From=80,To=80 \
-    --cidr-block 0.0.0.0/0 \
-    --rule-action allow
-```
-
-#### 2. 보안 그룹 구성
-```bash
-# 아웃바운드 HTTPS 허용
-aws ec2 authorize-security-group-egress \
-    --group-id sg-12345678 \
-    --protocol tcp \
-    --port 443 \
-    --cidr 0.0.0.0/0
-```
-
-#### 3. VPC Flow Logs 활성화
-```bash
-# VPC Flow Logs 생성
-aws ec2 create-flow-logs \
-    --resource-type VPC \
-    --resource-ids vpc-12345678 \
-    --traffic-type ALL \
-    --log-destination-type cloud-watch-logs \
-    --log-group-name VPCFlowLogs
-```
-
-### 보안 모범 사례
-1. **최소 권한 원칙**: 필요한 포트만 허용
-2. **정기적인 감사**: 네트워크 트래픽 패턴 모니터링
-3. **암호화**: HTTPS/TLS 사용으로 데이터 암호화
-4. **접근 제어**: IAM 정책을 통한 NAT Gateway 관리 권한 제한
-
----
-
-## 모니터링 및 로깅
-
-### CloudWatch 메트릭
-NAT Gateway는 다음 CloudWatch 메트릭을 제공합니다:
-
-#### 1. 기본 메트릭
-- **ActiveConnectionCount**: 활성 연결 수
-- **BytesInFromDestination**: 대상에서 수신한 바이트 수
-- **BytesInFromSource**: 소스에서 수신한 바이트 수
-- **BytesOutToDestination**: 대상으로 전송한 바이트 수
-- **BytesOutToSource**: 소스로 전송한 바이트 수
-- **ConnectionEstablishedCount**: 성공적으로 설정된 연결 수
-- **ConnectionAttemptCount**: 연결 시도 수
-- **ErrorPortAllocation**: 포트 할당 오류 수
-- **PacketDropCount**: 드롭된 패킷 수
-
-#### 2. 대시보드 구성
-```bash
-# CloudWatch 대시보드 생성
-aws cloudwatch put-dashboard \
-    --dashboard-name "NATGatewayDashboard" \
-    --dashboard-body '{
-        "widgets": [
-            {
-                "type": "metric",
-                "properties": {
-                    "metrics": [
-                        ["AWS/NATGateway", "BytesOutToDestination", "NatGatewayId", "nat-12345678"]
-                    ],
-                    "period": 300,
-                    "stat": "Sum",
-                    "region": "us-east-1",
-                    "title": "NAT Gateway Outbound Traffic"
-                }
-            }
-        ]
-    }'
-```
-
-#### 3. 알림 설정
-```bash
-# 높은 연결 수 알림
-aws cloudwatch put-metric-alarm \
-    --alarm-name "HighConnectionCount" \
-    --alarm-description "High number of active connections" \
-    --metric-name ActiveConnectionCount \
-    --namespace AWS/NATGateway \
-    --statistic Average \
-    --period 300 \
-    --threshold 1000 \
-    --comparison-operator GreaterThanThreshold \
-    --evaluation-periods 2
-
-# 높은 오류율 알림
-aws cloudwatch put-metric-alarm \
-    --alarm-name "HighErrorRate" \
-    --alarm-description "High error rate in NAT Gateway" \
-    --metric-name ErrorPortAllocation \
-    --namespace AWS/NATGateway \
-    --statistic Sum \
-    --period 300 \
-    --threshold 5 \
-    --comparison-operator GreaterThanThreshold
-```
-
-### VPC Flow Logs 분석
-```bash
-# Athena를 사용한 Flow Logs 쿼리 예시
-SELECT 
-    sourceaddress,
-    destinationaddress,
-    sourceport,
-    destinationport,
-    action,
-    COUNT(*) as connection_count
-FROM vpc_flow_logs
-WHERE natgatewayid = 'nat-12345678'
-    AND day >= '2024-01-01'
-GROUP BY sourceaddress, destinationaddress, sourceport, destinationport, action
-ORDER BY connection_count DESC
-LIMIT 10;
-```
-
----
-
-## 실제 사용 사례
-
-### 사례 1: 웹 애플리케이션 백엔드
-```
-인터넷 → ALB → 퍼블릭 서브넷 → NAT Gateway → 프라이빗 서브넷 (웹 서버)
-```
-
-**구성 요소:**
-- **ALB**: 인터넷에서의 트래픽 수신
-- **퍼블릭 서브넷**: ALB 배치
-- **NAT Gateway**: 프라이빗 서브넷의 웹 서버가 외부 API 호출
-- **프라이빗 서브넷**: 웹 서버, 데이터베이스, 캐시 서버
-
-**장점:**
-- 웹 서버가 외부에 직접 노출되지 않음
-- 데이터베이스는 완전히 격리됨
-- 외부 API 호출 가능 (결제, 이메일, SMS 등)
-
-### 사례 2: 마이크로서비스 아키텍처
-```
-인터넷 → API Gateway → 퍼블릭 서브넷 → NAT Gateway → 프라이빗 서브넷 (마이크로서비스들)
-```
-
-**구성 요소:**
-- **API Gateway**: API 요청 수신 및 라우팅
-- **퍼블릭 서브넷**: API Gateway 배치
-- **NAT Gateway**: 각 마이크로서비스의 외부 API 호출
-- **프라이빗 서브넷**: 사용자 서비스, 주문 서비스, 결제 서비스 등
-
-**장점:**
-- 각 서비스가 독립적으로 외부 API 호출 가능
-- 서비스 간 통신은 내부 네트워크 사용
-- 확장성과 보안성 동시 확보
-
-### 사례 3: 데이터 처리 파이프라인
-```
-S3 → Lambda → VPC → NAT Gateway → 외부 데이터 소스
-```
-
-**구성 요소:**
-- **Lambda**: 데이터 처리 함수
-- **VPC**: Lambda가 실행될 프라이빗 네트워크
-- **NAT Gateway**: 외부 데이터 소스 접근
-- **외부 데이터 소스**: 외부 API, 데이터베이스 등
-
-**장점:**
-- Lambda 함수가 안전한 네트워크 환경에서 실행
-- 외부 데이터 소스 접근 가능
-- 서버리스 아키텍처와 보안성 결합
-
----
-
-## 문제 해결
-
-### 일반적인 문제 및 해결 방법
-
-#### 1. NAT Gateway 연결 실패
-**증상:** 프라이빗 서브넷의 인스턴스가 인터넷에 접근할 수 없음
-
-**확인 사항:**
-```bash
-# 라우팅 테이블 확인
-aws ec2 describe-route-tables --route-table-ids rtb-12345678
-
-# 보안 그룹 확인
-aws ec2 describe-security-groups --group-ids sg-12345678
-```
-
-**해결 방법:**
-1. NAT Gateway가 "available" 상태인지 확인
-2. 프라이빗 서브넷의 라우팅 테이블에 0.0.0.0/0 → NAT Gateway 라우트 확인
-3. 보안 그룹에서 아웃바운드 트래픽 허용 확인
-
-#### 2. 높은 지연 시간
-**증상:** 외부 API 호출 시 응답 시간이 느림
-
-**확인 사항:**
-```bash
-# CloudWatch 메트릭 확인
-aws cloudwatch get-metric-statistics \
-    --namespace AWS/NATGateway \
-    --metric-name BytesOutToDestination \
-    --dimensions Name=NatGatewayId,Value=nat-12345678 \
-    --start-time 2024-01-01T00:00:00Z \
-    --end-time 2024-01-01T23:59:59Z \
-    --period 3600 \
-    --statistics Sum
-```
-
-**해결 방법:**
-1. 불필요한 외부 요청 제거
-2. CDN 사용으로 반복 요청 감소
-3. NAT Instance 사용 고려
-
-#### 3. 비용 급증
-**증상:** NAT Gateway 비용이 예상보다 높음
-
-**확인 사항:**
-```bash
-# VPC Flow Logs에서 NAT Gateway 트래픽 분석
-aws logs filter-log-events \
-    --log-group-name VPCFlowLogs \
-    --filter-pattern "natgatewayid nat-12345678" \
-    --start-time 1640995200000 \
-    --end-time 1641081600000
-```
-
-**해결 방법:**
-1. 다중 AZ 구성으로 트래픽 분산
-2. 연결 풀링 구현
-3. 캐싱 전략 적용
-
-### 디버깅 도구
-
-#### 1. VPC Reachability Analyzer
-```bash
-# 네트워크 경로 생성
+# 분석 경로 생성: 프라이빗 ENI → IGW
 aws ec2 create-network-insights-path \
-    --source-ip 10.0.1.10 \
-    --destination-ip 8.8.8.8 \
-    --protocol tcp
+    --source eni-0aaaa1111 \
+    --destination igw-0bbb2222 \
+    --protocol tcp \
+    --destination-port 443
 
-# 네트워크 분석 시작
 aws ec2 start-network-insights-analysis \
-    --network-insights-path-id nip-12345678
+    --network-insights-path-id nip-0ccc3333
 ```
 
-#### 2. CloudWatch Logs 쿼리
-```bash
-# NAT Gateway 메트릭 확인
-aws cloudwatch get-metric-statistics \
-    --namespace AWS/NATGateway \
-    --metric-name ActiveConnectionCount \
-    --dimensions Name=NatGatewayId,Value=nat-12345678 \
-    --start-time 2024-01-01T00:00:00Z \
-    --end-time 2024-01-01T23:59:59Z \
-    --period 3600 \
-    --statistics Average
+분석은 한 번에 약 $0.10이라 상시 모니터링용은 아니다. 대신 새 서브넷을 추가했거나 보안 그룹 정책을 크게 바꾼 직후, 또는 장애 디버깅 중에 빠르게 정답을 좁히는 용도로 쓴다. 결과에 "blocked by NACL rule 100"처럼 정확한 컴포넌트가 찍히므로 추리할 일이 줄어든다.
+
+다만 Reachability Analyzer는 정적 분석이다. 실제로 패킷이 갔는지 보는 게 아니라 라우팅과 정책으로만 판정한다. NAT Gateway가 포트 고갈 상태일 때는 모든 분석이 "통과 가능"으로 나오는데 실제 호출은 실패한다. 이런 케이스는 Flow Logs와 CloudWatch 메트릭으로 가야 한다.
+
+## 모니터링에서 봐야 하는 것
+
+CloudWatch에서 NAT Gateway가 노출하는 메트릭 중 실제로 알람을 거는 건 다음 세 개다.
+
+- `ErrorPortAllocation`: 0이 아니면 그 순간부터 일부 연결이 실패하고 있다. 즉시 알람.
+- `ActiveConnectionCount`: 평상시 베이스라인 대비 급격한 증가는 외부 호출 폭주의 신호. 트래픽 패턴 점검 트리거.
+- `BytesOutToDestination`: 비용과 직결. 일/주 단위 추이를 비용 알람과 묶는다.
+
+`PacketsDropCount`는 헬스 신호로 같이 본다. 정상 상태에서는 거의 0이다.
+
+VPC Flow Logs는 켜되 NAT Gateway의 ENI 트래픽을 별도로 추출해 destination 기준 집계를 주기적으로 돌리는 게 좋다. Athena 쿼리 한 번이면 어디로 트래픽이 가는지 일목요연하다. AWS 서비스로 가는 트래픽이 보이면 그게 곧 VPC Endpoint 후보다.
+
+```sql
+SELECT
+    dstaddr,
+    SUM(bytes) AS total_bytes,
+    COUNT(*) AS flow_count
+FROM vpc_flow_logs
+WHERE interface_id = 'eni-nat-gateway'
+    AND date BETWEEN date '2026-05-01' AND date '2026-05-07'
+GROUP BY dstaddr
+ORDER BY total_bytes DESC
+LIMIT 50;
 ```
 
----
+## GCP Cloud NAT와 비교 (참고)
 
-## 실무 경험
+[[gcp-cloud-nat]] 문서와 함께 보면 차이가 분명하다. Cloud NAT는 NAT IP 자체가 관리형 풀이고, 사용자가 인스턴스당 최소·최대 포트 수를 직접 설정한다(기본 64, 최대 65536). 동적 포트 할당도 켤 수 있어 트래픽 증가에 맞춰 인스턴스당 포트가 늘어난다.
 
-### 1. 아키텍처 설계
-- **다중 AZ 구성**: 고가용성을 위한 다중 NAT Gateway 배포
-- **서브넷 분리**: 퍼블릭/프라이빗 서브넷 명확히 분리
-- **라우팅 최적화**: 각 프라이빗 서브넷을 가까운 NAT Gateway로 라우팅
+NAT Gateway는 이런 인스턴스별 포트 할당 개념이 없다. 모든 인스턴스가 같은 풀을 공유하므로 한 인스턴스의 폭주가 다른 인스턴스에 영향을 준다. 대신 NAT Gateway는 secondary EIP를 붙여 풀 자체를 키우는 방식으로 대응한다.
 
-### 2. 보안 강화
-- **최소 권한**: 필요한 포트만 허용하는 보안 그룹 구성
-- **네트워크 모니터링**: VPC Flow Logs 활성화
-- **정기 감사**: 네트워크 트래픽 패턴 정기적 검토
+가용성 모델도 다르다. Cloud NAT는 리전 단위로 동작해 단일 NAT가 모든 존을 커버하는 반면, AWS NAT Gateway는 AZ 단위라 운영자가 직접 AZ마다 배치하고 AZ별 라우팅 테이블을 분리해야 한다. 운영 부담은 NAT Gateway 쪽이 더 크지만, AZ 격리 측면에서는 명확하다.
 
-### 3. 성능 최적화
-- **연결 풀링**: 애플리케이션 레벨에서 연결 재사용
-- **캐싱 전략**: CDN 및 로컬 캐시 활용
-- **트래픽 분산**: 다중 NAT Gateway로 부하 분산
-
-### 4. 비용 관리
-- **트래픽 모니터링**: CloudWatch를 통한 지속적 모니터링
-- **비용 알림**: 예산 초과 시 알림 설정
-- **정기 검토**: 월별 비용 분석 및 최적화
-
-### 5. 운영 관리
-- **자동화**: Terraform, CloudFormation을 통한 인프라 자동화
-- **문서화**: 네트워크 구성 및 변경 사항 문서화
-- **백업 계획**: 장애 복구 절차 수립
-
----
+비용 구조도 다르다. NAT Gateway는 시간당 + 처리량($0.045/시간 + $0.045/GB)이고, Cloud NAT는 게이트웨이 시간당 + 처리량(약 $0.0014/시간 + $0.045/GB)이라 베이스 비용은 Cloud NAT가 훨씬 싸다. 다만 GCP는 NAT IP를 EIP처럼 별도 청구하니 총액은 트래픽 패턴에 따라 갈린다.
 
 ## 참조
 
 - [AWS NAT Gateway 공식 문서](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html)
-- [AWS VPC 모범 사례](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-best-practices.html)
-- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
-- [AWS NAT Gateway 가격 정책](https://aws.amazon.com/vpc/pricing/)
-- [VPC Flow Logs 사용 가이드](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)
-- [CloudWatch 메트릭 및 알림 설정](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/working_with_metrics.html)
+- [NAT Gateway 메트릭 목록](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway-cloudwatch.html)
+- [secondary IP로 포트 한계 늘리기](https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html)
+- [VPC Endpoint 카탈로그](https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html)
+- [Reachability Analyzer 가이드](https://docs.aws.amazon.com/vpc/latest/reachability/what-is-reachability-analyzer.html)
