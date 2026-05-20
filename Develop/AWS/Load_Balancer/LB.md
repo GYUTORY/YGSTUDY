@@ -1,824 +1,335 @@
 ---
-title: AWS 로드 밸런서: ALB vs NLB vs CLB
-tags: [aws, loadbalancer, lb, alb, nlb, elb, clb]
-updated: 2025-11-01
+title: AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영
+tags: [aws, loadbalancer, lb, alb, nlb, clb, elb]
+updated: 2026-05-20
 ---
 
-# AWS 로드 밸런서: ALB vs NLB vs CLB
+# AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영
 
-## 목차
-- [1. 로드 밸런싱의 기본 개념](#1-로드-밸런싱의-기본-개념)
-- [2. AWS 로드 밸런서 개요](#2-aws-로드-밸런서-개요)
-- [3. ALB (Application Load Balancer)](#3-alb-application-load-balancer)
-- [4. NLB (Network Load Balancer)](#4-nlb-network-load-balancer)
-- [5. ELB (Elastic Load Balancer)](#5-elb-elastic-load-balancer)
-- [6. 상세 비교 분석](#6-상세-비교-분석)
-- [7. 선택 가이드라인](#7-선택-가이드라인)
-- [8. 실제 운영 시 고려사항](#8-실제-운영-시-고려사항)
-- [9. 참조](#9-참조)
+AWS 콘솔에서 로드 밸런서를 만들 때 처음 마주치는 선택지가 ALB, NLB, GWLB, CLB다. 문서만 보면 "HTTP는 ALB, TCP는 NLB"로 끝나지만, 실제로 운영하다 보면 같은 HTTP 워크로드라도 NLB로 빠지는 경우가 있고 NLB를 골랐다가 클라이언트 IP가 깨져서 ALB로 되돌리는 경우도 있다. 여기서는 5년 정도 굴려보면서 어떤 트래픽 패턴에 어느 로드 밸런서를 골랐고, 어디서 데였는지를 정리한다.
 
----
+## ELB 패밀리 — 같은 가족이지만 성격이 다르다
 
-## 1. 로드 밸런싱의 기본 개념
+AWS가 부르는 공식 명칭은 ELB(Elastic Load Balancing)다. 그 아래에 ALB, NLB, GWLB, CLB가 들어간다. 그런데 현장에서 "ELB"라고 하면 보통 CLB(Classic Load Balancer)를 가리킨다. CLB가 처음 ELB라는 이름으로 출시됐고, ALB·NLB가 나오면서 Classic이라는 접두어가 붙었기 때문이다. AWS Support 티켓에서 "ELB"라고 쓰면 "어떤 ELB를 말씀하시는지" 되묻는다.
 
-### 1.1 로드 밸런싱이란?
+| 약어 | 정식 명칭 | 동작 계층 | 주력 프로토콜 |
+|---|---|---|---|
+| CLB | Classic Load Balancer | L4/L7 혼합 | HTTP, HTTPS, TCP |
+| ALB | Application Load Balancer | L7 | HTTP, HTTPS, gRPC, WebSocket |
+| NLB | Network Load Balancer | L4 | TCP, UDP, TLS |
+| GWLB | Gateway Load Balancer | L3 | IP (방화벽·IDS 어플라이언스 체이닝 전용) |
 
-**로드 밸런싱(Load Balancing)**은 들어오는 네트워크 트래픽을 여러 서버나 컴퓨팅 리소스에 분산시켜 처리하는 기술입니다. 이는 단일 서버에 과부하가 집중되는 것을 방지하고, 전체 시스템의 가용성과 성능을 향상시키는 핵심적인 역할을 합니다.
+GWLB는 보안 어플라이언스를 투명하게 끼워 넣는 용도라 일반 서비스 트래픽에는 쓰지 않는다. 이 문서에서는 다루지 않는다.
 
-### 1.2 로드 밸런싱의 핵심 목적
+## 트래픽 패턴별 실제 선택
 
-#### 1.2.1 트래픽 분산
-- **균등 분산**: 모든 서버가 동일한 양의 트래픽을 처리하도록 분배
-- **가중치 기반 분산**: 서버의 성능이나 용량에 따라 차등적으로 트래픽 할당
-- **지리적 분산**: 사용자의 위치에 따라 가장 가까운 서버로 라우팅
+### HTTP API 서버 + 경로 라우팅 → ALB
 
-#### 1.2.2 고가용성 확보
-- **장애 격리**: 한 서버에 문제가 발생해도 다른 서버들이 서비스 지속
-- **자동 복구**: 장애 서버를 자동으로 감지하고 트래픽에서 제외
-- **무중단 서비스**: 서버 추가/제거 시에도 서비스 중단 없이 운영
+마이크로서비스 N개를 하나의 도메인 뒤에 묶을 때는 ALB 외에 답이 없다. `/api/users/*`는 User 서비스, `/api/orders/*`는 Order 서비스로 보내는 규칙을 리스너 룰로 박을 수 있다. 룰 우선순위가 낮은 숫자부터 평가되니까, 더 구체적인 패턴을 위에 두는 걸 잊지 말아야 한다. 더 일반적인 룰을 위에 두면 그 아래 룰은 영원히 매칭되지 않는다.
 
-#### 1.2.3 성능 최적화
-- **응답 시간 단축**: 가장 빠른 서버로 요청 라우팅
-- **처리량 증대**: 여러 서버의 병렬 처리로 전체 처리량 향상
-- **리소스 효율성**: 서버 리소스의 균등한 활용
+ECS Fargate나 EKS를 쓴다면 ALB가 디폴트다. 컨테이너 포트가 동적으로 바뀌어도 타겟 그룹이 알아서 추적한다. EKS에서는 AWS Load Balancer Controller가 Ingress 리소스를 ALB로 만들어주기 때문에 별도로 콘솔에서 만지는 일이 거의 없다.
 
-### 1.3 OSI 7계층과 로드 밸런싱
+### gRPC 백엔드 → ALB
 
-로드 밸런서는 OSI 7계층 모델의 어느 계층에서 동작하느냐에 따라 그 특성과 기능이 달라집니다:
+gRPC는 HTTP/2 위에서 도는데, ALB는 2020년부터 gRPC 타겟 그룹 프로토콜을 정식 지원한다. NLB로도 gRPC를 흘릴 수는 있지만, 그 경우 클라이언트가 TLS 종료를 직접 다뤄야 하고 헬스체크가 TCP 레벨에 머물러서 서비스가 살았는지 죽었는지 정확히 모른다. gRPC는 ALB로 가는 게 맞다.
 
-#### 1.3.1 4계층 (Transport Layer) 로드 밸런싱
-- **특징**: TCP/UDP 패킷의 IP 주소와 포트 번호만을 기반으로 분산
-- **장점**: 빠른 처리 속도, 낮은 지연시간, 단순한 구조
-- **단점**: 애플리케이션 레벨의 세밀한 제어 불가능
-- **사용 사례**: 데이터베이스 연결, 게임 서버, 실시간 통신
+### 게임 서버, MQTT 브로커, 실시간 미디어 → NLB
 
-#### 1.3.2 7계층 (Application Layer) 로드 밸런싱
-- **특징**: HTTP/HTTPS 요청의 내용을 분석하여 라우팅 결정
-- **장점**: 세밀한 라우팅 제어, 콘텐츠 기반 분산, 보안 기능
-- **단점**: 상대적으로 높은 지연시간, 복잡한 구조
-- **사용 사례**: 웹 애플리케이션, API 서버, 마이크로서비스
+UDP를 쓰는 워크로드는 NLB만 가능하다. ALB는 UDP를 안 받는다. 게임 매치메이커, WebRTC TURN 서버, 영상 스트리밍 같은 게 여기 해당된다.
 
----
+TCP라도 커넥션 단위가 길거나(예: 24시간 유지되는 MQTT), 초당 신규 커넥션이 폭증하는 경우(고빈도 트레이딩 API) NLB가 유리하다. ALB는 HTTP 요청 단위로 토큰 버킷 계산이 들어가서 신규 커넥션 폭증에 약하다. NLB는 패킷 수준에서 처리하니까 신규 커넥션 수십만 RPS도 자동 확장 없이 받아낸다.
 
-## 2. AWS 로드 밸런서 개요
+### 고정 IP가 필요한 경우 → NLB
 
-### 2.1 AWS Elastic Load Balancing (ELB) 서비스
+ALB는 DNS 이름만 주고 IP는 시간이 지나면 바뀐다. 클라이언트가 IP를 화이트리스트에 박는 B2B 환경, 또는 사내 방화벽이 IP 기반인 환경에서는 ALB를 못 쓴다. NLB는 가용영역별로 Elastic IP를 붙일 수 있어서 IP가 고정된다.
 
-AWS의 **Elastic Load Balancing**은 클라우드 환경에서 제공되는 완전 관리형 로드 밸런싱 서비스입니다. 이 서비스는 하드웨어 설치나 소프트웨어 구성 없이도 즉시 사용할 수 있으며, 자동으로 확장되고 고가용성을 제공합니다.
-
-### 2.2 AWS 로드 밸런서의 핵심 특징
-
-#### 2.2.1 완전 관리형 서비스
-- **자동 확장**: 트래픽 증가에 따라 자동으로 용량 확장
-- **자동 복구**: 장애 발생 시 자동으로 대체 리소스 할당
-- **무중단 운영**: AWS가 백그라운드에서 모든 관리 작업 수행
+이걸 우회하기 위해 ALB 앞에 NLB를 두는 패턴도 있다(NLB → ALB 체이닝). 2021년부터 NLB가 ALB를 타겟으로 받을 수 있게 되면서 가능해졌다. 클라이언트는 NLB의 고정 IP를 보고, 내부적으로는 ALB의 L7 라우팅 기능을 그대로 쓴다. 단점은 비용이 두 배로 든다는 것과, X-Forwarded-For 헤더 처리가 한 단계 더 들어간다는 것.
 
-#### 2.2.2 다중 가용영역 지원
-- **지역 분산**: 여러 가용영역에 걸쳐 로드 밸런서 인스턴스 배치
-- **장애 격리**: 한 가용영역 장애 시에도 다른 영역에서 서비스 지속
-- **지연시간 최적화**: 사용자와 가장 가까운 가용영역으로 트래픽 라우팅
+### 인증서를 클라이언트에 종단까지 보존해야 하는 경우 → NLB (TLS 패스스루)
 
-#### 2.2.3 보안 통합
-- **AWS WAF 통합**: 웹 애플리케이션 방화벽과의 완벽한 연동
-- **SSL/TLS 종료**: 인증서 관리와 암호화/복호화 처리
-- **VPC 보안**: 가상 사설 클라우드 내에서의 안전한 통신
+PCI-DSS, 의료 데이터, 또는 mTLS 같이 ALB에서 TLS를 종료할 수 없는 워크로드는 NLB의 TCP 리스너로 받아서 백엔드까지 암호화된 채로 흘려보낸다. ALB는 무조건 TLS를 종료한다. 인증서가 ALB에 등록되고, 거기서 평문으로 풀린 다음 백엔드로 다시 HTTPS를 맺든 HTTP로 보내든 한다. mTLS 클라이언트 인증서를 백엔드에서 검증해야 한다면 ALB로는 안 된다.
 
-### 2.3 AWS 로드 밸런서 유형
+### 레거시 EC2-Classic → CLB
 
-AWS는 현재 **4가지 유형**의 로드 밸런서를 제공합니다:
+EC2-Classic은 2022년 8월에 모든 신규 계정에서 사라졌고, 기존 계정도 마이그레이션이 강제됐다. 그래도 아직 CLB를 쓰는 환경이 남아 있다면 그건 마이그레이션을 미룬 결과지 새로 만들 일은 없다. AWS도 CLB에 새 기능을 안 넣은 지 한참 됐다.
 
-1. **ALB (Application Load Balancer)** - 7계층 HTTP/HTTPS 로드 밸런서
-2. **NLB (Network Load Balancer)** - 4계층 TCP/UDP 로드 밸런서
-3. **GWLB (Gateway Load Balancer)** - 3계층 게이트웨이 로드 밸런서
-4. **CLB (Classic Load Balancer)** - 레거시 로드 밸런서 (구 ELB)
+## NLB 클라이언트 IP 보존 — SNAT에서 깨지는 사례
 
-### 2.4 AWS ELB 유형 간단 비교
+NLB의 "클라이언트 IP 보존"은 자주 오해되는 기능이다. NLB는 기본적으로 클라이언트 IP를 백엔드에 그대로 전달한다. 백엔드 인스턴스에서 `tcpdump`를 떠 보면 외부 클라이언트 IP가 source로 찍힌다. ALB나 CLB와 다른 점이다 — ALB는 자기 자신의 IP를 source로 박고 원본은 `X-Forwarded-For` 헤더에 넣는다.
 
-대부분의 웹 애플리케이션에서는 **ALB**를, 고성능 TCP/UDP 처리가 필요한 경우 **NLB**를 사용합니다.
+문제는 이 동작이 "타겟 등록 방식"에 따라 달라진다는 점이다.
 
-#### 1. ALB (Application Load Balancer)
+### Instance 타겟 vs IP 타겟
 
-**핵심 특징:**
-- HTTP/HTTPS 트래픽 최적화
-- 경로(URL) 기반 라우팅 지원
-- 7계층 (Application Layer) 동작
+NLB 타겟 그룹은 `target_type`을 instance 또는 ip로 만들 수 있다. EC2 인스턴스 ID로 등록하면 instance 타입, ENI IP로 등록하면 ip 타입이다.
 
-**사용 시나리오:**
-- 대부분의 웹 애플리케이션
-- 마이크로서비스 아키텍처
-- 경로/호스트 기반 라우팅이 필요한 경우
-
-```
-예시: 경로 기반 라우팅
-/api/users → User Service
-/api/orders → Order Service  
-/api/products → Product Service
-```
-
-#### 2. NLB (Network Load Balancer)
-
-**핵심 특징:**
-- TCP/UDP 트래픽 최적화
-- 고정 IP 지원
-- 4계층 (Transport Layer) 동작
-- 초저지연, 초고성능
-
-**사용 시나리오:**
-- 게임 서버 (고정 IP 필요)
-- 실시간 스트리밍
-- 데이터베이스 클러스터
-- 지연시간이 매우 중요한 애플리케이션
-
-```
-특징: 고정 IP 제공
-Client → 52.25.10.100 (고정 IP) → NLB → Backend Servers
-```
-
-#### 3. CLB (Classic Load Balancer)
-
-**핵심 특징:**
-- AWS의 초기 로드 밸런서 (레거시)
-- 4계층 및 7계층 기본 기능 제공
-- **새 프로젝트에서는 권장하지 않음**
-
-**사용 시나리오:**
-- 레거시 시스템 유지보수
-- EC2-Classic 환경
-- 마이그레이션 중간 단계
-
-**권장사항:**
-- 새로운 프로젝트: ALB 또는 NLB 사용
-- 기존 CLB 사용 중: ALB/NLB로 마이그레이션 검토
-
-#### 간단 선택 가이드
-
-```
-프로젝트 요구사항 분석
-│
-├─ HTTP/HTTPS 웹 애플리케이션?
-│  └─ 예 → ALB 선택
-│
-├─ 고정 IP가 필요한가?
-│  └─ 예 → NLB 선택
-│
-├─ 초저지연이 필요한가?
-│  └─ 예 → NLB 선택
-│
-└─ 레거시 시스템?
-   └─ 예 → CLB (마이그레이션 고려)
-```
-
----
-
-## 3. ALB (Application Load Balancer)
-
-### 3.1 ALB의 기본 개념
-
-**Application Load Balancer**는 OSI 7계층의 Application Layer에서 동작하는 고급 로드 밸런서입니다. HTTP/HTTPS 트래픽을 처리하는데 특화되어 있으며, 현대적인 웹 애플리케이션과 마이크로서비스 아키텍처에 최적화되어 있습니다.
-
-### 3.2 ALB의 핵심 아키텍처
-
-#### 3.2.1 7계층 처리 방식
-ALB는 HTTP/HTTPS 요청의 세부 내용을 분석하여 라우팅 결정을 내립니다:
-
-- **HTTP 헤더 분석**: Host, User-Agent, Authorization 등의 헤더 정보 활용
-- **URL 경로 분석**: 요청 경로를 기반으로 한 세밀한 라우팅
-- **HTTP 메서드 분석**: GET, POST, PUT 등 메서드별 라우팅
-- **쿼리 파라미터 분석**: URL의 쿼리 스트링을 통한 조건부 라우팅
-
-#### 3.2.2 타겟 그룹 기반 아키텍처
-ALB는 **타겟 그룹(Target Group)**이라는 개념을 도입하여 유연한 트래픽 분산을 제공합니다:
-
-- **다중 타겟 그룹**: 하나의 ALB가 여러 타겟 그룹을 관리
-- **동적 타겟 관리**: 타겟의 추가/제거가 실시간으로 반영
-- **타겟별 헬스 체크**: 각 타겟 그룹마다 독립적인 헬스 체크 설정
-
-### 3.3 ALB의 고급 라우팅 기능
-
-#### 3.3.1 Path-based 라우팅
-```
-예시: 전자상거래 플랫폼
-- /api/users/* → 사용자 관리 서비스
-- /api/products/* → 상품 관리 서비스  
-- /api/orders/* → 주문 처리 서비스
-- /api/payments/* → 결제 처리 서비스
-```
-
-#### 3.3.2 Host-based 라우팅
-```
-예시: 멀티 테넌트 애플리케이션
-- api.company1.com → 테넌트 1 전용 서비스
-- api.company2.com → 테넌트 2 전용 서비스
-- admin.company1.com → 관리자 대시보드
-```
-
-#### 3.3.3 HTTP 헤더 기반 라우팅
-```
-예시: 모바일/웹 분리
-- User-Agent: *Mobile* → 모바일 최적화 서비스
-- User-Agent: *Desktop* → 데스크톱 서비스
-- X-API-Version: v2 → API v2 서비스
-```
-
-### 3.4 ALB의 컨테이너 통합
-
-#### 3.4.1 Amazon ECS 통합
-- **서비스 디스커버리**: ECS 서비스와 자동 연동
-- **동적 포트 매핑**: 컨테이너의 동적 포트를 자동으로 감지
-- **태스크 상태 추적**: 컨테이너의 시작/종료를 실시간으로 모니터링
-
-#### 3.4.2 Amazon EKS 통합
-- **Kubernetes 서비스 연동**: K8s Service와 ALB 자동 연결
-- **Ingress Controller**: AWS Load Balancer Controller를 통한 자동 관리
-- **Pod 기반 라우팅**: 개별 Pod까지의 세밀한 트래픽 제어
-
-### 3.5 ALB의 보안 기능
-
-#### 3.5.1 SSL/TLS 처리
-- **SSL 종료**: ALB에서 SSL 암호화/복호화 처리
-- **인증서 관리**: AWS Certificate Manager와 완벽 통합
-- **다중 인증서**: 여러 도메인에 대한 인증서 동시 지원
-
-#### 3.5.2 AWS WAF 통합
-- **웹 공격 방어**: SQL 인젝션, XSS 등 웹 공격 차단
-- **지역별 접근 제어**: 특정 국가/지역의 접근 차단
-- **Rate Limiting**: 요청 빈도 제한으로 DDoS 공격 방어
-
-### 3.6 ALB 사용 시나리오
-
-#### 3.6.1 마이크로서비스 아키텍처
-```
-전자상거래 플랫폼 예시:
-┌─────────────────┐
-│   ALB           │
-└─────────┬───────┘
-          │
-    ┌─────┴─────┐
-    │           │
-┌───▼───┐   ┌───▼───┐   ┌───▼───┐
-│ User  │   │ Order │   │Payment│
-│Service│   │Service│   │Service│
-└───────┘   └───────┘   └───────┘
-```
-
-#### 3.6.2 컨테이너 기반 애플리케이션
-- **Blue-Green 배포**: 새 버전과 기존 버전 간의 무중단 전환
-- **Canary 배포**: 점진적인 트래픽 전환을 통한 안전한 배포
-- **A/B 테스팅**: 사용자 그룹별로 다른 버전의 서비스 제공
-
----
-
-## 4. NLB (Network Load Balancer)
-
-### 4.1 NLB의 기본 개념
-
-**Network Load Balancer**는 OSI 7계층의 Transport Layer(4계층)에서 동작하는 고성능 로드 밸런서입니다. TCP, UDP, TLS 트래픽을 처리하며, **초고성능**과 **초저지연시간**을 제공하는 것이 핵심 특징입니다.
-
-### 4.2 NLB의 아키텍처 특징
-
-#### 4.2.1 4계층 처리 방식
-NLB는 패킷의 IP 주소와 포트 번호만을 기반으로 라우팅 결정을 내립니다:
-
-- **패킷 레벨 처리**: 애플리케이션 내용을 분석하지 않고 패킷 헤더만 확인
-- **연결 유지**: TCP 연결의 특성을 활용한 효율적인 트래픽 분산
-- **프로토콜 투명성**: 상위 계층 프로토콜에 무관하게 동작
-
-#### 4.2.2 고정 IP 주소 지원
-NLB의 가장 중요한 특징 중 하나는 **고정 IP 주소**를 제공한다는 것입니다:
-
-- **Elastic IP 할당**: 각 가용영역마다 고정 IP 주소 할당 가능
-- **클라이언트 IP 보존**: 원본 클라이언트 IP 주소를 백엔드로 전달
-- **DNS 기반 접근**: 고정 IP를 DNS에 등록하여 안정적인 접근 제공
-
-### 4.3 NLB의 성능 특성
-
-#### 4.3.1 초고성능 처리
-- **처리량**: 초당 수백만 개의 연결 처리 가능
-- **지연시간**: 밀리초 단위의 극도로 낮은 지연시간
-- **동시 연결**: 수백만 개의 동시 연결 지원
-- **자동 확장**: 트래픽 증가에 따른 자동 용량 확장
-
-#### 4.3.2 성능 최적화 메커니즘
-```
-NLB 성능 최적화:
-┌─────────────────┐
-│   클라이언트    │
-└─────────┬───────┘
-          │
-┌─────────▼───────┐
-│   NLB (L4)     │ ← 패킷 레벨 처리
-└─────────┬───────┘
-          │
-┌─────────▼───────┐
-│   백엔드 서버   │ ← 직접 연결
-└─────────────────┘
-```
-
-### 4.4 NLB의 프로토콜 지원
-
-#### 4.4.1 TCP 프로토콜
-- **연결 지향적**: 안정적인 데이터 전송 보장
-- **순서 보장**: 데이터 패킷의 순서 유지
-- **에러 감지**: 전송 중 발생한 오류 자동 감지 및 재전송
-- **사용 사례**: 데이터베이스 연결, 게임 서버, 파일 전송
-
-#### 4.4.2 UDP 프로토콜
-- **비연결 지향적**: 빠른 데이터 전송에 최적화
-- **실시간 통신**: 낮은 지연시간이 중요한 애플리케이션
-- **사용 사례**: 실시간 스트리밍, VoIP, DNS 서버
-
-#### 4.4.3 TLS 프로토콜
-- **보안 통신**: 암호화된 데이터 전송
-- **인증서 관리**: SSL/TLS 인증서 처리
-- **사용 사례**: 보안이 중요한 금융 거래, 개인정보 처리
-
-### 4.5 NLB의 고급 기능
-
-#### 4.5.1 Cross-Zone Load Balancing
-- **가용영역 간 분산**: 여러 가용영역의 타겟에 균등하게 트래픽 분산
-- **장애 격리**: 한 가용영역 장애 시에도 서비스 지속
-- **지연시간 최적화**: 클라이언트와 가장 가까운 가용영역 우선 선택
-
-#### 4.5.2 Target Health Monitoring
-- **TCP 헬스 체크**: 포트 연결 가능 여부 확인
-- **HTTP/HTTPS 헬스 체크**: 애플리케이션 레벨 상태 확인
-- **커스텀 헬스 체크**: 애플리케이션별 맞춤형 헬스 체크 설정
-
-### 4.6 NLB 사용 시나리오
-
-#### 4.6.1 게임 서버
-```
-MMORPG 게임 서버 예시:
-┌─────────────────┐
-│   게임 클라이언트 │
-└─────────┬───────┘
-          │ TCP 연결
-┌─────────▼───────┐
-│   NLB           │ ← 고정 IP: 203.0.113.10
-└─────────┬───────┘
-          │
-    ┌─────┴─────┐
-    │           │
-┌───▼───┐   ┌───▼───┐   ┌───▼───┐
-│게임서버│   │게임서버│   │게임서버│
-│  #1   │   │  #2   │   │  #3   │
-└───────┘   └───────┘   └───────┘
-```
-
-#### 4.6.2 데이터베이스 클러스터
-- **읽기 전용 복제본**: 읽기 쿼리를 여러 복제본에 분산
-- **쓰기 전용 마스터**: 쓰기 작업은 마스터 데이터베이스로 집중
-- **장애 복구**: 마스터 장애 시 자동으로 슬레이브 승격
-
-#### 4.6.3 실시간 스트리밍
-- **UDP 기반 스트리밍**: 낮은 지연시간의 실시간 비디오 전송
-- **CDN 연동**: 여러 지역의 스트리밍 서버와 연동
-- **부하 분산**: 수백만 시청자의 동시 접속 처리
-
----
-
-## 5. ELB (Elastic Load Balancer)
-
-### 5.1 ELB의 기본 개념
-
-**Elastic Load Balancer (ELB)**는 AWS의 **레거시 로드 밸런서**입니다. 이전에는 **Classic Load Balancer (CLB)**라고 불렸으며, AWS가 제공한 최초의 로드 밸런서 서비스입니다. 현재는 새로운 프로젝트에서는 권장되지 않지만, 기존 시스템과의 호환성을 위해 여전히 제공되고 있습니다.
-
-### 5.2 ELB의 역사적 배경
-
-#### 5.2.1 AWS 로드 밸런싱의 진화
-```
-AWS 로드 밸런서 진화 과정:
-2009년: ELB (Classic Load Balancer) 출시
-2016년: ALB (Application Load Balancer) 출시  
-2017년: NLB (Network Load Balancer) 출시
-2019년: GWLB (Gateway Load Balancer) 출시
-```
-
-#### 5.2.2 레거시 시스템의 필요성
-- **EC2-Classic 지원**: VPC 이전의 클래식 네트워크 환경 지원
-- **기존 애플리케이션 호환**: 이미 구축된 시스템의 마이그레이션 지원
-- **단순한 구성**: 복잡한 설정 없이 기본적인 로드 밸런싱 제공
-
-### 5.3 ELB의 제한된 기능
-
-#### 5.3.1 기본적인 로드 밸런싱
-- **라운드 로빈**: 순차적으로 요청을 각 서버에 분산
-- **최소 연결**: 가장 적은 연결을 가진 서버에 요청 전달
-- **가중치 기반**: 서버별 가중치에 따른 차등 분산
-
-#### 5.3.2 제한된 프로토콜 지원
-- **HTTP/HTTPS**: 웹 애플리케이션용 기본 프로토콜
-- **TCP**: 일반적인 TCP 연결 지원
-- **SSL/TLS**: 기본적인 암호화 통신 지원
-
-#### 5.3.3 단순한 헬스 체크
-- **HTTP 헬스 체크**: 기본적인 HTTP 상태 확인
-- **TCP 헬스 체크**: 포트 연결 가능 여부 확인
-- **제한된 커스터마이징**: 복잡한 헬스 체크 설정 불가
-
-### 5.4 ELB의 아키텍처 한계
-
-#### 5.4.1 단일 가용영역 제약
-- **가용영역 제한**: 모든 인스턴스가 동일한 가용영역에 있어야 함
-- **장애 복구 제한**: 가용영역 장애 시 전체 서비스 중단 가능성
-- **확장성 제약**: 가용영역 간 부하 분산의 어려움
-
-#### 5.4.2 성능 제한
-- **처리량 제한**: ALB나 NLB 대비 낮은 처리 성능
-- **지연시간**: 상대적으로 높은 응답 지연시간
-- **동시 연결**: 제한된 동시 연결 수 지원
-
-### 5.5 ELB 사용 시나리오
-
-#### 5.5.1 레거시 시스템 유지보수
-```
-기존 EC2-Classic 환경:
-┌─────────────────┐
-│   웹 클라이언트  │
-└─────────┬───────┘
-          │
-┌─────────▼───────┐
-│   ELB (CLB)    │ ← 레거시 로드 밸런서
-└─────────┬───────┘
-          │
-┌─────────▼───────┐
-│ EC2-Classic     │
-│ 웹 서버 클러스터 │
-└─────────────────┘
-```
-
-#### 5.5.2 마이그레이션 중간 단계
-- **점진적 마이그레이션**: 기존 시스템을 단계적으로 현대화
-- **호환성 유지**: 기존 애플리케이션과의 호환성 보장
-- **비용 최적화**: 마이그레이션 완료까지의 임시 솔루션
-
-### 5.6 ELB에서 현대적 로드 밸런서로의 마이그레이션
-
-#### 5.6.1 마이그레이션 고려사항
-- **애플리케이션 호환성**: 새로운 로드 밸런서와의 호환성 확인
-- **기능 차이점**: ELB에서 제공하지 않는 고급 기능 활용
-- **성능 개선**: 마이그레이션을 통한 성능 향상 기대
-
-#### 5.6.2 마이그레이션 전략
-1. **ALB 마이그레이션**: HTTP/HTTPS 웹 애플리케이션의 경우
-2. **NLB 마이그레이션**: TCP 기반 애플리케이션의 경우
-3. **단계적 전환**: Blue-Green 배포를 통한 안전한 전환
-
----
-
-## 6. 상세 비교 분석
-
-### 6.1 아키텍처 레벨 비교
-
-| 구분 | **ALB** | **NLB** | **ELB(CLB)** |
-|------|---------|---------|---------------|
-| **동작 계층** | L7 (Application) | L4 (Transport) | L4/L7 (레거시) |
-| **처리 방식** | HTTP 요청 내용 분석 | IP/포트 기반 패킷 처리 | 기본적인 요청 처리 |
-| **지연시간** | ~10ms | ~1ms | ~20ms |
-| **처리량** | 100,000 RPS | 수백만 RPS | 수천 RPS |
-
-### 6.2 기능적 특성 비교
-
-#### 6.2.1 라우팅 기능
-```
-ALB: 고급 라우팅
-├── Path-based 라우팅 (/api/users/*)
-├── Host-based 라우팅 (api.example.com)
-├── Header-based 라우팅 (User-Agent)
-└── Query parameter 라우팅 (?version=v2)
-
-NLB: 기본 라우팅
-├── 포트 기반 라우팅
-├── 프로토콜 기반 라우팅
-└── 고정 연결 유지
-
-ELB: 제한적 라우팅
-├── 라운드 로빈
-├── 최소 연결
-└── 가중치 기반
-```
-
-#### 6.2.2 보안 기능
-| 보안 기능 | ALB | NLB | ELB |
-|-----------|-----|-----|-----|
-| **AWS WAF 통합** | ✅ 완벽 지원 | ❌ 미지원 | ❌ 미지원 |
-| **SSL/TLS 종료** | ✅ 고급 기능 | ✅ 기본 지원 | ✅ 기본 지원 |
-| **HTTP/2 지원** | ✅ 네이티브 지원 | ❌ 미지원 | ❌ 미지원 |
-| **WebSocket** | ✅ 완벽 지원 | ✅ 지원 | ⚠️ 제한적 |
-
-### 6.3 성능 및 확장성 비교
-
-#### 6.3.1 처리 성능
-```
-성능 비교 (상대적 지표):
-NLB: ████████████████████ (최고)
-ALB: ████████████ (중간)
-ELB: ████ (낮음)
-```
-
-#### 6.3.2 확장성 특성
-- **ALB**: 자동 확장, 컨테이너 친화적, 마이크로서비스 최적화
-- **NLB**: 초고성능 확장, 고정 IP 지원, 실시간 애플리케이션 최적화
-- **ELB**: 제한적 확장, 레거시 호환, 단순한 웹 서버 클러스터용
-
-### 6.4 비용 구조 비교
-
-#### 6.4.1 요금 모델
-| 로드 밸런서 | 시간당 요금 | LCU 요금 | 데이터 처리 요금 |
-|-------------|-------------|----------|------------------|
-| **ALB** | $0.0225/시간 | $0.008/LCU | $0.008/GB |
-| **NLB** | $0.0225/시간 | $0.006/LCU | $0.006/GB |
-| **ELB** | $0.025/시간 | - | $0.008/GB |
-
-#### 6.4.2 비용 최적화 고려사항
-- **ALB**: 마이크로서비스 환경에서 비용 효율적
-- **NLB**: 고성능이 필요한 경우 비용 대비 효과적
-- **ELB**: 단순한 웹 서버 클러스터에서 가장 저렴
-
----
-
-## 7. 선택 가이드라인
-
-### 7.1 ALB를 선택해야 하는 경우
-
-#### 7.1.1 웹 애플리케이션 및 API 서버
-```
-ALB 선택 기준:
-✅ HTTP/HTTPS 기반 애플리케이션
-✅ 복잡한 라우팅 규칙 필요
-✅ 마이크로서비스 아키텍처
-✅ 컨테이너 기반 애플리케이션 (ECS/EKS)
-✅ AWS WAF 통합 필요
-✅ HTTP/2 또는 WebSocket 지원 필요
-```
-
-#### 7.1.2 구체적인 사용 사례
-- **전자상거래 플랫폼**: 다양한 서비스(사용자, 상품, 주문, 결제)를 하나의 도메인으로 통합
-- **API 게이트웨이**: 여러 마이크로서비스를 하나의 엔드포인트로 통합
-- **멀티 테넌트 SaaS**: 고객별로 다른 서비스 인스턴스 제공
-
-### 7.2 NLB를 선택해야 하는 경우
-
-#### 7.2.1 고성능 및 실시간 애플리케이션
-```
-NLB 선택 기준:
-✅ TCP/UDP 기반 애플리케이션
-✅ 고정 IP 주소 필요
-✅ 초고성능 및 초저지연시간 필요
-✅ 게임 서버, 데이터베이스 연결
-✅ 실시간 스트리밍 애플리케이션
-✅ 금융 거래 시스템
-✅ 수백만 요청 처리 필요
-```
-
-#### 7.2.2 구체적인 사용 사례
-- **MMORPG 게임 서버**: 수만 명의 동시 접속자와 초저지연시간 요구
-- **데이터베이스 클러스터**: 읽기 전용 복제본과의 고성능 연결
-- **실시간 트레이딩 시스템**: 밀리초 단위의 응답 시간이 중요한 금융 시스템
-
-### 7.3 ELB를 선택해야 하는 경우
-
-#### 7.3.1 레거시 시스템 및 특수 상황
-```
-ELB 선택 기준:
-✅ EC2-Classic 네트워크 사용
-✅ 기존 레거시 애플리케이션
-✅ 단순한 로드 밸런싱만 필요
-✅ 비용이 가장 중요한 요소
-✅ 마이그레이션 중간 단계
-```
-
-#### 7.3.2 마이그레이션 전략
-- **점진적 현대화**: 기존 시스템을 단계적으로 ALB나 NLB로 이전
-- **호환성 유지**: 기존 애플리케이션과의 호환성을 보장하면서 전환
-- **비용 최적화**: 마이그레이션 완료까지의 임시 솔루션으로 활용
-
-### 7.4 선택 의사결정 트리
-
-```
-애플리케이션 요구사항 분석
-│
-├─ HTTP/HTTPS 기반?
-│  ├─ Yes → 복잡한 라우팅 필요?
-│  │  ├─ Yes → ALB 선택
-│  │  └─ No → 단순한 웹 서버?
-│  │     ├─ Yes → ELB 고려
-│  │     └─ No → ALB 선택
-│  └─ No → TCP/UDP 기반?
-│     ├─ Yes → 고성능/고정IP 필요?
-│     │  ├─ Yes → NLB 선택
-│     │  └─ No → ALB 고려
-│     └─ No → 기타 프로토콜
-│
-├─ 레거시 시스템?
-│  ├─ Yes → EC2-Classic?
-│  │  ├─ Yes → ELB 선택
-│  │  └─ No → 마이그레이션 계획
-│  └─ No → 현대적 아키텍처
-│
-└─ 성능 요구사항
-   ├─ 초고성능 필요 → NLB
-   ├─ 중간 성능 → ALB
-   └─ 기본 성능 → ELB
-```
-
----
-
-## 8. 실제 운영 시 고려사항
-
-### 8.1 스티키 세션 (Session Affinity) 관리
-
-#### 8.1.1 ALB의 스티키 세션
-ALB는 **쿠키 기반**의 스티키 세션을 제공합니다:
-
-**Application Cookie 방식:**
-- 애플리케이션에서 직접 쿠키 설정
-- 완전한 제어권을 애플리케이션에서 보유
-- 세션 데이터의 안전성과 일관성 보장
-
-**Load Balancer Cookie 방식:**
-- ALB가 자동으로 `AWSALB` 쿠키 생성
-- 애플리케이션 수정 없이 스티키 세션 구현
-- 쿠키 만료 시간을 ALB에서 관리
-
-**운영 시 주의사항:**
-- 스티키 세션 사용 시 특정 타겟에 트래픽 집중 가능성
-- 오토스케일링과의 충돌 가능성 고려
-- 세션 데이터의 백업 및 복구 전략 필요
-
-#### 8.1.2 NLB의 스티키 세션
-NLB는 **소스 IP 기반**의 연결 유지를 제공합니다:
-
-**연결 유지 메커니즘:**
-- 동일한 소스 IP에서 오는 요청을 같은 타겟으로 라우팅
-- TCP 연결의 특성을 활용한 자연스러운 세션 유지
-- 프록시나 NAT 환경에서의 주의 필요
-
-**운영 시 고려사항:**
-- 프록시 서버를 통한 접근 시 분산 왜곡 가능성
-- SNAT(Source Network Address Translation) 환경에서의 영향
-- 클라이언트 IP 보존과 스티키 세션의 균형
-
-### 8.2 헬스 체크 최적화
-
-#### 8.2.1 헬스 체크 경로 설계
-**효율적인 헬스 체크 엔드포인트:**
-```
-/healthz 엔드포인트 설계 원칙:
-✅ 외부 의존성 호출 제거 (DB, API 호출 금지)
-✅ 최소한의 로직만 포함
-✅ 빠른 응답 시간 (100ms 이내)
-✅ 애플리케이션 상태만 확인
-```
-
-**헬스 체크 응답 예시:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-09-23T10:30:00Z",
-  "version": "1.2.3",
-  "uptime": 86400
+- instance 타입: 클라이언트 IP 보존됨. 백엔드에서 진짜 클라이언트 IP가 보인다.
+- ip 타입: NLB가 자기 IP를 source로 박는다(SNAT). 클라이언트 IP는 사라진다.
+
+ECS Fargate는 EC2 인스턴스가 없으므로 무조건 ip 타입이다. 그래서 Fargate 뒤에 NLB를 두면 클라이언트 IP가 NLB IP로 바뀌어서 도착한다. 이걸 모르고 Fargate 컨테이너 안에서 `request.remoteAddr`로 클라이언트 IP를 로깅하면 죄다 NLB IP만 찍힌다.
+
+### Proxy Protocol v2로 우회
+
+이 경우 해법은 Proxy Protocol v2를 켜는 것이다. NLB 타겟 그룹 속성에서 `proxy_protocol_v2`를 true로 설정하면, 매 TCP 연결의 첫 패킷에 원본 클라이언트 IP·포트 정보가 박힌 헤더가 붙어서 백엔드로 간다. 백엔드 애플리케이션이 이 헤더를 파싱해야 한다 — nginx면 `proxy_protocol` 디렉티브, HAProxy면 `accept-proxy`, Node.js·Spring은 라이브러리를 따로 붙여야 한다.
+
+Proxy Protocol을 켜는 것을 잊고 백엔드에서 일반 TCP로 받으면, 첫 패킷의 PROXY 헤더가 정상 페이로드로 해석돼서 파싱 에러가 난다. 반대로 백엔드는 PROXY를 기대하는데 NLB에서 안 켜져 있으면 연결이 늘어진다. 양쪽을 동시에 켜야 한다.
+
+### Cross-Zone과 묶이는 함정
+
+NLB는 기본적으로 Cross-Zone Load Balancing이 꺼져 있다. ALB는 기본 켜짐, NLB는 기본 꺼짐 — 이 차이를 자주 까먹는다. Cross-Zone이 꺼진 NLB에서 가용영역 A에는 인스턴스가 1개, B에는 4개가 있다면, A로 들어온 트래픽은 그 1개에 다 몰리고 B로 들어온 건 4개에 균등 분산된다. 클라이언트가 어느 AZ DNS로 붙느냐에 따라 부하가 완전히 비대칭해진다.
+
+Cross-Zone을 켜면 균등해지지만, AZ 간 데이터 전송 비용이 추가로 붙는다(GB당 약 $0.01). 트래픽이 큰 서비스에서는 켜고 끄고가 비용에 직결되니까 그래프 그려보고 결정한다.
+
+## CLB → ALB 마이그레이션 — 동작 차이
+
+CLB에서 ALB로 옮길 때 단순히 새 LB를 만들고 Route 53 레코드만 바꿔주면 될 것 같지만, 실제로는 몇 가지가 다르게 동작해서 마이그레이션 직후 장애가 난다.
+
+### 헬스체크가 더 엄격해진다
+
+CLB의 HTTP 헬스체크는 기본값이 2xx, 3xx까지 healthy로 본다. ALB는 200만 healthy로 본다(기본값). 백엔드가 302 리다이렉트를 헬스체크 경로에서 뱉고 있었다면 CLB에서는 통과하던 게 ALB에서는 전부 unhealthy로 떨어진다. `matcher = "200-399"` 같이 명시적으로 늘려주거나, 백엔드의 헬스체크 핸들러를 200만 뱉도록 고쳐야 한다.
+
+또한 CLB는 인스턴스 단위로 헬스체크하지만 ALB는 타겟 그룹의 포트 단위로 한다. 같은 인스턴스에서 두 포트를 동시에 띄우고 있다면 한쪽이 죽어도 다른 쪽은 그대로 받는다.
+
+### 스티키 세션 쿠키 이름이 다르다
+
+CLB가 발급하는 세션 쿠키 이름은 `AWSELB`다. ALB는 `AWSALB`(또는 `AWSALBAPP`로 시작하는 추가 쿠키). 마이그레이션 직후에 사용자 브라우저에 `AWSELB`만 남아 있어서 세션이 끊긴 것처럼 보이는 일이 자주 있다. JSESSIONID 같은 애플리케이션 쿠키를 따로 쓰고 있었다면 큰 문제는 아니지만, LB 쿠키에만 의존했다면 한 번씩 로그인이 풀린다.
+
+추가로 ALB는 "application-based cookie"라는 모드를 지원한다 — 애플리케이션이 자기 쿠키를 발급하면 ALB가 그걸 보고 스티키를 유지한다. CLB에는 없던 기능이라 마이그레이션 전에 알 필요는 없지만, 이참에 적용하면 LB 종속을 줄일 수 있다.
+
+### Connection Draining → Deregistration Delay
+
+CLB에서는 "Connection Draining"이라고 부르고 ALB·NLB에서는 "Deregistration Delay"라고 부른다. 같은 기능인데 이름만 다르다. 기본값도 둘 다 300초로 동일하다. 단, ALB는 HTTP 요청 단위로 정리하고 NLB는 TCP 연결 단위로 정리해서 동작 시점이 다르다. 긴 polling이나 WebSocket을 쓰는 백엔드라면 ALB 쪽에서도 끊김이 발생한다.
+
+### Idle Timeout
+
+CLB의 idle timeout 기본값은 60초. ALB도 60초. NLB는 350초로 훨씬 길고, 변경할 수 없다(2024년부터 일부 변경 가능). WebSocket 연결이 50초마다 ping을 안 보내고 있다면 ALB나 CLB에서 끊긴다. 마이그레이션 자체와는 무관하지만 NLB→ALB로 옮길 때 갑자기 끊김이 보이기 시작하면 idle timeout부터 의심한다.
+
+## LCU 비용 — 차원별로 누적되는 함정
+
+ALB와 NLB는 시간당 고정 요금과 별도로 LCU(Load Balancer Capacity Unit) 기반 사용량 요금이 붙는다. LCU는 4개 차원 중 가장 큰 값으로 정해진다 — 그래서 한 차원만 튀어도 비용이 같이 튄다.
+
+### ALB의 4가지 LCU 차원
+
+| 차원 | 단위당 LCU 1 |
+|---|---|
+| 신규 연결 | 초당 25개 |
+| 활성 연결 | 분당 3,000개 |
+| 처리 바이트 | EC2 타겟 1GB/h, Lambda 0.4GB/h |
+| 룰 평가 | 초당 1,000회 (앞 10개 룰은 무료) |
+
+룰 평가가 의외로 자주 함정이다. 리스너 룰을 50개쯤 박아놓고 매 요청마다 평가시키면 RPS가 그렇게 높지 않아도 룰 평가 차원이 최대값이 돼서 비용이 튀어 오른다. 호스트 기반 + 경로 기반 + 헤더 기반 룰을 마구 섞어놓은 ALB는 청구서를 보고 놀라는 일이 잦다.
+
+처리 바이트 차원은 응답이 큰 API나 이미지 서버에서 1등을 한다. CloudFront를 앞에 두는 식으로 빼낼 수 있다.
+
+활성 연결 차원은 WebSocket이 켜지면 폭발한다. 사용자 만 명이 WebSocket을 유지하면 활성 연결이 1만 = LCU 3.3. 신규 연결 RPS는 낮은데도 활성이 비싸진다.
+
+### NLB의 3가지 LCU 차원
+
+NLB는 룰 평가가 없고 신규/활성/처리 바이트만 있다. 대신 활성 연결의 단위가 다르다 — 분당 3,000개가 아니라 100,000개라서 같은 활성 연결 수면 NLB가 훨씬 싸다. 그래서 long-lived TCP 연결이 많으면 NLB가 유리하다.
+
+처리 바이트도 NLB가 시간당 6GB로 ALB보다 단위가 크다. 단순 트래픽 양이 크면 NLB 쪽이 LCU가 덜 쌓인다.
+
+### 실제 청구서에서 본 패턴
+
+| 워크로드 | 지배적 LCU 차원 | 월 비용 추정 |
+|---|---|---|
+| 일반 REST API (RPS 200, 평균 응답 5KB) | 신규 연결 + 처리 바이트 | $30~50 |
+| WebSocket 채팅(동접 5만) | 활성 연결 | $200~400 |
+| 이미지 응답 API (RPS 50, 평균 1MB) | 처리 바이트 | $300~500 |
+| 마이크로서비스 ALB (룰 80개, RPS 100) | 룰 평가 | $80~150 |
+| MQTT 브로커 NLB(동접 30만) | 활성 연결 | $150~300 |
+
+ALB 룰 평가가 비용을 잡아먹는 게 보이면 룰을 줄이고 백엔드에서 라우팅하게 옮기거나, 호스트 기반으로 ALB 자체를 쪼개는 방법이 있다.
+
+## 헬스체크 운영 — 자주 데이는 지점
+
+헬스체크 엔드포인트를 만들 때 DB 연결까지 확인하는 코드가 자주 들어간다. "DB가 안 되면 어차피 죽은 거니까"라는 논리인데, 이게 캐스케이드 장애를 만든다. DB가 잠깐 느려지면 모든 인스턴스의 헬스체크가 동시에 실패해서 ALB가 인스턴스를 전부 unhealthy로 처리한다. 그 순간 LB 뒤에 healthy 타겟이 0이 되고 503이 반환된다. DB는 곧 복구되는데 LB가 인스턴스를 다시 healthy로 올리는 데 2~3번의 성공이 필요하니까 그 시간 동안 추가 다운타임이 쌓인다.
+
+헬스체크 엔드포인트는 프로세스 자체가 살아있다는 것만 확인하는 게 안전하다. DB 접속이 깨지면 그건 readiness 프로브로 별도로 처리하거나, 서킷 브레이커로 응답을 5xx 대신 503에 적절한 retry-after를 붙여 돌려준다.
+
+`Interval`은 30초, `Timeout`은 5초, `HealthyThreshold`는 2, `UnhealthyThreshold`는 3 정도가 무난한 시작점이다. Interval 10초 같이 짧게 잡으면 헬스체크가 만드는 트래픽 자체가 무시할 수 없는 부하가 된다. ALB 타겟 그룹에 인스턴스 50개가 있고 Interval 10초면 초당 5번 헬스체크가 들어간다.
+
+## Terraform으로 비교 — ALB와 NLB
+
+같은 워크로드를 ALB와 NLB로 각각 만들 때 무엇이 달라지는지 보면 차이가 분명해진다.
+
+### ALB 구성
+
+```hcl
+resource "aws_lb" "app" {
+  name               = "app-alb"
+  load_balancer_type = "application"
+  internal           = false
+  subnets            = aws_subnet.public[*].id
+  security_groups    = [aws_security_group.alb.id]
+
+  enable_deletion_protection = true
+  idle_timeout               = 60
+  drop_invalid_header_fields = true
+}
+
+resource "aws_lb_target_group" "app" {
+  name        = "app-tg"
+  port        = 8080
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = aws_vpc.main.id
+
+  health_check {
+    path                = "/healthz"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 86400
+    enabled         = true
+  }
+
+  deregistration_delay = 60
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate.app.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "api_users" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.user_service.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/users/*"]
+    }
+  }
 }
 ```
 
-#### 8.2.2 헬스 체크 타이밍 최적화
-**권장 설정값:**
-- **간격(Interval)**: 15-30초 (짧을수록 빠른 감지, 하지만 오탐 증가)
-- **타임아웃(Timeout)**: 애플리케이션 p95 응답시간 + 여유시간
-- **건강 임계값(Healthy Threshold)**: 2-3회 (연속 성공 횟수)
-- **비건강 임계값(Unhealthy Threshold)**: 2-3회 (연속 실패 횟수)
+ALB는 보안 그룹이 필요하다. 인바운드 443, 백엔드 방향 아웃바운드를 열어줘야 한다. 리스너에서 TLS를 종료하니까 인증서가 ALB에 붙는다. 룰을 추가할 때마다 `priority`를 다르게 줘야 한다.
 
-**운영 시 주의사항:**
-- 너무 짧은 간격은 오탐을 증가시킬 수 있음
-- 타임아웃이 너무 짧으면 정상 서버도 비건강으로 판단
-- 임계값이 너무 낮으면 일시적 장애를 과도하게 반응
+### NLB 구성
 
-#### 8.2.3 NLB TCP 헬스 체크의 한계
-**TCP 헬스 체크의 특성:**
-- 포트 연결 가능 여부만 확인
-- 애플리케이션 레벨 상태는 알 수 없음
-- 서버는 살아있지만 애플리케이션이 응답하지 않는 경우 감지 불가
+```hcl
+resource "aws_lb" "app" {
+  name               = "app-nlb"
+  load_balancer_type = "network"
+  internal           = false
 
-**개선 방안:**
-- 가능한 경우 HTTP/HTTPS 헬스 체크로 전환
-- 애플리케이션 레벨에서의 상태 모니터링 병행
-- 외부 모니터링 도구와의 연동
+  enable_cross_zone_load_balancing = true
 
-### 8.3 모니터링 및 로깅
+  subnet_mapping {
+    subnet_id     = aws_subnet.public_a.id
+    allocation_id = aws_eip.nlb_a.id
+  }
+  subnet_mapping {
+    subnet_id     = aws_subnet.public_b.id
+    allocation_id = aws_eip.nlb_b.id
+  }
+}
 
-#### 8.3.1 CloudWatch 지표 활용
-**주요 모니터링 지표:**
+resource "aws_lb_target_group" "app" {
+  name        = "app-nlb-tg"
+  port        = 8080
+  protocol    = "TCP"
+  target_type = "ip"
+  vpc_id      = aws_vpc.main.id
 
-**ALB 지표:**
-- `RequestCount`: 처리된 요청 수
-- `TargetResponseTime`: 타겟 응답 시간
-- `HTTPCode_Target_2XX_Count`: 성공 응답 수
-- `HTTPCode_Target_4XX_Count`: 클라이언트 오류 수
-- `HTTPCode_Target_5XX_Count`: 서버 오류 수
+  proxy_protocol_v2 = true
 
-**NLB 지표:**
-- `ActiveFlowCount`: 활성 연결 수
-- `NewFlowCount`: 새 연결 수
-- `ProcessedBytes`: 처리된 바이트 수
-- `TCP_Target_Reset_Count`: TCP 리셋 수
+  health_check {
+    protocol            = "HTTP"
+    path                = "/healthz"
+    port                = "8080"
+    interval            = 30
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
 
-#### 8.3.2 액세스 로그 분석
-**ALB 액세스 로그 활용:**
+  deregistration_delay = 120
+}
+
+resource "aws_lb_listener" "tls" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 443
+  protocol          = "TLS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate.app.arn
+  alpn_policy       = "HTTP2Preferred"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
 ```
-로그 분석을 통한 인사이트:
-- 사용자 행동 패턴 분석
-- 성능 병목 지점 식별
-- 보안 위협 탐지
-- 트래픽 패턴 기반 용량 계획
+
+NLB는 보안 그룹이 없다(2023년부터 옵션으로 붙일 수 있게 됐지만 기본은 없음). 대신 백엔드 인스턴스의 보안 그룹에서 클라이언트 IP를 직접 받는다 — 0.0.0.0/0을 백엔드에 열어야 하는 사태가 벌어질 수 있어서 보안 그룹 설계를 다시 해야 한다.
+
+가용영역별로 Elastic IP를 붙이려면 `subnet_mapping`을 명시한다. ALB에서는 그냥 `subnets`만 주면 됐던 게, NLB에서는 AZ마다 어떤 EIP를 쓸지 일일이 박는다.
+
+`proxy_protocol_v2 = true`를 켰으니 백엔드도 이걸 파싱하게 만들어야 한다. 안 그러면 첫 패킷 파싱이 깨진다.
+
+`alpn_policy = "HTTP2Preferred"`는 NLB TLS 리스너에서 HTTP/2를 협상할지 결정한다. gRPC를 NLB로 받을 거면 이게 필요하다. ALB는 자동으로 HTTP/2를 처리하니까 신경 쓸 일이 없다.
+
+### NLB → ALB 체이닝 구성
+
+고정 IP가 필요한데 L7 라우팅도 필요할 때 NLB 뒤에 ALB를 둔다.
+
+```hcl
+resource "aws_lb_target_group" "alb_chain" {
+  name        = "nlb-to-alb"
+  target_type = "alb"
+  port        = 443
+  protocol    = "TCP"
+  vpc_id      = aws_vpc.main.id
+
+  health_check {
+    protocol = "HTTPS"
+    path     = "/healthz"
+    port     = "443"
+    matcher  = "200-399"
+  }
+}
+
+resource "aws_lb_target_group_attachment" "alb_chain" {
+  target_group_arn = aws_lb_target_group.alb_chain.arn
+  target_id        = aws_lb.app_alb.arn
+  port             = 443
+}
 ```
 
-**로그 기반 알림 설정:**
-- 5xx 오류율 임계값 초과 시 알림
-- 응답 시간 임계값 초과 시 알림
-- 비정상적인 트래픽 패턴 감지 시 알림
+`target_type = "alb"`는 비교적 최근에 추가된 옵션이다. ALB의 ARN을 NLB 타겟 그룹에 직접 등록할 수 있다. 클라이언트 입장에서는 NLB의 고정 IP를 보지만, 실제 L7 라우팅은 ALB가 한다.
 
-### 8.4 보안 고려사항
+## 운영 중에 자주 들여다보는 CloudWatch 지표
 
-#### 8.4.1 SSL/TLS 인증서 관리
-**AWS Certificate Manager (ACM) 활용:**
-- 자동 인증서 갱신
-- 다중 도메인 인증서 지원
-- 와일드카드 인증서 지원
-- 인증서 투명성 로그 자동 등록
+ALB는 `HTTPCode_Target_5XX_Count`와 `HTTPCode_ELB_5XX_Count`를 분리해서 본다. 전자는 백엔드가 뱉은 5xx고, 후자는 ALB 자체가 만든 5xx다. 후자가 튀면 백엔드 코드를 봐도 답이 안 나온다 — 타겟 그룹에 healthy 타겟이 없거나, ALB가 백엔드와 연결 자체를 못 맺은 경우다. `TargetConnectionErrorCount`도 같이 본다.
 
-**보안 모범 사례:**
-- 최신 TLS 버전 사용 (TLS 1.2 이상)
-- 강력한 암호화 스위트 사용
-- HSTS (HTTP Strict Transport Security) 헤더 설정
-- 정기적인 보안 업데이트 적용
+`TargetResponseTime`의 p99가 헬스체크 timeout보다 커지면 정상 응답인데도 LB가 끊을 위험이 생긴다.
 
-#### 8.4.2 AWS WAF 통합
-**WAF 규칙 설정:**
-- SQL 인젝션 공격 차단
-- XSS (Cross-Site Scripting) 공격 차단
-- DDoS 공격 방어
-- 지리적 접근 제한
+NLB는 `TCP_Client_Reset_Count`와 `TCP_Target_Reset_Count`를 본다. 백엔드 쪽에서 RST를 자주 보내면 keepalive 설정이나 idle timeout이 안 맞는다는 신호다.
 
-**WAF 모니터링:**
-- 차단된 요청 패턴 분석
-- False Positive 최소화
-- 규칙 성능 영향 모니터링
+`UnHealthyHostCount`는 알람에 무조건 박아둔다. 1 이상이 5분 지속되면 즉시 알림이 가야 한다.
 
-### 8.5 비용 최적화
+## 정리
 
-#### 8.5.1 LCU (Load Balancer Capacity Unit) 최적화
-**LCU 구성 요소:**
-- **새 연결**: 초당 새 연결 수
-- **활성 연결**: 동시 활성 연결 수
-- **처리된 바이트**: 시간당 처리된 바이트 수
-- **규칙 평가**: ALB의 경우 규칙 평가 횟수
+ALB는 HTTP/HTTPS·gRPC·WebSocket을 다루는 일반적인 웹 트래픽의 디폴트다. NLB는 UDP·고정 IP·TLS 패스스루·초저지연이 필요할 때, 또는 long-lived TCP 연결이 많을 때 고른다. CLB는 새 프로젝트에서 쓸 일이 없다.
 
-**비용 최적화 전략:**
-- 불필요한 규칙 제거 (ALB)
-- 연결 재사용 최적화
-- 압축 사용으로 데이터 전송량 감소
-- 적절한 타겟 그룹 크기 유지
-
-#### 8.5.2 리소스 사용량 모니터링
-**비용 모니터링 도구:**
-- AWS Cost Explorer를 통한 비용 분석
-- CloudWatch를 통한 사용량 모니터링
-- AWS Budgets를 통한 비용 알림 설정
-
-**최적화 기회 식별:**
-- 사용하지 않는 로드 밸런서 정리
-- 적절한 로드 밸런서 유형 선택
-- 리전별 비용 차이 고려
-
----
-
-## 9. 참조
-
-### 9.1 AWS 공식 문서
-- [AWS Elastic Load Balancing 사용자 가이드](https://docs.aws.amazon.com/elasticloadbalancing/)
-- [Application Load Balancer 사용자 가이드](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/)
-- [Network Load Balancer 사용자 가이드](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/)
-- [Classic Load Balancer 사용자 가이드](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/)
-
-### 9.2 AWS 아키텍처 센터
-- [로드 밸런싱 아키텍처 패턴](https://aws.amazon.com/architecture/load-balancing/)
-- [고가용성 아키텍처 설계](https://aws.amazon.com/architecture/high-availability/)
-- [마이크로서비스 아키텍처 가이드](https://aws.amazon.com/architecture/microservices/)
-
-### 9.3 AWS 블로그 및 기술 자료
-- [AWS Compute Blog - Load Balancing](https://aws.amazon.com/blogs/compute/category/networking-content-delivery/elastic-load-balancing/)
-- [AWS re:Invent 세션 자료](https://www.youtube.com/results?search_query=aws+reinvent+load+balancer)
-- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
-
-### 9.4 비용 및 성능 분석 도구
-- [AWS Simple Monthly Calculator](https://calculator.aws/)
-- [AWS Cost Explorer](https://console.aws.amazon.com/cost-management/home#/dashboard)
-- [AWS Trusted Advisor](https://console.aws.amazon.com/trustedadvisor/)
-
-### 9.5 커뮤니티 및 학습 자료
-- [AWS 한국 사용자 그룹](https://www.meetup.com/awskrug/)
-- [AWS Training and Certification](https://aws.amazon.com/training/)
-- [AWS 공식 YouTube 채널](https://www.youtube.com/user/AmazonWebServices)
-
----
-
+선택보다 운영이 더 까다롭다. NLB의 클라이언트 IP 보존이 ip 타입 타겟에서 깨지는 것, ALB와 NLB의 idle timeout 차이, Cross-Zone 기본값 차이, LCU의 어느 차원이 비용을 끌어올리는지 — 이런 디테일이 청구서와 장애 빈도를 결정한다.
