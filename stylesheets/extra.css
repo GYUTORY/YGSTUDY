@@ -324,6 +324,27 @@ body {
   --md-sidebar-secondary: 10rem; /* TOC */
 }
 
+/* ================================================
+   LAYOUT WIDTH — 좌우 여백 축소
+   기본 .md-grid(max-width: 61rem)이 너무 좁아 와이드 화면에서
+   본문 좌우 빈 공간이 과도하게 보이는 문제를 완화.
+   ================================================ */
+.md-grid {
+  max-width: 90rem;
+}
+
+@media (min-width: 100em) {
+  .md-grid {
+    max-width: 96rem;
+  }
+}
+
+@media (min-width: 125em) {
+  .md-grid {
+    max-width: 110rem;
+  }
+}
+
 /* 사이드바 고정 — Material 기본 sticky가 동작하도록 명시 */
 .md-sidebar {
   position: sticky !important;
