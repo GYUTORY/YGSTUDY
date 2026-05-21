@@ -320,8 +320,8 @@ body {
    ================================================ */
 
 :root {
-  --md-sidebar-width: 12rem;     /* 컴팩트 사이드바 */
-  --md-sidebar-secondary: 10rem; /* TOC */
+  --md-sidebar-width: 20rem;     /* 좌측 네비 폭 확장 */
+  --md-sidebar-secondary: 18rem; /* TOC 폭 확장 */
 }
 
 /* ================================================
