@@ -225,7 +225,9 @@ const logger = Logger.getInstance();
 logger.info('서버가 시작되었습니다', { port: 3000 });
 ```
 
-##### 3. Redis 클라이언트 싱글톤 ```javascript
+##### 3. Redis 클라이언트 싱글톤
+
+```javascript
 // redis-client.js - Redis 연결 관리 싱글톤
 const redis = require('redis');
 
@@ -1048,7 +1050,9 @@ Product (추상 제품)
 
 #### 기본 구현
 
-##### 1. 데이터베이스 연결 팩토리 ```javascript
+##### 1. 데이터베이스 연결 팩토리
+
+```javascript
 // database/connection-factory.js - 데이터베이스 연결 팩토리
 const mysql = require('mysql2/promise');
 const { Pool } = require('pg');
@@ -1535,7 +1539,9 @@ class PaymentController {
 }
 ```
 
-##### 2. 알림 서비스 팩토리 ```javascript
+##### 2. 알림 서비스 팩토리
+
+```javascript
 // services/notification-factory.js - 알림 서비스 팩토리
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
@@ -1968,6 +1974,20 @@ const express = require('express'); // 팩토리 불필요
 2. **런타임에 타입이 결정되는가?** (환경별 설정, 사용자 선택)
 3. **확장 가능성이 있는가?** (새로운 결제 방식, 알림 채널)
 4. **복잡한 초기화 로직이 있는가?** (연결 풀, 인증 설정)
+
+##### 1. UI 컴포넌트 팩토리
+
+```javascript
+// UI 컴포넌트 추상 클래스
+class UIComponent {
+    constructor(props) {
+        this.id = Math.random().toString(36).substr(2, 9);
+        this.props = props || {};
+        this.isVisible = true;
+    }
+
+    render() {
+        throw new Error("render 메서드를 구현해야 합니다.");
     }
 
     mount(container) {
@@ -2470,7 +2490,9 @@ AbstractProductB (추상 제품 B)
 
 #### 기본 구현
 
-##### 1. 마이크로서비스 인프라 팩토리 ```javascript
+##### 1. 마이크로서비스 인프라 팩토리
+
+```javascript
 // infrastructure/service-factory.js - 마이크로서비스 인프라 팩토리
 const mysql = require('mysql2/promise');
 const redis = require('redis');
@@ -3015,6 +3037,19 @@ const config = { host: 'localhost', port: 3000 }; // 팩토리 불필요
 2. **제품군 간의 일관성이 중요한가?** (MySQL + Redis 조합)
 3. **런타임에 제품군이 변경되는가?** (환경별, 테넌트별)
 4. **확장 가능성이 높은가?** (새로운 인프라 조합 추가)
+
+##### 1. 추상 제품군 정의
+
+```javascript
+// UI 컴포넌트 추상 제품들
+class Button {
+    constructor(text, onClick) {
+        this.text = text;
+        this.onClick = onClick;
+    }
+
+    render() {
+        throw new Error("render 메서드를 구현해야 합니다.");
     }
 }
 
@@ -3922,7 +3957,9 @@ Director (감독자)
 
 #### 기본 구현
 
-##### 1. HTTP 요청 빌더 ```javascript
+##### 1. HTTP 요청 빌더
+
+```javascript
 // builders/http-request-builder.js - HTTP 요청 빌더
 const axios = require('axios');
 
@@ -4194,7 +4231,9 @@ class ApiClient {
 }
 ```
 
-##### 2. 데이터베이스 쿼리 빌더 ```javascript
+##### 2. 데이터베이스 쿼리 빌더
+
+```javascript
 // builders/query-builder.js - 데이터베이스 쿼리 빌더
 class Query {
     constructor(builder) {
@@ -5759,7 +5798,23 @@ class ComplexHttpRequestBuilder {
 - **Clean Code**: 로버트 마틴의 코드 품질
 - **Refactoring**: 마틴 파울러의 리팩토링
 - **Effective Java**: 조슈아 블로크의 Java 모범 사례 (JavaScript에도 적용 가능)
-        
+
+##### 1. HTTP 요청 빌더 구현
+
+```javascript
+// HTTP 요청 객체
+class HttpRequest {
+    constructor(builder) {
+        this.url = builder.url;
+        this.method = builder.method;
+        this.headers = builder.headers;
+        this.body = builder.body;
+        this.timeout = builder.timeout;
+        this.retries = builder.retries;
+        this.cache = builder.cache;
+    }
+
+    async execute() {
         // 실제 HTTP 요청 로직
         return { status: 200, data: '응답 데이터' };
     }
