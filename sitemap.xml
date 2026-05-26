@@ -281,6 +281,10 @@
          <lastmod>2026-05-26</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Compute/EC2_Capacity_Reservation/</loc>
+         <lastmod>2026-05-26</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Compute/EC2_Fleet/</loc>
          <lastmod>2026-05-26</lastmod>
     </url>
@@ -294,6 +298,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Compute/EC2_T-%EC%8B%9C%EB%A6%AC%EC%A6%88/</loc>
+         <lastmod>2026-05-26</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Compute/EC2_Tenancy_Dedicated_Hosts/</loc>
          <lastmod>2026-05-26</lastmod>
     </url>
     <url>
