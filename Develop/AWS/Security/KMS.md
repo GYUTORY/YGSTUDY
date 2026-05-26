@@ -1,7 +1,7 @@
 ---
 title: AWS KMS (Key Management Service)
 tags: [aws, security, kms, encryption]
-updated: 2026-04-10
+updated: 2026-05-26
 ---
 
 # AWS KMS (Key Management Service)
@@ -73,6 +73,193 @@ KMS의 키는 3단계 계층으로 구성된다. 상위 키가 하위 키를 암
 | 고객 관리형 키 | 사용자가 직접 생성. 키 정책, 로테이션 직접 제어 | 사용자 | 가능 |
 
 실무에서는 감사 요건이 있거나 cross-account 접근이 필요한 경우 고객 관리형 키를 쓴다. 그 외에는 AWS 관리형 키로 충분한 경우가 많다.
+
+---
+
+## 키 스펙(KeySpec)과 KeyUsage
+
+CMK를 만들 때 키 스펙과 용도(KeyUsage)를 정한다. 한 번 정하면 못 바꾼다. 대칭으로 만든 키를 나중에 비대칭으로 전환하는 식은 안 되고, 새 키를 만들어야 한다.
+
+| KeySpec | 종류 | KeyUsage | 용도 |
+|---------|------|----------|------|
+| SYMMETRIC_DEFAULT | 대칭 (AES-256-GCM) | ENCRYPT_DECRYPT | 일반 암복호화, GenerateDataKey |
+| RSA_2048 / RSA_3072 / RSA_4096 | 비대칭 | ENCRYPT_DECRYPT 또는 SIGN_VERIFY | 암복호화 또는 서명/검증 |
+| ECC_NIST_P256 / P384 / P521 / ECC_SECG_P256K1 | 비대칭 | SIGN_VERIFY | 서명/검증 |
+| HMAC_224 / 256 / 384 / 512 | 대칭 (HMAC) | GENERATE_VERIFY_MAC | 메시지 인증 코드(MAC) |
+
+대부분은 SYMMETRIC_DEFAULT면 된다. 비대칭이나 HMAC 키는 특정 요구가 있을 때만 쓴다.
+
+### 대칭 키 (SYMMETRIC_DEFAULT)
+
+기본값이다. 키 material이 KMS 밖으로 안 나가고, Encrypt/Decrypt/GenerateDataKey를 전부 쓸 수 있다. Envelope Encryption도 대칭 키로만 된다.
+
+### 비대칭 키 (RSA / ECC)
+
+public key를 KMS 밖으로 꺼낼 수 있다는 게 대칭 키와의 결정적 차이다. GetPublicKey로 공개키를 받아 클라이언트나 외부 시스템에 배포하고, 검증·암호화는 KMS 호출 없이 그 공개키로 처리한다.
+
+제약이 몇 가지 있다.
+
+- 비대칭 키는 GenerateDataKey를 못 쓴다. Envelope Encryption 패턴에 못 넣는다. 직접 Encrypt/Decrypt(또는 Sign/Verify)만 되고, RSA로 한 번에 직접 암호화할 수 있는 데이터도 작다. RSA_2048 + OAEP-SHA256이면 약 190바이트가 한계다.
+- KeyUsage를 ENCRYPT_DECRYPT로 만들면 서명에 못 쓰고, SIGN_VERIFY로 만들면 암복호화에 못 쓴다. 둘 다 필요하면 키를 두 개 만든다.
+- ECC 키는 SIGN_VERIFY만 된다. 암복호화 용도가 필요하면 RSA를 쓴다.
+
+#### 비대칭 키로 JWT 서명/검증
+
+JWT 서명에 비대칭 키를 쓰면 서명용 private key는 KMS 안에만 있고, 검증은 public key로 어디서든 한다. 검증 측은 KMS를 호출할 필요가 없다.
+
+```bash
+# RSA 서명용 키 생성
+aws kms create-key \
+  --key-spec RSA_2048 \
+  --key-usage SIGN_VERIFY \
+  --description "JWT signing key"
+
+# JWT의 header.payload 부분을 서명
+aws kms sign \
+  --key-id alias/jwt-signing \
+  --message fileb://jwt-unsigned.txt \
+  --message-type RAW \
+  --signing-algorithm RSASSA_PKCS1_V1_5_SHA_256 \
+  --query Signature --output text
+
+# 검증은 KMS Verify로도 되지만, 공개키를 받아 오프라인 검증하는 게 일반적
+aws kms get-public-key \
+  --key-id alias/jwt-signing \
+  --query PublicKey --output text | base64 --decode > jwt-public.der
+```
+
+서명은 KMS, 검증은 공개키로 오프라인 처리하는 Node 예제다.
+
+```javascript
+const { KMSClient, SignCommand } = require('@aws-sdk/client-kms');
+const crypto = require('crypto');
+
+const kms = new KMSClient({ region: 'ap-northeast-2' });
+
+async function signJwt(headerPayload) {
+    const res = await kms.send(new SignCommand({
+        KeyId: 'alias/jwt-signing',
+        Message: Buffer.from(headerPayload),
+        MessageType: 'RAW',
+        SigningAlgorithm: 'RSASSA_PKCS1_V1_5_SHA_256'
+    }));
+    return Buffer.from(res.Signature).toString('base64url');
+}
+
+// 검증 측: GetPublicKey로 받아 둔 공개키로 KMS 호출 없이 검증
+function verifyJwt(headerPayload, signatureB64, publicKeyPem) {
+    const verifier = crypto.createVerify('RSA-SHA256');
+    verifier.update(headerPayload);
+    return verifier.verify(publicKeyPem, Buffer.from(signatureB64, 'base64url'));
+}
+```
+
+검증할 때마다 KMS Verify를 호출하면 호출 비용과 지연이 붙는다. 공개키를 한 번 받아 캐싱하고 오프라인 검증하면 KMS 호출은 서명할 때만 일어난다. 트래픽이 많은 인증 서버에서 이 차이가 크다.
+
+#### public key 다운로드 후 클라이언트 측 암호화
+
+클라이언트가 데이터를 암호화해서 보내고 서버만 복호화하게 하려면 ENCRYPT_DECRYPT 용도의 RSA 키를 쓴다. 공개키는 클라이언트에 배포하고, private key는 KMS 안에 둔다.
+
+```bash
+aws kms get-public-key \
+  --key-id alias/client-upload \
+  --query PublicKey --output text | base64 --decode > pub.der
+```
+
+클라이언트는 pub.der로 RSA-OAEP 암호화만 하고, 서버는 받은 암호문을 KMS Decrypt로 푼다.
+
+```javascript
+// 서버 측 복호화
+const { DecryptCommand } = require('@aws-sdk/client-kms');
+
+async function decryptFromClient(ciphertextB64) {
+    const res = await kms.send(new DecryptCommand({
+        KeyId: 'alias/client-upload',
+        CiphertextBlob: Buffer.from(ciphertextB64, 'base64'),
+        EncryptionAlgorithm: 'RSAES_OAEP_SHA_256'
+    }));
+    return Buffer.from(res.Plaintext).toString('utf-8');
+}
+```
+
+비대칭 Decrypt는 EncryptionAlgorithm을 명시해야 한다. 클라이언트가 OAEP-SHA256으로 암호화했으면 복호화 때도 같은 알고리즘을 줘야 하고, 안 맞으면 InvalidCiphertextException이 난다.
+
+### HMAC 키
+
+GENERATE_VERIFY_MAC 용도로만 쓴다. 메시지 무결성 검증용 MAC을 만들고 검증한다. 애플리케이션이 HMAC 키를 직접 들고 있지 않고 KMS 안에 두고 GenerateMac/VerifyMac을 호출한다. 웹훅 서명 검증처럼 공유 비밀이 노출되면 안 되는 곳에 쓴다.
+
+```bash
+aws kms create-key --key-spec HMAC_256 --key-usage GENERATE_VERIFY_MAC
+
+aws kms generate-mac \
+  --key-id alias/webhook-mac \
+  --message fileb://payload.json \
+  --mac-algorithm HMAC_SHA_256
+```
+
+---
+
+## 키 출처(Origin)
+
+키 material을 누가 만들고 어디에 두느냐다. 생성 시 `--origin`으로 정한다.
+
+| Origin | 키 material 생성 주체 | 보관 위치 | 자동 로테이션 |
+|--------|----------------------|----------|--------------|
+| AWS_KMS | KMS | AWS KMS HSM | 지원 |
+| EXTERNAL | 사용자가 import (BYOK) | AWS KMS HSM | 미지원 |
+| AWS_CLOUDHSM | CloudHSM 클러스터 | 사용자 소유 CloudHSM | 미지원 |
+
+### AWS_KMS (기본)
+
+KMS가 HSM 안에서 키 material을 만들고 보관한다. 따로 신경 쓸 게 없고, 대부분 이걸 쓴다.
+
+### EXTERNAL (BYOK, 키 material import)
+
+규제나 내부 정책상 키 material을 직접 생성해서 가져와야 할 때 쓴다. 절차가 까다롭다.
+
+```bash
+# 1. EXTERNAL 키 생성 (아직 키 material 없음 → PendingImport 상태)
+KEY_ID=$(aws kms create-key \
+  --origin EXTERNAL \
+  --description "BYOK key" \
+  --query 'KeyMetadata.KeyId' --output text)
+
+# 2. import 파라미터 요청 → 래핑용 공개키 + import token 수령
+aws kms get-parameters-for-import \
+  --key-id $KEY_ID \
+  --wrapping-algorithm RSAES_OAEP_SHA_256 \
+  --wrapping-key-spec RSA_4096 \
+  --query '{PublicKey:PublicKey,ImportToken:ImportToken}'
+
+# 3. 받은 공개키로 내 키 material을 래핑 (로컬에서 OpenSSL 등으로)
+
+# 4. 래핑된 키 material + import token으로 import
+aws kms import-key-material \
+  --key-id $KEY_ID \
+  --encrypted-key-material fileb://wrapped-key.bin \
+  --import-token fileb://import-token.bin \
+  --expiration-model KEY_MATERIAL_DOES_NOT_EXPIRE
+```
+
+주의점.
+
+- import token은 24시간 후 만료된다. GetParametersForImport로 받은 토큰과 공개키는 한 쌍이고, 만료되면 둘 다 다시 받아야 한다.
+- 키 material에 만료 시각을 걸면(KEY_MATERIAL_EXPIRES) 만료 후 키가 PendingImport로 돌아가 사용 불가가 된다. 만료 전에 같은 material을 다시 import해야 한다. 만료 모델을 잘못 잡으면 운영 중 갑자기 복호화가 막힌다.
+- 자동 로테이션이 안 된다. 로테이션하려면 새 키를 만들어 새 material을 import하고 alias를 옮긴다.
+- AWS는 import한 material의 사본을 따로 보관해 주지 않는다. 원본 material을 잃어버린 상태에서 KMS의 material까지 DeleteImportedKeyMaterial로 지우면 그 키로 암호화한 데이터는 복구 불가다. 원본 material 백업은 사용자 책임이다.
+
+### AWS_CLOUDHSM (Custom Key Store)
+
+KMS 키 material을 AWS가 운영하는 공용 HSM이 아니라 내가 소유한 CloudHSM 클러스터에 두는 방식이다. 규제상 키가 전용 HSM에 있어야 할 때 쓴다.
+
+운영 부담이 크다.
+
+- CloudHSM 클러스터의 가용성, 백업, HSM 인스턴스 수를 직접 관리한다. 클러스터가 죽으면 그 키로 하는 KMS 작업이 전부 실패한다.
+- HSM 사용자(CU) 자격 증명 관리, 클러스터 정족수 같은 CloudHSM 자체 운영 지식이 필요하다.
+- 자동 로테이션 미지원.
+- 비용도 높다. CloudHSM 인스턴스 시간당 과금이 KMS 요금과 별개로 붙는다.
+
+가용성 요구가 높은 워크로드에서 단일 HSM 클러스터에 의존하면 위험하다. 멀티 AZ로 HSM을 여러 개 두고도 클러스터 장애 시나리오를 검증해야 한다. 규제 요건이 명확하지 않으면 AWS_KMS를 쓰는 게 운영상 안전하다.
 
 ---
 
@@ -478,6 +665,162 @@ CloudTrail 이벤트의 `errorCode`와 `errorMessage` 필드에 구체적인 거
 1. 앱이 암호화된 키를 KMS에 전달
 2. KMS가 KMS Key로 복호화하여 평문 키 반환
 3. 평문 키로 데이터 복호화
+
+---
+
+## 키 로테이션 심화
+
+자동 로테이션은 backing key(HSM 안의 실제 키 material)만 교체한다. KeyId와 ARN, alias는 그대로다. 그래서 애플리케이션 코드나 키 참조를 바꿀 필요가 없다.
+
+```bash
+# 자동 로테이션 켜기 (고객 관리형 대칭 키)
+aws kms enable-key-rotation --key-id $KEY_ID
+
+# 로테이션 주기 지정 (기본 365일, 90~2560일 사이)
+aws kms enable-key-rotation --key-id $KEY_ID --rotation-period-in-days 180
+
+# 상태 확인
+aws kms get-key-rotation-status --key-id $KEY_ID
+
+# 주기와 별개로 즉시 1회 로테이션
+aws kms rotate-key-on-demand --key-id $KEY_ID
+```
+
+### 옛 데이터는 어떻게 복호화되나
+
+로테이션해도 KMS가 이전 backing key를 계속 보관한다. 옛날에 암호화한 데이터에는 그때 쓴 backing key의 식별자가 암호문 안에 들어 있어서, Decrypt 시 KMS가 알맞은 옛 backing key를 골라 자동 복호화한다. 로테이션했다고 옛 데이터를 다시 암호화할 필요가 없다.
+
+새로 암호화하는 데이터에만 최신 backing key가 쓰인다. 결과적으로 한 KMS 키 아래 여러 세대의 backing key가 쌓이고, KMS가 알아서 골라 쓴다. 사용자 입장에서는 KeyId 하나만 보면 되고, 내부 세대 관리는 신경 쓸 게 없다.
+
+### 수동 로테이션 (alias 재지정)
+
+비대칭 키, HMAC 키, import(EXTERNAL) 키, CloudHSM 키는 자동 로테이션이 안 된다. 이 경우 새 키를 만들고 alias를 옮겨 수동으로 로테이션한다.
+
+```bash
+NEW_KEY_ID=$(aws kms create-key --key-spec RSA_2048 --key-usage SIGN_VERIFY \
+  --query 'KeyMetadata.KeyId' --output text)
+
+# alias를 새 키로 이동 — 이후 새 암호화/서명은 새 키로 나감
+aws kms update-alias --alias-name alias/jwt-signing --target-key-id $NEW_KEY_ID
+```
+
+자동 로테이션과 달리 수동 로테이션은 KeyId가 바뀐다. 옛 키로 암호화/서명한 데이터를 복호화/검증하려면 옛 키를 지우면 안 된다. 비활성화도 하지 말고 살려둔 채 alias만 옮긴다. 검증 측이 여러 공개키를 동시에 받아들이도록 해 둬야 전환 중에 검증 실패가 안 난다.
+
+### AWS 관리형 키 로테이션
+
+`aws/s3` 같은 AWS 관리형 키는 자동으로 1년마다 로테이션된다. 끄거나 주기를 바꿀 수 없고, AWS가 알아서 처리한다.
+
+---
+
+## Grant 상세
+
+Grant는 키 정책을 건드리지 않고 특정 주체에게 한정된 권한을 임시로 주는 방법이다. 프로그래밍으로 만들고 회수한다.
+
+```bash
+# Lambda 실행 Role에 Decrypt와 GenerateDataKey만 허용하는 Grant 생성
+aws kms create-grant \
+  --key-id $KEY_ID \
+  --grantee-principal arn:aws:iam::111122223333:role/LambdaRole \
+  --operations Decrypt GenerateDataKey \
+  --constraints EncryptionContextSubset={app=billing} \
+  --query '{GrantId:GrantId,GrantToken:GrantToken}'
+```
+
+### GrantToken
+
+CreateGrant 응답에는 GrantId와 GrantToken이 같이 온다. Grant는 만들어도 KMS 전 리전에 퍼지는 데 시간이 걸려서(최종 일관성), 만든 직후 바로 키를 쓰면 아직 권한이 없다고 거부될 수 있다. 이때 응답으로 받은 GrantToken을 API 호출에 같이 넘기면 전파를 기다리지 않고 즉시 권한이 적용된다.
+
+```bash
+aws kms decrypt \
+  --ciphertext-blob fileb://encrypted.bin \
+  --grant-tokens $GRANT_TOKEN
+```
+
+### RetireGrant vs RevokeGrant
+
+- RetireGrant: 더 쓸 일이 없을 때 Grant를 정리한다. Grant를 만든 주체, grantee, RetiringPrincipal이 호출할 수 있다. "일 끝났으니 반납"에 가깝다.
+- RevokeGrant: 키 관리자가 권한을 강제로 회수한다. "당장 뺏는다"에 가깝다. 보안 사고 대응으로 권한을 즉시 끊을 때 쓴다.
+
+```bash
+aws kms retire-grant --key-id $KEY_ID --grant-id $GRANT_ID
+aws kms revoke-grant --key-id $KEY_ID --grant-id $GRANT_ID
+aws kms list-grants --key-id $KEY_ID
+```
+
+### AWS 서비스가 Grant를 쓰는 이유
+
+EBS, RDS, Redshift 같은 서비스가 고객 관리형 키로 리소스를 암호화하면, 그 서비스가 내 키에 Grant를 만든다. 예를 들어 암호화 EBS 볼륨을 만들면 EC2/EBS가 볼륨 수명 동안 GenerateDataKey와 Decrypt를 할 수 있는 Grant를 내 키에 생성한다.
+
+키 정책을 직접 고치지 않고 Grant를 쓰는 이유가 있다.
+
+- 리소스 단위로 권한을 잘게 쪼갤 수 있다. 볼륨 하나당 Grant 하나 식이다.
+- 리소스를 지우면 Grant도 회수되어 권한이 자동으로 사라진다.
+- 키 정책을 매번 수정하면 정책이 비대해지고 충돌이 난다. Grant는 프로그래밍으로 대량 생성할 수 있다(키당 최대 50,000개).
+
+`kms:GrantIsForAWSResource` 조건으로 "AWS 서비스가 자기 리소스용으로 만드는 Grant만 허용"하도록 제한할 수 있다.
+
+### 키 정책과의 차이
+
+| 구분 | 키 정책 | Grant |
+|------|--------|-------|
+| 성격 | 키에 붙는 기본 리소스 정책 | 임시·세분화 권한 위임 |
+| 변경 방법 | PutKeyPolicy로 사람이 수정 | CreateGrant/RetireGrant/RevokeGrant로 프로그래밍 |
+| Deny | 명시적 Deny 가능 | Allow만, Deny 없음 |
+| 수명 | 명시적으로 바꿀 때까지 유지 | 회수하거나 리소스 삭제 시 사라짐 |
+| 용도 | 전체 접근 통제의 뼈대 | AWS 서비스 연동, 일시 위임 |
+
+Grant는 권한을 더해주기만 한다. 키 정책의 Deny를 Grant로 뚫을 수는 없다.
+
+---
+
+## 키 비활성화·삭제·삭제 예약
+
+KMS 키는 바로 못 지운다. 키로 암호화한 데이터가 어딘가에 남아 있으면 키 삭제가 곧 데이터 영구 손실이라, AWS가 의무 대기 기간을 둔다.
+
+### 비활성화 (DisableKey)
+
+키를 못 쓰게 막되 언제든 되돌릴 수 있다. 키 material은 그대로 있고 EnableKey로 즉시 복구된다. 보관료($1/월)는 계속 나간다.
+
+```bash
+aws kms disable-key --key-id $KEY_ID
+aws kms enable-key --key-id $KEY_ID
+```
+
+삭제 전에 먼저 비활성화해서 영향을 관찰하는 용도로 쓴다. 비활성화 후 한동안 CloudTrail을 보며 그 키를 쓰는 곳이 없는지 확인하고, 문제없으면 삭제를 예약한다.
+
+### 삭제 예약 (ScheduleKeyDeletion)
+
+즉시 삭제는 불가능하고 7~30일 대기 기간을 둔다(기본 30일). 대기 중에는 PendingDeletion 상태가 되어 키를 쓸 수 없다.
+
+```bash
+# 대기 기간 7일로 삭제 예약
+aws kms schedule-key-deletion --key-id $KEY_ID --pending-window-in-days 7
+```
+
+대기 기간이 지나면 키와 metadata가 영구 삭제되고, 그 키로 암호화한 데이터는 전부 복구 불가가 된다.
+
+### 삭제 취소 (CancelKeyDeletion)
+
+대기 기간 안이면 삭제를 취소할 수 있다. 취소하면 키가 Disabled 상태로 돌아온다. 다시 쓰려면 EnableKey로 활성화한다.
+
+```bash
+aws kms cancel-key-deletion --key-id $KEY_ID
+aws kms enable-key --key-id $KEY_ID
+```
+
+### 실무 순서
+
+1. 비활성화한다.
+2. 대기 기간(최대 30일) 동안 CloudTrail로 Decrypt/Encrypt 호출이 들어오는지 본다. 한 건이라도 있으면 아직 그 키에 의존하는 데이터나 서비스가 있다는 뜻이다.
+3. 호출이 완전히 끊긴 걸 확인하면 삭제를 예약한다.
+
+import(EXTERNAL) 키는 키 자체를 지우지 않고 키 material만 제거할 수 있다. DeleteImportedKeyMaterial로 material만 지우면 키는 PendingImport로 남고, 나중에 같은 material을 다시 import해 되살릴 수 있다. 키 정의와 정책, alias를 유지한 채 잠시 봉인하는 셈이다.
+
+```bash
+aws kms delete-imported-key-material --key-id $KEY_ID
+```
+
+멀티리전 키는 Replica가 남아 있으면 Primary를 삭제할 수 없다. Replica를 먼저 전부 정리해야 Primary를 지울 수 있다.
 
 ---
 
