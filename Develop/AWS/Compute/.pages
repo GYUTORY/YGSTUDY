@@ -5,6 +5,8 @@ nav:
   - EC2_T-시리즈.md
   - EC2_Nitro_System.md
   - EC2_Purchase_Options.md
+  - EC2_Capacity_Reservation.md
+  - EC2_Tenancy_Dedicated_Hosts.md
   - EC2_Fleet.md
   - Auto_Scaling.md
   - Lambda.md
