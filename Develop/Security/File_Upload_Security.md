@@ -214,7 +214,7 @@ function normalizeFilename(name) {
   let normalized = name.normalize('NFC');
 
   // 2. 제어 문자, 0폭 문자 제거
-  normalized = normalized.replace(/[ -​-‏﻿]/g, '');
+  normalized = normalized.replace(/[\x00-\x1f\x7f\u200b-\u200f\ufeff]/g, '');
 
   // 3. 경로 구분자 제거
   normalized = normalized.replace(/[\/\\]/g, '');
