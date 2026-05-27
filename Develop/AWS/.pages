@@ -4,6 +4,7 @@ nav:
   - Network
   - Security
   - Database
+  - Analytics
   - Storage
   - Load_Balancer
   - Application_Integration
