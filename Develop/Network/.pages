@@ -1,6 +1,7 @@
 nav:
   - Networking_Fundamentals.md
   - Repeater.md
+  - P2P.md
   - 7 Layer
   - Protocol
   - Domain
