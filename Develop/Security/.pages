@@ -26,6 +26,7 @@ nav:
   - ISMS.md
   - SSH_Key_Management.md
   - Secrets_Management.md
+  - PII_Data_Protection.md
   - Server_Attack_Defense.md
   - DNS_Security.md
   - D_Do_S_Defense.md
