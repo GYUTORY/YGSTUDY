@@ -10,6 +10,7 @@ nav:
   - OAuth.md
   - SSO_SAML_OIDC.md
   - JWT.md
+  - JWKS_Endpoint.md
   - Session_Management.md
   - Cookie_Security.md
   - Web_Authn_Passkeys.md
