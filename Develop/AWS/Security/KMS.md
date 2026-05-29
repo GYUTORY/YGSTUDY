@@ -1,7 +1,7 @@
 ---
 title: AWS KMS (Key Management Service)
 tags: [aws, security, kms, encryption]
-updated: 2026-05-26
+updated: 2026-05-29
 ---
 
 # AWS KMS (Key Management Service)
@@ -650,24 +650,6 @@ CloudTrail 이벤트의 `errorCode`와 `errorMessage` 필드에 구체적인 거
 
 ---
 
-## KMS 작동 원리
-
-### 암호화 절차
-
-1. 앱이 KMS에 Data Key 생성을 요청
-2. KMS가 KMS Key를 이용해 Data Key 생성
-3. 평문 키와 암호화된 키를 앱에 반환
-4. 평문 키로 데이터 암호화
-5. 암호화된 데이터 + 암호화된 키 저장
-
-### 복호화 절차
-
-1. 앱이 암호화된 키를 KMS에 전달
-2. KMS가 KMS Key로 복호화하여 평문 키 반환
-3. 평문 키로 데이터 복호화
-
----
-
 ## 키 로테이션 심화
 
 자동 로테이션은 backing key(HSM 안의 실제 키 material)만 교체한다. KeyId와 ARN, alias는 그대로다. 그래서 애플리케이션 코드나 키 참조를 바꿀 필요가 없다.
@@ -824,18 +806,11 @@ aws kms delete-imported-key-material --key-id $KEY_ID
 
 ---
 
-## 키 관리
+## 감사와 로깅
 
-- 키 생성, 활성화/비활성화, 삭제 예약 (7~30일)
-- 자동 키 로테이션 지원 (1년 주기, 고객 관리형 키만)
-- 키 정책: 키 수준의 권한 관리
-- IAM 정책: 사용자/역할 기반 권한 부여
-- Grant: 제한된 일시적 권한 제공
+KMS의 모든 API 호출은 CloudTrail에 남는다. Encrypt, Decrypt, GenerateDataKey, CreateGrant 같은 호출마다 누가 어떤 키에 어떤 작업을 했는지, 어떤 Encryption Context를 넘겼는지가 이벤트로 기록된다. 키를 누가 쓰는지 추적하거나 AccessDeniedException 원인을 찾을 때 이 기록이 출발점이 된다. 삭제 예약 전에 그 키를 아직 쓰는 곳이 있는지 보는 것도 결국 CloudTrail의 Decrypt/Encrypt 이벤트를 확인하는 일이다.
 
-### 감사 및 보안
-- CloudTrail: 키 사용 이력 기록
-- CloudWatch: 모니터링 및 경보
-- 키 접근 로그로 감사 대응 가능
+CloudWatch로는 키 사용량이나 비정상 패턴에 경보를 건다. 평소보다 Decrypt 호출이 급증하거나 삭제 예약한 키에 접근 시도가 들어오면 알림이 오도록 메트릭 필터와 경보를 걸어 둔다.
 
 ---
 
@@ -850,16 +825,9 @@ aws kms delete-imported-key-material --key-id $KEY_ID
 
 ---
 
-## 권한 관리 실무
+## 네트워크 보안
 
-### IAM 정책과 키 정책 조합
-- 최소 권한 원칙 적용
-- IAM 정책과 키 정책 조합 필수
-- Grant로 세분화된 권한 위임 가능
-
-### 네트워크 보안
-- VPC 엔드포인트 사용 권장
-- KMS API 호출은 HTTPS 기반
+KMS API는 전부 HTTPS로 호출된다. 기본적으로 퍼블릭 엔드포인트(kms.<region>.amazonaws.com)를 거치기 때문에, VPC 안에서만 도는 워크로드가 NAT 게이트웨이 없이 KMS를 쓰려면 인터페이스 VPC 엔드포인트(PrivateLink)를 만든다. 그러면 KMS 트래픽이 인터넷을 타지 않고 VPC 내부에서 처리된다. 엔드포인트에 정책을 붙여 특정 키나 Action만 통과시킬 수도 있는데, 이 정책을 너무 좁게 잡으면 그 자체가 AccessDeniedException의 원인이 되니 트러블슈팅 때 같이 본다.
 
 ---
 
