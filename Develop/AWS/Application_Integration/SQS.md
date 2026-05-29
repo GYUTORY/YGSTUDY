@@ -1,689 +1,499 @@
 ---
-title: AWS SQS (Simple Queue Service)
-tags: [aws, sqs, messaging, queue, asynchronous, serverless, microservices]
-updated: 2026-01-16
+title: AWS SQS와 SNS 연동
+tags: [aws, sqs, sns, messaging, queue, fan-out, dlq]
+updated: 2026-05-29
 ---
 
-# AWS SQS (Simple Queue Service)
+# AWS SQS와 SNS 연동
 
 ## 개요
 
-AWS SQS는 클라우드 기반의 완전관리형 메시지 큐 서비스다. 분산 시스템에서 비동기 메시지 처리를 위한 인프라다.
+SQS는 메시지를 큐에 쌓아두고 Consumer가 폴링으로 꺼내 가는 풀(pull) 방식의 메시지 큐다. Producer와 Consumer를 분리해서 둘의 처리 속도가 달라도 큐가 완충 역할을 한다. 결제 처리 같은 무거운 작업을 API 응답 경로에서 떼어내 백그라운드로 넘길 때, 트래픽이 튀어도 워커가 자기 속도로 소화하게 만들 때 쓴다.
+
+SNS는 반대로 발행한 메시지를 구독자에게 밀어주는(push) 방식이다. 한 번 발행하면 여러 구독자에게 동시에 복제해서 전달한다. SNS와 SQS를 붙이면 "한 이벤트를 여러 큐로 뿌리되, 각 큐는 독립적인 속도로 처리"하는 구조가 된다. 이게 실무에서 가장 많이 쓰는 fan-out 패턴이고, 이 문서의 절반은 그 연동에서 사람들이 실제로 막히는 지점을 다룬다.
+
+리전과 계정 ID는 예제 전체에서 `ap-northeast-2`(서울), `123456789012`를 쓴다. 본인 환경 값으로 바꿔서 실행해야 한다.
+
+## Standard와 FIFO
+
+큐 유형은 만들 때 정하고 나중에 못 바꾼다. 그래서 처음에 제대로 골라야 한다.
+
+| 항목 | Standard | FIFO |
+|------|----------|------|
+| 순서 보장 | 없음 | MessageGroupId 단위로 보장 |
+| 중복 | 가끔 발생(at-least-once) | 5분 중복 제거 |
+| 처리량 | 사실상 무제한 | 초당 300건(배치 시 3,000건) |
+| 이름 | 자유 | `.fifo`로 끝나야 함 |
 
-**특징:**
-- 완전관리형: AWS가 인프라 관리, 확장, 모니터링 담당
-- 높은 가용성: 99.9% 이상 가용성, 여러 가용 영역에 메시지 저장
-- 무제한 확장성: 처리량 제한 없음, 트래픽 급증 시 자동 확장
-- 비용 효율성: 사용한 만큼만 비용 지불
-
-**사용하는 경우:**
-- 비동기 작업 처리
-- 마이크로서비스 간 통신
-- 이벤트 기반 아키텍처
-- 워크로드 버퍼링
-
-## 큐 유형
-
-### Standard Queue
-
-높은 처리량과 최소한의 지연 시간을 제공하는 기본 큐 유형이다.
-
-**특징:**
-
-**높은 처리량:**
-- 초당 거의 무제한의 메시지 처리 가능
-- 처리량 제한이 없다
-- 트래픽 급증 시 자동으로 확장된다
-
-**최소 1회 전달 (At-Least-Once Delivery):**
-- 메시지가 최소 한 번은 전달된다
-- 중복 전달 가능성이 있다
-- 같은 메시지가 여러 번 전달될 수 있다
-- 멱등성 보장이 필수다
-
-**순서 보장 없음:**
-- 메시지가 전송된 순서와 다르게 처리될 수 있다
-- 메시지 A를 먼저 보냈어도 메시지 B가 먼저 처리될 수 있다
-- 순서가 중요하지 않은 작업에 적합하다
-
-**최대 처리량:**
-- 초당 거의 무제한의 트랜잭션 지원
-- 처리량 제한이 없다
-
-**사용 사례:**
-- 웹 애플리케이션의 백그라운드 작업 처리
-- 이미지/비디오 처리 파이프라인
-- 이메일 발송 시스템
-- 로그 수집 및 분석
-
-### FIFO Queue
-
-메시지 순서와 중복 제거를 보장하는 큐 유형이다. 큐 이름 끝에 `.fifo`가 붙는다.
-
-**특징:**
-
-**순서 보장:**
-- 메시지가 전송된 순서대로 처리된다
-- MessageGroupId를 기준으로 순서가 보장된다
-- 같은 MessageGroupId를 가진 메시지는 순서대로 처리된다
-
-**정확히 1회 전달 (Exactly-Once Delivery):**
-- 메시지 중복 없이 정확히 한 번만 전달된다
-- ContentBasedDeduplication 또는 MessageDeduplicationId를 사용한다
-- 중복 제거 기간은 5분이다
-
-**제한된 처리량:**
-- 초당 최대 300개의 메시지 처리
-- 처리량이 Standard Queue보다 낮다
-- 여러 큐로 분산하면 처리량을 늘릴 수 있다
-
-**메시지 그룹화:**
-- MessageGroupId를 통한 병렬 처리 지원
-- 같은 MessageGroupId를 가진 메시지는 순서대로 처리된다
-- 다른 MessageGroupId를 가진 메시지는 병렬로 처리된다
-
-**사용 사례:**
-- 금융 거래 처리
-- 주문 처리 시스템
-- 데이터베이스 복제
-- 중요한 비즈니스 워크플로우
-
-**Standard Queue vs FIFO Queue:**
-
-| 항목 | Standard Queue | FIFO Queue |
-|------|----------------|------------|
-| 처리량 | 무제한 | 초당 300개 |
-| 전달 보장 | 최소 1회 | 정확히 1회 |
-| 순서 보장 | 없음 | 있음 |
-| 중복 가능성 | 있음 | 없음 |
-| 비용 | 낮음 | 동일 |
-
-## 메시지 생명주기
-
-### 메시지 전송 과정
-
-SQS에서 메시지는 Producer에서 Consumer로 전달되는 과정을 거친다.
-
-**1. Producer가 메시지 전송**
-애플리케이션이 SQS 큐에 메시지를 전송한다. 메시지는 큐에 즉시 저장되며, 전송 성공 여부는 API 응답으로 확인할 수 있다.
-
-**2. SQS가 메시지 저장**
-메시지가 큐에 안전하게 저장된다. SQS는 여러 가용 영역에 메시지를 복제하여 가용성을 보장한다. 메시지는 설정된 보존 기간 동안 큐에 유지된다.
-
-**3. Consumer가 폴링**
-Consumer가 주기적으로 큐를 확인하여 메시지를 수신한다. 폴링은 Short Polling과 Long Polling 두 가지 방식이 있다.
-
-**4. 메시지 처리**
-Consumer가 메시지를 받아 처리한다. 처리 중인 메시지는 가시성 타임아웃 동안 다른 Consumer에게 보이지 않는다.
-
-**5. 명시적 삭제**
-처리 완료 후 Consumer가 메시지를 명시적으로 삭제해야 한다. 삭제하지 않으면 가시성 타임아웃이 지난 후 메시지가 다시 큐에 나타난다.
-
-**메시지 삭제의 중요성:**
-메시지를 삭제하지 않으면 같은 메시지가 반복적으로 처리된다. 처리 성공 여부와 관계없이 반드시 삭제해야 한다.
-
-### 가시성 타임아웃 (Visibility Timeout)
-
-메시지가 Consumer에 의해 수신되면, 다른 Consumer가 동일한 메시지를 수신하지 못하도록 일정 시간 동안 "보이지 않게" 된다.
-
-**가시성 타임아웃의 목적:**
-여러 Consumer가 동시에 같은 메시지를 처리하는 것을 방지한다. 메시지를 받은 Consumer가 처리하는 동안 다른 Consumer는 해당 메시지를 볼 수 없다.
-
-**동작 원리:**
-1. Consumer가 메시지를 수신하면 가시성 타임아웃이 시작된다
-2. 타임아웃 동안 메시지는 다른 Consumer에게 보이지 않는다
-3. Consumer가 메시지를 처리하고 삭제하면 타임아웃이 종료된다
-4. 타임아웃이 만료되기 전에 삭제하지 않으면 메시지가 다시 큐에 나타난다
-
-**설정 원칙:**
-- 메시지 처리 시간보다 충분히 길게 설정해야 한다
-- 너무 짧으면 처리 중 메시지가 다시 보여 중복 처리가 발생한다
-- 너무 길면 처리 실패 시 재처리까지 시간이 오래 걸린다
-
-**타임아웃 연장:**
-처리 시간이 예상보다 길어지면 타임아웃을 연장할 수 있다. ChangeMessageVisibility API를 사용해 타임아웃을 늘릴 수 있다.
-
-**실무 팁:**
-가시성 타임아웃은 메시지 처리 시간의 3배 정도로 설정한다. 평균 처리 시간이 10초라면 30초로 설정한다. 처리 중 메시지가 다시 보이면 중복 처리가 발생할 수 있다.
-
-### Dead Letter Queue (DLQ)
-
-처리에 실패한 메시지를 격리하는 특별한 큐다. 일반 큐와 동일한 구조를 가지며, 실패한 메시지만 저장한다.
-
-**DLQ의 필요성:**
-처리에 실패한 메시지가 계속 재시도되면 시스템에 부하가 생긴다. 잘못된 형식의 메시지나 처리할 수 없는 메시지는 무한히 재시도될 수 있다. DLQ는 이런 메시지를 격리하여 시스템을 보호한다.
-
-**동작 원리:**
-1. 메시지가 Consumer에 의해 수신된다
-2. 처리에 실패하면 메시지가 다시 큐에 나타난다
-3. 메시지가 최대 수신 횟수(maxReceiveCount)를 초과하면 DLQ로 이동한다
-4. DLQ에 있는 메시지는 자동으로 재시도되지 않는다
-
-**최대 수신 횟수 설정:**
-일반적으로 3-5회로 설정한다. 너무 작으면 일시적인 오류로 인해 정상 메시지가 DLQ로 이동할 수 있다. 너무 크면 잘못된 메시지가 오래 재시도된다.
-
-**DLQ 활용 전략:**
-- 실패한 메시지 분석을 통한 시스템 개선
-- 수동 재처리 또는 별도 처리 파이프라인 구축
-- 알림 설정으로 DLQ 메시지 발생 시 즉시 감지
-
-**DLQ 모니터링:**
-DLQ에 메시지가 쌓이면 원인을 분석해야 한다. 처리 로직에 문제가 있거나 메시지 형식이 잘못되었을 수 있다. CloudWatch 알람을 설정해 DLQ 메시지 발생 시 알림을 받는다.
-
-**실무 팁:**
-DLQ는 반드시 설정한다. 실패한 메시지가 계속 재시도되면 비용이 증가하고 시스템에 부하가 생긴다. DLQ에 메시지가 쌓이면 주기적으로 검토하고 원인을 해결한다.
-
-## 메시지 속성
-
-### 메시지 본문 (Message Body)
-
-메시지 본문은 실제 전달할 데이터를 담는다.
-
-**제한사항:**
-- 최대 256KB의 텍스트 데이터
-- JSON, XML, 바이너리 데이터 등 다양한 형식 지원
-- Base64 인코딩을 통한 바이너리 데이터 전송 가능
-
-**256KB 초과 데이터 처리:**
-메시지 본문이 256KB를 초과하면 S3에 데이터를 저장하고 S3 객체 키만 메시지로 전송한다. Consumer는 메시지를 받아 S3에서 실제 데이터를 가져온다.
-
-**메시지 형식:**
-일반적으로 JSON 형식을 사용한다. 구조화된 데이터를 쉽게 파싱할 수 있고, 다양한 언어에서 지원한다.
-
-### 메시지 속성 (Message Attributes)
-
-메시지와 함께 전송되는 메타데이터다. 메시지 본문과 분리되어 있어 파싱 없이 메타데이터에 접근할 수 있다.
-
-**특징:**
-- 문자열, 숫자, 바이너리 데이터 타입 지원
-- 최대 10개의 속성, 각각 최대 256KB
-- 메시지 필터링에 활용 가능
-
-**사용 사례:**
-- 우선순위 정보
-- 메시지 타입
-- 처리 경로 정보
-- 타임스탬프
-
-**메시지 필터링:**
-SNS와 연동할 때 메시지 속성을 기반으로 필터링할 수 있다. 특정 속성 값을 가진 메시지만 특정 큐로 전달할 수 있다.
-
-### 시스템 속성
-
-SQS가 자동으로 생성하는 메타데이터다.
-
-**주요 시스템 속성:**
-- **MessageId**: 메시지의 고유 식별자. 메시지 전송 시 자동 생성된다
-- **ReceiptHandle**: 메시지 삭제를 위한 핸들. 메시지 수신 시 생성되며, 삭제에 필요하다
-- **MD5OfBody**: 메시지 본문의 무결성 검증을 위한 해시값
-- **Attributes**: 메시지의 시스템 메타데이터 (전송 시간, 수신 횟수 등)
-
-**ReceiptHandle의 중요성:**
-메시지를 삭제하려면 ReceiptHandle이 필요하다. 가시성 타임아웃이 만료되면 ReceiptHandle도 무효화되므로, 타임아웃 내에 삭제해야 한다.
-
-## 성능 최적화
-
-### 장기 폴링 (Long Polling)
-
-폴링 간격을 늘려 비용을 절감하는 방법이다.
-
-**Short Polling vs Long Polling:**
-
-**Short Polling (기본값):**
-- 즉시 응답을 반환한다
-- 큐에 메시지가 없어도 빈 응답을 즉시 반환한다
-- 빈 응답이 많아 API 호출 횟수가 증가한다
-- 비용이 많이 발생한다
-
-**Long Polling:**
-- 최대 20초까지 대기한다
-- 메시지가 있으면 즉시 반환한다
-- 메시지가 없으면 최대 20초까지 대기한 후 빈 응답을 반환한다
-- 빈 응답이 줄어 API 호출 횟수가 감소한다
-- 비용이 절감된다
-
-**동작 원리:**
-1. Consumer가 큐에 메시지를 요청한다
-2. 메시지가 있으면 즉시 반환한다
-3. 메시지가 없으면 WaitTimeSeconds 동안 대기한다
-4. 대기 중 메시지가 들어오면 즉시 반환한다
-5. 대기 시간이 지나도 메시지가 없으면 빈 응답을 반환한다
-
-**비용 절감 효과:**
-WaitTimeSeconds를 20초로 설정하면 빈 응답이 크게 감소한다. 메시지가 자주 들어오는 큐에서는 비용 절감 효과가 크다.
-
-**설정 방법:**
-큐 레벨에서 기본값을 설정하거나, ReceiveMessage API 호출 시 WaitTimeSeconds 파라미터를 지정한다. 큐 레벨 설정이 우선순위가 높다.
-
-**실무 팁:**
-WaitTimeSeconds를 20초로 설정하면 비용을 크게 절감할 수 있다. 메시지가 자주 들어오는 큐에서는 즉시 응답이 가능하므로 지연 시간에 큰 영향이 없다.
-
-### 배치 작업
-
-여러 메시지를 한 번에 전송하거나 수신하는 방법이다.
-
-**배치 전송:**
-- 최대 10개의 메시지를 한 번에 전송할 수 있다
-- SendMessageBatch API를 사용한다
-- 각 메시지는 고유한 Id를 가져야 한다
-- 일부 메시지가 실패해도 나머지는 전송된다
-
-**배치 수신:**
-- 최대 10개의 메시지를 한 번에 수신할 수 있다
-- ReceiveMessage API의 MaxNumberOfMessages 파라미터를 사용한다
-- 큐에 메시지가 적으면 요청한 개수보다 적게 반환될 수 있다
-
-**비용 절감 효과:**
-배치 작업을 사용하면 API 호출 횟수가 크게 감소한다. 10개의 메시지를 개별적으로 전송하면 10번의 API 호출이 필요하지만, 배치로 전송하면 1번의 API 호출로 처리할 수 있다.
-
-**처리량 향상:**
-배치로 메시지를 수신하면 한 번에 여러 메시지를 처리할 수 있다. 네트워크 왕복 시간을 줄여 전체 처리량이 향상된다.
-
-**배치 크기 선택:**
-메시지가 많으면 최대 10개까지 배치로 처리한다. 메시지가 적으면 개별 처리도 가능하다. 처리 시간과 비용을 고려해 배치 크기를 결정한다.
-
-## 보안
-
-### IAM 정책
-
-최소 권한 원칙에 따른 세밀한 권한 제어다.
-
-**권한 분리:**
-- 큐별로 권한을 분리한다
-- 작업별로 권한을 분리한다 (SendMessage, ReceiveMessage, DeleteMessage)
-- 모든 큐에 대한 권한을 주지 않는다
-
-**주요 권한:**
-- **SendMessage**: 메시지 전송 권한
-- **ReceiveMessage**: 메시지 수신 권한
-- **DeleteMessage**: 메시지 삭제 권한
-- **GetQueueAttributes**: 큐 속성 조회 권한
-- **SetQueueAttributes**: 큐 속성 설정 권한
-
-**권한 설정 원칙:**
-Producer는 SendMessage 권한만, Consumer는 ReceiveMessage와 DeleteMessage 권한만 부여한다. 관리자만 큐 속성을 변경할 수 있도록 한다.
-
-**실무 팁:**
-큐별, 작업별로 권한을 분리한다. 모든 큐에 대한 권한을 주지 않는다. IAM 정책에서 Resource를 특정 큐 ARN으로 제한한다.
-
-### 서버 측 암호화 (SSE)
-
-전송 중 및 저장 중 데이터를 암호화한다.
-
-**암호화 방식:**
-- AWS 관리형 키: AWS가 자동으로 키를 관리한다
-- KMS 고객 관리형 키: 사용자가 키를 관리한다
-
-**KMS 사용의 장점:**
-- 키 회전 정책 설정 가능
-- 키 사용 로그 추적 가능
-- 세밀한 접근 제어 가능
-
-**암호화 적용:**
-큐 생성 시 또는 SetQueueAttributes API로 암호화를 활성화한다. 암호화를 활성화하면 기존 메시지는 암호화되지 않지만, 이후 메시지는 암호화된다.
-
-### VPC 엔드포인트
-
-프라이빗 네트워크를 통한 안전한 접근이다.
-
-**VPC 엔드포인트의 필요성:**
-Private Subnet의 리소스에서 SQS에 접근할 때 인터넷 게이트웨이를 거치지 않고 직접 접근할 수 있다.
-
-**장점:**
-- 인터넷 트래픽 없이 접근 가능
-- 보안 그룹으로 접근 제어 가능
-- 네트워크 성능 향상
-
-**엔드포인트 타입:**
-- Interface 엔드포인트: ENI를 통해 연결
-- Gateway 엔드포인트: 라우팅 테이블에 추가 (SQS는 지원하지 않음)
+실무에서 90%는 Standard로 충분하다. Standard는 같은 메시지가 드물게 두 번 전달되므로 Consumer가 멱등하게 처리하면 된다. FIFO는 순서가 비즈니스 정합성에 직결될 때만 쓴다. 같은 계좌의 입출금 순서, 같은 주문의 상태 전이 같은 경우다. FIFO를 처리량 한계 모르고 골랐다가 초당 300건 벽에 부딪히는 경우가 있으니, 순서가 정말 필요한지 먼저 따져야 한다.
+
+## 큐 만들기
+
+### AWS CLI
+
+```bash
+# Standard 큐
+aws sqs create-queue \
+  --queue-name order-queue \
+  --attributes '{
+    "VisibilityTimeout": "30",
+    "MessageRetentionPeriod": "345600",
+    "ReceiveMessageWaitTimeSeconds": "20"
+  }'
+
+# FIFO 큐 (이름이 .fifo로 끝나야 한다)
+aws sqs create-queue \
+  --queue-name order-queue.fifo \
+  --attributes '{
+    "FifoQueue": "true",
+    "ContentBasedDeduplication": "true"
+  }'
+```
+
+`VisibilityTimeout`은 가시성 타임아웃(초), `MessageRetentionPeriod`는 보존 기간(초, 기본 4일=345600), `ReceiveMessageWaitTimeSeconds`를 20으로 주면 큐 레벨에서 롱 폴링이 켜진다. 큐를 만들면 URL이 반환되는데, 메시지 API는 ARN이 아니라 이 URL로 호출한다. ARN은 SNS 연동이나 DLQ 설정에 쓰니 따로 조회해 둔다.
+
+```bash
+aws sqs get-queue-url --queue-name order-queue
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.ap-northeast-2.amazonaws.com/123456789012/order-queue \
+  --attribute-names QueueArn
+```
+
+### Node.js (AWS SDK v3)
+
+```bash
+npm install @aws-sdk/client-sqs @aws-sdk/client-sns
+```
+
+```js
+const {
+  SQSClient,
+  CreateQueueCommand,
+  GetQueueAttributesCommand,
+} = require('@aws-sdk/client-sqs');
+
+const sqs = new SQSClient({ region: 'ap-northeast-2' });
+
+const { QueueUrl } = await sqs.send(new CreateQueueCommand({
+  QueueName: 'order-queue',
+  Attributes: {
+    VisibilityTimeout: '30',
+    MessageRetentionPeriod: '345600',
+    ReceiveMessageWaitTimeSeconds: '20',
+  },
+}));
+
+// 큐 ARN 조회
+const { Attributes } = await sqs.send(new GetQueueAttributesCommand({
+  QueueUrl,
+  AttributeNames: ['QueueArn'],
+}));
+const queueArn = Attributes.QueueArn;
+```
+
+`create-queue`는 멱등하다. 같은 이름과 같은 속성으로 다시 호출하면 기존 큐 URL을 그대로 돌려준다. 속성이 다르면 에러가 나니, 배포 스크립트에서 반복 실행해도 안전하지만 속성을 바꿀 거면 `set-queue-attributes`를 따로 쓴다.
+
+## 메시지 보내기, 받기, 지우기
+
+SQS 처리의 기본 사이클은 보내기 → 받기 → (처리) → 지우기다. 여기서 가장 많이 터지는 건 "지우기를 빼먹는" 사고다. SQS는 메시지를 받아 갔다고 지우지 않는다. Consumer가 명시적으로 `DeleteMessage`를 호출해야 큐에서 사라진다. 안 지우면 가시성 타임아웃이 지난 뒤 같은 메시지가 다시 보이고, 결국 무한 재처리된다.
+
+### AWS CLI
+
+```bash
+QUEUE_URL=https://sqs.ap-northeast-2.amazonaws.com/123456789012/order-queue
+
+# 전송
+aws sqs send-message \
+  --queue-url "$QUEUE_URL" \
+  --message-body '{"orderId":"1001","amount":39000}'
+
+# 수신 (롱 폴링 20초, 최대 10건)
+aws sqs receive-message \
+  --queue-url "$QUEUE_URL" \
+  --max-number-of-messages 10 \
+  --wait-time-seconds 20 \
+  --visibility-timeout 30
+
+# 삭제 (수신 응답의 ReceiptHandle 필요)
+aws sqs delete-message \
+  --queue-url "$QUEUE_URL" \
+  --receipt-handle "AQEB...수신때받은핸들..."
+```
+
+삭제에 쓰는 `ReceiptHandle`은 메시지 고유 ID(`MessageId`)가 아니다. 받을 때마다 새로 발급되는 일회용 토큰이고, 가시성 타임아웃이 만료되면 무효가 된다. 처리에 시간이 오래 걸려 타임아웃이 지난 뒤 삭제를 호출하면 그 핸들은 이미 죽었고, 메시지는 다른 Consumer가 이미 다시 받아 간 상태다.
+
+### Node.js
+
+```js
+const {
+  SendMessageCommand,
+  ReceiveMessageCommand,
+  DeleteMessageCommand,
+} = require('@aws-sdk/client-sqs');
+
+// 전송
+await sqs.send(new SendMessageCommand({
+  QueueUrl,
+  MessageBody: JSON.stringify({ orderId: '1001', amount: 39000 }),
+  MessageAttributes: {
+    eventType: { DataType: 'String', StringValue: 'OrderCreated' },
+  },
+}));
+
+// 수신 → 처리 → 삭제 루프
+async function poll() {
+  while (true) {
+    const { Messages } = await sqs.send(new ReceiveMessageCommand({
+      QueueUrl,
+      MaxNumberOfMessages: 10,
+      WaitTimeSeconds: 20,
+      VisibilityTimeout: 30,
+      MessageAttributeNames: ['All'],
+      MessageSystemAttributeNames: ['ApproximateReceiveCount'],
+    }));
+
+    if (!Messages) continue; // 롱 폴링이라 빈 응답이면 그냥 다시 폴링
+
+    for (const msg of Messages) {
+      try {
+        await handleOrder(JSON.parse(msg.Body));
+        await sqs.send(new DeleteMessageCommand({
+          QueueUrl,
+          ReceiptHandle: msg.ReceiptHandle,
+        }));
+      } catch (err) {
+        // 여기서 삭제하지 않는 게 핵심. 타임아웃 후 재시도되고
+        // maxReceiveCount를 넘기면 DLQ로 빠진다.
+        console.error('처리 실패, 재시도로 넘김', msg.MessageId, err);
+      }
+    }
+  }
+}
+```
+
+처리 실패 시 삭제를 안 하면 자동으로 재시도가 된다는 점이 SQS 재시도 모델의 전부다. 별도 재시도 큐를 만들 필요 없이, 실패하면 그냥 안 지우면 된다. 단 이 모델 때문에 "처리는 성공했는데 삭제 직전에 프로세스가 죽는" 경우 같은 메시지가 한 번 더 처리된다. 그래서 멱등성이 항상 필요하다.
+
+## 배치 전송과 수신
+
+API 호출 횟수가 곧 비용이라, 메시지를 모아 보낼 수 있으면 배치로 묶는다. 한 번에 최대 10건이다.
+
+```js
+const {
+  SendMessageBatchCommand,
+  DeleteMessageBatchCommand,
+} = require('@aws-sdk/client-sqs');
+
+const orders = [/* 최대 10개 */];
+
+const res = await sqs.send(new SendMessageBatchCommand({
+  QueueUrl,
+  Entries: orders.map((o, i) => ({
+    Id: String(i), // 배치 안에서만 고유하면 됨, 메시지 ID가 아니다
+    MessageBody: JSON.stringify(o),
+  })),
+}));
+
+// 배치는 일부만 실패할 수 있다. 성공/실패가 따로 온다.
+if (res.Failed?.length) {
+  for (const f of res.Failed) {
+    console.error(`Id=${f.Id} 실패: ${f.Code} ${f.Message}`);
+    // f.SenderFault === true면 메시지 자체 문제(재시도해도 또 실패)
+    // false면 일시적 오류라 재전송 가능
+  }
+}
+```
+
+배치에서 놓치기 쉬운 건 부분 실패다. HTTP 200이 떨어져도 10건 중 3건만 들어가고 7건은 `Failed`에 담겨 올 수 있다. `res.Failed`를 확인하지 않으면 메시지가 조용히 사라진 것처럼 보인다. `SenderFault`가 `true`면 메시지 크기 초과나 잘못된 형식 같은 영구 오류라 재전송해도 소용없고, `false`면 스로틀링 같은 일시 오류라 재시도하면 들어간다.
+
+배치 수신은 `MaxNumberOfMessages`를 10으로 주면 된다. 큐에 메시지가 적으면 요청한 수보다 적게 온다. 삭제도 배치로 묶는다.
+
+```js
+await sqs.send(new DeleteMessageBatchCommand({
+  QueueUrl,
+  Entries: Messages.map((m, i) => ({
+    Id: String(i),
+    ReceiptHandle: m.ReceiptHandle,
+  })),
+}));
+```
+
+## 가시성 타임아웃과 ChangeMessageVisibility
+
+가시성 타임아웃은 메시지를 받아 간 Consumer가 처리하는 동안 그 메시지를 다른 Consumer에게 숨기는 시간이다. 받는 순간 타이머가 시작되고, 타이머 안에 삭제하면 끝, 못 지우면 다시 보인다.
+
+문제는 처리 시간을 예측하기 어려운 작업이다. 평소 10초면 끝나는데 외부 API가 느려져 40초 걸리는 날이 있다. 타임아웃을 30초로 잡아뒀으면 30초 시점에 메시지가 다시 보이고, 다른 워커가 같은 걸 또 처리한다. 첫 워커는 40초에 처리를 끝내고 삭제를 시도하지만 핸들은 이미 무효라 에러가 난다. 결과는 중복 처리다.
+
+타임아웃을 무작정 길게 잡으면(예: 10분) 이번엔 진짜 죽은 메시지의 재처리가 10분 뒤에야 일어나 복구가 느려진다. 그래서 처리가 길어질 조짐이 보이면 `ChangeMessageVisibility`로 그때그때 연장한다. 처리 루프 안에서 주기적으로 호출하는 하트비트 방식이다.
+
+```js
+const { ChangeMessageVisibilityCommand } = require('@aws-sdk/client-sqs');
+
+async function handleWithHeartbeat(msg) {
+  let alive = true;
+
+  // 25초마다 가시성을 60초로 갱신
+  const heartbeat = setInterval(async () => {
+    if (!alive) return;
+    try {
+      await sqs.send(new ChangeMessageVisibilityCommand({
+        QueueUrl,
+        ReceiptHandle: msg.ReceiptHandle,
+        VisibilityTimeout: 60,
+      }));
+    } catch (e) {
+      console.error('가시성 연장 실패', e);
+    }
+  }, 25_000);
+
+  try {
+    await longRunningJob(JSON.parse(msg.Body));
+    await sqs.send(new DeleteMessageCommand({ QueueUrl, ReceiptHandle: msg.ReceiptHandle }));
+  } finally {
+    alive = false;
+    clearInterval(heartbeat);
+  }
+}
+```
+
+CLI로는 한 번 연장하는 식이다.
+
+```bash
+aws sqs change-message-visibility \
+  --queue-url "$QUEUE_URL" \
+  --receipt-handle "AQEB..." \
+  --visibility-timeout 120
+```
+
+반대로 처리를 빨리 포기하고 싶을 때, 즉 "이 메시지는 지금 못 다루니 바로 다른 워커가 받게 하라"는 경우엔 `VisibilityTimeout`을 0으로 줘서 즉시 다시 보이게 한다.
+
+## DLQ와 redrive policy
+
+같은 메시지가 계속 실패하면 무한히 재처리되며 큐를 막는다. 형식이 깨진 메시지나 영영 처리 불가능한 메시지가 큐 맨 앞에서 워커를 잡아먹는 상황(poison message)을 막으려면 DLQ를 붙인다. 수신 횟수가 `maxReceiveCount`를 넘으면 SQS가 그 메시지를 DLQ로 옮긴다.
+
+DLQ도 그냥 일반 큐다. 먼저 DLQ용 큐를 만들고, 원본 큐의 `RedrivePolicy` 속성에 DLQ의 ARN과 한도를 건다.
+
+```bash
+# 1. DLQ 생성
+aws sqs create-queue --queue-name order-dlq
+
+# 2. DLQ ARN 조회
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.ap-northeast-2.amazonaws.com/123456789012/order-dlq \
+  --attribute-names QueueArn
+
+# 3. 원본 큐에 redrive policy 연결
+aws sqs set-queue-attributes \
+  --queue-url "$QUEUE_URL" \
+  --attributes '{
+    "RedrivePolicy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:ap-northeast-2:123456789012:order-dlq\",\"maxReceiveCount\":\"5\"}"
+  }'
+```
+
+`RedrivePolicy` 값이 JSON 문자열을 또 문자열로 넣는 형태라 따옴표 이스케이프가 헷갈린다. SDK에서는 객체를 두 번 직렬화한다.
+
+```js
+const { SetQueueAttributesCommand } = require('@aws-sdk/client-sqs');
+
+await sqs.send(new SetQueueAttributesCommand({
+  QueueUrl,
+  Attributes: {
+    RedrivePolicy: JSON.stringify({
+      deadLetterTargetArn: dlqArn,
+      maxReceiveCount: '5',
+    }),
+  },
+}));
+```
+
+`maxReceiveCount`는 3~5가 무난하다. 1~2로 잡으면 외부 API 일시 장애 같은 정상 메시지까지 DLQ로 떨어진다. 10 이상이면 깨진 메시지가 너무 오래 재시도되며 비용과 지연을 만든다. Standard 큐는 가끔 한 메시지를 여러 번 전달하므로 실제 처리 시도 횟수가 `maxReceiveCount`보다 약간 더 될 수 있다. 정확한 컷오프를 기대하면 안 된다.
+
+DLQ는 만들어두고 잊으면 의미가 없다. `ApproximateNumberOfMessagesVisible`에 CloudWatch 알람을 걸어 DLQ에 메시지가 쌓이는 순간 알림이 오게 해야 한다. 원인을 고친 뒤에는 콘솔의 DLQ redrive 기능이나 메시지를 다시 읽어 원본 큐로 재전송하는 스크립트로 되돌린다. DLQ의 보존 기간은 원본보다 길게(보통 14일) 잡아야 분석할 시간을 번다.
+
+## SNS → SQS 연동
+
+여기가 이 문서의 핵심이다. SNS 토픽 하나에 SQS 큐 여러 개를 구독시키면, 토픽에 한 번 발행한 메시지가 모든 큐에 복제된다. 주문 완료 이벤트를 재고, 결제, 검색 색인 큐에 동시에 뿌리고 각 워커가 독립적으로 처리하는 식이다. 큐마다 처리 속도, 재시도, DLQ를 따로 가져갈 수 있다.
+
+```mermaid
+graph LR
+  P[주문 서비스] --> T[SNS order-topic]
+  T --> Q1[SQS 재고 큐]
+  T --> Q2[SQS 결제 큐]
+  T --> Q3[SQS 검색색인 큐]
+```
+
+### 큐 액세스 정책 — 가장 흔한 사고
+
+SNS 구독을 만들었는데 메시지가 큐에 안 들어오는 게 연동에서 제일 자주 겪는 사고다. 원인은 큐 액세스 정책이다.
+
+SQS 큐는 기본적으로 큐를 만든 계정의 자격 증명만 `SendMessage`를 허용한다. SNS는 `sns.amazonaws.com` 서비스 주체로 큐에 메시지를 넣으려 하는데, 큐 정책이 이를 허용하지 않으면 전달이 거부된다. 문제는 이 거부가 발행자에게 에러로 올라오지 않는다는 점이다. `publish`는 성공하고, SNS의 `NumberOfNotificationsFailed` 메트릭만 조용히 올라간다. 큐는 계속 비어 있고, 보통 한참 헤맨 뒤에야 정책 문제인 걸 안다.
+
+콘솔에서 구독을 만들면 AWS가 큐 정책을 알아서 추가해준다. CLI, SDK, Terraform 같은 코드로 만들면 직접 넣어야 한다. 큐에 이런 정책을 건다.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Allow-SNS-SendMessage",
+      "Effect": "Allow",
+      "Principal": { "Service": "sns.amazonaws.com" },
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:ap-northeast-2:123456789012:order-queue",
+      "Condition": {
+        "ArnEquals": {
+          "aws:SourceArn": "arn:aws:sns:ap-northeast-2:123456789012:order-topic"
+        }
+      }
+    }
+  ]
+}
+```
+
+`aws:SourceArn` 조건이 중요하다. 빼면 아무 SNS 토픽이나 이 큐에 메시지를 넣을 수 있다. 특정 토픽으로 제한해야 한다. 정책은 `set-queue-attributes`의 `Policy` 속성으로 건다.
+
+```js
+await sqs.send(new SetQueueAttributesCommand({
+  QueueUrl,
+  Attributes: {
+    Policy: JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [{
+        Sid: 'Allow-SNS-SendMessage',
+        Effect: 'Allow',
+        Principal: { Service: 'sns.amazonaws.com' },
+        Action: 'sqs:SendMessage',
+        Resource: queueArn,
+        Condition: { ArnEquals: { 'aws:SourceArn': topicArn } },
+      }],
+    }),
+  },
+}));
+```
+
+### 구독 만들기
+
+정책을 건 뒤 SNS 쪽에서 큐를 구독시킨다. SQS 프로토콜은 이메일과 달리 확인 절차 없이 바로 활성화된다.
+
+```bash
+# 토픽 생성
+aws sns create-topic --name order-topic
+
+# SQS 큐를 구독 (endpoint는 큐의 ARN)
+aws sns subscribe \
+  --topic-arn arn:aws:sns:ap-northeast-2:123456789012:order-topic \
+  --protocol sqs \
+  --notification-endpoint arn:aws:sqs:ap-northeast-2:123456789012:order-queue
+```
+
+### RawMessageDelivery — 메시지 봉투 문제
+
+연동에서 두 번째로 사람을 잡는 게 메시지 봉투다. SNS가 SQS로 메시지를 넣을 때, 기본값(`RawMessageDelivery=false`)에서는 원래 페이로드를 SNS 알림 봉투(envelope)로 한 번 감싸서 넣는다. 그래서 Consumer가 받는 `Body`는 내가 보낸 JSON이 아니라 이렇게 생겼다.
+
+```json
+{
+  "Type": "Notification",
+  "MessageId": "22b80b92-fdea-...",
+  "TopicArn": "arn:aws:sns:ap-northeast-2:123456789012:order-topic",
+  "Message": "{\"orderId\":\"1001\",\"amount\":39000}",
+  "Timestamp": "2026-05-29T10:00:00.000Z",
+  "SignatureVersion": "1",
+  "Signature": "EXAMPLEpH+...",
+  "SigningCertURL": "https://sns.ap-northeast-2.amazonaws.com/...",
+  "UnsubscribeURL": "https://sns.ap-northeast-2.amazonaws.com/...",
+  "MessageAttributes": {
+    "eventType": { "Type": "String", "Value": "OrderCreated" }
+  }
+}
+```
+
+실제 주문 데이터는 `Message` 필드에 **문자열로** 들어 있다. 그래서 파싱을 두 번 해야 한다.
+
+```js
+const envelope = JSON.parse(msg.Body);      // SNS 봉투
+const payload = JSON.parse(envelope.Message); // 진짜 주문 데이터
+console.log(payload.orderId); // 1001
+```
+
+봉투를 모르고 `JSON.parse(msg.Body).orderId`를 찾으면 `undefined`가 나온다. SQS가 Lambda를 트리거하는 구성에서는 이게 더 헷갈린다. Lambda 이벤트의 `event.Records[].body`가 곧 SQS 메시지 Body이므로, 이 안에 SNS 봉투가 그대로 들어 있다.
+
+```js
+exports.handler = async (event) => {
+  for (const record of event.Records) {
+    const envelope = JSON.parse(record.body);   // SNS 봉투
+    const payload = JSON.parse(envelope.Message); // 실제 페이로드
+    await handleOrder(payload);
+  }
+};
+```
+
+이 이중 파싱을 없애려면 구독에 `RawMessageDelivery=true`를 켠다. 그러면 SNS가 봉투 없이 원래 페이로드를 그대로 큐에 넣는다.
+
+```bash
+aws sns set-subscription-attributes \
+  --subscription-arn arn:aws:sns:ap-northeast-2:123456789012:order-topic:1a2b3c... \
+  --attribute-name RawMessageDelivery \
+  --attribute-value true
+```
+
+raw 전달을 켜면 `Body`가 바로 `{"orderId":"1001","amount":39000}`라서 한 번만 파싱하면 된다.
+
+```js
+const payload = JSON.parse(msg.Body);
+```
+
+봉투에 따라 메시지 속성이 들어오는 위치도 다르다. raw가 꺼져 있으면 SNS 속성이 봉투 안의 `MessageAttributes`에 `{Type, Value}` 형태로 들어 있다. raw를 켜면 SNS 속성이 SQS 메시지 속성으로 승격되어 `msg.MessageAttributes`에 `{DataType, StringValue}` 형태로 온다. 단 이걸 받으려면 `ReceiveMessage`에서 `MessageAttributeNames: ['All']`을 줘야 한다. 안 주면 속성이 비어서 온다.
+
+대부분의 경우 raw 전달을 켜는 쪽이 코드가 단순하다. SNS 서명 검증이 필요 없는 SQS 구독에서는 봉투의 서명 필드가 쓸모도 없다. 다만 한 큐가 SNS 말고 다른 경로로도 메시지를 받는다면, 봉투 유무로 출처를 구분하던 코드가 raw 전환 후 깨질 수 있으니 확인하고 바꿔야 한다.
+
+### FIFO 연동
+
+순서가 필요해 FIFO로 묶을 때는 SNS 토픽과 SQS 큐가 둘 다 FIFO여야 한다. Standard 토픽에서 FIFO 큐로, 또는 그 반대로는 구독이 안 된다. 발행 시 `MessageGroupId`를 넣어야 하고, 토픽에서 내용 기반 중복 제거를 켜지 않았으면 `MessageDeduplicationId`도 넣어야 한다. 이 값들은 SNS를 거쳐 SQS까지 그대로 전달된다.
+
+## 롱 폴링
+
+`ReceiveMessage`의 기본은 숏 폴링이다. 큐가 비어 있어도 즉시 빈 응답을 돌려주므로, 워커가 빈 응답을 받고 곧장 다시 호출하는 루프가 돌며 빈 요청에 계속 요금이 붙는다. `WaitTimeSeconds`를 1~20으로 주면 롱 폴링이 되어, 메시지가 들어올 때까지(최대 20초) 응답을 붙들고 있다가 돌려준다.
+
+```js
+await sqs.send(new ReceiveMessageCommand({
+  QueueUrl,
+  WaitTimeSeconds: 20, // 롱 폴링
+  MaxNumberOfMessages: 10,
+}));
+```
+
+큐 속성 `ReceiveMessageWaitTimeSeconds`를 20으로 잡으면 모든 수신 호출에 기본 적용된다. 특별한 이유가 없으면 항상 켜둔다. 메시지가 도착하면 20초를 다 기다리지 않고 즉시 돌아오므로 지연이 늘지도 않는다.
+
+## 멱등성
+
+Standard 큐는 같은 메시지를 드물게 두 번 전달한다. 가시성 타임아웃 안에 삭제 못 한 경우, 삭제 직전 프로세스가 죽은 경우에도 재처리된다. 즉 SQS를 쓰는 한 중복 처리는 정상 동작 범위 안의 일이고, Consumer가 멱등해야 한다.
+
+가장 단순한 방법은 처리 결과를 멱등 키로 기록하고, 이미 처리한 키면 건너뛰는 것이다. 주문 ID나 메시지에 실린 고유 ID를 키로 쓴다.
+
+```js
+async function handleOrder(payload) {
+  // INSERT가 중복이면 무시. 이미 처리한 주문이면 여기서 끝.
+  const inserted = await db.query(
+    `INSERT INTO processed_orders (order_id) VALUES ($1)
+     ON CONFLICT (order_id) DO NOTHING RETURNING order_id`,
+    [payload.orderId],
+  );
+  if (inserted.rowCount === 0) return; // 이미 처리됨
+
+  await reserveStock(payload);
+}
+```
+
+DB의 유니크 제약과 `ON CONFLICT`로 중복을 막는 게 분산 락보다 단순하고 안전하다. FIFO 큐의 5분 중복 제거는 5분이 지나면 풀리므로, FIFO를 쓴다고 멱등성을 빼도 되는 건 아니다.
 
 ## 모니터링
 
-### CloudWatch 메트릭
+큐 상태를 볼 때 실제로 보는 메트릭은 두 개다. `ApproximateNumberOfMessagesVisible`(대기 중 메시지 수, 큐 깊이)이 계속 우상향하면 Consumer가 Producer를 못 따라가는 거라 워커를 늘리거나 처리 로직을 손봐야 한다. `ApproximateAgeOfOldestMessage`(가장 오래된 메시지의 나이)가 커지면 처리가 밀리고 있다는 신호다. 이 값이 메시지 보존 기간에 근접하면 메시지가 처리도 못 되고 만료돼 사라질 위험이 있다.
 
-SQS는 자동으로 CloudWatch 메트릭을 생성한다. 큐의 상태와 성능을 모니터링할 수 있다.
-
-**주요 메트릭:**
-
-**ApproximateNumberOfMessages:**
-- 큐에 대기 중인 메시지 수
-- 큐 깊이를 나타낸다
-- 계속 증가하면 Consumer 처리 속도가 느린 것이다
-- 알람을 설정해 임계값 초과 시 알림을 받는다
-
-**ApproximateAgeOfOldestMessage:**
-- 가장 오래된 메시지의 대기 시간
-- 메시지가 얼마나 오래 큐에 있었는지 나타낸다
-- 값이 크면 처리 지연이 발생하는 것이다
-
-**NumberOfMessagesSent:**
-- 메시지 전송 횟수
-- Producer의 활동량을 나타낸다
-- 트래픽 패턴을 분석할 수 있다
-
-**NumberOfMessagesReceived:**
-- 메시지 수신 횟수
-- Consumer의 활동량을 나타낸다
-- 처리량을 추적할 수 있다
-
-**NumberOfEmptyReceives:**
-- 빈 응답 횟수
-- 큐가 비어있는 상태에서 폴링한 횟수
-- Long Polling 사용 여부를 확인할 수 있다
-
-**알람 설정:**
-큐 깊이가 임계값을 초과하면 알람을 발생시킨다. Consumer를 확장하거나 처리 로직을 최적화해야 한다.
-
-**실무 팁:**
-큐 깊이가 계속 증가하면 Consumer를 확장하거나 처리 로직을 최적화해야 한다. CloudWatch 대시보드를 만들어 주요 메트릭을 한눈에 볼 수 있게 한다.
-
-### CloudTrail 로깅
-
-모든 SQS API 호출이 CloudTrail에 기록된다.
-
-**기록되는 정보:**
-- API 호출 시간
-- 호출한 사용자 또는 서비스
-- 호출한 API와 파라미터
-- 응답 상태 코드
-
-**활용:**
-- 보안 감사 및 컴플라이언스 지원
-- 문제 해결을 위한 상세 로그
-- 비정상적인 접근 패턴 감지
-
-## 비용 최적화
-
-### 요금 구조
-
-**요청 기반 과금:**
-- API 호출 횟수에 따라 과금
-- 데이터 전송 비용
-- DLQ 사용 시 추가 비용
-
-**비용 예시 (us-east-1 기준):**
-- 첫 1백만 건: 무료
-- 이후: $0.40/1백만 건
-- 데이터 전송: $0.09/GB (아웃바운드)
-
-### 비용 절감 방법
-
-**1. 장기 폴링:**
-- WaitTimeSeconds를 20초로 설정
-- 빈 응답 감소로 API 호출 횟수 감소
-
-**2. 배치 작업:**
-- 최대 10개 메시지를 한 번에 처리
-- API 호출 횟수 90% 감소 가능
-
-**3. 불필요한 큐 정리:**
-- 사용하지 않는 큐 삭제
-- 메시지 보존 기간 최적화
-
-**4. 메시지 보존 기간:**
-- 기본값: 4일
-- 최대: 14일
-- 필요 이상으로 길게 설정하지 않는다
-
-**실무 팁:**
-장기 폴링과 배치 작업을 함께 사용하면 비용을 크게 절감할 수 있다.
-
-## 운영 고려사항
-
-### 애플리케이션 설계
-
-**멱등성 보장:**
-동일한 메시지의 중복 처리에 대비해야 한다. Standard Queue는 최소 1회 전달을 보장하므로 같은 메시지가 여러 번 전달될 수 있다.
-
-**멱등성 구현 방법:**
-- 메시지 ID를 기반으로 처리 여부 확인
-- 데이터베이스에 처리 기록 저장
-- 처리 전에 이미 처리되었는지 확인
-
-**멱등성 키 선택:**
-메시지에 고유한 식별자가 있어야 한다. 주문 ID, 사용자 ID, 트랜잭션 ID 등을 활용한다.
-
-**오류 처리:**
-재시도 로직과 회로 차단기 패턴을 적용한다. 일시적인 오류는 재시도하고, 지속적인 오류는 DLQ로 보낸다.
-
-**백프레셔:**
-큐 깊이에 따른 처리 속도를 조절한다. 큐에 메시지가 많으면 처리 속도를 높이고, 적으면 처리 속도를 낮춘다.
-
-### 큐 관리
-
-**정기적인 모니터링:**
-- 큐 상태 모니터링
-- DLQ 메시지 정기 검토
-- 큐 설정 최적화
-
-### 확장성 고려사항
-
-**Consumer 수평 확장:**
-- Auto Scaling으로 Consumer 수 조절
-- 큐 깊이에 따라 자동 확장
-
-**큐별 처리량 분산:**
-- 여러 큐로 부하 분산
-- 리전별 큐 분산 고려
-
-## 사용 시나리오
-
-### 전자상거래 주문 처리 시스템
-
-온라인 쇼핑몰에서 주문이 들어올 때마다 재고 확인, 결제 처리, 배송 준비 등의 작업을 비동기로 처리한다.
-
-**아키텍처:**
-```
-주문 API → SQS (주문 큐) → 재고 서비스
-                              ↓
-                         결제 서비스 → SQS (배송 큐) → 배송 서비스
-```
-
-**동작 과정:**
-1. 사용자가 주문을 하면 주문 API가 즉시 응답을 반환한다
-2. 주문 정보는 SQS 주문 큐에 전송된다
-3. 재고 서비스가 큐에서 주문을 수신해 재고를 확인한다
-4. 재고가 있으면 결제 서비스로 주문 정보를 전달한다
-5. 결제가 완료되면 배송 서비스로 주문 정보를 전달한다
-
-**장점:**
-- 주문 API의 응답 시간이 단축된다
-- 각 서비스가 독립적으로 확장 가능하다
-- 일부 서비스 장애 시에도 주문 수신이 가능하다
-
-**고려사항:**
-- 각 단계에서 실패 시 DLQ로 이동
-- 멱등성 보장으로 중복 처리 방지
-- 큐 깊이 모니터링으로 처리 지연 감지
-
-### 이미지 처리 파이프라인
-
-사용자가 업로드한 이미지를 다양한 크기로 리사이징하고 썸네일을 생성한다.
-
-**처리 과정:**
-1. 이미지 업로드 시 원본 이미지 정보를 SQS에 전송한다
-2. 이미지 처리 워커가 큐에서 작업을 수신한다
-3. 다양한 크기로 이미지 리사이징을 수행한다
-4. 처리 완료 후 결과를 다른 큐에 전송하여 알림을 발송한다
-
-**아키텍처:**
-```
-이미지 업로드 → S3 → SQS (처리 큐) → 이미지 처리 워커 → SQS (완료 큐) → 알림 발송
-```
-
-**특징:**
-- 이미지 업로드는 즉시 완료된다
-- 실제 처리는 백그라운드에서 비동기로 수행된다
-- 여러 워커가 병렬로 처리할 수 있다
-
-**고려사항:**
-- 대용량 이미지는 S3에 저장하고 S3 키만 메시지로 전송
-- 처리 시간이 길 수 있으므로 가시성 타임아웃을 충분히 설정
-- 처리 실패 시 DLQ로 이동하여 수동 처리
-
-### 로그 수집 및 분석 시스템
-
-여러 애플리케이션에서 발생하는 로그를 중앙에서 수집하고 실시간 분석한다.
-
-**구성 요소:**
-- 로그 수집기: 각 애플리케이션의 로그를 SQS에 전송
-- 로그 처리기: 큐에서 로그를 수신하여 파싱 및 정제
-- 분석 엔진: 처리된 로그를 분석하여 메트릭 생성
-- 알림 시스템: 이상 상황 감지 시 알림 발송
-
-**아키텍처:**
-```
-애플리케이션 1 → SQS (로그 큐) → 로그 처리기 → 분석 엔진
-애플리케이션 2 → SQS (로그 큐) → 로그 처리기 → 분석 엔진
-애플리케이션 3 → SQS (로그 큐) → 로그 처리기 → 분석 엔진
-```
-
-**특징:**
-- 여러 애플리케이션의 로그를 중앙에서 수집한다
-- 로그 처리기가 장애가 나도 로그는 큐에 보관된다
-- 처리량이 증가하면 로그 처리기를 확장한다
-
-**실무 팁:**
-로그 수집 시 배치로 전송하면 비용을 절감할 수 있다. 로그가 많으면 여러 큐로 분산해 처리한다.
-
-## 고급 패턴
-
-### Fan-out 패턴
-
-하나의 메시지를 여러 큐에 동시에 전송하는 패턴이다. SNS와 SQS를 조합하여 구현한다.
-
-**동작 원리:**
-1. Producer가 SNS 토픽에 메시지를 발행한다
-2. SNS가 해당 토픽을 구독한 모든 SQS 큐에 메시지를 전송한다
-3. 각 큐는 독립적으로 메시지를 처리한다
-
-**아키텍처:**
-```
-SNS Topic → SQS Queue 1 (재고)
-         → SQS Queue 2 (결제)
-         → SQS Queue 3 (배송)
-```
-
-**사용 사례:**
-- 주문 정보를 재고, 결제, 배송 큐에 동시 전송
-- 사용자 활동 로그를 분석, 알림, 백업 큐에 전송
-
-**장점:**
-- 하나의 메시지를 여러 Consumer에 전달할 수 있다
-- 각 Consumer가 독립적으로 처리한다
-- Consumer 추가가 쉽다
-
-### Priority Queue 패턴
-
-중요도에 따라 메시지 처리 순서를 조절하는 패턴이다.
-
-**구현 방법:**
-- 여러 큐를 우선순위별로 구성한다
-- Consumer가 높은 우선순위 큐부터 처리한다
-- 메시지 속성에 우선순위 정보를 포함한다
-
-**동작 원리:**
-1. 높은 우선순위 큐에서 메시지를 확인한다
-2. 메시지가 있으면 처리하고 종료한다
-3. 메시지가 없으면 낮은 우선순위 큐를 확인한다
-
-**사용 사례:**
-- 긴급 주문과 일반 주문을 분리 처리
-- VIP 사용자 요청을 우선 처리
-- 중요한 알림을 먼저 발송
-
-**고려사항:**
-- 우선순위 큐가 계속 채워지면 낮은 우선순위 큐가 처리되지 않을 수 있다
-- 우선순위 큐 처리 후에도 낮은 우선순위 큐를 처리하는 로직이 필요하다
-
-### Circuit Breaker 패턴
-
-연속적인 실패 시 일시적으로 메시지 처리를 중단하는 패턴이다.
-
-**동작 원리:**
-1. 메시지 처리 실패 횟수를 추적한다
-2. 실패 횟수가 임계값을 초과하면 회로를 차단한다
-3. 회로 차단 상태에서는 메시지 처리를 건너뛴다
-4. 일정 시간 후 회로를 복구 시도한다
-
-**구현 요소:**
-- 실패 횟수 추적
-- 임계값 도달 시 회로 차단
-- 복구 시도 및 회로 복구
-
-**사용 사례:**
-- 외부 API 연동 실패 시 일시 중단
-- 데이터베이스 연결 실패 시 처리 중단
-- 연속적인 오류로 인한 리소스 낭비 방지
-
-**고려사항:**
-- 회로 차단 중에는 메시지가 DLQ로 이동할 수 있다
-- 복구 시도 주기를 적절히 설정해야 한다
-- 회로 차단 상태를 모니터링해야 한다
-
-**실무 팁:**
-Circuit Breaker 패턴을 사용하면 연속적인 실패로 인한 리소스 낭비를 방지할 수 있다. CloudWatch 알람과 연동해 회로 차단 상태를 모니터링한다.
-
-## 문제 해결
-
-### 일반적인 문제들
-
-**큐 깊이 증가:**
-- 원인: Consumer 처리 속도 < Producer 전송 속도
-- 해결: Consumer 수평 확장, 처리 로직 최적화
-
-**메시지 중복 처리:**
-- 원인: 가시성 타임아웃 설정 부적절
-- 해결: 처리 시간에 맞는 타임아웃 설정, 멱등성 보장
-
-**높은 비용:**
-- 원인: 과도한 API 호출, 비효율적인 폴링
-- 해결: 장기 폴링 적용, 배치 작업 활용
-
-### 모니터링 지표
-
-**성능 지표:**
-- 큐 깊이 (ApproximateNumberOfMessages)
-- 메시지 처리 지연 시간
-- Consumer 처리량
-
-**비용 지표:**
-- API 호출 횟수
-- 데이터 전송량
-- DLQ 사용량
-
-**안정성 지표:**
-- 메시지 처리 실패율
-- DLQ 메시지 수
-- 가시성 타임아웃 초과 횟수
-
-## 마이그레이션 전략
-
-### 기존 시스템에서 SQS 도입
-
-**단계별 접근:**
-1. 새로운 기능에 SQS 적용
-2. 기존 시스템의 일부 기능을 SQS로 이전
-3. 점진적으로 전체 시스템 마이그레이션
-
-**고려사항:**
-- 기존 메시지 큐와의 호환성
-- 데이터 마이그레이션 계획
-- 다운타임 최소화 방안
-
-**실무 팁:**
-기존 시스템과 병행 운영하면서 점진적으로 마이그레이션한다. 한 번에 전환하면 위험이 크다.
-
-### 하이브리드 아키텍처
-
-**온프레미스와 클라우드 연동:**
-- VPN 또는 Direct Connect를 통한 연결
-- 하이브리드 메시지 브로커 활용
-- 데이터 동기화 전략 수립
+DLQ에는 `ApproximateNumberOfMessagesVisible > 0` 알람을 반드시 건다. DLQ에 한 건이라도 쌓였다는 건 정상 흐름에서 빠진 메시지가 있다는 뜻이라 즉시 알아야 한다. SNS 연동을 쓴다면 SNS의 `NumberOfNotificationsFailed`도 함께 본다. 이 값이 오르는데 큐는 비어 있으면 십중팔구 큐 액세스 정책 문제다.
 
 ## 참고
 
-- AWS SQS 개발자 가이드: https://docs.aws.amazon.com/ko_kr/AWSSimpleQueueService/latest/SQSDeveloperGuide/
-- AWS SQS 모범 사례: https://docs.aws.amazon.com/ko_kr/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-best-practices.html
-- AWS 요금 계산기: https://calculator.aws/
+- AWS SQS 개발자 가이드: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/
+- SNS → SQS 팬아웃: https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html
+- RawMessageDelivery: https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
+- AWS SDK for JavaScript v3 (SQS): https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/sqs/
