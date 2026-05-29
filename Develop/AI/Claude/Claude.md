@@ -1,7 +1,7 @@
 ---
 title: Claude
 tags: [ai, claude, anthropic, llm, api]
-updated: 2026-05-07
+updated: 2026-05-29
 ---
 
 # Claude
@@ -10,7 +10,7 @@ updated: 2026-05-07
 
 Anthropic이 만든 대규모 언어 모델이다. GPT-4o, Gemini와 함께 현재 실무에서 가장 많이 쓰이는 LLM 중 하나다.
 
-Constitutional AI라는 자체 안전 학습 방식을 적용했고, 코딩·분석·글쓰기 등 범용 작업에서 높은 성능을 보인다. 2025년 기준 Claude 3.5 시리즈에서 Claude 4 시리즈로 넘어왔고, 2026년 현재 Claude 4.5/4.6이 최신이다.
+Constitutional AI라는 자체 안전 학습 방식을 적용했고, 코딩·분석·글쓰기 등 범용 작업에서 높은 성능을 보인다. 2025년 기준 Claude 3.5 시리즈에서 Claude 4 시리즈로 넘어왔고, 2026년 현재 Opus는 4.8, Sonnet은 4.6, Haiku는 4.5가 최신이다. Opus는 4.6 → 4.7 → 4.8로 올라왔다.
 
 ---
 
@@ -88,7 +88,7 @@ graph LR
   <rect x="110" y="262" width="204" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
   <!-- 범례 -->
   <rect x="200" y="296" width="14" height="14" rx="3" fill="url(#opus-grad)"/>
-  <text class="ch2-legend" x="220" y="308" font-size="12">Opus 4.6</text>
+  <text class="ch2-legend" x="220" y="308" font-size="12">Opus 4.8</text>
   <rect x="310" y="296" width="14" height="14" rx="3" fill="url(#sonnet-grad)"/>
   <text class="ch2-legend" x="330" y="308" font-size="12">Sonnet 4.6</text>
   <rect x="430" y="296" width="14" height="14" rx="3" fill="url(#haiku-grad)"/>
@@ -109,6 +109,8 @@ graph LR
 </svg>
 
 Opus는 성능과 컨텍스트(1M 확장)에서 압도적이지만 출력 토큰 단가가 $75/1M으로 Haiku의 약 19배다. Sonnet은 성능 80% 수준에서 비용이 Opus의 1/5이라 가성비가 가장 좋다. Haiku는 성능을 포기하는 대신 속도와 비용에서 이긴다.
+
+등급은 세대별로 갱신된다. 2026년 현재 Opus는 4.8, Sonnet은 4.6, Haiku는 4.5가 최신이다. Opus 계열은 4.6 → 4.7 → 4.8로 올라오면서 추론 깊이와 도구 호출 판단이 바뀌었지만, 단가와 컨텍스트 한도는 4.6 이후 그대로다. 위 다이어그램의 Opus 수치($15/$75, 1M 확장)는 4.8에도 동일하게 적용된다. Opus 4.8의 세부 변경점과 4.7 대비 차이, 1M variant 비용 패턴은 [Claude Opus 4.8](./Claude_Opus_4_8.md) 문서에 따로 정리했다.
 
 ### 2.1 Opus / Sonnet / Haiku
 
@@ -347,7 +349,7 @@ graph LR
   <rect x="560" y="230" width="55" height="10" rx="4" fill="#059669"/>
   <text class="ch4-vg" x="587" y="225" text-anchor="middle" font-size="11" font-weight="600">$4</text>
   <!-- 모델 레이블 -->
-  <text class="ch4-vp" x="195" y="260" text-anchor="middle" font-size="12" font-weight="500">Opus 4.6</text>
+  <text class="ch4-vp" x="195" y="260" text-anchor="middle" font-size="12" font-weight="500">Opus 4.8</text>
   <text class="ch4-vb" x="375" y="260" text-anchor="middle" font-size="12" font-weight="500">Sonnet 4.6</text>
   <text class="ch4-vg" x="555" y="260" text-anchor="middle" font-size="12" font-weight="500">Haiku 4.5</text>
   <!-- 범례 -->
@@ -359,15 +361,17 @@ graph LR
 
 그래프로 보면 Opus의 출력 토큰 비용이 얼마나 큰지 체감된다. Sonnet 출력 단가가 Opus의 1/5, Haiku의 출력 단가는 Opus의 약 1/19 수준이다. 코드 생성처럼 출력이 긴 작업에서는 모델 선택이 비용에 직접적으로 영향을 준다.
 
-| 모델 (4.6 기준) | 입력 (1M 토큰) | 출력 (1M 토큰) | 입출력 비율 |
+| 모델 (현행 최신) | 입력 (1M 토큰) | 출력 (1M 토큰) | 입출력 비율 |
 |-----------------|---------------|---------------|-----------|
-| Opus 4.6 | $15 | $75 | 1 : 5 |
+| Opus 4.8 | $15 | $75 | 1 : 5 |
 | Sonnet 4.6 | $3 | $15 | 1 : 5 |
 | Haiku 4.5 | $0.80 | $4 | 1 : 5 |
 
 모든 모델에서 출력이 입력의 5배다. 출력을 많이 생성하는 작업(코드 생성, 긴 문서 작성)일수록 비용이 크게 늘어난다.
 
-가격은 수시로 변동되니 공식 문서를 확인해야 한다. Opus는 출력 토큰 단가가 Haiku의 거의 20배다.
+Opus 단가는 4.6 → 4.7 → 4.8을 거치며 그대로 유지됐다. 모델만 4.8로 올려도 표의 단가는 바뀌지 않는다. 다만 4.8은 어려운 문제에서 추론·출력 토큰을 더 쓰는 경향이 있어, 단가가 같아도 청구서가 움직이는 경우가 있다.
+
+가격은 수시로 변동되니 공식 문서를 확인해야 한다. Opus는 출력 토큰 단가가 Haiku의 거의 20배다. Opus 4.8을 1M 컨텍스트 variant(`claude-opus-4-8[1m]`)로 쓰면 입력이 200K를 넘는 순간부터 단가가 뛴다(200K 초과분 입력 $30/1M, 출력 $112.5/1M). 1M variant의 비용 계산 예시는 [Claude Opus 4.8](./Claude_Opus_4_8.md)에 정리했다.
 
 ### 4.2 토큰 계산 시 주의사항
 
@@ -452,11 +456,13 @@ message = client.messages.create(
 
 | 모델 | 컨텍스트 윈도우 |
 |------|----------------|
-| Claude 4.6 Opus | 200K (1M 확장 지원) |
+| Claude 4.8 Opus | 200K (1M 확장 지원) |
 | Claude 4.6 Sonnet | 200K |
 | Claude 4.5 Haiku | 200K |
 
 200K 토큰은 대략 코드 파일 수백 개, 일반 텍스트 기준 책 한 권 분량이다.
+
+1M 확장은 Opus 계열만 별도 variant로 지원한다. Opus 4.8의 1M variant(`claude-opus-4-8[1m]`)는 200K를 넘는 입력에서 단가가 따로 붙고, 4.7보다 중간 영역 회수율이 올라갔다. 모델 ID 구분, 1M 진입 시 비용·rate limit 동작은 [Claude Opus 4.8](./Claude_Opus_4_8.md)에 정리했다.
 
 ### 컨텍스트 윈도우 구성 시각화
 
