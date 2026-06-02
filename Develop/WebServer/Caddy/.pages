@@ -12,4 +12,5 @@ nav:
   - Admin_API.md
   - Logging_Monitoring.md
   - Docker_Caddy.md
+  - Docker_Caddy_Operations_Advanced.md
   - Nginx_To_Caddy_Migration.md
