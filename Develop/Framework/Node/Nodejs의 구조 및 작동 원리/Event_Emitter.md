@@ -1,7 +1,7 @@
 ---
 title: EventEmitter (events 모듈)
-tags: [framework, node, nodejs의-구조-및-작동-원리, events, eventemitter, async]
-updated: 2026-05-27
+tags: [framework, node, nodejs의-구조-및-작동-원리, events, eventemitter, async, memory-leak]
+updated: 2026-06-02
 ---
 
 # EventEmitter (events 모듈)
@@ -24,6 +24,45 @@ emitter.on('order', (id) => {
 emitter.emit('order', 1001);
 // 주문 처리: 1001
 ```
+
+## EventEmitter 내부 구조
+
+내부 구현을 대충 알아두면 누수 디버깅이 훨씬 빨라진다. EventEmitter 인스턴스는 사실 몇 개 안 되는 필드로 돌아간다.
+
+- `_events`: 이벤트 이름을 키로, 등록된 리스너를 값으로 들고 있는 객체. 핵심 자료구조다.
+- `_eventsCount`: `_events`에 등록된 키 개수. `eventNames()`가 이 값을 기반으로 동작한다.
+- `_maxListeners`: 이 인스턴스의 최대 리스너 한도. 기본값은 `undefined`이고 그땐 `EventEmitter.defaultMaxListeners`(기본 10)를 본다.
+
+`_events`의 값 모양이 특이하다. 한 이벤트에 리스너가 하나만 등록되면 함수 자체가 값으로 들어간다. 두 개 이상이 되면 그제서야 배열로 승격된다. 메모리와 호출 성능을 아끼려는 마이크로 최적화다.
+
+```js
+const { EventEmitter } = require('node:events');
+const e = new EventEmitter();
+
+e.on('x', () => {});
+console.log(typeof e._events.x);       // function ← 하나면 함수 그대로
+
+e.on('x', () => {});
+console.log(Array.isArray(e._events.x)); // true   ← 두 개부터 배열
+console.log(e._events.x.length);         // 2
+```
+
+평소엔 신경 쓸 일이 없는데, heap snapshot이나 디버깅 중에 `emitter._events`를 직접 까보면 차이가 드러난다. 어떤 키는 Function, 어떤 키는 Array(N)이다. Array의 length가 수천 개씩 되면 그게 누수 1순위 후보다.
+
+호출 순서는 배열에 들어간 순서 그대로다. 0번 인덱스부터 동기로 순차 호출된다. `prependListener`나 `prependOnceListener`로 등록하면 배열 앞쪽에 꽂혀 먼저 실행된다. 코어 모듈 일부는 자기 리스너를 prepend로 등록해서 사용자 리스너보다 먼저 돌게 만들어 둔다.
+
+`once`로 등록한 리스너는 등록 시점에 래퍼 함수로 감싸서 `_events`에 들어간다. 래퍼는 호출되자마자 자기 자신을 `removeListener`로 떼고 원본 함수를 부른다. 그래서 once 리스너도 `_events`를 까보면 그냥 함수다. 다만 이 래퍼에는 `listener` 속성으로 원본 함수 참조가 붙어 있다. `removeListener`에 원본 함수를 넘기면 Node.js가 배열을 돌면서 각 원소의 `listener` 속성과도 비교해서 매칭한다. 그래서 once로 등록한 핸들러도 원본 참조로 떼는 게 가능하다.
+
+```js
+const onReady = () => console.log('ready');
+e.once('ready', onReady);
+
+console.log(typeof e._events.ready);            // function (래퍼)
+console.log(e._events.ready.listener === onReady); // true
+e.off('ready', onReady);                        // 원본 참조로 떼도 정상 제거
+```
+
+리스너 호출 자체는 V8 입장에서 그냥 함수 호출이라 EventEmitter 자체 오버헤드는 무시할 수 있다. 다만 `emit`이 인자 개수에 따라 분기된 빠른 경로(arg 0~3개)를 가지고 있어, 인자 4개 이상이면 약간 느려진다. 마이크로벤치에선 보이지만 실무에서 신경 쓸 정도는 아니다.
 
 ## on, once, off
 
@@ -190,7 +229,9 @@ EventEmitter.defaultMaxListeners = 20; // 모든 emitter의 기본 한도
 
 ## 리스너 메모리 누수 디버깅
 
-리스너 누수는 보통 이런 패턴에서 생긴다. 요청이나 연결마다 공유된 emitter에 리스너를 등록하는데, 요청이 끝날 때 그 리스너를 떼지 않는 경우다.
+리스너 누수는 거의 항상 같은 구조에서 나온다. 수명이 긴 객체에 수명이 짧은 객체가 리스너를 달고 떼지 않는다. 짧은 객체가 GC되어야 하는데 긴 객체의 `_events` 안에 함수 참조가 남아 있으니 영영 못 죽는다. 운영에서 만난 패턴 몇 개를 정리한다.
+
+### 패턴 1: 공유 bus에 요청마다 리스너 등록
 
 ```js
 // 안티패턴: 요청마다 공유 emitter에 리스너를 등록하고 안 뗀다
@@ -202,32 +243,9 @@ function handleRequest(req, res) {
 }
 ```
 
-요청이 들어올 때마다 `shutdown` 리스너가 하나씩 쌓이고, `res` 객체가 클로저에 잡혀 있어서 GC도 안 된다. 트래픽이 많으면 금방 경고가 뜨고 메모리가 샌다.
+요청마다 `shutdown` 리스너가 쌓이고, 익명 함수가 클로저로 `res`를 잡고 있어 GC도 안 된다. RPS 100 정도만 돼도 몇 분 안에 수만 개 리스너가 쌓이고 경고가 뜬다. 더 무서운 건 실제 shutdown이 일어나면 수만 개 리스너가 동기로 한 번에 호출된다는 점이다. graceful shutdown이 안 끝나서 헬스체크에 죽지 않은 채로 떠다니는 좀비 프로세스가 된다.
 
-누수를 찾을 때 먼저 어떤 이벤트에 리스너가 몇 개나 붙어 있는지부터 본다.
-
-```js
-console.log(emitter.eventNames());        // 등록된 이벤트 이름 목록
-console.log(emitter.listenerCount('shutdown')); // 특정 이벤트 리스너 수
-console.log(emitter.listeners('shutdown'));      // 리스너 함수 배열
-```
-
-`events` 모듈의 `getEventListeners`도 같은 정보를 준다. 이건 일반 EventEmitter뿐 아니라 DOM 스타일 EventTarget에도 동작한다.
-
-```js
-const { getEventListeners } = require('node:events');
-console.log(getEventListeners(emitter, 'shutdown').length);
-```
-
-경고 메시지에 스택 트레이스를 같이 찍게 하려면 `--trace-warnings` 플래그로 실행한다. 어느 코드 줄에서 그 11번째 리스너가 등록됐는지 추적할 수 있다.
-
-```bash
-node --trace-warnings app.js
-```
-
-이러면 경고와 함께 등록 위치 스택이 찍혀서, 어떤 함수가 리스너를 반복 등록하는지 바로 짚을 수 있다. 운영에서 원인 모를 `MaxListenersExceededWarning`을 만나면 이 플래그부터 켜고 재현하는 게 가장 빠르다.
-
-해결은 등록한 리스너를 생명주기에 맞게 떼는 것이다. 위 예시는 요청이 끝날 때 떼야 한다.
+수정은 응답이 끝날 때 리스너를 떼는 것이다.
 
 ```js
 function handleRequest(req, res) {
@@ -235,10 +253,117 @@ function handleRequest(req, res) {
   globalBus.on('shutdown', onShutdown);
 
   res.on('close', () => {
-    globalBus.off('shutdown', onShutdown); // 응답 끝나면 리스너 제거
+    globalBus.off('shutdown', onShutdown);
   });
 }
 ```
+
+`AbortController`를 쓰는 방법도 있다. `signal` 옵션으로 등록하면 signal이 aborted되는 시점에 Node.js가 알아서 떼준다. 떼는 코드를 까먹기 쉬운 환경에서 안전판으로 쓸 만하다.
+
+```js
+function handleRequest(req, res) {
+  const ac = new AbortController();
+  globalBus.on('shutdown', () => res.end('서버 종료 중'), { signal: ac.signal });
+  res.on('close', () => ac.abort());
+}
+```
+
+### 패턴 2: DB 풀, HTTP 에이전트 같은 싱글톤에 리스너
+
+데이터베이스 풀이나 HTTP 에이전트는 보통 프로세스 전체에서 하나만 살아 있는 싱글톤이다. 거기에 매 요청 단위로 리스너를 달면 같은 결과가 나온다. 경고가 이런 모양으로 찍힌다.
+
+```
+(node:1234) MaxListenersExceededWarning: Possible EventEmitter memory leak detected.
+11 error listeners added to [Pool]. Use emitter.setMaxListeners() to increase limit
+```
+
+대상이 `Pool`이면 보통 DB나 HTTP 풀, `Socket`이면 net/http 소켓, `ReadStream`이면 fs 스트림이다. 어떤 객체가 누수의 보유자인지 클래스 이름으로 먼저 좁힌다. `[EventEmitter]`로 찍히는 경우는 직접 만든 emitter나 사용자 정의 클래스라 추가 단서가 필요하다.
+
+겪었던 사례 한 가지. http(s) 에이전트 keepAlive를 쓰면서 요청별로 `socket.on('error', ...)`를 다는 미들웨어가 있었다. 에이전트가 keepAlive로 같은 소켓을 재사용하니까 같은 소켓 인스턴스에 error 리스너가 계속 쌓였다. 트래픽 피크 때 경고가 떴고, 응답 다 보낸 후에 떼는 코드를 넣어 해결했다.
+
+### 패턴 3: process 객체에 SIGTERM/SIGINT 다발 등록
+
+graceful shutdown을 한다고 모듈마다 `process.on('SIGTERM', ...)`을 달면 모듈 수만큼 핸들러가 쌓인다. 자체 모듈 + 의존 라이브러리가 각자 등록하면 11개를 금방 넘는다. 신호가 한 번 들어오면 그 핸들러들이 동기로 줄줄이 호출되어, 한 핸들러가 오래 걸리면 뒤 핸들러는 SIGKILL 타임아웃에 잘려나간다.
+
+정리 로직을 한군데로 모아 해결한다. shutdown 코디네이터를 만들고 다른 모듈은 거기에 정리 함수를 등록한다. `process`에는 코디네이터만 한 번 단다.
+
+```js
+const shutdownTasks = [];
+process.once('SIGTERM', async () => {
+  for (const task of shutdownTasks) {
+    await task().catch((err) => console.error('shutdown 실패', err));
+  }
+  process.exit(0);
+});
+
+function onShutdown(fn) { shutdownTasks.push(fn); }
+module.exports = { onShutdown };
+```
+
+### 추적 순서
+
+경고가 떴을 때 실무에서 거치는 순서다.
+
+먼저 경고 메시지에서 이벤트 이름과 클래스 이름을 본다. 위에서 본 것처럼 `11 close listeners added to [Pool]` 같은 형태로 찍히니까 어떤 객체, 어떤 이벤트인지 한눈에 좁혀진다.
+
+그다음 `--trace-warnings`로 재현한다.
+
+```bash
+node --trace-warnings app.js
+```
+
+경고에 스택이 같이 찍혀서 11번째 리스너가 등록된 위치가 나온다. 자기 코드가 스택에 있으면 거기가 범인이다. node_modules 안에서만 보이면 라이브러리 이슈를 의심하고 그쪽 트래커를 본다. 라이브러리 코드와 자기 호출이 섞여 있을 땐 자기 호출 지점에서 등록 빈도를 먼저 검토한다.
+
+그래도 안 좁혀지면 등록 시점마다 스택을 찍는 임시 후킹을 끼운다.
+
+```js
+const orig = emitter.addListener.bind(emitter);
+emitter.addListener = function (event, fn) {
+  if (event === 'close') {
+    console.log('close 등록:', new Error().stack);
+  }
+  return orig(event, fn);
+};
+```
+
+지저분하지만 어디서 N번째가 들어왔는지 확실히 잡힌다. 운영에 켜두면 안 되는 코드라 로컬 재현용으로만 쓴다.
+
+현재 등록 상태를 들여다보는 API도 알아두면 좋다.
+
+```js
+console.log(emitter.eventNames());                // 등록된 이벤트 이름 목록
+console.log(emitter.listenerCount('shutdown'));   // 특정 이벤트 리스너 수
+console.log(emitter.listeners('shutdown'));       // 리스너 함수 배열
+
+const { getEventListeners } = require('node:events');
+console.log(getEventListeners(emitter, 'shutdown').length);
+```
+
+`getEventListeners`는 일반 EventEmitter뿐 아니라 `AbortSignal` 같은 DOM 스타일 EventTarget에도 동작한다. 라이브러리 코드를 디버깅할 때 어느 쪽 타입인지 미리 모를 때 무난하게 쓰는 함수다.
+
+### 그래도 못 잡을 때: heap snapshot
+
+스택만으로 안 잡히는 경우가 있다. 등록 코드는 한 줄인데 그 함수가 호출되는 경로가 여러 개라 어느 경로에서 누수가 났는지 모르겠는 경우다. 이때는 heap snapshot을 뜬다.
+
+`node --inspect app.js`로 띄우고 Chrome DevTools Memory 탭에서 트래픽 들어오기 전과 후로 snapshot을 두 번 떠서 Comparison 뷰로 본다. Delta가 큰 객체 중 `EventEmitter`, `Pool`, `Socket`, `Array`가 늘어나 있으면 그게 후보다. Retainers 트리를 타고 올라가면 어느 변수가 잡고 있는지 보이고, 거기서 등록 코드를 역추적한다.
+
+운영 중 재현이 안 되고 메모리만 천천히 새는 경우엔 `--heapsnapshot-signal=SIGUSR2`를 켜두고 의심 시점에 SIGUSR2를 보내 snapshot을 받아오기도 한다. 컨테이너 환경이면 디스크 마운트와 권한을 미리 확인해 둬야 snapshot이 떨어진다.
+
+```bash
+node --heapsnapshot-signal=SIGUSR2 app.js
+# 별도 셸에서
+kill -SIGUSR2 <pid>
+```
+
+### 한도를 올리는 게 맞는 경우
+
+리스너가 정말 많이 필요한 정당한 경우도 있다. 큰 풀 객체에 여러 워커가 자기 리스너를 정상적으로 등록하는 경우, 또는 pub/sub 허브처럼 설계상 구독자 수가 많은 경우다. 이때는 `setMaxListeners`로 인스턴스 단위로 한도를 올린다.
+
+```js
+pool.setMaxListeners(50);
+```
+
+전역 기본값 `EventEmitter.defaultMaxListeners`는 가급적 건드리지 않는다. 전역으로 올리면 진짜 누수가 났을 때 경고가 안 떠서 발견 시점이 늦어진다. 한도를 올릴 거면 그 인스턴스에 좁혀서 올리고, 왜 올렸는지를 주석으로 남겨둔다. 다음에 본 사람이 누수와 헷갈리지 않는다.
 
 ## 비동기 핸들러에서 emit 쓸 때 주의점
 
