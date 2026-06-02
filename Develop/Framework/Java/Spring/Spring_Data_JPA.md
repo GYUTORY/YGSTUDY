@@ -452,5 +452,5 @@ logging:
 
 - [Spring Data JPA 공식 문서](https://docs.spring.io/spring-data/jpa/reference/)
 - [Hibernate 공식 문서](https://hibernate.org/orm/documentation/)
-- [데이터베이스 심화](../../Backend/Database/Database_Deep_Dive.md)
-- [데이터베이스 성능 튜닝](../../DataBase/RDBMS/데이터베이스_성능_튜닝.md)
+- [데이터베이스 심화](../../../Backend/Database/Database_Deep_Dive.md)
+- [데이터베이스 성능 튜닝](../../../DataBase/RDBMS/데이터베이스_성능_튜닝.md)

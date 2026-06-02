@@ -6,7 +6,7 @@ updated: 2026-04-09
 
 # Java 함수형 인터페이스 실무 활용
 
-> 함수형 인터페이스의 기본 개념과 `java.util.function` 패키지 설명은 [Functional Interface 기초](../../객체지향 프로그래밍 (OOP)/interface/Functional_Interface.md)를 참고한다.
+> 함수형 인터페이스의 기본 개념과 `java.util.function` 패키지 설명은 [Functional Interface 기초](../객체지향 프로그래밍 (OOP)/interface/Functional_Interface.md)를 참고한다.
 
 이 문서는 JDK와 Spring 프레임워크에서 함수형 인터페이스가 실제로 어떻게 쓰이는지, 그리고 커스텀 함수형 인터페이스를 설계할 때 어떤 점을 신경 써야 하는지를 다룬다.
 

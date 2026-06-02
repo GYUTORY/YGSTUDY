@@ -1003,4 +1003,4 @@ COMMIT;
 - [PostgreSQL Transaction Isolation](https://www.postgresql.org/docs/current/transaction-iso.html)
 - [인덱스 전략](RDBMS에서의 index.md) — 인덱스와 락의 관계
 - [성능 튜닝](데이터베이스_성능_튜닝.md) — 쿼리 최적화
-- [Deadlock](../../OS/Deadlock.md) — OS 레벨 데드락 개념
+- [Deadlock](../../OS/Process & Thread/Deadlock.md) — OS 레벨 데드락 개념

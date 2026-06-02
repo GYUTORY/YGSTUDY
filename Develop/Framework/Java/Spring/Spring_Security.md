@@ -1009,5 +1009,5 @@ securityContextRepository.saveContext(context, request, response);
 - [Spring Security 공식 문서](https://docs.spring.io/spring-security/reference/)
 - [Spring Security Architecture](https://spring.io/guides/topicals/spring-security-architecture)
 - [JJWT GitHub](https://github.com/jwtk/jjwt)
-- [OAuth 2.0 개요](../../Security/OAuth.md)
+- [OAuth 2.0 개요](../../../Security/OAuth.md)
 - [Spring Security 6.x Migration Guide](https://docs.spring.io/spring-security/reference/migration/index.html)

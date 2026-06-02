@@ -1202,4 +1202,4 @@ public class OrderProcessor implements ItemProcessor<Order, Order> {
 
 - [Spring Batch 공식 문서](https://docs.spring.io/spring-batch/reference/)
 - [Spring Test](Spring_Test.md) — 배치 테스트
-- [Java 동시성](../../Language/Java/멀티스레딩 및 동시성/Java_Concurrency.md) — 병렬 처리 기초
+- [Java 동시성](../../../Language/Java/멀티스레딩 및 동시성/Java_Concurrency.md) — 병렬 처리 기초

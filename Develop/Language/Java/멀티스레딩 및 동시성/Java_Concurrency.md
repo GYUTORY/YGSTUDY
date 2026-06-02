@@ -346,5 +346,5 @@ spring.threads.virtual.enabled=true  // application.properties
 - [Java Concurrency in Practice — Brian Goetz](https://jcip.net/)
 - [Java 21 Virtual Threads](https://openjdk.org/jeps/444)
 - [멀티 스레딩 기초](Multi_Threading.md) — Thread, Runnable 기본
-- [레이스 컨디션](../../OS/Process & Thread/레이스_컨디션.md) — 동기화 문제
-- [Deadlock](../../OS/Deadlock.md) — 교착 상태
+- [레이스 컨디션](../../../OS/Process & Thread/레이스_컨디션.md) — 동기화 문제
+- [Deadlock](../../../OS/Process & Thread/Deadlock.md) — 교착 상태

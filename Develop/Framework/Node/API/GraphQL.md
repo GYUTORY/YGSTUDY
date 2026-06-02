@@ -860,5 +860,5 @@ GraphQL은 현대적인 API 아키텍처로, 클라이언트의 요구사항에 
 - [JWT 구현 및 보안](../인증/JWT_구현_및_보안.md) - GraphQL 인증/인가 구현
 - [Rate Limiting](./Rate_Limiting.md) - GraphQL 쿼리 제한 및 보호
 - [캐싱](../캐싱/캐싱_전략.md) - GraphQL 응답 캐싱
-- [WebSocket/Socket.io](../통신/WebSocket_SocketIO.md) - 실시간 통신 비교
+- [WebSocket](../../../Network/Protocol/WebSocket.md) - 실시간 통신 비교
 

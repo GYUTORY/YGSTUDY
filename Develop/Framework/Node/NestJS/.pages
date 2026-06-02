@@ -5,10 +5,13 @@ nav:
   - Nest_JS_Standard_Architecture.md
   - Nest_JS_Clean_Architecture.md
   - Nest_JS_요청_라이프사이클.md
+  - Nest_JS_Lifecycle_Hooks.md
   - Nest_JS_Decorator.md
+  - Nest_JS_Middleware.md
   - Nest_JS_Interceptors.md
   - Nest_JS_Guards.md
   - Nest_JS_Exception_Filters.md
+  - Nest_JS_Pipes.md
   - Nest_JS_Validation_Pipe.md
   - Nest_JS_Swagger.md
   - Nest_JS_설정_관리.md

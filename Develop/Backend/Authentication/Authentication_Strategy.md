@@ -442,6 +442,6 @@ public void revokeApiKey(Long keyId, Long clientId) {
 - [OAuth 2.0 스펙](https://oauth.net/2/)
 - [JWT.io](https://jwt.io/)
 - [API 인증/인가 실무 패턴](../API/API_Security_Patterns.md) — JWT 설계, API Key 관리, HMAC 서명 상세
-- [Spring Security](Spring_Security.md) — Spring 구현 상세
+- [Spring Security](../../Framework/Java/Spring/Spring_Security.md) — Spring 구현 상세
 - [OAuth 개요](../../Security/OAuth.md)
 - [CORS](../../WebServer/Nginx/CORS.md)

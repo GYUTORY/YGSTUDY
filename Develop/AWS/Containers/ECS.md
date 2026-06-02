@@ -567,12 +567,10 @@ scaling.scaleOnCpuUtilization('CpuScaling', {
 
 ### 관련 문서
 
-- [Kubernetes 심화 전략](../../DevOps/Kubernetes/Kubernetes_심화_전략.md) - Kubernetes와 ECS 비교
-- [배포 전략](../../Framework/Node/배포/배포_전략.md) - 컨테이너 배포 전략
+- [Kubernetes](../../DevOps/Kubernetes/Kubernetes.md) - Kubernetes와 ECS 비교
+- [MSA 배포 패턴](../../Architecture/MSA/배포_패턴.md) - 컨테이너 배포 전략
 - [Docker Compose](../../DevOps/Kubernetes/Docker/Docker_Compose.md) - 로컬 개발 환경 구성
-- [CI/CD 고급 패턴](../../DevOps/CI_CD/고급_CI_CD_패턴.md) - ECS 배포 파이프라인
-- [AWS 고가용성 설계 전략](../고가용성/고가용성_설계_전략.md) - ECS 고가용성 구성
-- [AWS 모니터링 및 알람 전략](../모니터링/모니터링_및_알람_전략.md) - ECS 모니터링
+- [GitHub Actions](../../DevOps/CI_CD/GitHub_Actions.md) - ECS 배포 파이프라인
 
 ---
 
