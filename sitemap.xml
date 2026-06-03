@@ -1801,7 +1801,19 @@
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Secrets/Hashi_Corp_Vault/</loc>
+         <lastmod>2026-06-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Service_Discovery/Consul/</loc>
+         <lastmod>2026-06-03</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Infra/Service_Mesh/Istio/</loc>
+         <lastmod>2026-06-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Service_Mesh/Linkerd/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
