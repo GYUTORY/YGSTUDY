@@ -1,3 +1,4 @@
 title: Service Mesh
 nav:
   - Istio.md
+  - Linkerd.md

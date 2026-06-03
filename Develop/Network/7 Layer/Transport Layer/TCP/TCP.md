@@ -1,7 +1,7 @@
 ---
 title: TCP 프로토콜 동작 메커니즘
-tags: [network, 7-layer, transport-layer, tcp, handshake, congestion-control, flow-control, troubleshooting]
-updated: 2026-04-09
+tags: [network, 7-layer, transport-layer, tcp, handshake, congestion-control, flow-control, socket-options, troubleshooting]
+updated: 2026-06-03
 ---
 
 # TCP 프로토콜 동작 메커니즘
@@ -481,6 +481,133 @@ b.option(ChannelOption.SO_BACKLOG, 1024);
 ```
 
 
+## 주요 소켓 옵션
+
+소켓 옵션은 잘못 쓰면 운영 장애로 이어지는 항목이 많다. 기본값을 그대로 쓰면 큰 문제가 없지만, 성능 튜닝이나 특수한 상황에서 손대다가 사고가 나는 경우가 종종 있다.
+
+### SO_REUSEADDR
+
+서버 프로세스를 재시작할 때 "Address already in use" 에러를 피하기 위한 옵션이다. 원인은 이전 프로세스가 사용하던 소켓이 TIME_WAIT 상태로 남아 있어서 같은 포트에 다시 바인딩할 수 없기 때문이다.
+
+```c
+int yes = 1;
+setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+bind(sockfd, ...);
+```
+
+```java
+// Java - 바인딩 전에 호출해야 함
+ServerSocket server = new ServerSocket();
+server.setReuseAddress(true);
+server.bind(new InetSocketAddress(8080));
+```
+
+```go
+// Go - net.ListenConfig (Go 1.11+)
+lc := net.ListenConfig{
+    Control: func(network, address string, c syscall.RawConn) error {
+        return c.Control(func(fd uintptr) {
+            syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+        })
+    },
+}
+ln, _ := lc.Listen(context.Background(), "tcp", ":8080")
+```
+
+리눅스에서 SO_REUSEADDR은 TIME_WAIT 상태 소켓 위에 새 바인딩을 허용한다. 같은 IP:Port 조합을 두 프로세스가 동시에 LISTEN하지는 못한다.
+
+흔한 오해: SO_REUSEADDR이 켜져 있으면 살아있는 LISTEN 소켓을 빼앗을 수 있다고 생각하는데, 그렇지 않다. 같은 포트로 LISTEN 중인 프로세스가 살아있으면 새 프로세스의 bind는 실패한다.
+
+`SO_REUSEADDR`을 켰는데도 바인딩이 안 된다면 다음을 의심한다:
+1. 이전 프로세스가 아직 살아있고 LISTEN 중 (`ss -tlnp`로 확인)
+2. 클라이언트 측에서 같은 4-tuple로 ESTABLISHED 상태 잔존 (`ss -tnp`로 확인)
+3. systemd가 소켓을 잡고 있는 경우 (socket activation)
+
+### SO_REUSEPORT
+
+리눅스 3.9에서 추가된 옵션이다. 같은 IP:Port를 여러 프로세스가 동시에 LISTEN할 수 있게 해주고, 커널이 들어오는 연결을 4-tuple 해시로 각 프로세스에 분배한다.
+
+```c
+int yes = 1;
+setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes));
+```
+
+```nginx
+# Nginx
+listen 80 reuseport;
+```
+
+멀티프로세스 서버에서 worker 간 부하 분산에 쓴다. 기존에는 1개 프로세스가 accept하고 worker로 넘기거나, 모든 worker가 같은 listen socket에서 accept를 경쟁(thundering herd)했는데, SO_REUSEPORT는 각 프로세스가 독립된 accept 큐를 갖는다.
+
+주의할 점: 한 프로세스가 갑자기 죽으면 그 프로세스의 accept 큐에 쌓여 있던 연결도 같이 사라진다. graceful shutdown을 구현하지 않으면 재시작 시점에 연결이 끊긴 클라이언트가 발생한다.
+
+### SO_LINGER
+
+`close()` 호출 시 송신 버퍼의 처리 방식을 결정한다.
+
+```c
+struct linger {
+    int l_onoff;   // 0이면 비활성, 1이면 활성
+    int l_linger;  // 대기 시간(초)
+};
+
+struct linger lin = { .l_onoff = 1, .l_linger = 0 };
+setsockopt(sockfd, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
+```
+
+세 가지 동작:
+
+| 설정 | 동작 |
+|------|------|
+| `l_onoff=0` (기본값) | close() 즉시 리턴. 커널이 백그라운드에서 송신 버퍼를 비우고 FIN으로 정상 종료 |
+| `l_onoff=1, l_linger>0` | 송신 버퍼가 비거나 타임아웃까지 close() 블록 |
+| `l_onoff=1, l_linger=0` | 송신 버퍼를 버리고 RST 전송. 정상 종료 없이 즉시 끊김 |
+
+`l_linger=0`은 TIME_WAIT을 만들지 않으려고 쓰는 경우가 있는데 위험하다. 상대방은 RST를 받고 비정상 종료로 인식한다. HTTP 응답을 다 보내기 전에 끊기는 경우도 있어서 운영 서버에서는 거의 쓸 일이 없다.
+
+쓸 만한 상황은 부하 테스트 도구처럼 짧은 연결을 빠르게 만들었다 끊는 경우 정도다. 일반 백엔드 서버에서는 손대지 않는 게 안전하다.
+
+### SO_KEEPALIVE
+
+소켓 단위로 TCP keepalive를 켜는 옵션이다. 기본값이 OFF라서 명시적으로 켜야 동작한다.
+
+```java
+socket.setKeepAlive(true);
+```
+
+```go
+conn.SetKeepAlive(true)
+conn.SetKeepAlivePeriod(30 * time.Second)  // 소켓별 주기 설정
+```
+
+`SO_KEEPALIVE`만 켜면 주기는 시스템 기본값(`tcp_keepalive_time`)을 따른다. 리눅스 기본값 2시간이 너무 길어서, Go의 `SetKeepAlivePeriod`나 Java NIO의 `TCP_KEEPIDLE` 옵션으로 소켓별 주기를 줄이는 게 일반적이다.
+
+### TCP_NODELAY
+
+Nagle 알고리즘을 끄는 옵션이다. 앞서 Nagle 섹션에서 다뤘다. HTTP 서버, 게임 서버, RPC 서버처럼 작은 메시지를 자주 주고받는 경우에 켠다.
+
+### 옵션 적용 시점 주의
+
+소켓 옵션은 적용 시점이 중요하다.
+
+- `SO_REUSEADDR`, `SO_REUSEPORT`: `bind()` **이전**에 설정해야 한다
+- `SO_KEEPALIVE`, `TCP_NODELAY`: `connect()` 또는 `accept()` 이후에도 설정 가능
+- `SO_LINGER`: `close()` **이전**에 설정해야 한다
+
+서버 코드를 짤 때 ServerSocket을 만든 후 bind 호출 전에 옵션을 설정하는 흐름을 잘 지켜야 한다. Java의 `ServerSocket` 생성자에서 포트를 지정하면 내부적으로 bind까지 끝나버려서 setReuseAddress가 효과 없는 경우가 있다.
+
+```java
+// 잘못된 예 - 생성자에서 이미 bind됨
+ServerSocket server = new ServerSocket(8080);
+server.setReuseAddress(true);  // 효과 없음
+
+// 올바른 예 - bind 전에 설정
+ServerSocket server = new ServerSocket();
+server.setReuseAddress(true);
+server.bind(new InetSocketAddress(8080));
+```
+
+
 ## 실무 트러블슈팅
 
 ### tcpdump로 TCP 상태 확인
@@ -502,9 +629,22 @@ tcpdump -i eth0 port 8080 -w /tmp/capture.pcap -c 10000
 tcpdump -i eth0 port 8080 -nn -S  # -S: 절대 시퀀스 번호 표시
 ```
 
-### ss 명령어로 TCP 상태 분석
+### ss와 netstat로 TCP 상태 분석
 
-`ss`는 `netstat`을 대체하는 명령어다. `/proc/net/tcp`를 파싱하는 netstat보다 netlink 소켓을 사용하는 ss가 빠르다.
+`ss`는 `netstat`을 대체하는 명령어다. netstat은 `/proc/net/tcp`를 파싱하지만 ss는 netlink 소켓을 직접 쓰기 때문에 연결이 수만 개 수준이 되면 체감 속도 차이가 크다. 최신 배포판은 net-tools 패키지(`netstat`이 들어있는) 자체가 기본 설치되지 않는 경우가 많아 ss를 익혀두는 쪽이 안전하다.
+
+자주 쓰는 명령어 대응:
+
+| 목적 | netstat | ss |
+|------|---------|-----|
+| 전체 TCP 연결 | `netstat -an` | `ss -tan` |
+| LISTEN 포트와 프로세스 | `netstat -tlnp` | `ss -tlnp` |
+| 상태별 통계 요약 | `netstat -s` | `ss -s` |
+| ESTABLISHED만 | `netstat -an \| grep EST` | `ss -tn state established` |
+| TIME_WAIT만 | `netstat -an \| grep TIME_WAIT` | `ss -tn state time-wait` |
+| 라우팅 테이블 | `netstat -rn` | `ip route` |
+
+netstat을 써야 하는 환경(오래된 컨테이너 이미지, 일부 임베디드 장비)에서도 동일한 정보를 뽑을 수 있도록 양쪽 명령어를 같이 알아두는 게 좋다.
 
 ```bash
 # 상태별 TCP 연결 수 요약

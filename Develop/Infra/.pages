@@ -1,3 +1,5 @@
 title: Infra
 nav:
   - Service_Mesh
+  - Service_Discovery
+  - Secrets

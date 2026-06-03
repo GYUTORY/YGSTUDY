@@ -1,7 +1,7 @@
 ---
 title: UDP 프로토콜 동작 메커니즘
-tags: [network, 7-layer, transport-layer, udp, datagram, dns, quic, troubleshooting]
-updated: 2026-04-30
+tags: [network, 7-layer, transport-layer, udp, datagram, dns, quic, game-server, dtls, multicast, troubleshooting]
+updated: 2026-06-03
 ---
 
 # UDP 프로토콜 동작 메커니즘
@@ -165,6 +165,59 @@ while (1) {
 
 `connect()`를 UDP 소켓에 호출할 수도 있는데, 이때 의미는 "이 주소로만 보내고 받겠다"는 필터 설정이다. 연결 수립이 일어나는 게 아니다. `connect()` 후에는 `send()`/`recv()`를 쓸 수 있고, 다른 주소에서 온 패킷은 커널이 걸러낸다. 클라이언트 측에서 자주 쓴다.
 
+## Python으로 같은 동작 확인하기
+
+C 예제가 시스템콜의 의미를 드러내는 데는 좋지만, 실무에서 디버깅용 더미 서버를 띄울 때는 Python이 빠르다. asyncio 없이 동기 코드만으로도 충분한 경우가 많다.
+
+```python
+import socket
+
+# 서버
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
+sock.bind(("0.0.0.0", 5000))
+
+while True:
+    data, addr = sock.recvfrom(2048)
+    print(f"from {addr}: {len(data)} bytes")
+    sock.sendto(data, addr)  # echo
+```
+
+```python
+# 클라이언트 (connect 사용)
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.connect(("192.168.1.10", 5000))
+sock.settimeout(1.0)  # 응답 안 오면 1초 후 예외
+
+sock.send(b"ping")
+try:
+    data = sock.recv(2048)
+    print("got:", data)
+except socket.timeout:
+    print("no response")  # UDP는 무응답이 정상 경로 중 하나다
+```
+
+Python에서 `recvfrom()`의 버퍼 크기를 너무 작게 잡으면 데이터그램이 잘린다. C와 동일하다. 2048 정도는 잡아두는 게 안전하다. 굳이 메모리를 아낄 이유가 없다.
+
+`settimeout()`은 UDP 클라이언트에서 거의 필수다. TCP라면 RST나 FIN이 와서 read가 깨지지만, UDP는 영원히 응답이 없어도 커널이 알려주지 않는다. 애플리케이션 타임아웃을 직접 거는 수밖에 없다.
+
+## SO_REUSEPORT로 다중 워커 확장
+
+리눅스 3.9 이후로 `SO_REUSEPORT`가 들어왔다. 같은 포트에 여러 소켓을 바인딩해서 커널이 해시 기반으로 패킷을 분산해준다. UDP 서버를 단일 코어에서 다중 코어로 확장할 때 가장 단순한 방법이다.
+
+```c
+int sock = socket(AF_INET, SOCK_DGRAM, 0);
+int opt = 1;
+setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
+bind(sock, ...);
+```
+
+이 옵션을 켜고 동일한 코드의 워커 프로세스 N개를 띄우면 커널이 4-tuple(src_ip, src_port, dst_ip, dst_port) 해시로 패킷을 분배한다. 같은 클라이언트에서 온 패킷은 같은 워커로 가니까 세션 상태를 워커별로 들고 있을 수 있다.
+
+주의할 점은 워커 하나가 죽으면 그 워커의 hash bucket에 해당하는 트래픽이 잠깐 다른 워커로 옮겨간다는 것이다. 세션 상태를 메모리에만 갖고 있으면 그 순간 클라이언트가 끊긴다. QUIC 서버처럼 connection ID 기반 라우팅이 필요하면 eBPF로 `SO_ATTACH_REUSEPORT_EBPF` 프로그램을 붙여서 직접 분배 규칙을 정의한다.
+
+DNS 서버나 NTP 서버 같은 stateless 워크로드는 SO_REUSEPORT만으로 충분히 선형 확장된다. CPU 코어 수만큼 워커를 띄우는 게 일반적이다.
+
 ## 패킷 손실 측정과 SO_RCVBUF 튜닝
 
 UDP에서 패킷 손실은 두 군데서 발생한다. 네트워크 경로 중간(라우터 큐 오버플로우)과 수신 호스트(소켓 버퍼 오버플로우). 이 둘을 구별해야 대응 방법이 달라진다.
@@ -210,7 +263,43 @@ sysctl -w net.core.rmem_default=4194304
 
 송신 측은 `SndbufErrors`로 확인할 수 있고, 송신 큐가 가득 차면 `sendto()`가 EAGAIN/ENOBUFS를 반환한다. 이때 애플리케이션이 어떻게 반응할지 정해놔야 한다. 그냥 버릴 건지, 잠깐 기다릴 건지.
 
-네트워크 경로에서의 손실은 송수신 양쪽의 시퀀스 번호로 추정한다. 애플리케이션 프로토콜에 시퀀스를 넣어두면 수신 측에서 빠진 번호를 세어 손실률을 측정할 수 있다. RTP가 16비트 시퀀스를 헤더에 넣은 이유가 이거다.
+네트워크 경로에서의 손실은 송수신 양쪽의 시퀀스 번호로 추정한다. 애플리케이션 프로토콜에 시퀀스를 넣어두면 수신 측에서 빠진 번호를 세어 손실률을 측정한다. RTP가 16비트 시퀀스를 헤더에 넣은 이유가 이거다.
+
+## sendmmsg / recvmmsg 와 GSO/GRO
+
+수만 QPS를 처리하는 UDP 서버에서는 시스템콜 자체가 병목이 된다. `recvfrom()`을 패킷마다 부르면 컨텍스트 스위치 비용이 누적된다. 리눅스는 `recvmmsg()`/`sendmmsg()`로 한 번의 시스템콜에서 여러 데이터그램을 처리하게 해준다.
+
+```c
+struct mmsghdr msgs[64];
+struct iovec iovs[64];
+char bufs[64][2048];
+struct sockaddr_in addrs[64];
+
+for (int i = 0; i < 64; i++) {
+    iovs[i].iov_base = bufs[i];
+    iovs[i].iov_len = sizeof(bufs[i]);
+    msgs[i].msg_hdr.msg_iov = &iovs[i];
+    msgs[i].msg_hdr.msg_iovlen = 1;
+    msgs[i].msg_hdr.msg_name = &addrs[i];
+    msgs[i].msg_hdr.msg_namelen = sizeof(addrs[i]);
+}
+
+int n = recvmmsg(sock, msgs, 64, 0, NULL);
+// n개의 데이터그램을 한 번에 받음
+```
+
+벤치마크에서 패킷당 처리량이 2~3배 오르는 일이 흔하다. nginx의 QUIC 구현, dnsdist 같은 고성능 DNS 프록시가 모두 이걸 쓴다.
+
+NIC 레벨의 GSO(Generic Segmentation Offload)와 GRO(Generic Receive Offload)도 UDP에서 동작한다. 커널이 큰 UDP 페이로드를 하나의 의사 패킷처럼 다루다가 NIC가 송신 직전에 잘게 쪼개거나, 수신 측에서는 작은 패킷들을 모아서 한 번에 스택으로 올린다. QUIC가 한 syscall로 64KB를 던지면 NIC가 알아서 1400바이트 단위로 쪼개주는 식이다.
+
+```bash
+# UDP GSO/GRO 상태 확인
+ethtool -k eth0 | grep -E "udp|generic"
+
+# tx-udp-segmentation, rx-udp-gro-forwarding 항목
+```
+
+오래된 커널(4.18 이하)이나 일부 NIC에서는 UDP GSO가 안 들어가 있다. 고처리량 UDP를 운영하려면 커널 버전과 NIC 드라이버를 확인해야 한다.
 
 ## UDP 위에서 신뢰성 만들기
 
@@ -233,6 +322,61 @@ RTO = SRTT + 4 * RTTVAR
 **MTU 처리**: 단편화를 피하려면 애플리케이션이 패킷 크기를 1400바이트 정도로 제한해야 한다. 큰 메시지는 직접 쪼개고 합쳐야 한다.
 
 이걸 다 직접 구현하느니 그냥 TCP를 쓰는 게 낫다는 결론이 나오는 경우가 대부분이다. UDP를 선택할 때는 "TCP의 어떤 동작이 우리 워크로드에 안 맞는가"를 먼저 명확히 해야 한다. 막연히 "UDP가 빠르다더라"로 시작하면 결국 부실한 TCP를 다시 만들게 된다.
+
+## 게임 서버에서 UDP를 다루는 방식
+
+FPS·MOBA·MMO 클라이언트가 서버와 주고받는 데이터는 크게 입력(input)과 상태(state)다. 입력은 클라이언트에서 서버로, 상태는 서버에서 클라이언트로 흐른다. 두 흐름의 특성이 달라서 UDP 위에서도 다르게 설계한다.
+
+**입력 패킷**: 키 입력, 마우스 이동 같은 사용자 조작. 초당 30~60회 보낸다. 손실되면 그 순간의 조작이 사라지니까, 최근 N프레임의 입력을 매번 같이 보낸다. 패킷 손실이 산발적이면 다음 패킷에 포함된 직전 N프레임으로 복구된다. ACK도 시퀀스도 명시적으로 안 쓰는 단순한 패턴이지만, 1% 손실 환경에서도 입력 누락이 거의 안 일어난다.
+
+**상태 스냅샷**: 서버가 모든 플레이어·발사체·맵 오브젝트의 위치를 모아서 클라이언트에게 보낸다. 초당 20~30회. 풀 스냅샷은 크기가 커서 매번 보내면 대역폭이 폭발한다. 그래서 마지막으로 ACK된 스냅샷과의 차이만 보내는 delta encoding을 쓴다. Quake 3의 snapshot 시스템이 원조다.
+
+```
+client → server : input { seq:1234, ack_snapshot:97, inputs:[t-3, t-2, t-1, t] }
+server → client : snapshot { seq:98, base_seq:97, delta:{...} }
+```
+
+스냅샷 시퀀스가 클라이언트의 ack보다 너무 멀어지면 (예: 50 프레임 이상) 서버는 풀 스냅샷을 다시 보내야 한다. 그래서 ACK 흐름은 가볍더라도 반드시 있어야 한다.
+
+**신뢰성이 필요한 메시지**: 채팅, 아이템 획득, 라운드 종료 같은 이벤트. 이건 손실되면 안 되니까 별도의 reliable 채널을 둔다. ENet, RakNet, GameNetworkingSockets 같은 라이브러리가 이 두 채널(unreliable + reliable)을 하나의 UDP 소켓 위에 멀티플렉싱한다. 직접 만들면 ACK + 재전송 + 순서 보장 코드를 다시 짜는 일이 된다.
+
+**지터 버퍼와 보간**: 30Hz 스냅샷이라도 도착 간격이 일정하지 않다. 클라이언트는 받은 스냅샷을 바로 렌더링하지 않고 50~100ms 버퍼에 쌓아두고 시간상 한 박자 뒤로 보간해서 그린다. 이게 게임의 "넷코드 지연"의 정체다. 줄이면 끊김이 보이고, 늘리면 반응성이 떨어진다.
+
+**시간 동기화**: 서버와 클라이언트가 같은 시계를 봐야 입력/상태가 의미가 통한다. NTP를 쓰지 않고 자체 핸드셰이크에서 RTT를 측정해 서버 시각을 추정한다. 5~10초마다 재추정해서 drift를 보정한다.
+
+이 모든 게 TCP였다면 head-of-line blocking 한 번에 게임이 얼어붙는다. 그래서 게임은 거의 예외 없이 UDP다.
+
+## DTLS로 UDP 암호화
+
+TLS는 TCP의 순서·신뢰 보장을 전제로 만들어졌다. UDP에 그대로 못 올린다. 그래서 만들어진 게 DTLS(Datagram TLS)다. RFC 9147(DTLS 1.3) 기준이다.
+
+DTLS는 TLS와 핸드셰이크 메시지가 거의 같지만 다음 차이가 있다.
+
+- 핸드셰이크 메시지마다 시퀀스 번호와 재전송 타이머를 들고 있다 (TLS는 TCP가 해주던 일).
+- 레코드마다 epoch와 시퀀스를 명시적으로 헤더에 넣어 중복·재전송을 구별한다.
+- DoS 완화 목적으로 cookie 교환(HelloRetryRequest)이 들어간다. ClientHello에 반사 공격이 가능하기 때문이다.
+
+WebRTC의 미디어 채널은 DTLS-SRTP로 키 교환을 한다. CoAP over DTLS는 IoT 영역에서 표준이다. OpenSSL이 DTLS 1.2/1.3을 지원하니 직접 구현하지 말고 라이브러리를 쓰면 된다.
+
+QUIC는 DTLS를 쓰지 않는다. TLS 1.3 핸드셰이크를 QUIC 프레임에 직접 묶어버려서 별도 레이어가 없다. 그래서 QUIC 핸드셰이크가 TCP+TLS보다 RTT 한 번을 더 줄일 수 있다.
+
+## 멀티캐스트와 브로드캐스트
+
+UDP만의 특권이다. TCP는 1:1 연결이라 멀티캐스트가 불가능하다. UDP는 송신자가 멀티캐스트 그룹 주소(IPv4 224.0.0.0/4, IPv6 ff00::/8)로 보내면 그 그룹에 가입한 모든 호스트가 받는다.
+
+```c
+// 멀티캐스트 그룹 가입
+struct ip_mreq mreq;
+mreq.imr_multiaddr.s_addr = inet_addr("239.1.1.1");
+mreq.imr_interface.s_addr = INADDR_ANY;
+setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+```
+
+실무에서 인터넷 멀티캐스트는 거의 죽었다. ISP가 멀티캐스트 라우팅을 안 켜준다. 데이터센터 내부 LAN이나 사내망에서는 살아있다. 금융권 시세 분배(주식 호가)가 대표적이다. 하나의 호가 스트림을 수백 개 워크스테이션에 동시에 뿌리는 데 멀티캐스트만큼 싼 방법이 없다.
+
+브로드캐스트(`255.255.255.255` 또는 서브넷 브로드캐스트)는 같은 L2 세그먼트에만 도달한다. DHCP가 클라이언트 IP를 받기 전 서버를 찾는 용도로 쓰는 게 거의 유일한 일상 사례다.
+
+mDNS·SSDP 같은 서비스 디스커버리가 IPv4 멀티캐스트의 흔한 응용이다. `224.0.0.251:5353`에 가입하면 같은 네트워크의 AirPlay·Chromecast 같은 장비가 광고하는 패킷을 받을 수 있다.
 
 ## netcat으로 디버깅
 
