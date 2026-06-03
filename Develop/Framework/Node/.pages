@@ -4,6 +4,11 @@ nav:
   - Nest_Hapi_Express_fastify.md
   - Error_Handling.md
   - Application_Routing.md
+  - HTTP_Module.md
+  - File_System.md
+  - Child_Process.md
+  - Crypto_Module.md
+  - Performance_Hooks.md
   - NestJS
   - Nodejs의 구조 및 작동 원리
   - Process Management Tool
