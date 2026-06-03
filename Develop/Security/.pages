@@ -2,6 +2,7 @@ title: Security
 nav:
   - HTTPS_and_TLS.md
   - Mutual_TLS.md
+  - PKI_and_Certificate_Management.md
   - AES.md
   - RSA.md
   - SHA.md
@@ -22,11 +23,13 @@ nav:
   - Command_Injection.md
   - OWASP_Top_10.md
   - API_Input_Validation.md
+  - API_Security.md
   - File_Upload_Security.md
   - ISMS.md
   - SSH_Key_Management.md
   - Secrets_Management.md
   - PII_Data_Protection.md
+  - GDPR_and_Privacy_Compliance.md
   - Server_Attack_Defense.md
   - DNS_Security.md
   - D_Do_S_Defense.md
@@ -34,6 +37,7 @@ nav:
   - Zero_Trust_Architecture.md
   - CORS_and_Security_Headers.md
   - Container_Security.md
+  - Kubernetes_Security.md
   - Supply_Chain_Security.md
   - Security_Logging_and_Auditing.md
   - Security_Testing_SAST_DAST_IAST.md
