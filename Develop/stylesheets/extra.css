@@ -375,6 +375,28 @@ body {
     margin-right: calc(var(--md-sidebar-secondary) + 1.6rem);
     min-width: 0;
   }
+
+  /* Material JS가 .md-sidebar__scrollwrap 에 inline style 로 top/height/padding 을 동적으로 덮어쓰는
+     동작(본문 스크롤에 따라 사이드바가 따라 움직이게 만드는 sticky 모방) 때문에,
+     fixed 부모 안에서도 scrollwrap 의 inline height 가 viewport 보다 커지면서
+     하단이 잘려 보이는 문제가 발생. !important 로 강제 고정해 inline style 무력화. */
+  .md-sidebar--primary .md-sidebar__scrollwrap,
+  .md-sidebar--secondary .md-sidebar__scrollwrap {
+    position: relative !important;
+    top: 0 !important;
+    transform: none !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin-top: 0 !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 1.2rem !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  .md-sidebar--primary .md-sidebar__inner,
+  .md-sidebar--secondary .md-sidebar__inner {
+    min-height: 0 !important;
+  }
 }
 
 .md-sidebar--primary {
