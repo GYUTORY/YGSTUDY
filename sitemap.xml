@@ -2533,7 +2533,15 @@
          <lastmod>2026-06-04</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/CDN/</loc>
+         <lastmod>2026-06-04</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/CORS/</loc>
+         <lastmod>2026-06-04</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/NAT/</loc>
          <lastmod>2026-06-04</lastmod>
     </url>
     <url>
@@ -2629,7 +2637,15 @@
          <lastmod>2026-06-04</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Layer/BGP/</loc>
+         <lastmod>2026-06-04</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Layer/ICMP/</loc>
+         <lastmod>2026-06-04</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Layer/I_Pv6/</loc>
          <lastmod>2026-06-04</lastmod>
     </url>
     <url>
@@ -2766,6 +2782,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/Security/TLS_HTTPS/</loc>
+         <lastmod>2026-06-04</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/Security/VPN/</loc>
          <lastmod>2026-06-04</lastmod>
     </url>
     <url>
