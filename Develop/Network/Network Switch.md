@@ -1,638 +1,336 @@
 ---
 title: 네트워크 스위치 (Network Switch)
-tags: [network, network-switch, data-link-layer, mac-address, switching]
-updated: 2025-12-10
+tags: [network, network-switch, data-link-layer, mac-address, vlan, stp]
+updated: 2026-06-04
 ---
 
 # 네트워크 스위치 (Network Switch)
 
-## 개요
+## 정의와 동작 위치
 
-### 네트워크 스위치의 정의와 역할
-네트워크 스위치는 OSI 모델의 데이터 링크 계층(2계층)에서 동작하는 네트워크 장비다. MAC 주소를 기반으로 데이터 프레임을 전달하고 네트워크 트래픽을 최적화한다.
+스위치는 OSI 2계층(데이터 링크 계층)에서 동작하는 장비다. 들어온 이더넷 프레임의 목적지 MAC 주소를 보고, 그 MAC이 학습된 포트로만 프레임을 내보낸다. 학습되지 않은 MAC이면 들어온 포트를 제외한 모든 포트로 플러딩한다.
 
-스위치의 주요 기능은 연결된 각 장치의 MAC 주소를 학습하고, 이를 바탕으로 데이터를 정확한 목적지로만 전달하는 것이다. 이는 네트워크의 효율성을 향상시키며, 불필요한 트래픽을 줄여 전체적인 성능을 개선한다.
+L2에서 끝나는 게 보통이지만, L3 스위치라 부르는 장비는 라우팅 테이블도 들고 있다. 같은 박스에서 ASIC으로 라우팅까지 처리하기 때문에 라우터보다 패킷당 지연이 짧다. 데이터센터의 코어/디스트리뷰션 계층은 거의 L3 스위치다.
 
-**실무 팁:**
-스위치는 MAC 주소를 기반으로 프레임을 전달한다. 허브와 달리 각 포트를 독립적인 충돌 도메인으로 만들어 성능을 향상시킨다.
+허브와의 결정적인 차이는 포트마다 충돌 도메인이 분리되어 있다는 점이다. 허브는 들어온 신호를 모든 포트에 그대로 흘리기 때문에 두 호스트가 동시에 송신하면 충돌이 난다. 스위치는 각 포트가 독립이라 풀듀플렉스가 가능하고, 1Gbps 포트면 송신/수신이 각각 1Gbps다.
 
-### 스위치가 필요한 이유
-**네트워크 성능의 혁신적 개선**
-스위치의 가장 중요한 역할은 충돌 도메인을 분리하는 것입니다. 허브(Hub)를 사용하는 네트워크에서는 모든 포트가 하나의 충돌 도메인을 공유하여, 동시에 여러 장치가 데이터를 전송할 때 충돌이 발생하고 성능이 저하됩니다. 스위치는 각 포트를 독립적인 충돌 도메인으로 만들어 이러한 문제를 해결합니다.
+## MAC 주소 학습과 포워딩
 
-**지능적인 트래픽 관리**
-스위치는 스위칭 테이블을 통해 연결된 장치들의 위치를 파악하고, 데이터를 필요한 곳에만 전달합니다. 이는 네트워크 대역폭을 효율적으로 사용하고, 보안성도 향상시킵니다.
+### CAM 테이블
 
-**네트워크 확장성과 유연성**
-하나의 스위치로 수십 개의 장치를 연결할 수 있으며, VLAN(Virtual LAN) 기능을 통해 논리적으로 네트워크를 분할할 수 있습니다. 이는 대규모 네트워크에서 필수적인 기능입니다.
+스위치 내부의 MAC-포트 매핑 테이블을 흔히 CAM(Content Addressable Memory) 테이블 또는 MAC 어드레스 테이블이라 부른다. 이 테이블은 다음 두 가지 동작으로 채워진다.
 
-### 주요 개념 이해
+1. **소스 학습**: 프레임이 도착하면 송신자 MAC을 받은 포트와 매핑해 저장한다.
+2. **목적지 조회**: 목적지 MAC을 키로 테이블을 조회해 해당 포트로만 내보낸다. 없으면 플러딩.
 
-**MAC 주소 (Media Access Control Address)**
-MAC 주소는 네트워크 인터페이스 카드(NIC)에 고유하게 할당된 48비트 물리적 주소입니다. 이 주소는 제조사에서 할당하며, 전 세계적으로 유일한 식별자 역할을 합니다. 스위치는 이 MAC 주소를 기반으로 데이터를 전달합니다.
+Aging timer가 있어서 일정 시간(시스코 기본 300초) 동안 트래픽이 없으면 항목이 만료된다. 호스트가 다른 포트로 이동하거나, 가상머신이 호스트 간에 라이브 마이그레이션될 때 이게 빠르게 갱신되지 않으면 트래픽이 옛 포트로 가버린다. 그래서 라이브 마이그레이션 직후 가상머신은 보통 RARP/Gratuitous ARP를 쏴서 MAC 위치를 강제로 갱신시킨다.
 
-**스위칭 테이블 (Switching Table)**
-스위치의 두뇌 역할을 하는 테이블로, MAC 주소와 해당 장치가 연결된 포트 번호의 매핑 정보를 저장합니다. 이 테이블은 동적으로 학습되며, 일정 시간 동안 사용되지 않은 항목은 자동으로 삭제됩니다.
+CAM 테이블 크기는 모델마다 정해져 있다. 액세스 스위치는 보통 8K~16K, 데이터센터 스위치는 100K 이상이다. 이 크기를 알고 있어야 다음에 나올 MAC 플러딩 공격을 이해할 수 있다.
 
-**충돌 도메인 (Collision Domain)**
-네트워크에서 동시에 데이터를 전송할 때 충돌이 발생할 수 있는 영역을 의미합니다. 스위치는 각 포트를 독립적인 충돌 도메인으로 만들어 충돌을 방지합니다.
+### 유니캐스트 / 멀티캐스트 / 브로드캐스트
 
-**브로드캐스트 도메인 (Broadcast Domain)**
-브로드캐스트 프레임이 전파되는 영역을 의미합니다. 스위치는 브로드캐스트를 모든 포트로 전달하므로, 브로드캐스트 도메인을 분리하려면 라우터나 3계층 스위치가 필요합니다.
+| 종류 | 목적지 MAC | 스위치 동작 |
+|---|---|---|
+| 유니캐스트 | 특정 MAC | CAM 테이블 조회, 해당 포트로만 전달 (없으면 플러딩) |
+| 브로드캐스트 | FF:FF:FF:FF:FF:FF | 같은 VLAN의 모든 포트로 전달 |
+| 멀티캐스트 | 01:00:5E:xx:xx:xx 등 | 기본은 브로드캐스트처럼 전달, IGMP Snooping이 켜져 있으면 가입 포트로만 전달 |
 
-## 스위치의 작동 원리와 메커니즘
+브로드캐스트 도메인을 나누려면 VLAN을 쓰거나 라우터를 거쳐야 한다. ARP 요청, DHCP DISCOVER 같은 게 전부 브로드캐스트라 같은 VLAN에 호스트가 너무 많으면(보통 250~500대 이상) 이 트래픽만으로도 부담이 된다. 그래서 VLAN 분할은 보안만이 아니라 브로드캐스트 도메인 축소 용도이기도 하다.
 
-### 1. MAC 주소 학습 과정
+### 스위칭 방식
 
-스위치의 가장 기본적이면서도 중요한 기능은 MAC 주소 학습입니다. 이 과정은 다음과 같이 진행됩니다:
+| 방식 | 동작 | 지연 | 오류 프레임 차단 |
+|---|---|---|---|
+| Store-and-Forward | 프레임 전체 수신 후 FCS 검사하고 전달 | 가장 큼 | 됨 |
+| Cut-Through | 목적지 MAC만 읽고 즉시 전달 시작 | 가장 작음 | 안 됨 |
+| Fragment-Free | 앞 64바이트만 수신 후 전달 (충돌 프레임 차단) | 중간 | 부분적 |
 
-**초기 학습 단계**
-스위치가 처음 전원을 켜면 스위칭 테이블은 비어있습니다. 이때 어떤 장치가 데이터를 전송하면, 스위치는 해당 프레임의 송신자 MAC 주소를 학습하고 이를 수신한 포트와 매핑하여 테이블에 저장합니다.
+요즘 일반적인 액세스 스위치는 Store-and-Forward를 쓴다. 데이터센터의 저지연 트레이딩, HPC, RDMA 환경에서는 Cut-Through 모드를 켜기도 한다. 단 입출력 포트 속도가 다르면(예: 25G in, 10G out) Cut-Through가 불가능해서 자동으로 Store-and-Forward로 떨어진다.
 
-**동적 업데이트**
-스위칭 테이블은 지속적으로 업데이트됩니다. 새로운 장치가 연결되거나 기존 장치가 다른 포트로 이동하면, 스위치는 이를 자동으로 감지하고 테이블을 갱신합니다.
+## VLAN
 
-**Aging 메커니즘**
-일정 시간 동안 사용되지 않은 MAC 주소 항목은 자동으로 삭제됩니다. 이는 네트워크 토폴로지 변경에 대한 적응성을 높이고, 메모리 사용량을 최적화합니다.
+### 왜 쓰는가
 
-### 2. 데이터 전송 방식의 차이점
+VLAN은 같은 물리 스위치를 논리적으로 여러 개의 L2 네트워크로 쪼개는 기술이다. 쪼개는 이유는 셋 중 하나다.
 
-**유니캐스트 (Unicast) 전송**
-가장 일반적인 전송 방식으로, 특정 목적지에만 데이터를 전송합니다. 스위치는 목적지 MAC 주소를 확인하여 해당 장치가 연결된 포트로만 프레임을 전달합니다. 이는 네트워크 대역폭을 효율적으로 사용하고 보안성을 높입니다.
+- **브로드캐스트 도메인 축소**: 한 VLAN 안의 브로드캐스트가 다른 VLAN으로 새지 않는다.
+- **격리**: 영업팀 PC와 서버존이 같은 스위치에 꽂혀 있어도 L2에서 서로 못 본다. VLAN 간 통신은 라우터/L3 스위치를 거쳐야 하고, 거기서 ACL을 걸 수 있다.
+- **물리 토폴로지와 분리**: 사람이 자리 이동해도 포트 VLAN만 바꾸면 같은 네트워크에 그대로 붙는다.
 
-**브로드캐스트 (Broadcast) 전송**
-목적지 MAC 주소가 FF:FF:FF:FF:FF:FF인 프레임으로, 네트워크의 모든 장치에 데이터를 전송합니다. 스위치는 브로드캐스트 프레임을 모든 활성 포트로 전달합니다. ARP 요청이나 네트워크 발견 프로토콜에서 주로 사용됩니다.
+### 802.1Q 태깅
 
-**멀티캐스트 (Multicast) 전송**
-특정 그룹의 장치들에만 데이터를 전송하는 방식입니다. 멀티캐스트 그룹에 가입한 장치들만 해당 데이터를 수신합니다. 비디오 스트리밍이나 대화형 애플리케이션에서 효율적인 대역폭 사용을 위해 활용됩니다.
+VLAN 정보를 이더넷 프레임에 어떻게 넣을지에 대한 표준이 802.1Q다. 이더넷 헤더 중간에 4바이트 태그를 끼워 넣고, 그 중 12비트가 VLAN ID라서 1~4094까지 쓸 수 있다(0과 4095는 예약).
 
-### 3. 충돌 도메인 분리의 중요성
+- **Access 포트**: 단말기(PC, 서버, IP폰)가 꽂히는 포트. 태그 없이 송수신한다. 들어올 때 access vlan으로 태그를 붙이고, 나갈 때 태그를 떼서 내보낸다.
+- **Trunk 포트**: 스위치-스위치, 스위치-라우터, 스위치-하이퍼바이저 간 연결. 여러 VLAN의 프레임이 태그를 단 채로 흘러간다.
+- **Native VLAN**: 트렁크에서 태그 없이 흐르는 VLAN. 양쪽 스위치의 Native VLAN이 다르면 VLAN 누수(VLAN hopping)가 생긴다. 보안 관점에서 Native VLAN은 사용하지 않는 VLAN 번호로 지정하는 게 관례다.
 
-**허브 vs 스위치의 차이**
-허브를 사용하는 네트워크에서는 모든 포트가 하나의 충돌 도메인을 공유합니다. 이는 반이중(Half-Duplex) 통신을 의미하며, 동시에 여러 장치가 데이터를 전송할 때 충돌이 발생합니다. 충돌이 발생하면 모든 장치가 백오프(Backoff) 알고리즘을 사용하여 재전송을 시도하므로, 네트워크 성능이 크게 저하됩니다.
+### 운영하며 자주 보는 문제
 
-**스위치의 충돌 도메인 분리**
-스위치는 각 포트를 독립적인 충돌 도메인으로 만들어 전이중(Full-Duplex) 통신을 가능하게 합니다. 이는 동시 송수신이 가능하며, 충돌이 발생하지 않습니다. 결과적으로 네트워크 성능이 크게 향상됩니다.
+- **Trunk allowed VLAN 누락**: 트렁크에 `switchport trunk allowed vlan add` 안 하고 새 VLAN 만들면 그 VLAN만 통신이 안 된다. "왜 VLAN 30만 안 되지?" 하는 케이스의 9할.
+- **하이퍼바이저 vSwitch 태그 설정**: ESXi/Proxmox에서 가상 스위치 포트그룹을 VLAN 0/4095(VGT)로 설정하면 VM이 직접 태깅한다. VLAN ID(VST)로 설정하면 하이퍼바이저가 붙인다. 둘이 섞이면 트래픽이 사라진다.
+- **Voice VLAN**: IP폰을 꽂는 포트는 보통 Access VLAN(데이터)과 Voice VLAN 두 개를 동시에 운영한다. PC는 IP폰 뒤에 직렬로 꽂히고 데이터 VLAN을 태그 없이, IP폰은 음성 VLAN을 태그로 쏜다.
 
-### 4. 스위칭 방식의 종류
+## STP (Spanning Tree Protocol)
 
-**Store-and-Forward 방식**
-스위치가 전체 프레임을 수신한 후 오류 검사를 수행하고, 오류가 없을 때만 전달하는 방식입니다. 오류가 있는 프레임을 차단하여 네트워크 품질을 보장하지만, 지연 시간이 증가합니다.
+### 왜 필요한가
 
-**Cut-Through 방식**
-프레임의 목적지 주소만 확인한 후 즉시 전달을 시작하는 방식입니다. 지연 시간이 최소화되지만, 오류가 있는 프레임도 전달될 수 있습니다.
+스위치 두 대를 두 가닥 케이블로 묶으면 L2 루프가 생긴다. 누군가 브로드캐스트 한 번 쏘면 그 프레임이 루프를 무한히 돌면서 증식한다. 이게 브로드캐스트 스톰이고, 몇 초 만에 스위치 CPU가 100%를 찍고 네트워크가 죽는다. 이걸 막으려고 스위치 사이에 BPDU(Bridge Protocol Data Unit)를 주고받아 논리적인 트리를 만들고, 루프를 만드는 포트를 차단(blocking) 상태로 둔다. 이게 STP다.
 
-**Fragment-Free 방식**
-Store-and-Forward와 Cut-Through의 중간 방식으로, 프레임의 첫 64바이트(이더넷 최소 프레임 크기)를 확인한 후 전달합니다. 대부분의 오류를 감지하면서도 상대적으로 낮은 지연 시간을 유지합니다.
+### 동작 흐름
 
-## 스위치의 분류와 특성
+1. **루트 브리지 선출**: Bridge ID(Priority + MAC)가 가장 낮은 스위치가 루트가 된다. Priority 기본값은 32768이고, 일부러 코어 스위치에 낮은 값(예: 4096)을 박아서 루트로 만든다. 안 그러면 MAC이 우연히 가장 낮은 스위치(보통 가장 오래된 장비)가 루트가 된다.
+2. **루트 포트 선정**: 루트가 아닌 각 스위치는 루트로 가는 비용이 가장 낮은 포트를 루트 포트로 잡는다.
+3. **지정 포트 선정**: 각 세그먼트마다 그 세그먼트를 책임지는 지정 포트가 하나씩 정해진다.
+4. **나머지는 차단**: 루트도 지정도 아닌 포트는 BLK(blocking) 상태가 되어 데이터 프레임을 전달하지 않는다.
 
-### 1. 관리형 스위치 (Managed Switch)
+### RSTP, MSTP, PVST+
 
-관리형 스위치는 네트워크 관리자가 직접 설정을 변경할 수 있는 고급 기능을 제공하는 스위치입니다. 이는 기업 환경에서 필수적인 네트워크 장비로, 복잡한 네트워크 요구사항을 충족시킵니다.
+오리지널 802.1D STP는 토폴로지 변경 후 수렴에 30~50초가 걸린다. 요즘 누구도 이걸 쓰지 않는다.
 
-**주요 기능과 특징**
-- **VLAN 지원**: 논리적으로 네트워크를 분할하여 보안성과 관리 효율성을 향상
-- **QoS (Quality of Service)**: 중요 트래픽에 우선순위를 부여하여 네트워크 성능 최적화
-- **포트 미러링**: 네트워크 모니터링과 보안 분석을 위한 트래픽 복사 기능
-- **SNMP 지원**: 네트워크 관리 시스템과의 연동을 통한 원격 모니터링
-- **스패닝 트리 프로토콜**: 네트워크 루프 방지 및 장애 복구 기능
-- **링크 애그리게이션**: 여러 물리적 링크를 하나의 논리적 링크로 결합하여 대역폭 증가
+- **RSTP (802.1w)**: 수렴 시간을 수 초 이내로 단축. 거의 표준.
+- **MSTP (802.1s)**: 여러 VLAN을 묶어 STP 인스턴스 수를 줄임. 멀티벤더 환경에서 일관적.
+- **PVST+ / Rapid-PVST+**: 시스코 전용. VLAN마다 STP 인스턴스를 따로 돌린다. VLAN별로 루트를 다르게 둬서 트래픽을 분산할 수 있지만, VLAN이 많아지면 CPU를 많이 먹는다.
 
-**적용 환경**
-대규모 기업, 데이터 센터, 캠퍼스 네트워크 등 복잡한 네트워크 환경에서 주로 사용됩니다. 네트워크 관리자가 세밀한 제어가 필요한 상황에서 필수적입니다.
+### 운영 팁
 
-### 2. 비관리형 스위치 (Unmanaged Switch)
+- **루트 브리지는 코어로**: 의도적으로 priority를 박아 두지 않으면 어느 날 액세스 스위치 한 대를 새로 꽂았을 때 그게 루트가 되어 트래픽이 이상한 경로로 흐른다.
+- **PortFast + BPDU Guard**: 단말기가 꽂히는 액세스 포트는 PortFast로 STP 대기를 건너뛴다. 단, 누가 거기에 스위치를 잘못 꽂으면 루프가 생기므로 BPDU Guard로 BPDU 들어오면 즉시 err-disable 처리한다. 이 한 줄이 네트워크를 살린다.
+- **Root Guard**: 다른 스위치가 자신보다 낮은 priority의 BPDU를 보내 루트가 되려 하면 그 포트를 차단한다. 코어→디스트리뷰션 라인에 거는 게 관례.
+- **UDLD**: 광케이블 한쪽만 끊어진 단방향 장애를 STP가 못 잡는 경우가 있다. UDLD는 양방향이 살아 있는지 직접 확인한다.
 
-비관리형 스위치는 플러그 앤 플레이 방식으로 작동하는 간단한 스위치입니다. 별도의 설정 없이 바로 사용할 수 있어 초보자나 간단한 네트워크 환경에 적합합니다.
+## 포트 미러링 (SPAN / RSPAN / ERSPAN)
 
-**주요 특징**
-- **자동 설정**: 연결 즉시 자동으로 작동하며 추가 설정 불필요
-- **비용 효율성**: 관리형 스위치 대비 저렴한 가격
-- **간편한 설치**: 기술적 지식 없이도 쉽게 설치 가능
-- **제한된 기능**: 기본적인 스위칭 기능만 제공
+운영하다 보면 "이 서버 트래픽 패킷 단위로 좀 봐야겠다"는 순간이 온다. 서버에 tcpdump를 못 띄우는 환경(보안 정책, 어플라이언스 장비 등)이면 스위치 포트 미러링이 답이다.
 
-**적용 환경**
-가정용 네트워크, 소규모 사무실, 임시 네트워크 구성 등에서 주로 사용됩니다. 복잡한 네트워크 관리가 필요하지 않은 환경에 적합합니다.
+- **SPAN (Switched Port Analyzer)**: 한 스위치 안에서 특정 포트의 트래픽을 다른 포트로 복사한다. 분석기는 그 포트에 직결.
+- **RSPAN**: 미러링된 트래픽을 전용 VLAN에 실어 다른 스위치까지 보낸다.
+- **ERSPAN**: GRE로 캡슐화해 L3 너머로 보낸다. 분석기가 데이터센터 다른 동에 있어도 된다.
 
-### 3. 스마트 스위치 (Smart Switch)
+### 주의할 점
 
-스마트 스위치는 관리형과 비관리형 스위치의 중간 기능을 제공하는 하이브리드 형태의 스위치입니다. 웹 기반 인터페이스를 통해 기본적인 관리 기능을 제공합니다.
+- **대역폭**: 10G 포트 두 개를 1G 분석 포트로 미러하면 당연히 드롭난다. 미러 대상의 총합이 미러 포트 속도를 넘으면 안 된다.
+- **방향**: rx(들어오는 것), tx(나가는 것), both 중 골라야 한다. 디버깅 목적이면 both가 보통.
+- **세션 수 제한**: 모델별로 동시에 띄울 수 있는 SPAN 세션 수가 정해져 있다(흔히 2~4개).
 
-**주요 기능**
-- **웹 기반 관리**: 사용자 친화적인 웹 인터페이스를 통한 설정
-- **기본 VLAN 지원**: 제한적이지만 VLAN 기능 제공
-- **포트 기반 QoS**: 간단한 트래픽 우선순위 설정
-- **모니터링 기능**: 기본적인 네트워크 상태 모니터링
+```
+! Cisco IOS - SPAN 세션 1: Gi0/1 양방향을 Gi0/24로 복사
+SW-Core(config)# monitor session 1 source interface gigabitEthernet 0/1 both
+SW-Core(config)# monitor session 1 destination interface gigabitEthernet 0/24
 
-**적용 환경**
-중소규모 기업, 지점 사무실, 교육 기관 등에서 주로 사용됩니다. 복잡한 네트워크 관리 기능은 필요하지 않지만, 기본적인 제어 기능이 필요한 환경에 적합합니다.
+! 확인
+SW-Core# show monitor session 1
+```
 
-### 4. 엔터프라이즈 스위치 (Enterprise Switch)
+## MAC 플러딩 공격과 방어
 
-엔터프라이즈 스위치는 대규모 네트워크 환경을 위해 설계된 고성능 스위치입니다. 최고 수준의 성능, 안정성, 확장성을 제공합니다.
+### 공격 원리
 
-**주요 특징**
-- **고성능 처리**: 초고속 패킷 처리 능력
-- **고가용성**: 이중화 및 장애 복구 기능
-- **대용량 포트**: 수십 개에서 수백 개의 포트 지원
-- **고급 보안**: 포트 보안, 802.1X 인증 등 강화된 보안 기능
-- **스택킹**: 여러 스위치를 하나의 논리적 장치로 결합
+CAM 테이블 크기가 정해져 있다는 사실을 악용한다. 공격자가 위조된 송신 MAC 주소로 프레임을 수만~수십만 개 쏘면 CAM 테이블이 가짜 항목으로 가득 찬다. 정상 호스트의 MAC 항목이 밀려 나가고, 새로 학습되지도 못한다. 이 상태가 되면 스위치는 알 수 없는 유니캐스트를 전부 플러딩하는데, 이게 사실상 허브처럼 동작하는 상태(fail-open)다. 공격자는 자기가 받지 말아야 할 다른 호스트의 트래픽까지 보게 된다.
 
-## 스위치와 라우터의 차이점
+`macof` 같은 도구로 몇 초 만에 가능하고, 옛날 액세스 스위치 중에는 1초도 안 되어 다운되는 모델도 있다.
 
-### 계층적 차이점
+### 방어
 
-**OSI 모델에서의 위치**
-스위치는 OSI 모델의 데이터 링크 계층(2계층)에서 동작하며, 라우터는 네트워크 계층(3계층)에서 동작합니다. 이는 각각의 장비가 처리하는 주소 체계와 기능의 근본적인 차이를 의미합니다.
+핵심은 **포트 보안(port-security)**으로 포트당 학습 가능한 MAC 개수를 제한하는 것이다.
 
-**주소 처리 방식**
-스위치는 MAC 주소를 기반으로 데이터를 전달합니다. MAC 주소는 물리적 주소로, 네트워크 인터페이스 카드에 고유하게 할당된 48비트 식별자입니다. 반면 라우터는 IP 주소를 기반으로 동작하며, IP 주소는 논리적 주소로 네트워크 관리자가 할당하는 32비트(IPv4) 또는 128비트(IPv6) 식별자입니다.
+```
+SW-Core(config)# interface fa0/5
+SW-Core(config-if)# switchport mode access
+SW-Core(config-if)# switchport port-security
+SW-Core(config-if)# switchport port-security maximum 2
+SW-Core(config-if)# switchport port-security mac-address sticky
+SW-Core(config-if)# switchport port-security violation shutdown
+```
 
-### 통신 범위와 기능
+`violation` 모드는 세 가지다.
 
-**통신 범위의 차이**
-스위치는 동일한 네트워크 세그먼트 내에서만 통신을 처리합니다. 즉, 같은 브로드캐스트 도메인 내의 장치들 간의 통신을 담당합니다. 라우터는 서로 다른 네트워크 간의 통신을 처리하며, 네트워크 간의 라우팅을 담당합니다.
+- **protect**: 초과 MAC의 프레임을 조용히 드롭. 로그도 카운터도 없음.
+- **restrict**: 드롭 + 로그 + SNMP 트랩. 포트는 계속 살아 있음.
+- **shutdown**: 포트를 err-disable로 떨궈 버림. 가장 강함.
 
-**브로드캐스트 처리**
-스위치는 브로드캐스트 프레임을 모든 포트로 전달하여 브로드캐스트 도메인을 유지합니다. 라우터는 브로드캐스트를 차단하여 브로드캐스트 도메인을 분리합니다. 이는 네트워크 성능과 보안에 중요한 영향을 미칩니다.
+서버존이나 사무실 액세스처럼 한 포트에 호스트가 한두 개만 붙는 자리에는 maximum 2~4 정도, violation은 restrict 또는 shutdown으로 두는 게 일반적이다. 가상화 환경처럼 한 포트에 VM이 수십 개씩 붙는 곳은 maximum을 넉넉히 둬야 한다.
 
-### 성능과 지연 시간
+추가로 **DHCP Snooping** + **Dynamic ARP Inspection(DAI)**까지 켜면 ARP 스푸핑, DHCP 스푸핑까지 막을 수 있다. 운영망에서는 같이 묶어서 적용한다.
 
-**처리 속도**
-스위치는 하드웨어 기반의 ASIC(Application-Specific Integrated Circuit)을 사용하여 고속으로 프레임을 처리합니다. 라우터는 소프트웨어 기반의 라우팅 테이블 조회를 통해 패킷을 처리하므로 상대적으로 느립니다.
+## 스위치 분류
 
-**지연 시간**
-스위치는 Store-and-Forward 방식에서도 마이크로초 단위의 지연 시간을 가집니다. 라우터는 라우팅 테이블 조회와 헤더 처리 과정으로 인해 밀리초 단위의 지연 시간을 가집니다.
+실무에서 자주 마주치는 분류는 두 축이다.
 
-### 보안과 관리
+### 관리 가능성
 
-**보안 기능**
-스위치는 포트 보안, VLAN 분리 등의 2계층 보안 기능을 제공합니다. 라우터는 ACL(Access Control List), NAT(Network Address Translation), 방화벽 기능 등의 3계층 보안 기능을 제공합니다.
+- **Unmanaged**: 설정 인터페이스가 없다. 꽂으면 그냥 동작한다. 회의실, 가정.
+- **Smart (Web-managed)**: 웹 UI로 VLAN, QoS 정도만 만진다. SMB.
+- **Managed (Fully managed)**: CLI/API로 거의 모든 설정 가능. 기업 표준.
 
-**관리 복잡도**
-스위치는 상대적으로 간단한 설정과 관리가 가능합니다. 라우터는 라우팅 프로토콜, 정책 라우팅 등 복잡한 설정이 필요합니다.
+### 계층
 
-## 실제 적용 사례와 네트워크 구성
+- **Access**: 사용자/서버 단말이 꽂히는 말단. 1G 포트가 주력. 24~48포트.
+- **Distribution**: 액세스 스위치들을 모은다. L3 라우팅, ACL, QoS 정책이 주로 여기 박힌다.
+- **Core**: 디스트리뷰션끼리 묶는다. 단순함과 속도가 미덕. 10G/25G/40G/100G.
 
-### 1. 기업 네트워크 환경
+데이터센터에서는 이 3계층 모델 대신 Spine-Leaf를 쓴다. 모든 Leaf가 모든 Spine과 풀메쉬로 묶여서 어느 호스트끼리 통신해도 hop 수가 같다. East-West 트래픽이 많은 환경에 맞다.
 
-**대규모 기업의 네트워크 구성**
-현대 기업에서는 부서별, 기능별로 네트워크를 논리적으로 분리하는 것이 필수적입니다. 스위치의 VLAN 기능을 활용하면 물리적으로는 하나의 네트워크 인프라를 사용하면서도 논리적으로는 완전히 분리된 네트워크를 구성할 수 있습니다.
+## 스위치 vs 라우터 vs L3 스위치
 
-**VLAN을 통한 네트워크 분리**
-- **영업부 VLAN**: 고객 데이터와 영업 정보를 처리하는 보안이 중요한 네트워크
-- **개발부 VLAN**: 개발 서버와 테스트 환경을 위한 네트워크
-- **관리부 VLAN**: 인사, 회계 등 관리 업무를 위한 네트워크
-- **게스트 VLAN**: 방문자나 임시 사용자를 위한 제한된 네트워크
+| 항목 | L2 스위치 | L3 스위치 | 라우터 |
+|---|---|---|---|
+| 동작 계층 | L2 | L2/L3 | L3 |
+| 주소 기준 | MAC | MAC + IP | IP |
+| 처리 방식 | ASIC | ASIC | ASIC + 일부 SW |
+| 라우팅 프로토콜 | 없음 | 일부 (OSPF, BGP까지 가능한 모델) | 전부 |
+| WAN 인터페이스 | 없음 | 거의 없음 | 있음 (PPP, MPLS 등) |
+| 패킷당 지연 | 가장 작음 | 작음 | 큼 |
 
-**QoS를 통한 트래픽 우선순위 관리**
-기업 네트워크에서는 다양한 종류의 트래픽이 동시에 전송됩니다. VoIP 통화, 비디오 회의, 파일 전송, 웹 브라우징 등 각각의 특성에 맞는 우선순위를 부여하여 네트워크 성능을 최적화할 수 있습니다.
-
-### 2. 데이터 센터 환경
-
-**고성능 컴퓨팅 환경**
-데이터 센터에서는 수천 대의 서버가 24시간 연속으로 동작하며, 대용량 데이터를 처리합니다. 이 환경에서는 네트워크의 지연 시간과 처리량이 매우 중요합니다.
-
-**서버 간 고속 통신**
-- **동일 랙 내 통신**: 같은 랙에 있는 서버들 간의 초고속 통신
-- **랙 간 통신**: 서로 다른 랙의 서버들 간의 통신
-- **스토리지 네트워크**: SAN(Storage Area Network)을 통한 대용량 데이터 전송
-
-**네트워크 가용성 보장**
-데이터 센터에서는 네트워크 장애가 비즈니스에 치명적인 영향을 미칠 수 있습니다. 따라서 이중화, 스패닝 트리 프로토콜, 링크 애그리게이션 등을 통해 네트워크 가용성을 보장합니다.
-
-### 3. 교육 기관 네트워크
-
-**캠퍼스 네트워크 구성**
-대학교나 교육 기관에서는 수천 명의 사용자가 동시에 네트워크를 사용합니다. 이는 매우 복잡한 네트워크 관리가 필요한 환경입니다.
-
-**사용자 그룹별 네트워크 분리**
-- **교수진 네트워크**: 연구 데이터와 학술 자료에 접근할 수 있는 고권한 네트워크
-- **학생 네트워크**: 학습 자료와 인터넷 접근이 가능한 일반 네트워크
-- **관리 네트워크**: 학교 행정 시스템에 접근할 수 있는 관리자 네트워크
-
-**대역폭 관리**
-교육 기관에서는 동영상 강의, 온라인 시험, 파일 공유 등 다양한 네트워크 서비스가 동시에 제공됩니다. QoS를 통해 각 서비스의 품질을 보장하고, 대역폭을 효율적으로 관리합니다.
-
-### 4. 소규모 사무실 및 가정용 네트워크
-
-**간단한 네트워크 구성**
-소규모 사무실이나 가정에서는 복잡한 네트워크 관리 기능보다는 간편한 설치와 사용이 중요합니다. 비관리형 스위치나 스마트 스위치가 적합합니다.
-
-**다양한 장치 연결**
-- **컴퓨터**: 데스크톱, 노트북 등 작업용 컴퓨터
-- **프린터**: 네트워크 프린터를 통한 공유 인쇄
-- **NAS**: 네트워크 저장 장치를 통한 파일 공유
-- **IoT 장치**: 스마트 홈 기기, 보안 카메라 등
-
-**비용 효율성**
-소규모 환경에서는 네트워크 장비의 비용이 중요한 고려사항입니다. 필요한 기능만을 제공하는 비관리형 스위치나 스마트 스위치를 선택하여 비용을 절약할 수 있습니다.
-
-## 고급 네트워크 기능과 프로토콜
-
-### 1. VLAN (Virtual Local Area Network)
-
-**VLAN의 개념과 필요성**
-VLAN은 물리적으로는 하나의 네트워크 인프라를 논리적으로 여러 개의 독립된 네트워크로 분할하는 기술이다. 이는 네트워크의 보안성, 관리 효율성, 성능 최적화를 동시에 달성할 수 있는 기술이다.
-
-**실무 팁:**
-VLAN은 논리적으로 네트워크를 분리한다. 부서별, 기능별로 VLAN을 나누어 보안을 강화하고 트래픽을 분리한다.
-
-**VLAN의 장점**
-- **보안 강화**: 논리적으로 분리된 네트워크 간의 직접 통신 차단
-- **관리 효율성**: 물리적 위치와 관계없이 논리적 그룹으로 관리
-- **대역폭 최적화**: 불필요한 브로드캐스트 트래픽 감소
-- **비용 절약**: 별도의 물리적 네트워크 구축 없이 네트워크 분리
-
-**VLAN 태깅 방식**
-- **802.1Q**: 표준 VLAN 태깅 프로토콜로, 이더넷 프레임에 VLAN 정보를 추가
-- **ISL (Inter-Switch Link)**: 시스코 전용 VLAN 태깅 프로토콜
-- **Native VLAN**: 태깅되지 않은 트래픽이 속하는 기본 VLAN
-
-### 2. 스패닝 트리 프로토콜 (STP)
-
-**STP의 목적과 필요성**
-스위치들 간에 여러 경로가 존재할 때 발생할 수 있는 네트워크 루프를 방지하는 프로토콜입니다. 네트워크 루프는 브로드캐스트 스톰을 일으켜 네트워크를 마비시킬 수 있습니다.
-
-**STP 동작 원리**
-- **루트 브리지 선출**: 네트워크에서 기준이 되는 스위치를 선출
-- **루트 포트 선정**: 각 스위치에서 루트 브리지로 가는 최적 경로의 포트
-- **지정 포트 선정**: 각 세그먼트에서 루트 브리지로 가는 최적 경로의 포트
-- **차단 포트 설정**: 루프를 방지하기 위해 차단되는 포트
-
-**STP 변형 프로토콜**
-- **RSTP (Rapid STP)**: 기존 STP의 수렴 시간을 단축한 개선된 버전
-- **MSTP (Multiple STP)**: 여러 VLAN을 하나의 STP 인스턴스로 관리
-- **PVST+ (Per-VLAN STP)**: 각 VLAN마다 별도의 STP 인스턴스 실행
-
-### 3. 링크 애그리게이션 (Link Aggregation)
-
-**링크 애그리게이션의 개념**
-여러 개의 물리적 링크를 하나의 논리적 링크로 결합하여 대역폭을 증가시키고 가용성을 향상시키는 기술입니다.
-
-**주요 장점**
-- **대역폭 증가**: 여러 링크의 대역폭을 합산하여 전체 처리량 증가
-- **로드 밸런싱**: 트래픽을 여러 링크에 분산하여 부하 분산
-- **장애 복구**: 하나의 링크에 장애가 발생해도 나머지 링크로 통신 유지
-- **투명성**: 상위 계층에서는 하나의 링크로 인식
-
-**구현 방식**
-- **LACP (Link Aggregation Control Protocol)**: IEEE 802.3ad 표준 프로토콜
-- **PAgP (Port Aggregation Protocol)**: 시스코 전용 프로토콜
-- **정적 링크 애그리게이션**: 수동으로 설정하는 방식
-
-### 4. QoS (Quality of Service)
-
-**QoS의 필요성**
-네트워크에서 다양한 종류의 트래픽이 동시에 전송될 때, 중요한 트래픽에 우선순위를 부여하여 서비스 품질을 보장하는 기술입니다.
-
-**QoS 메커니즘**
-- **분류 (Classification)**: 트래픽을 특성에 따라 분류
-- **마킹 (Marking)**: 트래픽에 우선순위 정보를 표시
-- **큐잉 (Queuing)**: 우선순위에 따라 트래픽을 큐에 배치
-- **스케줄링 (Scheduling)**: 큐에서 트래픽을 전송하는 순서 결정
-- **폴리싱 (Policing)**: 트래픽 속도를 제한
-- **셰이핑 (Shaping)**: 트래픽 속도를 조절하여 부드럽게 전송
-
-**QoS 모델**
-- **Best Effort**: 우선순위 없이 최선을 다해 전송
-- **Integrated Services (IntServ)**: 각 플로우마다 리소스 예약
-- **Differentiated Services (DiffServ)**: 클래스별로 서비스 품질 차별화
-
-## 네트워크 보안과 관리
-
-### 1. 스위치 보안 기능
-
-**포트 보안 (Port Security)**
-포트 보안은 특정 포트에 연결할 수 있는 MAC 주소의 수와 종류를 제한하는 기능입니다. 이를 통해 무단 접근을 방지하고 네트워크 보안을 강화할 수 있습니다.
-
-**포트 보안의 동작 방식**
-- **MAC 주소 제한**: 포트당 허용되는 MAC 주소 수를 제한
-- **정적 MAC 주소**: 특정 MAC 주소만 허용하도록 설정
-- **동적 학습**: 처음 연결된 MAC 주소를 자동으로 학습하여 허용
-- **위반 처리**: 허용되지 않은 MAC 주소가 연결될 때의 처리 방식 설정
-
-**802.1X 인증**
-802.1X는 포트 기반 네트워크 접근 제어 프로토콜로, 사용자 인증을 통해 네트워크 접근을 제어합니다. 이는 기업 환경에서 필수적인 보안 기능입니다.
-
-### 2. 네트워크 모니터링과 관리
-
-**SNMP (Simple Network Management Protocol)**
-SNMP는 네트워크 장비를 원격으로 모니터링하고 관리하기 위한 표준 프로토콜입니다. 네트워크 관리 시스템(NMS)을 통해 스위치의 상태를 실시간으로 모니터링할 수 있습니다.
-
-**로깅과 알림**
-- **시스템 로그**: 스위치의 동작 상태와 이벤트를 기록
-- **트랩 메시지**: 중요한 이벤트 발생 시 관리자에게 즉시 알림
-- **원격 로깅**: 중앙 집중식 로그 서버로 로그 전송
-- **로그 레벨**: 중요도에 따른 로그 분류 및 필터링
-
-**성능 모니터링**
-- **포트 사용률**: 각 포트의 트래픽 사용량 모니터링
-- **에러 통계**: 프레임 오류, 충돌 등의 통계 정보
-- **CPU 및 메모리 사용률**: 스위치의 시스템 리소스 모니터링
-- **온도 및 전력**: 하드웨어 상태 모니터링
-
-### 3. 네트워크 최적화 전략
-
-**대역폭 관리**
-- **트래픽 분석**: 네트워크 사용 패턴 분석을 통한 대역폭 계획
-- **QoS 정책**: 중요 트래픽에 대한 우선순위 설정
-- **대역폭 제한**: 특정 포트나 VLAN의 대역폭 제한
-- **로드 밸런싱**: 트래픽을 여러 링크에 분산
-
-**네트워크 토폴로지 최적화**
-- **스패닝 트리 최적화**: 루트 브리지 선정 및 포트 우선순위 설정
-- **VLAN 설계**: 논리적 네트워크 분할을 통한 효율성 향상
-- **링크 애그리게이션**: 대역폭 증가 및 가용성 향상
-- **이중화**: 중요 링크의 이중화를 통한 장애 복구
-
-### 4. 문제 해결 방법론
-
-**체계적인 문제 해결 접근법**
-네트워크 문제를 해결할 때는 체계적인 접근이 필요합니다. OSI 모델의 각 계층을 순차적으로 확인하여 문제의 원인을 찾아야 합니다.
-
-**일반적인 문제 유형**
-- **연결 문제**: 물리적 연결 상태 확인
-- **성능 문제**: 대역폭 사용률 및 지연 시간 분석
-- **보안 문제**: 무단 접근 및 보안 정책 위반 확인
-- **설정 문제**: 잘못된 설정으로 인한 동작 이상
-
-**진단 도구와 명령어**
-- **ping**: 기본적인 연결성 테스트
-- **traceroute**: 경로 추적을 통한 네트워크 문제 진단
-- **포트 스캔**: 열린 포트 및 서비스 확인
-- **트래픽 분석**: 패킷 캡처를 통한 상세 분석
-
-## 스위치 선택과 구매 가이드
-
-### 1. 스위치 선택 기준
-
-**네트워크 규모와 요구사항 분석**
-스위치를 선택할 때는 먼저 네트워크의 규모와 요구사항을 정확히 파악해야 합니다. 포트 수, 대역폭 요구사항, 보안 수준, 관리 기능 등을 종합적으로 고려해야 합니다.
-
-**성능 지표**
-- **스위칭 용량**: 초당 처리할 수 있는 비트 수 (bps)
-- **포워딩 레이트**: 초당 처리할 수 있는 패킷 수 (pps)
-- **지연 시간**: 패킷이 스위치를 통과하는 데 걸리는 시간
-- **버퍼 크기**: 트래픽 버스트를 처리할 수 있는 메모리 용량
-
-**확장성과 호환성**
-- **포트 수**: 현재 및 미래의 연결 요구사항 고려
-- **업링크 포트**: 상위 네트워크와의 연결을 위한 고속 포트
-- **스택킹 지원**: 여러 스위치를 하나로 결합할 수 있는 기능
-- **표준 호환성**: IEEE 표준 준수 여부
-
-### 2. 환경별 스위치 선택 가이드
-
-**소규모 사무실 (10-50명)**
-- **권장 타입**: 비관리형 또는 스마트 스위치
-- **포트 수**: 8-24포트
-- **속도**: 1Gbps 이더넷
-- **주요 고려사항**: 비용 효율성, 간편한 설치, 기본적인 관리 기능
-
-**중소규모 기업 (50-200명)**
-- **권장 타입**: 스마트 스위치 또는 기본 관리형 스위치
-- **포트 수**: 24-48포트
-- **속도**: 1Gbps 이더넷, 10Gbps 업링크
-- **주요 고려사항**: VLAN 지원, 기본 QoS, 웹 기반 관리
-
-**대규모 기업 (200명 이상)**
-- **권장 타입**: 관리형 스위치
-- **포트 수**: 48포트 이상
-- **속도**: 1Gbps/10Gbps 이더넷
-- **주요 고려사항**: 고급 VLAN, QoS, 보안 기능, SNMP 지원
-
-**데이터 센터**
-- **권장 타입**: 엔터프라이즈 스위치
-- **포트 수**: 48포트 이상
-- **속도**: 10Gbps/25Gbps/40Gbps/100Gbps
-- **주요 고려사항**: 고성능, 고가용성, 고급 관리 기능
-
-### 3. 비용 효율성 고려사항
-
-**초기 비용 vs 운영 비용**
-스위치의 초기 구매 비용뿐만 아니라 장기적인 운영 비용도 고려해야 합니다. 전력 소비, 냉각 요구사항, 유지보수 비용 등을 종합적으로 평가해야 합니다.
-
-**라이선스와 지원**
-- **소프트웨어 라이선스**: 고급 기능 사용을 위한 추가 라이선스 비용
-- **기술 지원**: 제조사의 기술 지원 서비스 수준과 비용
-- **보증 기간**: 하드웨어 보증 기간과 조건
-- **업그레이드 정책**: 소프트웨어 업그레이드 비용과 정책
-
-### 4. 미래 지향적 선택
-
-**기술 발전 추세**
-- **이더넷 속도**: 1Gbps → 10Gbps → 25Gbps → 100Gbps
-- **PoE 기술**: 전력 공급 기능의 발전
-- **SDN 지원**: 소프트웨어 정의 네트워킹 지원 여부
-- **클라우드 관리**: 클라우드 기반 관리 플랫폼 지원
-
-**확장성 계획**
-미래의 네트워크 확장 계획을 고려하여 스위치를 선택해야 합니다. 포트 수, 대역폭, 기능 등의 확장 가능성을 미리 검토해야 합니다.
-
----
+캠퍼스/데이터센터 내부 라우팅은 L3 스위치가 처리하고, 라우터는 인터넷/WAN 경계에 두는 게 표준 구성이다.
 
 ## CLI 설정 예제 (Cisco IOS)
 
-### 기본 스위치 설정
+### 기본 설정
 
 ```
-! ─── 초기 설정 ───────────────────────────────────────
 Switch> enable
 Switch# configure terminal
-
-! 호스트네임 설정
 Switch(config)# hostname SW-Core
 
-! 관리 IP 설정 (VLAN 1 인터페이스)
+! 관리 IP (VLAN 1 인터페이스)
 SW-Core(config)# interface vlan 1
 SW-Core(config-if)# ip address 192.168.1.10 255.255.255.0
 SW-Core(config-if)# no shutdown
-
-! 기본 게이트웨이
 SW-Core(config)# ip default-gateway 192.168.1.1
+
+! SSH만 허용, telnet 차단
+SW-Core(config)# line vty 0 15
+SW-Core(config-line)# transport input ssh
+SW-Core(config-line)# login local
+SW-Core(config)# username admin privilege 15 secret <password>
 
 ! 설정 저장
 SW-Core# copy running-config startup-config
 ```
 
-### VLAN 설정
+### VLAN과 트렁크
 
 ```
-! ─── VLAN 생성 ──────────────────────────────────────
+! VLAN 정의
 SW-Core(config)# vlan 10
 SW-Core(config-vlan)# name SALES
-
 SW-Core(config)# vlan 20
 SW-Core(config-vlan)# name ENGINEERING
-
-SW-Core(config)# vlan 30
-SW-Core(config-vlan)# name MANAGEMENT
-
 SW-Core(config)# vlan 99
-SW-Core(config-vlan)# name NATIVE
+SW-Core(config-vlan)# name NATIVE_UNUSED
 
-! ─── Access 포트 설정 (단말기 연결) ─────────────────
+! 액세스 포트
 SW-Core(config)# interface range fastEthernet 0/1 - 10
 SW-Core(config-if-range)# switchport mode access
 SW-Core(config-if-range)# switchport access vlan 10
-SW-Core(config-if-range)# spanning-tree portfast        ! 빠른 포트 활성화
+SW-Core(config-if-range)# spanning-tree portfast
+SW-Core(config-if-range)# spanning-tree bpduguard enable
 
-SW-Core(config)# interface range fastEthernet 0/11 - 20
-SW-Core(config-if-range)# switchport mode access
-SW-Core(config-if-range)# switchport access vlan 20
-
-! ─── Trunk 포트 설정 (스위치 간 연결) ───────────────
+! 트렁크 포트
 SW-Core(config)# interface gigabitEthernet 0/1
+SW-Core(config-if)# switchport trunk encapsulation dot1q
 SW-Core(config-if)# switchport mode trunk
 SW-Core(config-if)# switchport trunk native vlan 99
-SW-Core(config-if)# switchport trunk allowed vlan 10,20,30
+SW-Core(config-if)# switchport trunk allowed vlan 10,20
+SW-Core(config-if)# switchport nonegotiate
 
-! ─── VLAN 확인 ──────────────────────────────────────
+! 확인
 SW-Core# show vlan brief
-! VLAN Name                Status    Ports
-! ---- ----------------    --------- -----------
-! 1    default             active    Fa0/21-24
-! 10   SALES               active    Fa0/1-10
-! 20   ENGINEERING         active    Fa0/11-20
-! 30   MANAGEMENT          active
+SW-Core# show interfaces trunk
 ```
 
-### STP (Spanning Tree Protocol) 설정
+`switchport nonegotiate`로 DTP(Dynamic Trunking Protocol)를 꺼두는 게 보안 권고다. DTP가 켜져 있으면 공격자가 트렁크를 협상해 다른 VLAN에 접근하는 VLAN hopping이 가능하다.
+
+### STP 튜닝
 
 ```
-! ─── STP 루트 브리지 설정 ───────────────────────────
-! Core 스위치를 VLAN 10, 20의 루트 브리지로 설정
+! 코어 스위치를 VLAN 10, 20의 루트로 강제
 SW-Core(config)# spanning-tree vlan 10 priority 4096
 SW-Core(config)# spanning-tree vlan 20 priority 4096
 
-! 백업 스위치에는 높은 우선순위 설정
-SW-Backup(config)# spanning-tree vlan 10 priority 8192
-
-! RSTP(Rapid STP) 사용 — 수렴 속도 향상
+! Rapid-PVST 모드
 SW-Core(config)# spanning-tree mode rapid-pvst
 
-! PortFast — 단말기 포트에서 STP 대기 시간 제거
+! 액세스 포트는 PortFast + BPDU Guard
 SW-Core(config)# interface range fa0/1 - 20
 SW-Core(config-if-range)# spanning-tree portfast
-
-! BPDU Guard — PortFast 포트에서 BPDU 수신 시 차단
 SW-Core(config-if-range)# spanning-tree bpduguard enable
 
-! ─── STP 상태 확인 ──────────────────────────────────
+! 디스트리뷰션→액세스 라인에 Root Guard
+SW-Core(config)# interface gi0/2
+SW-Core(config-if)# spanning-tree guard root
+
+! 확인
 SW-Core# show spanning-tree vlan 10
-! VLAN0010
-!   Root ID    Priority    4106 (= 4096 + 10)
-!              Address     aabb.cc11.2233
-!   Bridge ID  Priority    4106
-!              This bridge is the root
-!
-!  Interface     Role  Sts  Cost     Prio.Nbr Type
-!  ------------- ----- ---  -------- -------- ----
-!  Gi0/1         Desg  FWD  4        128.1    P2p
-!  Fa0/1-20      Desg  FWD  19       128.x    P2p Edge
+SW-Core# show spanning-tree summary
 ```
 
-### LACP 링크 애그리게이션 설정
+### LACP (포트 채널)
 
 ```
-! ─── LACP (IEEE 802.3ad) 설정 ───────────────────────
-! 두 물리 포트를 하나의 논리 채널로 묶기 (Port-channel 1)
-
-! 스위치 A
+! 양쪽 스위치 모두 동일하게 설정
 SW-A(config)# interface range gigabitEthernet 0/1 - 2
-SW-A(config-if-range)# channel-group 1 mode active     ! LACP 능동 협상
+SW-A(config-if-range)# channel-group 1 mode active
 SW-A(config-if-range)# channel-protocol lacp
 
 SW-A(config)# interface port-channel 1
 SW-A(config-if)# switchport mode trunk
-SW-A(config-if)# switchport trunk allowed vlan 10,20,30
+SW-A(config-if)# switchport trunk allowed vlan 10,20
 
-! 스위치 B
-SW-B(config)# interface range gigabitEthernet 0/1 - 2
-SW-B(config-if-range)# channel-group 1 mode active
-SW-B(config-if-range)# channel-protocol lacp
-
-! ─── 확인 ───────────────────────────────────────────
+! 확인
 SW-A# show etherchannel summary
-! Flags: D - down  P - bundled in port-channel
-!        U - in use
-! Group  Port-channel  Protocol  Ports
-! -----  ------------  --------  -----
-! 1      Po1(SU)       LACP      Gi0/1(P) Gi0/2(P)
-
 SW-A# show lacp neighbor
 ```
 
-### 포트 보안 설정
+`mode active`는 LACP를 능동적으로 협상하고, `mode passive`는 상대방이 시작할 때만 응답한다. 양쪽 다 passive면 채널이 안 올라온다. 양쪽 active 또는 한쪽 active/한쪽 passive로 둔다.
+
+### 포트 보안
 
 ```
-! ─── Port Security ──────────────────────────────────
-SW-Core(config)# interface fastEthernet 0/1
+SW-Core(config)# interface fa0/1
 SW-Core(config-if)# switchport mode access
 SW-Core(config-if)# switchport access vlan 10
-
-! 포트 보안 활성화
 SW-Core(config-if)# switchport port-security
-SW-Core(config-if)# switchport port-security maximum 2        ! 최대 2개 MAC
-SW-Core(config-if)# switchport port-security mac-address sticky  ! MAC 자동 학습
-SW-Core(config-if)# switchport port-security violation restrict  ! 위반 시 제한 (차단 후 계속 동작)
-! violation 옵션: protect (드롭), restrict (드롭+로그), shutdown (포트 비활성화)
+SW-Core(config-if)# switchport port-security maximum 2
+SW-Core(config-if)# switchport port-security mac-address sticky
+SW-Core(config-if)# switchport port-security violation restrict
 
-! ─── 포트 보안 상태 확인 ─────────────────────────────
+! 확인
 SW-Core# show port-security interface fa0/1
-! Port Security              : Enabled
-! Port Status                : Secure-up
-! Violation Mode             : Restrict
-! Maximum MAC Addresses      : 2
-! Total MAC Addresses        : 1
-! Sticky MAC Addresses       : 1
-! Last Source Address:Vlan   : aa:bb:cc:dd:ee:ff:10
+SW-Core# show port-security address
 ```
 
-### MAC 주소 테이블 확인
+### MAC 테이블 조회
 
 ```
-! 스위치의 MAC 주소 테이블 확인
 SW-Core# show mac address-table
-! Mac Address Table
-! Vlan  Mac Address       Type     Ports
-! ----  -----------------  -------  -----
-! 1     aabb.cc11.2233     DYNAMIC  Gi0/1
-! 10    0050.5600.0001     DYNAMIC  Fa0/1
-! 10    0050.5600.0002     STATIC   Fa0/2    ! 정적 등록
-
-! 특정 VLAN만 보기
 SW-Core# show mac address-table vlan 10
-
-! 특정 포트만 보기
 SW-Core# show mac address-table interface fa0/1
+SW-Core# show mac address-table count          ! 학습된 MAC 개수와 CAM 한계
 
-! MAC 주소 테이블 초기화
+! 특정 MAC을 정적 등록 (이동을 막고 싶을 때)
+SW-Core(config)# mac address-table static 0050.5600.0002 vlan 10 interface fa0/2
+
+! 동적 항목 초기화
 SW-Core# clear mac address-table dynamic
 ```
 
----
+`show mac address-table count`로 현재 학습된 MAC 수와 모델 한계를 같이 보면 CAM 사용률을 가늠할 수 있다. 한계의 80%를 넘기 시작하면 토폴로지 점검 시점이다.
 
-## 참고 자료
+## 운영하며 실제로 자주 보는 장애
 
-### 표준 및 프로토콜
-- IEEE 802.3: 이더넷 표준
-- IEEE 802.1Q: VLAN 태깅 표준
-- IEEE 802.1D: 스패닝 트리 프로토콜
-- IEEE 802.1X: 포트 기반 네트워크 접근 제어
-- IEEE 802.3ad: 링크 애그리게이션
+- **루프**: 청소하다 케이블 한 가닥이 다른 포트에 잘못 꽂혀 루프가 났는데 PortFast/BPDU Guard가 없어서 스위치가 다운된다. 대책은 위에 적은 BPDU Guard.
+- **트렁크 VLAN 누락**: 새 VLAN을 만들고 트렁크에 `allowed vlan add`를 안 해서 특정 VLAN만 통신 불가.
+- **MAC flapping 로그**: `%MAC_MOVE` 로그가 반복적으로 찍히면 같은 MAC이 두 포트에 동시에 학습되고 있다는 뜻. 보통 (1) 어딘가 루프, (2) 가상머신 라이브 마이그레이션, (3) HSRP/VRRP 활성 라우터 변경 중 하나다.
+- **포트 err-disable**: BPDU Guard나 port-security violation으로 포트가 떨어졌다. `show interfaces status err-disabled`로 원인 확인 후 `shutdown` → `no shutdown` 또는 `errdisable recovery cause ...`로 자동 복구 설정.
+- **CRC 에러 증가**: `show interfaces`의 input errors / CRC가 계속 증가하면 케이블, SFP, 패치판넬 중 하나가 문제다. 일단 케이블 교체부터.
+- **유니캐스트 플러딩**: ARP 타이머와 MAC 에이징 타이머가 어긋나면 ARP 캐시에는 MAC이 있는데 CAM에는 없어서, 스위치가 모든 포트로 플러딩하는 현상이 생긴다. 비대칭 라우팅 환경에서 자주 본다. ARP 타이머를 MAC 에이징보다 짧게 맞추는 게 표준 대처.
 
-### 주요 제조사
-- **Cisco Systems**: 엔터프라이즈 네트워크 장비의 선도 기업
-- **Juniper Networks**: 고성능 네트워크 장비 전문 기업
-- **Hewlett Packard Enterprise**: 중소기업용 네트워크 장비
-- **Dell Technologies**: 비용 효율적인 네트워크 솔루션
-- **Netgear**: 소비자 및 소규모 사무실용 네트워크 장비
+## 표준 참고
 
-### 학습 자료
-- CCNA (Cisco Certified Network Associate): 시스코 네트워크 자격증
-- Network+ (CompTIA): 네트워크 기초 자격증
-- JNCIA (Juniper Networks Certified Associate): 주니퍼 네트워크 자격증
-
+- IEEE 802.3: 이더넷
+- IEEE 802.1Q: VLAN 태깅
+- IEEE 802.1D / 802.1w / 802.1s: STP / RSTP / MSTP
+- IEEE 802.3ad (현 802.1AX): 링크 애그리게이션
+- IEEE 802.1X: 포트 기반 인증

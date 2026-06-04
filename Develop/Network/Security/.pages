@@ -1,3 +1,4 @@
 title: Security
 nav:
   - TLS_HTTPS.md
+  - VPN.md

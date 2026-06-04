@@ -2,6 +2,7 @@ nav:
   - Networking_Fundamentals.md
   - Repeater.md
   - P2P.md
+  - NAT.md
   - 7 Layer
   - Protocol
   - Domain
@@ -12,3 +13,4 @@ nav:
   - Tunneling.md
   - URL_and_URI.md
   - CORS.md
+  - CDN.md
