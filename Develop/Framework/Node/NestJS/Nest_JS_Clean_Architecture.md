@@ -8,7 +8,7 @@ tags:
   - Architecture
   - TypeScript
   - TypeORM
-updated: 2026-06-01
+updated: 2026-06-04
 ---
 
 # NestJS에 Clean Architecture 입히기
@@ -88,6 +88,30 @@ module.exports = {
 
 **Use Case는 `@Injectable()`만 허용**한다. `@Controller()`, `@UseGuards()`, `@UseInterceptors()`가 Use Case에 붙어 있다면 그건 Use Case가 아니라 Controller에 살짝 분장한 Adapter다. PR 리뷰에서 잡거나 ESLint custom rule로 막는다.
 
+### 2.3 4계층 의존성 방향을 한 장으로
+
+이론을 글로 풀면 머리에서 안 잡힌다. 화살표 하나로 본다. 화살표는 "컴파일 타임 import 방향"이다.
+
+```mermaid
+flowchart LR
+    Presentation -->|import| Application
+    Infrastructure -->|import| Application
+    Presentation -->|import| Domain
+    Infrastructure -->|import| Domain
+    Application -->|import| Domain
+    Domain -.->|모름| X[외부 세계]
+```
+
+다섯 가지만 기억하면 된다.
+
+- Domain은 누구도 import 하지 않는다. `node_modules`도 안 본다. `crypto`, `axios`, `typeorm` 모두 금지.
+- Application은 Domain만 import 한다. NestJS는 `@nestjs/common`의 `Injectable`, `Inject`만 허용한다.
+- Infrastructure는 Application의 Port를 `implements` 한다. Application → Infrastructure가 아니라 Infrastructure → Application 방향이다. 이게 의존성 역전(Dependency Inversion)의 실체다.
+- Presentation은 Application의 UseCase를 직접 부른다. Domain 객체를 응답으로 노출하지 않는다.
+- Domain ↔ Infrastructure는 직접 화살표가 없다. Mapper가 둘을 연결하되 Mapper 자체는 Infrastructure에 산다.
+
+런타임에서는 Infrastructure가 Application의 Port 구현체로 주입되므로 호출 흐름은 Presentation → Application → Infrastructure로 흐른다. 컴파일 의존과 런타임 호출 방향이 반대인 게 의존성 역전이다. 이 한 줄이 안 들어오면 Clean Architecture 전체가 이론으로만 보인다.
+
 ---
 
 ## 3. 폴더 구조 — feature/layer/동심원 셋의 절충
@@ -119,7 +143,7 @@ src/
 └── users/
 ```
 
-표준 NestJS 가이드가 권장하는 형태다. 단순 CRUD 위주 서비스에서는 이게 가장 빠르고 깔끔하다. Clean Architecture 흉내는 안 내고 그냥 모듈 안에서 책임을 나눈다.
+NestJS 공식 문서가 권장하는 형태다. 단순 CRUD 위주 서비스에서는 이게 가장 빠르고 깔끔하다. Clean Architecture 흉내는 안 내고 그냥 모듈 안에서 책임을 나눈다.
 
 ### 3.3 동심원(Concentric) 구조
 
@@ -176,6 +200,17 @@ src/
 ```
 
 이 구조의 장점은 PR 리뷰가 쉬워진다는 점이다. `domain/`에 들어간 diff가 NestJS를 import 하면 즉시 의심한다. `infrastructure/`만 변경된 PR은 비즈니스 규칙 변경이 아니라는 신호다.
+
+각 폴더가 가지는 의존성을 표로 정리하면 PR 리뷰가 더 빨라진다.
+
+| 폴더 | 허용 의존성 | 금지 의존성 | 빌드 시점 검증 방법 |
+|---|---|---|---|
+| `domain/` | 같은 도메인의 `domain/`, `shared/kernel/` | NestJS, ORM, HTTP 클라이언트, 다른 도메인 폴더 전체 | ESLint `no-restricted-imports` 패턴 |
+| `application/` | 자기 도메인 `domain/`, `@nestjs/common`(Injectable, Inject만), 다른 도메인의 `application/ports/inbound/` | `@nestjs/typeorm`, `axios`, `bullmq`, ORM Entity | ESLint + 모듈 단위 정적 분석 |
+| `infrastructure/` | 자기 도메인 `application/ports/outbound/`, ORM/큐/HTTP 라이브러리 | 다른 도메인의 `domain/` 또는 `infrastructure/` | 패키지 경계(monorepo)로 보강 |
+| `presentation/` | 자기 도메인 `application/use-cases/`, `application/dto/`, `class-validator` | ORM Entity, Repository 구현체 직접 import | ESLint custom rule |
+
+`presentation/`이 ORM Entity를 직접 import 하는 PR이 가장 흔한 사고다. "DTO 만들기 귀찮다, Entity 그대로 반환하자"의 유혹이 매번 온다. 사용자 비밀번호 해시가 응답에 섞여 나간 사고는 거의 다 여기서 시작한다.
 
 ### 3.4 Monorepo에서의 절충
 
@@ -672,6 +707,115 @@ export class OrderTypeOrmRepository implements OrderRepositoryPort {
 
 Repository Adapter의 일은 단순하다. Port 인터페이스를 구현하고, 안에서 ORM Entity와 Domain Entity를 Mapper로 변환한다. UseCase는 이 Adapter의 존재를 모른다.
 
+### 7.4 Repository 메서드 폭증을 막는 Specification 패턴
+
+처음에는 `findById`, `findByCustomer` 두 개로 시작한다. 그러다가 어드민 페이지에서 "상태가 PAID이고 2026-01-01 이후에 생성된 특정 고객의 주문 목록"이 필요해진다. 그러면 `findByCustomerAndStatusAndPlacedAfter`가 생긴다. 다음 화면에서 같은 조건에 정렬 기준이 하나 더 붙으면 또 메서드가 생긴다. 반년 뒤 Port에 메서드가 23개다. 인터페이스 자체가 누더기가 된다.
+
+해법은 조회 조건을 값 객체로 옮기는 것이다.
+
+```typescript
+// src/orders/application/ports/outbound/order-repository.port.ts
+import { Order } from '../../../domain/entities/order';
+import { OrderStatus } from '../../../domain/value-objects/order-status';
+
+export const ORDER_REPOSITORY = Symbol('OrderRepositoryPort');
+
+export interface OrderQuery {
+  customerId?: string;
+  status?: OrderStatus;
+  placedAfter?: Date;
+  placedBefore?: Date;
+  limit?: number;
+  offset?: number;
+  sort?: { field: 'placedAt' | 'total'; direction: 'asc' | 'desc' };
+}
+
+export interface OrderRepositoryPort {
+  save(order: Order): Promise<void>;
+  findById(id: string): Promise<Order | null>;
+  find(query: OrderQuery): Promise<Order[]>;
+  count(query: OrderQuery): Promise<number>;
+}
+```
+
+UseCase는 이렇게 부른다.
+
+```typescript
+const recent = await this.orders.find({
+  customerId: command.customerId,
+  status: OrderStatus.PAID,
+  placedAfter: this.clock.daysAgo(30),
+  sort: { field: 'placedAt', direction: 'desc' },
+  limit: 20,
+});
+```
+
+Adapter는 `OrderQuery`를 TypeORM `FindOptionsWhere`나 QueryBuilder로 번역한다.
+
+```typescript
+async find(query: OrderQuery): Promise<Order[]> {
+  const qb = this.repo.createQueryBuilder('o');
+  if (query.customerId) qb.andWhere('o.customerId = :cid', { cid: query.customerId });
+  if (query.status) qb.andWhere('o.status = :st', { st: query.status.value });
+  if (query.placedAfter) qb.andWhere('o.placedAt >= :pa', { pa: query.placedAfter });
+  if (query.placedBefore) qb.andWhere('o.placedAt <= :pb', { pb: query.placedBefore });
+  if (query.sort) qb.orderBy(`o.${query.sort.field}`, query.sort.direction === 'asc' ? 'ASC' : 'DESC');
+  if (query.limit) qb.limit(query.limit);
+  if (query.offset) qb.offset(query.offset);
+  const orms = await qb.getMany();
+  return orms.map((o) => OrderMapper.toDomain(o));
+}
+```
+
+주의할 점이 있다. `OrderQuery`에 `rawSql: string` 같은 필드를 두면 즉시 추상화가 깨진다. SQL은 Adapter 안에서만 만들어진다. `OrderQuery`는 도메인 용어로만 표현한다.
+
+너무 자유로운 검색이 필요한 어드민 페이지라면 별도의 ReadModel/CQRS 분리를 검토한다. Repository는 쓰기와 단순 조회용으로 두고, 복잡한 검색은 별도 Query 서비스가 ORM이나 ElasticSearch를 직접 두드린다. UseCase 안에서 Repository와 Query 서비스가 동시에 주입되는 형태가 된다.
+
+### 7.5 Aggregate 단위로 Repository를 둔다
+
+Repository는 Aggregate Root 단위로 둔다. Entity마다 하나씩 만들지 않는다. 위 예제에서 `Order`는 Aggregate Root이고 `OrderLine`은 그 안에 사는 Entity다. `OrderLineRepository`는 만들지 않는다.
+
+이유는 두 가지다.
+
+- `OrderLine`은 `Order` 없이는 의미가 없다. `Order` 없이 `OrderLine` 하나만 저장/조회하는 일이 비즈니스에 등장한 적이 있는가. 거의 없다.
+- 둘을 따로 저장 가능하게 만들면 트랜잭션 경계가 모호해진다. `Order.cancel()` 후에 `OrderLine.delete()`를 깜빡할 수 있다. Aggregate Root 하나만 저장하는 규칙이면 이런 누락이 없다.
+
+```typescript
+// 잘못된 예
+await this.orders.save(order);
+await this.orderLines.save(order.lines); // 깜빡하면 정합성 깨짐
+
+// 올바른 예
+await this.orders.save(order); // 내부에서 lines까지 한 번에 저장
+```
+
+ORM 단의 cascade 설정은 Adapter가 책임진다. UseCase는 Aggregate Root 하나만 본다.
+
+이 규칙이 깨지는 흔한 신호는 "Aggregate Root가 너무 크다"라고 느낄 때다. `Order`가 100개의 `OrderLine`을 들고 있으면 매번 다 로드된다. 이때 답은 `OrderLineRepository`를 만드는 게 아니라 **Aggregate 경계를 다시 그리는 일**이다. `OrderLine`을 별도 Aggregate로 승격하고 `Order`는 `OrderLineId`만 참조하는 식. 어느 쪽이 맞는지는 도메인 변경의 묶음을 보고 정한다. "주문 라인 하나만 환불"이 정말로 자주 일어나면 별도 Aggregate가 맞다.
+
+### 7.6 일반 Repository 베이스 클래스의 함정
+
+```typescript
+// 흔한 안티패턴
+export abstract class BaseRepository<T> {
+  abstract save(entity: T): Promise<void>;
+  abstract findById(id: string): Promise<T | null>;
+  abstract findAll(): Promise<T[]>;
+  abstract delete(id: string): Promise<void>;
+}
+
+export class OrderRepository extends BaseRepository<Order> {}
+export class UserRepository extends BaseRepository<User> {}
+```
+
+Java Spring 출신 개발자가 자주 가져오는 모양이다. NestJS에서는 의미가 거의 없다.
+
+- `findAll()`을 정말 부르는 곳이 있는가. 대부분 페이지네이션과 조건이 필요하다.
+- `delete(id)`는 Aggregate마다 다르다. Order는 soft delete, User는 GDPR 응답으로 hard delete. 같은 베이스로 묶이지 않는다.
+- 베이스 클래스에 메서드를 추가하면 모든 Repository가 영향을 받는다. 의존하지도 않는데 깨진다.
+
+Repository는 도메인별로 다른 모양이 자연스럽다. 공통 베이스 대신 각 Port를 직접 정의한다. 코드 중복이 보이면 그건 중복이 아니라 비슷하게 생긴 다른 도메인이다.
+
 ---
 
 ## 8. Controller — driving adapter로서의 자리
@@ -882,7 +1026,7 @@ export class OutboxEventPublisher implements EventPublisherPort {
 
 ---
 
-## 11. 테스트 전략
+## 11. 레이어별 테스트 방식
 
 레이어별로 테스트 방식이 다르다.
 
@@ -1070,7 +1214,7 @@ export class UserTypeOrmRepository implements UserRepositoryPort {}
 
 ---
 
-## 13. 점진적 마이그레이션 전략
+## 13. 점진적 마이그레이션 — 한 도메인씩, 한 UseCase씩
 
 기존 NestJS 모놀리스를 한 번에 Clean Architecture로 갈아엎으면 거의 실패한다. 도메인을 한 개씩, 그 안에서도 한 UseCase씩 옮긴다.
 
@@ -1165,6 +1309,10 @@ export class OrdersController {
 ## 14. 정리
 
 Clean Architecture를 NestJS에 끼우는 일은 데코레이터를 어디서 어디까지 쓸지 결정하는 일과 거의 같다. Domain은 `@Injectable()`도 안 쓴다. UseCase는 `@Injectable()` 한 줄만. 어댑터부터는 자유. 이 규칙 하나만 굳혀도 코드가 알아서 자리를 찾는다.
+
+4계층 분리의 본질은 폴더 이름이 아니라 import 방향이다. Domain은 아무도 import 하지 않고, Application은 Domain만 보고, Infrastructure가 Application의 Port를 `implements` 한다. 호출은 위에서 아래로 흐르지만 의존성은 아래에서 위를 모른다. 이 비대칭이 바로 의존성 역전이고, 갈아끼울 수 있는 코드가 가지는 유일한 공통점이다.
+
+Repository 패턴은 Aggregate Root 하나에 Port 하나로 시작한다. 메서드가 6개를 넘으면 Specification 패턴을 검토한다. 베이스 클래스로 묶고 싶어지면 그건 묶일 이유가 없는 것을 묶으려는 신호로 본다.
 
 남은 작업은 도메인 규칙이 어디까지 자기 자리를 지키느냐의 싸움이다. PR 리뷰에서 도메인 폴더의 import를 매번 확인한다. ESLint로 막을 수 있는 건 다 막는다. 새 팀원이 들어왔을 때 "이 폴더는 NestJS를 import 하지 않는다"라는 한 문장만 전달하면 된다.
 

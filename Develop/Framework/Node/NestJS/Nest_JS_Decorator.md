@@ -1,7 +1,7 @@
 ---
 title: NestJS 데코레이터(Decorator) 완전 정리
 tags: [nestjs, decorator, annotation, reflect-metadata, dependency-injection, node]
-updated: 2026-06-01
+updated: 2026-06-04
 ---
 
 # NestJS 데코레이터(Decorator) 완전 정리
@@ -459,6 +459,61 @@ const roles = this.reflector.getAllAndOverride<string[]>('roles', [
 
 `getAllAndOverride`는 메서드 메타데이터가 있으면 그것을 쓰고, 없으면 클래스 것을 쓴다. `getAllAndMerge`는 둘을 합친다.
 
+## Reflect Metadata 직접 다루기
+
+NestJS의 데코레이터는 결국 `Reflect.defineMetadata`와 `Reflect.getMetadata`로 키-값 데이터를 클래스나 메서드에 붙이고 빼는 것이다. `@SetMetadata`나 `Reflector`도 내부적으로는 이걸 호출한다. 한 단계 더 내려가서 직접 다루면 어떤 일이 가능한지 알아두면 NestJS가 가려놓은 영역까지 손댈 수 있다.
+
+`reflect-metadata` 라이브러리는 컴파일러가 자동으로 emit하는 세 가지 기본 키를 인식한다. `design:type`은 프로퍼티의 타입, `design:paramtypes`는 메서드/생성자 파라미터 타입 배열, `design:returntype`은 메서드 반환 타입을 담는다. `tsconfig.json`의 `emitDecoratorMetadata: true` 옵션을 켜야 컴파일러가 데코레이터가 붙은 멤버 옆에 이 메타데이터를 자동으로 내보낸다.
+
+```typescript
+import 'reflect-metadata';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+class UsersService {
+  findOne(id: number, options: { include: string }): Promise<User> {
+    return null as any;
+  }
+}
+
+const paramTypes = Reflect.getMetadata('design:paramtypes', UsersService.prototype, 'findOne');
+console.log(paramTypes);  // [Number, Object]
+```
+
+여기서 NestJS의 DI 컨테이너가 생성자 파라미터의 클래스 토큰을 어떻게 자동으로 알아내는지 짐작이 간다. `design:paramtypes`를 읽어서 각 위치에 어떤 클래스가 와야 하는지 파악한 뒤, 자기 컨테이너에서 그 토큰으로 등록된 인스턴스를 꺼내 주입한다. 인터페이스가 컴파일 후 사라져서 `Object`로 잡히는 것도 이 메커니즘에서 비롯된 한계다. 그래서 인터페이스 토큰은 `@Inject('TOKEN')` 식으로 따로 지정해야 한다.
+
+직접 메타데이터를 정의할 때는 키 충돌을 막기 위해 상수나 심볼로 키를 관리한다.
+
+```typescript
+const AUDIT_LOG = 'audit:log';
+
+function AuditLog(action: string): MethodDecorator {
+  return (target, propertyKey) => {
+    Reflect.defineMetadata(AUDIT_LOG, { action, timestamp: false }, target, propertyKey);
+  };
+}
+
+@Controller('orders')
+export class OrdersController {
+  @AuditLog('order.create')
+  @Post()
+  create() {}
+}
+
+const meta = Reflect.getMetadata(
+  AUDIT_LOG,
+  OrdersController.prototype,
+  'create',
+);
+// { action: 'order.create', timestamp: false }
+```
+
+`@SetMetadata`는 이 코드를 한 줄로 줄인 헬퍼고, NestJS의 `Reflector.get()`도 `Reflect.getMetadata`의 얇은 래퍼다. 그래서 NestJS가 제공하지 않는 영역(예: 서비스 클래스 메서드에 메타데이터를 붙이고 외부 라이브러리에서 읽는 경우, OpenAPI 스펙 생성기를 직접 만드는 경우)에서는 Reflect API를 직접 다루는 게 자연스럽다.
+
+주의할 점은 `Reflect.defineMetadata`의 인자 순서다. 클래스에 붙일 때는 `(key, value, target)`, 메서드나 프로퍼티에 붙일 때는 `(key, value, target, propertyKey)`다. propertyKey 위치를 빼먹으면 클래스에 메타데이터가 붙어서 모든 메서드가 같은 값을 공유한다. 디버깅이 까다로우니 처음부터 정확히 써야 한다.
+
+또한 메타데이터는 프로토타입 체인을 따라 상속된다. 부모 클래스 메서드에 붙은 메타데이터는 자식 클래스에서도 읽힌다. NestJS의 `getAllAndOverride`가 메서드/클래스 두 위치에서 메타데이터를 찾는 것도 이런 상속 동작과 잘 맞물려 있다.
+
 ## 커스텀 파라미터 데코레이터
 
 `createParamDecorator`로 컨트롤러 메서드 파라미터를 위한 데코레이터를 직접 만들 수 있다. 가장 흔한 예시는 인증된 사용자 객체를 꺼내는 `@CurrentUser`다.
@@ -507,6 +562,401 @@ adminOnly() {}
 ```
 
 `Auth` 하나로 가드 적용과 역할 메타데이터 설정을 동시에 처리한다. 데코레이터를 여러 개 붙이는 게 반복되면 합쳐서 의미 단위로 묶는다.
+
+### 파이프와 조합
+
+커스텀 파라미터 데코레이터에 파이프를 붙일 수도 있다. `createParamDecorator`로 값을 꺼낸 직후 NestJS가 파이프 체인에 그 값을 넘긴다.
+
+```typescript
+export const UserId = createParamDecorator(
+  (_, ctx: ExecutionContext) => {
+    return ctx.switchToHttp().getRequest().user?.id;
+  },
+);
+
+@Get('orders')
+listOrders(@UserId(ParseIntPipe) userId: number) {}
+```
+
+`@UserId(ParseIntPipe)`로 넘기면 데코레이터가 추출한 값이 ParseIntPipe를 거쳐 핸들러 파라미터로 들어온다. 인증 가드가 채워준 user.id가 문자열이라면 핸들러에서 매번 `Number()`로 변환할 필요 없이 데코레이터 시그니처 옆에서 해결된다.
+
+### 헤더 정규화가 필요한 케이스
+
+ELB나 nginx 뒤에 있는 서비스에서 클라이언트 IP를 정확히 가져오려면 `X-Forwarded-For`를 파싱해야 한다. 매번 컨트롤러에서 처리하지 말고 데코레이터로 빼둔다.
+
+```typescript
+export const ClientIp = createParamDecorator(
+  (_, ctx: ExecutionContext): string => {
+    const req = ctx.switchToHttp().getRequest();
+    const forwarded = req.headers['x-forwarded-for'] as string | undefined;
+    if (forwarded) {
+      return forwarded.split(',')[0].trim();
+    }
+    return req.socket.remoteAddress ?? '';
+  },
+);
+
+@Get()
+list(@ClientIp() ip: string) {}
+```
+
+`X-Forwarded-For`는 프록시를 거칠 때마다 IP가 콤마로 이어붙는다. 가장 앞쪽 값이 원본 클라이언트다. Express의 `trust proxy` 옵션을 켜면 `req.ip`가 이 동작을 해주지만, 옵션을 켜지 않은 환경이거나 직접 통제하고 싶을 때 위 같은 데코레이터로 명시한다.
+
+### 요청 컨텍스트 묶음 추출
+
+트레이스 ID, 사용자 ID, 요청 시각 같은 메타정보를 한꺼번에 받고 싶을 때도 유용하다.
+
+```typescript
+interface RequestContext {
+  traceId: string;
+  userId: string | null;
+  receivedAt: Date;
+}
+
+export const Ctx = createParamDecorator(
+  (_, ctx: ExecutionContext): RequestContext => {
+    const req = ctx.switchToHttp().getRequest();
+    return {
+      traceId: req.headers['x-trace-id'] ?? randomUUID(),
+      userId: req.user?.id ?? null,
+      receivedAt: new Date(),
+    };
+  },
+);
+
+@Post()
+create(@Body() dto: CreateOrderDto, @Ctx() context: RequestContext) {}
+```
+
+이런 식으로 묶어두면 핸들러 시그니처가 깔끔해지고, 로깅 미들웨어와 핸들러가 같은 컨텍스트 객체를 공유하기 쉬워진다.
+
+## 커스텀 메서드 데코레이터
+
+`@SetMetadata`는 메타데이터만 붙일 뿐 메서드 동작은 바꾸지 않는다. 메서드 자체의 동작을 가로채려면 데코레이터 안에서 `descriptor.value`를 직접 교체해야 한다. 캐싱, 재시도, 감사 로그, 락 같은 횡단 관심사를 데코레이터로 묶을 때 쓴다.
+
+가장 단순한 형태는 메서드 호출 전후에 로깅을 끼우는 것이다.
+
+```typescript
+export function LogExecution(): MethodDecorator {
+  return (target, propertyKey, descriptor: PropertyDescriptor) => {
+    const original = descriptor.value;
+
+    descriptor.value = async function (...args: any[]) {
+      const start = Date.now();
+      const className = target.constructor.name;
+      try {
+        const result = await original.apply(this, args);
+        console.log(`${className}.${String(propertyKey)} ok in ${Date.now() - start}ms`);
+        return result;
+      } catch (err) {
+        console.error(`${className}.${String(propertyKey)} failed in ${Date.now() - start}ms`, err);
+        throw err;
+      }
+    };
+
+    return descriptor;
+  };
+}
+
+@Injectable()
+export class PaymentsService {
+  @LogExecution()
+  async charge(orderId: string) {
+    // 실제 결제 로직
+  }
+}
+```
+
+핵심은 `descriptor.value = function() {...}`로 교체할 때 화살표 함수를 쓰지 않는 것이다. 화살표 함수는 자체 `this`가 없어서 서비스 인스턴스 컨텍스트가 깨진다. 그리고 `original.apply(this, args)`로 호출해야 원래 메서드가 호출 시점의 인스턴스를 그대로 받는다.
+
+재시도 데코레이터도 비슷한 구조다.
+
+```typescript
+export function Retry(attempts = 3, delayMs = 100): MethodDecorator {
+  return (target, propertyKey, descriptor: PropertyDescriptor) => {
+    const original = descriptor.value;
+
+    descriptor.value = async function (...args: any[]) {
+      let lastError: unknown;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          return await original.apply(this, args);
+        } catch (err) {
+          lastError = err;
+          if (i < attempts - 1) {
+            await new Promise(r => setTimeout(r, delayMs * 2 ** i));
+          }
+        }
+      }
+      throw lastError;
+    };
+
+    return descriptor;
+  };
+}
+
+@Injectable()
+export class ExternalApiService {
+  @Retry(5, 200)
+  async fetchUser(id: string) {
+    return fetch(`https://api.example.com/users/${id}`).then(r => r.json());
+  }
+}
+```
+
+이런 데코레이터는 NestJS의 인터셉터로도 만들 수 있다. 둘의 차이는 적용 범위와 DI 접근성이다. 인터셉터는 DI 컨테이너에서 주입받기 때문에 `Logger`, `ConfigService`, `Cache` 같은 다른 프로바이더를 가져다 쓸 수 있다. 반면 메서드 데코레이터는 클래스 정의 시점에 한 번만 평가되므로 외부 의존성을 받기 어렵다. 다른 프로바이더에 의존하면 인터셉터, 순수한 동작 래핑(시간 측정, 단순 재시도)이면 메서드 데코레이터, 메타데이터만 붙이고 가드나 인터셉터가 읽어 처리하는 형태라면 `@SetMetadata` 기반 데코레이터로 가는 게 자연스러운 기준이다.
+
+캐싱 데코레이터에서 외부 캐시 매니저가 필요한 경우는 인터셉터로 가는 게 맞다. 메서드 데코레이터 안에서 `Container.get(Cache)` 같은 식으로 꺼내려고 하면 DI 그래프가 끊긴다.
+
+한 가지 더 흔히 빠지는 함정이 있다. 메서드 데코레이터 안에서 `original.apply(this, args)`의 결과가 Promise가 아닐 수도 있는데 `await`를 거는 경우다. 동기 메서드를 감싸도 동작하긴 하지만, 데코레이터가 반환하는 함수가 async가 되면서 호출 측에서 `then`을 붙여야 결과를 받을 수 있다. 동기/비동기를 함께 지원하려면 결과가 thenable인지 확인하고 분기하거나, 데코레이터를 동기 전용/비동기 전용으로 분리한다.
+
+## 커스텀 클래스 데코레이터
+
+클래스 데코레이터는 클래스 자체에 메타데이터를 붙이거나 생성자를 변형한다. NestJS의 `@Controller`, `@Injectable`, `@Module`이 모두 클래스 데코레이터다.
+
+직접 만드는 가장 흔한 패턴은 모듈 단위 메타데이터 부착이다. 예를 들어 컨트롤러가 어떤 feature flag와 연관되어 있는지 표시하고, 가드에서 해당 플래그가 켜져 있을 때만 요청을 허용하는 구조다.
+
+```typescript
+const FEATURE_FLAG = 'feature.flag';
+
+export function Feature(flag: string): ClassDecorator {
+  return target => {
+    Reflect.defineMetadata(FEATURE_FLAG, flag, target);
+  };
+}
+
+@Feature('beta-checkout')
+@Controller('checkout')
+export class CheckoutController {}
+
+@Injectable()
+export class FeatureGuard implements CanActivate {
+  constructor(private flags: FeatureFlagService) {}
+
+  canActivate(ctx: ExecutionContext): boolean {
+    const flag = Reflect.getMetadata(FEATURE_FLAG, ctx.getClass());
+    if (!flag) return true;
+    return this.flags.isEnabled(flag);
+  }
+}
+```
+
+생성자를 직접 교체하는 클래스 데코레이터도 가능하지만 NestJS DI와 충돌하기 쉽다. NestJS는 컨테이너가 직접 생성자를 호출해서 인스턴스를 만들기 때문에, 클래스 데코레이터에서 반환한 새 클래스가 `design:paramtypes` 메타데이터를 그대로 들고 있지 않으면 의존성 해결이 깨진다. 생성자를 변형해야 한다면 새 클래스가 원본의 prototype과 메타데이터를 모두 복사하도록 신경 써야 한다. 가급적 클래스 데코레이터는 메타데이터 부착 용도로만 쓰는 게 안전하다.
+
+## SetMetadata + Reflector 실무 패턴
+
+이 패턴은 NestJS에서 가장 많이 쓰이는 데코레이터 작성 방식이다. 핵심은 "데코레이터는 메타데이터만 붙이고, 실제 동작은 가드/인터셉터/필터가 메타데이터를 읽어 결정한다"는 분리다. 핸들러는 어떤 정책이 적용되는지 선언만 하고, 정책 실행은 한 곳에서 통제된다.
+
+### @Public - 인증 우회 표시
+
+전역 가드로 JWT 인증을 적용한 상태에서 로그인 엔드포인트나 헬스체크는 인증을 건너뛰고 싶다. `@Public`로 표시해두고 가드가 그 표식을 읽어 우회한다.
+
+```typescript
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = 'isPublic';
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  canActivate(ctx: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ]);
+    if (isPublic) return true;
+
+    return this.validateToken(ctx);
+  }
+
+  private validateToken(ctx: ExecutionContext): boolean {
+    // 토큰 검증 로직
+    return true;
+  }
+}
+
+@Controller('auth')
+export class AuthController {
+  @Public()
+  @Post('login')
+  login() {}
+}
+```
+
+`getAllAndOverride`를 쓰는 이유는 컨트롤러 전체를 public으로 표시하고 일부 메서드만 비공개로 만들거나, 그 반대 케이스를 한 줄로 처리하기 위해서다. 메서드 메타데이터가 있으면 그것을 쓰고 없으면 클래스 메타데이터를 본다.
+
+### @Roles - 역할 기반 접근 제어
+
+`@Roles`는 인증된 사용자의 역할을 확인해 권한이 부족하면 거부한다. 컨트롤러 단위로 기본 역할을 잡아두고, 특정 메서드에서 더 강한 권한이 필요할 때 메서드 단에서 덧붙이는 식으로 쓴다.
+
+```typescript
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  canActivate(ctx: ExecutionContext): boolean {
+    const required = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ]);
+    if (!required?.length) return true;
+
+    const { user } = ctx.switchToHttp().getRequest();
+    return required.some(role => user?.roles?.includes(role));
+  }
+}
+
+@Controller('admin')
+@Roles(Role.Admin)
+export class AdminController {
+  @Get('users')
+  list() {}
+
+  @Roles(Role.SuperAdmin)
+  @Delete('users/:id')
+  remove() {}
+}
+```
+
+`getAllAndOverride` 대신 `getAllAndMerge`를 쓰면 클래스와 메서드 메타데이터를 합친다. 가령 컨트롤러에 `[Role.Admin]`이 붙어 있고 메서드에 `[Role.Auditor]`가 붙어 있으면 둘 다 허용된다. 정책 누적이 필요한지, 메서드가 클래스 정책을 덮어쓰는지에 따라 둘 중 하나를 고른다.
+
+### @RateLimit - 핸들러별 속도 제한
+
+```typescript
+export const RATE_LIMIT = 'rateLimit';
+
+interface RateLimitOptions {
+  ttl: number;       // 초 단위
+  limit: number;     // ttl 동안 허용 횟수
+}
+
+export const RateLimit = (options: RateLimitOptions) =>
+  SetMetadata(RATE_LIMIT, options);
+
+@Injectable()
+export class RateLimitGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    @Inject(CACHE_MANAGER) private cache: Cache,
+  ) {}
+
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const opts = this.reflector.get<RateLimitOptions>(RATE_LIMIT, ctx.getHandler());
+    if (!opts) return true;
+
+    const req = ctx.switchToHttp().getRequest();
+    const key = `rl:${req.ip}:${ctx.getHandler().name}`;
+    const current = (await this.cache.get<number>(key)) ?? 0;
+
+    if (current >= opts.limit) {
+      throw new HttpException('Too Many Requests', 429);
+    }
+
+    await this.cache.set(key, current + 1, opts.ttl * 1000);
+    return true;
+  }
+}
+
+@Controller('search')
+export class SearchController {
+  @RateLimit({ ttl: 60, limit: 30 })
+  @Get()
+  search() {}
+}
+```
+
+데코레이터는 옵션 객체를 메타데이터로 붙이는 게 전부다. 카운팅이나 차단은 가드가 처리한다. 이 분리 덕분에 데코레이터 자체는 어떤 캐시 구현체를 쓰는지 알 필요가 없다. 나중에 Redis로 바꾸든 메모리 캐시를 쓰든 가드만 수정하면 된다.
+
+### @CacheKey - 응답 캐싱 키 지정
+
+NestJS의 내장 `CacheInterceptor`는 기본적으로 URL을 키로 쓴다. 키 생성 로직을 핸들러마다 다르게 가져가고 싶으면 메타데이터로 키 패턴을 넘기는 인터셉터를 직접 만든다.
+
+```typescript
+export const CACHE_KEY = 'cacheKey';
+export const CacheKey = (key: string) => SetMetadata(CACHE_KEY, key);
+
+@Injectable()
+export class CustomCacheInterceptor implements NestInterceptor {
+  constructor(
+    private reflector: Reflector,
+    @Inject(CACHE_MANAGER) private cache: Cache,
+  ) {}
+
+  async intercept(ctx: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+    const keyTemplate = this.reflector.get<string>(CACHE_KEY, ctx.getHandler());
+    if (!keyTemplate) return next.handle();
+
+    const req = ctx.switchToHttp().getRequest();
+    const key = keyTemplate.replace(/:(\w+)/g, (_, name) => req.params[name] ?? '');
+
+    const cached = await this.cache.get(key);
+    if (cached !== undefined) return of(cached);
+
+    return next.handle().pipe(
+      tap(async data => {
+        await this.cache.set(key, data, 60_000);
+      }),
+    );
+  }
+}
+
+@Controller('products')
+export class ProductsController {
+  @CacheKey('product:detail:id')
+  @Get(':id')
+  findOne(@Param('id') id: string) {}
+}
+```
+
+### @Transactional - DB 트랜잭션 자동 감싸기
+
+인터셉터와 메타데이터 패턴으로 트랜잭션 경계를 메서드 단위로 선언할 수 있다. 실제 구현은 사용하는 ORM(TypeORM, Prisma, Drizzle)에 따라 다르지만 구조는 동일하다.
+
+```typescript
+export const TRANSACTIONAL = 'transactional';
+export const Transactional = () => SetMetadata(TRANSACTIONAL, true);
+
+@Injectable()
+export class TransactionInterceptor implements NestInterceptor {
+  constructor(
+    private reflector: Reflector,
+    private dataSource: DataSource,
+  ) {}
+
+  intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
+    const enabled = this.reflector.get<boolean>(TRANSACTIONAL, ctx.getHandler());
+    if (!enabled) return next.handle();
+
+    return from(
+      this.dataSource.transaction(async manager => {
+        const req = ctx.switchToHttp().getRequest();
+        req.txManager = manager;
+        return firstValueFrom(next.handle());
+      }),
+    );
+  }
+}
+
+@Controller('orders')
+export class OrdersController {
+  @Transactional()
+  @Post()
+  create() {}
+}
+```
+
+이 패턴의 한계는 트랜잭션 매니저를 핸들러나 서비스 안에서 어떻게 받을지다. 위 예시에서는 `request.txManager`에 매니저를 꽂아두고 서비스에서 request를 통해 꺼내 쓰는 식으로 풀었지만, AsyncLocalStorage를 쓰는 방법이 더 깔끔하다. NestJS에는 `cls-hooked`나 `@nestjs/cls` 같은 라이브러리로 비동기 컨텍스트를 끌고 다니는 패턴이 많이 쓰인다. 트랜잭션 매니저, 트레이스 ID, 사용자 ID를 한 곳에 넣어두면 서비스에서 파라미터로 받지 않고도 접근할 수 있다.
+
+### 메타데이터 키 관리
+
+`@SetMetadata`의 첫 번째 인자는 키다. 여러 데코레이터를 만들다 보면 키가 충돌할 위험이 있다. 키를 상수로 export해서 데코레이터와 가드/인터셉터가 같은 상수를 참조하도록 만든다. 키를 양쪽에서 문자열 리터럴로 따로 쓰면 오타가 났을 때 컴파일러가 잡아주지 못한다. 라이브러리 형태로 배포할 거라면 키에 네임스페이스를 붙인다. `auth:roles`, `cache:ttl`, `feature:flag` 같은 식으로 prefix를 두면 외부 라이브러리와 키가 겹치지 않는다.
+
+심볼을 키로 쓸 수도 있지만, NestJS의 `Reflector.get`은 문자열 키 가정으로 작성된 코드와 잘 맞물려서 표준적으로는 문자열을 쓴다. Reflect API를 직접 호출하는 경우라면 심볼이 더 안전하다.
 
 ## 데코레이터 실행 순서
 
@@ -668,5 +1118,9 @@ app.useGlobalPipes(new ValidationPipe({ transform: true }));
 | `@HttpCode/@Header/@Redirect` | 메서드 | 응답 세부 제어 |
 | `createParamDecorator` | 헬퍼 | 커스텀 파라미터 데코레이터 생성 |
 | `applyDecorators` | 헬퍼 | 여러 데코레이터를 하나로 묶음 |
+| `Reflect.defineMetadata` | API | 임의 위치에 메타데이터 부착 |
+| `Reflect.getMetadata` | API | 부착된 메타데이터 조회 |
 
 데코레이터 자체는 단순한 표식이고, 실제 동작은 NestJS 런타임이 메타데이터를 읽어서 처리한다. 그래서 데코레이터를 잘 쓰려면 `reflect-metadata`와 NestJS의 요청 라이프사이클을 함께 이해해야 한다. 어디서 메타데이터가 붙고, 누가 그것을 읽는지 흐름을 머릿속에 그릴 수 있으면 대부분의 트러블슈팅이 빠르게 해결된다.
+
+커스텀 데코레이터를 만들 때 헷갈리는 지점은 "이걸 어떤 형태로 만들지"다. 응답이나 요청 데이터를 핸들러 파라미터로 꺼내는 거면 `createParamDecorator`, 메서드 동작 자체를 가로채는 거면 `descriptor.value` 교체 방식의 메서드 데코레이터, 정책 선언만 하고 실제 처리는 가드/인터셉터에 맡길 거면 `SetMetadata` 기반이다. 이 세 가지를 구분해서 쓰면 데코레이터 코드가 단순해지고 유지보수도 쉬워진다.

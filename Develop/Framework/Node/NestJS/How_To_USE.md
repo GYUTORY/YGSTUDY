@@ -1,12 +1,371 @@
 ---
-title: NestJS 동작 과정과 핵심 문법
-tags: [framework, node, nestjs, typescript, di, decorator]
-updated: 2026-04-15
+title: NestJS 시작하기와 핵심 문법
+tags: [framework, node, nestjs, typescript, di, decorator, cli]
+updated: 2026-06-04
 ---
 
-# NestJS 동작 과정과 핵심 문법
+# NestJS 시작하기와 핵심 문법
 
-NestJS가 내부적으로 어떻게 동작하는지, 그리고 실무에서 자주 부딪히는 문제를 중심으로 정리한다.
+프로젝트 초기 세팅부터 모듈/컨트롤러/서비스 작성, CLI 명령어, 실제 디렉토리 구조까지 실무 기준으로 정리한다. 그 다음 NestJS가 내부적으로 어떻게 동작하는지, 실무에서 자주 부딪히는 문제까지 다룬다.
+
+---
+
+## 프로젝트 초기 세팅
+
+### Node.js 버전 확인
+
+NestJS 10.x 이상은 Node.js 18.x 또는 20.x를 권장한다. 16.x는 더이상 지원하지 않는다.
+
+```bash
+node -v   # v20.11.0
+npm -v    # 10.2.4
+```
+
+회사에서 여러 프로젝트를 관리한다면 `nvm`이나 `volta`로 버전을 고정해두는 게 낫다. 프로젝트 루트에 `.nvmrc` 파일을 두면 팀원 간 버전 차이로 생기는 문제를 줄인다.
+
+```bash
+echo "20.11.0" > .nvmrc
+nvm use
+```
+
+### Nest CLI 설치
+
+전역에 한 번만 설치해두면 어디서든 `nest` 명령을 쓸 수 있다.
+
+```bash
+npm install -g @nestjs/cli
+
+nest --version   # 10.3.2
+```
+
+CI 환경처럼 전역 설치가 불가한 곳에서는 `npx @nestjs/cli new my-app` 식으로 직접 실행한다.
+
+### 새 프로젝트 생성
+
+```bash
+nest new my-app
+
+# 패키지 매니저 선택 프롬프트가 뜬다
+# npm / yarn / pnpm
+```
+
+내부에서 다음 작업이 한 번에 일어난다.
+
+- 디렉토리 생성과 기본 파일 스캐폴딩 (`src/`, `test/`, `tsconfig.json`, `nest-cli.json`)
+- 선택한 패키지 매니저로 의존성 설치
+- `git init`까지 자동 실행
+
+PromptQL 같이 인터랙티브 선택을 피하고 싶다면 `nest new my-app --package-manager npm` 식으로 플래그를 넘긴다. 모노레포로 시작하려면 `nest new my-app --strict --collection @nestjs/schematics`를 쓰지 말고, 차라리 단일 앱으로 만든 뒤 `nest g app another-app`으로 워크스페이스로 변환하는 편이 안정적이다.
+
+### 기존 프로젝트에 NestJS 추가
+
+이미 있는 Express 프로젝트에 NestJS를 얹는 건 권장하지 않는다. 부트스트랩 자체가 다르기 때문에 사실상 처음부터 다시 짜는 셈이 된다. 빈 디렉토리에 `nest new`로 시작한 다음, 기존 비즈니스 로직만 옮기는 게 빠르다.
+
+### 의존성 한눈에 보기
+
+`nest new`로 만든 프로젝트의 `package.json` 핵심 의존성이다.
+
+```json
+{
+  "dependencies": {
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/core": "^10.3.0",
+    "@nestjs/platform-express": "^10.3.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.3.0",
+    "@nestjs/schematics": "^10.1.0",
+    "@nestjs/testing": "^10.3.0",
+    "typescript": "^5.3.0",
+    "ts-node": "^10.9.2"
+  }
+}
+```
+
+`@nestjs/platform-express`를 `@nestjs/platform-fastify`로 바꾸면 Fastify 위에서 돌아간다. 단순 교체로 끝나는 게 아니라 일부 미들웨어와 응답 처리가 달라지므로, 초기 선택에서 결정해두는 게 좋다.
+
+### 개발 서버 실행
+
+```bash
+npm run start:dev
+```
+
+`nest-cli.json`의 watch 옵션을 보고 파일 변경 시 자동 재시작한다. 내부적으로 `tsc --watch`와 `node`를 연결한 것이라서 큰 프로젝트에서는 시작 시간이 늘어진다. 그럴 때는 SWC 빌더를 켠다.
+
+```json
+// nest-cli.json
+{
+  "compilerOptions": {
+    "builder": "swc",
+    "typeCheck": true
+  }
+}
+```
+
+SWC는 타입 체크를 하지 않으므로 `typeCheck: true`를 같이 켜야 한다. 그래도 `tsc`보다 3~10배 빠르다.
+
+---
+
+## Nest CLI 명령어
+
+Nest CLI는 `@nestjs/schematics`를 호출해서 파일을 생성하는 도구다. 손으로 파일을 만드는 것과 결과는 같지만, 매번 `@Module()`, `@Controller()` 같은 보일러플레이트를 쓰는 게 귀찮으니 CLI를 쓴다.
+
+### 생성 명령어
+
+```bash
+nest g module users
+nest g controller users
+nest g service users
+nest g resource posts  # 모듈 + 컨트롤러 + 서비스 + DTO + 엔티티 한 번에
+```
+
+축약형도 있다.
+
+```bash
+nest g mo users   # module
+nest g co users   # controller
+nest g s users    # service
+nest g r posts    # resource
+```
+
+`nest g resource`가 가장 자주 쓰는 명령이다. CRUD 스캐폴딩까지 생성할지 묻고, REST/GraphQL/Microservice/WebSocket 중 어떤 전송 방식으로 만들지도 묻는다.
+
+### 자주 쓰는 플래그
+
+```bash
+# 디렉토리 지정
+nest g controller users --flat                 # users.controller.ts만 생성 (디렉토리 없이)
+nest g service users --no-spec                 # 테스트 파일 생성 안 함
+nest g module users --dry-run                  # 실제 생성하지 않고 결과만 미리 보기
+nest g controller modules/auth/users           # 중첩 경로
+
+# 옵션 조합
+nest g resource users --no-spec --type rest
+```
+
+`--dry-run`은 CI에서 코드 생성을 자동화하기 전에 결과를 확인할 때 자주 쓴다.
+
+### 빌드와 실행
+
+```bash
+npm run build         # dist/ 에 컴파일된 JS 출력
+npm run start         # dist/main.js 실행
+npm run start:dev     # 와치 모드 (개발용)
+npm run start:debug   # --inspect로 디버거 연결
+npm run start:prod    # 빌드된 코드로 프로덕션 실행
+```
+
+`start:dev`와 `start:debug` 차이가 헷갈리는데, 디버거 포트(`9229`)를 여는지 아닌지의 차이다. VSCode나 Chrome DevTools로 디버깅하려면 `start:debug`로 실행한다.
+
+### 테스트
+
+```bash
+npm run test            # 단위 테스트
+npm run test:watch      # 와치 모드
+npm run test:cov        # 커버리지 리포트
+npm run test:e2e        # 통합 테스트 (test/ 디렉토리)
+```
+
+E2E 테스트는 `jest-e2e.json` 설정 파일을 따로 쓰고, 실제로는 슈퍼테스트(supertest)로 HTTP 요청을 던지는 방식이다. 단위 테스트와 분리해서 실행해야 CI 시간이 짧아진다.
+
+### 모노레포 명령어
+
+워크스페이스로 변환하면 여러 앱을 한 저장소에서 관리할 수 있다.
+
+```bash
+nest g app admin-api         # 새 앱 추가
+nest g lib shared            # 공통 라이브러리 추가
+nest start admin-api         # 특정 앱 실행
+nest build admin-api         # 특정 앱 빌드
+```
+
+생성된 `nest-cli.json`에 `projects` 항목이 추가되고, `apps/`와 `libs/` 디렉토리가 만들어진다.
+
+---
+
+## 실제 프로젝트 디렉토리 구조
+
+NestJS가 강제하는 구조는 없다. 다만 실무에서 자리 잡은 두 가지 패턴이 있다.
+
+### 기능별 모듈 분리 (가장 흔한 구조)
+
+```
+src/
+├── main.ts                    # 부트스트랩 진입점
+├── app.module.ts              # 루트 모듈
+├── app.controller.ts          # 헬스체크 정도만
+├── app.service.ts
+│
+├── common/                    # 전역으로 쓰는 것들
+│   ├── decorators/
+│   │   ├── current-user.decorator.ts
+│   │   └── roles.decorator.ts
+│   ├── filters/
+│   │   └── http-exception.filter.ts
+│   ├── guards/
+│   │   ├── jwt-auth.guard.ts
+│   │   └── roles.guard.ts
+│   ├── interceptors/
+│   │   ├── logging.interceptor.ts
+│   │   └── transform.interceptor.ts
+│   ├── pipes/
+│   │   └── parse-object-id.pipe.ts
+│   └── middleware/
+│       └── request-id.middleware.ts
+│
+├── config/                    # 설정
+│   ├── configuration.ts
+│   ├── database.config.ts
+│   └── validation.schema.ts
+│
+├── modules/                   # 도메인 모듈
+│   ├── auth/
+│   │   ├── auth.module.ts
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
+│   │   ├── strategies/
+│   │   │   └── jwt.strategy.ts
+│   │   └── dto/
+│   │       └── login.dto.ts
+│   │
+│   ├── users/
+│   │   ├── users.module.ts
+│   │   ├── users.controller.ts
+│   │   ├── users.service.ts
+│   │   ├── users.repository.ts
+│   │   ├── entities/
+│   │   │   └── user.entity.ts
+│   │   ├── dto/
+│   │   │   ├── create-user.dto.ts
+│   │   │   └── update-user.dto.ts
+│   │   └── tests/
+│   │       └── users.service.spec.ts
+│   │
+│   └── orders/
+│       ├── orders.module.ts
+│       ├── orders.controller.ts
+│       ├── orders.service.ts
+│       ├── entities/
+│       └── dto/
+│
+└── shared/                    # 인프라성 모듈
+    ├── database/
+    │   └── database.module.ts
+    ├── redis/
+    │   └── redis.module.ts
+    └── queue/
+        └── queue.module.ts
+
+test/                          # E2E 테스트
+├── app.e2e-spec.ts
+└── jest-e2e.json
+
+dist/                          # 빌드 결과물 (gitignore)
+```
+
+`modules/` 아래에 도메인 단위로 묶고, 공통 코드는 `common/`에 두는 게 표준에 가깝다. 도메인 모듈 안에서 `entities/`, `dto/`, `tests/`를 다시 분리하면 파일이 많아져도 찾기 쉽다.
+
+`shared/`와 `common/`을 헷갈려 하는 경우가 많은데, 구분이 명확하다.
+
+- `common/`: NestJS 기능(가드, 인터셉터, 데코레이터) — 보통 import 없이 어디서나 쓴다
+- `shared/`: 다른 모듈이 import해서 쓰는 모듈 (DB, 캐시, 큐 등)
+
+### 레이어 기반 구조 (대안)
+
+도메인별이 아니라 역할별로 묶는 방식이다. 작은 프로젝트나 CRUD 위주 앱에서는 이게 더 단순할 수 있다.
+
+```
+src/
+├── controllers/
+├── services/
+├── repositories/
+├── entities/
+├── dto/
+└── modules/
+```
+
+다만 모듈이 늘어나면 한 도메인의 코드가 여러 디렉토리에 흩어져서 추적이 힘들어진다. 5개 이상 모듈이 생긴다면 기능별 구조로 가는 게 낫다.
+
+### 모노레포 구조
+
+```
+project-root/
+├── apps/
+│   ├── api/                   # 메인 API 서버
+│   │   ├── src/
+│   │   └── tsconfig.app.json
+│   ├── admin/                 # 어드민 백오피스
+│   │   └── src/
+│   └── worker/                # 배치 워커
+│       └── src/
+│
+├── libs/
+│   ├── common/                # 공통 유틸
+│   ├── database/              # DB 엔티티/리포지토리
+│   └── auth/                  # 인증 로직
+│
+├── nest-cli.json
+├── package.json
+└── tsconfig.json
+```
+
+`apps/`는 독립 실행 단위, `libs/`는 여러 앱이 공유하는 코드를 담는다. tsconfig의 `paths`가 자동으로 잡혀서 `@app/common`처럼 import할 수 있다.
+
+### main.ts 예시
+
+부트스트랩 파일에 들어가는 표준 설정이다. 매번 같은 코드를 쓰게 되므로 한 번 정리해두면 새 프로젝트에 복사해서 쓰기 좋다.
+
+```typescript
+// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log'],
+  });
+
+  const config = app.get(ConfigService);
+
+  app.use(helmet());
+  app.enableCors({
+    origin: config.get('CORS_ORIGIN'),
+    credentials: true,
+  });
+
+  app.setGlobalPrefix('api/v1');
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  app.enableShutdownHooks();
+
+  const port = config.get<number>('PORT') ?? 3000;
+  await app.listen(port);
+
+  Logger.log(`Server running on http://localhost:${port}`, 'Bootstrap');
+}
+
+bootstrap();
+```
+
+`enableShutdownHooks()`를 빠뜨리면 컨테이너 환경에서 SIGTERM이 와도 그레이스풀 종료가 안 된다. K8s 배포할 때 `OnModuleDestroy`로 DB 연결 끊는 로직이 동작하지 않으니 꼭 켜둔다.
 
 ---
 
@@ -909,6 +1268,71 @@ describe('UsersService', () => {
 
 `Test.createTestingModule()`이 실제 앱과 동일한 DI 시스템을 사용한다. 커스텀 프로바이더를 쓰면 외부 의존성을 쉽게 모킹할 수 있다.
 
+### `nest g resource` 후 import를 깜빡한 경우
+
+CLI로 모듈을 만들면 파일은 자동으로 생성되지만, 루트 모듈(`app.module.ts`)에 import를 자동으로 추가하지 않는 경우가 있다. 정확히는 `nest g module`로 만든 경우는 자동으로 `app.module.ts`에 import를 추가하지만, `nest g resource`로 만들 때는 위치에 따라 추가되지 않을 수 있다.
+
+생성 후 서버를 띄웠는데 라우트가 동작하지 않으면 가장 먼저 `app.module.ts`의 `imports` 배열을 확인한다.
+
+```typescript
+@Module({
+  imports: [
+    UsersModule,   // 누락된 경우가 흔하다
+    OrdersModule,
+  ],
+})
+export class AppModule {}
+```
+
+### TypeScript 컴파일은 되는데 런타임에 DI 실패
+
+`tsconfig.json`의 옵션을 확인한다. `emitDecoratorMetadata`나 `experimentalDecorators`가 꺼져있으면 클래스 메타데이터가 생성되지 않는다.
+
+```json
+{
+  "compilerOptions": {
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES2021",
+    "module": "commonjs"
+  }
+}
+```
+
+SWC를 빌더로 쓰는 경우에도 `.swcrc`에서 같은 옵션을 켜야 한다.
+
+```json
+{
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": true
+    }
+  }
+}
+```
+
+### main.ts에서 환경변수가 undefined로 나오는 경우
+
+`ConfigModule.forRoot()`는 비동기로 `.env` 파일을 읽는다. `main.ts`에서 `process.env.PORT`를 직접 읽으면 안 되고, `app.get(ConfigService)`로 꺼내야 한다. ConfigModule이 글로벌이 아닌 경우에도 빈번하게 생기는 문제다.
+
+```typescript
+// 안 됨 — .env 로드 시점 보장 안 됨
+const port = process.env.PORT;
+
+// 됨 — ConfigService가 .env 로드를 보장
+const config = app.get(ConfigService);
+const port = config.get<number>('PORT');
+```
+
+### `cannot find module` 에러 (SWC 사용 시)
+
+SWC로 빌드한 경우 `dist/` 디렉토리 구조가 `tsc`와 다를 수 있다. `nest-cli.json`의 `sourceRoot`와 `entryFile` 설정을 확인하고, `npm run build` 후 `dist/main.js`가 실제로 존재하는지 본다.
+
 ---
 
 ## CRUD 예제: 전체 흐름
@@ -1043,6 +1467,9 @@ export class AppModule {}
 
 - [NestJS 공식 문서](https://docs.nestjs.com/)
 - [NestJS GitHub](https://github.com/nestjs/nest)
+- [NestJS CLI 옵션](https://docs.nestjs.com/cli/usages)
 - [reflect-metadata](https://github.com/rbuckton/reflect-metadata)
 - [class-validator](https://github.com/typestack/class-validator)
 - [class-transformer](https://github.com/typestack/class-transformer)
+- [@nestjs/config](https://docs.nestjs.com/techniques/configuration)
+- [SWC 빌더 설정](https://docs.nestjs.com/recipes/swc)
