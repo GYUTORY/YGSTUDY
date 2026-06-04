@@ -51,8 +51,7 @@ plugins:
         - en
       separator: '[\s\-\.]+'
   - awesome-pages
-  - tags:
-      tags_file: tags.md
+  - tags
   - git-revision-date-localized:
       enable_creation_date: true
       type: date
@@ -94,6 +93,8 @@ markdown_extensions:
   - toc:
       permalink: true
       toc_depth: 3
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds: {case: lower}
 
 extra:
   social:
