@@ -1,0 +1,7 @@
+title: Infrastructure
+nav:
+  - Infrastructure_Design_Principles.md
+  - Infrastructure_Capacity_Planning.md
+  - Infrastructure_High_Availability.md
+  - Infrastructure_Observability.md
+  - Infrastructure_Cost_Optimization.md
