@@ -342,7 +342,8 @@ body {
   }
 }
 
-/* 사이드바 고정 — Material 기본 sticky가 동작하도록 명시 */
+/* 사이드바 고정 — 데스크톱은 viewport-fixed (본문 스크롤과 완전히 분리),
+   모바일/태블릿은 아래쪽 드로어 규칙(577번 라인 부근)에서 별도 처리 */
 .md-sidebar {
   position: sticky !important;
   top: 56px !important;             /* header 높이 */
@@ -352,6 +353,28 @@ body {
 }
 .md-sidebar--secondary {
   width: var(--md-sidebar-secondary);
+}
+
+/* 데스크톱: 사이드바를 viewport에 박아 본문 스크롤과 분리.
+   sticky는 부모 컨테이너 길이/overflow에 따라 부분적으로 따라 움직이는데
+   영규님은 "절대 움직이지 않기"를 원함 → fixed로 명시. */
+@media (min-width: 76.25em) {
+  .md-sidebar--primary,
+  .md-sidebar--secondary {
+    position: fixed !important;
+    top: 56px !important;
+    height: calc(100vh - 56px) !important;
+    z-index: 3;
+  }
+  .md-sidebar--primary { left: 1.2rem; }
+  .md-sidebar--secondary { right: 1.2rem; }
+
+  /* fixed로 빠진 사이드바 자리만큼 본문에 좌우 여백 보정 */
+  .md-main__inner > .md-content {
+    margin-left: calc(var(--md-sidebar-width) + 1.6rem);
+    margin-right: calc(var(--md-sidebar-secondary) + 1.6rem);
+    min-width: 0;
+  }
 }
 
 .md-sidebar--primary {
