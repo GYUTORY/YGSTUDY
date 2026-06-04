@@ -1,5 +1,10 @@
 nav:
   - LLM.md
+  - LLM_Inference_Optimization.md
+  - LLM_Fine_Tuning.md
+  - LLM_Evaluation.md
+  - LLM_Reasoning.md
+  - LLM_Context_Window.md
   - LLM_Agent.md
   - Agent_Harness.md
   - LLM_Security.md
