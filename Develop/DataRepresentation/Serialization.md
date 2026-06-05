@@ -1,7 +1,7 @@
 ---
 title: "직렬화(Serialization)"
-tags: [serialization, deserialization, json, protobuf, messagepack, java]
-updated: 2026-03-24
+tags: [serialization, deserialization, json, protobuf, messagepack, avro, schema-registry, java]
+updated: 2026-06-05
 ---
 
 # 직렬화(Serialization)
@@ -89,18 +89,75 @@ byte[] bytes = mapper.writeValueAsBytes(user);
 User restored = mapper.readValue(bytes, User.class);
 ```
 
-JSON 스키마를 그대로 쓸 수 있어서 도입 비용이 낮다. Redis에 객체를 캐시할 때 JSON 대신 MessagePack을 쓰면 메모리를 아낄 수 있다.
+JSON 스키마를 그대로 쓸 수 있어서 도입 비용이 낮다. Redis에 객체를 캐시할 때 JSON 대신 MessagePack을 쓰면 메모리를 아낀다.
+
+### Avro
+
+Apache Hadoop 진영에서 나온 바이너리 포맷이다. Kafka 생태계에서 가장 많이 쓰는 포맷이기도 하다. Protobuf와 달리 스키마를 JSON으로 정의한다.
+
+```json
+{
+  "type": "record",
+  "name": "User",
+  "namespace": "com.example.user",
+  "fields": [
+    {"name": "userId", "type": "int"},
+    {"name": "name", "type": "string"},
+    {"name": "email", "type": ["null", "string"], "default": null},
+    {"name": "roles", "type": {"type": "array", "items": "string"}}
+  ]
+}
+```
+
+Avro의 가장 큰 특징은 **reader/writer 스키마 분리**다. 데이터를 쓸 때 사용한 스키마(writer schema)와 읽을 때 사용하는 스키마(reader schema)가 달라도 된다. Avro 런타임이 두 스키마를 비교해서 자동으로 변환한다.
+
+```
+Producer가 v1 스키마로 직렬화 → 바이트
+Consumer가 v2 스키마로 역직렬화 → Avro가 v1과 v2를 매칭해서 필드 변환
+```
+
+이게 동작하려면 Consumer가 writer 스키마를 알아야 한다. 매번 메시지에 스키마를 통째로 붙이면 Avro의 작은 크기 장점이 사라진다. 그래서 보통 **Schema Registry**를 따로 둔다.
+
+```
+Producer:
+  1. Schema Registry에 스키마 등록 → schema ID 받음
+  2. 메시지 = [schema ID 4바이트] + [Avro 바이너리]
+
+Consumer:
+  1. 메시지에서 schema ID 추출
+  2. Schema Registry에서 해당 스키마 조회 (캐시함)
+  3. writer 스키마와 자기 reader 스키마로 역직렬화
+```
+
+Kafka에서 Confluent Schema Registry를 쓰는 일반적인 흐름이다. 메시지 본문에는 1바이트 magic byte와 4바이트 schema ID만 추가된다.
+
+**장점:**
+
+- 필드 이름을 바이트에 포함하지 않아서 Protobuf보다도 작은 경우가 있다
+- 스키마 진화 규칙이 엄격하게 정의되어 있다
+- reader/writer 스키마 분리로 호환성 처리가 자연스럽다
+- 동적 스키마 처리가 쉽다. 코드 생성 없이도 GenericRecord로 다룰 수 있다
+
+**단점:**
+
+- Schema Registry라는 별도 인프라가 필요하다
+- Protobuf 대비 학습 곡선이 있다
+- 위치 기반 인코딩이라서 필드 순서가 의미를 가진다. 스키마 없이는 디코딩이 절대 불가능하다
 
 ### 포맷 비교 정리
 
-| 항목 | JSON | Protobuf | MessagePack |
-|------|------|----------|-------------|
-| 형식 | 텍스트 | 바이너리 | 바이너리 |
-| 사람 읽기 | 가능 | 불가 | 불가 |
-| 스키마 | 없음 | 필수 | 없음 |
-| 크기 | 큼 | 작음 | 중간 |
-| 속도 | 느림 | 빠름 | 중간 |
-| 언어 지원 | 거의 전부 | 코드 생성 필요 | 대부분 지원 |
+| 항목 | JSON | Protobuf | MessagePack | Avro |
+|------|------|----------|-------------|------|
+| 형식 | 텍스트 | 바이너리 | 바이너리 | 바이너리 |
+| 사람 읽기 | 가능 | 불가 | 불가 | 불가 |
+| 스키마 | 없음 | 필수(.proto) | 없음 | 필수(.avsc, JSON) |
+| 스키마 위치 | 메시지 내부(필드명) | 외부 공유 | 메시지 내부(필드명) | 외부 + Schema Registry |
+| 크기 | 큼 | 작음 | 중간 | 가장 작음 |
+| 속도 | 느림 | 빠름 | 중간 | 빠름 |
+| 식별 방식 | 필드명 | 필드 번호 | 필드명 | 위치 + 스키마 매칭 |
+| 동적 처리 | 쉬움 | 어려움(코드 생성) | 쉬움 | 쉬움(GenericRecord) |
+| 언어 지원 | 거의 전부 | 코드 생성 필요 | 대부분 지원 | JVM 중심, 다른 언어 지원도 있음 |
+| 대표 사용처 | REST API | gRPC | Redis 캐시 | Kafka, 빅데이터 파이프라인 |
 
 
 ## Java의 직렬화
@@ -282,6 +339,70 @@ message User {
 - `required` 필드는 쓰지 않는다 (proto3에서는 아예 제거됨)
 - 삭제한 필드는 `reserved`로 번호를 잠근다
 
+Protobuf는 양쪽이 같은 .proto 파일을 공유한다는 전제가 깔려 있다. .proto만 잘 관리하면 호환성이 따라온다. 반대로 말하면, .proto 파일을 한 군데서 단일 진실로 관리하지 않으면 호환성이 깨진다. monorepo로 .proto를 모아두거나, BSR(Buf Schema Registry) 같은 별도 registry로 배포하는 방식이 일반적이다.
+
+### Avro에서의 호환성
+
+Avro는 reader 스키마와 writer 스키마가 다를 수 있다는 전제로 설계됐다. 호환성 규칙도 그 전제 위에서 정의된다.
+
+```json
+// v1 writer schema
+{"type": "record", "name": "User", "fields": [
+  {"name": "userId", "type": "int"},
+  {"name": "name", "type": "string"}
+]}
+
+// v2 writer schema - email 필드 추가
+{"type": "record", "name": "User", "fields": [
+  {"name": "userId", "type": "int"},
+  {"name": "name", "type": "string"},
+  {"name": "email", "type": ["null", "string"], "default": null}
+]}
+```
+
+새 필드를 추가할 때는 반드시 **default 값**을 지정해야 한다. v1으로 직렬화된 데이터를 v2 reader가 읽으면 email 필드가 없는데, default가 없으면 어떤 값을 채울지 모르기 때문이다.
+
+지켜야 할 규칙:
+
+- 새 필드는 default 값 필수
+- 필드를 삭제할 때도 원래 스키마에 default가 있어야 한다 (옛날 데이터를 새 스키마로 읽을 때 사용됨)
+- 필드 이름 변경은 alias로 처리한다
+- 타입 변경은 promotion 규칙 안에서만 허용된다 (int → long, int → float 등)
+
+### Confluent Schema Registry 호환성 모드
+
+Kafka + Avro를 쓸 때 Schema Registry가 자동으로 호환성 검사를 해준다. 호환성 모드를 토픽별로 설정할 수 있는데, 각 모드의 의미를 정확히 알아야 한다.
+
+| 모드 | 새 스키마가 만족해야 할 조건 | 안전하게 할 수 있는 변경 |
+|------|------------------------------|--------------------------|
+| `BACKWARD` (기본) | 새 reader가 직전 writer 데이터를 읽을 수 있어야 한다 | optional 필드 추가, default 있는 필드 삭제 |
+| `BACKWARD_TRANSITIVE` | 새 reader가 **모든 이전 버전** writer 데이터를 읽을 수 있어야 한다 | BACKWARD와 동일하지만 모든 과거 버전과 호환 |
+| `FORWARD` | 직전 reader가 새 writer 데이터를 읽을 수 있어야 한다 | required 필드 추가, optional 필드 삭제 |
+| `FORWARD_TRANSITIVE` | 모든 이전 reader가 새 writer 데이터를 읽을 수 있어야 한다 | FORWARD와 동일하지만 모든 과거 버전과 호환 |
+| `FULL` | BACKWARD + FORWARD 둘 다 | default 있는 optional 필드 추가/삭제만 |
+| `FULL_TRANSITIVE` | 모든 이전 버전과 양방향 호환 | 가장 엄격, 변경 자유도가 낮다 |
+| `NONE` | 검사 안 함 | 자유롭지만 위험하다 |
+
+배포 순서가 어떻게 되느냐에 따라 모드를 골라야 한다.
+
+- **Consumer를 먼저 배포하고 Producer를 나중에 배포**: `BACKWARD` (새 Consumer가 옛 Producer 데이터를 읽어야 함)
+- **Producer를 먼저 배포하고 Consumer를 나중에 배포**: `FORWARD` (옛 Consumer가 새 Producer 데이터를 읽어야 함)
+- **배포 순서를 통제 못 함**: `FULL`
+- **이전 모든 버전과의 호환성이 필요**: `_TRANSITIVE` 접미사 붙은 모드 사용
+
+기본값이 `BACKWARD`인 이유는 Kafka 운영에서 Consumer를 먼저 배포하는 패턴이 가장 흔하기 때문이다. Consumer 코드를 새 스키마로 먼저 바꾸고, 그 다음 Producer가 새 포맷으로 메시지를 보내기 시작한다.
+
+```java
+// Spring Kafka에서 KafkaAvroSerializer 사용 예
+Map<String, Object> props = new HashMap<>();
+props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
+props.put("schema.registry.url", "http://schema-registry:8081");
+props.put("auto.register.schemas", false); // 운영에선 false 권장
+```
+
+`auto.register.schemas=true`로 두면 Producer가 띄울 때마다 스키마를 자동 등록하는데, 실수로 호환되지 않는 스키마가 올라가서 Registry 자체가 망가지는 경우가 있다. CI/CD에서 명시적으로 등록하는 방식이 안전하다.
+
 ### 실무에서 자주 발생하는 문제
 
 **캐시 역직렬화 실패**: Redis에 캐시된 데이터가 클래스 변경 후 역직렬화에 실패하는 경우가 흔하다. 배포할 때 캐시 키에 버전을 포함시키거나, 배포 전에 캐시를 비우는 절차가 필요하다.
@@ -299,7 +420,13 @@ String cacheKey = "user:v2:" + userId;
 ## 어떤 포맷을 쓸지 판단하는 기준
 
 - **외부 API, 프론트엔드 통신**: JSON. 다른 선택지가 없다
-- **내부 마이크로서비스 간 통신**: Protobuf + gRPC. 타입 안전성과 성능 둘 다 잡을 수 있다
-- **캐시 저장**: MessagePack이나 Protobuf. JSON보다 크기가 작아서 메모리 절약된다
+- **내부 마이크로서비스 간 통신**: Protobuf + gRPC. 타입 안전성과 성능 둘 다 잡힌다
+- **Kafka 메시지, 이벤트 스트리밍**: Avro + Schema Registry. 스키마 진화 규칙이 가장 정리되어 있다
+- **캐시 저장**: MessagePack이나 Protobuf. JSON보다 크기가 작아서 메모리가 절약된다
+- **빅데이터 파일 포맷**: Avro(행 기반) 또는 Parquet(열 기반). Avro는 Hadoop, Spark, Flink와 잘 맞는다
 - **로그 저장**: JSON. 검색과 분석이 쉽다
 - **Java 기본 직렬화**: 쓰지 않는다. 보안 문제가 심각하고, 언어 종속적이라 다른 시스템과 호환이 안 된다
+
+## 더 읽기
+
+- [직렬화 포맷 심화 — JSON·Protobuf·MessagePack·Avro 비교, 스키마 진화, 성능·보안](Serialization_Formats_Deep_Dive.md): 같은 페이로드를 4종 포맷으로 직접 인코딩해 바이트 크기·인코딩 속도를 비교하고, 운영에서 겪은 호환성 사고와 역직렬화 공격 사례를 다룬다.
