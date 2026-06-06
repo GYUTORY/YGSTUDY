@@ -5,10 +5,13 @@ nav:
   - Error_Handling.md
   - Application_Routing.md
   - HTTP_Module.md
+  - Net_Module.md
   - File_System.md
   - Child_Process.md
   - Crypto_Module.md
   - Performance_Hooks.md
+  - Diagnostics_Channel.md
+  - Permission_Model.md
   - Graceful_Shutdown.md
   - Abort_Controller.md
   - Node_Test_Runner.md
