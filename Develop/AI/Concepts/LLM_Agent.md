@@ -1,823 +1,950 @@
 ---
-title: LLM 기반 에이전트 구현
-tags: [ai, llm, agent, react, multi-agent, orchestration]
-updated: 2026-04-08
+title: LLM 에이전트 (Claude 관점)
+tags: [ai, llm, agent, claude, react, tool-use, agent-loop, planning, memory]
+updated: 2026-06-06
 ---
 
-# LLM 기반 에이전트 구현
+# LLM 에이전트 (Claude 관점)
 
-## 1. 에이전트란
+## 들어가기 전에
 
-LLM의 Function Calling(Tool Use)은 "LLM이 도구를 한 번 호출하고, 결과를 받아서 응답하는 것"이다. 에이전트는 이걸 루프로 돌린다. LLM이 스스로 판단해서 도구를 고르고, 결과를 보고, 다음 행동을 결정하는 과정을 목표를 달성할 때까지 반복한다.
+이 문서는 "LLM 에이전트가 무엇이고 어떻게 동작하는가"를 Claude 에이전트(Claude Code, Claude Agent SDK)를 실제 다뤄본 경험을 바탕으로 정리한 것이다. Anthropic의 공식 설명, OpenAI의 ReAct 논문, LangChain/AutoGen 같은 프레임워크 문서를 보면 다들 비슷한 그림을 그리는데, 막상 구현해보면 미묘한 차이가 결과 품질을 가르는 경우가 많다.
 
-단순 Tool Use와 에이전트의 차이:
+특히 Claude는 도구 호출(tool use)과 멀티턴 대화에서 다른 모델과 다르게 동작하는 부분이 있다. `tool_use` 블록을 멈춰서 반환하는 시점, `tool_result`를 다시 받았을 때 컨텍스트를 해석하는 방식, prompt caching이 에이전트 루프에 미치는 영향 같은 것들. 이 문서는 그런 실무 디테일을 모은다.
 
-| 구분 | Tool Use (1회) | 에이전트 (루프) |
-|------|---------------|---------------|
-| 호출 횟수 | LLM → 도구 → 응답, 1사이클 | 목표 달성까지 N사이클 반복 |
-| 판단 주체 | 개발자가 흐름 설계 | LLM이 다음 행동 결정 |
-| 상태 관리 | 없음 | 대화 히스토리, 중간 결과 누적 |
-| 실패 처리 | 호출 실패 시 에러 반환 | 다른 방법 시도, 재시도, 포기 판단 |
+## LLM 에이전트란
 
-핵심은 **루프 안에서 LLM이 "다음에 뭘 할지"를 결정한다**는 것이다. 개발자가 if-else로 분기를 짜는 게 아니라, LLM의 추론 능력에 흐름 제어를 맡긴다.
+### 한 줄 정의
 
+LLM 에이전트는 "LLM이 도구를 호출하고 그 결과를 다시 자기 컨텍스트로 받아서 다음 행동을 결정하는 루프"다. 그게 전부다.
 
-## 2. ReAct 패턴
-
-ReAct는 Reasoning + Acting의 줄임말이다. LLM이 행동하기 전에 먼저 생각(Thought)을 출력하고, 그 다음에 행동(Action)하고, 결과를 관찰(Observation)하는 패턴이다. 2022년 Yao et al. 논문에서 제안됐고, 현재 대부분의 에이전트 프레임워크가 이 패턴을 기반으로 한다.
-
-### 2.1 Thought-Action-Observation 사이클
-
-```mermaid
-flowchart LR
-    A["Thought<br/>(추론)"] --> B["Action<br/>(도구 호출)"]
-    B --> C["Observation<br/>(결과 확인)"]
-    C -->|목표 미달성| A
-    C -->|목표 달성| D["최종 응답"]
-
-    style A fill:#4a90d9,stroke:#2c5f8a,color:#fff
-    style B fill:#d97b4a,stroke:#8a4e2c,color:#fff
-    style C fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style D fill:#8e6fbf,stroke:#5e4a80,color:#fff
-```
-
-LLM이 Thought에서 현재 상황을 분석하고, Action으로 도구를 호출하고, Observation에서 결과를 확인한다. 목표를 달성할 때까지 이 사이클이 반복된다.
+복잡한 정의를 붙이는 문서가 많지만, 본질은 위 한 줄이다. 챗봇과 에이전트의 차이는 "외부 세계에 영향을 미치는가, 외부 세계의 결과를 보고 다시 판단하는가"에 있다.
 
 ```
-Thought: 사용자가 서울 날씨를 물어봤다. 날씨 API를 호출해야 한다.
-Action: get_weather(location="서울")
-Observation: {"temp": 18, "condition": "맑음", "humidity": 45}
-
-Thought: 날씨 정보를 받았다. 사용자에게 알려주면 된다.
-Action: finish(answer="서울 현재 기온 18도, 맑음, 습도 45%입니다.")
+챗봇:        사용자 입력 → LLM → 텍스트 응답 (끝)
+에이전트:    사용자 입력 → LLM → 도구 호출 → 결과 → LLM → 도구 호출 → ... → 최종 응답
 ```
 
-이 흐름이 반복되면서 복잡한 작업도 단계별로 처리할 수 있다. Thought 단계에서 LLM이 현재 상황을 분석하고, 어떤 도구를 왜 호출하는지 추론한다. 이 추론 과정이 있기 때문에 단순 Tool Use보다 정확도가 높다.
+### 왜 에이전트가 필요한가
 
-### 2.2 Python으로 구현하기
+일반 LLM 호출만으로 안 되는 것들이 있다.
 
-OpenAI API 기준으로 ReAct 에이전트의 핵심 루프를 구현하면 이렇다:
+- 실시간 데이터 조회 (주가, 날씨, 최신 뉴스)
+- 파일 시스템 접근 (코드 읽기, 쓰기, 실행)
+- 외부 API 호출 (Slack 메시지 보내기, GitHub PR 생성)
+- 멀티스텝 추론 (계산 결과를 보고 다음 계산을 결정)
+- 자기 검증 (테스트를 실행해서 코드가 동작하는지 확인)
+
+특히 코딩 에이전트(Claude Code, Cursor, Codex)는 "파일을 읽고 수정하고 테스트를 돌리는" 루프 자체가 가치의 핵심이다. LLM 한 번 호출해서 코드를 뱉는 것과는 차원이 다르다.
+
+### 에이전트의 자율성 스펙트럼
+
+자율성은 0/1이 아니라 스펙트럼이다.
+
+| 단계 | 예시 | 특징 |
+|---|---|---|
+| 단순 도구 호출 | "현재 시간 알려줘" → time API | LLM이 호출할 도구를 고르기만 함 |
+| 멀티스텝 체이닝 | "이 PDF 요약하고 Slack에 보내" | 2~3개 도구를 순차 호출 |
+| 자유 루프 | Claude Code의 코드 수정 | LLM이 종료 시점을 스스로 판단 |
+| 멀티 에이전트 | Workflow + subagent | 에이전트가 다른 에이전트를 호출 |
+
+자율성이 높을수록 강력하지만 그만큼 통제가 어렵다. 무한 루프, 잘못된 도구 호출, 환각 기반 행동 같은 실패 모드가 늘어난다. 실무에서는 "필요한 만큼만 자율성을 주는 것"이 핵심이다.
+
+## 에이전트 루프
+
+### 기본 루프 구조
+
+모든 에이전트의 심장은 이 루프다.
 
 ```python
-import json
-from openai import OpenAI
+while not done:
+    response = llm.invoke(messages)
+    if response.has_tool_calls:
+        for tool_call in response.tool_calls:
+            result = execute_tool(tool_call)
+            messages.append(tool_result(result))
+    else:
+        done = True
+        return response.text
+```
 
-client = OpenAI()
+직관적이지만 실제 구현에서는 고려할 게 많다.
 
-# 도구 정의
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "search_db",
-            "description": "주문 DB에서 주문 정보를 조회한다",
-            "parameters": {
+- 무한 루프를 어떻게 막을 것인가 (최대 turn 수, 토큰 예산)
+- 도구가 실패했을 때 LLM에게 어떻게 알릴 것인가
+- 도구 호출이 동시에 여러 개일 때 병렬로 실행할 것인가
+- 사용자가 중간에 개입할 수 있게 할 것인가
+- 컨텍스트가 길어지면 어떻게 압축할 것인가
+
+### Claude의 에이전트 루프 구체화
+
+Claude API에서는 `stop_reason`이 루프 종료 신호다.
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+messages = [{"role": "user", "content": "현재 디렉토리의 파일 개수 알려줘"}]
+
+while True:
+    response = client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=4096,
+        tools=[{
+            "name": "run_bash",
+            "description": "Run a bash command",
+            "input_schema": {
                 "type": "object",
-                "properties": {
-                    "order_id": {"type": "string", "description": "주문 ID"}
-                },
-                "required": ["order_id"]
+                "properties": {"command": {"type": "string"}},
+                "required": ["command"]
             }
+        }],
+        messages=messages,
+    )
+
+    if response.stop_reason == "end_turn":
+        # 도구 호출 없이 일반 응답으로 끝남
+        print(response.content[-1].text)
+        break
+
+    if response.stop_reason == "tool_use":
+        # 도구 호출 블록 처리
+        messages.append({"role": "assistant", "content": response.content})
+
+        tool_results = []
+        for block in response.content:
+            if block.type == "tool_use":
+                output = execute_bash(block.input["command"])
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": output,
+                })
+
+        messages.append({"role": "user", "content": tool_results})
+        # 다음 루프 반복
+```
+
+여기서 중요한 디테일.
+
+`stop_reason="tool_use"`는 "이번 응답이 도구 호출에서 끊겼다"는 뜻이다. 다음 호출 때 `tool_result`를 user role로 넣어줘야 한다. assistant가 자기 응답을 보낸 후 user가 도구 결과를 알려주는 형식이다.
+
+response.content는 여러 블록의 배열이다. text 블록과 tool_use 블록이 섞여 있을 수 있다. Claude가 "파일을 확인해보겠습니다" 같은 자연어를 먼저 출력하고 도구를 호출하는 패턴이 흔하다. 이걸 다 messages에 보존해야 다음 턴에서 일관성이 유지된다.
+
+### 종료 조건 설계
+
+루프가 안 끝나는 게 가장 흔한 사고다. Claude가 도구 호출에 빠져서 같은 파일을 반복해서 읽거나, 검색 결과가 만족스럽지 않다고 계속 다른 키워드로 시도하는 경우가 있다.
+
+종료 조건은 세 층으로 둔다.
+
+1. **자연 종료**: `stop_reason="end_turn"` (모델이 끝났다고 판단)
+2. **턴 상한**: `max_turns=50` 같은 하드 캡 (안전장치)
+3. **토큰 예산**: 누적 토큰이 예산 초과 시 강제 종료
+
+Claude Code 내부 구현을 보면 비슷한 패턴이 있다. "1000 agent 호출 캡"은 워크플로우가 무한 루프에 빠지는 걸 막는 백스톱이다. 평소 워크플로우는 10~30개 에이전트로 끝나지만, 버그로 폭주할 때 사용자가 청구서를 받지 않도록 한다.
+
+### 병렬 도구 호출
+
+Claude는 한 응답에서 여러 tool_use 블록을 동시에 반환할 수 있다. 이걸 활용하면 루프 반복 횟수가 줄어든다.
+
+```python
+# 한 번의 응답에서 3개 도구를 병렬 호출
+response.content = [
+    TextBlock(text="세 파일을 한 번에 확인하겠습니다"),
+    ToolUseBlock(id="1", name="read_file", input={"path": "a.py"}),
+    ToolUseBlock(id="2", name="read_file", input={"path": "b.py"}),
+    ToolUseBlock(id="3", name="read_file", input={"path": "c.py"}),
+]
+```
+
+이 경우 실제 도구 실행은 클라이언트 쪽에서 `asyncio.gather` 같은 걸로 병렬 처리하면 된다. Claude Code가 "여러 Read를 한 메시지에 묶어서 호출하라"고 시스템 프롬프트에 명시한 이유도 이거다. 순차 호출하면 LLM 왕복이 N번, 병렬이면 1번이다.
+
+다만 도구 간 의존성이 있으면(A의 결과로 B의 입력을 만들어야 하면) 모델이 알아서 순차로 호출한다. 강제할 필요 없다.
+
+## ReAct 패턴
+
+### ReAct의 핵심 아이디어
+
+ReAct(Reasoning + Acting)는 2022년 Yao et al. 논문에서 나온 패턴이다. 핵심은 "도구를 호출하기 전에 LLM이 자기 추론을 텍스트로 출력하게 한다"는 것.
+
+```
+Thought: 사용자가 파일 개수를 원하니까 ls 명령어를 실행해야겠다
+Action: run_bash(command="ls | wc -l")
+Observation: 42
+Thought: 42개 파일이 있다고 답하면 된다
+Answer: 현재 디렉토리에는 42개 파일이 있습니다
+```
+
+이 패턴이 왜 잘 동작하느냐면, LLM이 추론 과정을 "글로 쓰면서" 다음 행동을 더 정확하게 결정하기 때문이다. Chain-of-Thought의 에이전트 버전이라고 보면 된다.
+
+### Claude의 ReAct 변형
+
+Claude는 기본적으로 자기 사고 과정을 텍스트로 출력하는 경향이 강하다. 시스템 프롬프트에서 "Don't narrate your internal deliberation"이라고 명시하지 않으면 "I'll check the file structure first..." 같은 메타 진술이 끼어든다.
+
+Claude Code 시스템 프롬프트에 다음과 같은 지시가 있다.
+
+> Don't narrate your internal deliberation. User-facing text should be relevant communication to the user, not a running commentary on your thought process.
+
+이건 ReAct를 끄라는 게 아니라, "사용자 화면에는 결과만 보이게 하라"는 뜻이다. 내부적으로는 extended thinking(`thinking` 블록)에서 추론을 하고, 외부 출력은 행동과 결과만 남긴다.
+
+### Extended Thinking과 ReAct
+
+Claude 4 시리즈부터 extended thinking이라는 별도 블록이 있다. 모델이 명시적으로 "생각하는" 영역이 분리된 것.
+
+```python
+response = client.messages.create(
+    model="claude-opus-4-7",
+    max_tokens=8096,
+    thinking={"type": "enabled", "budget_tokens": 4000},
+    messages=messages,
+)
+
+# response.content
+# [
+#   ThinkingBlock(thinking="사용자가 파일 개수를 원한다. ls | wc -l을 쓰면 되겠지만..."),
+#   ToolUseBlock(name="run_bash", input={"command": "ls | wc -l"}),
+# ]
+```
+
+ReAct의 Thought 부분이 ThinkingBlock에 들어가고, Action 부분이 ToolUseBlock에 들어간다. 사용자에게 보이는 출력은 깔끔하지만 모델은 충분히 추론한다.
+
+주의할 점: thinking 블록도 컨텍스트에 누적된다. 멀티턴이 길어지면 thinking이 컨텍스트를 갉아먹는다. Claude API에서는 이전 턴의 thinking을 다음 턴 컨텍스트에서 제거하지 않는 게 기본인데, 비용과 컨텍스트 윈도우 관점에서 신경 써야 한다.
+
+### Reflection 패턴
+
+ReAct를 한 단계 확장한 게 Reflexion(2023, Shinn et al.)이다. 에이전트가 자기 결과를 보고 "이게 맞나?" 자체 검증하는 단계를 추가한다.
+
+```
+Action: 코드 작성
+Observation: 테스트 통과
+Reflection: 엣지 케이스를 빠뜨린 것 같다. 빈 배열 입력을 처리하지 않았다
+Action: 빈 배열 처리 추가
+Observation: 테스트 통과
+Answer: 완료
+```
+
+Claude Code의 워크플로우에 비슷한 패턴이 있다. "Adversarial verify"라고 부르는데, 어떤 발견(finding)이 나오면 별도 에이전트가 "이걸 반박해봐"라고 시키는 방식이다.
+
+```javascript
+const votes = await parallel(Array.from({length: 3}, () => () =>
+  agent(`Try to refute: ${claim}. Default to refuted=true if uncertain.`)));
+const survives = votes.filter(v => !v.refuted).length >= 2;
+```
+
+3명의 검증자 에이전트가 독립적으로 "이 발견이 틀렸다는 증거"를 찾고, 2명 이상이 반박하면 발견을 폐기한다. 단순 ReAct로는 잡지 못하는 hallucination을 걸러낸다.
+
+## 도구 호출 (Tool Use)
+
+### 도구 스키마 설계
+
+도구 스펙은 JSON Schema로 정의한다. 잘 쓴 도구 스키마와 못 쓴 도구 스키마는 에이전트 성능을 크게 가른다.
+
+```python
+{
+    "name": "read_file",
+    "description": "Read contents of a file. Returns the file content as a string. Fails if file doesn't exist or is binary.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "Absolute path to the file. Relative paths are not supported."
+            },
+            "start_line": {
+                "type": "integer",
+                "description": "Line number to start reading from (1-indexed). Defaults to 1.",
+                "default": 1
+            },
+            "end_line": {
+                "type": "integer",
+                "description": "Line number to stop at (inclusive). Defaults to end of file."
+            }
+        },
+        "required": ["file_path"]
+    }
+}
+```
+
+도구 설명에 꼭 포함해야 할 것.
+
+- **무엇을 하는가**: 한 문장으로 동작
+- **언제 사용하는가**: 다른 비슷한 도구와의 차이
+- **언제 사용하지 않는가**: 명시적 부정 케이스
+- **반환값 형식**: 모델이 결과를 해석할 때 필요
+- **실패 조건**: 어떤 입력이면 실패하는지
+
+Claude Code의 Read 도구 설명을 보면 "do NOT re-read a file you just edited to verify" 같은 부정 지시가 있다. 모델이 불필요한 호출을 줄이도록 유도한다.
+
+### tool_use와 tool_result 블록
+
+Claude API에서 도구 호출 메시지 흐름은 이렇다.
+
+```python
+# 1턴: 사용자 입력
+{"role": "user", "content": "현재 시간 알려줘"}
+
+# 2턴: assistant가 도구 호출
+{"role": "assistant", "content": [
+    {"type": "text", "text": "현재 시간을 확인하겠습니다"},
+    {"type": "tool_use", "id": "toolu_01", "name": "get_time", "input": {}}
+]}
+
+# 3턴: user role로 tool_result를 전달 (이게 자연스럽지 않게 느껴지지만 API 스펙이 그렇다)
+{"role": "user", "content": [
+    {"type": "tool_result", "tool_use_id": "toolu_01", "content": "2026-06-06T14:30:00"}
+]}
+
+# 4턴: assistant 최종 응답
+{"role": "assistant", "content": "현재 시간은 2026년 6월 6일 14시 30분입니다"}
+```
+
+`tool_result`가 user role에 들어가는 게 처음 보면 어색하다. Anthropic이 이렇게 설계한 이유는 "외부 세계에서 들어온 정보는 모두 user 채널로"라는 일관성 때문이다. 사용자 입력과 도구 결과를 같은 채널로 합치면 모델이 "외부에서 들어온 정보"로 통일해서 처리할 수 있다.
+
+`tool_use_id`는 반드시 매칭시켜야 한다. 안 그러면 InvalidRequestError가 난다. 도구 호출이 여러 개면 모든 호출에 대한 result를 다음 user 메시지에 다 넣어야 한다.
+
+### 도구 실패 처리
+
+도구가 실패했을 때 어떻게 LLM에게 알리느냐가 에이전트 견고성을 결정한다.
+
+```python
+# 나쁜 예: 예외를 그대로 던지고 루프 중단
+try:
+    result = read_file(path)
+except FileNotFoundError as e:
+    raise  # 에이전트 루프가 죽는다
+
+# 좋은 예: 에러도 tool_result로 모델에게 전달
+try:
+    result = read_file(path)
+    tool_results.append({"type": "tool_result", "tool_use_id": id, "content": result})
+except FileNotFoundError as e:
+    tool_results.append({
+        "type": "tool_result",
+        "tool_use_id": id,
+        "content": f"Error: File not found: {path}",
+        "is_error": True,
+    })
+```
+
+`is_error=True` 플래그를 주면 모델이 더 명확하게 "이건 실패한 호출"로 인식한다. 같은 호출을 반복하지 않고 다른 접근을 시도한다.
+
+특히 검색 도구 결과가 비었을 때 그냥 빈 문자열을 반환하면 모델이 "정보 없음"으로 받아들이고 환각으로 채울 수 있다. "No results found for query 'xyz'"처럼 명시적으로 알려줘야 한다.
+
+### 도구 호출 빈도 제어
+
+도구가 너무 많거나 비슷한 도구가 여러 개면 모델이 헷갈린다. Claude Code의 시스템 프롬프트에 다음 같은 지시가 있다.
+
+> Prefer dedicated tools over Bash when one fits (Read, Edit, Write, Glob, Grep) — reserve Bash for shell-only operations.
+
+이런 지시가 없으면 모델은 뭐든지 Bash로 처리하려는 경향이 있다. `cat`, `grep`, `find` 같은 명령으로 다 되니까. 명시적으로 "전용 도구를 써라"고 해야 적절한 도구를 고른다.
+
+도구 호출 빈도를 줄이는 다른 패턴.
+
+- **결과 캐싱**: 같은 파일을 두 번 읽지 않게 클라이언트에서 캐시
+- **결과 압축**: 대용량 출력은 요약해서 모델에 전달
+- **배치 API**: read_files(paths=[...]) 같이 여러 입력을 한 번에 받는 도구 제공
+
+### MCP (Model Context Protocol)
+
+도구를 정의하는 표준 프로토콜이 MCP다. Anthropic이 2024년 말 공개했다.
+
+기존에는 도구 정의가 클라이언트 코드에 박혀 있었다. Claude Code가 알고 있는 도구, Cursor가 알고 있는 도구가 따로따로였다. MCP는 도구 서버를 별도 프로세스로 띄우고 표준 프로토콜로 도구 목록과 호출을 주고받는다.
+
+```
+[Claude Code] ←→ MCP Server (filesystem) ←→ 로컬 파일시스템
+            ←→ MCP Server (github) ←→ GitHub API
+            ←→ MCP Server (slack) ←→ Slack API
+```
+
+도구 생태계가 클라이언트와 독립적으로 자라난다. Slack용 MCP 서버 하나 만들면 Claude Code, Cursor, Codex가 다 쓸 수 있다. 단점은 프로세스 간 통신 오버헤드와 보안 검토 비용.
+
+자세한 건 [MCP 문서](../MCP/MCP.md) 참고.
+
+## 메모리
+
+### 컨텍스트 윈도우 vs 메모리
+
+LLM의 "메모리"는 헷갈리는 용어다. 두 가지가 섞여 있다.
+
+1. **단기 메모리**: 한 대화 세션 내 컨텍스트 윈도우. Claude는 최대 1M 토큰까지 가능
+2. **장기 메모리**: 세션이 끝나도 유지되는 정보. 별도 저장소 필요
+
+단기 메모리는 LLM이 알아서 처리한다. messages 배열에 누적되니까. 문제는 장기 메모리다. 다음 세션에서 "지난번에 이 사용자가 Python 백엔드 개발자라고 했지"를 어떻게 기억하는가.
+
+### 메모리 패턴들
+
+**1. 메시지 히스토리 저장**
+
+가장 단순한 방법. 모든 대화를 DB에 저장하고 다음 세션에서 일부를 컨텍스트에 주입한다.
+
+```python
+# 다음 세션 시작 시
+recent_messages = load_last_n_messages(user_id, n=20)
+messages = recent_messages + [{"role": "user", "content": new_input}]
+```
+
+단점: 대화가 길어지면 토큰 비용이 폭발한다. 100번째 세션이면 100x의 컨텍스트.
+
+**2. 요약 기반 메모리**
+
+각 세션 끝에 LLM이 요약을 만들어 저장. 다음 세션에서 요약만 주입.
+
+```python
+summary = llm.invoke(f"이 대화를 3문장으로 요약: {full_conversation}")
+save_memory(user_id, summary)
+
+# 다음 세션
+past_summary = load_memory(user_id)
+system_prompt = f"이전 대화 요약: {past_summary}\n\n이제 새 대화를 시작합니다"
+```
+
+단점: 요약 과정에서 디테일이 손실된다. "그 함수 이름이 뭐였더라"를 못 떠올린다.
+
+**3. 구조화된 메모리 (Claude Code 패턴)**
+
+Claude Code가 쓰는 방식이 흥미롭다. 메모리를 타입별로 분류해서 파일로 저장한다.
+
+```
+~/.claude/memory/
+├── MEMORY.md           # 인덱스
+├── user_role.md        # 사용자 정보
+├── feedback_testing.md # 사용자 피드백
+├── project_overview.md # 프로젝트 컨텍스트
+└── reference_linear.md # 외부 시스템 참조
+```
+
+타입은 user / feedback / project / reference 네 가지. 각각 언제 저장하고 언제 활용할지 명확한 규칙이 있다.
+
+```markdown
+---
+name: feedback-testing
+description: integration tests must hit real DB, not mocks
+metadata:
+  type: feedback
+---
+
+통합 테스트는 모킹 DB가 아닌 실제 DB를 써야 한다.
+
+**Why:** 지난 분기에 모킹 테스트가 통과했는데 프로덕션 마이그레이션이 실패한 사고가 있었음.
+**How to apply:** 통합 테스트 작성 시 DB 모킹을 발견하면 사용자에게 확인 요청.
+```
+
+각 메모리는 "Why"와 "How to apply"를 명시한다. 규칙만 저장하면 모델이 엣지 케이스에서 잘못 적용한다. 이유를 알면 판단할 수 있다.
+
+**4. RAG 기반 메모리**
+
+장기 메모리를 벡터 DB에 저장하고 의미 검색으로 끌어온다.
+
+```python
+# 저장
+embedding = embed(memory_text)
+vector_db.insert(embedding, memory_text, user_id=user_id)
+
+# 검색
+query_embedding = embed(current_user_input)
+relevant_memories = vector_db.search(query_embedding, top_k=5)
+```
+
+장점: 메모리가 무제한으로 늘어나도 컨텍스트 비용은 일정. 단점: 의미적으로 비슷한데 실제로는 관련 없는 메모리가 끌려올 수 있다.
+
+### Stale memory 문제
+
+가장 흔한 사고: 메모리가 한 번 저장되면 영원히 유지된다는 가정. 실제로는 코드, 정책, 사용자 상황이 다 바뀐다.
+
+```
+[메모리] 사용자의 메인 브랜치는 'master'다
+[몇 달 후 현실] 사용자가 'main'으로 바꿈
+[다음 대화] 에이전트가 'git push master' 시도 → 실패
+```
+
+대응책.
+
+- 메모리에 시간 정보 포함 (언제 저장됐는지)
+- 메모리 활용 전에 현재 상태 확인 (파일이 정말 그 경로에 있는지)
+- 주기적 메모리 검증 루프
+
+Claude Code 시스템 프롬프트에 다음 지시가 있다.
+
+> A memory that names a specific function, file, or flag is a claim that it existed when the memory was written. It may have been renamed, removed, or never merged. Before recommending it: check the file exists. Grep for the function or flag.
+
+메모리를 "현재 상태"가 아니라 "특정 시점의 스냅샷"으로 다루라는 것. 실무적으로 매우 중요한 관점이다.
+
+## 플래닝
+
+### 왜 플래닝이 필요한가
+
+단순 도구 호출 루프로는 못 푸는 문제가 있다. "이 모노레포에서 deprecated API를 모두 새 API로 마이그레이션해"같은 작업.
+
+- 어떤 파일을 수정해야 하는지 모름 (탐색 필요)
+- 수정 순서가 중요 (의존성 그래프)
+- 중간에 테스트가 깨질 수 있음 (검증 필요)
+- 전체 진행률을 알아야 함 (관리)
+
+플래닝은 "큰 작업을 작은 단계로 쪼개고 순서를 정하는" 과정이다.
+
+### 플랜 패턴
+
+**1. Plan-then-Execute**
+
+플랜을 먼저 만들고, 그 다음에 한 단계씩 실행.
+
+```
+입력: "이 PR을 리뷰하고 발견사항을 정리해"
+
+플랜 단계:
+1. PR diff 가져오기
+2. 변경된 파일 목록 추출
+3. 각 파일별로 리뷰 수행
+4. 발견사항 종합
+5. Markdown 리포트 생성
+
+실행 단계: 위 5단계를 순차 실행
+```
+
+장점: 사용자가 플랜을 보고 승인할 수 있음. Claude Code의 Plan Mode가 이 패턴.
+
+단점: 플랜이 실행 전에 결정되니까, 실행 중 발견된 정보로 플랜을 못 바꿈.
+
+**2. ReAct 기반 동적 플래닝**
+
+매 단계마다 모델이 "다음에 뭘 할지"를 결정. 플랜이 동적으로 변함.
+
+```
+Step 1: ls로 디렉토리 확인 → src/, tests/ 발견
+Step 2: src/에서 deprecated 호출 grep → 5개 파일 발견
+Step 3: 첫 파일 수정 → 테스트 실행 → 실패
+Step 4: 실패 원인 분석 → 의존성 파일 추가 발견
+Step 5: 의존성 파일 먼저 수정 → 첫 파일 다시 수정 → 성공
+...
+```
+
+장점: 새로 발견한 정보로 계획 조정 가능. 단점: 사용자가 어디까지 진행됐는지 추적하기 어려움.
+
+**3. Plan + Task List**
+
+플랜을 만들고, 각 단계를 task로 관리. 진행 상황이 가시적.
+
+Claude Code의 TaskCreate가 이 패턴이다. 작업을 시작할 때 task list를 만들고, 각 task 상태(pending/in_progress/completed)를 업데이트한다.
+
+```
+tasks:
+- [x] PR diff 가져오기
+- [x] 변경 파일 추출
+- [ ] 파일 1/5 리뷰 중
+- [ ] 파일 2/5 리뷰
+- [ ] 파일 3/5 리뷰
+- [ ] 리포트 생성
+```
+
+사용자가 중간에 진행률을 볼 수 있고, 모델도 자기 진행 상황을 인지할 수 있다.
+
+### 멀티 에이전트 플래닝
+
+작업이 너무 크면 단일 에이전트로 못 한다. 멀티 에이전트를 오케스트레이션한다.
+
+Claude Code Workflow의 패턴.
+
+```javascript
+phase('Discover')
+const files = await agent('Find all files using deprecated API')
+
+phase('Migrate')
+const results = await pipeline(
+    files.list,
+    f => agent(`Migrate ${f} to new API`, {isolation: 'worktree'}),
+    r => agent(`Run tests in ${r.file}`),
+    t => agent(`If failed, fix: ${t.errors}`)
+)
+
+phase('Verify')
+const summary = await agent(`Summarize: ${JSON.stringify(results)}`)
+return summary
+```
+
+플랜이 코드로 표현된다. 각 phase는 명확한 입출력이 있고, 실패한 단계는 재시도 가능하다. LLM이 매번 "다음에 뭘 할지" 결정하는 것보다 결정론적이다.
+
+자세한 건 [Agent Harness 문서](Agent_Harness.md) 참고.
+
+## Claude 에이전트의 특수성
+
+### Claude는 도구 호출에서 신중하다
+
+다른 모델 대비 Claude는 도구를 적게 호출하는 경향이 있다. 정보가 부족하면 사용자에게 물어보거나, 가설을 세우고 검증하는 방식.
+
+장점은 불필요한 도구 호출로 컨텍스트와 비용을 낭비하지 않는다는 점. 단점은 충분한 정보가 있는데도 "확인해도 될까요?" 물어볼 때가 있다는 점.
+
+시스템 프롬프트로 행동을 조정할 수 있다.
+
+```
+- Bias toward working without stopping for clarifying questions
+- When you'd normally pause to check, make the reasonable call and keep going
+- They'll redirect you if needed
+```
+
+Claude Code의 Auto Mode가 이런 프롬프트로 행동을 조정한다. 기본적으로는 신중하지만, 컨텍스트가 있으면 자율 모드로 전환된다.
+
+### Prompt Caching과 에이전트 루프
+
+Claude의 prompt caching은 에이전트 성능에 결정적이다.
+
+```python
+# 시스템 프롬프트에 cache_control 설정
+system_prompt = [
+    {
+        "type": "text",
+        "text": SYSTEM_PROMPT,  # 보통 5000~20000 토큰
+        "cache_control": {"type": "ephemeral"}
+    }
+]
+```
+
+에이전트는 같은 시스템 프롬프트로 수십 번 호출되니까, 캐시 히트가 90%+ 나온다. 비용이 1/10로 줄고 응답도 빨라진다.
+
+주의: 캐시 TTL은 5분이다. 그 사이에 다음 호출이 없으면 캐시가 만료된다. 에이전트가 5분 이상 sleep하는 패턴은 피해야 한다.
+
+```javascript
+// 나쁜 예: 5분 자고 폴링
+await sleep(300_000);
+checkStatus();
+
+// 좋은 예: 270초로 줄여서 캐시 유지
+await sleep(270_000);
+checkStatus();
+
+// 또는: 한참 자야 한다면 1200초+ 이상으로 (캐시 미스 비용 분산)
+await sleep(1200_000);
+```
+
+### Subagent 패턴
+
+복잡한 작업은 메인 에이전트가 직접 하지 않고 subagent에 위임한다.
+
+```python
+# 메인 에이전트가 토큰 절약을 위해 위임
+result = invoke_subagent(
+    task="이 모노레포에서 unused exports를 모두 찾아라",
+    agent_type="Explore"
+)
+# subagent가 수많은 grep/read를 수행. 결과만 메인에 반환.
+# 메인 컨텍스트에는 grep 결과 수천 줄이 안 쌓임.
+```
+
+서브에이전트의 핵심 가치는 "컨텍스트 격리"다. 100개 파일을 읽어야 하는 작업을 메인에서 하면 메인 컨텍스트가 폭발한다. Subagent에 시키면 그 100개 파일은 subagent 컨텍스트에 들어가고, 메인에는 요약된 결과만 돌아온다.
+
+Claude Code의 Agent tool 설명을 보면 이런 점이 강조된다.
+
+> The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.
+
+Subagent 결과는 메인이 한 번 더 요약해서 사용자에게 보여줘야 한다. 메인이 "최종 책임자" 역할을 하는 패턴.
+
+### Workflow vs 자유 루프
+
+작업 성격에 따라 두 패턴이 갈린다.
+
+| 특성 | 자유 루프 | Workflow |
+|---|---|---|
+| 결정론 | 낮음 (LLM이 매번 결정) | 높음 (코드가 결정) |
+| 유연성 | 높음 | 낮음 |
+| 디버깅 | 어려움 | 쉬움 |
+| 적합한 작업 | 탐색적 코딩 | 대량 마이그레이션, 감사 |
+
+작은 작업은 자유 루프(Claude Code 메인 루프), 큰 작업은 Workflow로 쪼개는 게 일반적이다.
+
+## 실패 모드와 대응
+
+### 무한 루프
+
+같은 도구를 반복 호출하면서 종료하지 않는 경우. 가장 흔한 원인.
+
+- 검색 결과가 비었는데 모델이 다른 키워드로 계속 시도
+- 테스트가 깨졌는데 비슷한 수정을 반복
+- 도구 결과를 잘못 해석해서 잘못된 후속 호출
+
+대응.
+
+- 최대 turn 수 캡 (예: 50)
+- 토큰 예산 캡 (예: 1M 토큰)
+- 같은 도구 호출 N회 반복 감지 → 강제 종료
+
+### 환각 도구 호출
+
+존재하지 않는 도구나 잘못된 입력으로 호출. Claude는 비교적 적지만 발생한다.
+
+대응.
+
+- 도구 스키마 검증을 클라이언트에서 수행 → 잘못된 호출은 즉시 에러 반환
+- 에러 메시지에 "사용 가능한 도구 목록" 첨부 → 모델이 자기 수정
+- 의심스러운 호출은 사용자 승인 받기
+
+### 도구 결과 무시
+
+도구가 명확한 답을 반환했는데 모델이 무시하고 다른 결론을 내는 경우. 보통 결과 포맷이 모호할 때 발생.
+
+```
+도구 결과: "{}"
+모델: 결과가 없네요. 추측으로 답하겠습니다.
+
+→ 실제로는 빈 객체가 의미 있는 결과인 경우가 많음
+```
+
+대응.
+
+- 도구 결과에 메타 정보 추가 ("0 results", "empty array")
+- 도구 설명에 결과 해석 가이드 명시
+- 빈 결과는 명시적 텍스트로 ("No matches found")
+
+### 컨텍스트 폭발
+
+에이전트가 오래 돌면 컨텍스트가 점점 커진다. 1M 컨텍스트도 한계가 있다.
+
+대응.
+
+- 오래된 도구 결과는 요약본으로 교체
+- 파일 읽기 결과는 필요한 부분만 잘라서 컨텍스트에 넣기
+- 일정 길이 초과 시 자동 압축 (Claude Code는 200k 즈음에서 자동 compact 트리거)
+
+### 잘못된 도구 선택
+
+비슷한 도구가 여러 개일 때 부적절한 선택. 예: `Read` 대신 Bash의 `cat`을 사용.
+
+대응.
+
+- 시스템 프롬프트에 도구 선택 가이드 명시
+- 도구 설명에 "언제 사용하지 않는가" 추가
+- 도구 호출 패턴 분석 → 자주 잘못 선택되는 케이스 발견 → 프롬프트 보강
+
+## 실제 구현: 간단한 코딩 에이전트
+
+다음은 Anthropic SDK로 만든 미니멀한 코딩 에이전트다. 위에서 다룬 패턴들이 실제로 어떻게 합쳐지는지 보여준다.
+
+```python
+import anthropic
+import subprocess
+import json
+from pathlib import Path
+
+client = anthropic.Anthropic()
+
+TOOLS = [
+    {
+        "name": "read_file",
+        "description": "Read the contents of a file. Returns the full text content.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Absolute file path"}
+            },
+            "required": ["path"]
         }
     },
     {
-        "type": "function",
-        "function": {
-            "name": "send_email",
-            "description": "고객에게 이메일을 발송한다",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "to": {"type": "string"},
-                    "subject": {"type": "string"},
-                    "body": {"type": "string"}
-                },
-                "required": ["to", "subject", "body"]
-            }
+        "name": "write_file",
+        "description": "Write content to a file. Overwrites existing file.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "content": {"type": "string"}
+            },
+            "required": ["path", "content"]
+        }
+    },
+    {
+        "name": "run_command",
+        "description": "Run a shell command. Returns stdout. For tests, builds, file operations.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string"}
+            },
+            "required": ["command"]
         }
     }
 ]
 
-# 실제 도구 실행 함수
-def execute_tool(name: str, arguments: dict) -> str:
-    if name == "search_db":
-        # 실제로는 DB 조회
-        return json.dumps({"order_id": arguments["order_id"], "status": "배송중", "eta": "2026-04-10"})
-    elif name == "send_email":
-        # 실제로는 이메일 발송
-        return json.dumps({"success": True, "message_id": "msg_123"})
-    return json.dumps({"error": f"unknown tool: {name}"})
-
-
-def run_agent(user_message: str, max_turns: int = 10) -> str:
-    messages = [
-        {"role": "system", "content": "너는 주문 관리 에이전트다. 도구를 사용해서 사용자의 요청을 처리해라."},
-        {"role": "user", "content": user_message}
-    ]
-
-    for turn in range(max_turns):
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            tools=tools
-        )
-
-        message = response.choices[0].message
-        messages.append(message)
-
-        # 도구 호출이 없으면 최종 응답
-        if not message.tool_calls:
-            return message.content
-
-        # 도구 호출 처리
-        for tool_call in message.tool_calls:
-            result = execute_tool(
-                tool_call.function.name,
-                json.loads(tool_call.function.arguments)
-            )
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": result
-            })
-
-    return "최대 반복 횟수를 초과했습니다."
-
-
-# 실행
-answer = run_agent("주문 ORD-456 상태 확인하고, 고객 kim@example.com에게 배송 안내 메일 보내줘")
-print(answer)
-```
-
-`run_agent` 함수의 for 루프가 에이전트의 핵심이다. LLM이 `tool_calls`를 반환하면 도구를 실행하고 결과를 messages에 추가한다. `tool_calls`가 없으면 LLM이 최종 응답을 내린 것이므로 루프를 종료한다.
-
-### 2.3 ReAct 구현 시 주의할 점
-
-**max_turns 제한은 필수다.** LLM이 같은 도구를 무한 반복하거나, 해결할 수 없는 문제에 계속 시도하는 경우가 있다. max_turns 없이 배포하면 API 비용이 걷잡을 수 없이 늘어난다. 프로덕션에서는 10~20회가 적당하다.
-
-**도구 실행 결과가 너무 길면 문제가 된다.** DB 조회 결과가 수천 행이면 컨텍스트 윈도우를 다 먹는다. 도구 함수 안에서 결과를 요약하거나 페이지네이션 처리해야 한다.
-
-**Thought를 명시적으로 출력하게 만드는 게 디버깅에 도움된다.** 시스템 프롬프트에 "도구를 호출하기 전에 왜 이 도구를 사용하는지 먼저 설명해라"를 추가하면, 에이전트가 잘못된 판단을 할 때 원인을 파악하기 쉽다. 다만 토큰 소비가 늘어나므로 프로덕션에서는 trade-off를 따져야 한다.
-
-
-## 3. Planning-Execution 루프
-
-ReAct는 한 단계씩 생각하고 행동한다. 복잡한 작업에서는 이것만으로 부족할 때가 있다. 10단계짜리 작업을 하는데 3단계에서 잘못된 방향으로 빠지면, 나머지 7단계가 전부 낭비된다.
-
-Planning-Execution은 이 문제를 해결한다. **먼저 전체 계획을 세우고, 계획대로 실행하되, 중간에 계획을 수정할 수 있다.**
-
-### 3.1 구조
-
-```mermaid
-flowchart TD
-    Start["사용자 요청"] --> Plan["Plan<br/>전체 계획 수립"]
-    Plan --> Step["Step N 실행"]
-    Step --> Observe["실행 결과 확인"]
-    Observe -->|계획 수정 필요| Replan["Replan<br/>남은 계획 수정"]
-    Replan --> Step
-    Observe -->|계획 유지| Check{"남은 단계<br/>있는가?"}
-    Check -->|있음| Step
-    Check -->|없음| Result["결과 종합 및 응답"]
-
-    style Start fill:#6c757d,stroke:#495057,color:#fff
-    style Plan fill:#4a90d9,stroke:#2c5f8a,color:#fff
-    style Step fill:#d97b4a,stroke:#8a4e2c,color:#fff
-    style Observe fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style Replan fill:#d9534f,stroke:#8a3533,color:#fff
-    style Check fill:#f0ad4e,stroke:#8a6d2b,color:#fff
-    style Result fill:#8e6fbf,stroke:#5e4a80,color:#fff
-```
-
-ReAct와 다른 점은 실행 전에 전체 계획이 먼저 나온다는 것이다. 실행 중간에 결과가 예상과 다르면 Replan으로 남은 계획을 수정한다.
-
-```
-[Plan 단계]
-1. 주문 DB에서 ORD-789 조회
-2. 반품 가능 여부 확인 (구매일로부터 30일 이내인지)
-3. 반품 가능하면 반품 접수 처리
-4. 고객에게 반품 접수 완료 메일 발송
-
-[Execute 단계 - Step 1]
-Action: search_db(order_id="ORD-789")
-Observation: {"order_date": "2026-02-01", "status": "배송완료"}
-
-[Replan]
-구매일이 2026-02-01이고 오늘이 2026-04-08이므로 30일이 지났다.
-계획 수정: 반품 불가 사유를 고객에게 안내한다.
-1. 고객에게 반품 기한 초과 안내 메일 발송
-```
-
-ReAct와 다른 점은, 전체 계획이 먼저 나오고, 실행 중간에 관찰 결과에 따라 계획을 바꿀 수 있다는 것이다.
-
-### 3.2 구현
-
-```python
-import json
-from openai import OpenAI
-
-client = OpenAI()
-
-def plan(messages: list, tools: list) -> list[str]:
-    """LLM에게 계획을 세우게 한다. 단계별 목록을 반환한다."""
-    plan_messages = messages + [
-        {"role": "user", "content": (
-            "위 요청을 처리하기 위한 단계별 계획을 JSON 배열로 작성해라. "
-            "각 단계는 문자열이다. 예: [\"DB에서 주문 조회\", \"결과 확인\", \"메일 발송\"]"
-        )}
-    ]
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=plan_messages,
-        response_format={"type": "json_object"}
-    )
-    content = json.loads(response.choices[0].message.content)
-    return content.get("steps", content.get("plan", []))
-
-
-def execute_step(step: str, messages: list, tools: list) -> dict:
-    """한 단계를 실행한다. 도구 호출이 필요하면 처리한다."""
-    messages.append({"role": "user", "content": f"다음 단계를 실행해라: {step}"})
-
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=messages,
-        tools=tools
-    )
-    message = response.choices[0].message
-    messages.append(message)
-
-    results = []
-    if message.tool_calls:
-        for tool_call in message.tool_calls:
-            result = execute_tool(tool_call.function.name,
-                                  json.loads(tool_call.function.arguments))
-            results.append(result)
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": result
-            })
-
-    return {"response": message.content, "tool_results": results}
-
-
-def should_replan(step_result: dict, remaining_steps: list[str], messages: list) -> list[str] | None:
-    """실행 결과를 보고 남은 계획을 수정할지 판단한다."""
-    replan_messages = messages + [
-        {"role": "user", "content": (
-            f"방금 실행 결과를 확인했다. 남은 계획: {json.dumps(remaining_steps, ensure_ascii=False)}\n"
-            "이 계획을 그대로 진행해도 되면 null을 반환해라. "
-            "수정이 필요하면 새로운 단계 목록을 JSON 배열로 반환해라."
-        )}
-    ]
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=replan_messages,
-        response_format={"type": "json_object"}
-    )
-    content = json.loads(response.choices[0].message.content)
-    new_steps = content.get("steps")
-    if new_steps and isinstance(new_steps, list):
-        return new_steps
-    return None
-
-
-def run_plan_execute(user_message: str, tools: list, max_replans: int = 3) -> str:
-    messages = [
-        {"role": "system", "content": "너는 주문 관리 에이전트다."},
-        {"role": "user", "content": user_message}
-    ]
-
-    steps = plan(messages, tools)
-    replan_count = 0
-
-    while steps:
-        current_step = steps.pop(0)
-        result = execute_step(current_step, messages, tools)
-
-        if steps and replan_count < max_replans:
-            new_steps = should_replan(result, steps, messages)
-            if new_steps is not None:
-                steps = new_steps
-                replan_count += 1
-
-    # 최종 응답 생성
-    messages.append({"role": "user", "content": "모든 단계를 완료했다. 결과를 요약해라."})
-    response = client.chat.completions.create(model="gpt-4o", messages=messages)
-    return response.choices[0].message.content
-```
-
-### 3.3 ReAct vs Planning-Execution
-
-| 상황 | ReAct | Planning-Execution |
-|------|-------|-------------------|
-| 단순 조회 + 응답 | 적합 | 과도함 |
-| 3단계 이하 작업 | 적합 | 과도함 |
-| 5단계 이상 복합 작업 | 방향을 잃기 쉬움 | 적합 |
-| 중간 결과에 따라 분기가 많은 작업 | 가능하지만 비효율적 | 적합 |
-| API 비용을 줄여야 할 때 | 유리 (LLM 호출 적음) | 불리 (Plan, Replan에 추가 호출) |
-
-실무에서는 둘을 섞어 쓴다. 전체 흐름은 Planning-Execution으로 관리하고, 각 단계의 실행은 ReAct로 처리하는 방식이다.
-
-
-## 4. 상태 관리와 메모리
-
-에이전트가 루프를 돌면서 가장 먼저 부딪히는 문제가 메모리다. LLM의 컨텍스트 윈도우에는 한계가 있고, 에이전트가 10번, 20번 도구를 호출하면 이전 대화를 다 담을 수 없다.
-
-에이전트의 메모리 구조는 단기 메모리(컨텍스트 윈도우)와 장기 메모리(벡터 DB) 두 계층으로 나뉜다.
-
-```mermaid
-flowchart TD
-    subgraph ShortTerm["단기 메모리 (컨텍스트 윈도우)"]
-        Sys["System Prompt"]
-        Conv["대화 히스토리"]
-        Tool["도구 호출 결과"]
-        Summary["압축된 요약"]
-    end
-
-    subgraph LongTerm["장기 메모리 (벡터 DB)"]
-        Vec["벡터 저장소<br/>Chroma / Pinecone"]
-        Embed["임베딩 검색"]
-    end
-
-    Agent["에이전트 루프"] -->|매 턴마다 참조| ShortTerm
-    Agent -->|관련 기억 조회| LongTerm
-    Tool -->|크기 초과 시| Truncate["결과 잘라내기"]
-    Conv -->|토큰 한계 도달| Summary
-    Agent -->|중요 결과 저장| Vec
-    Embed -->|유사도 기반 recall| Agent
-
-    style ShortTerm fill:#f5f5f5,stroke:#999,color:#333
-    style LongTerm fill:#f5f5f5,stroke:#999,color:#333
-    style Agent fill:#4a90d9,stroke:#2c5f8a,color:#fff
-    style Truncate fill:#d9534f,stroke:#8a3533,color:#fff
-    style Summary fill:#f0ad4e,stroke:#8a6d2b,color:#fff
-    style Vec fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style Embed fill:#5cb85c,stroke:#3a7a3a,color:#fff
-```
-
-단기 메모리는 현재 실행 중인 대화의 컨텍스트 윈도우 안에서 관리되고, 장기 메모리는 세션이 끝난 뒤에도 벡터 DB에 남는다. 단기 메모리가 한계에 도달하면 오래된 메시지를 요약으로 압축하고, 도구 결과가 너무 크면 잘라낸다.
-
-### 4.1 컨텍스트 윈도우 관리
-
-가장 흔한 실수는 모든 도구 호출 결과를 messages 배열에 그대로 쌓는 것이다. DB 조회 결과가 매번 수백 행이면 5번만 호출해도 컨텍스트가 가득 찬다.
-
-```python
-class ConversationMemory:
-    """에이전트의 대화 메모리를 관리한다."""
-
-    def __init__(self, max_tokens: int = 50000):
-        self.messages: list[dict] = []
-        self.max_tokens = max_tokens
-        self.summaries: list[str] = []
-
-    def add(self, message: dict):
-        self.messages.append(message)
-        self._maybe_compress()
-
-    def _maybe_compress(self):
-        """토큰 수가 한계에 가까워지면 오래된 메시지를 요약으로 압축한다."""
-        estimated_tokens = sum(len(str(m.get("content", ""))) // 4 for m in self.messages)
-
-        if estimated_tokens > self.max_tokens * 0.8:
-            # 앞쪽 메시지를 요약으로 교체
-            old_messages = self.messages[:len(self.messages) // 2]
-            summary = self._summarize(old_messages)
-            self.summaries.append(summary)
-            self.messages = [
-                {"role": "system", "content": f"이전 대화 요약: {summary}"}
-            ] + self.messages[len(self.messages) // 2:]
-
-    def _summarize(self, messages: list[dict]) -> str:
-        """LLM을 사용해서 메시지를 요약한다. 실제 구현에서는 API 호출."""
-        # 간단한 구현 - 프로덕션에서는 LLM API로 요약
-        contents = [str(m.get("content", "")) for m in messages if m.get("role") != "system"]
-        return f"[{len(contents)}개 메시지 요약] " + "; ".join(c[:100] for c in contents[:5])
-
-    def get_messages(self) -> list[dict]:
-        return self.messages.copy()
-```
-
-### 4.2 도구 결과 크기 제한
-
-도구 실행 결과를 messages에 넣기 전에 크기를 제한해야 한다:
-
-```python
-def truncate_tool_result(result: str, max_chars: int = 2000) -> str:
-    """도구 결과가 너무 길면 잘라낸다."""
-    if len(result) <= max_chars:
-        return result
-
+def execute_tool(name, input_data):
     try:
-        data = json.loads(result)
-        if isinstance(data, list) and len(data) > 10:
-            truncated = data[:10]
-            return json.dumps(truncated, ensure_ascii=False) + f"\n... 외 {len(data) - 10}건"
-    except (json.JSONDecodeError, TypeError):
-        pass
+        if name == "read_file":
+            return Path(input_data["path"]).read_text()
+        elif name == "write_file":
+            Path(input_data["path"]).write_text(input_data["content"])
+            return f"Wrote {len(input_data['content'])} bytes"
+        elif name == "run_command":
+            result = subprocess.run(
+                input_data["command"],
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            return f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}\nreturn_code: {result.returncode}"
+    except Exception as e:
+        return f"Error: {type(e).__name__}: {e}"
 
-    return result[:max_chars] + f"\n... (총 {len(result)}자 중 {max_chars}자만 표시)"
-```
+def run_agent(user_request, max_turns=20):
+    messages = [{"role": "user", "content": user_request}]
 
-### 4.3 장기 메모리 (세션 간 지속)
-
-단일 대화 내에서의 메모리와 세션 간 지속되는 메모리는 다른 문제다. 세션 간 메모리가 필요하면 외부 저장소를 써야 한다.
-
-```python
-import hashlib
-from datetime import datetime
-
-
-class AgentLongTermMemory:
-    """벡터 DB 기반 장기 메모리. 세션이 끝나도 유지된다."""
-
-    def __init__(self, vector_store):
-        self.store = vector_store  # Chroma, Pinecone 등
-
-    def save(self, content: str, metadata: dict | None = None):
-        doc_id = hashlib.sha256(content.encode()).hexdigest()[:16]
-        self.store.upsert(
-            ids=[doc_id],
-            documents=[content],
-            metadatas=[{
-                "timestamp": datetime.now().isoformat(),
-                **(metadata or {})
-            }]
-        )
-
-    def recall(self, query: str, top_k: int = 5) -> list[str]:
-        results = self.store.query(query_texts=[query], n_results=top_k)
-        return results["documents"][0] if results["documents"] else []
-
-
-# 에이전트 루프에서 사용
-def run_agent_with_memory(user_message: str, memory: AgentLongTermMemory, **kwargs):
-    # 관련 기억을 먼저 조회
-    relevant_memories = memory.recall(user_message)
-    context = "\n".join(f"- {m}" for m in relevant_memories)
-
-    system_prompt = f"너는 주문 관리 에이전트다.\n\n과거 관련 정보:\n{context}" if context else "너는 주문 관리 에이전트다."
-
-    # ... 에이전트 루프 실행 ...
-    # 중요한 결과는 장기 메모리에 저장
-    # memory.save("고객 kim@example.com은 반품을 자주 요청한다", {"type": "customer_pattern"})
-```
-
-벡터 DB를 쓰는 이유는 키워드 매칭이 아니라 의미 기반으로 관련 기억을 찾기 위해서다. "배송 지연 불만"이라는 기억이 "물건이 안 와요"라는 쿼리에도 매칭된다.
-
-
-## 5. 에러 복구
-
-에이전트가 프로덕션에서 돌아가려면 에러 복구가 필수다. API 호출 실패, 도구 실행 에러, LLM의 잘못된 판단 등 실패 지점이 많다.
-
-### 5.1 도구 실행 실패 처리
-
-도구가 실패했을 때 에이전트에게 에러 정보를 돌려주면, LLM이 스스로 대안을 찾는 경우가 있다.
-
-```python
-def safe_execute_tool(name: str, arguments: dict, max_retries: int = 2) -> str:
-    """도구를 실행하되, 실패하면 재시도하고, 그래도 실패하면 에러 메시지를 반환한다."""
-    last_error = None
-
-    for attempt in range(max_retries + 1):
-        try:
-            result = execute_tool(name, arguments)
-            return result
-        except TimeoutError:
-            last_error = "도구 실행 시간 초과"
-        except ConnectionError:
-            last_error = "외부 서비스 연결 실패"
-        except Exception as e:
-            last_error = str(e)
-
-    # 재시도 실패 - 에러 정보를 LLM에게 돌려준다
-    return json.dumps({
-        "error": True,
-        "message": last_error,
-        "tool": name,
-        "suggestion": "다른 방법을 시도하거나 사용자에게 알려라"
-    })
-```
-
-이 에러 메시지를 messages에 tool 역할로 넣으면, LLM이 "이 도구가 실패했으니 다른 방법을 쓰자"고 판단할 수 있다. 모든 에러를 LLM에게 맡기면 안 된다 — 인증 실패나 권한 문제 같은 건 에이전트가 아무리 재시도해도 해결 못한다. 이런 경우는 즉시 사용자에게 알려야 한다.
-
-### 5.2 무한 루프 방지
-
-LLM이 같은 행동을 반복하는 경우가 실제로 발생한다. 같은 파라미터로 같은 도구를 계속 호출하거나, 도구 호출과 포기를 번갈아 반복하는 패턴이다.
-
-```python
-def detect_loop(messages: list[dict], window: int = 6) -> bool:
-    """최근 도구 호출 패턴이 반복되는지 탐지한다."""
-    recent_calls = []
-    for msg in messages[-window * 2:]:
-        if hasattr(msg, "tool_calls") and msg.tool_calls:
-            for tc in msg.tool_calls:
-                recent_calls.append(f"{tc.function.name}:{tc.function.arguments}")
-
-    if len(recent_calls) < 4:
-        return False
-
-    # 최근 2개 호출이 그 전 2개와 동일하면 루프
-    if recent_calls[-2:] == recent_calls[-4:-2]:
-        return True
-
-    # 같은 호출이 3번 이상이면 루프
-    from collections import Counter
-    counts = Counter(recent_calls)
-    return any(count >= 3 for count in counts.values())
-
-
-def run_agent_safe(user_message: str, max_turns: int = 10, **kwargs) -> str:
-    messages = [
-        {"role": "system", "content": "너는 주문 관리 에이전트다."},
-        {"role": "user", "content": user_message}
-    ]
+    system_prompt = [{
+        "type": "text",
+        "text": (
+            "You are a coding agent. Use tools to read files, write code, and run tests. "
+            "Be concise. Don't narrate your thinking. "
+            "Prefer batched parallel tool calls when independent."
+        ),
+        "cache_control": {"type": "ephemeral"}
+    }]
 
     for turn in range(max_turns):
-        if detect_loop(messages):
-            messages.append({
-                "role": "user",
-                "content": "같은 동작을 반복하고 있다. 다른 접근 방법을 시도하거나, 해결할 수 없으면 그 이유를 설명해라."
-            })
-
-        response = client.chat.completions.create(
-            model="gpt-4o", messages=messages, tools=tools
+        response = client.messages.create(
+            model="claude-opus-4-7",
+            max_tokens=4096,
+            system=system_prompt,
+            tools=TOOLS,
+            messages=messages,
         )
-        # ... 나머지 루프 처리 ...
+
+        # 응답을 messages에 보존
+        messages.append({"role": "assistant", "content": response.content})
+
+        if response.stop_reason == "end_turn":
+            text_blocks = [b for b in response.content if b.type == "text"]
+            return text_blocks[-1].text if text_blocks else "(empty response)"
+
+        if response.stop_reason == "tool_use":
+            tool_results = []
+            for block in response.content:
+                if block.type == "tool_use":
+                    print(f"  → {block.name}({json.dumps(block.input)[:80]})")
+                    output = execute_tool(block.name, block.input)
+                    is_error = output.startswith("Error:")
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": output,
+                        "is_error": is_error,
+                    })
+            messages.append({"role": "user", "content": tool_results})
+            continue
+
+        # 다른 stop_reason은 예외 케이스
+        return f"Unexpected stop_reason: {response.stop_reason}"
+
+    return "Max turns reached without completion"
+
+
+if __name__ == "__main__":
+    result = run_agent(
+        "Create a fibonacci.py in /tmp that prints first 10 fib numbers, then run it"
+    )
+    print("\nFinal:", result)
 ```
 
-루프를 탐지하면 LLM에게 "반복하고 있다"고 알려주는 메시지를 주입한다. 이것만으로 LLM이 다른 접근을 시도하는 경우가 많다.
+100줄 미만이지만 에이전트의 핵심 요소가 다 들어있다.
 
-### 5.3 타임아웃과 비용 제어
+- 도구 정의 (JSON Schema)
+- 도구 실행 로직 (예외 → tool_result)
+- 에이전트 루프 (stop_reason 분기)
+- 메시지 누적 (assistant content 보존)
+- 시스템 프롬프트 캐싱
+- 안전장치 (max_turns)
 
-에이전트 하나가 API 비용을 얼마나 쓸 수 있는지 제한하는 건 프로덕션에서 필수다.
+이걸 기반으로 도구를 추가하고 (search, browser, git), 메모리를 붙이고, 멀티 에이전트로 확장하는 게 실제 코딩 에이전트의 구조다.
 
-```python
-import time
+## 평가와 디버깅
 
+### 에이전트 평가의 어려움
 
-class AgentBudget:
-    """에이전트의 실행 시간과 API 호출 횟수를 제한한다."""
+LLM 평가는 정답이 있어서 자동화하기 쉽다. 에이전트는 그렇지 않다.
 
-    def __init__(self, max_llm_calls: int = 20, max_tool_calls: int = 50, max_seconds: int = 300):
-        self.max_llm_calls = max_llm_calls
-        self.max_tool_calls = max_tool_calls
-        self.max_seconds = max_seconds
-        self.llm_calls = 0
-        self.tool_calls = 0
-        self.start_time = time.time()
+- 같은 작업도 여러 정답 경로가 있음
+- 중간 상태 (도구 호출 순서)도 평가 대상
+- 비결정성 (같은 입력에도 다른 경로)
 
-    def check_llm_call(self):
-        self.llm_calls += 1
-        if self.llm_calls > self.max_llm_calls:
-            raise BudgetExceededError(f"LLM 호출 {self.max_llm_calls}회 초과")
+흔히 쓰는 평가 방법.
 
-    def check_tool_call(self):
-        self.tool_calls += 1
-        if self.tool_calls > self.max_tool_calls:
-            raise BudgetExceededError(f"도구 호출 {self.max_tool_calls}회 초과")
+**1. 결과 기반 평가**: 최종 출력만 확인 (테스트 통과 여부, 산출물 검증)
 
-    def check_time(self):
-        elapsed = time.time() - self.start_time
-        if elapsed > self.max_seconds:
-            raise BudgetExceededError(f"실행 시간 {self.max_seconds}초 초과")
+**2. Trajectory 평가**: 도구 호출 순서를 사람이 검토하거나 LLM-as-judge로 평가
 
+**3. Cost 평가**: 작업당 토큰 비용, 호출 횟수
 
-class BudgetExceededError(Exception):
-    pass
-```
+코딩 에이전트는 SWE-bench 같은 벤치마크가 있다. 실제 GitHub 이슈를 풀어서 PR을 만들 수 있는지 테스트한다. Claude 4 시리즈는 SWE-bench Verified에서 70% 이상 점수가 나온다.
 
-max_turns만으로는 부족하다. 한 턴에서 도구를 5개 병렬 호출할 수도 있고, 하나의 도구가 10초 걸릴 수도 있다. 시간, LLM 호출 횟수, 도구 호출 횟수를 각각 제한해야 한다.
+### Trace 디버깅
 
-
-## 6. 멀티 에이전트 오케스트레이션
-
-하나의 에이전트로 모든 걸 처리하려고 하면 시스템 프롬프트가 비대해지고, 도구가 수십 개가 되면서 LLM의 판단 정확도가 떨어진다. 역할별로 에이전트를 나누고, 오케스트레이터가 조율하는 방식이 멀티 에이전트다.
-
-멀티 에이전트 시스템의 대표적인 토폴로지 두 가지를 비교하면 이렇다.
-
-```mermaid
-flowchart TD
-    subgraph Router["라우터 패턴"]
-        direction TB
-        U1["사용자"] --> R["라우터"]
-        R -->|주문| A1["Order Agent"]
-        R -->|환불| A2["Refund Agent"]
-        R -->|배송| A3["Shipping Agent"]
-    end
-
-    subgraph Orchestrator["오케스트레이터 패턴"]
-        direction TB
-        U2["사용자"] --> O["오케스트레이터"]
-        O -->|"1. 주문 조회"| B1["Order Agent"]
-        B1 -->|결과| O
-        O -->|"2. 환불 처리"| B2["Refund Agent"]
-        B2 -->|결과| O
-        O -->|"3. 알림 발송"| B3["Notification Agent"]
-        B3 -->|결과| O
-        O --> Res["결과 종합 → 응답"]
-    end
-
-    style R fill:#f0ad4e,stroke:#8a6d2b,color:#fff
-    style O fill:#4a90d9,stroke:#2c5f8a,color:#fff
-    style A1 fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style A2 fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style A3 fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style B1 fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style B2 fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style B3 fill:#5cb85c,stroke:#3a7a3a,color:#fff
-    style Res fill:#8e6fbf,stroke:#5e4a80,color:#fff
-```
-
-라우터 패턴은 요청을 분류해서 하나의 전문 에이전트에 넘긴다. 오케스트레이터 패턴은 작업을 분해해서 여러 에이전트에 순서대로 위임하고 결과를 종합한다. 모든 통신은 오케스트레이터를 거쳐야 실행 흐름 추적이 가능하다.
-
-### 6.1 라우터 패턴
-
-가장 단순한 형태다. 사용자 요청을 분류해서 전문 에이전트에게 넘긴다.
-
-```python
-class RouterAgent:
-    """사용자 요청을 적절한 전문 에이전트에게 라우팅한다."""
-
-    def __init__(self):
-        self.agents = {
-            "order": OrderAgent(),      # 주문 조회/변경
-            "refund": RefundAgent(),     # 환불/반품
-            "shipping": ShippingAgent(), # 배송 추적
-        }
-
-    def route(self, user_message: str) -> str:
-        # LLM으로 의도 분류
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": (
-                    "사용자 메시지를 분류해라. "
-                    "order, refund, shipping 중 하나를 JSON으로 반환해라. "
-                    '예: {"category": "order"}'
-                )},
-                {"role": "user", "content": user_message}
-            ],
-            response_format={"type": "json_object"}
-        )
-        category = json.loads(response.choices[0].message.content)["category"]
-
-        agent = self.agents.get(category)
-        if not agent:
-            return "처리할 수 없는 요청입니다."
-
-        return agent.run(user_message)
-```
-
-라우터 패턴의 한계는 요청이 여러 카테고리에 걸칠 때다. "주문 취소하고 환불해줘"는 order와 refund 둘 다에 해당한다. 이런 경우 오케스트레이터 패턴이 필요하다.
-
-### 6.2 오케스트레이터 패턴
-
-오케스트레이터가 전체 작업을 계획하고, 하위 에이전트에게 단계별로 위임한다.
-
-```python
-class OrchestratorAgent:
-    """하위 에이전트들을 조율해서 복합 작업을 처리한다."""
-
-    def __init__(self):
-        self.sub_agents = {
-            "order": OrderAgent(),
-            "refund": RefundAgent(),
-            "notification": NotificationAgent(),
-        }
-
-    def run(self, user_message: str) -> str:
-        # 1단계: 작업 분해
-        plan = self._decompose(user_message)
-
-        # 2단계: 순서대로 실행
-        results = {}
-        for step in plan:
-            agent_name = step["agent"]
-            task = step["task"]
-
-            # 이전 단계 결과를 컨텍스트로 전달
-            context = json.dumps(results, ensure_ascii=False) if results else ""
-            agent = self.sub_agents[agent_name]
-            result = agent.run(task, context=context)
-            results[step["id"]] = result
-
-        # 3단계: 결과 종합
-        return self._summarize(user_message, results)
-
-    def _decompose(self, user_message: str) -> list[dict]:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": (
-                    "사용자 요청을 하위 작업으로 분해해라. "
-                    "사용 가능한 에이전트: order, refund, notification. "
-                    "JSON 배열로 반환해라. "
-                    '예: [{"id": "step1", "agent": "order", "task": "주문 ORD-123 조회"}]'
-                )},
-                {"role": "user", "content": user_message}
-            ],
-            response_format={"type": "json_object"}
-        )
-        content = json.loads(response.choices[0].message.content)
-        return content.get("steps", [])
-
-    def _summarize(self, original_request: str, results: dict) -> str:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "하위 작업들의 결과를 종합해서 사용자에게 답변해라."},
-                {"role": "user", "content": f"원래 요청: {original_request}\n결과: {json.dumps(results, ensure_ascii=False)}"}
-            ]
-        )
-        return response.choices[0].message.content
-```
-
-### 6.3 에이전트 간 통신에서 주의할 점
-
-**하위 에이전트의 결과를 그대로 오케스트레이터에 올리지 마라.** 하위 에이전트가 10번 도구를 호출한 전체 과정을 오케스트레이터에 넘기면 컨텍스트가 폭발한다. 하위 에이전트는 최종 결과만 요약해서 반환해야 한다.
-
-**하위 에이전트끼리 직접 통신하면 디버깅이 불가능해진다.** 모든 통신은 오케스트레이터를 거치게 해야 한다. 에이전트 A가 에이전트 B에게 직접 뭔가를 요청하는 구조는 실행 흐름 추적이 안 된다.
-
-**하위 에이전트별로 별도의 비용 제한을 걸어야 한다.** 오케스트레이터 전체에 100회 제한을 걸어도, 하위 에이전트 하나가 80회를 다 쓰면 나머지 작업을 처리할 수 없다. AgentBudget을 에이전트별로 따로 할당한다.
-
-
-## 7. 프로덕션 적용 시 고려사항
-
-### 7.1 관찰 가능성 (Observability)
-
-에이전트는 결정론적이지 않다. 같은 입력에 다른 경로로 실행될 수 있다. 디버깅하려면 전체 실행 과정을 추적할 수 있어야 한다.
+에이전트가 잘못 동작했을 때 어디서 틀렸는지 찾기 어렵다. 모든 LLM 호출을 trace로 남겨야 한다.
 
 ```python
 import logging
-import uuid
-
-logger = logging.getLogger("agent")
-
 
 class AgentTracer:
-    """에이전트 실행 과정을 추적한다."""
-
     def __init__(self):
-        self.trace_id = str(uuid.uuid4())[:8]
-        self.events: list[dict] = []
+        self.events = []
 
-    def log_llm_call(self, messages_count: int, response_type: str):
-        event = {
-            "trace_id": self.trace_id,
+    def log_llm_call(self, messages, response, tokens):
+        self.events.append({
             "type": "llm_call",
-            "messages_count": messages_count,
-            "response_type": response_type,  # "text" or "tool_calls"
-            "timestamp": datetime.now().isoformat()
-        }
-        self.events.append(event)
-        logger.info(f"[{self.trace_id}] LLM call #{len(self.events)}: {response_type}")
+            "messages_len": len(messages),
+            "stop_reason": response.stop_reason,
+            "tokens": tokens,
+        })
 
-    def log_tool_call(self, tool_name: str, arguments: dict, result: str, success: bool):
-        event = {
-            "trace_id": self.trace_id,
+    def log_tool_call(self, name, input, output, duration_ms):
+        self.events.append({
             "type": "tool_call",
-            "tool": tool_name,
-            "arguments": arguments,
-            "result_length": len(result),
-            "success": success,
-            "timestamp": datetime.now().isoformat()
-        }
-        self.events.append(event)
-        logger.info(f"[{self.trace_id}] Tool: {tool_name}, success={success}")
+            "name": name,
+            "input": input,
+            "output_preview": str(output)[:200],
+            "duration_ms": duration_ms,
+        })
 
-    def get_summary(self) -> dict:
-        return {
-            "trace_id": self.trace_id,
-            "total_events": len(self.events),
-            "llm_calls": sum(1 for e in self.events if e["type"] == "llm_call"),
-            "tool_calls": sum(1 for e in self.events if e["type"] == "tool_call"),
-            "failed_tools": sum(1 for e in self.events if e["type"] == "tool_call" and not e["success"])
-        }
+    def export(self):
+        return json.dumps(self.events, indent=2)
 ```
 
-LangSmith, Arize, Langfuse 같은 LLM 관찰 도구를 쓰면 이 추적을 시각적으로 볼 수 있다. 직접 구현할 거면 최소한 trace_id, 각 단계의 입출력, 소요 시간은 남겨야 한다.
+LangSmith, Helicone, Weights & Biases 같은 외부 서비스도 있다. 직접 만들든 외부 쓰든 trace는 필수.
 
-### 7.2 테스트
+### 비용 모니터링
 
-에이전트 테스트는 일반적인 유닛 테스트와 다르다. LLM 응답이 매번 다르기 때문에 결정론적인 검증이 불가능하다.
+에이전트는 한 번 잘못 돌면 비용이 폭발한다. 토큰 예산을 매 호출마다 추적해야 한다.
 
-현실적으로 가능한 접근법:
+```python
+class TokenBudget:
+    def __init__(self, max_tokens=1_000_000):
+        self.max_tokens = max_tokens
+        self.spent = 0
 
-- **도구 레벨 테스트**: 각 도구 함수는 결정론적이다. 입력에 대해 기대하는 출력이 나오는지 일반 유닛 테스트로 검증한다.
-- **LLM 호출 모킹**: 에이전트 루프를 테스트할 때는 LLM 응답을 고정해서 루프 로직만 검증한다. "이 도구 호출이 실패하면 에이전트가 재시도하는가?"를 확인하는 식이다.
-- **시나리오 테스트 (end-to-end)**: 실제 LLM을 호출해서 시나리오가 완료되는지 확인한다. "주문 조회 후 메일 발송"이 의도대로 수행되는지를 결과의 조건으로 검증한다. 결과가 정확한 텍스트 매칭이 아니라 "메일이 발송됐는지" 같은 조건이어야 한다.
+    def consume(self, usage):
+        self.spent += usage.input_tokens + usage.output_tokens
+        if self.spent > self.max_tokens:
+            raise BudgetExceededError(f"Spent {self.spent}/{self.max_tokens}")
 
-### 7.3 에이전트 프레임워크
+    def remaining(self):
+        return max(0, self.max_tokens - self.spent)
+```
 
-직접 구현하지 않고 프레임워크를 쓰는 선택지도 있다.
+Claude API 응답의 `usage` 필드로 정확한 토큰 수를 받을 수 있다. cache hit가 발생하면 `cache_read_input_tokens`로 별도 표기되니까 캐시 효율도 모니터링 가능하다.
 
-| 프레임워크 | 특징 | 쓸 만한 상황 |
-|-----------|------|-------------|
-| LangGraph | 상태 머신 기반, 복잡한 분기 처리 | 에이전트 흐름이 그래프로 표현될 때 |
-| CrewAI | 역할 기반 멀티 에이전트 | 빠르게 프로토타입 만들 때 |
-| Anthropic Agent SDK | Claude 특화, 핸드오프 패턴 지원 | Claude API 기반 에이전트 |
-| OpenAI Agents SDK | OpenAI 특화, 가드레일 내장 | OpenAI API 기반 에이전트 |
-| AutoGen | 마이크로소프트, 대화형 멀티 에이전트 | 에이전트 간 협업 시나리오 |
+## 마치며
 
-프레임워크를 쓰면 에이전트 루프, 메모리 관리, 도구 연결 같은 보일러플레이트를 줄일 수 있다. 다만 프레임워크의 추상화가 디버깅을 어렵게 만드는 경우가 있다. 에이전트가 예상대로 동작하지 않을 때 프레임워크 내부를 파고들어야 하는 상황이 생긴다. 에이전트의 핵심 루프는 어차피 수십 줄이므로, 요구사항이 단순하면 직접 구현하는 게 나을 수 있다.
+LLM 에이전트는 복잡한 개념이지만 핵심은 단순하다. "LLM이 도구를 호출하고 결과를 보고 다음을 결정하는 루프". 그 외 모든 것 - ReAct, 메모리, 플래닝, 멀티 에이전트 - 은 이 루프를 더 견고하고 강력하게 만드는 패턴이다.
+
+Claude로 에이전트를 만들 때 신경 쓸 부분을 정리하면.
+
+- `stop_reason`과 `tool_use`/`tool_result` 블록 흐름 정확히 이해하기
+- Prompt caching으로 비용과 지연 줄이기
+- 도구 스키마와 설명을 꼼꼼하게 (모델 행동을 가장 직접 좌우)
+- 에러를 tool_result로 모델에 돌려주기 (예외로 죽이지 말기)
+- 메모리는 stale될 수 있다는 전제로 검증 단계 두기
+- 큰 작업은 subagent나 workflow로 분할
+
+이 문서는 일반론과 Claude 특수성을 섞어놨다. OpenAI나 Gemini 에이전트도 큰 그림은 같지만 도구 호출 포맷, 캐싱 정책, 컨텍스트 윈도우 같은 디테일이 다르다. 다른 모델로 옮길 때 그 디테일을 확인해야 한다.
+
+관련 문서.
+
+- [Agent Harness](Agent_Harness.md): 에이전트 실행 환경
+- [Effort Mode](Effort_Mode.md): 모델 추론 강도 조절
+- [MCP](../MCP/MCP.md): 도구 프로토콜
+- [Claude Code](../Claude_Code/Claude_Code.md): 실제 에이전트 제품
+- [LLM Context Window](LLM_Context_Window.md): 컨텍스트 관리
+- [Prompt Engineering](Prompt_Engineering.md): 에이전트 시스템 프롬프트 작성
