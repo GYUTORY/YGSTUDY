@@ -1,7 +1,7 @@
 ---
 title: NestJS ValidationPipe와 DTO 검증
 tags: [nestjs, validation, class-validator, class-transformer, dto, pipe, node]
-updated: 2026-05-27
+updated: 2026-06-06
 ---
 
 # NestJS ValidationPipe와 DTO 검증
@@ -180,6 +180,47 @@ app.useGlobalPipes(new ValidationPipe({
 }));
 ```
 
+### stopAtFirstError
+
+`stopAtFirstError: true`를 켜면 한 프로퍼티에 데코레이터가 여러 개 붙어 있을 때 첫 번째 실패에서 멈춘다. 기본값은 false라서 한 필드에 `@IsString()`, `@MinLength(8)`, `@Matches(/[A-Z]/)`이 다 붙어 있고 빈 값을 보내면 메시지 세 줄이 다 나간다.
+
+```typescript
+app.useGlobalPipes(new ValidationPipe({ stopAtFirstError: true }));
+```
+
+프론트에서 필드당 메시지를 하나만 띄우면 끄는 게 낫다. 메시지가 두세 줄 쌓이면 뭐가 먼저 잘못된 건지 알기 어렵다. 반대로 폼 전체에 결함을 한 번에 다 보여줘야 하면 끈 상태가 맞다. 사용자가 한 번 고치고 다시 보내는 식이라면 켜는 게 응답 크기와 가독성 모두 낫다.
+
+### disableErrorMessages
+
+운영 환경에서 에러 본문에 어떤 필드가 어떤 규칙으로 막혔는지 자세히 노출하면 공격자에게 DTO 구조를 알려주는 셈이 된다. `disableErrorMessages: true`로 메시지를 떼고 상태 코드만 내보낼 수 있다.
+
+```typescript
+app.useGlobalPipes(new ValidationPipe({
+  disableErrorMessages: process.env.NODE_ENV === 'production',
+}));
+```
+
+다만 메시지를 다 떼면 디버깅이 어렵다. 보통은 메시지를 다 끄지 않고 `exceptionFactory`로 필드명 정도만 일반화한 응답을 만든다. 내부 추적용 상세 메시지는 로깅에 남기고 응답에서는 뺀다.
+
+### validationError 옵션
+
+`validationError.target`과 `validationError.value`는 에러 객체에 원본 DTO 인스턴스와 입력 값을 포함할지 정한다. 기본값은 둘 다 true다.
+
+```typescript
+app.useGlobalPipes(new ValidationPipe({
+  validationError: {
+    target: false, // 원본 DTO 인스턴스 제거
+    value: false,  // 입력 값 제거
+  },
+}));
+```
+
+기본값 그대로 두면 `ValidationError` 객체에 사용자가 보낸 비밀번호 같은 민감 값이 그대로 박혀서 로그나 에러 응답에 흘러간다. `exceptionFactory`에서 받은 `errors` 배열을 그대로 JSON으로 내보내면 사고가 난다. 둘 다 false로 끄거나, 응답을 만들 때 의식적으로 빼야 한다.
+
+### forbidUnknownValues 주의
+
+class-validator 0.14 이후 `forbidUnknownValues` 기본값이 true로 바뀌었다. 메타데이터가 없는 객체를 검증하려 하면 자동으로 거부한다. 의도된 보안 강화지만, 동적으로 만든 객체나 메타데이터 등록이 안 된 DTO를 검증하면 "an unknown value was passed to the validate function"으로 막힌다. NestJS 컨트롤러에서 `@Body() dto: CreateUserDto` 식으로 쓰면 메타데이터가 정상으로 붙어서 보통은 문제가 없는데, 동적 클래스나 외부에서 import한 DTO에서 가끔 터진다. 메시지가 모호하니 한 번이라도 본 적이 있어야 빨리 알아챈다.
+
 ### 운영에서 자주 쓰는 조합
 
 실제로는 옵션을 개별로 켜기보다 아래 조합을 출발점으로 쓴다.
@@ -191,6 +232,11 @@ app.useGlobalPipes(new ValidationPipe({
   transform: true,             // DTO 인스턴스로 변환
   transformOptions: {
     enableImplicitConversion: false, // 명시적 @Type을 강제 (이유는 아래)
+  },
+  stopAtFirstError: true,      // 필드당 첫 실패만 반환
+  validationError: {
+    target: false,             // 원본 DTO 인스턴스 응답 제외
+    value: false,              // 입력 값 응답 제외 (민감정보 유출 방지)
   },
 }));
 ```
@@ -518,6 +564,152 @@ async function bootstrap() {
 비동기 검증을 쓸 때 한 가지 더. DB 조회 검증을 DTO에 너무 많이 박으면 요청 하나에 쿼리가 여러 번 나간다. 검증 단계의 중복 체크는 "빠른 실패"용으로만 쓰고, 실제 정합성은 DB의 unique 제약과 트랜잭션으로 잡는 게 안전하다. 검증을 통과해도 그 사이에 같은 이메일이 등록될 수 있는 경쟁 상태가 남기 때문이다.
 
 
+## @IsCustom — 함수형 커스텀 데코레이터
+
+`@ValidatorConstraint` 클래스를 매번 만드는 게 부담스러우면 `registerDecorator` 한 번으로 끝낼 수 있다. 단순한 정규식 검증이나 한 줄짜리 로직은 함수형이 훨씬 짧다. 패턴을 알고 있으면 새 검증 규칙을 5분 안에 만들어 쓴다.
+
+기본 형태는 검증 함수와 메시지를 인자로 받는 데코레이터 팩토리다.
+
+```typescript
+import { registerDecorator, ValidationOptions } from 'class-validator';
+
+export function IsCustom<T = any>(
+  validator: (value: T) => boolean,
+  message: string,
+  options?: ValidationOptions,
+) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isCustom',
+      target: object.constructor,
+      propertyName,
+      options: { message, ...options },
+      validator: {
+        validate: (value: T) => validator(value),
+      },
+    });
+  };
+}
+```
+
+```typescript
+export class ProductDto {
+  @IsCustom<string>(
+    (v) => /^SKU-\d{6}$/.test(v),
+    'SKU는 "SKU-숫자6자리" 형식이어야 합니다',
+  )
+  sku: string;
+
+  @IsCustom<number>(
+    (v) => v % 100 === 0,
+    '가격은 100원 단위여야 합니다',
+  )
+  price: number;
+}
+```
+
+검증 로직이 한 줄이면 이걸로 충분하다. 다른 필드를 참조해야 하거나 비동기 호출이 필요한 검증만 `@ValidatorConstraint` 클래스 방식으로 만든다.
+
+### 도메인 특화 데코레이터로 묶기
+
+같은 규칙을 여러 DTO에서 반복하면 도메인 이름으로 감싼다. 정규식이나 비즈니스 룰을 한 곳에 모아두면 변경할 때 한 군데만 고친다.
+
+```typescript
+export function IsKoreanPhone(options?: ValidationOptions) {
+  return IsCustom<string>(
+    (v) => /^01[0-9]-?\d{3,4}-?\d{4}$/.test(v),
+    '올바른 휴대전화 번호가 아닙니다',
+    options,
+  );
+}
+
+export function IsBusinessNumber(options?: ValidationOptions) {
+  return IsCustom<string>(
+    (v) => /^\d{3}-?\d{2}-?\d{5}$/.test(v),
+    '사업자 등록번호 형식이 아닙니다',
+    options,
+  );
+}
+```
+
+```typescript
+export class SignupDto {
+  @IsKoreanPhone()
+  phone: string;
+
+  @IsBusinessNumber()
+  businessNumber: string;
+}
+```
+
+데코레이터 이름이 곧 문서 역할을 한다. DTO만 봐도 어떤 형식을 기대하는지 읽힌다.
+
+### 옵션을 받는 데코레이터
+
+길이나 범위처럼 파라미터가 필요한 데코레이터도 같은 패턴으로 만든다.
+
+```typescript
+export function IsDivisibleBy(divisor: number, options?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isDivisibleBy',
+      target: object.constructor,
+      propertyName,
+      constraints: [divisor],
+      options: { message: `${divisor}의 배수여야 합니다`, ...options },
+      validator: {
+        validate: (value: number, args) => value % args.constraints[0] === 0,
+      },
+    });
+  };
+}
+
+export class OrderDto {
+  @IsDivisibleBy(10)
+  quantity: number;
+}
+```
+
+`constraints` 배열에 값을 넣어두고 `validate`의 두 번째 인자 `args.constraints`에서 꺼낸다. 이렇게 분리해야 같은 데코레이터를 다른 값으로 여러 번 쓸 수 있다.
+
+
+## @Transform으로 변환 직접 제어
+
+`@Type`은 클래스 단위로 변환할 때 쓰고, 그것보다 세밀한 변환은 `@Transform`을 쓴다. `@Transform`은 콜백 안에서 원본 값을 마음대로 가공할 수 있다.
+
+```typescript
+import { Transform } from 'class-transformer';
+
+export class UserDto {
+  // 앞뒤 공백 제거 + 소문자
+  @Transform(({ value }) => value?.trim().toLowerCase())
+  @IsEmail()
+  email: string;
+
+  // 콤마 구분 문자열을 배열로
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',').map((s) => s.trim()) : value,
+  )
+  @IsArray()
+  tags: string[];
+}
+```
+
+쿼리에서 `?tags=red,green,blue`로 받아 배열로 다루고 싶을 때 자주 쓴다. boolean 변환도 `@Transform`이 답이라는 건 앞에서 봤다.
+
+주의할 점은 `@Transform`이 `plainToInstance` 단계에서 실행된다는 것이다. 그러니까 검증 전에 값이 이미 가공된 상태다. 변환에서 예외를 던지면 검증 메시지가 아니라 변환 오류로 500이 날 수 있으니, 콜백 안에서는 가능한 한 안전하게 처리하고 잘못된 값은 원본 그대로 돌려주는 편이 낫다. 그러면 검증 단계에서 잡힌다.
+
+```typescript
+@Transform(({ value }) => {
+  // 잘못된 형태면 변환 안 하고 그대로 반환 → @IsArray에서 잡힘
+  if (typeof value !== 'string') return value;
+  return value.split(',').map((s) => s.trim());
+})
+@IsArray()
+tags: string[];
+```
+
+
 ## 커스텀 파이프 구현
 
 ValidationPipe로 안 되는 변환·검증은 직접 파이프를 만든다. 파이프는 `PipeTransform` 인터페이스를 구현하면 된다. 자주 만드는 건 특정 형식 검증이나 도메인 값 변환이다.
@@ -589,6 +781,78 @@ app.useGlobalPipes(
 
 이러면 응답이 `details: [{ field, messages }]` 형태로 나가서 프론트가 필드별로 에러를 띄우기 쉽다. 다만 중첩 객체일 때 `errors`도 `children`을 가지므로, 깊은 구조까지 평탄화하려면 재귀로 펼쳐야 한다.
 
+### 중첩 에러 평탄화
+
+중첩 검증이 실패하면 `ValidationError`는 트리 구조다. `address.city`가 실패하면 최상위 에러의 `property`는 `address`이고 `children[0].property`가 `city`다. 위 코드는 최상위만 보니 중첩 정보가 사라진다. 재귀로 펼쳐서 `address.city` 같은 경로 문자열을 만든다.
+
+```typescript
+function flattenErrors(
+  errors: ValidationError[],
+  parentPath = '',
+): Array<{ field: string; messages: string[] }> {
+  return errors.flatMap((err) => {
+    const path = parentPath ? `${parentPath}.${err.property}` : err.property;
+    const own = err.constraints
+      ? [{ field: path, messages: Object.values(err.constraints) }]
+      : [];
+    const nested = err.children?.length
+      ? flattenErrors(err.children, path)
+      : [];
+    return [...own, ...nested];
+  });
+}
+
+app.useGlobalPipes(
+  new ValidationPipe({
+    exceptionFactory: (errors) => new BadRequestException({
+      statusCode: 400,
+      error: 'ValidationError',
+      details: flattenErrors(errors),
+    }),
+  }),
+);
+```
+
+`items: [{ quantity: -5 }]`처럼 배열 안 객체가 실패하면 `field`가 `items.0.quantity`로 나간다. 점 표기법이 일관돼서 프론트 폼 라이브러리(react-hook-form 등)와 그대로 매핑된다.
+
+배열 인덱스를 `[0]` 형태로 받고 싶다면 평탄화 함수에서 부모 경로가 배열 자식일 때 형식을 바꿔주면 된다. 다만 표기를 자주 바꾸면 클라이언트 코드와 어긋날 수 있으니 한 번 정한 형식을 유지하는 편이 낫다.
+
+### 에러 코드 추가 — i18n과 클라이언트 분기
+
+메시지 문자열만 내려보내면 다국어 처리나 분기가 어렵다. 데코레이터의 `message`에 코드 형식을 박아두거나, 별도의 코드 매핑을 두는 방식이 있다.
+
+```typescript
+export class CreateUserDto {
+  @IsEmail({}, { message: 'INVALID_EMAIL' })
+  email: string;
+
+  @MinLength(8, { message: 'PASSWORD_TOO_SHORT' })
+  password: string;
+}
+```
+
+응답에는 `INVALID_EMAIL` 같은 코드를 그대로 내보내고, 프론트가 코드를 보고 자국어 메시지로 매핑한다. 코드 네이밍 규칙(전부 대문자 SNAKE_CASE)을 정해두면 메시지인지 코드인지 한눈에 구분된다.
+
+비교적 단순한 방식이지만, 검증 데코레이터마다 `message`를 다 채워야 하는 부담이 있다. 데코레이터별로 기본 코드를 추론하는 매핑 함수를 만들어 `exceptionFactory`에서 일괄 처리하는 방법도 있다.
+
+```typescript
+function toCode(constraintKey: string): string {
+  // constraintKey는 'isEmail', 'minLength' 같은 class-validator 내부 키
+  return constraintKey.replace(/([A-Z])/g, '_$1').toUpperCase();
+  // 'isEmail' → 'IS_EMAIL'
+}
+
+const details = errors.flatMap((err) =>
+  Object.entries(err.constraints ?? {}).map(([key, msg]) => ({
+    field: err.property,
+    code: toCode(key),
+    message: msg,
+  })),
+);
+```
+
+이러면 데코레이터에 `message`를 안 써도 `IS_EMAIL`, `MIN_LENGTH` 같은 코드가 자동으로 나간다. 단, class-validator 내부 키 이름이 버전 사이에 바뀌면 코드도 바뀌므로, 응답 스펙으로 굳히기 전에 한 번 점검해야 한다.
+
 
 ## 그룹 검증과 부분 업데이트
 
@@ -631,6 +895,80 @@ update(@Body(new ValidationPipe({ groups: ['update'] })) dto: UserDto) {}
 그룹은 강력하지만 DTO가 복잡해지고 어느 그룹이 어디서 도는지 추적이 어려워진다. 단순한 부분 업데이트면 `PartialType`을 먼저 고려하고, 그룹은 정말 필드별 규칙이 상황마다 갈릴 때만 쓴다.
 
 
+## 검증 테스트
+
+검증 규칙은 코드보다 의도가 미묘하다. "전화번호 형식이 바뀌면 어디서 막아야 하지"를 6개월 뒤에 다시 보면 기억이 안 난다. DTO 검증에 단위 테스트를 붙여두면 규칙이 문서 역할을 한다.
+
+`validate` 함수를 직접 호출해서 검증한다. ValidationPipe까지 안 거치고 class-validator만 쓰면 된다.
+
+```typescript
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { CreateUserDto } from './create-user.dto';
+
+describe('CreateUserDto', () => {
+  it('정상 값은 통과한다', async () => {
+    const dto = plainToInstance(CreateUserDto, {
+      name: 'kim',
+      email: 'a@b.com',
+      age: 30,
+    });
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('이메일 형식이 아니면 IS_EMAIL 제약에서 막힌다', async () => {
+    const dto = plainToInstance(CreateUserDto, {
+      name: 'kim',
+      email: 'not-an-email',
+      age: 30,
+    });
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].constraints).toHaveProperty('isEmail');
+  });
+});
+```
+
+`plainToInstance`로 DTO 인스턴스를 만들어야 데코레이터가 동작한다. 그냥 객체 리터럴로 만들면 메타데이터가 안 붙어서 검증이 안 돈다. 이 한 줄을 빼먹고 "왜 에러가 0개야"라고 헤매는 경우가 흔하다.
+
+ValidationPipe 단위로 테스트하고 싶으면 파이프를 직접 인스턴스화해서 `transform` 메서드를 호출한다.
+
+```typescript
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
+
+describe('ValidationPipe + CreateUserDto', () => {
+  const pipe = new ValidationPipe({
+    whitelist: true,
+    transform: true,
+    forbidNonWhitelisted: true,
+  });
+
+  const metadata = {
+    type: 'body' as const,
+    metatype: CreateUserDto,
+    data: '',
+  };
+
+  it('whitelist에 없는 필드를 보내면 거부한다', async () => {
+    await expect(
+      pipe.transform({ name: 'kim', email: 'a@b.com', age: 30, isAdmin: true }, metadata),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('숫자 문자열은 number로 변환된다', async () => {
+    const result = await pipe.transform(
+      { name: 'kim', email: 'a@b.com', age: '30' },
+      metadata,
+    );
+    expect(typeof result.age).toBe('number');
+  });
+});
+```
+
+이런 테스트가 있으면 ValidationPipe 옵션을 손댈 때 어떤 규칙이 깨지는지 즉시 잡힌다. 특히 `enableImplicitConversion` 같은 전역 옵션을 바꾸기 전에 테스트가 어떻게 깨지는지 보면 영향 범위가 명확해진다. 이 부분은 [Nest_JS_테스트.md](Nest_JS_테스트.md)에서 더 다룬다.
+
+
 ## 자주 막히는 지점 정리
 
 직접 겪으면서 정리한, 검증이 "안 되는 것처럼 보이는" 원인들이다.
@@ -644,3 +982,9 @@ DTO를 인터페이스로 선언하면 검증이 안 된다. class-validator는 
 쿼리/파라미터 변환이 안 되면 `transform: true`와 `@Type(() => Number)`를 같이 썼는지 본다. 둘 중 하나만으로는 안 될 때가 있다.
 
 중첩 객체 검증이 건너뛰어지면 `@ValidateNested()`와 `@Type()`이 둘 다 있는지, 배열이면 `{ each: true }`까지 있는지 확인한다.
+
+"an unknown value was passed to the validate function"이라는 알 수 없는 에러가 뜨면 class-validator 0.14 이후의 `forbidUnknownValues` 기본값 변경이 원인일 가능성이 높다. NestJS DTO가 정상적으로 메타데이터를 갖고 있는지(클래스인지, `tsconfig`의 데코레이터 옵션이 켜져 있는지) 먼저 확인한다.
+
+비동기 검증(`async: true`)이 안 돌면 `useContainer` 호출과 제약 클래스의 `providers` 등록을 빼먹지 않았는지 본다. 메시지가 원인을 안 가리켜서 가장 헤매기 쉬운 지점이다.
+
+검증 에러 응답에 비밀번호 같은 민감 값이 그대로 박혀 나가면 `validationError.target`과 `validationError.value`를 false로 설정한 뒤 다시 본다. 기본값은 둘 다 true라서 입력 값이 응답으로 흘러간다.

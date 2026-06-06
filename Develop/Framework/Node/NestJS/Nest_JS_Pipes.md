@@ -7,7 +7,7 @@ tags:
   - transform
   - validation
   - node
-updated: 2026-06-02
+updated: 2026-06-06
 ---
 
 # NestJS Pipes
@@ -330,6 +330,54 @@ findOne(@Param('id', UserExistsPipe) user: User) {
 
 편해 보이지만 단점이 있다. 파이프 안에서 DB를 조회하면 핸들러 진입 전에 쿼리가 한 번 더 도는 셈이다. 컨트롤러에서 같은 객체를 또 쓰면 또 조회한다. 조회 결과를 핸들러로 넘기는 패턴은 단순한 라우트에서만 쓰고, 복잡한 로직에서는 ID만 받고 서비스 안에서 한 번만 조회하는 게 추적이 쉽다.
 
+### 변환 없이 검증만 하는 파이프
+
+`ParseIntPipe`가 "변환 중심"이라면, 형식만 보고 통과·차단을 정하는 검증 파이프도 자주 쓴다. 휴대전화 번호, 사업자등록번호, 한국 우편번호처럼 도메인 규칙이 들어간 문자열을 핸들러에 들어오기 전에 잘라낸다.
+
+```typescript
+import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
+
+@Injectable()
+export class PhoneNumberPipe implements PipeTransform<string, string> {
+  private readonly pattern = /^01[016789]-?\d{3,4}-?\d{4}$/;
+
+  transform(value: string): string {
+    if (typeof value !== 'string' || !this.pattern.test(value)) {
+      throw new BadRequestException('휴대전화 번호 형식이 올바르지 않다');
+    }
+    return value.replace(/-/g, '');
+  }
+}
+```
+
+이 파이프는 검증과 함께 하이픈 제거라는 정규화도 같이 한다. "검증만 한다"고 했지만 형식이 다양한 입력을 한 가지 형태로 모으는 정도는 같이 처리해야 핸들러에서 다시 손볼 일이 없다. 검증과 정규화가 완전히 다른 책임이라면 두 파이프로 나누고 체인으로 붙인다.
+
+파이프 인스턴스에 설정값을 주입받고 싶으면 옵션을 받는 팩토리 패턴이 자연스럽다.
+
+```typescript
+@Injectable()
+export class RegexPipe implements PipeTransform<string, string> {
+  constructor(private readonly pattern: RegExp, private readonly message: string) {}
+
+  transform(value: string): string {
+    if (!this.pattern.test(value)) {
+      throw new BadRequestException(this.message);
+    }
+    return value;
+  }
+}
+
+@Get(':slug')
+findOne(
+  @Param('slug', new RegexPipe(/^[a-z0-9-]{3,30}$/, 'slug는 소문자·숫자·하이픈만 허용'))
+  slug: string,
+) {
+  return this.postService.findBySlug(slug);
+}
+```
+
+생성자 인자가 있는 파이프는 `new`로 인스턴스화해서 데코레이터에 넘긴다. 클래스 자체로 넘기는 방식은 DI 컨테이너가 인스턴스를 만들기 때문에 인자를 못 받는다. 이 차이를 모르면 옵션을 주고 싶은데 안 통하는 상황이 생긴다.
+
 ### ArgumentMetadata 활용
 
 `transform`의 두 번째 인자 `ArgumentMetadata`는 파이프가 어떤 컨텍스트에서 호출되었는지 알려준다.
@@ -362,6 +410,67 @@ export class SanitizePipe implements PipeTransform {
   }
 }
 ```
+
+#### metatype 기반 동적 변환 파이프
+
+`metatype`을 읽어 핸들러 시그니처 타입에 맞춰 값을 동적으로 바꿔주는 파이프도 만들 수 있다. ValidationPipe가 내부에서 하는 일을 더 단순한 형태로 흉내 내는 셈이다.
+
+```typescript
+import {
+  PipeTransform,
+  Injectable,
+  ArgumentMetadata,
+  BadRequestException,
+} from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+
+@Injectable()
+export class DtoBindingPipe implements PipeTransform {
+  async transform(value: any, metadata: ArgumentMetadata) {
+    const { metatype, type } = metadata;
+    if (!metatype || this.isPrimitive(metatype)) {
+      return value;
+    }
+
+    const object = plainToInstance(metatype, value, {
+      enableImplicitConversion: type === 'query' || type === 'param',
+    });
+
+    const errors = await validate(object, { whitelist: true });
+    if (errors.length > 0) {
+      throw new BadRequestException(errors.map(e => Object.values(e.constraints ?? {})).flat());
+    }
+    return object;
+  }
+
+  private isPrimitive(metatype: Function): boolean {
+    return [String, Boolean, Number, Array, Object].includes(metatype as any);
+  }
+}
+```
+
+핸들러 인자의 metatype이 `CreateUserDto`면 그 클래스의 인스턴스로 변환하고, `Number`면 손대지 않는다. `type` 값을 보고 쿼리·파라미터일 때만 implicit conversion을 켜는 부분이 핵심이다. 쿼리스트링은 모든 값이 문자열로 오기 때문에 `enableImplicitConversion`이 없으면 DTO의 `@IsInt`가 전부 실패한다. 반대로 `@Body()`로 오는 JSON은 이미 타입이 살아 있어서 implicit conversion이 오히려 의도치 않은 변환을 만든다.
+
+이 패턴은 ValidationPipe의 동작 원리를 이해할 때 한 번 손으로 짜보면 큰 도움이 된다. 실서비스에서는 빌트인 ValidationPipe를 그대로 쓰는 게 안전하다.
+
+#### 핸들러 인자 종류별 분기
+
+`metadata.type`을 보고 동일한 파이프가 다르게 행동하게 만들 수도 있다.
+
+```typescript
+@Injectable()
+export class CoerceArrayPipe implements PipeTransform {
+  transform(value: any, metadata: ArgumentMetadata) {
+    if (metadata.type === 'query' && value !== undefined && !Array.isArray(value)) {
+      return [value];
+    }
+    return value;
+  }
+}
+```
+
+쿼리에서 `?tags=node&tags=nestjs`가 오면 배열, `?tags=node` 하나만 오면 문자열이 되는 Express의 기본 동작을 한 번 더 감싸 항상 배열로 통일하는 파이프다. `@Body()`에는 적용되지 않게 type을 본다. 메타데이터를 보고 분기하는 패턴은 글로벌 파이프에서 특히 유용하다.
 
 
 ## 파이프 적용 범위
@@ -483,6 +592,138 @@ findOne(@Param('id', ParseIntPipe) id: number) {
 - 쿼리스트링이지만 **여러 필드가 같이 오는 검색 조건**: DTO 형태로 묶고 ValidationPipe
 
 쿼리스트링도 필드가 많으면 DTO로 묶는 게 낫다. `@Query('page', ParseIntPipe) page, @Query('limit', ParseIntPipe) limit, @Query('sort') sort, ...` 식으로 인자가 많아지면 시그니처가 더러워진다. `PaginationQueryDto`를 만들고 `@Query() query: PaginationQueryDto`로 받는 패턴이 깔끔하다. 단, 쿼리스트링은 모든 값이 문자열로 들어오기 때문에 ValidationPipe의 `transform: true`와 `enableImplicitConversion: true`가 필요하다. 이 부분은 [Nest_JS_Validation_Pipe.md](Nest_JS_Validation_Pipe.md)에 자세히 다뤄 두었다.
+
+
+## 파이프와 DTO 결합 패턴
+
+빌트인 파이프와 ValidationPipe + DTO를 한 핸들러에서 어떻게 섞어 쓰는지가 실무에서 가장 많이 헷갈리는 지점이다. 패턴 몇 가지를 정리한다.
+
+### 경로 파라미터 + Body DTO
+
+가장 흔한 모양이다. 라우트 파라미터는 빌트인 파이프로, 본문은 DTO로 받는다.
+
+```typescript
+@Patch(':id')
+update(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() dto: UpdateUserDto,
+) {
+  return this.userService.update(id, dto);
+}
+```
+
+`id`는 ParseIntPipe가 변환·검증한다. `dto`는 글로벌 ValidationPipe가 metatype을 보고 `UpdateUserDto`로 변환·검증한다. 둘이 충돌하지 않는다. ValidationPipe는 metatype이 primitive면 건너뛰고, ParseIntPipe는 인자 단위라 본문 객체에는 손대지 않는다.
+
+### 쿼리 DTO + Body DTO
+
+검색 조건과 본문이 같이 오는 케이스. 쿼리스트링은 모두 문자열이라 implicit conversion이 필요하다.
+
+```typescript
+@Post('search')
+search(
+  @Query() filter: UserFilterQueryDto,
+  @Body() criteria: AdvancedSearchDto,
+) {
+  return this.userService.search(filter, criteria);
+}
+```
+
+```typescript
+export class UserFilterQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsIn(['active', 'archived'])
+  status?: 'active' | 'archived';
+}
+```
+
+`@Type(() => Number)`이 핵심이다. 쿼리에서 `?page=2`로 들어온 `"2"`를 `2`로 바꿔 준다. `enableImplicitConversion: true`만 켜도 되지만, 명시적으로 적어 두면 DTO만 봐도 의도가 드러난다. 둘 중 한 가지 스타일로 통일하는 게 좋다.
+
+### PartialType으로 PATCH DTO 만들기
+
+수정 API에서 모든 필드를 다 보내지 않는 경우, 기존 DTO를 그대로 옵셔널로 바꿔 쓰는 패턴이다.
+
+```typescript
+import { PartialType } from '@nestjs/mapped-types';
+
+export class CreateUserDto {
+  @IsString()
+  @MinLength(2)
+  name: string;
+
+  @IsEmail()
+  email: string;
+}
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
+```
+
+`UpdateUserDto`는 `CreateUserDto`의 모든 필드를 옵셔널로 만든다. ValidationPipe가 metatype을 보고 그대로 검증한다. 별도 파이프 작업이 필요 없다.
+
+### 중첩 DTO 검증
+
+DTO 안에 다른 DTO가 들어가는 경우, ValidationPipe가 중첩 객체까지 검증하려면 `@ValidateNested()`와 `@Type()`이 필요하다.
+
+```typescript
+export class AddressDto {
+  @IsString()
+  city: string;
+
+  @IsString()
+  street: string;
+}
+
+export class CreateOrderDto {
+  @IsInt()
+  userId: number;
+
+  @ValidateNested()
+  @Type(() => AddressDto)
+  shippingAddress: AddressDto;
+
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  @ArrayMinSize(1)
+  items: OrderItemDto[];
+}
+```
+
+`@Type()`이 없으면 class-transformer가 중첩 객체를 plain object로 두기 때문에 `@ValidateNested()`가 못 본다. 배열이면 `each: true`가 필요하다. 이 셋(@ValidateNested, @Type, each)을 하나라도 빠뜨리면 중첩 부분만 무검증으로 통과해서 디버깅이 까다롭다.
+
+### DTO + 인자 단위 추가 검증
+
+DTO 검증은 글로벌 ValidationPipe가 하지만, 한 인자에만 추가 검증을 더 얹고 싶을 때가 있다.
+
+```typescript
+@Post()
+create(
+  @Body(new ParseFormatPipe()) dto: CreateUserDto,
+) {
+  return this.userService.create(dto);
+}
+```
+
+`@Body()`에 파이프를 직접 넣으면, 글로벌 ValidationPipe가 돈 뒤 추가로 이 파이프가 돈다. 입력값 전체에 도메인 규칙을 더 얹는 패턴에 쓰인다. 다만 글로벌 ValidationPipe가 이미 객체를 DTO 인스턴스로 변환한 뒤이기 때문에, 추가 파이프가 받는 값은 plain object가 아니라 DTO 인스턴스다. 이 점이 잘못 알려져서 plain object를 가정하고 작성한 파이프가 의도와 다르게 도는 일이 있다.
+
+### 같은 DTO 다른 검증 정책
+
+같은 `UserDto`를 어떤 핸들러에서는 엄격하게, 다른 핸들러에서는 느슨하게 검증하고 싶을 때가 있다. 글로벌 ValidationPipe는 옵션이 고정이라 핸들러 단위로 옵션을 바꾸려면 메서드에 별도 ValidationPipe를 단다.
+
+```typescript
+@Post('strict')
+@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+createStrict(@Body() dto: CreateUserDto) { /* ... */ }
+
+@Post('lenient')
+createLenient(@Body() dto: CreateUserDto) { /* ... */ }
+```
+
+이렇게 하면 글로벌과 메서드의 ValidationPipe가 둘 다 돈다(중복). 같은 객체를 두 번 검증하는 셈이라 비효율적이지만, 옵션이 다르면 결과도 다르다. 정책이 정말로 핸들러마다 다르다면 어쩔 수 없지만, 한두 군데만 다르면 코드베이스 일관성을 위해 글로벌 정책을 기준으로 두고 DTO 쪽에서 데코레이터로 차이를 만드는 편이 깔끔하다.
 
 
 ## 실무에서 자주 보는 문제

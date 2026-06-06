@@ -1,12 +1,164 @@
 ---
 title: NestJS 부트스트랩 및 모듈 시스템
-tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, module-ref, lazy-loading, graceful-shutdown, testing, monorepo, node]
-updated: 2026-04-01
+tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, module-ref, lazy-loading, graceful-shutdown, forwardref, global-module, hmr, node]
+updated: 2026-06-06
 ---
 
 # NestJS 부트스트랩 및 모듈 시스템
 
-NestJS 애플리케이션이 시작될 때 `NestFactory.create()` 한 줄 뒤에서 꽤 많은 일이 벌어진다. 모듈을 스캔하고, 의존성 그래프를 만들고, 프로바이더 인스턴스를 생성하는 과정이 순서대로 진행된다. 이 과정을 모르면 "왜 내 서비스가 아직 초기화 안 됐지?", "왜 OnModuleInit에서 다른 모듈의 서비스를 못 쓰지?"같은 문제를 만난다. 부트스트랩 내부 동작부터 동적 모듈 패턴, Graceful Shutdown까지 정리한다.
+NestJS 애플리케이션이 시작될 때 `NestFactory.create()` 한 줄 뒤에서 꽤 많은 일이 벌어진다. 모듈을 스캔하고, 의존성 그래프를 만들고, 프로바이더 인스턴스를 생성하는 과정이 순서대로 진행된다. 이 과정을 모르면 "왜 내 서비스가 아직 초기화 안 됐지?", "왜 OnModuleInit에서 다른 모듈의 서비스를 못 쓰지?"같은 문제를 만난다. main.ts 부트스트랩 흐름과 NestFactory.create 옵션부터, AppModule 구성, imports/exports/providers/controllers의 역할, forwardRef로 순환참조를 푸는 방법, @Global 모듈의 함정, HMR 설정, Graceful Shutdown까지 정리한다.
+
+
+## main.ts에서 일어나는 일
+
+NestJS 진입점은 보통 `src/main.ts`다. CLI로 프로젝트를 만들면 다음 형태의 코드가 생성된다.
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+이 짧은 코드 안에서 두 단계가 일어난다. `NestFactory.create()`는 DI 컨테이너를 구성하고 모든 프로바이더를 초기화한다. `app.listen()`은 HTTP 서버를 띄워 포트에 바인딩한다. 두 단계가 분리되어 있다는 점이 중요한데, `create()`만 호출하고 `listen()`을 호출하지 않으면 서버는 안 뜨지만 모든 DI는 끝난 상태가 된다. 마이그레이션 스크립트나 CLI 도구에서 NestJS DI만 빌려 쓰고 싶을 때 이 동작을 활용한다.
+
+실무 main.ts는 보통 글로벌 설정을 한곳에 모은다.
+
+```typescript
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    cors: { origin: ['https://app.example.com'], credentials: true },
+  });
+
+  // 글로벌 파이프·필터·인터셉터
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  // 종료 훅 활성화 (쿠버네티스 환경에서 필수)
+  app.enableShutdownHooks();
+
+  // 글로벌 prefix
+  app.setGlobalPrefix('api/v1');
+
+  // Swagger는 개발·스테이징에서만
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('API')
+      .setVersion('1.0')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
+  }
+
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
+```
+
+main.ts에서 `useGlobalPipes()`로 등록한 인스턴스는 모듈 시스템 밖에서 만들어진다. 그래서 그 파이프 내부에서 다른 프로바이더(예: `ConfigService`)를 주입받을 수 없다. DI가 필요한 글로벌 인스턴스는 `APP_PIPE`, `APP_FILTER`, `APP_INTERCEPTOR`, `APP_GUARD` 토큰으로 모듈에 등록해야 한다.
+
+```typescript
+@Module({
+  providers: [
+    {
+      provide: APP_PIPE,
+      useClass: ValidationPipe,  // ConfigService를 생성자 주입 가능
+    },
+  ],
+})
+export class AppModule {}
+```
+
+두 방식의 차이를 모르고 main.ts에서만 글로벌로 등록하면 "왜 내 글로벌 인터셉터에서 LoggerService가 undefined로 들어오지?" 같은 상황을 만난다. DI가 필요하면 모듈 토큰으로 등록한다. DI가 필요 없는 단순 미들웨어성 글로벌(예: 정적 옵션만 받는 ValidationPipe)이면 main.ts에서 등록해도 무방하다.
+
+
+## NestFactory.create() 옵션
+
+`NestFactory.create()`는 두 번째 파라미터로 옵션 객체를 받는다. 자주 쓰는 옵션은 다음과 같다.
+
+| 옵션 | 설명 |
+|------|------|
+| `cors` | CORS 미들웨어 설정. `true`면 모든 origin 허용, 객체로 세부 설정 |
+| `bodyParser` | JSON/URL-encoded 바디 파서 자동 활성화 여부. 기본 `true` |
+| `logger` | 로거 인스턴스나 로그 레벨 배열. `['log', 'error', 'warn', 'debug']` 형태 |
+| `bufferLogs` | 커스텀 로거 적용 전까지 로그를 버퍼링. ConfigModule로 로그 레벨을 결정할 때 |
+| `abortOnError` | 부트스트랩 실패 시 `process.exit(1)` 여부. 기본 `true` |
+| `rawBody` | Stripe 웹훅처럼 원본 body가 필요한 경우. `req.rawBody`로 접근 |
+| `httpsOptions` | HTTPS 서버용 인증서 설정 |
+| `snapshot` | DI 그래프 스냅샷 생성. Devtools에서 의존성 시각화할 때 사용 |
+
+```typescript
+const app = await NestFactory.create(AppModule, {
+  cors: false,                 // CORS를 미들웨어에서 직접 처리
+  bodyParser: false,           // 커스텀 바디 파서를 모듈에서 등록
+  logger: ['error', 'warn'],   // 프로덕션에서 verbose 로그를 끔
+  bufferLogs: true,            // PinoLogger 적용 전까지 로그를 버퍼링
+  abortOnError: false,         // 부트스트랩 실패해도 프로세스를 유지 (테스트)
+  rawBody: true,               // Stripe 웹훅 서명 검증
+});
+```
+
+`bufferLogs: true`는 실무에서 자주 쓴다. NestJS 기본 로거가 ConfigModule이 로드되기 전에 동작하면 로그 레벨 설정이 늦게 반영되는데, 버퍼링을 켜두면 커스텀 로거가 준비된 시점에 한꺼번에 flush한다.
+
+```typescript
+const app = await NestFactory.create(AppModule, { bufferLogs: true });
+app.useLogger(app.get(PinoLogger));  // 버퍼링된 로그가 Pino로 흘러감
+```
+
+### Express vs Fastify 어댑터
+
+기본은 Express 어댑터다. Fastify로 바꾸려면 어댑터를 명시적으로 넘긴다.
+
+```typescript
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+
+const app = await NestFactory.create<NestFastifyApplication>(
+  AppModule,
+  new FastifyAdapter({ logger: true }),
+);
+
+await app.listen(3000, '0.0.0.0');  // Fastify는 host 명시를 권장
+```
+
+Fastify가 Express보다 처리량은 빠르지만, NestJS 생태계의 일부 미들웨어가 Express용으로 작성되어 호환성 문제가 있다. `passport`, `express-session`은 Fastify에서 별도 어댑터(`@fastify/passport`, `@fastify/session`)를 써야 한다. 처리량이 크리티컬한 게이트웨이가 아니라면 굳이 Fastify로 바꿀 이유가 적다.
+
+### createMicroservice / createApplicationContext
+
+`NestFactory`는 `create()` 외에 두 가지 메서드를 더 제공한다.
+
+- `createMicroservice()`: TCP, Redis, gRPC 등 마이크로서비스 트랜스포트 위에 NestJS 앱을 띄운다. HTTP 서버 없이 메시지 핸들러만 동작한다.
+- `createApplicationContext()`: HTTP 서버도 메시지 트랜스포트도 없는 순수 DI 컨테이너. 마이그레이션 스크립트, CLI 도구, 일회성 배치 작업에 사용한다.
+
+```typescript
+// 마이그레이션 CLI 예시
+async function runMigration() {
+  const app = await NestFactory.createApplicationContext(AppModule);
+  const migrationService = app.get(MigrationService);
+  await migrationService.run();
+  await app.close();
+}
+runMigration();
+```
+
+`createApplicationContext()`로 만든 앱은 HTTP 포트를 잡지 않아 부트스트랩이 더 빠르다. 컨트롤러, 가드, 인터셉터 같은 HTTP 레이어 구성요소는 의미가 없다.
+
+하이브리드 앱이라는 패턴도 있다. HTTP와 마이크로서비스 트랜스포트를 한 프로세스에 동시에 띄울 때 쓴다.
+
+```typescript
+const app = await NestFactory.create(AppModule);
+app.connectMicroservice<MicroserviceOptions>({
+  transport: Transport.TCP,
+  options: { host: '0.0.0.0', port: 4000 },
+});
+await app.startAllMicroservices();  // 마이크로서비스 먼저
+await app.listen(3000);              // 그다음 HTTP
+```
 
 
 ## NestFactory.create() 내부 동작
@@ -65,6 +217,131 @@ AuthService (JwtService, UserService 필요) → 둘 다 생성된 후 생성
 ### 5단계: HTTP 서버 리스닝
 
 `app.listen(3000)` 호출 시점에 Express/Fastify 서버가 실제로 포트를 열고 요청을 받기 시작한다. `listen()` 전에는 모든 초기화가 완료된 상태여야 한다.
+
+
+## @Module 메타데이터 4종 — imports / providers / controllers / exports
+
+`@Module()` 데코레이터에 넘기는 메타데이터 4종의 역할을 정리하면:
+
+- **imports**: 다른 모듈에서 export한 프로바이더를 사용하겠다고 선언한다. 모듈 단위의 의존성 선언.
+- **providers**: 이 모듈이 소유하는 프로바이더. DI 컨테이너에 등록되어 모듈 내부의 컨트롤러와 다른 프로바이더에서 주입할 수 있다.
+- **controllers**: HTTP 요청을 받는 컨트롤러. 라우터에 등록된다.
+- **exports**: 모듈의 프로바이더 중 외부 모듈에 노출할 것. exports에 명시하지 않은 프로바이더는 모듈 내부 전용이다.
+
+```typescript
+@Module({
+  imports: [DatabaseModule, AuthModule],    // 외부 모듈의 export를 끌어옴
+  controllers: [OrderController],            // HTTP 라우트
+  providers: [
+    OrderService,                            // 모듈 내부 비즈니스 로직
+    OrderRepository,                         // 모듈 내부 데이터 액세스
+    {                                         // 커스텀 프로바이더
+      provide: 'ORDER_CONFIG',
+      useValue: { maxItems: 100 },
+    },
+  ],
+  exports: [OrderService],                   // 다른 모듈에서 OrderService 사용
+})
+export class OrderModule {}
+```
+
+### 캡슐화 동작
+
+NestJS 모듈은 캡슐화되어 있다. 다른 모듈에서 `OrderService`를 사용하려면 두 조건을 모두 만족해야 한다.
+
+1. `OrderModule`이 `OrderService`를 `exports`에 명시
+2. 사용하는 쪽 모듈이 `OrderModule`을 `imports`에 추가
+
+둘 중 하나라도 빠지면 다음과 같은 에러가 난다. NestJS 입문자가 가장 많이 만나는 에러다.
+
+```
+Nest can't resolve dependencies of XXX (?, YYY).
+Please make sure that the argument YYY at index [0]
+is available in the ZZZ context.
+```
+
+읽는 법:
+- `XXX`: 의존성을 주입받지 못한 클래스
+- `YYY`: 주입받으려는 프로바이더
+- `ZZZ`: 현재 모듈 컨텍스트
+
+해결 순서:
+
+1. `YYY`가 등록된 모듈의 exports를 확인 → 없으면 추가
+2. `ZZZ` 모듈의 imports에 `YYY`가 있는 모듈을 추가 → 없으면 추가
+3. `YYY`가 동적 모듈이면 `forRoot()`/`register()` 호출 결과를 imports에 넣었는지 확인
+
+### exports에 모듈 자체를 넣는 경우
+
+`exports` 배열에는 프로바이더뿐 아니라 모듈도 넣을 수 있다. 모듈을 export하면 그 모듈이 export한 모든 프로바이더가 자동으로 노출된다(re-export).
+
+```typescript
+@Module({
+  imports: [TypeOrmModule.forFeature([User])],
+  providers: [UserService],
+  exports: [UserService, TypeOrmModule],  // TypeOrmModule도 re-export
+})
+export class UserModule {}
+```
+
+이렇게 하면 `UserModule`을 import한 쪽에서 `@InjectRepository(User)`를 바로 쓸 수 있다.
+
+### imports에 들어갈 수 있는 형태
+
+- 모듈 클래스: `UserModule`
+- 동적 모듈 객체: `TypeOrmModule.forRoot({...})`
+- forwardRef로 감싼 모듈: `forwardRef(() => OtherModule)`
+- DynamicModule을 리턴하는 팩토리 호출 결과
+
+문자열이나 프로바이더를 직접 imports에 넣으면 안 된다. 프로바이더는 `providers`에, 다른 모듈의 프로바이더는 그 모듈을 `imports`에 추가하는 식으로만 접근한다.
+
+### controllers vs providers — 자주 헷갈리는 부분
+
+5년차 코드 리뷰에서도 가끔 보이는 실수가 컨트롤러를 `providers`에 넣는 것이다. 동작은 한다 — DI 컨테이너에 등록되니까. 하지만 라우터에는 등록되지 않아 HTTP 요청을 처리하지 못한다. "엔드포인트가 404 나는데 클래스는 분명 있다"는 상황이 이 실수에서 자주 나온다.
+
+반대로 `@Injectable()` 서비스를 `controllers`에 넣어도 NestJS가 라우트 메타데이터를 찾지 못해 무의미하게 등록된다. 컨트롤러는 `controllers`, 그 외 주입 가능한 클래스는 `providers`로 명확히 구분해야 한다.
+
+### AppModule 구성 패턴
+
+규모가 커지면 AppModule이 비대해진다. 실무에서는 보통 다음과 같은 레이어로 나눈다.
+
+```typescript
+@Module({
+  imports: [
+    // 1. 인프라/공통 모듈 (global)
+    ConfigModule.forRoot({ isGlobal: true }),
+    LoggerModule.forRoot(),
+
+    // 2. 외부 시스템 연동
+    DatabaseModule,
+    CacheModule,
+    QueueModule,
+
+    // 3. 횡단 관심사
+    AuthModule,
+    HealthModule,
+
+    // 4. 도메인/feature 모듈
+    UserModule,
+    OrderModule,
+    PaymentModule,
+  ],
+  controllers: [AppController],  // 헬스체크 정도만 남김
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
+})
+export class AppModule {}
+```
+
+도메인 모듈은 AppModule이 직접 알아야 하는 구체적인 서비스가 거의 없는 게 보통이다. AppModule은 "어떤 모듈을 조립하는지"만 책임지고, 비즈니스 로직은 도메인 모듈 안에 캡슐화한다. AppModule에 `OrderService`나 `UserRepository` 같은 게 직접 들어있으면 모듈 분리가 안 되어 있다는 신호다.
 
 
 ## 모듈 라이프사이클 훅
@@ -676,6 +953,248 @@ export class AppModule {}
 ### 직접 구현 vs ConfigurableModuleBuilder
 
 직접 구현하는 게 나은 경우도 있다. `ConfigurableModuleBuilder`는 `register`/`registerAsync` 패턴을 따르는 단순한 동적 모듈에 적합하다. `forRoot`과 `forFeature`를 동시에 제공하거나, 옵션에 따라 providers가 크게 달라지는 복잡한 모듈에서는 직접 구현하는 게 코드를 이해하기 쉽다.
+
+
+## 순환 참조와 forwardRef
+
+모듈 A가 모듈 B를 import하고, 모듈 B가 모듈 A를 다시 import하면 순환 참조가 생긴다. 부트스트랩 단계에서 NestJS는 이 사이클을 감지하지 못해 다음과 같은 에러를 던진다.
+
+```
+A circular dependency between modules has been detected.
+Please, make sure that each side of a bidirectional relationship
+are decorated with "forwardRef()". Note that circular relationships
+should be avoided when possible.
+```
+
+같은 문제는 프로바이더 간에도 생긴다. `ServiceA`가 `ServiceB`를 주입받고, `ServiceB`도 `ServiceA`를 주입받으면 의존성 그래프를 만들 때 무한 사이클이 발생한다.
+
+### 모듈 간 순환 참조
+
+```typescript
+// auth.module.ts
+@Module({
+  imports: [UserModule],
+  providers: [AuthService],
+  exports: [AuthService],
+})
+export class AuthModule {}
+
+// user.module.ts
+@Module({
+  imports: [AuthModule],   // 양쪽이 서로 import → 순환
+  providers: [UserService],
+  exports: [UserService],
+})
+export class UserModule {}
+```
+
+해결책은 한쪽 또는 양쪽을 `forwardRef()`로 감싸는 것이다.
+
+```typescript
+// auth.module.ts
+@Module({
+  imports: [forwardRef(() => UserModule)],
+  providers: [AuthService],
+  exports: [AuthService],
+})
+export class AuthModule {}
+
+// user.module.ts
+@Module({
+  imports: [forwardRef(() => AuthModule)],
+  providers: [UserService],
+  exports: [UserService],
+})
+export class UserModule {}
+```
+
+`forwardRef()`는 모듈 클래스를 즉시 참조하지 않고 팩토리 함수로 감싼다. NestJS는 부트스트랩 시점에 한쪽 모듈을 먼저 등록하고, 다른 쪽이 등록된 후에 참조를 해결한다.
+
+### 프로바이더 간 순환 참조
+
+서비스끼리 양방향으로 주입받는 경우는 `@Inject(forwardRef(() => ...))`로 감싼다.
+
+```typescript
+@Injectable()
+export class AuthService {
+  constructor(
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
+  ) {}
+}
+
+@Injectable()
+export class UserService {
+  constructor(
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
+  ) {}
+}
+```
+
+생성자 파라미터에 타입만 적어두면 TypeScript 리플렉션이 클래스 메타데이터를 읽어 자동으로 토큰을 결정한다. 순환 참조 상황에서는 한쪽 클래스가 아직 로드되지 않은 시점에 리플렉션이 호출되어 `undefined`가 토큰으로 들어간다. 그래서 `@Inject(forwardRef(...))`로 명시적으로 늦은 참조를 만들어줘야 한다.
+
+### forwardRef의 비용과 함정
+
+`forwardRef()`는 동작은 하지만, 두 가지를 알고 써야 한다.
+
+**1. 진짜 문제는 설계에 있다는 신호다.** 두 서비스가 서로를 호출한다는 건 보통 책임 분리가 잘못된 경우가 많다. 예를 들어 `AuthService`가 `UserService.findById()`를 호출하고, `UserService`가 `AuthService.validateToken()`을 호출하는 구조라면 토큰 검증과 사용자 조회를 합친 상위 서비스를 만들거나, 공통 의존성을 별도 모듈로 분리하는 게 정상이다.
+
+흔한 해결 패턴 세 가지:
+
+```
+A → B, B → A
+  ↓ 리팩터링
+  
+(a) A, B가 공통으로 의존하는 C를 만들어 A → C, B → C
+(b) A, B 둘 다의 책임을 가진 상위 서비스 D를 만들어 D → A, D → B
+(c) 한쪽이 이벤트를 발행하고 다른 쪽이 구독하게 → A → EventBus ← B
+```
+
+**2. 라이프사이클 훅에서 늦게 주입되는 인스턴스를 사용할 때 주의해야 한다.** `forwardRef`로 주입한 의존성은 생성자 실행 시점에 완전히 초기화되지 않은 상태일 수 있다. 생성자에서 그 의존성의 메서드를 호출하면 런타임 에러가 난다. `OnModuleInit` 이후에 접근하는 게 안전하다.
+
+```typescript
+// 문제 코드
+@Injectable()
+export class AuthService {
+  constructor(
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
+  ) {
+    this.userService.preload();  // userService가 아직 준비 안 됐을 수 있음
+  }
+}
+
+// 안전한 코드
+@Injectable()
+export class AuthService implements OnModuleInit {
+  constructor(
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
+  ) {}
+
+  onModuleInit() {
+    this.userService.preload();  // 이 시점에는 준비된 상태
+  }
+}
+```
+
+### ModuleRef로 forwardRef 회피
+
+생성자 주입을 포기하고 `ModuleRef`로 런타임에 조회하는 방식으로도 순환 참조를 풀 수 있다.
+
+```typescript
+@Injectable()
+export class AuthService implements OnModuleInit {
+  private userService: UserService;
+
+  constructor(private readonly moduleRef: ModuleRef) {}
+
+  onModuleInit() {
+    this.userService = this.moduleRef.get(UserService, { strict: false });
+  }
+}
+```
+
+이 방식은 컴파일 타임에 의존성이 보이지 않아 코드 추적이 어려워진다. 일회성 우회로만 쓰고, 가능하면 모듈 구조를 다시 설계하는 게 낫다.
+
+
+## @Global() — 글로벌 모듈
+
+`@Global()` 데코레이터를 모듈에 붙이면, 그 모듈이 export한 프로바이더가 모든 모듈에서 import 없이 사용 가능해진다. `ConfigModule.forRoot({ isGlobal: true })` 같은 옵션이 내부적으로 이걸 사용한다.
+
+```typescript
+@Global()
+@Module({
+  providers: [LoggerService],
+  exports: [LoggerService],
+})
+export class LoggerModule {}
+
+// AppModule에 한 번만 import
+@Module({
+  imports: [LoggerModule],
+})
+export class AppModule {}
+
+// 어떤 모듈에서든 import 없이 LoggerService를 주입받을 수 있음
+@Module({
+  providers: [OrderService],
+})
+export class OrderModule {}
+
+@Injectable()
+export class OrderService {
+  constructor(private readonly logger: LoggerService) {}  // 동작함
+}
+```
+
+### 글로벌 모듈은 한 번만 import한다
+
+글로벌 모듈도 결국 모듈이라 어딘가에서 한 번은 import해야 한다. 보통 AppModule에 import한다. 두 번 이상 import하면 인스턴스가 두 개 만들어지지 않고 첫 번째만 사용된다 — NestJS가 같은 모듈 토큰의 중복을 자동으로 제거한다.
+
+### 글로벌 모듈을 써야 할 때
+
+다음 조건을 모두 만족할 때만 글로벌로 만든다.
+
+- 거의 모든 모듈에서 사용한다 (로거, ConfigService 등)
+- 인스턴스를 하나로 공유해야 한다
+- 모듈 간 결합도가 글로벌 노출로 인해 더 나빠지지 않는다
+
+`ConfigModule`, `LoggerModule`, `CacheModule` 같은 인프라 모듈이 전형적인 사용 사례다. 도메인 모듈(`UserModule`, `OrderModule`)을 글로벌로 만드는 건 거의 항상 잘못된 선택이다. 도메인 의존성이 어디서 어떻게 연결되는지 명시적으로 보이지 않게 되어, 모듈 분리·테스트·리팩터링이 모두 어려워진다.
+
+### 글로벌 모듈의 함정
+
+**1. 토큰 충돌이 조용히 일어난다.** 글로벌 모듈에서 export한 `LoggerService`와 로컬 모듈에서 등록한 `LoggerService`가 같은 토큰을 쓰면, 로컬 등록이 글로벌을 덮는다. 에러나 경고 없이 동작이 달라진다.
+
+```typescript
+@Global()
+@Module({
+  providers: [
+    { provide: LoggerService, useFactory: () => new ProdLogger() },
+  ],
+  exports: [LoggerService],
+})
+export class GlobalLoggerModule {}
+
+@Module({
+  providers: [LoggerService],  // 기본 클래스로 다시 등록 → 글로벌 무시됨
+})
+export class SomeFeatureModule {}
+```
+
+`SomeFeatureModule` 내부에서는 `ProdLogger`가 아니라 기본 `LoggerService`가 주입된다. 모듈 작성자가 의도하지 않은 동작이다.
+
+**2. 테스트에서 격리가 어려워진다.** 글로벌 모듈은 import 선언 없이 의존성이 연결되니까, 테스트 모듈을 만들 때 어떤 글로벌 프로바이더가 영향을 주는지 한눈에 보이지 않는다. 결국 테스트에서 글로벌 모듈을 통째로 import하거나 mock을 따로 등록하게 된다.
+
+**3. 모듈 그래프 시각화가 의미를 잃는다.** NestJS Devtools나 의존성 분석 도구가 그리는 모듈 그래프에서, 글로벌 모듈은 모든 모듈과 보이지 않는 선으로 연결된 상태가 된다. 그래프를 봐도 실제 의존 관계를 파악하기 어렵다.
+
+### 동적 글로벌 모듈
+
+`forRoot()`가 반환하는 `DynamicModule`에 `global: true`를 넣으면 동적으로도 글로벌로 만들 수 있다.
+
+```typescript
+@Module({})
+export class CoreModule {
+  static forRoot(options: CoreOptions): DynamicModule {
+    return {
+      module: CoreModule,
+      global: true,             // 동적 글로벌
+      providers: [
+        { provide: 'CORE_OPTIONS', useValue: options },
+        CoreService,
+      ],
+      exports: [CoreService],
+    };
+  }
+}
+```
+
+이때 `@Global()` 데코레이터는 클래스에 붙이지 않는다. `DynamicModule`의 `global: true`로 충분하다. 두 가지를 모두 쓰면 결과는 같지만 의도가 흐려지므로 한쪽으로 통일한다.
+
+### "import 쓰기 귀찮아서" 글로벌은 금지
+
+5년차 코드 리뷰에서 가장 흔히 잡는 안티패턴이다. 매 모듈마다 `imports: [LoggerModule]`을 추가하기 귀찮다는 이유로 `@Global()`을 붙이면, 처음엔 편하지만 시간이 지나면서 토큰 충돌, 의존성 불투명, 테스트 격리 실패로 돌아온다. 명시적인 의존성 선언이 결국 더 적은 비용으로 끝난다.
 
 
 ## 모듈 재내보내기 (Re-exporting)
@@ -1492,3 +2011,125 @@ private async cleanup() {
 ```
 
 `onModuleDestroy`에서 리턴된 Promise를 NestJS가 기다리는데, `cleanup()`에 await를 안 붙이면 `onModuleDestroy`가 즉시 resolve되어 cleanup이 끝나기 전에 다음 단계로 넘어간다. async 함수에서 다른 async 함수를 호출할 때 await를 빠뜨리는 건 흔한 실수지만, 종료 훅에서 이걸 빠뜨리면 리소스 누수로 이어진다.
+
+
+## HMR(Hot Module Replacement) 설정
+
+NestJS는 기본적으로 `start:dev` 스크립트로 파일 변경을 감지해 프로세스를 재시작한다. 작은 프로젝트면 충분하지만, 의존하는 모듈이 많거나 ORM 부트스트랩이 오래 걸리는 프로젝트에서는 매번 전체 재시작이 부담스럽다. HMR을 켜면 변경된 모듈만 교체되므로 부트스트랩 시간이 크게 줄어든다.
+
+### webpack 기반 HMR 설정
+
+NestJS는 webpack과 통합된 HMR을 지원한다. 먼저 webpack 설정 파일을 추가한다.
+
+```javascript
+// webpack-hmr.config.js
+const nodeExternals = require('webpack-node-externals');
+const { RunScriptWebpackPlugin } = require('run-script-webpack-plugin');
+
+module.exports = function (options, webpack) {
+  return {
+    ...options,
+    entry: ['webpack/hot/poll?100', options.entry],
+    externals: [
+      nodeExternals({
+        allowlist: ['webpack/hot/poll?100'],
+      }),
+    ],
+    plugins: [
+      ...options.plugins,
+      new webpack.HotModuleReplacementPlugin(),
+      new webpack.WatchIgnorePlugin({
+        paths: [/\.js$/, /\.d\.ts$/],
+      }),
+      new RunScriptWebpackPlugin({
+        name: options.output.filename,
+        autoRestart: false,
+      }),
+    ],
+  };
+};
+```
+
+필요한 패키지를 설치한다.
+
+```bash
+npm i -D webpack-node-externals run-script-webpack-plugin webpack
+```
+
+다음으로 main.ts에 HMR accept 코드를 추가한다.
+
+```typescript
+declare const module: any;
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+
+  if (module.hot) {
+    module.hot.accept();
+    module.hot.dispose(() => app.close());
+  }
+}
+bootstrap();
+```
+
+`module.hot`은 webpack HMR이 켜진 환경에서만 정의된다. 프로덕션 빌드에서는 `if` 블록이 dead code로 제거된다. `dispose` 콜백은 새 모듈로 교체되기 직전에 호출되어 기존 NestJS 앱을 정리한다.
+
+마지막으로 package.json에 스크립트를 추가한다.
+
+```json
+{
+  "scripts": {
+    "start:dev": "nest build --webpack --webpackPath webpack-hmr.config.js --watch"
+  }
+}
+```
+
+### HMR이 효과적인 경우와 함정
+
+HMR은 만능이 아니다. 다음 경우에서 가장 효과를 본다.
+
+- AppModule이 30개 이상의 모듈을 import한다
+- TypeORM 엔티티 메타데이터 수집이나 클래스 검증기 등록처럼 부트스트랩에 시간이 걸린다
+- DB 마이그레이션, 외부 시스템 헬스체크가 부트스트랩에서 동작한다
+
+반대로 다음 상황에서는 HMR이 오히려 디버깅을 어렵게 만든다.
+
+**1. 글로벌 상태가 누적된다.** HMR은 모듈만 교체하지 Node.js 프로세스를 재시작하지 않는다. 모듈 바깥에 있는 전역 변수, `process.on()` 리스너, 타이머는 이전 상태가 그대로 남는다. 결과적으로 메모리 사용량이 계속 늘거나, 이벤트 리스너가 중복으로 등록되는 문제가 생긴다.
+
+```typescript
+// 문제 상황: HMR 적용 후 reload마다 이 리스너가 누적됨
+process.on('SIGTERM', () => {
+  // 매 reload마다 한 번씩 더 등록됨
+});
+```
+
+`enableShutdownHooks()`도 같은 이유로 HMR 환경에서는 문제를 일으킨다. dev에서 메모리 누수 경고(`MaxListenersExceededWarning`)가 뜨면 HMR과의 상호작용을 의심해봐야 한다.
+
+**2. DI 컨테이너 상태 불일치.** 싱글톤 프로바이더의 내부 상태(캐시, 커넥션 풀 등)가 모듈 교체 후에도 남아있는데, 그 상태를 참조하던 다른 프로바이더는 새 인스턴스로 교체될 수 있다. 결과적으로 "리로드 후에는 동작하는데 처음 시작했을 때만 이상하다"같은 버그가 나오기도 한다.
+
+**3. 데코레이터 메타데이터가 갱신되지 않을 수 있다.** TypeORM 엔티티에 칼럼을 추가했는데 HMR 후에도 인식되지 않는 경우가 있다. `reflect-metadata`가 캐싱한 메타데이터를 갱신하지 못해서다. 이럴 땐 그냥 프로세스를 재시작해야 한다.
+
+### SWC 빌더 — HMR을 안 쓰는 선택
+
+NestJS 10 이상은 `--builder swc` 옵션으로 SWC 컴파일러를 쓸 수 있다. SWC는 TypeScript 컴파일이 tsc보다 10배 이상 빨라서, 재시작 자체가 빠르다. 작은 프로젝트나 중간 규모 프로젝트라면 HMR을 설정하는 것보다 SWC로 전환하는 게 단순하다.
+
+```json
+{
+  "scripts": {
+    "start:dev": "nest start --builder swc --watch"
+  }
+}
+```
+
+SWC는 `tsconfig`의 `paths` alias를 일부 인식하지 못하는 등 호환성 이슈가 있을 수 있으니 도입 전에 테스트가 필요하다. 그리고 SWC는 타입 체크를 안 한다 — 별도로 `tsc --noEmit`을 CI에서 돌려야 한다.
+
+### HMR vs SWC vs nodemon — 어떤 걸 쓰나
+
+| 환경 | 권장 도구 | 이유 |
+|------|----------|------|
+| 모듈 < 10개, 부트스트랩 < 2초 | 기본 `nest start --watch` | 설정 비용 대비 이득 없음 |
+| 중간 규모, 부트스트랩 5~10초 | `--builder swc --watch` | 설정 간단, 재시작 충분히 빠름 |
+| 대규모, 부트스트랩 15초 이상 | webpack HMR | 모듈 단위 교체로 reload 시간 최소화 |
+
+실무에서 가장 흔한 함정은 "느리니까 HMR 켜자"고 곧장 webpack 설정을 만지는 것이다. 부트스트랩이 느린 진짜 원인(과도한 글로벌 모듈, 동기 초기화, 외부 시스템 헬스체크)을 먼저 찾고, 그게 끝나지 않을 때 HMR로 넘어가는 게 맞다.

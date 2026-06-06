@@ -1,7 +1,7 @@
 ---
 title: NestJS 데코레이터(Decorator) 완전 정리
 tags: [nestjs, decorator, annotation, reflect-metadata, dependency-injection, node]
-updated: 2026-06-04
+updated: 2026-06-06
 ---
 
 # NestJS 데코레이터(Decorator) 완전 정리
@@ -33,6 +33,66 @@ import { NestFactory } from '@nestjs/core';
 ```
 
 `reflect-metadata`가 없으면 `Reflect.getMetadata()`가 undefined를 반환하고, 그 결과 컨테이너가 토큰을 찾지 못해 `Nest can't resolve dependencies` 에러가 발생한다.
+
+### 정의 시점과 런타임의 분리
+
+데코레이터를 처음 다루면 가장 헷갈리는 지점이 "데코레이터 함수는 언제 실행되는가"다. 결론부터 말하면 데코레이터는 클래스 정의가 평가되는 시점, 즉 모듈 로드 시점에 한 번 호출된다. 라우트 요청마다 호출되지 않는다.
+
+```typescript
+function LogDecorator(label: string): MethodDecorator {
+  console.log(`[정의 시점] ${label} 평가됨`);
+  return (target, propertyKey) => {
+    console.log(`[정의 시점] ${label} 적용됨`);
+  };
+}
+
+class Demo {
+  @LogDecorator('A')
+  @LogDecorator('B')
+  hello() {}
+}
+```
+
+위 코드를 실행하면 콘솔에는 다음 순서로 찍힌다.
+
+```
+[정의 시점] A 평가됨
+[정의 시점] B 평가됨
+[정의 시점] B 적용됨
+[정의 시점] A 적용됨
+```
+
+데코레이터 factory 호출(`LogDecorator('A')`)은 위에서 아래로, 실제 적용(반환된 함수가 호출되는 시점)은 아래에서 위로 일어난다. 메서드에 가장 가까이 붙은 데코레이터가 먼저 적용되고, 그 결과를 위쪽 데코레이터가 다시 감싼다. `@UseGuards`와 `@Get`을 함께 붙일 때 어느 쪽이 먼저 메타데이터를 쓰는지 추적할 때 이 순서를 알아야 한다. NestJS의 기본 데코레이터들은 서로 충돌하지 않게 다른 키를 쓰므로 평소엔 문제가 없지만, 같은 키를 두 곳에서 쓰는 커스텀 데코레이터를 만들면 아래쪽이 위쪽을 덮어쓴다.
+
+런타임 처리(가드 실행, 파라미터 추출, 핸들러 호출)는 정의 시점에 붙어 있던 메타데이터를 NestJS 컨테이너가 매 요청마다 읽어서 처리한다. 데코레이터 자체는 한 번 실행되고 끝이지만, 그것이 남긴 메타데이터는 매 요청에서 다시 읽힌다.
+
+### 메타데이터 기반 부트스트랩 흐름
+
+NestJS가 메타데이터를 어떻게 모아서 라우팅과 DI 그래프를 만드는지 흐름으로 정리하면 다음과 같다.
+
+```mermaid
+sequenceDiagram
+    participant TSC as TypeScript 컴파일러
+    participant CLS as 클래스 정의
+    participant DEC as 데코레이터 함수
+    participant RM as reflect-metadata 저장소
+    participant NF as NestFactory
+    participant CON as DI 컨테이너
+
+    TSC->>CLS: design:type / design:paramtypes / design:returntype emit
+    CLS->>DEC: 데코레이터 평가(클래스 로드 시점)
+    DEC->>RM: Reflect.defineMetadata로 키-값 저장
+    Note over RM: path, method, roles, scope 등이 클래스/메서드에 부착
+
+    NF->>CON: AppModule을 루트로 스캔 시작
+    CON->>RM: @Module 메타데이터 조회(imports/providers/controllers)
+    CON->>RM: 각 프로바이더의 design:paramtypes 조회
+    CON->>CON: 의존성 그래프 구성 및 인스턴스 생성
+    CON->>RM: 컨트롤러 메서드의 path/method 메타데이터 조회
+    CON->>CON: 라우트 테이블 등록
+```
+
+데코레이터가 남긴 메타데이터를 NestFactory가 읽어 의존성 그래프와 라우트 테이블을 만든다. 부트스트랩이 끝나면 그래프는 고정되고, 이후 요청은 이 그래프 위에서 흘러간다. 그래서 `forwardRef`가 필요한 순환 의존이 풀리지 않으면 그래프 자체가 만들어지지 않아 애플리케이션이 기동되지 않는다.
 
 ## 컨트롤러 데코레이터
 
@@ -512,7 +572,7 @@ const meta = Reflect.getMetadata(
 
 주의할 점은 `Reflect.defineMetadata`의 인자 순서다. 클래스에 붙일 때는 `(key, value, target)`, 메서드나 프로퍼티에 붙일 때는 `(key, value, target, propertyKey)`다. propertyKey 위치를 빼먹으면 클래스에 메타데이터가 붙어서 모든 메서드가 같은 값을 공유한다. 디버깅이 까다로우니 처음부터 정확히 써야 한다.
 
-또한 메타데이터는 프로토타입 체인을 따라 상속된다. 부모 클래스 메서드에 붙은 메타데이터는 자식 클래스에서도 읽힌다. NestJS의 `getAllAndOverride`가 메서드/클래스 두 위치에서 메타데이터를 찾는 것도 이런 상속 동작과 잘 맞물려 있다.
+메타데이터는 프로토타입 체인을 따라 상속된다. 부모 클래스 메서드에 붙은 메타데이터는 자식 클래스에서도 읽힌다. NestJS의 `getAllAndOverride`가 메서드/클래스 두 위치에서 메타데이터를 찾는 것도 이런 상속 동작과 잘 맞물려 있다.
 
 ## 커스텀 파라미터 데코레이터
 
@@ -562,6 +622,31 @@ adminOnly() {}
 ```
 
 `Auth` 하나로 가드 적용과 역할 메타데이터 설정을 동시에 처리한다. 데코레이터를 여러 개 붙이는 게 반복되면 합쳐서 의미 단위로 묶는다.
+
+`applyDecorators`는 인자로 받은 데코레이터를 위에서 아래 순서로 평가해 차례로 적용한다. 즉 `applyDecorators(A, B, C)`는 `@A @B @C handler`를 직접 쓴 것과 같다. 적용 시점에는 평소 데코레이터 평가 순서대로 C → B → A 순으로 동작한다. Swagger 데코레이터와 가드를 묶을 때 이 순서가 가끔 중요해진다.
+
+```typescript
+export function CreateApi(summary: string, ...roles: string[]) {
+  return applyDecorators(
+    ApiOperation({ summary }),
+    ApiResponse({ status: 201, description: 'Created' }),
+    UseGuards(AuthGuard, RolesGuard),
+    SetMetadata('roles', roles),
+    HttpCode(201),
+  );
+}
+
+@Controller('orders')
+export class OrdersController {
+  @CreateApi('주문 생성', 'user')
+  @Post()
+  create(@Body() dto: CreateOrderDto) {}
+}
+```
+
+주의할 점은 `applyDecorators`로 묶은 데코레이터가 `@SetMetadata`와 `@UseGuards`처럼 서로 다른 종류면 문제가 없지만, 같은 키로 `@SetMetadata`를 두 번 부르면 뒤에 적은 쪽이 앞을 덮어쓴다는 것이다. 합성 데코레이터 안에 또 합성 데코레이터를 중첩할 때 같은 메타데이터 키가 겹치지 않는지 확인한다.
+
+핸들러 시그니처에 영향을 주는 파라미터 데코레이터(`@Body`, `@Param` 등)는 `applyDecorators`로 묶을 수 없다. 파라미터 데코레이터는 메서드 데코레이터와 다른 위치(파라미터 인덱스)에 적용되기 때문이다. 합성은 메서드/클래스 데코레이터 한정이라고 기억하면 된다.
 
 ### 파이프와 조합
 
@@ -1082,7 +1167,7 @@ POST 요청을 보냈는데 `@Body()`로 받은 dto가 `{}`로 들어온다면 b
 app.use(express.json({ limit: '10mb' }));
 ```
 
-또한 클라이언트가 `Content-Type: application/json` 헤더를 보냈는지 확인한다. 헤더가 다르면 parser가 동작하지 않아 빈 객체가 들어온다.
+클라이언트가 `Content-Type: application/json` 헤더를 보냈는지도 확인한다. 헤더가 다르면 parser가 동작하지 않아 빈 객체가 들어온다.
 
 ### ValidationPipe의 transform이 안 먹음
 
