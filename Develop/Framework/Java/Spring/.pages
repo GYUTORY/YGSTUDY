@@ -1,6 +1,7 @@
 title: Spring
 nav:
   - Bean.md
+  - Spring_Bean_심화.md
   - Spring_Security.md
   - Spring_Data_JPA.md
   - Spring_Data_JPA_Advanced.md
