@@ -1,4 +1,5 @@
 title: Gateway
 nav:
   - Definition.md
+  - Network_Gateway_Advanced.md
   - API_Gateway.md
