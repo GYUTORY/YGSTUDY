@@ -2,6 +2,9 @@ nav:
   - How_To_USE.md
   - NestJs vs ExpressJs.md
   - Nest_JS_부트스트랩_및_모듈_시스템.md
+  - Nest_JS_Dynamic_Module.md
+  - Nest_JS_Provider_Scope.md
+  - Nest_JS_Circular_Dependency.md
   - Nest_JS_Standard_Architecture.md
   - Nest_JS_Clean_Architecture.md
   - Nest_JS_요청_라이프사이클.md
@@ -24,5 +27,10 @@ nav:
   - Nest_JS_Graph_QL.md
   - Nest_JS_Web_Socket_Gateway.md
   - Nest_JS_Cache_Module.md
+  - Nest_JS_Throttler.md
+  - Nest_JS_Health_Check.md
+  - Nest_JS_Schedule_Module.md
   - Nest_JS_작업_큐_Bull_MQ.md
+  - Nest_JS_Event_Emitter_CQRS.md
+  - Nest_JS_File_Upload.md
   - 실전_예제.md
