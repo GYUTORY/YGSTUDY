@@ -5,6 +5,7 @@ nav:
   - Sorting.md
   - Binary_Search.md
   - Dynamic_Programming.md
+  - Dynamic_Programming_Advanced.md
   - Greedy.md
   - Greedy_Deep_Dive.md
   - Greedy_Problem_Patterns.md
