@@ -17,18 +17,21 @@ nav:
   - Nest_JS_Pipes.md
   - Nest_JS_Validation_Pipe.md
   - Nest_JS_Swagger.md
+  - Nest_JS_API_Versioning.md
   - Nest_JS_설정_관리.md
   - Type_Safe_Config_Service.md
   - Nest_JS_마이크로서비스.md
   - Nest_JS_인증_JWT_Passport.md
   - Nest_JS_테스트.md
   - Nest_JS_Type_ORM_연동.md
+  - Nest_JS_Prisma.md
   - Nest_JS_AWS_Secrets_Manager_KMS.md
   - Nest_JS_Graph_QL.md
   - Nest_JS_Web_Socket_Gateway.md
   - Nest_JS_Cache_Module.md
   - Nest_JS_Throttler.md
   - Nest_JS_Health_Check.md
+  - Nest_JS_Logging.md
   - Nest_JS_Schedule_Module.md
   - Nest_JS_작업_큐_Bull_MQ.md
   - Nest_JS_Event_Emitter_CQRS.md
