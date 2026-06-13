@@ -13,4 +13,5 @@ nav:
   - Logging_Monitoring.md
   - Docker_Caddy.md
   - Docker_Caddy_Operations_Advanced.md
+  - Docker_Caddy_Image_CICD_Pipeline.md
   - Nginx_To_Caddy_Migration.md
