@@ -5,3 +5,4 @@ nav:
   - Couch_DB.md
   - Redis
   - Valkey
+  - ScyllaDB
