@@ -20,6 +20,7 @@ nav:
   - XSS.md
   - CSRF.md
   - SQL_Injection.md
+  - SQL_Injection_Testing.md
   - Command_Injection.md
   - OWASP_Top_10.md
   - API_Input_Validation.md
