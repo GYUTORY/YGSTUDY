@@ -1,300 +1,77 @@
 ---
 title: AWS RDS (Relational Database Service)
 tags: [aws, database, rds, mysql, postgresql, aurora]
-updated: 2025-12-01
+updated: 2026-06-15
 ---
 
 # AWS RDS (Relational Database Service)
 
-## 개요
+## RDS가 실제로 대신해주는 것
 
-AWS RDS(Relational Database Service)는 클라우드 환경에서 관계형 데이터베이스를 운영하기 위한 완전 관리형 데이터베이스 서비스입니다.
+RDS는 관계형 DB를 EC2에 직접 설치하지 않고 AWS가 운영하는 매니지드 형태로 쓰는 서비스다. "완전 관리형"이라는 말이 자주 붙는데, 실무에서 이 말의 경계를 정확히 알아두지 않으면 장애 대응할 때 헷갈린다.
 
-전통적인 온프레미스 데이터베이스 운영에서는 다음 복잡한 작업들이 필요합니다:
-- 서버 하드웨어 관리 및 유지보수
-- 운영체제 설치 및 보안 패치
-- 데이터베이스 소프트웨어 설치 및 업그레이드
-- 백업 및 복구 전략 수립 및 실행
-- 성능 모니터링 및 튜닝
-- 보안 설정 및 접근 제어
-- 장애 대응 및 복구
+RDS가 대신 해주는 건 OS 패치, DB 엔진 마이너 버전 패치, 자동 백업과 스냅샷, Multi-AZ 페일오버, 스토리지 자동 확장 정도다. 반대로 RDS가 안 해주는 건 명확하다. 쿼리 튜닝, 인덱스 설계, 커넥션 수 관리, 파라미터 그룹 튜닝, 슬로우 쿼리 잡는 일은 전부 우리 몫이다. CPU가 100% 치는 건 대부분 RDS 문제가 아니라 풀스캔 쿼리 하나 때문이다. 매니지드라고 해서 DBA 역할이 사라지는 게 아니라, 인프라 잡일이 줄어드는 것뿐이다.
 
-RDS는 이 작업들을 AWS가 대신 처리해주어, 개발팀이 비즈니스 로직 개발에 집중할 수 있도록 지원합니다.
+OS에 직접 SSH로 못 들어간다는 점도 처음엔 불편하다. `mysqld`를 직접 재시작하거나 OS 레벨 로그를 보는 게 막혀 있어서, 모든 진단을 CloudWatch 메트릭과 RDS가 노출하는 로그(슬로우 쿼리, 에러 로그), Performance Insights로만 해야 한다. 이 제약을 받아들이고 가는 서비스다.
 
-**지원하는 데이터베이스 엔진:**
+지원 엔진은 MySQL, PostgreSQL, MariaDB, SQL Server, Oracle, 그리고 Amazon Aurora다. 이 중 Aurora는 같은 RDS 메뉴 안에 있지만 스토리지 구조가 완전히 다른 별개 엔진이라고 보는 게 맞다. Aurora 내부 동작과 RDS for MySQL과의 차이는 [Aurora_DB.md](Aurora_DB.md)에서 따로 다룬다. 이 문서는 RDS for MySQL/PostgreSQL 기준으로 쓴다.
 
-RDS는 MySQL, PostgreSQL, MariaDB, SQL Server, Oracle, Amazon Aurora 등 다양한 데이터베이스 엔진을 지원합니다.
+## 인스턴스 클래스를 어떻게 고르나
 
-각 엔진의 특성에 맞는 최적화된 환경을 제공하며, 특히 클라우드 네이티브한 특성을 가진 Aurora는 AWS에서 자체 개발한 데이터베이스입니다.
+인스턴스 클래스는 처음 만들 때 대충 잡았다가 나중에 바꾸는 경우가 많은데, 변경할 때 다운타임이 생기므로(Multi-AZ면 페일오버로 수십 초, Single-AZ면 그보다 길다) 처음에 한 단계 여유 있게 잡는 편이 낫다.
 
-Aurora는 기존 관계형 데이터베이스의 한계를 극복한 고성능과 확장성을 제공합니다.
+DB 워크로드는 거의 항상 메모리 바운드다. InnoDB buffer pool에 워킹셋이 안 들어가면 디스크 I/O가 폭증하면서 느려지기 때문에, CPU보다 메모리를 먼저 본다. 그래서 실무에서 프로덕션 DB는 범용(`db.m` 시리즈)보다 메모리 최적화(`db.r` 시리즈)를 쓰는 경우가 많다. `db.r6g`, `db.r6i` 같은 클래스가 데이터 캐싱이 중요한 OLTP에 잘 맞는다.
 
-## 핵심 개념
+`db.t` 버스터블 클래스는 개발·스테이징에는 괜찮지만 프로덕션에 쓰면 위험하다. CPU 크레딧이 바닥나면 baseline 성능으로 떨어져서, 트래픽이 몰리는 정확히 그 순간에 DB가 느려진다. t 계열을 프로덕션에 쓴다면 CPU 크레딧 잔량(`CPUCreditBalance`)을 반드시 알람으로 걸어야 한다.
 
-### 완전 관리형 서비스의 의미
+## 스토리지 — gp3와 IOPS 함정
 
-RDS의 가장 큰 특징은 '완전 관리형(Managed Service)'이라는 점입니다.
+스토리지 타입은 대부분 gp3로 시작한다. gp2 시절엔 용량과 IOPS가 묶여 있어서 IOPS를 늘리려고 안 쓰는 용량을 할당하는 낭비가 있었는데, gp3는 IOPS와 throughput을 용량과 별개로 지정할 수 있어 이 문제가 사라졌다. 새로 만든다면 gp2 쓸 이유가 없다.
 
-완전 관리형 서비스는 데이터베이스 운영에 필요한 모든 인프라 관리 작업을 AWS가 담당한다는 의미입니다.
+스토리지 자동 확장(Storage Autoscaling)은 켜두는 게 안전하지만, 한 번 늘어난 스토리지는 줄일 수 없다는 점을 알고 써야 한다. 로그 테이블이 폭주해서 한 번 1TB로 늘면 그 비용을 계속 낸다. 그리고 스토리지 변경 작업 사이에는 최소 6시간 쿨다운이 있어서, 급하게 연속으로 늘릴 수 없다. 디스크 가득 차서 STORAGE_FULL로 인스턴스가 멈추는 사고를 막으려면 `FreeStorageSpace` 알람을 미리 걸어둔다.
 
-개발자는 데이터베이스 설계와 쿼리 최적화에 집중할 수 있으며, 인프라 관리 부담에서 해방됩니다. 
+Provisioned IOPS(io1/io2)는 정말로 일관된 고 IOPS가 필요한 경우에만 간다. 비싸기 때문에, gp3의 한계(16,000 IOPS)에 실제로 부딪히는지 메트릭으로 확인하기 전엔 안 넘어가는 게 보통이다.
 
-**전통적인 데이터베이스 운영에서 필요한 작업들:**
-- 서버 하드웨어 관리 및 유지보수
-- 운영체제 설치 및 보안 패치
-- 데이터베이스 소프트웨어 설치 및 업그레이드
-- 백업 및 복구 전략 수립 및 실행
-- 성능 모니터링 및 튜닝
-- 보안 설정 및 접근 제어
-- 장애 대응 및 복구
+## Multi-AZ는 가용성이지 성능이 아니다
 
-**RDS에서 자동화되는 작업들:**
-- 하드웨어 장애 시 자동 복구
-- 정기적인 백업 및 스냅샷 생성
-- 보안 패치 자동 적용
-- 성능 메트릭 수집 및 알림
-- Multi-AZ 환경에서의 자동 장애 조치
+Multi-AZ는 가장 흔하게 오해받는 기능이다. 다른 AZ에 standby를 동기 복제로 두고, primary가 죽으면 DNS 엔드포인트를 standby로 자동 전환한다. 페일오버는 보통 60초에서 120초 사이에 끝난다.
 
-### 지원되는 데이터베이스 엔진의 특성
+오해하면 안 되는 건, standby는 평소에 읽기 트래픽을 받지 않는다는 점이다. 순수하게 장애 대비용으로 놀고 있다. "Multi-AZ 켰으니 읽기 분산되겠지"는 틀린 기대다. 읽기 분산은 별도로 리드 레플리카를 만들어야 한다. (단 Aurora나 RDS Multi-AZ 클러스터 배포는 다르게 동작한다.)
 
-#### MySQL
+페일오버가 무중단인 것도 아니다. 그 60~120초 동안 커넥션은 다 끊기고, 애플리케이션은 새 엔드포인트로 다시 붙어야 한다. 커넥션 풀이 죽은 커넥션을 오래 붙잡고 있으면 페일오버가 끝나도 한참 에러가 난다. 이 구간을 줄이려면 [DB_Proxy.md](DB_Proxy.md)의 RDS Proxy를 앞에 두거나, 애플리케이션 JDBC 설정에서 커넥션 validation과 짧은 socket timeout을 잡아야 한다.
 
-가장 널리 사용되는 오픈소스 관계형 데이터베이스입니다.
+## 리드 레플리카 — 비동기라는 전제
 
-**특징:**
-- 웹 애플리케이션 개발에 최적화
-- LAMP(Linux, Apache, MySQL, PHP) 스택의 핵심 구성 요소
-- 대부분의 웹 프레임워크와 호환성 우수
-- 활발한 커뮤니티와 풍부한 학습 자료
+읽기 부하를 분산하려면 리드 레플리카를 만든다. RDS for MySQL/PostgreSQL 기준 최대 15개까지 만들 수 있고, 각 레플리카는 자체 엔드포인트를 가진다.
 
-**적합한 사용 사례:**
-- 중소규모 웹 애플리케이션
-- 전자상거래 플랫폼
-- 콘텐츠 관리 시스템
+핵심은 비동기 복제라는 점이다. primary에 쓴 데이터가 레플리카에 바로 보이지 않는다. 평소엔 수 밀리초~수 초지만, primary에 쓰기가 몰리거나 무거운 DDL이 돌면 복제 지연이 분 단위로 벌어진다. "방금 회원가입했는데 로그인하니 없는 회원이라고 나온다" 같은 버그는 거의 다 회원가입(쓰기)은 primary에, 직후 로그인 조회(읽기)는 레플리카로 보냈는데 복제가 안 따라온 경우다.
 
-#### PostgreSQL
+그래서 읽기/쓰기 분리는 무조건 하는 게 아니라, 지연을 감내할 수 있는 읽기에만 적용한다. 통계, 리포트, 목록 조회처럼 몇 초 늦어도 되는 건 레플리카로, 방금 쓴 걸 바로 읽어야 하는 조회는 primary로 보낸다. `ReplicaLag` 메트릭은 항상 알람을 건다.
 
-MySQL보다 고급 기능을 제공하는 오픈소스 데이터베이스입니다.
+## 백업 — 자동 백업과 스냅샷의 차이
 
-**주요 기능:**
-- JSON 데이터 타입 지원
-- 배열 및 사용자 정의 타입
-- 윈도우 함수
-- 지리공간 데이터 처리 (PostGIS)
+RDS 백업은 두 가지다. 헷갈리면 복구할 때 큰일 나므로 차이를 명확히 한다.
 
-**적합한 사용 사례:**
-- 복잡한 데이터 모델링이 필요한 애플리케이션
-- 지리공간 데이터 처리
-- 분석 쿼리가 많은 시스템
-- 고급 SQL 기능이 필요한 경우
+자동 백업은 매일 한 번 스냅샷을 뜨고 트랜잭션 로그를 계속 저장해서, 보관 기간 안의 임의 시점으로 되돌리는 Point-in-Time Recovery(PITR)를 가능하게 한다. 보관 기간은 0~35일이고, 0으로 두면 자동 백업이 꺼진다(개발용이 아니면 0은 위험하다). 프로덕션은 최소 7일 권장이다.
 
-#### Amazon Aurora
+자동 백업의 함정은 인스턴스를 삭제하면 자동 백업도 같이 사라진다는 점이다. "실수로 DB 지웠는데 백업으로 살리면 되겠지" 했다가 자동 백업까지 날아간 사례가 있다. 장기 보관이 필요하면 수동 스냅샷을 따로 떠야 한다. 수동 스냅샷은 명시적으로 지울 때까지 남고, 다른 리전으로 복사해 DR 용도로 쓸 수 있다.
 
-AWS에서 개발한 클라우드 네이티브 데이터베이스입니다.
+복구는 항상 기존 인스턴스를 덮어쓰는 게 아니라 새 인스턴스를 만든다. 그래서 복구 후엔 새 엔드포인트가 생기고, 애플리케이션 연결 정보를 바꾸거나 DNS를 갈아끼워야 한다. 복구 시간도 데이터 크기에 비례해서 수십 분 걸릴 수 있으니, RTO 계산할 때 이걸 빼먹으면 안 된다.
 
-**핵심 특징:**
-- MySQL 및 PostgreSQL과 호환
-- 스토리지와 컴퓨팅 분리 아키텍처로 I/O 병목 해결
-- 자동 확장 및 자동 백업
-- 글로벌 데이터베이스 지원
+## 파라미터 그룹 튜닝
 
-**성능:**
-- 동일 하드웨어 기준 MySQL 대비 최대 5배 성능
-- 최대 6중 복제로 고가용성 보장
-- 자동 스토리지 확장 (최대 128TB)
+RDS는 OS 접근이 막혀 있어서 DB 엔진 설정을 파라미터 그룹으로만 바꾼다. 기본 파라미터 그룹은 수정이 안 되므로, 처음에 커스텀 파라미터 그룹을 하나 만들어 붙이고 시작한다.
 
-**적합한 사용 사례:**
-- 대규모 엔터프라이즈 애플리케이션
-- 높은 성능이 필요한 워크로드
-- 글로벌 서비스
-
-### RDS의 핵심 특징
-
-#### 고가용성 (High Availability)
-
-Multi-AZ(다중 가용 영역) 배포를 통해 데이터베이스의 고가용성을 보장합니다.
-
-**Multi-AZ 동작 방식:**
-- 주 데이터베이스와 별도의 가용 영역에 대기 데이터베이스가 자동으로 동기화
-- 주 데이터베이스에 장애가 발생하면 자동으로 대기 데이터베이스로 전환
-- 장애 조치 시간: 일반적으로 60-120초 내에 완료되어 서비스 중단 시간을 최소화
-
-#### 자동 백업 및 복구
-
-RDS는 자동 백업 기능을 제공하여 데이터 손실을 방지합니다.
-
-**백업 기능:**
-- **자동 백업**: 일일 백업과 트랜잭션 로그 백업을 자동으로 수행
-- **Point-in-Time Recovery**: 트랜잭션 로그를 기반으로 특정 시점으로 데이터 복구 가능
-- **수동 스냅샷**: 사용자가 직접 생성하는 백업으로, 장기간 보관하거나 다른 리전으로 복사 가능
-
-#### 보안 및 컴플라이언스
-
-RDS는 다양한 보안 기능을 제공합니다.
-
-**보안 기능:**
-- **네트워크 격리**: VPC 내에서 데이터베이스를 격리
-- **접근 제어**: IAM을 통한 세밀한 권한 관리
-- **암호화**: KMS를 통한 저장 데이터 및 전송 데이터 암호화
-
-**컴플라이언스:**
-SOC, PCI DSS, HIPAA 등 다양한 컴플라이언스 요구사항을 충족합니다.
-
-#### 확장성
-
-RDS는 수직 확장과 수평 확장을 모두 지원합니다.
-
-**수직 확장 (Scale Up):**
-- 인스턴스 클래스를 변경하여 CPU, 메모리, 스토리지 성능 향상
-- 예: db.t3.micro → db.m5.large
-- 다운타임이 발생할 수 있음
-
-**수평 확장 (Scale Out):**
-- 읽기 전용 복제본을 생성하여 읽기 성능 분산
-- 최대 5개의 읽기 전용 복제본 생성 가능
-- 비동기 복제로 약간의 지연 발생 가능
-
-### RDS 아키텍처 구성 요소
-
-#### DB 인스턴스 (Database Instance)
-
-RDS의 핵심 구성 요소로, 실제 데이터베이스가 실행되는 가상 서버입니다.
-
-**인스턴스 구성:**
-- 각 인스턴스는 CPU, 메모리, 네트워크, 스토리지 등의 리소스가 할당됨
-- 인스턴스 클래스에 따라 성능이 결정됨
-
-**인스턴스 클래스 유형:**
-- **범용**: db.t3, db.m5, db.m6i 시리즈 - CPU와 메모리의 균형
-- **메모리 최적화**: db.r5, db.r6i 시리즈 - 메모리 집약적 워크로드
-- **컴퓨팅 최적화**: db.c5, db.c6i 시리즈 - CPU 집약적 워크로드
-- **버스트 가능**: db.t3, db.t4g 시리즈 - 기본 성능은 낮지만 CPU 크레딧 사용
-
-#### 스토리지 시스템
-
-RDS는 다양한 스토리지 옵션을 제공합니다.
-
-**스토리지 유형:**
-- **General Purpose SSD (gp2)**: 대부분의 워크로드에 적합한 균형잡힌 성능
-- **Provisioned IOPS SSD (io1)**: 높은 I/O 성능이 필요한 애플리케이션에 적합
-
-**자동 확장:**
-스토리지 용량이 부족할 때 자동으로 확장되어 서비스 중단을 방지합니다.
-
-#### 백업 및 복구 시스템
-
-RDS의 백업 시스템은 자동 백업과 수동 스냅샷으로 구성됩니다.
-
-**자동 백업:**
-- 트랜잭션 로그를 기반으로 Point-in-Time Recovery 가능
-- 최대 35일까지 보관
-- 백업 윈도우 설정 가능
-
-**수동 스냅샷:**
-- 사용자가 직접 생성하는 백업
-- 장기 보관이나 다른 리전으로의 복사에 사용
-- 삭제 시까지 보관 가능
-
-#### Multi-AZ 배포 아키텍처
-
-Multi-AZ 배포는 고가용성을 위한 이중화 구성입니다.
-
-**동작 방식:**
-- 주 데이터베이스와 별도의 가용 영역에 대기 데이터베이스가 동기식으로 복제
-- 장애 발생 시 자동으로 대기 데이터베이스로 전환
-- DNS 엔드포인트가 자동으로 변경되어 애플리케이션의 연결 문자열 변경 없이 장애 조치 수행
-
-## 실제 운영 시나리오
-
-### 개발 환경 구축
-
-개발 환경에서는 비용 효율성을 최우선으로 고려합니다.
-
-**권장 설정:**
-- **인스턴스 클래스**: db.t3.micro 또는 db.t3.small
-- **Multi-AZ**: 비활성화 (비용 절감)
-- **백업 보관 기간**: 짧게 설정 (1-3일)
-- **스토리지**: 최소 용량으로 시작
-
-이 설정으로 기본적인 개발 및 테스트를 수행하면서 비용을 최소화할 수 있습니다.
-
-### 프로덕션 환경 설계 원칙
-
-프로덕션 환경에서는 고가용성과 성능을 최우선으로 고려해야 합니다.
-
-**필수 설정:**
-- **Multi-AZ 배포**: 장애 복구 시간 최소화
-- **인스턴스 클래스**: 성능 요구사항에 맞는 적절한 클래스 선택
-- **읽기 전용 복제본**: 읽기 성능 분산을 위해 활용
-- **자동 백업**: 데이터 보호를 위해 활성화 (최소 7일 보관 권장)
-
-**성능 고려사항:**
-- 워크로드 특성에 맞는 인스턴스 클래스 선택
-- 읽기/쓰기 비율에 따라 복제본 개수 조정
-- 모니터링을 통한 지속적인 성능 최적화
-
-### 읽기 전용 복제본 활용
-
-읽기 전용 복제본은 읽기 집약적인 워크로드에서 성능을 향상시키는 핵심 기능입니다.
-
-**동작 방식:**
-- 주 데이터베이스의 변경사항이 비동기적으로 복제되어 읽기 전용 복제본에 반영
-- 복제 지연이 발생할 수 있음 (일반적으로 수 초 이내)
-
-**활용 사례:**
-- 보고서 생성 및 데이터 분석 작업
-- 백업 작업
-- 읽기 전용 쿼리 처리
-- 지리적으로 분산된 읽기 요청 처리
-
-**주의사항:**
-실시간성이 중요한 읽기 작업은 주 데이터베이스에서 수행해야 합니다.
-
-### 백업 및 복구 전략
-
-RDS의 백업 전략은 자동 백업과 수동 스냅샷의 조합으로 구성됩니다.
-
-**자동 백업:**
-- 일일 백업과 트랜잭션 로그 백업을 포함
-- Point-in-Time Recovery를 가능하게 함
-- 백업 윈도우는 애플리케이션의 사용량이 적은 시간대로 설정하여 성능 영향 최소화
-
-**수동 스냅샷:**
-- 중요한 변경사항 전후에 생성
-- 장기 보관이나 다른 리전으로 복사에 사용
-- 삭제 시까지 보관 가능
-
-**복구 전략:**
-- Point-in-Time Recovery: 특정 시점으로 데이터 복구
-- 스냅샷 복구: 특정 스냅샷 시점으로 복구
-- 다른 리전으로 복사: 재해 복구를 위한 크로스 리전 복사
-
-## 운영 모범 사례
-
-### 인스턴스 클래스 선택 가이드
-
-#### 워크로드 특성에 따른 선택
-- **범용 워크로드**: db.m5, db.m6i 시리즈는 CPU와 메모리의 균형이 잘 맞춰진 범용 인스턴스로, 대부분의 애플리케이션에 적합합니다.
-- **메모리 집약적 워크로드**: db.r5, db.r6i 시리즈는 메모리 최적화 인스턴스로, 캐싱이나 분석 워크로드에 적합합니다.
-- **컴퓨팅 집약적 워크로드**: db.c5, db.c6i 시리즈는 CPU 성능이 우수하여 복잡한 쿼리나 계산이 많은 워크로드에 적합합니다.
-- **버스트 가능 워크로드**: db.t3, db.t4g 시리즈는 기본 성능은 낮지만 CPU 크레딧을 사용하여 일시적인 성능 향상이 가능합니다.
-
-### 성능 최적화 전략
-
-#### 파라미터 그룹 활용
-
-RDS 파라미터 그룹을 통해 데이터베이스 엔진의 설정을 최적화할 수 있습니다.
-
-**AWS CLI로 파라미터 그룹 생성 및 적용**
+파라미터에는 `immediate`로 바로 적용되는 것과 재부팅해야 적용되는 `pending-reboot`짜리가 섞여 있다. `innodb_buffer_pool_size`처럼 재부팅이 필요한 걸 바꾸면 적용하려고 reboot할 때 다운타임이 생기므로, 변경 시점을 미리 잡아야 한다.
 
 ```bash
-# 파라미터 그룹 생성
+# 커스텀 파라미터 그룹 생성
 aws rds create-db-parameter-group \
   --db-parameter-group-name prod-mysql8-params \
   --db-parameter-group-family mysql8.0 \
   --description "Production MySQL 8.0 parameter group"
 
-# 파라미터 일괄 설정
+# 파라미터 설정
 aws rds modify-db-parameter-group \
   --db-parameter-group-name prod-mysql8-params \
   --parameters \
@@ -307,26 +84,28 @@ aws rds modify-db-parameter-group \
     "ParameterName=character_set_server,ParameterValue=utf8mb4,ApplyMethod=immediate" \
     "ParameterName=collation_server,ParameterValue=utf8mb4_unicode_ci,ApplyMethod=immediate"
 
-# DB 인스턴스에 파라미터 그룹 적용
+# 인스턴스에 적용
 aws rds modify-db-instance \
   --db-instance-identifier prod-mysql \
   --db-parameter-group-name prod-mysql8-params \
   --apply-immediately
 ```
 
-**주요 파라미터 설명**
+실무에서 손대는 빈도가 높은 파라미터만 추렸다.
 
-| 파라미터 | 권장값 | 설명 |
-|---------|--------|------|
-| `max_connections` | 인스턴스 메모리에 맞게 | 동시 연결 한도. 초과 시 "Too many connections" |
-| `innodb_buffer_pool_size` | 메모리의 75% | InnoDB 데이터/인덱스 캐시. 클수록 I/O 감소 |
-| `slow_query_log` | 1 (활성화) | 느린 쿼리 로깅 활성화 |
-| `long_query_time` | 1 (초) | 이 시간 초과 시 slow log에 기록 |
-| `innodb_flush_log_at_trx_commit` | 2 (성능 우선) | 1=안전, 2=성능 (약 1초 로그 유실 가능) |
-| `innodb_read_io_threads` | 8 | 읽기 I/O 스레드 수 |
-| `innodb_write_io_threads` | 8 | 쓰기 I/O 스레드 수 |
+| 파라미터 | 값 | 메모 |
+|---------|-----|------|
+| `max_connections` | 메모리에 맞게 | RDS 기본 산정식은 `메모리/12MB`. 커넥션 풀 합계가 이걸 넘으면 "Too many connections" |
+| `innodb_buffer_pool_size` | 메모리의 약 75% | RDS는 `{DBInstanceClassMemory*3/4}`로 자동 표기. 워킹셋이 여기 안 들어가면 I/O 폭증 |
+| `slow_query_log` | 1 | 켜두고 시작. 안 켜면 느린 쿼리를 못 잡는다 |
+| `long_query_time` | 1초 | 처음엔 1초로 잡고, 잡히는 게 너무 많으면 조정 |
+| `innodb_flush_log_at_trx_commit` | 1 또는 2 | 1=커밋마다 fsync(안전), 2=초당 fsync(빠르지만 장애 시 ~1초 유실). 금융성 데이터는 1 |
 
-**Terraform으로 파라미터 그룹 관리 (IaC)**
+`max_connections`는 특히 주의한다. 애플리케이션 인스턴스마다 커넥션 풀을 띄우는데, (인스턴스 수 × 풀 크기)가 `max_connections`를 넘으면 새 커넥션이 거부되면서 장애가 난다. 오토스케일링으로 앱이 늘어나는 환경이면 이 합계가 슬금슬금 넘어가기 쉽다. 커넥션 수가 한계라면 `max_connections`를 무작정 올리기 전에 RDS Proxy로 커넥션 풀링을 앞단에 두는 걸 먼저 검토한다.
+
+### Terraform으로 관리
+
+파라미터 그룹과 인스턴스는 콘솔에서 만들지 말고 IaC로 관리하는 게 운영상 편하다. 누가 언제 뭘 바꿨는지 추적되고, 재현이 된다.
 
 ```hcl
 resource "aws_db_parameter_group" "mysql_prod" {
@@ -363,10 +142,6 @@ resource "aws_db_parameter_group" "mysql_prod" {
     name  = "collation_server"
     value = "utf8mb4_unicode_ci"
   }
-
-  tags = {
-    Environment = "prod"
-  }
 }
 
 resource "aws_db_instance" "mysql_prod" {
@@ -375,46 +150,45 @@ resource "aws_db_instance" "mysql_prod" {
   engine_version    = "8.0"
   instance_class    = "db.r6g.large"
   allocated_storage = 100
+  storage_type      = "gp3"
 
   parameter_group_name = aws_db_parameter_group.mysql_prod.name
 
-  # Multi-AZ
   multi_az = true
 
-  # 백업
   backup_retention_period = 7
   backup_window           = "03:00-04:00"
   maintenance_window      = "Mon:04:00-Mon:05:00"
 
-  # 암호화
   storage_encrypted = true
   kms_key_id        = aws_kms_key.rds.arn
 
-  # 네트워크
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  # 삭제 보호
+  # 운영 DB는 반드시 켠다 — 실수 삭제 방어
   deletion_protection = true
   skip_final_snapshot = false
-
-  tags = {
-    Environment = "prod"
-  }
 }
 ```
 
-**슬로우 쿼리 분석**
+`deletion_protection`과 `skip_final_snapshot = false`는 프로덕션이면 무조건 켠다. Terraform `apply` 한 번 잘못 돌려서 DB가 destroy되는 사고를 막는 마지막 안전장치다.
+
+## 슬로우 쿼리 잡기
+
+RDS에서 성능 문제는 결국 슬로우 쿼리 추적으로 귀결된다. OS에 못 들어가니 슬로우 로그를 CloudWatch Logs로 내보내거나 API로 받아서 본다.
 
 ```bash
-# RDS 슬로우 쿼리 로그 다운로드
+# 슬로우 쿼리 로그 받기
 aws rds download-db-log-file-portion \
   --db-instance-identifier prod-mysql \
   --log-file-name slowquery/mysql-slowquery.log \
   --output text
+```
 
-# CloudWatch Logs Insights로 슬로우 쿼리 분석
-# (로그 그룹: /aws/rds/instance/prod-mysql/slowquery)
+CloudWatch Logs로 내보내고 있으면 Logs Insights에서 정렬해서 본다.
+
+```
 fields @timestamp, @message
 | filter @message like /Query_time/
 | parse @message "Query_time: * Lock_time: * Rows_sent: * Rows_examined: *" as query_time, lock_time, rows_sent, rows_examined
@@ -423,175 +197,62 @@ fields @timestamp, @message
 | limit 20
 ```
 
-#### 읽기 전용 복제본 최적화
+`Rows_examined`가 `Rows_sent`보다 훨씬 크면 인덱스를 안 타고 풀스캔하는 쿼리다. 이게 슬로우 쿼리의 대부분이다. Performance Insights를 켜두면 어떤 쿼리가 DB 부하(DB Load, AAS)를 가장 많이 먹는지 시각적으로 바로 보여서, 로그 파싱보다 먼저 여기를 보는 게 빠르다.
 
-읽기 전용 복제본을 효과적으로 활용하기 위해서는 애플리케이션 레벨에서 읽기/쓰기 분리가 필요합니다.
+## 모니터링에서 먼저 보는 메트릭
 
-**구현 방법:**
-- 데이터베이스 연결 풀을 읽기용과 쓰기용으로 분리
-- 읽기 쿼리는 복제본 엔드포인트로 라우팅
-- 쓰기 쿼리는 주 데이터베이스 엔드포인트로 라우팅
+알람 거는 메트릭은 많지만 실제로 장애 신호가 되는 건 정해져 있다.
 
-**주의사항:**
-읽기 전용 복제본은 비동기 복제를 사용하므로 약간의 지연이 발생할 수 있습니다. 따라서 실시간성이 중요한 읽기 작업은 주 데이터베이스에서 수행해야 합니다.
+- `CPUUtilization` — 지속적으로 높으면 거의 쿼리 문제. 80% 이상 지속 시 알람.
+- `FreeableMemory` — 떨어지다 스왑 시작하면 급격히 느려진다.
+- `DatabaseConnections` — `max_connections` 대비 90% 근처면 곧 커넥션 고갈.
+- `FreeStorageSpace` — STORAGE_FULL로 멈추는 사고 방지. 20% 미만 알람.
+- `ReplicaLag` — 리드 레플리카 쓰면 필수.
+- `BurstBalance` / `CPUCreditBalance` — gp2나 t 계열 쓰면 바닥나기 전에 알람.
 
-### 보안 강화 방안
+알람은 SNS로 받아서 Slack이나 PagerDuty로 흘린다. 임계값은 처음엔 보수적으로 잡고, 오탐이 많으면 조정한다.
 
-#### 네트워크 보안
-- **VPC 격리**: RDS 인스턴스를 프라이빗 서브넷에 배치하여 인터넷으로부터 격리
-- **보안 그룹**: 최소 권한 원칙에 따라 필요한 포트와 IP 대역만 허용
-- **네트워크 ACL**: 서브넷 레벨에서 추가적인 네트워크 보안 제어
+## 보안 기본값
 
-#### 데이터 보안
-- **암호화**: 저장 데이터와 전송 데이터 모두에 대한 암호화 적용
-- **KMS 키 관리**: 고객 관리형 KMS 키를 사용하여 암호화 키의 제어권 확보
-- **접근 제어**: IAM을 통한 세밀한 권한 관리 및 데이터베이스 사용자 계정 최소화
+RDS는 프라이빗 서브넷에 두고 퍼블릭 액세스는 끈다. 인터넷에서 직접 닿는 DB는 그 자체로 사고 원인이다. 보안 그룹은 애플리케이션 보안 그룹에서 들어오는 3306(MySQL)/5432(PostgreSQL)만 열고, IP 대역으로 여는 건 최소화한다.
 
-### 모니터링 및 알림 체계
+저장 데이터 암호화(`storage_encrypted`)는 생성 시점에만 켤 수 있다. 나중에 켜려면 스냅샷 뜨고 암호화해서 복원하는 번거로운 과정을 거쳐야 하므로, 만들 때 무조건 켜는 게 맞다. KMS는 고객 관리형 키(CMK)를 쓰면 키 회전과 접근 권한을 직접 통제할 수 있다. DB 접속 인증은 IAM 인증을 쓰면 비밀번호를 안 박아도 되지만, 토큰 발급 비용과 커넥션 빈도 때문에 커넥션을 자주 새로 맺는 워크로드엔 안 맞을 수 있다.
 
-#### 핵심 메트릭 모니터링
-- **CPU 사용률**: 지속적인 높은 CPU 사용률은 성능 병목의 신호
-- **메모리 사용률**: 메모리 부족은 성능 저하의 주요 원인
-- **연결 수**: 최대 연결 수에 근접하면 새로운 연결이 거부될 수 있음
-- **디스크 I/O**: 높은 디스크 I/O는 스토리지 성능 부족을 의미
-- **복제 지연**: 읽기 전용 복제본의 복제 지연 모니터링
+## RDS와 Aurora, 무엇을 고를까
 
-#### 알림 설정
+Aurora 내부 동작과 비용 비교는 [Aurora_DB.md](Aurora_DB.md)에서 상세히 다루므로, 여기선 선택 판단만 정리한다.
 
-CloudWatch 알람을 설정하여 임계값 초과 시 자동 알림을 받도록 구성합니다.
+흔히 "Aurora가 RDS보다 최대 5배 빠르다"는 문구를 보고 무조건 Aurora를 고르는데, 그 수치는 AWS가 특정 sysbench 조건에서 낸 마케팅 벤치마크다. 우리 워크로드에서 그대로 재현되지 않는다. 실제로 단순 OLTP에서는 잘 튜닝한 RDS for MySQL과 Aurora의 체감 차이가 크지 않은 경우도 많다. Aurora가 확실히 유리한 건 읽기 레플리카를 많이 붙여 읽기를 분산할 때(공유 스토리지라 레플리카가 복제 지연 거의 없이 붙는다)와, 페일오버를 빠르게(보통 30초 안쪽) 가져가야 할 때다.
 
-**권장 알림 임계값:**
-- **CPU 사용률**: 80% 이상 지속 시
-- **메모리 사용률**: 90% 이상 시
-- **연결 수**: 최대 연결 수의 90% 이상 시
-- **복제 지연**: 5분 이상 시
-- **디스크 I/O**: 임계값 초과 시
-- **스토리지 사용률**: 80% 이상 시
+판단 기준을 경험상 이렇게 잡는다.
 
-**알림 채널:**
-- SNS를 통한 이메일, SMS, Slack 등 알림
-- PagerDuty 등 온콜 시스템과 연동
+RDS를 고르는 경우:
+- Oracle, SQL Server, MariaDB처럼 Aurora가 지원 안 하는 엔진을 써야 할 때.
+- 트래픽이 작거나 예측 가능해서 Aurora의 스토리지 I/O 과금(읽고 쓴 양만큼 따로 청구)이 오히려 비싸질 때. Aurora는 인스턴스 비용 외에 I/O 비용이 붙어서, I/O가 많으면 RDS보다 총비용이 더 나오는 경우가 있다(이 걱정을 없애려면 Aurora I/O-Optimized를 써야 하는데 인스턴스 단가가 오른다).
+- 운영을 단순하게 가져가고 싶고, 클러스터·라이터/리더 엔드포인트 개념까지 안 가도 되는 규모일 때.
 
-## 다른 AWS 데이터베이스 서비스와의 비교
+Aurora를 고르는 경우:
+- 리드 레플리카를 3개 이상 붙여 읽기를 크게 분산해야 할 때.
+- 페일오버 시간을 최대한 줄여야 하는 가용성 요구가 있을 때.
+- 데이터가 빠르게 커져서 스토리지 관리(자동 확장, 줄이기 불가 문제)에서 손 떼고 싶을 때. Aurora 스토리지는 쓴 만큼 자동으로 늘고 안 쓰면 줄어든다.
+- 글로벌 멀티 리전 복제가 필요할 때(Aurora Global Database).
 
-### RDS vs Aurora
+엔진을 바꾸는 마이그레이션은 생각보다 비용이 크다. RDS for MySQL에서 Aurora MySQL로 가는 건 스냅샷 복원으로 비교적 매끄럽지만, 파라미터 디폴트값, `max_connections` 산정식, DDL 처리 방식이 미묘하게 달라서 "옮겼더니 똑같이 동작할 것"이라는 가정은 위험하다. 이 차이는 [Aurora_DB.md](Aurora_DB.md)에 정리해뒀다.
 
-| 구분 | RDS | Aurora |
-|------|-----|--------|
-| **아키텍처** | 전통적인 관계형 DB의 클라우드 버전 | 클라우드 네이티브 설계 |
-| **엔진** | MySQL, PostgreSQL 등 기존 엔진 사용 | MySQL/PostgreSQL 호환, AWS 최적화 |
-| **성능** | 표준 성능 | 동일 하드웨어 대비 최대 5배 성능 |
-| **스토리지** | 전통적 스토리지 구조 | 분산 스토리지 (6중 복제) |
-| **확장성** | 수동 확장 | 자동 확장 지원 |
-| **비용** | 상대적으로 낮음 | 상대적으로 높음 |
-| **적합한 경우** | 표준 워크로드, 비용 최적화 | 고성능 요구, 엔터프라이즈 |
+## RDS와 다른 데이터 스토어
 
-### RDS vs DynamoDB
+관계형이 아닌 선택지와의 경계도 자주 묻는다.
 
-| 구분 | RDS | DynamoDB |
-|------|-----|----------|
-| **데이터 모델** | 관계형 (정형 데이터) | NoSQL (키-값) |
-| **쿼리** | 복잡한 SQL 쿼리 지원 | 제한적 쿼리 기능 |
-| **트랜잭션** | ACID 트랜잭션 지원 | 제한적 트랜잭션 |
-| **확장성** | 수직/수평 확장 제한 | 무제한 자동 확장 |
-| **일관성** | 강한 일관성 | 최종 일관성 |
-| **적합한 데이터** | 사용자 정보, 주문 내역, 재고 관리 | 사용자 세션, 장바구니, 실시간 데이터 |
+DynamoDB는 키 기반 접근 패턴이 명확하고 무제한 확장이 필요할 때 간다. 조인이나 복잡한 SQL이 필요하면 애초에 후보가 아니다. 세션, 장바구니, 이벤트 로그처럼 단순 조회/쓰기가 대량으로 일어나는 데이터에 맞는다. RDS 앞에 읽기 캐시가 필요하면 [DynamoDB.md](DynamoDB.md) 대신 ElastiCache나 DAX를 보는 게 보통이다.
 
-### RDS vs DocumentDB
+DocumentDB는 MongoDB 호환이 필요한 문서 데이터일 때다. 스키마가 자주 바뀌는 콘텐츠나 프로필 데이터에 쓴다. 정형 데이터에 관계가 얽혀 있고 트랜잭션이 중요하면 그냥 RDS다.
 
-| 구분 | RDS | DocumentDB |
-|------|-----|------------|
-| **데이터 형식** | 정형 데이터 (테이블) | 반정형 데이터 (JSON) |
-| **스키마** | 고정 스키마 필요 | 유연한 스키마 |
-| **호환성** | MySQL, PostgreSQL 등 | MongoDB 호환 |
-| **적합한 데이터** | 구조화된 데이터, 관계형 데이터 | 콘텐츠 관리, 사용자 프로필, 로그 데이터 |
-
-## 엔진별 선택 가이드
-
-### MySQL
-
-가장 널리 사용되는 오픈소스 데이터베이스로, 웹 애플리케이션 개발에 최적화되어 있습니다.
-
-**특징:**
-- LAMP 스택의 핵심 구성 요소
-- 대부분의 웹 프레임워크와 호환성 우수
-- 활발한 커뮤니티와 풍부한 학습 자료
-- 초보자도 쉽게 접근 가능
-
-**제한사항:**
-- 대용량 데이터 처리에 한계
-- 복잡한 분석 쿼리에 제약
-
-**적합한 경우:**
-- 중소규모 웹 애플리케이션
-- 표준 CRUD 작업이 주인 시스템
-- 빠른 프로토타이핑이 필요한 경우
-
-### PostgreSQL
-
-MySQL보다 고급 기능을 제공하는 오픈소스 데이터베이스입니다.
-
-**주요 기능:**
-- JSON 데이터 타입 지원
-- 배열 및 사용자 정의 타입
-- 윈도우 함수
-- 지리공간 데이터 처리 (PostGIS)
-
-**장점:**
-- 복잡한 데이터 모델링 지원
-- 분석 쿼리에 강점
-- 고급 SQL 기능 제공
-
-**단점:**
-- MySQL에 비해 상대적으로 복잡
-- 학습 곡선이 가파름
-
-**적합한 경우:**
-- 복잡한 데이터 모델링이 필요한 애플리케이션
-- 지리공간 데이터 처리
-- 분석 쿼리가 많은 시스템
-
-### Amazon Aurora
-
-AWS에서 개발한 클라우드 네이티브 데이터베이스입니다.
-
-**핵심 특징:**
-- MySQL 및 PostgreSQL과 호환
-- 스토리지와 컴퓨팅 분리 아키텍처로 I/O 병목 해결
-- 자동 확장 및 자동 백업
-- 글로벌 데이터베이스 지원
-
-**성능:**
-- 동일 하드웨어 기준 MySQL 대비 최대 5배 성능
-- 최대 6중 복제로 고가용성 보장
-- 자동 스토리지 확장 (최대 128TB)
-
-**단점:**
-- 비용이 상대적으로 높음
-- AWS 전용 서비스
-
-**적합한 경우:**
-- 대규모 엔터프라이즈 애플리케이션
-- 높은 성능이 필요한 워크로드
-- 글로벌 서비스
+대부분의 일반적인 백엔드 서비스는 RDS for MySQL/PostgreSQL이 기본값이고, 특별한 이유가 생길 때만 다른 걸 검토하는 순서가 사고 비용이 가장 적다.
 
 ## 참조
 
-### 공식 문서
 - AWS RDS 사용자 가이드: https://docs.aws.amazon.com/rds/
-- AWS RDS API 참조: https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/
-- AWS Well-Architected Framework: https://aws.amazon.com/architecture/well-architected/
-
-### 기술 자료
-- AWS RDS 모범 사례: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_BestPractices.html
-- AWS RDS 성능 인사이트: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PerfInsights.html
-- AWS RDS 보안 모범 사례: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.html
-
-### 가격 정보
-- AWS RDS 가격: https://aws.amazon.com/rds/pricing/
-- AWS RDS 예약 인스턴스: https://aws.amazon.com/rds/reserved-instances/
-
-### 관련 서비스
-- Amazon Aurora: https://aws.amazon.com/rds/aurora/
-- AWS Database Migration Service: https://aws.amazon.com/dms/
-- AWS Schema Conversion Tool: https://aws.amazon.com/dms/schema-conversion-tool/
+- RDS 모범 사례: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_BestPractices.html
+- Performance Insights: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PerfInsights.html
+- RDS 가격: https://aws.amazon.com/rds/pricing/
+- 관련 문서: [Aurora_DB.md](Aurora_DB.md), [DB_Proxy.md](DB_Proxy.md)
