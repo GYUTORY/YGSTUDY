@@ -1,5 +1,5 @@
 ---
-title: 행동 디자인 패턴 가이드
+title: 행동 디자인 패턴
 tags: [architecture, design-pattern, behavioral, strategy, template-method, command, state, observer, chain-of-responsibility]
 updated: 2026-03-01
 ---
@@ -119,9 +119,9 @@ public class PaymentService {
 
 | 상황 | 적합 여부 |
 |------|----------|
-| if-else/switch로 알고리즘 분기 | ✅ Strategy로 리팩토링 |
-| 알고리즘을 런타임에 교체해야 할 때 | ✅ |
-| 조건이 2~3개이고 변경 가능성 없을 때 | ❌ 오버 엔지니어링 |
+| if-else/switch로 알고리즘 분기 | 적합 — Strategy로 리팩토링 |
+| 알고리즘을 런타임에 교체해야 할 때 | 적합 |
+| 조건이 2~3개이고 변경 가능성 없을 때 | 부적합 — 오버 엔지니어링 |
 
 ### 2. Template Method 패턴
 
@@ -483,7 +483,7 @@ chain.handle(request);  // 순서대로 검증
 
 실무에서는 **Spring Security의 FilterChain**, **Servlet Filter**, **Spring Interceptor**가 이 패턴이다.
 
-### 6. 패턴 선택 가이드
+### 6. 패턴 선택 기준
 
 ```
 "여러 알고리즘 중 하나를 선택해야 한다"
