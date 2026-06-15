@@ -3081,6 +3081,10 @@
          <lastmod>2026-06-15</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Clickjacking/</loc>
+         <lastmod>2026-06-15</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/Command_Injection/</loc>
          <lastmod>2026-06-15</lastmod>
     </url>
@@ -3153,6 +3157,10 @@
          <lastmod>2026-06-15</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Open_Redirect/</loc>
+         <lastmod>2026-06-15</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/PII_Data_Protection/</loc>
          <lastmod>2026-06-15</lastmod>
     </url>
@@ -3162,6 +3170,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/Password_Hashing/</loc>
+         <lastmod>2026-06-15</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Path_Traversal/</loc>
          <lastmod>2026-06-15</lastmod>
     </url>
     <url>
@@ -3178,6 +3190,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/SQL_Injection/</loc>
+         <lastmod>2026-06-15</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/SQL_Injection_Testing/</loc>
          <lastmod>2026-06-15</lastmod>
     </url>
     <url>
@@ -3222,6 +3238,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/Web_Authn_Passkeys/</loc>
+         <lastmod>2026-06-15</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Web_Cache_Poisoning/</loc>
          <lastmod>2026-06-15</lastmod>
     </url>
     <url>
