@@ -4,6 +4,7 @@ nav:
   - MQ_Delivery_Guarantee_Deep_Dive.md
   - Rabbit_MQ.md
   - RabbitMQ_MQTT.md
+  - EMQX.md
   - ISBM.md
   - FCM.md
   - APNS.md
