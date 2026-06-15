@@ -19,9 +19,13 @@ nav:
   - Threat_Modeling.md
   - XSS.md
   - CSRF.md
+  - Clickjacking.md
   - SQL_Injection.md
   - SQL_Injection_Testing.md
   - Command_Injection.md
+  - Path_Traversal.md
+  - Open_Redirect.md
+  - Web_Cache_Poisoning.md
   - OWASP_Top_10.md
   - API_Input_Validation.md
   - API_Security.md
