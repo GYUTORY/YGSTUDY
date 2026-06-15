@@ -461,6 +461,10 @@
          <lastmod>2026-06-15</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Secrets_%EA%B4%80%EB%A6%AC/</loc>
+         <lastmod>2026-06-15</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Service_Auto_Scaling/</loc>
          <lastmod>2026-06-15</lastmod>
     </url>
@@ -478,6 +482,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Task_Definition/</loc>
+         <lastmod>2026-06-15</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Task_Graceful_Shutdown/</loc>
          <lastmod>2026-06-15</lastmod>
     </url>
     <url>
