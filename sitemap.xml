@@ -1429,7 +1429,15 @@
          <lastmod>2026-06-16</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DevOps/Kubernetes/Kubernetes_Networking/</loc>
+         <lastmod>2026-06-16</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/DevOps/Kubernetes/Kubernetes_Operator_%EB%B0%8F_CRD/</loc>
+         <lastmod>2026-06-16</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DevOps/Kubernetes/Kubernetes_Storage_Stateful_Set/</loc>
          <lastmod>2026-06-16</lastmod>
     </url>
     <url>
@@ -2010,6 +2018,14 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/GCP/Network/GCP_VPC/</loc>
+         <lastmod>2026-06-16</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Coordination/etcd/</loc>
+         <lastmod>2026-06-16</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Load_Balancer/HA_Proxy/</loc>
          <lastmod>2026-06-16</lastmod>
     </url>
     <url>
