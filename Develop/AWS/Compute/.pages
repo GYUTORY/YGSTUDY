@@ -14,3 +14,5 @@ nav:
   - Lambda_VPC_연동.md
   - Lambda_배포_패키징.md
   - Elastic_Beanstalk.md
+  - AWS_Batch.md
+  - App_Runner.md
