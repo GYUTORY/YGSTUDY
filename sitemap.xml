@@ -433,6 +433,10 @@
          <lastmod>2026-06-17</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Cost_Optimization/</loc>
+         <lastmod>2026-06-17</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_DB_Connection_Pool_%EA%B4%80%EB%A6%AC/</loc>
          <lastmod>2026-06-17</lastmod>
     </url>
@@ -450,6 +454,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Exec/</loc>
+         <lastmod>2026-06-17</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Health_Check/</loc>
          <lastmod>2026-06-17</lastmod>
     </url>
     <url>
@@ -498,6 +506,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Task_Definition/</loc>
+         <lastmod>2026-06-17</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Containers/ECS_Task_Failure_Troubleshooting/</loc>
          <lastmod>2026-06-17</lastmod>
     </url>
     <url>
