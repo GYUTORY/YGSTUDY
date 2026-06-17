@@ -361,6 +361,10 @@
          <lastmod>2026-06-17</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Compute/EC2_Instance_Metadata_Service/</loc>
+         <lastmod>2026-06-17</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Compute/EC2_Nitro_System/</loc>
          <lastmod>2026-06-17</lastmod>
     </url>
@@ -634,6 +638,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AWS/Load_Balancer/LB/</loc>
+         <lastmod>2026-06-17</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AWS/Load_Balancer/NLB/</loc>
          <lastmod>2026-06-17</lastmod>
     </url>
     <url>
