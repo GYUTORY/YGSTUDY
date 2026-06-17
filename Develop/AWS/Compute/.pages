@@ -1,6 +1,7 @@
 title: Compute
 nav:
   - EC2.md
+  - EC2_Instance_Metadata_Service.md
   - EC2_Types.md
   - EC2_T-시리즈.md
   - EC2_Nitro_System.md
