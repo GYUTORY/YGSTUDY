@@ -10,6 +10,7 @@ nav:
   - Cognito_Deep_Dive.md
   - ACM.md
   - WAF.md
+  - WAF_Bot_Control.md
   - Shield.md
   - Guard_Duty.md
   - Inspector.md
