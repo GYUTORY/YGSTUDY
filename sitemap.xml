@@ -2061,11 +2061,19 @@
          <lastmod>2026-06-21</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Coordination/Apache_Zoo_Keeper/</loc>
+         <lastmod>2026-06-21</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Infra/Coordination/etcd/</loc>
          <lastmod>2026-06-21</lastmod>
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Infra/Load_Balancer/HA_Proxy/</loc>
+         <lastmod>2026-06-21</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Load_Balancer/Keepalived/</loc>
          <lastmod>2026-06-21</lastmod>
     </url>
     <url>
