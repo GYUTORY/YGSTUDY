@@ -11,6 +11,7 @@ nav:
   - ACM.md
   - WAF.md
   - WAF_Bot_Control.md
+  - WAF_Advanced_Rules.md
   - Shield.md
   - Guard_Duty.md
   - Inspector.md
