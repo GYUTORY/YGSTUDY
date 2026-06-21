@@ -29,6 +29,9 @@ nav:
   - OWASP_Top_10.md
   - API_Input_Validation.md
   - API_Security.md
+  - API_Gateway_Security.md
+  - Graph_QL_Security.md
+  - Webhook_Security.md
   - File_Upload_Security.md
   - ISMS.md
   - SSH_Key_Management.md
