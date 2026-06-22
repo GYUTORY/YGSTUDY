@@ -5,6 +5,7 @@ nav:
   - Rabbit_MQ.md
   - RabbitMQ_MQTT.md
   - EMQX.md
+  - EMQX_Load_Testing.md
   - ISBM.md
   - FCM.md
   - APNS.md
