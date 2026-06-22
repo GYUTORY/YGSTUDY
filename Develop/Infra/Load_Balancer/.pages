@@ -2,3 +2,4 @@ title: Load Balancer
 nav:
   - HA_Proxy.md
   - Keepalived.md
+  - Envoy.md
