@@ -121,6 +121,10 @@
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AI/Concepts/Embeddings/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AI/Concepts/Functional_RAG/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
@@ -185,11 +189,23 @@
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AI/Concepts/Structured_Output/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AI/Concepts/Tool_Use/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/AI/Concepts/Ultra_Review/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AI/Concepts/Unsloth_Qwen3_GGUF/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AI/Concepts/Vector_Database/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
@@ -250,6 +266,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/AI/MCP/SSE_and_Stdio/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/AI/Ollama/Ollama/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
