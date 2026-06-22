@@ -12,5 +12,6 @@ nav:
   - Gemini
   - Qwen
   - DeepSeek
+  - Ollama
   - MCP
   - Concepts
