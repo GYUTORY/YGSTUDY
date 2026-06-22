@@ -1,5 +1,6 @@
 title: Security
 nav:
   - TLS_HTTPS.md
+  - Mutual_TLS.md
   - VPN.md
   - Firewall.md
