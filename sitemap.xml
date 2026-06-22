@@ -2069,6 +2069,10 @@
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Load_Balancer/Envoy/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Infra/Load_Balancer/HA_Proxy/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
@@ -2082,6 +2086,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Infra/Service_Discovery/Consul/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infra/Service_Discovery/Core_DNS/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
@@ -2901,6 +2909,10 @@
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Qo_S_Traffic_Shaping/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Application%20Layer/Serialization/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
@@ -2945,6 +2957,10 @@
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/VLAN/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Layer/ARP/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
@@ -2966,6 +2982,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Layer/Multicast_and_Anycast/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Layer/OSPF/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
@@ -3118,6 +3138,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/Security/Firewall/</loc>
+         <lastmod>2026-06-22</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/Security/Mutual_TLS/</loc>
          <lastmod>2026-06-22</lastmod>
     </url>
     <url>
