@@ -23,6 +23,8 @@ nav:
   - SQL_Injection.md
   - SQL_Injection_Testing.md
   - Command_Injection.md
+  - Insecure_Deserialization.md
+  - XML_External_Entity.md
   - Path_Traversal.md
   - Open_Redirect.md
   - Web_Cache_Poisoning.md
@@ -42,6 +44,7 @@ nav:
   - DNS_Security.md
   - D_Do_S_Defense.md
   - Rate_Limiting.md
+  - Web_Application_Firewall.md
   - Zero_Trust_Architecture.md
   - CORS_and_Security_Headers.md
   - Container_Security.md
