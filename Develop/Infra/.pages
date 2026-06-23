@@ -5,3 +5,4 @@ nav:
   - Coordination
   - Load_Balancer
   - Secrets
+  - Image_Build

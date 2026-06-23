@@ -3,3 +3,4 @@ nav:
   - HA_Proxy.md
   - Keepalived.md
   - Envoy.md
+  - Traefik.md
