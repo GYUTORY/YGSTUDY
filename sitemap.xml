@@ -3365,6 +3365,10 @@
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Insecure_Deserialization/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/JWKS_Endpoint/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
@@ -3469,6 +3473,10 @@
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Web_Application_Firewall/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/Web_Authn_Passkeys/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
@@ -3478,6 +3486,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/Webhook_Security/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/XML_External_Entity/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
