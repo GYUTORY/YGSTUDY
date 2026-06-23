@@ -2997,6 +2997,18 @@
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Ethernet_Frame/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Link_Aggregation_LACP/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Spanning_Tree_Protocol/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/VLAN/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
@@ -3146,6 +3158,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/IO/Socket_IO_Multiplexing/</loc>
+         <lastmod>2026-06-23</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/Observability/Packet_Capture_tcpdump/</loc>
          <lastmod>2026-06-23</lastmod>
     </url>
     <url>
