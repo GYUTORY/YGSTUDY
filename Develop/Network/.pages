@@ -9,6 +9,7 @@ nav:
   - GateWay
   - Proxy
   - Security
+  - Observability
   - ...
   - Tunneling.md
   - URL_and_URI.md
