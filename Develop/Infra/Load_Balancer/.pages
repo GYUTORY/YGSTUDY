@@ -4,3 +4,4 @@ nav:
   - Keepalived.md
   - Envoy.md
   - Traefik.md
+  - Nginx.md

@@ -6,3 +6,4 @@ nav:
   - Load_Balancer
   - Secrets
   - Image_Build
+  - Container_Registry
