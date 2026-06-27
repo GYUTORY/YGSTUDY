@@ -2,6 +2,7 @@ title: Authentication
 nav:
   - Authentication_Strategy.md
   - Auth_Strategy_Deep_Dive.md
+  - Login_Brute_Force_Protection.md
   - O_Auth2_OIDC_Flows.md
   - Password_Hashing.md
   - MFA_Passkey.md
