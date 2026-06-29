@@ -370,7 +370,7 @@ npm install -g oh-my-claude-sisyphus
 
 요청을 분석해서 알맞은 에이전트를 자동으로 고르기 때문에, 직접 "아키텍트 에이전트 써줘"라고 지정할 필요가 없다.
 
-Claude Code 외에 Cursor, Aider 같은 오픈소스 도구를 쓴다면 **Oh My Open Code (OMO)**를 찾아보면 된다. 특정 벤더에 종속되지 않는 유사 에코시스템이다.
+Claude Code 외에 Cursor, Aider 같은 오픈소스 도구를 쓴다면 [Oh My Open Code (OMO)](../OMO/OMO.md)를 찾아보면 된다. 특정 벤더에 종속되지 않는 유사 에코시스템이다.
 
 ---
 
