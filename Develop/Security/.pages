@@ -6,6 +6,7 @@ nav:
   - AES.md
   - RSA.md
   - SHA.md
+  - HMAC.md
   - Password_Hashing.md
   - End_to_End_Encryption.md
   - OAuth.md
