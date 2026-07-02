@@ -18,4 +18,5 @@ nav:
   - SLF4J.md
   - Lombok.md
   - Lombok_Deep_Dive.md
+  - Lombok_Minor_Annotations.md
   - AOP_트랜잭션.md
