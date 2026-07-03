@@ -14,6 +14,7 @@ nav:
   - Saga_패턴_및_분산_트랜잭션.md
   - 트랜잭셔널_아웃박스_패턴.md
   - Oracle_MSA.md
+  - MSA_클라우드_선택_전략.md
   - 배포_패턴.md
   - 분산_추적_및_Observability.md
   - 분산_캐싱_패턴.md
