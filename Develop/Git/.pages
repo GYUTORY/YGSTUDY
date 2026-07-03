@@ -1,2 +1,5 @@
 nav:
   - Git_자주_사용하는_명령어.md
+  - Git_Internals.md
+  - Git_Hooks.md
+  - Git_Worktree_Submodule_LFS.md
