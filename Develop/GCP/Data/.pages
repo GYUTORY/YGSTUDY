@@ -1,2 +1,5 @@
 nav:
   - Big_Query.md
+  - Cloud_SQL.md
+  - Cloud_Storage.md
+  - Pub_Sub.md
