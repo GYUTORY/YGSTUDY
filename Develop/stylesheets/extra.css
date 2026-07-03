@@ -637,8 +637,8 @@ body {
    ================================================ */
 
 .md-typeset {
-  font-size: 0.94rem;
-  line-height: 1.62;
+  font-size: 1.02rem;
+  line-height: 1.72;
   color: var(--text);
 }
 
@@ -1567,10 +1567,10 @@ body {
   border: none !important;
 }
 .yg-series p {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-sub);
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.62;
   letter-spacing: -0.05px;
 }
 
@@ -1724,9 +1724,9 @@ body {
   padding: 0 4px;
 }
 .yg-about-desc {
-  font-size: 15px;
+  font-size: 16.5px;
   color: var(--text-sub);
-  line-height: 1.65;
+  line-height: 1.72;
   margin: 0 0 20px;
   letter-spacing: -0.05px;
 }
