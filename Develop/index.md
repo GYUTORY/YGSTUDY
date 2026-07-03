@@ -8,6 +8,23 @@ hide:
 
 <div class="yg-home" markdown="0">
 
+<nav class="yg-pillbar" aria-label="카테고리 메뉴">
+  <div class="yg-pillbar-inner">
+    <a class="yg-pill" data-cat="ai" href="AI/Claude_Code/Claude_Code/">AI</a>
+    <a class="yg-pill" data-cat="backend" href="Backend/API/API_Design_Patterns/">Backend</a>
+    <a class="yg-pill" data-cat="devops" href="DevOps/Kubernetes/Kubernetes/">DevOps</a>
+    <a class="yg-pill" data-cat="aws" href="AWS/Compute/Auto_Scaling/">AWS</a>
+    <a class="yg-pill" data-cat="database" href="DataBase/NoSQL/NoSQL/">Database</a>
+    <a class="yg-pill" data-cat="framework" href="Framework/Java/Spring/Bean/">Framework</a>
+    <a class="yg-pill" data-cat="language" href="Language/Java/Java 기본 개념/String 불변 객체/">Language</a>
+    <a class="yg-pill" data-cat="arch" href="Architecture/Clean_Architecture/">Architecture</a>
+    <a class="yg-pill" data-cat="network" href="Network/Protocol/Protocol/">Network</a>
+    <a class="yg-pill" data-cat="security" href="Security/HTTPS_and_TLS/">Security</a>
+    <a class="yg-pill" data-cat="linux" href="Linux/기본_명령어/기본_명령어/">Linux</a>
+    <a class="yg-pill" data-cat="webserver" href="WebServer/Nginx/Definition/">Web Server</a>
+  </div>
+</nav>
+
 <section class="yg-section yg-about yg-about--hero">
   <div class="yg-about-card">
     <div class="yg-about-left">
