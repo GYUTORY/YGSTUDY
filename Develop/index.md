@@ -34,9 +34,9 @@ hide:
         <span class="yg-about-link-label">GitHub</span>
         <span class="yg-about-link-handle">@GYUTORY</span>
       </a>
-      <a class="yg-about-link" href="mailto:onfleek096@dowhat.io">
+      <a class="yg-about-link" href="mailto:azure0563@gmail.com">
         <span class="yg-about-link-label">Email</span>
-        <span class="yg-about-link-handle">onfleek096@dowhat.io</span>
+        <span class="yg-about-link-handle">azure0563@gmail.com</span>
       </a>
     </div>
   </div>
