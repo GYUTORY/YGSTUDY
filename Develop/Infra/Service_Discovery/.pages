@@ -2,3 +2,4 @@ title: Service Discovery
 nav:
   - Consul.md
   - Core_DNS.md
+  - Node_Local_DNS_Cache.md
