@@ -1,0 +1,4 @@
+title: Service Discovery
+nav:
+  - Consul.md
+  - Core_DNS.md

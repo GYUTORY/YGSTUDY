@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="fastify-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="nestfastify-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="hapi-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="express-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="nestexpress-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="520" fill="url(#bg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">Node.js 프레임워크 벤치마크 비교</text>
+  <text x="450" y="60" text-anchor="middle" fill="#64748b" font-size="12">단순 JSON 응답 기준 초당 요청 처리량 (req/s) — Node.js 20, 4코어, autocannon 측정</text>
+
+  <!-- Y-axis grid lines and labels -->
+  <line x1="140" y1="100" x2="840" y2="100" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,4"/>
+  <text x="130" y="105" text-anchor="end" fill="#64748b" font-size="11">70k</text>
+
+  <line x1="140" y1="155" x2="840" y2="155" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,4"/>
+  <text x="130" y="160" text-anchor="end" fill="#64748b" font-size="11">60k</text>
+
+  <line x1="140" y1="210" x2="840" y2="210" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,4"/>
+  <text x="130" y="215" text-anchor="end" fill="#64748b" font-size="11">50k</text>
+
+  <line x1="140" y1="265" x2="840" y2="265" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,4"/>
+  <text x="130" y="270" text-anchor="end" fill="#64748b" font-size="11">40k</text>
+
+  <line x1="140" y1="320" x2="840" y2="320" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,4"/>
+  <text x="130" y="325" text-anchor="end" fill="#64748b" font-size="11">30k</text>
+
+  <line x1="140" y1="375" x2="840" y2="375" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,4"/>
+  <text x="130" y="380" text-anchor="end" fill="#64748b" font-size="11">20k</text>
+
+  <line x1="140" y1="430" x2="840" y2="430" stroke="#334155" stroke-width="0.5" stroke-dasharray="4,4"/>
+  <text x="130" y="435" text-anchor="end" fill="#64748b" font-size="11">10k</text>
+
+  <!-- Baseline -->
+  <line x1="140" y1="485" x2="840" y2="485" stroke="#475569" stroke-width="1"/>
+  <text x="130" y="490" text-anchor="end" fill="#64748b" font-size="11">0</text>
+
+  <!-- Bars: baseline y=485, scale: 1k = 5.5px -->
+  <!-- Fastify: 65,000 → height=357.5 → y=127.5 -->
+  <rect x="175" y="127" width="90" height="358" rx="4" fill="url(#fastify-bar)" opacity="0.9"/>
+  <text x="220" y="118" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">65,000</text>
+  <text x="220" y="505" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="600">Fastify</text>
+
+  <!-- NestJS+Fastify: 45,000 → height=247.5 → y=237.5 -->
+  <rect x="315" y="237" width="90" height="248" rx="4" fill="url(#nestfastify-bar)" opacity="0.9"/>
+  <text x="360" y="228" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">45,000</text>
+  <text x="360" y="505" text-anchor="middle" fill="#cbd5e1" font-size="11" font-weight="600">NestJS</text>
+  <text x="360" y="519" text-anchor="middle" fill="#94a3b8" font-size="10">+Fastify</text>
+
+  <!-- Hapi: 42,000 → height=231 → y=254 -->
+  <rect x="455" y="254" width="90" height="231" rx="4" fill="url(#hapi-bar)" opacity="0.9"/>
+  <text x="500" y="245" text-anchor="middle" fill="#fb923c" font-size="13" font-weight="700">42,000</text>
+  <text x="500" y="505" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="600">Hapi</text>
+
+  <!-- Express: 30,000 → height=165 → y=320 -->
+  <rect x="595" y="320" width="90" height="165" rx="4" fill="url(#express-bar)" opacity="0.9"/>
+  <text x="640" y="311" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">30,000</text>
+  <text x="640" y="505" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="600">Express</text>
+
+  <!-- NestJS+Express: 22,000 → height=121 → y=364 -->
+  <rect x="735" y="364" width="90" height="121" rx="4" fill="url(#nestexpress-bar)" opacity="0.9"/>
+  <text x="780" y="355" text-anchor="middle" fill="#f472b6" font-size="13" font-weight="700">22,000</text>
+  <text x="780" y="505" text-anchor="middle" fill="#cbd5e1" font-size="11" font-weight="600">NestJS</text>
+  <text x="780" y="519" text-anchor="middle" fill="#94a3b8" font-size="10">+Express</text>
+
+  <!-- Annotation: Fastify vs Express difference -->
+  <line x1="220" y1="135" x2="640" y2="135" stroke="#475569" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="640" y1="135" x2="640" y2="315" stroke="#475569" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="430" y="90" text-anchor="middle" fill="#94a3b8" font-size="11">Fastify가 Express 대비 약 2.2배</text>
+  <text x="430" y="105" text-anchor="middle" fill="#64748b" font-size="10">Radix Tree 라우팅 + fast-json-stringify + ajv 컴파일</text>
+</svg>

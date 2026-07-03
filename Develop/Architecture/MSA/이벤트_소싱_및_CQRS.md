@@ -1,0 +1,2153 @@
+---
+title: 이벤트 소싱과 CQRS 개념 정리
+tags: [backend, event-sourcing, cqrs, distributed-system]
+updated: 2026-03-29
+---
+
+# 이벤트 소싱과 CQRS 개념 정리
+
+## 개요
+
+이벤트 소싱과 CQRS는 분산 시스템에서 상태 관리를 다르게 접근하는 패턴이다. 기존 CRUD 방식의 한계를 해결하기 위해 등장했다.
+
+이 문서는 이벤트 소싱과 CQRS의 동작 원리, 사용 이유, 실무에서 겪는 문제를 다룬다.
+
+## 전통적인 CRUD 방식의 문제점
+
+### CRUD 방식의 동작
+
+전통적인 CRUD 방식은 현재 상태만 저장한다.
+
+**주문 처리 예시:**
+
+**1. 주문 생성:**
+- `orders` 테이블에 주문 레코드를 INSERT한다
+- `status = 'CREATED'`, `amount = 50000`으로 저장한다
+
+**2. 결제 처리:**
+- 주문 레코드를 UPDATE한다
+- `status = 'PAID'`로 변경한다
+
+**3. 배송 준비:**
+- 주문 레코드를 UPDATE한다
+- `status = 'SHIPPING'`로 변경한다
+
+**문제점:**
+- 과거 상태가 사라진다. `status = 'PAID'`가 되면 이전 상태인 `'CREATED'`는 알 수 없다
+- 변경 이력이 없다. 언제, 왜 상태가 바뀌었는지 알 수 없다
+- 감사 추적이 어렵다. 누가 변경했는지 추적하려면 별도 로그 테이블이 필요하다
+
+### 분산 시스템에서의 문제
+
+서비스가 분리되면 상태 변경이 여러 저장소에 흩어진다.
+
+**문제 상황:**
+
+**1. 하나의 요청이 여러 서비스 상태를 바꾼다:**
+- 주문 서비스: 주문 생성
+- 결제 서비스: 결제 처리
+- 재고 서비스: 재고 차감
+- 각 서비스의 상태가 따로 관리된다
+
+**2. 일부 단계만 성공할 수 있다:**
+- 주문은 생성되었지만 결제는 실패했다
+- 결제는 성공했지만 재고 차감은 실패했다
+- 전체 상태를 파악하기 어렵다
+
+**3. 같은 요청이 중복으로 들어올 수 있다:**
+- 네트워크 재시도로 같은 주문이 여러 번 생성된다
+- 멱등성이 보장되지 않으면 중복 데이터가 생긴다
+
+**4. 순서가 바뀐 이벤트가 도착할 수 있다:**
+- 메시지 큐에서 순서가 보장되지 않는다
+- 결제 완료 이벤트가 주문 생성 이벤트보다 먼저 도착할 수 있다
+
+**결과:**
+이 상태에서 "현재 상태가 무엇인지"를 단일 테이블로 표현하기가 어려워진다. 이벤트 소싱과 CQRS는 이 문제를 다른 방향에서 해결한다.
+
+## 이벤트 소싱(Event Sourcing)
+
+### 이벤트 소싱의 핵심 개념
+
+이벤트 소싱은 **상태를 저장하지 않고, 상태 변경 내역만 저장**한다.
+
+**기본 원리:**
+- 현재 상태 = 과거 이벤트들을 순서대로 재생한 결과
+- 데이터의 원본은 항상 이벤트다
+- 테이블에 있는 상태 값은 파생 데이터다
+
+**이벤트의 특징:**
+- 이벤트는 불변(Immutable)이다. 한 번 저장되면 변경되지 않는다
+- 이벤트는 시간 순서대로 저장된다
+- 이벤트는 "무엇이 일어났는지"를 기록한다
+
+### 기존 CRUD 방식과의 차이
+
+**CRUD 방식:**
+
+**주문 처리 과정:**
+1. 주문 생성: `orders` 테이블에 `status = 'CREATED'`, `amount = 50000` INSERT
+2. 결제 처리: `orders` 테이블에서 `status = 'PAID'`로 UPDATE
+3. 배송 준비: `orders` 테이블에서 `status = 'SHIPPING'`로 UPDATE
+
+**최종 상태:**
+- `status = 'SHIPPING'`
+- `amount = 50000`
+- 과거 상태는 사라진다
+
+**이벤트 소싱 방식:**
+
+**주문 처리 과정:**
+1. 주문 생성: `OrderCreated` 이벤트 저장
+   - `order_id = 'order-123'`
+   - `user_id = 'user-456'`
+   - `amount = 50000`
+   - `created_at = '2026-01-14 10:00:00'`
+
+2. 결제 처리: `PaymentCompleted` 이벤트 저장
+   - `order_id = 'order-123'`
+   - `payment_id = 'payment-789'`
+   - `amount = 50000`
+   - `completed_at = '2026-01-14 10:01:00'`
+
+3. 배송 준비: `ShippingStarted` 이벤트 저장
+   - `order_id = 'order-123'`
+   - `shipping_id = 'shipping-012'`
+   - `started_at = '2026-01-14 10:02:00'`
+
+**이벤트 스토어:**
+모든 이벤트가 시간 순서대로 저장된다. 현재 상태는 이벤트를 재생해서 계산한다.
+
+**차이점:**
+- CRUD: 현재 값만 저장, 과거는 사라짐
+- 이벤트 소싱: 모든 변경 내역 저장, 과거 상태 재현 가능
+
+### 이벤트 소싱의 동작 원리
+
+**1. 이벤트 저장:**
+
+**이벤트 구조:**
+- `event_id`: 이벤트 고유 ID
+- `aggregate_id`: 집계 ID (order_id 등)
+- `event_type`: 이벤트 타입 (OrderCreated, PaymentCompleted 등)
+- `event_data`: 이벤트 데이터 (JSON)
+- `version`: 집계 버전 (동시성 제어용)
+- `timestamp`: 발생 시간
+
+**저장 과정:**
+1. 비즈니스 로직이 실행된다
+2. 상태 변경이 발생한다
+3. 이벤트가 생성된다
+4. 이벤트가 이벤트 스토어에 저장된다
+5. 이벤트가 발행된다 (선택사항)
+
+**2. 상태 복원:**
+
+**재생 과정:**
+1. 집계 ID로 모든 이벤트를 조회한다
+2. 이벤트를 시간 순서대로 정렬한다
+3. 각 이벤트를 순서대로 적용한다
+4. 최종 상태를 계산한다
+
+**예시:**
+- `OrderCreated` 이벤트: 주문 객체 생성, `status = 'CREATED'`
+- `PaymentCompleted` 이벤트: `status = 'PAID'`로 변경
+- `ShippingStarted` 이벤트: `status = 'SHIPPING'`로 변경
+- 최종 상태: `status = 'SHIPPING'`
+
+**3. 이벤트 재생:**
+
+**재생의 의미:**
+- 과거 시점의 상태를 재현할 수 있다
+- 특정 이벤트까지 재생하면 그 시점의 상태를 얻을 수 있다
+- 새로운 뷰를 만들기 위해 이벤트를 다시 처리할 수 있다
+
+**예시:**
+- 2026-01-14 10:01:00 시점의 상태를 보고 싶다
+- `OrderCreated`와 `PaymentCompleted` 이벤트만 재생한다
+- `status = 'PAID'` 상태를 얻는다
+
+### 이벤트 스토어
+
+이벤트 스토어는 이벤트를 저장하는 저장소다.
+
+**이벤트 스토어의 특징:**
+- 이벤트는 추가만 가능하다 (Append-only)
+- 이벤트는 삭제되지 않는다
+- 이벤트는 수정되지 않는다
+- 이벤트는 시간 순서대로 저장된다
+
+**구현 방식:**
+- 파일 기반: 이벤트를 파일에 순차적으로 저장
+- 데이터베이스: 이벤트 테이블에 저장
+- 전용 이벤트 스토어: EventStore, Kafka 등
+
+**이벤트 스토어 스키마:**
+- `event_id`: 이벤트 고유 ID
+- `stream_id`: 스트림 ID (집계 ID)
+- `event_type`: 이벤트 타입
+- `event_data`: 이벤트 데이터
+- `version`: 스트림 버전
+- `timestamp`: 발생 시간
+
+**스트림:**
+- 같은 집계의 이벤트들을 묶은 개념
+- `order-123` 스트림에는 주문 `order-123`의 모든 이벤트가 포함된다
+- 스트림 단위로 이벤트를 조회한다
+
+### 스냅샷(Snapshot)
+
+이벤트가 많아지면 상태 복원이 느려진다. 스냅샷은 특정 시점의 상태를 저장해 복원 시간을 단축한다.
+
+**스냅샷의 필요성:**
+- 이벤트가 1만 개면 모두 재생하는 데 시간이 걸린다
+- 스냅샷을 저장하면 마지막 스냅샷 이후의 이벤트만 재생하면 된다
+- 복원 시간이 크게 단축된다
+
+**스냅샷 저장 시점:**
+- N개 이벤트마다 저장 (예: 100개마다)
+- 특정 시간마다 저장 (예: 1시간마다)
+- 특정 이벤트 타입마다 저장
+
+**스냅샷 사용:**
+1. 마지막 스냅샷을 로드한다
+2. 스냅샷 이후의 이벤트를 재생한다
+3. 최종 상태를 계산한다
+
+**예시:**
+- 스냅샷: 100번째 이벤트까지 재생한 상태 저장
+- 현재: 150번째 이벤트까지 있음
+- 복원: 스냅샷 로드 + 101~150번 이벤트 재생
+- 전체 재생 대비 시간 단축
+
+**스냅샷 저장 구조:**
+
+스냅샷 테이블에는 집계 ID, 해당 시점의 버전, 직렬화된 상태를 저장한다.
+
+```java
+@Entity
+@Table(name = "snapshots")
+public class Snapshot {
+    @Id private String aggregateId;
+    private int version;          // 스냅샷 시점의 이벤트 버전
+    @Lob private String state;    // 직렬화된 집계 상태 (JSON)
+    private Instant createdAt;
+}
+```
+
+**스냅샷을 사용한 집계 복원:**
+
+```java
+public Order loadAggregate(String orderId) {
+    // 1. 스냅샷이 있으면 로드한다
+    Optional<Snapshot> snapshot = snapshotRepo.findById(orderId);
+
+    Order order;
+    int fromVersion;
+
+    if (snapshot.isPresent()) {
+        order = objectMapper.readValue(snapshot.get().getState(), Order.class);
+        fromVersion = snapshot.get().getVersion() + 1;
+    } else {
+        order = new Order();
+        fromVersion = 0;
+    }
+
+    // 2. 스냅샷 이후의 이벤트만 재생한다
+    List<OrderEvent> events = eventRepo
+        .findByAggregateIdAndVersionGreaterThanEqual(orderId, fromVersion);
+    events.forEach(order::apply);
+
+    return order;
+}
+```
+
+**스냅샷 저장 타이밍:**
+
+이벤트를 저장할 때 버전을 확인하고, 기준 개수를 넘으면 스냅샷을 찍는다.
+
+```java
+private static final int SNAPSHOT_INTERVAL = 100;
+
+public void saveAndMaybeSnapshot(String aggregateId, Order order, int currentVersion) {
+    if (currentVersion > 0 && currentVersion % SNAPSHOT_INTERVAL == 0) {
+        Snapshot snapshot = new Snapshot(
+            aggregateId,
+            currentVersion,
+            objectMapper.writeValueAsString(order),
+            Instant.now()
+        );
+        snapshotRepo.save(snapshot);
+    }
+}
+```
+
+**스냅샷 관련 주의사항:**
+
+- 스냅샷은 캐시다. 깨지면 이벤트를 처음부터 재생하면 된다. 스냅샷이 없어도 시스템은 동작해야 한다
+- 집계 클래스의 구조가 바뀌면 기존 스냅샷을 역직렬화할 수 없는 경우가 있다. 집계 클래스에 필드를 추가하면 기존 스냅샷을 무효화하거나, 역직렬화 시 기본값을 설정해야 한다
+- 스냅샷 주기가 너무 짧으면 저장 비용이 늘고, 너무 길면 복원 시간이 길어진다. 실무에서는 100~500개 단위로 설정하는 경우가 많다
+
+### 프로젝션(Projection)
+
+프로젝션은 이벤트를 읽기 모델로 변환하는 과정이다.
+
+**프로젝션의 목적:**
+- 이벤트를 조회에 최적화된 형태로 변환한다
+- 여러 읽기 모델을 만들 수 있다
+- 각 읽기 모델은 특정 용도에 최적화된다
+
+**프로젝션 동작:**
+1. 이벤트를 읽는다
+2. 읽기 모델을 업데이트한다
+3. 조회에 최적화된 형태로 저장한다
+
+**읽기 모델의 종류:**
+- 주문 목록: 리스트 조회용
+- 주문 상세: 상세 조회용
+- 통계: 집계 데이터용
+- 검색: 검색 엔진용
+
+**같은 이벤트 스트림으로 여러 읽기 모델을 만드는 구조:**
+
+하나의 이벤트 스트림에서 목적이 다른 읽기 모델을 각각 독립적으로 만들 수 있다. 주문 서비스의 이벤트를 사용해 "주문 목록용 테이블", "관리자 대시보드용 통계 테이블", "검색 인덱스"를 동시에 만든다.
+
+```java
+// ── 읽기 모델 1: 주문 목록 ────────────────────────────
+@Entity
+@Table(name = "order_list_view")
+public class OrderListView {
+    @Id private String orderId;
+    private String userId;
+    private String status;
+    private long totalAmount;
+    private Instant createdAt;
+    // 목록 조회에 필요한 필드만 포함한다. 조인 없이 단일 테이블에서 조회한다.
+}
+
+// ── 읽기 모델 2: 주문 상세 ────────────────────────────
+@Entity
+@Table(name = "order_detail_view")
+public class OrderDetailView {
+    @Id private String orderId;
+    private String userId;
+    private String userName;       // 사용자 서비스에서 가져온 이름
+    private String status;
+    private long totalAmount;
+    private long discountAmount;
+    @Column(columnDefinition = "jsonb")
+    private String items;          // 상품 목록을 JSON으로 비정규화
+    private String shippingAddress;
+    private Instant createdAt;
+    private Instant updatedAt;
+    // 상세 화면에 필요한 모든 정보를 한 행에 넣는다.
+}
+
+// ── 읽기 모델 3: 일별 주문 통계 ───────────────────────
+@Entity
+@Table(name = "daily_order_stats")
+public class DailyOrderStats {
+    @Id private String date;       // "2026-03-29"
+    private long orderCount;
+    private long totalRevenue;
+    private long cancelledCount;
+    // 집계 데이터를 미리 계산해 둔다.
+}
+```
+
+**프로젝션 구현 — 각 읽기 모델에 대한 이벤트 핸들러:**
+
+```java
+// 주문 목록 프로젝션
+@Component
+@RequiredArgsConstructor
+public class OrderListProjection {
+    private final OrderListViewRepository repo;
+
+    @EventListener
+    public void on(OrderCreated e) {
+        repo.save(new OrderListView(e.orderId(), e.userId(), "DRAFT", 0L, e.occurredAt()));
+    }
+
+    @EventListener
+    public void on(OrderConfirmed e) {
+        repo.updateStatus(e.orderId(), "CONFIRMED", e.occurredAt());
+    }
+
+    @EventListener
+    public void on(OrderCancelled e) {
+        repo.updateStatus(e.orderId(), "CANCELLED", e.occurredAt());
+    }
+}
+
+// 일별 통계 프로젝션
+@Component
+@RequiredArgsConstructor
+public class DailyStatsProjection {
+    private final DailyOrderStatsRepository repo;
+
+    @EventListener
+    public void on(OrderConfirmed e) {
+        String date = e.occurredAt().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().toString();
+        repo.incrementOrderCount(date);
+    }
+
+    @EventListener
+    public void on(OrderCancelled e) {
+        String date = e.occurredAt().atZone(ZoneId.of("Asia/Seoul")).toLocalDate().toString();
+        repo.incrementCancelledCount(date);
+    }
+}
+```
+
+**프로젝션 리빌드:**
+
+프로젝션 코드에 버그가 있었거나, 새 읽기 모델을 추가할 때 기존 이벤트를 처음부터 다시 재생해야 하는 경우가 있다. 이 과정을 리빌드라고 한다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class ProjectionRebuilder {
+    private final EventRecordRepository eventRepo;
+    private final OrderListProjection orderListProjection;
+
+    /**
+     * 읽기 모델 테이블을 비우고 모든 이벤트를 처음부터 재생한다.
+     * 이벤트가 수백만 건이면 시간이 오래 걸린다. 배치로 나눠서 처리해야 한다.
+     */
+    public void rebuild(String projectionName) {
+        // 1. 기존 읽기 모델 데이터를 삭제한다
+        orderListViewRepo.deleteAll();
+
+        // 2. 이벤트를 배치 단위로 읽어서 프로젝션에 전달한다
+        int batchSize = 1000;
+        long lastProcessedId = 0;
+
+        while (true) {
+            List<EventRecord> batch = eventRepo
+                .findByIdGreaterThanOrderById(lastProcessedId, PageRequest.of(0, batchSize));
+            if (batch.isEmpty()) break;
+
+            for (EventRecord record : batch) {
+                OrderEvent event = deserialize(record);
+                orderListProjection.handle(event);
+                lastProcessedId = record.getId();
+            }
+        }
+    }
+}
+```
+
+**프로젝션 위치 추적:**
+
+프로젝션이 어디까지 처리했는지 기록해야 한다. 프로젝션이 중간에 죽으면 마지막 처리 위치부터 재시작할 수 있다.
+
+```java
+@Entity
+@Table(name = "projection_positions")
+public class ProjectionPosition {
+    @Id private String projectionName;   // "order-list", "daily-stats" 등
+    private long lastProcessedEventId;   // 마지막으로 처리한 이벤트의 글로벌 시퀀스 번호
+    private Instant updatedAt;
+}
+```
+
+각 프로젝션은 이벤트를 처리할 때마다 자신의 위치를 업데이트한다. 프로젝션을 재시작하면 이 위치부터 다시 읽기 시작한다. 위치 업데이트와 읽기 모델 업데이트는 같은 트랜잭션 안에서 해야 한다. 그래야 프로젝션이 중간에 죽어도 위치와 데이터가 일치한다.
+
+## 이벤트 소싱을 사용하는 이유
+
+### 상태 변경 이력을 정확히 남겨야 할 때
+
+**금융 도메인:**
+- 계좌 잔액 변경 이력
+- 거래 내역 추적
+- 정산 데이터 검증
+
+**주문 도메인:**
+- 주문 상태 변경 이력
+- 결제 과정 추적
+- 취소/환불 이력
+
+**장애 재현:**
+- 장애 발생 시 과거 상태를 재현해야 하는 경우
+- 이벤트를 재생해 문제 상황을 재현할 수 있다
+- 디버깅이 쉬워진다
+
+**이벤트 소싱의 장점:**
+이벤트 소싱은 "왜 이 상태가 되었는지"를 항상 설명할 수 있다. 모든 변경 내역이 이벤트로 저장되어 있다.
+
+### 비즈니스 규칙이 자주 바뀌는 경우
+
+**과거 데이터 재처리:**
+- 새로운 통계 기준이 생긴다
+- 과거 이벤트를 다시 처리해 새로운 통계를 만든다
+- 이벤트 자체는 바뀌지 않는다
+
+**새로운 뷰 생성:**
+- 새로운 상태 분류가 필요하다
+- 이벤트를 다시 해석해 새로운 뷰를 만든다
+- 기존 이벤트를 재사용할 수 있다
+
+**예시:**
+- 기존: 주문 상태를 `CREATED`, `PAID`, `SHIPPING`으로 분류
+- 변경: `PROCESSING`, `COMPLETED`, `CANCELLED`로 재분류 필요
+- 해결: 이벤트를 다시 처리해 새로운 분류 적용
+
+### 감사 추적(Audit Trail)
+
+**완전한 감사 추적:**
+- 모든 변경 내역이 이벤트로 저장된다
+- 누가, 언제, 무엇을 변경했는지 추적 가능하다
+- 별도 로그 시스템 없이도 감사가 가능하다
+
+**규정 준수:**
+- 금융, 의료 등 규제가 엄격한 도메인에서 필요하다
+- 변경 이력을 완전히 보존해야 한다
+- 이벤트 소싱이 자연스럽게 해결한다
+
+## 이벤트 소싱의 문제점과 해결 방법
+
+### 읽기 성능 문제
+
+**문제:**
+이벤트가 많아질수록 상태 복원이 느려진다. 이벤트가 1만 개면 모두 재생하는 데 시간이 걸린다.
+
+**해결 방법:**
+
+**1. 스냅샷:**
+- 특정 시점의 상태를 저장한다
+- 마지막 스냅샷 이후의 이벤트만 재생한다
+- 복원 시간을 크게 단축한다
+
+**2. 읽기 모델:**
+- 이벤트를 조회에 최적화된 형태로 변환한다
+- 조회는 읽기 모델에서 한다
+- 이벤트 재생은 쓰기 시에만 한다
+
+**3. 이벤트 아카이빙:**
+- 오래된 이벤트는 별도 저장소로 이동한다
+- 자주 조회하는 이벤트만 메인 스토어에 둔다
+- 성능과 저장 비용의 균형을 맞춘다
+
+### 설계 난이도
+
+**이벤트 스키마 변경:**
+- 이벤트 스키마가 변경되면 하위 호환성을 고려해야 한다
+- 이전 버전 이벤트를 처리할 수 있어야 한다
+- 버전 관리가 필요하다
+
+**이벤트 버전 관리:**
+
+이벤트 스키마가 바뀌면 이전 버전 이벤트를 읽을 수 있어야 한다. 이벤트 스토어에 저장된 이벤트는 삭제할 수 없기 때문에, 새 버전과 구 버전이 공존하는 기간이 반드시 존재한다.
+
+**업캐스팅(Upcasting) 방식:**
+
+가장 일반적인 방식이다. 이벤트를 읽을 때 구 버전을 최신 버전으로 변환한다.
+
+```java
+// 이벤트 v1: 초기 버전
+public record OrderCreatedV1(String orderId, String userId, long amount, Instant occurredAt) {}
+
+// 이벤트 v2: discount 필드 추가
+public record OrderCreatedV2(String orderId, String userId, long amount, long discount,
+                             long totalAmount, Instant occurredAt) {}
+
+// 업캐스터: v1 → v2로 변환
+public class OrderCreatedUpcaster {
+    public OrderCreatedV2 upcast(OrderCreatedV1 v1) {
+        return new OrderCreatedV2(
+            v1.orderId(), v1.userId(), v1.amount(),
+            0L,                  // discount: 구 버전에는 할인 개념이 없었으므로 0
+            v1.amount(),         // totalAmount = amount - discount
+            v1.occurredAt()
+        );
+    }
+}
+```
+
+업캐스터는 체인으로 연결할 수 있다. v1 → v2 → v3으로 순차 변환하면 각 단계의 변환 로직만 관리하면 된다.
+
+**이벤트 역직렬화 시 버전 분기:**
+
+```java
+public OrderEvent deserialize(EventRecord record) {
+    return switch (record.getEventType()) {
+        case "OrderCreated" -> {
+            int version = record.getSchemaVersion();
+            if (version == 1) {
+                OrderCreatedV1 v1 = objectMapper.readValue(record.getData(), OrderCreatedV1.class);
+                yield upcaster.upcast(v1);  // v1 → v2로 변환
+            }
+            yield objectMapper.readValue(record.getData(), OrderCreatedV2.class);
+        }
+        // ... 다른 이벤트 타입
+        default -> throw new UnknownEventTypeException(record.getEventType());
+    };
+}
+```
+
+**이벤트 스키마 변경 시 규칙:**
+
+- 필드 추가는 괜찮다. 기본값만 정의하면 구 버전 이벤트를 처리할 수 있다
+- 필드 삭제는 위험하다. 구 버전 이벤트에 해당 필드가 있으므로, 삭제 대신 무시하는 쪽으로 처리한다
+- 필드 타입 변경은 하면 안 된다. 새 이벤트 타입을 만들어야 한다
+- 이벤트 타입 이름 변경도 하면 안 된다. 이벤트 스토어에 저장된 이름은 바뀌지 않는다
+
+**`schemaVersion` 필드를 이벤트 레코드에 포함하는 방식:**
+
+```sql
+CREATE TABLE event_store (
+    event_id       VARCHAR(36) PRIMARY KEY,
+    aggregate_id   VARCHAR(36) NOT NULL,
+    event_type     VARCHAR(100) NOT NULL,
+    schema_version INT NOT NULL DEFAULT 1,   -- 이벤트 스키마 버전
+    event_data     JSONB NOT NULL,
+    version        INT NOT NULL,             -- 집계 버전 (동시성 제어용)
+    created_at     TIMESTAMP NOT NULL,
+    UNIQUE (aggregate_id, version)
+);
+```
+
+**재처리 시 멱등성:**
+- 이벤트를 재처리할 때 중복 실행을 방지해야 한다
+- 멱등성을 보장해야 한다
+- 처리 기록을 저장해 중복을 방지한다
+
+**초기 설계 부담:**
+초기에 단순 CRUD보다 설계 부담이 크다. 이벤트 구조, 버전 관리, 재처리 로직 등을 고려해야 한다.
+
+### 운영 복잡도
+
+**이벤트 중복:**
+- 같은 이벤트가 여러 번 저장될 수 있다
+- 네트워크 재시도, 메시지 큐 중복 등으로 발생한다
+- 멱등성을 보장해야 한다
+
+**순서 뒤집힘:**
+- 이벤트 순서가 바뀔 수 있다
+- 메시지 큐에서 순서가 보장되지 않으면 발생한다
+- 순서 보장이 필요한 경우 파티션 키를 사용한다
+
+**일부 이벤트만 처리된 상태:**
+- 프로젝션이 일부 이벤트만 처리하고 실패할 수 있다
+- 읽기 모델이 불일치 상태가 될 수 있다
+- 재처리 메커니즘이 필요하다
+
+**이벤트 스토어 관리:**
+- 이벤트가 계속 쌓인다
+- 저장 공간 관리가 필요하다
+- 아카이빙 전략이 필요하다
+
+**이걸 감당할 준비가 되어 있어야 한다:**
+이벤트 소싱은 강력하지만 복잡도가 높다. 운영 복잡도를 감당할 수 있을 때만 사용해야 한다.
+
+---
+
+## CQRS(Command Query Responsibility Segregation)
+
+### CQRS의 핵심 개념
+
+CQRS는 **쓰기(Command)** 와 **읽기(Query)** 를 분리한다.
+
+**기본 원리:**
+- 쓰기 모델: 도메인 규칙 중심, 비즈니스 로직 처리
+- 읽기 모델: 조회 성능 중심, 최적화된 구조
+- 하나의 데이터 모델로 둘 다 해결하지 않는다
+
+**전통적인 방식:**
+- 같은 테이블에서 쓰기와 읽기를 모두 처리한다
+- 쓰기 최적화와 읽기 최적화가 충돌한다
+- 인덱스 추가가 쓰기 성능에 영향을 준다
+
+**CQRS 방식:**
+- 쓰기 모델과 읽기 모델을 분리한다
+- 각각 독립적으로 최적화한다
+- 쓰기와 읽기가 서로 영향을 주지 않는다
+
+### 쓰기 모델과 읽기 모델의 차이
+
+**쓰기 모델 (Command Side):**
+
+**특징:**
+- 도메인 규칙 중심으로 설계된다
+- 비즈니스 로직을 처리한다
+- 정규화된 구조를 사용한다
+- 트랜잭션 일관성이 중요하다
+
+**예시:**
+- 주문 생성 시 복잡한 검증 로직
+- 재고 차감 시 동시성 제어
+- 결제 처리 시 비즈니스 규칙 적용
+
+**읽기 모델 (Query Side):**
+
+**특징:**
+- 조회 성능 중심으로 설계된다
+- 비정규화된 구조를 사용한다
+- 조인을 최소화한다
+- 최종 일관성을 허용한다
+
+**예시:**
+- 주문 목록: 조인 없이 한 번의 쿼리로 조회
+- 주문 상세: 필요한 모든 정보를 한 테이블에 저장
+- 통계: 집계 데이터를 미리 계산해 저장
+
+### CQRS의 동작 원리
+
+**1. 쓰기 처리:**
+
+**Command 수신:**
+- 클라이언트가 Command를 보낸다
+- Command Handler가 Command를 처리한다
+- 비즈니스 로직을 실행한다
+- 쓰기 모델을 업데이트한다
+
+**예시:**
+- `CreateOrderCommand` 수신
+- 주문 생성 로직 실행
+- `orders` 테이블에 INSERT
+- 이벤트 발행 (선택사항)
+
+**2. 읽기 모델 동기화:**
+
+**동기화 방식:**
+- 쓰기 모델이 변경되면 읽기 모델도 업데이트한다
+- 이벤트를 구독해 읽기 모델을 업데이트한다
+- 비동기로 처리한다
+
+**예시:**
+- 주문이 생성되면 `OrderCreated` 이벤트 발행
+- 읽기 모델 프로젝션이 이벤트를 구독
+- 주문 목록 읽기 모델에 추가
+- 주문 상세 읽기 모델 생성
+
+**3. 읽기 처리:**
+
+**Query 처리:**
+- 클라이언트가 Query를 보낸다
+- Query Handler가 읽기 모델에서 조회한다
+- 최적화된 구조로 빠르게 응답한다
+
+**예시:**
+- `GetOrderListQuery` 수신
+- 주문 목록 읽기 모델에서 조회
+- 조인 없이 한 번의 쿼리로 응답
+
+### CQRS를 사용하는 이유
+
+**1. 읽기와 쓰기의 성격이 다를 때**
+
+**쓰기의 특징:**
+- 복잡한 검증과 규칙이 많다
+- 트랜잭션 일관성이 중요하다
+- 정규화된 구조가 적합하다
+
+**읽기의 특징:**
+- 단순 조회, 리스트, 통계가 많다
+- 성능이 중요하다
+- 비정규화된 구조가 적합하다
+
+**충돌:**
+같은 테이블로 처리하면 어느 쪽도 만족시키기 어렵다. 쓰기 최적화를 하면 읽기가 느려지고, 읽기 최적화를 하면 쓰기가 느려진다.
+
+**해결:**
+CQRS로 분리하면 각각 독립적으로 최적화할 수 있다.
+
+**2. 읽기 트래픽이 압도적으로 많을 때**
+
+**읽기 트래픽이 많은 경우:**
+- 읽기 요청이 쓰기 요청보다 훨씬 많다
+- 읽기 전용 DB를 사용할 수 있다
+- 읽기 모델을 여러 개 복제할 수 있다
+
+**최적화:**
+- 읽기 전용 DB: 쓰기 부하 없이 읽기만 처리
+- 캐시 친화적 구조: 자주 조회하는 데이터 구조화
+- 조인 최소화: 한 번의 쿼리로 필요한 데이터 조회
+
+**확장성:**
+쓰기 모델과 분리하면 조회 구조를 자유롭게 바꿀 수 있다. 읽기 모델을 수평 확장할 수 있다.
+
+**3. 읽기 모델을 독립적으로 변경하고 싶을 때**
+
+**변경의 자유:**
+- 읽기 모델 구조를 변경해도 쓰기 모델에 영향이 없다
+- 새로운 읽기 모델을 추가할 수 있다
+- 기존 읽기 모델을 유지하면서 새 모델을 만들 수 있다
+
+**예시:**
+- 기존: 주문 목록 읽기 모델
+- 추가: 주문 검색 읽기 모델 (Elasticsearch)
+- 추가: 주문 통계 읽기 모델 (시계열 DB)
+
+### CQRS의 구현 방식
+
+**1. 단일 데이터베이스에서 분리:**
+
+**구조:**
+- 같은 DB에 쓰기 테이블과 읽기 테이블을 분리한다
+- 쓰기는 정규화된 테이블에 한다
+- 읽기는 비정규화된 테이블에서 한다
+- 트리거나 애플리케이션 로직으로 동기화한다
+
+**장점:**
+- 구현이 단순하다
+- 트랜잭션 일관성을 보장할 수 있다
+
+**단점:**
+- 읽기 모델 업데이트가 쓰기 성능에 영향을 줄 수 있다
+- 확장성이 제한적이다
+
+**2. 별도 데이터베이스로 분리:**
+
+**구조:**
+- 쓰기 DB와 읽기 DB를 분리한다
+- 이벤트를 통해 읽기 모델을 동기화한다
+- 비동기로 처리한다
+
+**장점:**
+- 읽기와 쓰기가 완전히 분리된다
+- 각각 독립적으로 확장할 수 있다
+- 읽기 DB를 여러 개 복제할 수 있다
+
+**단점:**
+- 최종 일관성을 허용해야 한다
+- 동기화 로직이 필요하다
+
+**3. 이벤트 기반 동기화:**
+
+**구조:**
+- 쓰기 모델 변경 시 이벤트를 발행한다
+- 읽기 모델 프로젝션이 이벤트를 구독한다
+- 이벤트를 처리해 읽기 모델을 업데이트한다
+
+**장점:**
+- 느슨한 결합이다
+- 여러 읽기 모델을 독립적으로 만들 수 있다
+- 확장성이 좋다
+
+**단점:**
+- 이벤트 처리 지연이 있다
+- 최종 일관성을 허용해야 한다
+
+### CQRS에서 흔히 생기는 오해
+
+**1. "무조건 이벤트 소싱이 필요하다"**
+
+아니다. CQRS는 이벤트 소싱 없이도 가능하다.
+
+**이벤트 소싱 없이 CQRS:**
+- 쓰기는 RDB 트랜잭션으로 처리한다
+- 읽기는 조회 전용 테이블에서 한다
+- 트리거나 애플리케이션 로직으로 동기화한다
+
+**이벤트 소싱과 함께 CQRS:**
+- 쓰기는 이벤트 소싱으로 처리한다
+- 읽기는 이벤트를 프로젝션해 만든다
+- 복잡도는 높지만 감사 추적과 유연한 읽기 모델을 동시에 얻는다
+
+**이벤트 소싱은 선택 사항이다:**
+CQRS는 읽기와 쓰기를 분리하는 패턴이다. 이벤트 소싱은 쓰기 모델을 구현하는 방법 중 하나다.
+
+**2. "CQRS = 마이크로서비스"**
+
+아니다. 모놀리식에서도 CQRS는 쓸 수 있다.
+
+**모놀리식에서 CQRS:**
+- 같은 애플리케이션 내에서 읽기와 쓰기를 분리한다
+- 같은 DB에 다른 테이블을 사용한다
+- 서비스 분리 없이도 적용 가능하다
+
+**마이크로서비스에서 CQRS:**
+- 서비스 간 읽기와 쓰기를 분리한다
+- 각 서비스가 독립적인 데이터 모델을 가진다
+- 자연스럽게 CQRS가 적용된다
+
+**서비스 분리 여부와 직접적인 연관은 없다:**
+CQRS는 아키텍처 패턴이고, 마이크로서비스는 배포 패턴이다. 둘은 독립적이다.
+
+## 이벤트 소싱 + CQRS 조합
+
+### 조합의 형태
+
+이벤트 소싱과 CQRS를 함께 사용하면 각각의 장점을 살릴 수 있다.
+
+**구조:**
+
+**1. 이벤트 소싱 (쓰기 모델):**
+- 이벤트 스토어가 쓰기 모델의 진실이다
+- 모든 상태 변경이 이벤트로 저장된다
+- 이벤트는 불변이다
+
+**2. 프로젝션 (읽기 모델 생성):**
+- 이벤트를 읽기 모델로 변환한다
+- 여러 읽기 모델을 만들 수 있다
+- 각 읽기 모델은 특정 용도에 최적화된다
+
+**3. CQRS (경로 분리):**
+- 쓰기 경로: Command → 이벤트 저장
+- 읽기 경로: Query → 읽기 모델 조회
+- 완전히 분리된 경로
+
+**동작 흐름:**
+
+**쓰기:**
+1. Command 수신
+2. 비즈니스 로직 실행
+3. 이벤트 생성 및 저장
+4. 이벤트 발행
+
+**읽기 모델 업데이트:**
+1. 이벤트 구독
+2. 프로젝션 처리
+3. 읽기 모델 업데이트
+
+**읽기:**
+1. Query 수신
+2. 읽기 모델에서 조회
+3. 응답 반환
+
+### 조합의 전제 조건
+
+이 구조는 다음을 전제로 한다.
+
+**1. 읽기 지연을 허용한다:**
+- 쓰기 후 읽기가 즉시 반영되지 않을 수 있다
+- 이벤트 처리 지연이 있다
+- 사용자가 최신 데이터를 즉시 볼 수 없을 수 있다
+
+**2. 최종 일관성을 받아들인다:**
+- 쓰기와 읽기가 일시적으로 불일치할 수 있다
+- 시간이 지나면 일관성이 유지된다
+- 강한 일관성이 필요하면 부적합하다
+
+**3. 상태 불일치가 잠시 존재할 수 있다:**
+- 쓰기는 완료되었지만 읽기 모델은 아직 업데이트되지 않았다
+- 프로젝션이 실패하면 읽기 모델이 오래된 상태로 남는다
+- 재처리 메커니즘이 필요하다
+
+### 조합의 장점
+
+**1. 완전한 감사 추적:**
+- 모든 변경 내역이 이벤트로 저장된다
+- 언제든지 과거 상태를 재현할 수 있다
+- 감사 추적이 자연스럽게 해결된다
+
+**2. 유연한 읽기 모델:**
+- 여러 읽기 모델을 독립적으로 만들 수 있다
+- 각 읽기 모델은 특정 용도에 최적화된다
+- 읽기 모델 변경이 쓰기에 영향을 주지 않는다
+
+**3. 확장성:**
+- 쓰기와 읽기를 독립적으로 확장할 수 있다
+- 읽기 모델을 여러 개 복제할 수 있다
+- 각 모델을 독립적으로 최적화할 수 있다
+
+### 조합의 단점
+
+**1. 복잡도 증가:**
+- 이벤트 소싱과 CQRS의 복잡도가 합쳐진다
+- 프로젝션 로직이 추가된다
+- 운영 부담이 크다
+
+**2. 일관성 문제:**
+- 최종 일관성을 허용해야 한다
+- 읽기 지연이 발생할 수 있다
+- 상태 불일치를 감당해야 한다
+
+**3. 개발 비용:**
+- 초기 개발 비용이 크다
+- 이벤트 스키마 설계가 필요하다
+- 프로젝션 로직 구현이 필요하다
+
+## 실무에서 겪는 문제
+
+### 이벤트 스키마 변경
+
+**문제:**
+이벤트 스키마가 변경되면 기존 이벤트와 호환성 문제가 생긴다.
+
+**해결 방법:**
+- 이벤트 버전을 관리한다
+- 이전 버전 이벤트를 처리할 수 있는 변환 로직을 만든다
+- 점진적으로 마이그레이션한다
+
+**예시:**
+- 기존: `OrderCreated` 이벤트에 `amount` 필드만 있음
+- 변경: `amount`, `discount`, `total_amount` 필드 추가
+- 해결: 이전 버전 이벤트는 `discount = 0`, `total_amount = amount`로 변환
+
+### 프로젝션 실패
+
+**문제:**
+프로젝션이 실패하면 읽기 모델이 오래된 상태로 남는다.
+
+**해결 방법:**
+- 프로젝션 실패를 재시도한다
+- 실패한 이벤트를 별도 큐에 저장한다
+- 주기적으로 프로젝션 상태를 확인한다
+
+**예시:**
+- `OrderCreated` 이벤트 처리 중 DB 연결 실패
+- 이벤트를 DLQ에 저장
+- 재시도 프로세스가 나중에 처리
+
+### 읽기 모델 동기화 지연
+
+**문제:**
+이벤트 처리 지연으로 읽기 모델이 오래된 상태로 남는다. 사용자가 주문을 생성한 직후 주문 목록을 보면 방금 만든 주문이 안 보이는 경우가 생긴다.
+
+**해결 방법:**
+- 이벤트 처리 지연을 모니터링한다
+- 지연이 발생하면 프로세스를 확장한다
+- 중요한 읽기는 쓰기 모델에서 직접 조회한다
+
+### Eventual Consistency 상태에서 UI 처리
+
+CQRS 구조에서 쓰기 후 읽기 모델이 즉시 반영되지 않는 문제는 반드시 UI 레벨에서 처리해야 한다. 서버만으로는 해결이 안 된다.
+
+**방법 1: Write-through Read (쓰기 직후 이벤트 스토어에서 직접 읽기)**
+
+사용자가 방금 수행한 액션의 결과를 볼 때는 읽기 모델을 거치지 않고, Command의 응답에서 필요한 데이터를 바로 반환한다.
+
+```java
+// Command 응답에 결과를 포함한다
+@PostMapping("/orders")
+public ResponseEntity<CreateOrderResponse> createOrder(@RequestBody CreateOrderRequest request) {
+    String orderId = orderCommandService.createOrder(request.getUserId());
+
+    // Command 처리 결과를 바로 반환한다. 읽기 모델을 조회하지 않는다.
+    return ResponseEntity.ok(new CreateOrderResponse(orderId, "DRAFT", Instant.now()));
+}
+```
+
+이 방식을 쓰면 사용자가 방금 생성한 주문의 ID와 상태를 즉시 볼 수 있다. 프론트엔드는 이 응답을 로컬 상태에 반영하면 된다.
+
+**방법 2: Optimistic UI Update (프론트엔드에서 낙관적 업데이트)**
+
+프론트엔드가 서버 응답을 기다리지 않고 먼저 UI를 업데이트한다. 서버에서 실패 응답이 오면 롤백한다.
+
+```javascript
+// React 예시
+async function confirmOrder(orderId) {
+    // 1. UI를 먼저 업데이트한다
+    setOrders(prev => prev.map(order =>
+        order.id === orderId ? { ...order, status: 'CONFIRMED' } : order
+    ));
+
+    try {
+        // 2. 서버에 Command를 보낸다
+        await api.post(`/orders/${orderId}/confirm`);
+    } catch (error) {
+        // 3. 실패하면 원래 상태로 되돌린다
+        setOrders(prev => prev.map(order =>
+            order.id === orderId ? { ...order, status: 'DRAFT' } : order
+        ));
+        showError('주문 확정에 실패했습니다.');
+    }
+}
+```
+
+**방법 3: Polling with Version (버전 기반 폴링)**
+
+Command 응답에 이벤트 버전을 포함한다. 이후 읽기 요청에서 해당 버전 이상이 반영될 때까지 대기하거나 재시도한다.
+
+```java
+// Command 응답에 버전을 포함한다
+@PostMapping("/orders/{orderId}/confirm")
+public ResponseEntity<CommandResponse> confirmOrder(@PathVariable String orderId) {
+    int newVersion = orderCommandService.confirm(orderId);
+    return ResponseEntity.ok(new CommandResponse(orderId, newVersion));
+}
+
+// 읽기 요청에서 최소 버전을 지정한다
+@GetMapping("/orders/{orderId}")
+public ResponseEntity<OrderDetailView> getOrder(
+        @PathVariable String orderId,
+        @RequestParam(required = false) Integer minVersion) {
+
+    OrderDetailView order = orderQueryService.getOrder(orderId);
+
+    // 읽기 모델이 아직 해당 버전을 반영하지 않았으면 202 Accepted를 반환한다
+    if (minVersion != null && order.getProjectedVersion() < minVersion) {
+        return ResponseEntity.accepted().build();
+    }
+
+    return ResponseEntity.ok(order);
+}
+```
+
+프론트엔드는 202가 돌아오면 짧은 간격으로 재시도한다. 보통 수십~수백 밀리초 안에 반영되므로 1~2회 재시도로 충분하다.
+
+**방법 4: SSE/WebSocket으로 읽기 모델 업데이트 알림**
+
+프로젝션이 완료되면 서버가 클라이언트에 알린다. 실시간성이 중요한 화면에서 사용한다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class OrderProjectionWithNotification {
+    private final SseEmitters emitters;
+    private final OrderDetailViewRepository repo;
+
+    @EventListener
+    public void on(OrderConfirmed event) {
+        // 읽기 모델 업데이트
+        repo.updateStatus(event.orderId(), "CONFIRMED", event.occurredAt());
+
+        // 해당 주문을 구독 중인 클라이언트에 알린다
+        emitters.send(event.orderId(), new OrderStatusChanged("CONFIRMED"));
+    }
+}
+```
+
+**어떤 방식을 쓸지 판단하는 기준:**
+
+- 대부분의 경우 방법 1(Command 응답에 결과 포함)로 충분하다. 가장 단순하고 구현 비용이 낮다
+- 리스트 화면에서 최신 상태가 보여야 하면 방법 2(Optimistic UI)를 쓴다
+- 여러 사용자가 같은 데이터를 보는 상황이면 방법 3(버전 기반 폴링)이나 방법 4(SSE)를 고려한다
+- 방법 4는 실시간 대시보드나 협업 화면처럼 즉각적인 반영이 필요한 경우에만 쓴다. 구현 복잡도가 높다
+
+### 이벤트 재처리
+
+**문제:**
+이벤트를 재처리할 때 중복 실행을 방지해야 한다.
+
+**해결 방법:**
+- 멱등성을 보장한다
+- 처리 기록을 저장해 중복을 방지한다
+- 이벤트 ID를 사용해 중복을 확인한다
+
+**예시:**
+- 같은 `OrderCreated` 이벤트를 여러 번 처리해도 주문이 한 번만 생성되어야 한다
+- 이벤트 ID를 키로 처리 기록을 저장한다
+- 이미 처리된 이벤트는 건너뛴다
+
+## 도입 판단 기준
+
+### 이벤트 소싱을 쓰는 게 맞는 경우
+
+**상태 변경 이력이 중요하다:**
+- 금융, 의료 등 규제가 엄격한 도메인
+- 모든 변경 내역을 추적해야 하는 경우
+- 감사 추적이 필수인 경우
+
+**장애 재현이 잦다:**
+- 복잡한 비즈니스 로직으로 인해 장애가 자주 발생한다
+- 과거 상태를 재현해 문제를 분석해야 한다
+- 디버깅이 어려운 경우
+
+**비즈니스 규칙이 자주 바뀐다:**
+- 새로운 통계 기준이 자주 생긴다
+- 과거 데이터를 다시 처리해야 한다
+- 새로운 뷰를 만들어야 한다
+
+**단순 CRUD로 설명이 안 된다:**
+- 복잡한 상태 머신이 있다
+- 여러 단계를 거쳐 상태가 변경된다
+- 상태 변경 이력이 비즈니스 로직의 일부다
+
+### 이벤트 소싱을 쓰지 말아야 하는 경우
+
+**단순 CRUD 작업:**
+- 단순 게시판, 설정 관리
+- 상태 변경 이력이 중요하지 않다
+- CRUD로 충분한 경우
+
+**트랜잭션 범위가 작다:**
+- 단일 서비스 내에서만 처리된다
+- 분산 트랜잭션이 필요 없다
+- 단순한 작업만 있다
+
+**팀에 운영 여력이 없다:**
+- 이벤트 소싱 운영 경험이 없다
+- 복잡도를 감당할 수 없다
+- 학습 곡선이 높다
+
+**빠른 개발이 최우선이다:**
+- 프로토타입이나 MVP 단계
+- 빠르게 기능을 만들어야 한다
+- 복잡한 패턴이 오히려 방해가 된다
+
+### CQRS를 쓰는 게 맞는 경우
+
+**읽기와 쓰기의 성격이 다르다:**
+- 쓰기는 복잡한 비즈니스 로직이 있다
+- 읽기는 단순 조회가 많다
+- 같은 모델로 처리하기 어렵다
+
+**읽기 트래픽이 압도적으로 많다:**
+- 읽기 요청이 쓰기 요청보다 훨씬 많다
+- 읽기 성능 최적화가 필요하다
+- 읽기를 수평 확장해야 한다
+
+**읽기 모델을 독립적으로 변경하고 싶다:**
+- 새로운 읽기 모델을 추가하고 싶다
+- 읽기 구조를 자주 변경한다
+- 쓰기에 영향을 주지 않고 읽기를 최적화하고 싶다
+
+### CQRS를 쓰지 말아야 하는 경우
+
+**읽기와 쓰기가 단순하다:**
+- 단순 CRUD 작업만 있다
+- 복잡한 비즈니스 로직이 없다
+- 분리할 필요가 없다
+
+**일관성이 중요하다:**
+- 강한 일관성이 필요하다
+- 읽기 지연을 허용할 수 없다
+- 최종 일관성으로는 부족하다
+
+**팀에 운영 여력이 없다:**
+- CQRS 운영 경험이 없다
+- 동기화 로직을 관리할 수 없다
+- 복잡도를 감당할 수 없다
+
+**패턴은 문제를 해결할 때 쓰는 도구다:**
+도입 자체가 목표가 되면 실패한다. 실제 문제가 있을 때만 사용해야 한다.
+
+## 정리
+
+**이벤트 소싱:**
+- 상태가 아니라 **변화**를 저장한다
+- 모든 변경 내역이 이벤트로 저장된다
+- 과거 상태를 재현할 수 있다
+
+**CQRS:**
+- 읽기와 쓰기를 **역할 기준으로 분리**한다
+- 각각 독립적으로 최적화한다
+- 확장성이 좋다
+
+**관계:**
+- 둘은 독립적이지만 같이 쓰이는 경우가 많다
+- 이벤트 소싱 + CQRS 조합이 자주 쓰인다
+- 하지만 복잡도도 높아진다
+
+**선택 기준:**
+- 운영 복잡도를 감당할 수 있을 때만 선택해야 한다
+- 실제 문제가 있을 때만 사용해야 한다
+- 패턴 도입 자체가 목표가 되면 안 된다
+
+**결론:**
+이 패턴들은 시스템을 "단순하게" 만들지 않는다. 대신 **설명 가능한 시스템**을 만든다. 모든 변경 내역을 추적하고, 읽기와 쓰기를 독립적으로 최적화할 수 있다.
+
+---
+
+## 코드 예제
+
+### 이벤트 소싱 구현 (Java / Spring)
+
+```java
+// ── 이벤트 정의 ──────────────────────────────────────
+public sealed interface OrderEvent permits OrderCreated, ItemAdded, OrderConfirmed, OrderCancelled {
+    String orderId();
+    Instant occurredAt();
+}
+
+public record OrderCreated(String orderId, String userId, Instant occurredAt) implements OrderEvent {}
+public record ItemAdded(String orderId, String productId, int qty, long price, Instant occurredAt) implements OrderEvent {}
+public record OrderConfirmed(String orderId, Instant occurredAt) implements OrderEvent {}
+public record OrderCancelled(String orderId, String reason, Instant occurredAt) implements OrderEvent {}
+
+// ── 집계 루트 (이벤트로부터 상태 재구성) ──────────────
+public class Order {
+    private String orderId;
+    private String userId;
+    private List<OrderItem> items = new ArrayList<>();
+    private OrderStatus status;
+    private final List<OrderEvent> uncommittedEvents = new ArrayList<>();
+
+    // 이벤트 적용 (상태 변경)
+    private void apply(OrderEvent event) {
+        switch (event) {
+            case OrderCreated e -> {
+                this.orderId = e.orderId();
+                this.userId = e.userId();
+                this.status = OrderStatus.DRAFT;
+            }
+            case ItemAdded e -> items.add(new OrderItem(e.productId(), e.qty(), e.price()));
+            case OrderConfirmed e -> this.status = OrderStatus.CONFIRMED;
+            case OrderCancelled e -> this.status = OrderStatus.CANCELLED;
+        }
+    }
+
+    // 커맨드 처리 → 이벤트 생성
+    public static Order create(String orderId, String userId) {
+        Order order = new Order();
+        OrderCreated event = new OrderCreated(orderId, userId, Instant.now());
+        order.apply(event);
+        order.uncommittedEvents.add(event);
+        return order;
+    }
+
+    public void addItem(String productId, int qty, long price) {
+        if (status != OrderStatus.DRAFT) throw new IllegalStateException("확정된 주문에 상품 추가 불가");
+        ItemAdded event = new ItemAdded(orderId, productId, qty, price, Instant.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void confirm() {
+        if (items.isEmpty()) throw new IllegalStateException("상품이 없는 주문은 확정 불가");
+        OrderConfirmed event = new OrderConfirmed(orderId, Instant.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    // 이벤트 스트림으로부터 재구성
+    public static Order reconstitute(List<OrderEvent> events) {
+        Order order = new Order();
+        events.forEach(order::apply);
+        return order;
+    }
+}
+```
+
+```java
+// ── EventStore (이벤트 저장소) ────────────────────────
+@Repository
+@RequiredArgsConstructor
+public class JpaEventStore {
+    private final EventRecordRepository eventRepo;
+    private final ObjectMapper objectMapper;
+
+    public void append(String aggregateId, List<OrderEvent> events, int expectedVersion) {
+        int currentVersion = eventRepo.getMaxVersion(aggregateId).orElse(-1);
+        if (currentVersion != expectedVersion) {
+            throw new OptimisticLockingException("동시 수정 감지: expected=" + expectedVersion);
+        }
+
+        int version = currentVersion + 1;
+        for (OrderEvent event : events) {
+            EventRecord record = new EventRecord(
+                UUID.randomUUID().toString(),
+                aggregateId,
+                event.getClass().getSimpleName(),
+                objectMapper.writeValueAsString(event),
+                version++,
+                event.occurredAt()
+            );
+            eventRepo.save(record);
+        }
+    }
+
+    public List<OrderEvent> load(String aggregateId) {
+        return eventRepo.findByAggregateIdOrderByVersion(aggregateId)
+            .stream()
+            .map(this::deserialize)
+            .toList();
+    }
+}
+
+// ── OrderCommandService (쓰기 사이드) ─────────────────
+@Service
+@RequiredArgsConstructor
+public class OrderCommandService {
+    private final JpaEventStore eventStore;
+    private final ApplicationEventPublisher publisher;
+
+    public String createOrder(String userId) {
+        String orderId = UUID.randomUUID().toString();
+        Order order = Order.create(orderId, userId);
+        eventStore.append(orderId, order.getUncommittedEvents(), -1);
+        order.getUncommittedEvents().forEach(publisher::publishEvent); // 읽기 모델 동기화
+        return orderId;
+    }
+
+    public void addItem(String orderId, String productId, int qty, long price) {
+        List<OrderEvent> events = eventStore.load(orderId);
+        Order order = Order.reconstitute(events);
+        order.addItem(productId, qty, price);
+        eventStore.append(orderId, order.getUncommittedEvents(), events.size() - 1);
+        order.getUncommittedEvents().forEach(publisher::publishEvent);
+    }
+}
+```
+
+### CQRS — 읽기 모델 동기화
+
+```java
+// ── 읽기 모델 (Query Side) ────────────────────────────
+@Entity
+@Table(name = "order_summaries")
+public class OrderSummary {
+    @Id private String orderId;
+    private String userId;
+    private int itemCount;
+    private long totalAmount;
+    private String status;
+    private Instant createdAt;
+    private Instant updatedAt;
+}
+
+// ── 이벤트 핸들러 (프로젝션) ──────────────────────────
+@Component
+@RequiredArgsConstructor
+public class OrderProjection {
+    private final OrderSummaryRepository summaryRepo;
+
+    @EventListener
+    public void on(OrderCreated event) {
+        summaryRepo.save(new OrderSummary(
+            event.orderId(), event.userId(), 0, 0L, "DRAFT", event.occurredAt(), event.occurredAt()
+        ));
+    }
+
+    @EventListener
+    public void on(ItemAdded event) {
+        summaryRepo.findById(event.orderId()).ifPresent(summary -> {
+            summary.setItemCount(summary.getItemCount() + 1);
+            summary.setTotalAmount(summary.getTotalAmount() + event.qty() * event.price());
+            summary.setUpdatedAt(event.occurredAt());
+            summaryRepo.save(summary);
+        });
+    }
+
+    @EventListener
+    public void on(OrderConfirmed event) {
+        summaryRepo.findById(event.orderId()).ifPresent(summary -> {
+            summary.setStatus("CONFIRMED");
+            summary.setUpdatedAt(event.occurredAt());
+            summaryRepo.save(summary);
+        });
+    }
+}
+
+// ── 조회 서비스 (Query Side) ──────────────────────────
+@Service
+@RequiredArgsConstructor
+public class OrderQueryService {
+    private final OrderSummaryRepository summaryRepo;
+
+    public List<OrderSummary> getUserOrders(String userId, int page, int size) {
+        return summaryRepo.findByUserId(userId,
+            PageRequest.of(page, size, Sort.by("createdAt").descending())
+        ).getContent();
+    }
+
+    public OrderSummary getOrderSummary(String orderId) {
+        return summaryRepo.findById(orderId)
+            .orElseThrow(() -> new OrderNotFoundException(orderId));
+    }
+}
+```
+
+---
+
+## Spring Cloud Stream으로 이벤트 발행/구독
+
+위 코드 예제는 `ApplicationEventPublisher`를 사용해 단일 애플리케이션 내에서만 이벤트가 전파된다. MSA 환경에서는 서비스 간 이벤트를 주고받아야 한다. Spring Cloud Stream이 이 부분을 담당한다.
+
+### 의존성 설정
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-stream</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-stream-binder-kafka</artifactId>
+</dependency>
+```
+
+Kafka 대신 RabbitMQ를 쓸 수도 있다. binder만 바꾸면 애플리케이션 코드는 동일하게 동작한다.
+
+### application.yml 설정
+
+```yaml
+spring:
+  cloud:
+    stream:
+      bindings:
+        orderEvents-out-0:
+          destination: order-events    # Kafka 토픽 이름
+          content-type: application/json
+        orderEvents-in-0:
+          destination: order-events
+          group: order-projection      # Consumer Group — 같은 그룹 내 하나의 인스턴스만 처리
+          content-type: application/json
+      kafka:
+        binder:
+          brokers: localhost:9092
+        bindings:
+          orderEvents-in-0:
+            consumer:
+              enable-dlq: true                      # 처리 실패한 메시지를 DLQ로 보낸다
+              dlq-name: order-events-dlq
+              max-attempts: 3                        # 3회 재시도 후 DLQ로 이동
+```
+
+`group` 설정이 없으면 모든 인스턴스가 같은 메시지를 받는다. 프로젝션 처리에서는 반드시 Consumer Group을 지정해야 중복 처리를 방지할 수 있다.
+
+### 이벤트 발행 — 주문 서비스
+
+```java
+@Service
+@RequiredArgsConstructor
+public class OrderCommandService {
+    private final JpaEventStore eventStore;
+    private final StreamBridge streamBridge;
+
+    public String createOrder(String userId) {
+        String orderId = UUID.randomUUID().toString();
+        Order order = Order.create(orderId, userId);
+        eventStore.append(orderId, order.getUncommittedEvents(), -1);
+
+        // Spring Cloud Stream을 통해 외부로 이벤트 발행
+        for (OrderEvent event : order.getUncommittedEvents()) {
+            streamBridge.send("orderEvents-out-0", MessageBuilder
+                .withPayload(event)
+                .setHeader("eventType", event.getClass().getSimpleName())
+                .setHeader("aggregateId", orderId)
+                .build());
+        }
+
+        return orderId;
+    }
+}
+```
+
+`StreamBridge`는 함수형 스타일의 Spring Cloud Stream에서 명시적으로 메시지를 보낼 때 사용한다. 이벤트 저장과 발행이 별도 트랜잭션이므로, 이벤트는 저장됐는데 발행은 실패하는 경우가 생길 수 있다. 이 문제는 Transactional Outbox 패턴으로 해결하는데, Saga 패턴 문서에서 다루고 있다.
+
+### 이벤트 구독 — 다른 서비스에서 읽기 모델 업데이트
+
+```java
+@Configuration
+public class OrderEventConsumerConfig {
+
+    @Bean
+    public Consumer<Message<String>> orderEventsIn0(
+            ObjectMapper objectMapper,
+            OrderProjection projection) {
+        return message -> {
+            String eventType = message.getHeaders().get("eventType", String.class);
+            String payload = message.getPayload();
+
+            switch (eventType) {
+                case "OrderCreated" -> {
+                    OrderCreated event = objectMapper.readValue(payload, OrderCreated.class);
+                    projection.on(event);
+                }
+                case "ItemAdded" -> {
+                    ItemAdded event = objectMapper.readValue(payload, ItemAdded.class);
+                    projection.on(event);
+                }
+                case "OrderConfirmed" -> {
+                    OrderConfirmed event = objectMapper.readValue(payload, OrderConfirmed.class);
+                    projection.on(event);
+                }
+                default -> log.warn("알 수 없는 이벤트 타입: {}", eventType);
+            }
+        };
+    }
+}
+```
+
+메서드 이름 `orderEventsIn0`은 binding 이름 `orderEvents-in-0`과 매칭된다. Spring Cloud Stream이 자동으로 연결한다. 이름 규칙이 안 맞으면 메시지를 못 받으니 주의한다.
+
+### 실무에서 겪는 문제
+
+**메시지 순서 보장:**
+
+Kafka는 같은 파티션 내에서만 순서를 보장한다. 주문 ID를 파티션 키로 설정해야 같은 주문의 이벤트가 순서대로 처리된다.
+
+```yaml
+spring:
+  cloud:
+    stream:
+      bindings:
+        orderEvents-out-0:
+          producer:
+            partition-key-expression: headers['aggregateId']
+            partition-count: 10
+```
+
+**역직렬화 실패 처리:**
+
+이벤트 스키마가 바뀌면 Consumer 쪽에서 역직렬화가 실패한다. 이벤트 발행 시 `schemaVersion` 헤더를 넣고, Consumer 쪽에서 버전별로 분기 처리해야 한다. 버전 관리를 안 하면 배포 순서에 따라 장애가 난다.
+
+---
+
+## Axon Framework 기반 Event Sourcing + CQRS
+
+직접 이벤트 스토어를 구현하면 동시성 제어, 스냅샷, 프로젝션 위치 추적 등을 모두 직접 만들어야 한다. Axon Framework는 이 구조를 프레임워크 레벨에서 제공한다.
+
+### 의존성 설정
+
+```xml
+<dependency>
+    <groupId>org.axonframework</groupId>
+    <artifactId>axon-spring-boot-starter</artifactId>
+    <version>4.9.3</version>
+</dependency>
+<!-- Axon Server 없이 JPA 기반 이벤트 스토어를 쓸 때 -->
+<dependency>
+    <groupId>org.axonframework</groupId>
+    <artifactId>axon-configuration</artifactId>
+    <version>4.9.3</version>
+</dependency>
+```
+
+Axon Server를 별도로 띄우면 이벤트 스토어와 메시지 라우팅을 Axon Server가 처리한다. Axon Server 없이도 JPA + 로컬 이벤트 버스로 동작하지만, 분산 환경에서는 Axon Server나 Kafka를 연결해야 한다.
+
+### application.yml 설정 (Axon Server 없이 JPA 사용)
+
+```yaml
+axon:
+  axonserver:
+    enabled: false          # Axon Server를 쓰지 않는 경우
+  eventhandling:
+    processors:
+      order-projection:
+        mode: tracking      # tracking 모드: 프로젝션이 이벤트를 순서대로 가져간다
+        source: eventStore
+```
+
+### Aggregate — 쓰기 모델
+
+```java
+@Aggregate
+@NoArgsConstructor
+public class OrderAggregate {
+
+    @AggregateIdentifier
+    private String orderId;
+    private String userId;
+    private List<OrderItem> items = new ArrayList<>();
+    private OrderStatus status;
+
+    // ── Command Handler: 커맨드를 받아서 검증 후 이벤트를 발행한다 ──
+
+    @CommandHandler
+    public OrderAggregate(CreateOrderCommand cmd) {
+        // 검증 로직
+        if (cmd.getUserId() == null || cmd.getUserId().isBlank()) {
+            throw new IllegalArgumentException("userId는 필수");
+        }
+        // 이벤트 발행 — AggregateLifecycle.apply()를 호출한다
+        AggregateLifecycle.apply(new OrderCreatedEvent(cmd.getOrderId(), cmd.getUserId()));
+    }
+
+    @CommandHandler
+    public void handle(AddItemCommand cmd) {
+        if (status != OrderStatus.DRAFT) {
+            throw new IllegalStateException("확정된 주문에는 상품을 추가할 수 없다");
+        }
+        AggregateLifecycle.apply(new ItemAddedEvent(
+            orderId, cmd.getProductId(), cmd.getQuantity(), cmd.getPrice()));
+    }
+
+    @CommandHandler
+    public void handle(ConfirmOrderCommand cmd) {
+        if (items.isEmpty()) {
+            throw new IllegalStateException("상품이 없는 주문은 확정할 수 없다");
+        }
+        if (status != OrderStatus.DRAFT) {
+            throw new IllegalStateException("이미 처리된 주문");
+        }
+        AggregateLifecycle.apply(new OrderConfirmedEvent(orderId));
+    }
+
+    // ── Event Sourcing Handler: 이벤트를 적용해서 상태를 변경한다 ──
+    // 여기에는 비즈니스 로직이 없어야 한다. 상태 변경만 한다.
+
+    @EventSourcingHandler
+    public void on(OrderCreatedEvent event) {
+        this.orderId = event.getOrderId();
+        this.userId = event.getUserId();
+        this.status = OrderStatus.DRAFT;
+        this.items = new ArrayList<>();
+    }
+
+    @EventSourcingHandler
+    public void on(ItemAddedEvent event) {
+        items.add(new OrderItem(event.getProductId(), event.getQuantity(), event.getPrice()));
+    }
+
+    @EventSourcingHandler
+    public void on(OrderConfirmedEvent event) {
+        this.status = OrderStatus.CONFIRMED;
+    }
+}
+```
+
+`@CommandHandler`가 생성자에 붙으면 새 Aggregate를 만드는 것이다. 일반 메서드에 붙으면 기존 Aggregate를 조회(이벤트 재생)한 뒤 호출된다. Axon이 이 과정을 자동으로 처리한다.
+
+`@EventSourcingHandler`에는 검증 로직을 넣으면 안 된다. 이벤트는 이미 발생한 사실이다. 여기서 예외를 던지면 Aggregate를 복원할 수 없게 된다.
+
+### Command와 Event 정의
+
+```java
+// ── Command ──
+@Value
+public class CreateOrderCommand {
+    @TargetAggregateIdentifier
+    String orderId;
+    String userId;
+}
+
+@Value
+public class AddItemCommand {
+    @TargetAggregateIdentifier
+    String orderId;
+    String productId;
+    int quantity;
+    long price;
+}
+
+@Value
+public class ConfirmOrderCommand {
+    @TargetAggregateIdentifier
+    String orderId;
+}
+
+// ── Event ──
+@Value
+public class OrderCreatedEvent {
+    String orderId;
+    String userId;
+}
+
+@Value
+public class ItemAddedEvent {
+    String orderId;
+    String productId;
+    int quantity;
+    long price;
+}
+
+@Value
+public class OrderConfirmedEvent {
+    String orderId;
+}
+```
+
+`@TargetAggregateIdentifier`는 Axon이 어떤 Aggregate 인스턴스에 커맨드를 전달할지 결정하는 데 사용한다. 이 어노테이션이 없으면 라우팅이 안 된다.
+
+### Event Handler — 읽기 모델 프로젝션
+
+```java
+@Component
+@ProcessingGroup("order-projection")    // application.yml의 processor 이름과 매칭
+@RequiredArgsConstructor
+public class OrderProjectionHandler {
+    private final OrderSummaryRepository summaryRepo;
+
+    @EventHandler
+    public void on(OrderCreatedEvent event) {
+        OrderSummary summary = new OrderSummary();
+        summary.setOrderId(event.getOrderId());
+        summary.setUserId(event.getUserId());
+        summary.setItemCount(0);
+        summary.setTotalAmount(0L);
+        summary.setStatus("DRAFT");
+        summary.setCreatedAt(Instant.now());
+        summary.setUpdatedAt(Instant.now());
+        summaryRepo.save(summary);
+    }
+
+    @EventHandler
+    public void on(ItemAddedEvent event) {
+        summaryRepo.findById(event.getOrderId()).ifPresent(summary -> {
+            summary.setItemCount(summary.getItemCount() + 1);
+            summary.setTotalAmount(
+                summary.getTotalAmount() + (long) event.getQuantity() * event.getPrice());
+            summary.setUpdatedAt(Instant.now());
+            summaryRepo.save(summary);
+        });
+    }
+
+    @EventHandler
+    public void on(OrderConfirmedEvent event) {
+        summaryRepo.findById(event.getOrderId()).ifPresent(summary -> {
+            summary.setStatus("CONFIRMED");
+            summary.setUpdatedAt(Instant.now());
+            summaryRepo.save(summary);
+        });
+    }
+
+    // 프로젝션 리셋이 필요할 때 호출된다
+    @ResetHandler
+    public void onReset() {
+        summaryRepo.deleteAll();
+    }
+}
+```
+
+`@ProcessingGroup`으로 같은 그룹에 속한 핸들러는 하나의 Event Processor가 관리한다. tracking 모드에서는 프로젝션이 자신의 처리 위치(token)를 DB에 저장한다. 애플리케이션이 재시작되면 마지막 처리 위치부터 이어서 처리한다.
+
+`@ResetHandler`는 프로젝션을 처음부터 다시 빌드할 때 사용한다. Axon이 제공하는 `TrackingEventProcessor.resetTokens()` API를 호출하면 토큰이 초기화되고, `@ResetHandler`가 실행된 뒤 모든 이벤트를 처음부터 재처리한다.
+
+### Query Handler — 읽기 모델 조회
+
+```java
+// ── Query 정의 ──
+@Value
+public class GetOrderSummaryQuery {
+    String orderId;
+}
+
+@Value
+public class GetUserOrdersQuery {
+    String userId;
+    int page;
+    int size;
+}
+
+// ── Query Handler ──
+@Component
+@RequiredArgsConstructor
+public class OrderQueryHandler {
+    private final OrderSummaryRepository summaryRepo;
+
+    @QueryHandler
+    public OrderSummary handle(GetOrderSummaryQuery query) {
+        return summaryRepo.findById(query.getOrderId())
+            .orElseThrow(() -> new OrderNotFoundException(query.getOrderId()));
+    }
+
+    @QueryHandler
+    public List<OrderSummary> handle(GetUserOrdersQuery query) {
+        return summaryRepo.findByUserId(query.getUserId(),
+            PageRequest.of(query.getPage(), query.getSize(),
+                Sort.by("createdAt").descending())
+        ).getContent();
+    }
+}
+```
+
+### REST Controller에서 사용
+
+```java
+@RestController
+@RequestMapping("/orders")
+@RequiredArgsConstructor
+public class OrderController {
+    private final CommandGateway commandGateway;
+    private final QueryGateway queryGateway;
+
+    @PostMapping
+    public CompletableFuture<String> createOrder(@RequestBody CreateOrderRequest request) {
+        String orderId = UUID.randomUUID().toString();
+        return commandGateway.send(new CreateOrderCommand(orderId, request.getUserId()));
+    }
+
+    @PostMapping("/{orderId}/items")
+    public CompletableFuture<Void> addItem(
+            @PathVariable String orderId,
+            @RequestBody AddItemRequest request) {
+        return commandGateway.send(
+            new AddItemCommand(orderId, request.getProductId(),
+                request.getQuantity(), request.getPrice()));
+    }
+
+    @PostMapping("/{orderId}/confirm")
+    public CompletableFuture<Void> confirm(@PathVariable String orderId) {
+        return commandGateway.send(new ConfirmOrderCommand(orderId));
+    }
+
+    @GetMapping("/{orderId}")
+    public CompletableFuture<OrderSummary> getOrder(@PathVariable String orderId) {
+        return queryGateway.query(
+            new GetOrderSummaryQuery(orderId), OrderSummary.class);
+    }
+
+    @GetMapping
+    public CompletableFuture<List<OrderSummary>> getUserOrders(
+            @RequestParam String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return queryGateway.query(
+            new GetUserOrdersQuery(userId, page, size),
+            ResponseTypes.multipleInstancesOf(OrderSummary.class));
+    }
+}
+```
+
+`CommandGateway`와 `QueryGateway`는 Axon이 자동으로 빈 등록한다. 커맨드는 `CompletableFuture`를 반환하므로 비동기 처리가 가능하다. 동기식으로 쓰고 싶으면 `commandGateway.sendAndWait()`을 사용한다.
+
+### Axon 사용 시 주의사항
+
+**Aggregate 크기 관리:**
+
+Aggregate에 이벤트가 많이 쌓이면 로딩이 느려진다. Axon은 스냅샷을 지원한다.
+
+```java
+@Configuration
+public class AxonConfig {
+
+    @Bean
+    public SnapshotTriggerDefinition snapshotTrigger(Snapshotter snapshotter) {
+        // 100개 이벤트마다 스냅샷을 생성한다
+        return new EventCountSnapshotTriggerDefinition(snapshotter, 100);
+    }
+
+    @Aggregate(snapshotTriggerDefinition = "snapshotTrigger")
+    public class OrderAggregate {
+        // ...
+    }
+}
+```
+
+**프로젝션 에러 처리:**
+
+tracking 프로세서에서 이벤트 처리가 실패하면 기본적으로 재시도한다. 계속 실패하면 프로세서가 멈춘다. 에러 핸들링 설정이 필요하다.
+
+```java
+@Configuration
+public class EventProcessingConfig {
+
+    @Autowired
+    public void configure(EventProcessingConfigurer configurer) {
+        configurer.registerTrackingEventProcessor("order-projection",
+            Configuration::eventStore,
+            config -> TrackingEventProcessorConfiguration.forSingleThreadedProcessing()
+                .andBatchSize(100));
+
+        // 처리 실패 시 1초 대기 후 재시도, 최대 3회
+        configurer.registerListenerInvocationErrorHandler("order-projection",
+            config -> (exception, event, handler) -> {
+                log.error("프로젝션 처리 실패: event={}, error={}",
+                    event.getPayloadType().getSimpleName(), exception.getMessage());
+                // PropagatingErrorHandler.instance()를 쓰면 예외를 그대로 던진다
+                // LoggingErrorHandler.instance()를 쓰면 로그만 찍고 넘어간다
+                throw exception;
+            });
+    }
+}
+```
+
+**Axon Server vs JPA 이벤트 스토어:**
+
+개발 환경에서는 JPA로 충분하다. 운영 환경에서 Axon Server를 쓰면 이벤트 스토어 최적화, 이벤트 라우팅, 클러스터링을 프레임워크가 처리한다. Axon Server 없이 Kafka를 이벤트 버스로 연결하는 구성도 가능하다.
+
+---
+
+## Read Model 프로젝션 구현 — JPA Entity와 비동기 업데이트
+
+위 Axon 예제에서 프로젝션의 기본 구조를 보여줬다. 여기서는 프로젝션을 실무에서 어떻게 구성하는지 구체적으로 다룬다.
+
+### JPA Entity로 읽기 모델 설계
+
+읽기 모델은 화면 단위로 설계한다. 하나의 API 응답에 필요한 데이터를 한 테이블에 넣는다.
+
+```java
+// 주문 목록 화면용 — 최소한의 필드만 포함
+@Entity
+@Table(name = "order_list_view", indexes = {
+    @Index(name = "idx_order_list_user", columnList = "userId, createdAt DESC"),
+    @Index(name = "idx_order_list_status", columnList = "status")
+})
+@Getter @Setter
+@NoArgsConstructor
+public class OrderListView {
+    @Id
+    private String orderId;
+    private String userId;
+    private String status;
+    private int itemCount;
+    private long totalAmount;
+    private Instant createdAt;
+
+    // 프로젝션이 어디까지 반영됐는지 추적
+    private long lastEventSequence;
+}
+
+// 주문 상세 화면용 — 필요한 정보를 모두 비정규화
+@Entity
+@Table(name = "order_detail_view")
+@Getter @Setter
+@NoArgsConstructor
+public class OrderDetailView {
+    @Id
+    private String orderId;
+    private String userId;
+    private String status;
+    private int itemCount;
+    private long totalAmount;
+    private long discountAmount;
+    private String shippingAddress;
+    private String shippingStatus;
+    private Instant createdAt;
+    private Instant confirmedAt;
+    private Instant shippedAt;
+    private Instant updatedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String itemsJson;    // 상품 목록을 JSON으로 저장 — 조인 없이 한 번에 조회
+
+    private long lastEventSequence;
+}
+```
+
+읽기 모델에서는 정규화를 신경 쓸 필요가 없다. `itemsJson`처럼 JSON을 그대로 넣어도 된다. 읽기 모델의 목적은 빠른 조회다. 데이터 정합성은 이벤트 스토어(쓰기 모델)가 보장한다.
+
+### 비동기 프로젝션 구현 — Spring의 @Async
+
+Axon 없이 Spring만으로 비동기 프로젝션을 구현하는 방식이다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class AsyncOrderProjection {
+    private final OrderListViewRepository listRepo;
+    private final OrderDetailViewRepository detailRepo;
+    private final ObjectMapper objectMapper;
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOrderCreated(OrderCreated event) {
+        // 목록 뷰 생성
+        OrderListView listView = new OrderListView();
+        listView.setOrderId(event.orderId());
+        listView.setUserId(event.userId());
+        listView.setStatus("DRAFT");
+        listView.setItemCount(0);
+        listView.setTotalAmount(0L);
+        listView.setCreatedAt(event.occurredAt());
+        listRepo.save(listView);
+
+        // 상세 뷰 생성
+        OrderDetailView detailView = new OrderDetailView();
+        detailView.setOrderId(event.orderId());
+        detailView.setUserId(event.userId());
+        detailView.setStatus("DRAFT");
+        detailView.setCreatedAt(event.occurredAt());
+        detailView.setUpdatedAt(event.occurredAt());
+        detailView.setItemsJson("[]");
+        detailRepo.save(detailView);
+    }
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onItemAdded(ItemAdded event) {
+        // 목록 뷰 업데이트
+        listRepo.findById(event.orderId()).ifPresent(view -> {
+            view.setItemCount(view.getItemCount() + 1);
+            view.setTotalAmount(view.getTotalAmount() + (long) event.qty() * event.price());
+            listRepo.save(view);
+        });
+
+        // 상세 뷰 업데이트 — items JSON에 추가
+        detailRepo.findById(event.orderId()).ifPresent(view -> {
+            List<Map<String, Object>> items = objectMapper.readValue(
+                view.getItemsJson(), new TypeReference<>() {});
+            items.add(Map.of(
+                "productId", event.productId(),
+                "quantity", event.qty(),
+                "price", event.price()
+            ));
+            view.setItemsJson(objectMapper.writeValueAsString(items));
+            view.setItemCount(items.size());
+            view.setTotalAmount(items.stream()
+                .mapToLong(i -> ((Number) i.get("quantity")).longValue()
+                    * ((Number) i.get("price")).longValue())
+                .sum());
+            view.setUpdatedAt(Instant.now());
+            detailRepo.save(view);
+        });
+    }
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOrderConfirmed(OrderConfirmed event) {
+        listRepo.findById(event.orderId()).ifPresent(view -> {
+            view.setStatus("CONFIRMED");
+            listRepo.save(view);
+        });
+
+        detailRepo.findById(event.orderId()).ifPresent(view -> {
+            view.setStatus("CONFIRMED");
+            view.setConfirmedAt(event.occurredAt());
+            view.setUpdatedAt(event.occurredAt());
+            detailRepo.save(view);
+        });
+    }
+}
+```
+
+`@TransactionalEventListener(phase = AFTER_COMMIT)`는 쓰기 트랜잭션이 커밋된 후에 실행된다. 쓰기가 롤백되면 프로젝션도 실행되지 않는다. `@Async`와 조합하면 쓰기 응답 시간에 영향을 주지 않는다.
+
+### 비동기 실행을 위한 Executor 설정
+
+```java
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean("projectionExecutor")
+    public Executor projectionExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("projection-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+}
+```
+
+`CallerRunsPolicy`는 큐가 가득 찼을 때 호출 스레드에서 직접 실행한다. 프로젝션이 밀려서 큐가 찰 때 메시지를 버리지 않고 처리 속도를 조절하는 역할을 한다.
+
+### 프로젝션 실패 시 복구
+
+비동기 프로젝션은 실패해도 쓰기 트랜잭션에 영향을 주지 않는다. 대신 읽기 모델이 오래된 상태로 남는다. 실패한 이벤트를 기록하고 재처리하는 구조가 필요하다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class ProjectionFailureHandler {
+    private final FailedProjectionEventRepository failedRepo;
+
+    @Async("projectionExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleWithRetry(OrderEvent event) {
+        try {
+            // 프로젝션 처리 로직
+            processProjection(event);
+        } catch (Exception e) {
+            // 실패한 이벤트를 DB에 기록한다
+            failedRepo.save(new FailedProjectionEvent(
+                event.orderId(),
+                event.getClass().getSimpleName(),
+                e.getMessage(),
+                Instant.now()
+            ));
+        }
+    }
+}
+
+// 실패한 이벤트를 주기적으로 재처리하는 스케줄러
+@Component
+@RequiredArgsConstructor
+public class ProjectionRetryScheduler {
+    private final FailedProjectionEventRepository failedRepo;
+    private final JpaEventStore eventStore;
+    private final AsyncOrderProjection projection;
+
+    @Scheduled(fixedDelay = 60_000)    // 1분마다 실행
+    public void retryFailed() {
+        List<FailedProjectionEvent> failed = failedRepo.findTop100ByOrderByCreatedAtAsc();
+        for (FailedProjectionEvent record : failed) {
+            try {
+                // 이벤트 스토어에서 원본 이벤트를 다시 읽어서 처리한다
+                List<OrderEvent> events = eventStore.load(record.getAggregateId());
+                // 해당 이벤트를 찾아서 재처리
+                // 성공하면 실패 기록 삭제
+                failedRepo.delete(record);
+            } catch (Exception e) {
+                record.incrementRetryCount();
+                if (record.getRetryCount() > 5) {
+                    record.setStatus("DEAD");    // 5회 초과 실패 시 수동 확인 필요
+                }
+                failedRepo.save(record);
+            }
+        }
+    }
+}
+```
+
+프로젝션 실패가 쌓이면 읽기 모델과 이벤트 스토어의 차이가 커진다. 모니터링에서 실패 건수를 추적하고, `DEAD` 상태가 되면 알림을 보내야 한다. 최후의 수단으로는 읽기 모델 테이블을 날리고 이벤트를 처음부터 재생하는 리빌드가 있다.

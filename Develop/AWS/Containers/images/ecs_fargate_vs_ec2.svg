@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.1"/>
+    </filter>
+    <linearGradient id="fargateBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eff6ff"/>
+      <stop offset="100%" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="ec2Bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="520" rx="12" fill="#f8fafc"/>
+  <text x="450" y="35" text-anchor="middle" font-size="18" font-weight="700" fill="#1e293b">Fargate vs EC2 모드 비교</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" fill="#64748b">인프라 관리 범위와 책임 비교</text>
+
+  <!-- VS divider -->
+  <rect x="432" y="70" width="36" height="36" rx="18" fill="#6366f1"/>
+  <text x="450" y="94" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">VS</text>
+
+  <!-- ===== FARGATE SIDE ===== -->
+  <rect x="30" y="120" width="400" height="380" rx="10" fill="url(#fargateBg)" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+  <text x="230" y="148" text-anchor="middle" font-size="16" font-weight="700" fill="#1e40af">Fargate 모드</text>
+  <text x="230" y="168" text-anchor="middle" font-size="11" fill="#3b82f6">서버리스 — 인프라 관리 불필요</text>
+
+  <!-- AWS managed zone -->
+  <rect x="50" y="185" width="360" height="130" rx="8" fill="#e0e7ff" stroke="#818cf8" stroke-width="1" stroke-dasharray="6,3"/>
+  <text x="70" y="207" font-size="11" font-weight="600" fill="#4338ca">AWS가 관리하는 영역</text>
+
+  <rect x="65" y="218" width="100" height="35" rx="5" fill="#c7d2fe" stroke="#818cf8" stroke-width="0.5"/>
+  <text x="115" y="240" text-anchor="middle" font-size="10" fill="#3730a3">하드웨어</text>
+
+  <rect x="175" y="218" width="100" height="35" rx="5" fill="#c7d2fe" stroke="#818cf8" stroke-width="0.5"/>
+  <text x="225" y="240" text-anchor="middle" font-size="10" fill="#3730a3">호스트 OS</text>
+
+  <rect x="285" y="218" width="110" height="35" rx="5" fill="#c7d2fe" stroke="#818cf8" stroke-width="0.5"/>
+  <text x="340" y="240" text-anchor="middle" font-size="10" fill="#3730a3">컨테이너 런타임</text>
+
+  <rect x="65" y="262" width="330" height="40" rx="5" fill="#a5b4fc" stroke="#6366f1" stroke-width="0.5"/>
+  <text x="230" y="278" text-anchor="middle" font-size="10" fill="#312e81">OS 패치 / 보안 업데이트 / 용량 관리</text>
+  <text x="230" y="293" text-anchor="middle" font-size="10" fill="#312e81">전부 AWS가 처리</text>
+
+  <!-- User managed zone -->
+  <rect x="50" y="325" width="360" height="160" rx="8" fill="#fff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="70" y="347" font-size="11" font-weight="600" fill="#1e40af">개발자가 관리하는 영역</text>
+
+  <rect x="65" y="360" width="160" height="50" rx="6" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+  <text x="145" y="382" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">Task Definition</text>
+  <text x="145" y="400" text-anchor="middle" font-size="9" fill="#64748b">vCPU + 메모리 지정</text>
+
+  <rect x="240" y="360" width="150" height="50" rx="6" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+  <text x="315" y="382" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">컨테이너 이미지</text>
+  <text x="315" y="400" text-anchor="middle" font-size="9" fill="#64748b">애플리케이션 코드</text>
+
+  <rect x="65" y="420" width="325" height="50" rx="6" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="227" y="442" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">서비스 설정</text>
+  <text x="227" y="458" text-anchor="middle" font-size="9" fill="#64748b">desired count, 오토스케일링, 헬스체크, 네트워크</text>
+
+  <!-- ===== EC2 SIDE ===== -->
+  <rect x="470" y="120" width="400" height="380" rx="10" fill="url(#ec2Bg)" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <text x="670" y="148" text-anchor="middle" font-size="16" font-weight="700" fill="#92400e">EC2 모드</text>
+  <text x="670" y="168" text-anchor="middle" font-size="11" fill="#b45309">직접 관리 — 커스터마이징 자유</text>
+
+  <!-- All user managed -->
+  <rect x="490" y="185" width="360" height="300" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="510" y="207" font-size="11" font-weight="600" fill="#92400e">개발자가 관리하는 영역 (전체)</text>
+
+  <!-- EC2 Instance layer -->
+  <rect x="505" y="220" width="330" height="60" rx="6" fill="#fef3c7" stroke="#fbbf24" stroke-width="1"/>
+  <text x="670" y="242" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e">EC2 인스턴스</text>
+  <text x="670" y="260" text-anchor="middle" font-size="9" fill="#78716c">인스턴스 타입 선택 / ECS-optimized AMI / ECS Agent</text>
+
+  <!-- OS + Runtime layer -->
+  <rect x="505" y="290" width="160" height="45" rx="5" fill="#fef9c3" stroke="#facc15" stroke-width="0.5"/>
+  <text x="585" y="310" text-anchor="middle" font-size="10" fill="#854d0e">OS 패치</text>
+  <text x="585" y="325" text-anchor="middle" font-size="9" fill="#78716c">직접 관리 필요</text>
+
+  <rect x="675" y="290" width="160" height="45" rx="5" fill="#fef9c3" stroke="#facc15" stroke-width="0.5"/>
+  <text x="755" y="310" text-anchor="middle" font-size="10" fill="#854d0e">용량 계획</text>
+  <text x="755" y="325" text-anchor="middle" font-size="9" fill="#78716c">인스턴스 수 관리</text>
+
+  <!-- Tasks layer -->
+  <rect x="505" y="345" width="100" height="50" rx="5" fill="#fed7aa" stroke="#f97316" stroke-width="1"/>
+  <text x="555" y="367" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">Task 1</text>
+  <text x="555" y="383" text-anchor="middle" font-size="9" fill="#78716c">컨테이너 A</text>
+
+  <rect x="615" y="345" width="100" height="50" rx="5" fill="#fed7aa" stroke="#f97316" stroke-width="1"/>
+  <text x="665" y="367" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">Task 2</text>
+  <text x="665" y="383" text-anchor="middle" font-size="9" fill="#78716c">컨테이너 B</text>
+
+  <rect x="725" y="345" width="100" height="50" rx="5" fill="#fed7aa" stroke="#f97316" stroke-width="1"/>
+  <text x="775" y="367" text-anchor="middle" font-size="10" font-weight="600" fill="#9a3412">Task 3</text>
+  <text x="775" y="383" text-anchor="middle" font-size="9" fill="#78716c">컨테이너 C</text>
+
+  <text x="670" y="420" text-anchor="middle" font-size="9" fill="#78716c">하나의 인스턴스에 여러 태스크 배치 가능</text>
+
+  <!-- Extra ops box -->
+  <rect x="490" y="435" width="175" height="50" rx="6" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+  <text x="577" y="457" text-anchor="middle" font-size="10" font-weight="600" fill="#991b1b">추가 운영 부담</text>
+  <text x="577" y="473" text-anchor="middle" font-size="9" fill="#b91c1c">모니터링, AMI 갱신, 패치</text>
+
+  <!-- Cost benefit box -->
+  <rect x="680" y="435" width="175" height="50" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+  <text x="767" y="457" text-anchor="middle" font-size="10" font-weight="600" fill="#065f46">비용 절감 가능</text>
+  <text x="767" y="473" text-anchor="middle" font-size="9" fill="#166534">예약 인스턴스, 빈패킹</text>
+</svg>

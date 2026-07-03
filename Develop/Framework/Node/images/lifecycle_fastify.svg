@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="hook-blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0c2d48"/>
+      <stop offset="100%" stop-color="#0a1e33"/>
+    </linearGradient>
+    <marker id="arrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="440" fill="url(#bg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" fill="#38bdf8" font-size="17" font-weight="700">Fastify 요청 라이프사이클</text>
+  <text x="450" y="55" text-anchor="middle" fill="#64748b" font-size="11">라이프사이클 훅 기반 — 각 단계에 훅을 걸어 로직 삽입. Radix Tree 라우팅.</text>
+
+  <!-- Flow: 7 steps in a zig-zag pattern -->
+  <!-- Row 1: 4 steps -->
+  <!-- Step 1: 요청 수신 -->
+  <rect x="30" y="85" width="110" height="50" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="85" y="107" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">요청 수신</text>
+  <text x="85" y="123" text-anchor="middle" fill="#64748b" font-size="9">HTTP Request</text>
+
+  <line x1="140" y1="110" x2="165" y2="110" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 2: onRequest -->
+  <rect x="165" y="80" width="130" height="60" rx="8" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="230" y="100" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">onRequest</text>
+  <text x="230" y="116" text-anchor="middle" fill="#94a3b8" font-size="9">인증 체크</text>
+  <text x="230" y="130" text-anchor="middle" fill="#94a3b8" font-size="9">로깅</text>
+
+  <line x1="295" y1="110" x2="320" y2="110" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 3: preParsing -->
+  <rect x="320" y="80" width="130" height="60" rx="8" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="385" y="100" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">preParsing</text>
+  <text x="385" y="116" text-anchor="middle" fill="#94a3b8" font-size="9">파싱 전 처리</text>
+  <text x="385" y="130" text-anchor="middle" fill="#94a3b8" font-size="9">스트림 변환</text>
+
+  <line x1="450" y1="110" x2="475" y2="110" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 4: 본문 파싱 -->
+  <rect x="475" y="80" width="130" height="60" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="540" y="100" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">본문 파싱</text>
+  <text x="540" y="116" text-anchor="middle" fill="#94a3b8" font-size="9">content-type 기반</text>
+  <text x="540" y="130" text-anchor="middle" fill="#94a3b8" font-size="9">자동 처리</text>
+
+  <line x1="605" y1="110" x2="630" y2="110" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 5: preValidation -->
+  <rect x="630" y="80" width="130" height="60" rx="8" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="695" y="100" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">preValidation</text>
+  <text x="695" y="116" text-anchor="middle" fill="#94a3b8" font-size="9">검증 전 데이터 가공</text>
+
+  <!-- Down connector -->
+  <line x1="695" y1="140" x2="695" y2="175" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Row 2 (right to left) -->
+  <!-- Step 6: 스키마 검증 -->
+  <rect x="630" y="175" width="130" height="60" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="695" y="198" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">스키마 검증</text>
+  <text x="695" y="214" text-anchor="middle" fill="#94a3b8" font-size="9">JSON Schema + ajv</text>
+  <text x="695" y="226" text-anchor="middle" fill="#94a3b8" font-size="9">컴파일된 검증기</text>
+
+  <line x1="630" y1="205" x2="605" y2="205" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 7: preHandler -->
+  <rect x="475" y="175" width="130" height="60" rx="8" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="540" y="198" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">preHandler</text>
+  <text x="540" y="214" text-anchor="middle" fill="#94a3b8" font-size="9">핸들러 전 마지막 처리</text>
+
+  <line x1="475" y1="205" x2="450" y2="205" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 8: 핸들러 -->
+  <rect x="320" y="175" width="130" height="60" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+  <text x="385" y="202" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">핸들러</text>
+  <text x="385" y="220" text-anchor="middle" fill="#94a3b8" font-size="9">async handler()</text>
+
+  <line x1="320" y1="205" x2="295" y2="205" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 9: preSerialization -->
+  <rect x="165" y="175" width="130" height="60" rx="8" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="230" y="195" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">preSerialization</text>
+  <text x="230" y="211" text-anchor="middle" fill="#94a3b8" font-size="9">직렬화 전 데이터 가공</text>
+  <text x="230" y="225" text-anchor="middle" fill="#94a3b8" font-size="9">fast-json-stringify</text>
+
+  <!-- Down connector -->
+  <line x1="230" y1="235" x2="230" y2="270" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Row 3 -->
+  <!-- Step 10: onSend -->
+  <rect x="165" y="270" width="130" height="55" rx="8" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="230" y="292" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">onSend</text>
+  <text x="230" y="310" text-anchor="middle" fill="#94a3b8" font-size="9">응답 헤더 조작</text>
+
+  <line x1="295" y1="297" x2="320" y2="297" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 11: 응답 전송 -->
+  <rect x="320" y="270" width="130" height="55" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="385" y="295" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="600">응답 전송</text>
+
+  <line x1="450" y1="297" x2="475" y2="297" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowB)"/>
+
+  <!-- Step 12: onResponse -->
+  <rect x="475" y="270" width="130" height="55" rx="8" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="540" y="292" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">onResponse</text>
+  <text x="540" y="310" text-anchor="middle" fill="#94a3b8" font-size="9">로깅, 메트릭 수집</text>
+
+  <!-- Key info box -->
+  <rect x="30" y="355" width="840" height="65" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="50" y="378" fill="#f59e0b" font-size="11" font-weight="700">핵심 차이</text>
+  <text x="50" y="398" fill="#94a3b8" font-size="10">Radix Tree 라우팅 — 라우트 1000개여도 매칭 시간 거의 일정 O(k). 스키마 정의 시 서버 시작 시점에 검증/직렬화 함수를 미리 컴파일.</text>
+  <text x="50" y="413" fill="#94a3b8" font-size="10">플러그인 스코프 격리 — register()로 등록한 플러그인 내부의 훅은 해당 스코프에서만 동작. Express의 전역 미들웨어 오염 문제가 없다.</text>
+
+  <!-- Legend -->
+  <rect x="660" y="358" width="12" height="12" rx="3" fill="url(#hook-blue)" stroke="#38bdf8" stroke-width="1"/>
+  <text x="678" y="369" fill="#38bdf8" font-size="10">훅 (커스텀 로직 삽입 가능)</text>
+  <rect x="660" y="376" width="12" height="12" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="678" y="387" fill="#94a3b8" font-size="10">프레임워크 내부 처리</text>
+</svg>

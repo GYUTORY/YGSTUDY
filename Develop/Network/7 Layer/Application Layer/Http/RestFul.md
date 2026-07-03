@@ -1,0 +1,690 @@
+---
+title: REST와 RESTful API
+tags: [network, 7-layer, application-layer, http, restful, api, web-service]
+updated: 2025-12-26
+---
+
+# REST (Representational State Transfer)
+
+## REST란?
+
+REST는 Representational State Transfer의 약자로, 웹의 장점을 최대한 활용할 수 있는 아키텍처 스타일이다.
+
+### REST 구성 요소
+
+- 자원(URI): URI로 식별되는 모든 정보
+  - 예: `/users/123`, `/posts/456`
+- 표현(Representation): 자원의 특정 시점의 상태 표현 방법
+  - 예: `JSON`, `XML`, `HTML`
+- 상태 전달(State Transfer): 클라이언트 ↔ 서버 간 자원 표현 주고받기
+  - 예: `GET`, `POST`, `PUT`, `DELETE`
+
+**실무 팁:**
+REST는 HTTP의 특성을 최대한 활용하는 아키텍처 스타일이다.
+
+## REST의 6가지 기본 원칙
+
+**1. 자원의 식별 (Identification of Resources):**
+- 모든 자원은 고유한 URI로 식별
+- 예: `/users/123`, `/products/cart`
+
+**2. 표현을 통한 자원 조작 (Manipulation through Representations):**
+- HTTP 메서드를 통한 자원 CRUD
+- GET, POST, PUT, PATCH, DELETE
+
+**3. 무상태성 (Stateless):**
+- 각 요청이 독립적으로 처리됨
+- 서버는 클라이언트 상태 저장하지 않음
+
+**4. 캐시 가능성 (Cacheable):**
+- 응답은 캐시 가능 여부 명시
+- 성능 향상 및 확장성 개선
+
+**5. 계층화 시스템 (Layered System):**
+- Client → Proxy → Gateway → Server
+- 클라이언트는 중간 계층 존재 모름
+
+**6. 코드 온 디맨드 (Code on Demand) - 선택사항:**
+- 서버 → 실행 가능 코드 → 클라이언트
+- 예: JavaScript, Applet
+
+# RESTful API
+
+## RESTful이란?
+
+REST의 원칙을 따르는 웹 서비스를 RESTful하다고 한다.
+
+### RESTful API 핵심 특징
+
+- HTTP 프로토콜 기반
+- 표준 데이터 형식 (JSON, XML)
+- URL + HTTP 메서드로 자원 접근
+- 명확하고 일관된 인터페이스
+
+**실무 팁:**
+RESTful API는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한다.
+
+---
+
+## HTTP 메서드와 REST
+
+### 주요 HTTP 메서드 체계
+
+**CRUD와 HTTP 메서드 매핑:**
+
+- GET → 조회 (Read) → `/users/123`
+  - 자원을 읽어옴, 서버 상태 변경 없음
+- POST → 생성 (Create) → `/users`
+  - 새로운 자원 생성, 서버 상태 변경
+- PUT → 전체 교체 (Replace) → `/users/123`
+  - 자원 전체를 새 데이터로 교체
+- PATCH → 부분 수정 (Update) → `/users/123`
+  - 자원의 일부분만 수정
+- DELETE → 삭제 (Delete) → `/users/123`
+  - 자원을 제거
+
+**예시:**
+```http
+GET /users/123 HTTP/1.1
+Host: api.example.com
+
+POST /users HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+
+{
+  "name": "홍길동",
+  "email": "hong@example.com"
+}
+```
+
+**실무 팁:**
+GET은 멱등성이 보장되지만 POST는 그렇지 않다. PUT은 전체 교체, PATCH는 부분 수정에 사용한다.
+
+### PUT vs PATCH 비교
+
+<table>
+<tr>
+<th width="50%" align="center">PUT (전체 교체)</th>
+<th width="50%" align="center">PATCH (부분 수정)</th>
+</tr>
+<tr>
+<td valign="top">
+
+**개념**
+```
+┌─────────────┐
+│  기존 자원   │  name: 김철수
+│             │  email: old@example.com
+│             │  age: 25
+└─────────────┘
+       ↓ PUT (전체 전송)
+┌─────────────┐
+│  새 자원     │  name: 이영희
+│             │  email: new@example.com
+│             │  age: 30
+└─────────────┘
+```
+
+**특징**
+- 자원의 **전체**를 교체
+- 모든 필드 전송 필요
+- 멱등성 ⭕️
+
+**사용 시기**
+- 전체 데이터 교체
+- 모든 필드를 알고 있을 때
+
+</td>
+<td valign="top">
+
+**개념**
+```
+┌─────────────┐
+│  기존 자원   │  name: 김철수
+│             │  email: old@example.com
+│             │  age: 25
+└─────────────┘
+       ↓ PATCH (일부만 전송)
+┌─────────────┐
+│  수정 자원   │  name: 김철수
+│             │  email: new@example.com ← 변경
+│             │  age: 25
+└─────────────┘
+```
+
+**특징:**
+- 자원의 일부만 수정
+- 변경할 필드만 전송
+- 멱등성 보장
+
+**사용 시기:**
+- 특정 필드만 수정
+- 부분 업데이트
+
+**예시:**
+```http
+PUT /users/123 HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "이영희",
+  "email": "new@example.com",
+  "age": 30
+}
+
+PATCH /users/123 HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "new@example.com"
+}
+```
+
+</td>
+</tr>
+</table>
+
+**실무 팁:**
+PUT은 전체 교체, PATCH는 부분 수정에 사용한다. PATCH가 더 효율적이다.
+
+## RESTful API 설계 원칙
+
+### URI 설계 규칙
+
+**올바른 URI 설계:**
+
+- 컬렉션 조회: `GET /users`
+- 단일 자원 조회: `GET /users/123`
+- 자원 생성: `POST /users`
+- 자원 전체 수정: `PUT /users/123`
+- 자원 부분 수정: `PATCH /users/123`
+- 자원 삭제: `DELETE /users/123`
+- 계층적 자원 표현: `GET /users/123/posts`, `GET /users/123/posts/456`
+
+**핵심 원칙:**
+- 명사 사용
+- 복수형 권장
+- 소문자 사용
+- 하이픈(-) 사용
+
+**잘못된 URI 설계 (안티패턴):**
+
+- 동사 사용: `GET /getUsers`, `POST /createUser`
+- 동사 + 명사: `GET /users/getById/123`, `POST /users/update/123`
+- 모든 작업을 POST로: `POST /users/get`, `POST /users/delete`
+
+**피해야 할 패턴:**
+- 동사 사용
+- 대문자 사용
+- 언더스코어(_)
+- 파일 확장자
+
+**실무 팁:**
+URI는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한다.
+
+### HTTP 상태 코드 활용
+
+```
+**2XX - 성공:**
+   ├─ 200 OK               : 요청 성공 (조회, 수정)
+   ├─ 201 Created          : 자원 생성 성공
+   └─ 204 No Content       : 성공했지만 반환 데이터 없음 (삭제)
+
+**3XX - 리다이렉션:**
+   - 301 Moved Permanently: 영구 이동
+   - 302 Found: 임시 이동
+
+**4XX - 클라이언트 오류:**
+   - 400 Bad Request: 잘못된 요청 (유효성 검사 실패)
+   - 401 Unauthorized: 인증 필요 (로그인 필요)
+   - 403 Forbidden: 권한 없음 (접근 거부)
+   - 404 Not Found: 자원 없음
+   - 409 Conflict: 충돌 (중복된 데이터)
+
+**5XX - 서버 오류:**
+   - 500 Internal Server Error: 서버 내부 오류
+   - 502 Bad Gateway: 게이트웨이 오류
+   - 503 Service Unavailable: 서비스 이용 불가
+```
+
+---
+
+### 응답 형식 표준화
+
+<table>
+<tr>
+<th width="50%" align="center">성공 응답</th>
+<th width="50%" align="center">에러 응답</th>
+</tr>
+<tr>
+<td valign="top">
+
+**일관된 성공 응답 구조**
+```
+┌─────────────────────┐
+│ HTTP 200 OK         │
+├─────────────────────┤
+│ {                   │
+│   "status": "success"│
+│   "data": {         │
+│     "id": 123       │
+│     "name": "김철수"│
+│     "email": "..."  │
+│   }                 │
+│ }                   │
+└─────────────────────┘
+```
+
+**포함 요소:**
+- 상태 표시 (status)
+- 데이터 래핑 (data)
+- 메타 정보 (선택)
+
+</td>
+<td valign="top">
+
+**일관된 에러 응답 구조**
+```
+┌─────────────────────┐
+│ HTTP 404 Not Found  │
+├─────────────────────┤
+│ {                   │
+│   "status": "error" │
+│   "message": "..."  │
+│   "code": "NOT_FOUND"│
+│   "details": [...]  │
+│ }                   │
+└─────────────────────┘
+```
+
+**포함 요소:**
+- 상태 표시 (status)
+- 에러 메시지
+- 에러 코드
+- 상세 정보 (선택)
+
+</td>
+</tr>
+</table>
+
+---
+
+## RESTful하지 않은 API의 안티패턴
+
+**안티패턴 #1: 모든 작업을 POST로 처리**
+```
+POST /api/getUsers
+POST /api/updateUser
+POST /api/deleteUser
+```
+문제점: HTTP 메서드의 의미 상실, 캐싱 불가능
+
+**안티패턴 #2: URI에 동사 사용**
+```
+GET  /api/getUserById/123
+POST /api/createUser
+POST /api/updateUserName
+```
+문제점: REST 원칙 위반, 일관성 없는 인터페이스
+
+**안티패턴 #3: 일관성 없는 응답 형식**
+```
+API A: { "user": {...} }
+API B: { "data": {...} }
+API C: { "result": {...} }
+```
+문제점: 클라이언트 코드 복잡도 증가
+
+**안티패턴 #4: 버전 관리 없음**
+```
+/api/users  → 갑자기 응답 형식 변경
+```
+문제점: 기존 클라이언트 앱 오류 발생
+
+**실무 팁:**
+RESTful API는 일관된 규칙을 따라야 한다. URI는 명사로, 동작은 HTTP 메서드로 표현한다.
+
+---
+
+## RESTful API의 장점
+
+```
+┌───────────────────────────────────────────────────────────┐
+│               RESTful API가 인기 있는 이유                 │
+└───────────────────────────────────────────────────────────┘
+
+**1. 단순성 & 직관성:**
+- GET /users/123 → 사용자 조회
+- DELETE /users/123 → 사용자 삭제
+- HTTP 표준 활용
+- URL만으로 기능 파악
+- 학습 곡선 낮음
+
+**2. 확장성 & 성능:**
+- Client → Load Balancer → Server1, Server2, Server3
+- 무상태성 → 수평 확장 용이
+- 캐싱 → 성능 최적화
+- 계층화 → 부하 분산
+
+**3. 플랫폼 독립성:**
+- iOS App, Android App, Web Browser, Desktop App → REST API
+- HTTP 기반 → 모든 플랫폼 지원
+- 언어/프레임워크 무관
+- 다양한 클라이언트 통합
+
+**4. 표준화 & 일관성:**
+- HTTP 메서드: GET, POST, PUT, DELETE
+- 상태 코드: 200, 201, 400, 404, 500
+- 헤더: Content-Type, Authorization
+- 국제 표준 준수
+- 일관된 인터페이스
+- 문서화 용이
+```
+
+---
+
+## RESTful API 동작 흐름
+
+```
+┌────────────────────────────────────────────────────────────┐
+│               전형적인 REST API 요청/응답 흐름              │
+└────────────────────────────────────────────────────────────┘
+
+**Client → Server 통신 흐름:**
+
+1. GET /users/123
+   - 클라이언트 요청
+   - 서버: DB에서 조회
+   - 응답: 200 OK + User Data
+
+2. POST /users
+   - 클라이언트 요청: { name: "김철수" }
+   - 서버: DB에 저장
+   - 응답: 201 Created + New User
+
+3. PUT /users/123
+   - 클라이언트 요청: { name: "이영희", ... }
+   - 서버: DB 전체 업데이트
+   - 응답: 200 OK + Updated User
+
+4. DELETE /users/123
+   - 클라이언트 요청
+   - 서버: DB에서 삭제
+   - 응답: 204 No Content
+```
+
+### 각 메서드별 처리 흐름
+
+<table>
+<tr>
+<th width="33%">조회 (GET)</th>
+<th width="33%">생성 (POST)</th>
+<th width="33%">삭제 (DELETE)</th>
+</tr>
+<tr>
+<td valign="top">
+
+```
+요청
+  ↓
+라우팅
+  ↓
+검증
+  ↓
+DB 조회
+  ↓
+응답 반환
+  ↓
+200 OK
+```
+
+</td>
+<td valign="top">
+
+```
+요청
+  ↓
+라우팅
+  ↓
+유효성 검증
+  ↓
+DB 저장
+  ↓
+응답 반환
+  ↓
+201 Created
+```
+
+</td>
+<td valign="top">
+
+```
+요청
+  ↓
+라우팅
+  ↓
+권한 확인
+  ↓
+DB 삭제
+  ↓
+응답 반환
+  ↓
+204 No Content
+```
+
+</td>
+</tr>
+</table>
+
+---
+
+## RESTful API 실무 사례
+
+### 버전 관리
+
+```
+┌──────────────────────────────────────────────────────┐
+│              API 버전 관리 전략                       │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+URL 경로에 버전 명시:
+  GET /api/v1/users
+  GET /api/v2/users
+
+헤더를 통한 버전 관리:
+  Accept: application/vnd.api.v1+json
+
+하위 호환성 유지 중요:
+  v1 클라이언트 → 계속 동작
+  v2 클라이언트 → 새 기능 사용
+│                                                      │
+└──────────────────────────────────────────────────────┘
+```
+
+### 페이지네이션
+
+```
+┌──────────────────────────────────────────────────────┐
+│            대량 데이터 처리 - 페이지네이션             │
+└──────────────────────────────────────────────────────┘
+
+방법 A: 페이지 번호 방식
+  GET /users?page=1&limit=10
+  GET /users?page=2&limit=10
+
+방법 B: 오프셋 방식
+  GET /users?offset=0&limit=10
+  GET /users?offset=10&limit=10
+
+응답 형식
+  {
+    "data": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 100,
+      "totalPages": 10
+    }
+  }
+
+**장점:**
+- 서버 부하 감소
+- 네트워크 트래픽 최적화
+- 사용자 경험 개선
+```
+
+### 필터링 및 정렬
+
+```
+┌──────────────────────────────────────────────────────┐
+│              쿼리 파라미터 활용                       │
+└──────────────────────────────────────────────────────┘
+
+**필터링:**
+  GET /users?status=active
+  GET /users?role=admin&status=active
+  GET /users?age_min=18&age_max=65
+
+**정렬:**
+  GET /users?sort=name&order=asc
+  GET /users?sort=createdAt&order=desc
+
+**검색:**
+  GET /users?search=김철수
+  GET /products?category=electronics&price_max=100000
+
+**조합 예시:**
+  GET /users?status=active&sort=name&order=asc&page=1&limit=10
+```
+
+### 에러 처리 표준화
+
+```
+┌──────────────────────────────────────────────────────┐
+│              명확한 에러 응답 구조                    │
+└──────────────────────────────────────────────────────┘
+
+기본 에러 형식
+  {
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "입력 데이터가 올바르지 않습니다",
+      "details": [
+        {
+          "field": "email",
+          "message": "올바른 이메일 형식이 아닙니다"
+        },
+        {
+          "field": "password",
+          "message": "비밀번호는 8자 이상이어야 합니다"
+        }
+      ]
+    }
+  }
+
+**에러 코드 체계:**
+- VALIDATION_ERROR: 유효성 검사 실패
+- AUTHENTICATION_ERROR: 인증 실패
+- AUTHORIZATION_ERROR: 권한 부족
+- NOT_FOUND: 자원 없음
+- SERVER_ERROR: 서버 내부 오류
+```
+
+---
+
+## 요약
+
+```
+┌──────────────────────────────────────────────────────────┐
+│            RESTful API 설계의 핵심 원칙                   │
+└──────────────────────────────────────────────────────────┘
+
+**자원 중심 설계:**
+- 명사 사용, 복수형, 계층 구조
+
+**표준 HTTP 활용:**
+- GET, POST, PUT, PATCH, DELETE
+- 200, 201, 400, 404, 500
+
+**무상태성 유지:**
+- 각 요청은 독립적
+- 확장성 향상
+
+**일관성 있는 응답:**
+- 표준화된 형식
+- 명확한 에러 메시지
+
+**버전 관리:**
+- 하위 호환성 유지
+- 점진적 업그레이드
+```
+
+---
+
+## 요약
+RESTful API는 현대 웹 서비스 개발의 사실상 표준이 되었다.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### RESTful API를 선택해야 하는 이유
+
+```
+**직관적인 설계:**
+- 누구나 쉽게 이해
+
+**뛰어난 확장성:**
+- 대규모 서비스 가능
+
+**범용성:**
+- 모든 플랫폼 지원
+
+**표준화:**
+- 일관된 개발 경험
+
+**비용 효율적:**
+- 개발/유지보수 용이
+```
+
+</td>
+<td width="50%" valign="top">
+
+### 설계 시 기억할 것
+
+- 자원은 명사로
+- HTTP 메서드 올바르게
+- 일관된 응답 형식
+- 적절한 상태 코드
+- 버전 관리 계획
+- 문서화 필수
+- 보안 고려
+- 성능 최적화
+
+</td>
+</tr>
+</table>
+
+**실무 팁:**
+올바른 RESTful API 설계는 개발자 경험과 사용자 경험 모두를 향상시킨다.
+
+---
+
+## 참고 자료
+
+**공식 문서 & 가이드:**
+- AWS RESTful API 가이드: https://aws.amazon.com/ko/what-is/restful-api/
+- REST API 설계 가이드 (restfulapi.net): https://restfulapi.net/
+- Roy Fielding의 원본 논문: REST 아키텍처 스타일의 창시자
+
+**표준 & 스펙:**
+- HTTP 상태 코드 (MDN): https://developer.mozilla.org/ko/docs/Web/HTTP/Status
+- HTTP 메서드 (MDN): https://developer.mozilla.org/ko/docs/Web/HTTP/Methods
+
+**추가 학습 주제:**
+- GraphQL (REST의 대안)
+- gRPC (고성능 RPC 프레임워크)
+- WebSocket (실시간 통신)
+- API 보안 (OAuth 2.0, JWT)
+

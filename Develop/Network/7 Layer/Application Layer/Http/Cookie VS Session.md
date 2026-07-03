@@ -1,0 +1,364 @@
+---
+title: Cookie VS Session
+tags: [network, 7-layer, application-layer, http, cookie-vs-session]
+updated: 2025-12-26
+---
+
+# Cookie VS Session
+
+## 배경
+HTTP는 Stateless(무상태) 프로토콜로, 서버가 클라이언트의 상태를 기억하지 못한다는 한계가 있다. 이를 보완하기 위해 쿠키와 세션을 사용하여 클라이언트의 상태 정보를 저장하고 관리한다.
+
+**실무 팁:**
+HTTP는 무상태 프로토콜이다. 상태 관리를 위해 쿠키나 세션을 사용한다. 인증 정보는 세션으로, 사용자 선호도는 쿠키로 관리한다.
+
+---
+
+## 쿠키(Cookie)
+
+### 정의
+- HTTP의 일종으로 사용자가 웹 사이트를 방문할 때, 서버에서 사용자의 컴퓨터에 저장하는 작은 기록 정보 파일
+- 클라이언트의 상태 정보를 클라이언트의 PC에 저장하여 필요시 정보를 참조하거나 재사용
+- HTTP 헤더에 `set-cookie` 옵션을 통해 쿠키를 포함해 응답을 보냄
+
+**실무 팁:**
+쿠키는 클라이언트에 저장된다. 서버 자원을 사용하지 않지만 보안에 취약하다. HttpOnly, Secure, SameSite 플래그를 설정한다.
+
+### 쿠키의 종류
+
+#### 1. 세션 쿠키 (Session Cookie)
+- 브라우저를 닫으면 자동으로 삭제되는 임시 쿠키
+- 메모리에만 저장되며, 디스크에는 저장되지 않음
+- 주로 로그인 세션 관리에 사용
+
+#### 2. 영구 쿠키 (Persistent Cookie)
+- 만료일이 설정되어 있어 브라우저를 닫아도 유지됨
+- 디스크에 저장되어 브라우저를 재시작해도 유지
+- 자동 로그인, 사용자 선호도 저장 등에 사용
+
+#### 3. 보안 쿠키 (Secure Cookie)
+- HTTPS 연결에서만 전송되는 쿠키
+- 암호화된 통신에서만 사용되어 보안성 향상
+
+### 쿠키의 특징
+- 구성 요소: 이름, 값, 만료일(저장기간), 경로 정보
+- 저장 제한: 
+  - 클라이언트에 총 300개의 쿠키 저장 가능
+  - 하나의 도메인당 20개의 쿠키 보유 가능
+  - 하나의 쿠키는 4KB(=4096byte)까지 저장 가능
+- 저장 방식: 도메인별로 구분되어 저장
+- 자동 전송: 쿠키는 자동으로 서버에 전송되므로, 불필요한 데이터 전송을 피해야 함
+
+**실무 팁:**
+쿠키는 자동으로 전송된다. 불필요한 데이터를 쿠키에 저장하지 않는다. 쿠키 크기를 최소화한다.
+
+### 쿠키 동작 과정
+1. 클라이언트가 페이지를 요청 (사용자가 웹사이트에 접근)
+2. 웹 서버가 쿠키를 생성
+3. 생성한 쿠키에 정보를 담아 HTTP 응답과 함께 클라이언트에게 전송
+4. 클라이언트는 받은 쿠키를 로컬 PC에 저장
+5. 동일 사이트 재방문 시 클라이언트의 PC에 해당 쿠키가 있는 경우, 요청 페이지와 함께 쿠키를 전송
+
+### 쿠키 보안 위험 및 대응
+
+#### 1. XSS(Cross-Site Scripting) 공격
+- **위험**: 악의적인 스크립트를 통해 쿠키 정보 탈취 가능
+- **대응**: `HttpOnly` 플래그를 설정하여 JavaScript 접근 차단
+
+#### 2. CSRF(Cross-Site Request Forgery) 공격
+- **위험**: 다른 사이트에서 사용자의 쿠키를 이용한 요청 위조
+- **대응**: `SameSite` 속성을 사용하여 방어 (Strict, Lax, None 옵션)
+
+#### 3. 쿠키 스니핑
+- **위험**: 네트워크 상에서 쿠키 정보 탈취 가능
+- **대응**: `Secure` 플래그를 설정하여 HTTPS에서만 전송되도록 설정
+
+---
+
+## 세션(Session)
+
+### 정의
+- 일정 시간 동안 같은 사용자(브라우저)로부터 들어오는 일련의 요구를 하나의 상태로 보고, 그 상태를 유지시키는 기술
+- 방문자가 웹 브라우저를 통해 웹 서버에 접속한 시점부터 웹 브라우저를 종료하여 연결을 끝내는 시점까지의 상태
+- 웹 서버에 웹 컨테이너의 상태를 유지하기 위한 정보를 저장
+
+### 세션의 특징
+- 저장 위치: 서버 측에 저장 (웹 서버의 저장되는 쿠키 = 세션 쿠키)
+- 보안: 브라우저를 닫거나 서버에서 세션을 삭제했을 때만 삭제되므로, 쿠키보다 비교적 보안이 좋다
+- 용량 제한: 저장 데이터에 제한이 없다 (서버 용량이 허용하는 한에서)
+- 식별: 각 클라이언트에 고유 Session ID를 부여하여 클라이언트를 구분
+- 타임아웃: 세션 타임아웃 설정 가능 (일정 시간 동안 요청이 없으면 세션 만료)
+
+**실무 팁:**
+세션은 서버에 저장된다. 서버 메모리를 사용하므로 세션 수가 많아지면 부하가 증가한다. Redis 같은 외부 저장소를 사용한다.
+
+### 세션 저장 방식
+
+#### 1. 메모리 기반 세션
+- 서버의 메모리에 세션 데이터 저장
+- 빠른 접근 속도
+- 서버 재시작 시 데이터 손실
+
+#### 2. 파일 기반 세션
+- 파일 시스템에 세션 데이터 저장
+- 영구적인 데이터 보존
+- 상대적으로 느린 접근 속도
+
+#### 3. 데이터베이스 기반 세션
+- DB에 세션 데이터 저장
+- 확장성과 안정성 확보
+- 추가적인 DB 부하 발생
+
+### 세션 동작 과정
+1. 클라이언트가 페이지에 요청
+2. 서버는 클라이언트의 Request-Header 필드인 Cookie를 확인하여 session-id 존재 여부 확인
+3. session-id가 존재하지 않으면 서버가 session-id를 생성하여 클라이언트에게 전송
+4. 클라이언트는 서버로부터 받은 session-id를 쿠키에 저장
+5. 클라이언트는 서버에 요청 시 이 쿠키의 session-id 값을 함께 전달
+6. 서버는 전달받은 session-id로 session에 있는 클라이언트 정보를 가지고 요청을 처리 후 응답
+
+### 세션 보안 및 관리
+
+#### 1. 세션 하이재킹 방지
+- 세션 ID의 복잡성 확보
+- HTTPS 사용
+- 세션 타임아웃 설정
+
+#### 2. 세션 고정 공격 방지
+- 로그인 성공 시 세션 ID 재생성
+- IP 바인딩
+- User-Agent 검증
+
+#### 3. 세션 관리
+- 적절한 세션 타임아웃 설정
+- 불필요한 세션 데이터 제거
+- 세션 저장소 보안
+
+---
+
+## 쿠키와 세션의 차이점
+
+| 구분 | 쿠키 | 세션 |
+|------|------|------|
+| 저장 위치 | 클라이언트 측 | 서버 측 |
+| 보안 | 클라이언트에 저장되어 변조 가능 | 서버에 저장되어 상대적으로 안전 |
+| 용량 제한 | 도메인당 20개, 총 300개, 개당 4KB | 서버 용량에 따라 제한 없음 |
+| 라이프사이클 | 만료 기간 설정 가능 | 브라우저 종료 또는 서버에서 삭제 시 종료 |
+| 서버 자원 | 서버 자원 사용하지 않음 | 서버 메모리 사용 |
+
+**실무 팁:**
+쿠키는 클라이언트에, 세션은 서버에 저장된다. 인증 정보는 세션으로, 사용자 선호도는 쿠키로 관리한다.
+
+---
+
+## Q&A: 세션을 사용하면 좋은데 왜 쿠키를 사용할까?
+
+### 세션이 쿠키에 비해 보안이 높은 편이나 쿠키를 사용하는 이유
+
+#### 서버 자원 효율성
+- 세션은 서버 메모리를 사용하므로, 많은 사용자가 동시에 접속할 경우 서버 부하 발생
+- 쿠키는 클라이언트 측에 저장되어 서버 자원을 사용하지 않음
+
+#### 확장성
+- 세션은 서버 메모리에 의존하므로, 서버 확장 시 세션 공유 문제 발생
+- 쿠키는 클라이언트 측에서 관리되므로 확장성 문제 없음
+
+#### 성능
+- 세션은 서버에서 데이터를 조회해야 하므로 상대적으로 느림
+- 쿠키는 클라이언트에서 바로 접근 가능하여 빠름
+
+#### 용도에 따른 선택
+- 보안이 중요한 정보: 세션으로 관리
+- 사용자 편의성 관련 정보: 쿠키로 관리
+
+**실무 팁:**
+세션은 서버 메모리를 사용한다. 서버 확장 시 세션 공유가 필요하다. Redis 같은 외부 저장소를 사용한다. 쿠키는 서버 자원을 사용하지 않지만 보안에 취약하다.
+
+---
+
+---
+
+## 코드 예제
+
+### Set-Cookie 헤더
+
+```http
+HTTP/1.1 200 OK
+Set-Cookie: sessionId=abc123; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600
+Set-Cookie: theme=dark; Path=/; Max-Age=2592000
+```
+
+#### 쿠키 속성 설명
+
+| 속성 | 설명 |
+|------|------|
+| `HttpOnly` | JavaScript에서 접근 불가 (XSS 방어) |
+| `Secure` | HTTPS에서만 전송 |
+| `SameSite=Strict` | 동일 사이트 요청에만 전송 (CSRF 방어) |
+| `SameSite=Lax` | 안전한 교차 사이트 GET 요청 허용 |
+| `Max-Age=3600` | 1시간 후 만료 (초 단위) |
+| `Path=/` | 모든 경로에서 전송 |
+
+### Express.js 쿠키 & 세션 설정
+
+```javascript
+const express = require('express');
+const session = require('express-session');
+const RedisStore = require('connect-redis').default;
+const { createClient } = require('redis');
+
+const app = express();
+
+// Redis 클라이언트
+const redisClient = createClient({ url: 'redis://localhost:6379' });
+redisClient.connect();
+
+// 세션 미들웨어 (Redis 세션 저장소)
+app.use(session({
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',  // HTTPS에서만 Secure
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 1000  // 1시간
+    }
+}));
+
+// 로그인 — 세션 생성
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    const user = await authenticate(username, password);
+
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    // 세션 재생성 (세션 고정 공격 방어)
+    req.session.regenerate((err) => {
+        req.session.userId = user.id;
+        req.session.role = user.role;
+        res.json({ message: 'Logged in' });
+    });
+});
+
+// 로그아웃 — 세션 삭제
+app.post('/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.clearCookie('connect.sid');
+        res.json({ message: 'Logged out' });
+    });
+});
+
+// 영구 쿠키 설정 (사용자 선호도)
+app.post('/preferences', (req, res) => {
+    res.cookie('theme', req.body.theme, {
+        maxAge: 30 * 24 * 60 * 60 * 1000,  // 30일
+        httpOnly: false,  // 클라이언트 JS에서 읽을 수 있도록
+        sameSite: 'lax'
+    });
+    res.json({ message: 'Preference saved' });
+});
+```
+
+### Spring Boot 세션 설정
+
+```yaml
+# application.yml
+spring:
+  session:
+    store-type: redis           # 세션 저장소: Redis
+    timeout: 3600               # 세션 타임아웃 (초)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  security:
+    session:
+      creation-policy: if_required
+```
+
+```java
+// Spring Security 세션 관련 설정
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .maximumSessions(1)              // 동시 로그인 1개 제한
+                .maxSessionsPreventsLogin(false) // 새 로그인 시 기존 세션 만료
+            )
+            .csrf(csrf -> csrf.csrfTokenRepository(
+                CookieCsrfTokenRepository.withHttpOnlyFalse()
+            ));
+
+        return http.build();
+    }
+}
+
+// 컨트롤러에서 세션 사용
+@PostMapping("/login")
+public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpSession session) {
+    User user = authService.authenticate(req.getUsername(), req.getPassword());
+    session.setAttribute("userId", user.getId());
+    session.setMaxInactiveInterval(3600);  // 1시간
+    return ResponseEntity.ok(new LoginResponse(user));
+}
+```
+
+### JWT vs Session 비교
+
+```javascript
+// ── 세션 기반 인증 흐름 ──────────────────────────────
+// 1. 클라이언트: POST /login {username, password}
+// 2. 서버: 세션 생성 → sessionId를 쿠키에 설정
+// 3. 클라이언트: 이후 요청마다 쿠키 자동 전송
+// 4. 서버: Redis에서 sessionId로 사용자 정보 조회
+
+// ── JWT 기반 인증 흐름 ──────────────────────────────
+const jwt = require('jsonwebtoken');
+
+// 로그인 → JWT 발급
+app.post('/login', async (req, res) => {
+    const user = await authenticate(req.body);
+    const token = jwt.sign(
+        { userId: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+    );
+    // JWT를 HttpOnly 쿠키에 저장 (XSS 방어)
+    res.cookie('token', token, { httpOnly: true, secure: true });
+    res.json({ message: 'Logged in' });
+});
+
+// 요청 검증
+app.get('/api/me', (req, res) => {
+    const token = req.cookies.token;
+    try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        res.json({ userId: payload.userId });
+    } catch (e) {
+        res.status(401).json({ error: 'Unauthorized' });
+    }
+});
+```
+
+| 항목 | 세션 | JWT |
+|------|------|-----|
+| 저장 위치 | 서버 (Redis 등) | 클라이언트 (쿠키/헤더) |
+| 서버 자원 | 사용 | 미사용 |
+| 즉시 무효화 | 가능 (세션 삭제) | 어려움 (만료 대기) |
+| 확장성 | 공유 저장소 필요 | 무상태 — 확장 용이 |
+| 정보 크기 | 제한 없음 | 최소화 권장 (Base64 인코딩) |
+
+---
+
+## 참고 자료
+- [슬기로운 개발생활:티스토리](https://dev-coco.tistory.com/61#recentComments)
+- [code-lab1.tistory.com](https://code-lab1.tistory.com/298)
+- [MDN Web Docs - HTTP Cookies](https://developer.mozilla.org/ko/docs/Web/HTTP/Cookies)
+- [OWASP Session Management Cheat Sheet](https://owasp.org/www-community/attacks/Session_Management_Cheat_Sheet)

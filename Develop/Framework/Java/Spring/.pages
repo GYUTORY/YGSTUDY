@@ -1,0 +1,22 @@
+title: Spring
+nav:
+  - Bean.md
+  - Spring_Bean_심화.md
+  - Spring_Security.md
+  - Spring_Data_JPA.md
+  - Spring_Data_JPA_Advanced.md
+  - Spring_MVC_REST_API.md
+  - Spring_WebFlux.md
+  - Spring_Batch.md
+  - Spring_Cloud.md
+  - Spring_Test.md
+  - Rate_Limiting.md
+  - Spring Boot Profiles.md
+  - Boot2.0__vs__Boot3.0.md
+  - Spring_Boot_Migration_2_to_3.md
+  - Gradle__vs__Maven.md
+  - SLF4J.md
+  - Lombok.md
+  - Lombok_Deep_Dive.md
+  - Lombok_Minor_Annotations.md
+  - AOP_트랜잭션.md

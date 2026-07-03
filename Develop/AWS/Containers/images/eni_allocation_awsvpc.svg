@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 520" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow1" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.1"/>
+    </filter>
+    <linearGradient id="ec2Grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF9900" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FF9900" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="primaryGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e74c3c"/>
+      <stop offset="100%" stop-color="#c0392b"/>
+    </linearGradient>
+    <linearGradient id="taskGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3498db"/>
+      <stop offset="100%" stop-color="#2980b9"/>
+    </linearGradient>
+    <linearGradient id="blockedGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e74c3c" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#e74c3c" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="820" height="520" fill="#fafbfc" rx="8"/>
+
+  <!-- Title -->
+  <text x="410" y="32" text-anchor="middle" font-size="16" font-weight="bold" fill="#2c3e50">awsvpc 모드 — ENI 할당 구조 (t3.medium)</text>
+  <text x="410" y="52" text-anchor="middle" font-size="12" fill="#7f8c8d">인스턴스 최대 ENI: 3개 / Task용 ENI: 2개 (Primary 제외)</text>
+
+  <!-- EC2 Instance Box -->
+  <rect x="30" y="70" width="480" height="420" rx="10" fill="url(#ec2Grad)" stroke="#FF9900" stroke-width="1.5" filter="url(#shadow1)"/>
+  <text x="50" y="95" font-size="13" font-weight="bold" fill="#FF9900">EC2 인스턴스 (t3.medium)</text>
+  <text x="50" y="112" font-size="11" fill="#95a5a6">2 vCPU / 4 GiB Memory / ENI 최대 3개</text>
+
+  <!-- ENI 0 - Primary -->
+  <rect x="60" y="130" width="200" height="100" rx="8" fill="white" stroke="#e74c3c" stroke-width="2"/>
+  <rect x="60" y="130" width="200" height="28" rx="8" fill="url(#primaryGrad)"/>
+  <rect x="60" y="150" width="200" height="2" fill="url(#primaryGrad)"/>
+  <text x="160" y="149" text-anchor="middle" font-size="12" font-weight="bold" fill="white">ENI 0 (Primary)</text>
+  <text x="160" y="172" text-anchor="middle" font-size="11" fill="#555">IP: 10.0.1.10</text>
+  <text x="160" y="189" text-anchor="middle" font-size="10" fill="#888">인스턴스 자체 통신</text>
+  <text x="160" y="205" text-anchor="middle" font-size="10" fill="#888">ECS Agent, SSH, 모니터링</text>
+
+  <!-- ENI 1 -->
+  <rect x="60" y="250" width="200" height="100" rx="8" fill="white" stroke="#3498db" stroke-width="2"/>
+  <rect x="60" y="250" width="200" height="28" rx="8" fill="url(#taskGrad)"/>
+  <rect x="60" y="270" width="200" height="2" fill="url(#taskGrad)"/>
+  <text x="160" y="269" text-anchor="middle" font-size="12" font-weight="bold" fill="white">ENI 1</text>
+  <text x="160" y="292" text-anchor="middle" font-size="11" fill="#555">IP: 10.0.1.11</text>
+  <text x="160" y="308" text-anchor="middle" font-size="10" fill="#888">SG: sg-web</text>
+  <text x="160" y="324" text-anchor="middle" font-size="10" fill="#888">인바운드: 80, 443</text>
+
+  <!-- ENI 2 -->
+  <rect x="60" y="370" width="200" height="100" rx="8" fill="white" stroke="#3498db" stroke-width="2"/>
+  <rect x="60" y="370" width="200" height="28" rx="8" fill="url(#taskGrad)"/>
+  <rect x="60" y="390" width="200" height="2" fill="url(#taskGrad)"/>
+  <text x="160" y="389" text-anchor="middle" font-size="12" font-weight="bold" fill="white">ENI 2</text>
+  <text x="160" y="412" text-anchor="middle" font-size="11" fill="#555">IP: 10.0.1.12</text>
+  <text x="160" y="428" text-anchor="middle" font-size="10" fill="#888">SG: sg-api</text>
+  <text x="160" y="444" text-anchor="middle" font-size="10" fill="#888">인바운드: 8080</text>
+
+  <!-- Task A -->
+  <rect x="310" y="250" width="180" height="100" rx="8" fill="white" stroke="#27ae60" stroke-width="2" filter="url(#shadow1)"/>
+  <rect x="310" y="250" width="180" height="28" rx="8" fill="#27ae60"/>
+  <rect x="310" y="270" width="180" height="2" fill="#27ae60"/>
+  <text x="400" y="269" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Task A</text>
+  <text x="400" y="292" text-anchor="middle" font-size="11" fill="#555">nginx:latest</text>
+  <text x="400" y="308" text-anchor="middle" font-size="10" fill="#888">웹 서버</text>
+  <text x="400" y="324" text-anchor="middle" font-size="10" fill="#27ae60">RUNNING</text>
+
+  <!-- Task B -->
+  <rect x="310" y="370" width="180" height="100" rx="8" fill="white" stroke="#27ae60" stroke-width="2" filter="url(#shadow1)"/>
+  <rect x="310" y="370" width="180" height="28" rx="8" fill="#27ae60"/>
+  <rect x="310" y="390" width="180" height="2" fill="#27ae60"/>
+  <text x="400" y="389" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Task B</text>
+  <text x="400" y="412" text-anchor="middle" font-size="11" fill="#555">api-server:v2</text>
+  <text x="400" y="428" text-anchor="middle" font-size="10" fill="#888">API 서버</text>
+  <text x="400" y="444" text-anchor="middle" font-size="10" fill="#27ae60">RUNNING</text>
+
+  <!-- Connection lines ENI to Task -->
+  <line x1="260" y1="300" x2="310" y2="300" stroke="#3498db" stroke-width="2" stroke-dasharray="6,3"/>
+  <polygon points="306,296 314,300 306,304" fill="#3498db"/>
+  <line x1="260" y1="420" x2="310" y2="420" stroke="#3498db" stroke-width="2" stroke-dasharray="6,3"/>
+  <polygon points="306,416 314,420 306,424" fill="#3498db"/>
+
+  <!-- Blocked Task C -->
+  <rect x="560" y="160" width="230" height="160" rx="10" fill="url(#blockedGrad)" stroke="#e74c3c" stroke-width="1.5" stroke-dasharray="8,4"/>
+  <text x="675" y="190" text-anchor="middle" font-size="13" font-weight="bold" fill="#c0392b">Task C — 배치 불가</text>
+  <text x="675" y="215" text-anchor="middle" font-size="11" fill="#e74c3c">PENDING</text>
+  <line x1="590" y1="228" x2="760" y2="228" stroke="#e74c3c" stroke-opacity="0.3"/>
+  <text x="675" y="248" text-anchor="middle" font-size="10" fill="#888">사유: ENI 한도 초과</text>
+  <text x="675" y="266" text-anchor="middle" font-size="10" fill="#888">인스턴스 ENI 3/3 사용 중</text>
+  <text x="675" y="284" text-anchor="middle" font-size="10" fill="#888">추가 ENI 할당 불가</text>
+  <text x="675" y="306" text-anchor="middle" font-size="10" fill="#c0392b">→ 인스턴스 추가 또는 Trunking 필요</text>
+
+  <!-- X mark -->
+  <circle cx="575" cy="175" r="12" fill="#e74c3c"/>
+  <text x="575" y="180" text-anchor="middle" font-size="14" font-weight="bold" fill="white">✕</text>
+
+  <!-- Legend -->
+  <rect x="560" y="370" width="230" height="110" rx="6" fill="white" stroke="#ddd"/>
+  <text x="580" y="392" font-size="11" font-weight="bold" fill="#555">범례</text>
+  <rect x="580" y="402" width="16" height="10" rx="2" fill="#e74c3c"/>
+  <text x="602" y="411" font-size="10" fill="#666">Primary ENI (인스턴스 전용)</text>
+  <rect x="580" y="420" width="16" height="10" rx="2" fill="#3498db"/>
+  <text x="602" y="429" font-size="10" fill="#666">Task 전용 ENI</text>
+  <rect x="580" y="438" width="16" height="10" rx="2" fill="#27ae60"/>
+  <text x="602" y="447" font-size="10" fill="#666">ECS Task (RUNNING)</text>
+  <rect x="580" y="456" width="16" height="10" rx="2" fill="none" stroke="#e74c3c" stroke-dasharray="3,2"/>
+  <text x="602" y="465" font-size="10" fill="#666">배치 불가 Task</text>
+</svg>

@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 560" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow2" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.1"/>
+    </filter>
+    <linearGradient id="ec2Grad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF9900" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FF9900" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="trunkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8e44ad"/>
+      <stop offset="100%" stop-color="#6c3483"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="840" height="560" fill="#fafbfc" rx="8"/>
+
+  <!-- Title -->
+  <text x="420" y="32" text-anchor="middle" font-size="16" font-weight="bold" fill="#2c3e50">ENI Trunking 동작 방식 (t3.medium)</text>
+  <text x="420" y="52" text-anchor="middle" font-size="12" fill="#7f8c8d">Trunking 비활성: Task 2개 → Trunking 활성: Task 최대 12개</text>
+
+  <!-- Before: No Trunking -->
+  <rect x="20" y="70" width="380" height="470" rx="10" fill="white" stroke="#ddd" stroke-width="1.5" filter="url(#shadow2)"/>
+  <rect x="20" y="70" width="380" height="32" rx="10" fill="#95a5a6"/>
+  <rect x="20" y="92" width="380" height="10" fill="#95a5a6"/>
+  <text x="210" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Trunking 비활성 (기본)</text>
+
+  <!-- ENI boxes before -->
+  <rect x="45" y="120" width="330" height="60" rx="6" fill="#fee" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="60" y="145" font-size="12" font-weight="bold" fill="#c0392b">ENI 0 (Primary)</text>
+  <text x="60" y="163" font-size="10" fill="#888">10.0.1.10 — 인스턴스 관리용</text>
+
+  <rect x="45" y="195" width="330" height="60" rx="6" fill="#eef6ff" stroke="#3498db" stroke-width="1.5"/>
+  <text x="60" y="220" font-size="12" font-weight="bold" fill="#2980b9">ENI 1</text>
+  <text x="200" y="220" font-size="11" fill="#555">→ Task 1 (10.0.1.11)</text>
+  <text x="60" y="240" font-size="10" fill="#888">전용 ENI, 독립 보안 그룹</text>
+
+  <rect x="45" y="270" width="330" height="60" rx="6" fill="#eef6ff" stroke="#3498db" stroke-width="1.5"/>
+  <text x="60" y="295" font-size="12" font-weight="bold" fill="#2980b9">ENI 2</text>
+  <text x="200" y="295" font-size="11" fill="#555">→ Task 2 (10.0.1.12)</text>
+  <text x="60" y="315" font-size="10" fill="#888">전용 ENI, 독립 보안 그룹</text>
+
+  <!-- Limit indicator -->
+  <rect x="45" y="350" width="330" height="45" rx="6" fill="#fff5f5" stroke="#e74c3c" stroke-dasharray="6,3"/>
+  <text x="210" y="372" text-anchor="middle" font-size="11" fill="#c0392b">ENI 한도 도달 — 추가 Task 불가</text>
+  <text x="210" y="388" text-anchor="middle" font-size="10" fill="#888">3/3 ENI 사용 중</text>
+
+  <!-- Summary before -->
+  <rect x="45" y="420" width="330" height="100" rx="6" fill="#f8f9fa" stroke="#eee"/>
+  <text x="60" y="442" font-size="11" font-weight="bold" fill="#555">요약</text>
+  <text x="60" y="462" font-size="11" fill="#666">ENI 수: 3개 (Primary 1 + Task용 2)</text>
+  <text x="60" y="480" font-size="11" fill="#666">동시 Task: 2개</text>
+  <text x="60" y="498" font-size="11" fill="#e74c3c">Task당 ENI 1:1 매핑</text>
+
+  <!-- After: Trunking -->
+  <rect x="440" y="70" width="380" height="470" rx="10" fill="white" stroke="#8e44ad" stroke-width="1.5" filter="url(#shadow2)"/>
+  <rect x="440" y="70" width="380" height="32" rx="10" fill="#8e44ad"/>
+  <rect x="440" y="92" width="380" height="10" fill="#8e44ad"/>
+  <text x="630" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Trunking 활성</text>
+
+  <!-- Primary ENI -->
+  <rect x="465" y="120" width="330" height="44" rx="6" fill="#fee" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="480" y="140" font-size="12" font-weight="bold" fill="#c0392b">ENI 0 (Primary)</text>
+  <text x="480" y="155" font-size="10" fill="#888">10.0.1.10 — 인스턴스 관리용</text>
+
+  <!-- Trunk ENI 1 -->
+  <rect x="465" y="178" width="330" height="132" rx="6" fill="#f3e8ff" stroke="#8e44ad" stroke-width="1.5"/>
+  <text x="480" y="198" font-size="12" font-weight="bold" fill="#6c3483">Trunk ENI 1 — 보조 IP 6개</text>
+  <g font-size="10" fill="#555">
+    <rect x="480" y="206" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="552" y="220" text-anchor="middle">10.0.1.11 → Task 1</text>
+    <rect x="635" y="206" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="707" y="220" text-anchor="middle">10.0.1.12 → Task 2</text>
+    <rect x="480" y="232" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="552" y="246" text-anchor="middle">10.0.1.13 → Task 3</text>
+    <rect x="635" y="232" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="707" y="246" text-anchor="middle">10.0.1.14 → Task 4</text>
+    <rect x="480" y="258" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="552" y="272" text-anchor="middle">10.0.1.15 → Task 5</text>
+    <rect x="635" y="258" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="707" y="272" text-anchor="middle">10.0.1.16 → Task 6</text>
+  </g>
+
+  <!-- Trunk ENI 2 -->
+  <rect x="465" y="324" width="330" height="132" rx="6" fill="#f3e8ff" stroke="#8e44ad" stroke-width="1.5"/>
+  <text x="480" y="344" font-size="12" font-weight="bold" fill="#6c3483">Trunk ENI 2 — 보조 IP 6개</text>
+  <g font-size="10" fill="#555">
+    <rect x="480" y="352" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="552" y="366" text-anchor="middle">10.0.1.17 → Task 7</text>
+    <rect x="635" y="352" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="707" y="366" text-anchor="middle">10.0.1.18 → Task 8</text>
+    <rect x="480" y="378" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="552" y="392" text-anchor="middle">10.0.1.19 → Task 9</text>
+    <rect x="635" y="378" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="707" y="392" text-anchor="middle">10.0.1.20 → Task 10</text>
+    <rect x="480" y="404" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="552" y="418" text-anchor="middle">10.0.1.21 → Task 11</text>
+    <rect x="635" y="404" width="145" height="20" rx="3" fill="white" stroke="#8e44ad" stroke-width="0.5"/>
+    <text x="707" y="418" text-anchor="middle">10.0.1.22 → Task 12</text>
+  </g>
+
+  <!-- Summary after -->
+  <rect x="465" y="470" width="330" height="55" rx="6" fill="#f3e8ff" stroke="#8e44ad" stroke-opacity="0.3"/>
+  <text x="480" y="490" font-size="11" font-weight="bold" fill="#555">요약</text>
+  <text x="480" y="508" font-size="11" fill="#666">ENI 수: 3개 / 동시 Task: 최대 12개</text>
+  <text x="480" y="522" font-size="10" fill="#8e44ad">계산: (3 - 1) × 6 = 12</text>
+
+  <!-- Arrow between -->
+  <path d="M405,300 L435,300" stroke="#8e44ad" stroke-width="2.5" fill="none" marker-end="url(#arrowPurple)"/>
+  <defs>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#8e44ad"/>
+    </marker>
+  </defs>
+  <text x="420" y="286" text-anchor="middle" font-size="10" font-weight="bold" fill="#8e44ad" transform="rotate(-90,420,300)">활성화</text>
+</svg>

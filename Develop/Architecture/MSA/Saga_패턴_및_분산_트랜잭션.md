@@ -1,0 +1,1968 @@
+---
+title: Saga 패턴 및 분산 트랜잭션
+tags: [backend, saga, distributed-transaction, choreography, orchestration, outbox, idempotency, compensation, spring-cloud-stream, kafka, axon-framework]
+updated: 2026-03-29
+---
+
+# Saga 패턴 및 분산 트랜잭션
+
+## 개요
+
+서비스가 분리되면 하나의 DB 트랜잭션으로는 끝나지 않는다. 주문, 결제, 재고, 배송이 각각 다른 저장소를 가진 순간부터 "부분 성공"이 기본 상태다.
+
+이 문서는 분산 트랜잭션의 문제점과 Saga 패턴을 통한 해결 방법을 다룬다.
+
+## 목차
+
+1. 트랜잭션의 기본 개념
+2. 분산 트랜잭션의 문제점
+3. 2PC/3PC의 문제점
+4. Saga 패턴 개요
+5. Choreography Saga
+6. Spring Cloud Stream + Kafka 기반 Choreography Saga 구현
+7. Orchestration Saga
+8. Axon Framework 기반 Orchestration Saga 구현
+9. 보상 트랜잭션
+10. 상태 저장과 재처리
+11. Outbox 패턴
+12. 메시지 설계 포인트
+13. 관측과 장애 대응
+14. Saga 상태 추적 테이블 구현
+15. 실패 알림 연동
+16. 테스트
+
+## 트랜잭션의 기본 개념
+
+### 트랜잭션이란
+
+트랜잭션은 여러 작업을 하나의 논리적 단위로 묶는 것이다. 모든 작업이 성공하거나 모두 실패해야 한다.
+
+**ACID 속성:**
+
+**원자성(Atomicity):**
+- 트랜잭션의 모든 작업이 성공하거나 모두 실패해야 한다
+- 중간 상태는 존재하지 않는다
+- 커밋 또는 롤백만 가능하다
+
+**일관성(Consistency):**
+- 트랜잭션 전후로 데이터베이스가 일관된 상태를 유지해야 한다
+- 제약 조건을 위반하면 롤백된다
+
+**격리성(Isolation):**
+- 동시에 실행되는 트랜잭션들이 서로 영향을 주지 않아야 한다
+- 격리 수준에 따라 보장 범위가 다르다
+
+**지속성(Durability):**
+- 커밋된 트랜잭션은 영구적으로 저장되어야 한다
+- 시스템 장애 후에도 복구 가능해야 한다
+
+### 로컬 트랜잭션
+
+로컬 트랜잭션은 단일 데이터베이스 내에서만 동작한다. ACID 속성이 완전히 보장된다.
+
+**동작 원리:**
+1. 트랜잭션 시작
+2. 여러 작업 수행 (INSERT, UPDATE, DELETE)
+3. 모든 작업 성공 시 커밋
+4. 하나라도 실패 시 롤백
+
+**예시:**
+- 주문 생성과 주문 항목 생성이 같은 DB에서 이루어질 때
+- 계좌 이체에서 출금과 입금이 같은 DB에서 이루어질 때
+
+**제약사항:**
+- 단일 데이터베이스에만 적용 가능
+- 여러 서비스나 데이터베이스에 걸친 작업은 불가능
+
+## 분산 트랜잭션의 문제점
+
+### 분산 트랜잭션이 필요한 상황
+
+여러 서비스나 데이터베이스에 걸쳐 작업을 수행해야 할 때 분산 트랜잭션이 필요하다.
+
+**예시:**
+- 주문 서비스: 주문 생성
+- 결제 서비스: 결제 처리
+- 재고 서비스: 재고 차감
+- 배송 서비스: 배송 생성
+
+이 작업들이 모두 성공하거나 모두 실패해야 한다.
+
+### 분산 트랜잭션의 문제점
+
+분산 트랜잭션은 4가지 문제로 요약된다.
+
+**1. 부분 성공:**
+- 일부 단계만 성공하고 나머지는 실패할 수 있다
+- 주문은 생성되었지만 결제는 실패한 상태
+- 데이터 정합성이 깨진다
+
+**2. 중복 실행:**
+- 같은 단계가 여러 번 실행될 수 있다
+- 네트워크 문제로 재시도가 발생하면 중복 처리된다
+- 멱등성이 보장되지 않으면 데이터가 중복된다
+
+**3. 순서 문제:**
+- 단계 실행 순서가 바뀔 수 있다
+- 메시지 큐에서 순서가 보장되지 않으면 문제가 발생한다
+- 재고 차감 전에 배송이 생성될 수 있다
+
+**4. 외부 의존성 지연:**
+- 외부 API 호출이 오래 걸리거나 실패할 수 있다
+- 결제 서비스가 느려지면 전체 트랜잭션이 지연된다
+- 타임아웃 처리가 필요하다
+
+### 분산 트랜잭션의 해결 방향
+
+"원자성"을 시스템 전체에서 만들려는 시도는 대부분 비용이 크다. 운영에서는 "일관성은 늦게 맞춘다"를 전제로, 실패와 지연을 관리한다.
+
+**해결 접근:**
+- 완벽한 원자성 대신 최종 일관성(Eventual Consistency)을 목표로 한다
+- 부분 성공을 허용하고 보상 트랜잭션으로 복구한다
+- 상태를 저장하고 재처리 메커니즘을 만든다
+
+## 2PC/3PC의 문제점
+
+### 2PC (Two-Phase Commit)
+
+2PC는 분산 트랜잭션을 구현하는 전통적인 방법이다. 코디네이터와 여러 참여자로 구성된다.
+
+**동작 원리:**
+
+**Phase 1: Prepare (준비 단계)**
+1. 코디네이터가 모든 참여자에게 "준비하라"는 요청을 보낸다
+2. 각 참여자는 작업을 수행하고 커밋 가능 여부를 확인한다
+3. 참여자는 "준비 완료" 또는 "준비 실패"를 응답한다
+
+**Phase 2: Commit (커밋 단계)**
+1. 모든 참여자가 "준비 완료"를 응답하면 코디네이터가 "커밋하라"고 지시한다
+2. 하나라도 "준비 실패"를 응답하면 코디네이터가 "롤백하라"고 지시한다
+3. 참여자는 지시에 따라 커밋 또는 롤백을 수행한다
+
+**2PC의 문제점:**
+
+**1. 블로킹 문제:**
+- 코디네이터가 장애가 나면 참여자가 "준비 상태"로 묶인다
+- 코디네이터가 복구될 때까지 참여자는 대기 상태로 남는다
+- 리소스가 오래 묶인다
+
+**2. 네트워크 분할:**
+- 네트워크가 분할되면 처리가 멈출 수 있다
+- 코디네이터와 참여자 간 통신이 끊기면 진행이 불가능하다
+
+**3. 실패 지점 증가:**
+- 참여 서비스가 늘어날수록 실패 지점이 늘어난다
+- 하나의 참여자가 실패해도 전체가 롤백된다
+
+**4. 성능 문제:**
+- 모든 참여자의 응답을 기다려야 한다
+- 느린 참여자가 있으면 전체가 지연된다
+
+### 3PC (Three-Phase Commit)
+
+3PC는 2PC의 블로킹 문제를 줄이려는 시도다. Pre-commit 단계를 추가한다.
+
+**동작 원리:**
+
+**Phase 1: CanCommit**
+- 코디네이터가 참여자에게 커밋 가능 여부를 확인한다
+
+**Phase 2: PreCommit**
+- 모든 참여자가 가능하면 PreCommit을 보낸다
+- 참여자는 이 시점에 커밋할 준비를 한다
+
+**Phase 3: DoCommit**
+- 코디네이터가 최종 커밋을 지시한다
+
+**3PC의 문제점:**
+- 구현과 운영 복잡도가 더 커진다
+- 네트워크 분할 문제는 여전히 남는다
+- 현장에서는 Saga로 "부분 성공을 관리"하는 쪽이 더 현실적이다
+
+## Saga 패턴 개요
+
+### Saga 패턴이란
+
+Saga는 긴 트랜잭션을 단계로 쪼개고, 각 단계의 실패를 보상 단계로 되돌리는 패턴이다.
+
+**핵심 개념:**
+- 각 단계는 로컬 트랜잭션으로 끝난다
+- 단계 사이 연결은 메시지(이벤트)로 이어진다
+- 실패는 보상 트랜잭션으로 수습한다
+
+**Saga의 특징:**
+- 완벽한 원자성을 보장하지 않는다
+- 최종 일관성을 목표로 한다
+- 부분 성공을 허용하고 보상으로 복구한다
+
+**Saga를 넣는다고 자동으로 안정해지지 않는다:**
+운영에서 문제 되는 지점은 "상태가 어디에 남는가", "재시도 시 어디서 재개하는가"다.
+
+### Saga 패턴의 두 가지 구현 방식
+
+**Choreography Saga:**
+- 중앙 오케스트레이터 없이 각 서비스가 이벤트를 구독하고 발행한다
+- 서비스 간 느슨한 결합
+- 복잡한 흐름에서는 추적이 어렵다
+
+**Orchestration Saga:**
+- 중앙 오케스트레이터가 단계를 관리한다
+- 상태 추적이 쉽다
+- 오케스트레이터가 병목이 될 수 있다
+
+---
+
+## Choreography Saga
+
+### 형태
+
+중앙 오케스트레이터 없이 각 서비스가 이벤트를 구독하고 다음 이벤트를 발행한다.
+
+**주문 처리 예시:**
+
+**1. 주문 서비스:**
+- 주문을 생성한다
+- `OrderCreated` 이벤트를 발행한다
+- 이벤트에 주문 ID, 사용자 ID, 주문 항목 정보를 포함한다
+
+**2. 결제 서비스:**
+- `OrderCreated` 이벤트를 수신한다
+- 결제를 처리한다
+- 성공 시 `PaymentCompleted` 이벤트를 발행한다
+- 실패 시 `PaymentFailed` 이벤트를 발행한다
+
+**3. 재고 서비스:**
+- `PaymentCompleted` 이벤트를 수신한다
+- 재고를 예약한다
+- 성공 시 `InventoryReserved` 이벤트를 발행한다
+- 실패 시 `InventoryFailed` 이벤트를 발행한다
+
+**4. 배송 서비스:**
+- `InventoryReserved` 이벤트를 수신한다
+- 배송을 생성한다
+- 성공 시 `ShippingCreated` 이벤트를 발행한다
+- 실패 시 `ShippingFailed` 이벤트를 발행한다
+
+**이벤트 흐름:**
+```
+OrderCreated → PaymentCompleted → InventoryReserved → ShippingCreated
+                ↓ (실패 시)
+            PaymentFailed → (보상 이벤트 발행)
+```
+
+### 장점
+
+**서비스 간 느슨한 결합:**
+- 서비스가 이벤트만 발행하고 구독한다
+- 서비스 간 직접적인 의존성이 없다
+- 서비스를 독립적으로 배포하고 확장할 수 있다
+
+**중앙 장애 지점 없음:**
+- 오케스트레이터가 없어 단일 장애 지점이 없다
+- 한 서비스가 장애가 나도 다른 서비스는 계속 동작한다
+
+**구조의 단순함:**
+- 특정 단계가 늘어도 구조가 단순하게 보일 때가 있다
+- 각 서비스가 자신의 책임만 수행한다
+
+### 운영에서 자주 터지는 문제
+
+**1. 진행 상태 추적의 어려움:**
+이벤트 흐름이 커지면 "누가 전체 진행을 책임지는지"가 사라진다. 장애 대응 때 가장 먼저 나오는 질문이 "이 주문 지금 어디까지 갔냐"다. 이 답을 낼 수 있는 곳이 없다.
+
+**문제 시나리오:**
+- 주문이 생성되었지만 결제가 완료되었는지 확인하기 어렵다
+- 재고 예약이 되었는지 확인하려면 여러 서비스의 로그를 봐야 한다
+- 어느 단계에서 실패했는지 파악하기 어렵다
+
+**2. 스키마 변경 시 배포 순서 문제:**
+스키마 변경 시 배포 순서가 꼬이면 소비자가 죽는다. 이벤트를 "서버 간 API"처럼 쓰는 순간부터 배포 순서 사고가 난다.
+
+**문제 시나리오:**
+- 새 이벤트 형식을 발행하는 서비스를 먼저 배포한다
+- 이전 형식을 기대하는 소비자가 새 형식을 받으면 파싱 실패한다
+- 소비자가 죽고 메시지가 쌓인다
+
+**3. 보상 복구의 어려움:**
+보상이 여러 서비스에 흩어져서 실패 복구가 어렵다. 결제 취소는 됐는데 재고 복구가 안 됐다 같은 상태가 남는다.
+
+**문제 시나리오:**
+- 결제 서비스가 `PaymentCancelled` 이벤트를 발행한다
+- 재고 서비스가 이벤트를 받아 재고를 복구한다
+- 재고 서비스가 장애가 나면 재고 복구가 안 된다
+- 수동으로 재고를 복구해야 한다
+
+### Choreography를 유지하려면
+
+**이벤트 기반 상태 조회:**
+- 이벤트 기준으로 "단계 상태"를 조회할 수 있어야 한다
+- 이벤트 스토어를 만들어 이벤트를 저장하고 조회한다
+- 주문 ID로 관련 이벤트를 모두 조회할 수 있어야 한다
+
+**이벤트 버전 관리:**
+- 이벤트 버전과 하위 호환 처리가 들어가야 한다
+- 새 버전 이벤트를 발행해도 이전 버전 소비자가 처리할 수 있어야 한다
+- 버전이 올라가면 이전 버전 필드를 유지하거나 변환 로직을 추가한다
+
+**보상 이벤트 관측:**
+- 보상 이벤트도 정상 이벤트처럼 관측되어야 한다
+- 보상 이벤트가 발행되었는지, 처리되었는지 확인할 수 있어야 한다
+
+**운영 현실:**
+운영 현실에서는 결국 "진행 상태 조회를 위한 별도 저장소"가 필요해지는 경우가 많다. 이벤트 스토어나 상태 저장소를 만들어야 한다.
+
+### Spring Cloud Stream + Kafka 기반 Choreography Saga 구현
+
+실제 Choreography Saga를 Spring Cloud Stream과 Kafka로 구현하면 아래와 같다. 주문-결제-재고 흐름을 예제로 잡는다.
+
+**의존성 (build.gradle):**
+
+```groovy
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.cloud:spring-cloud-stream'
+    implementation 'org.springframework.cloud:spring-cloud-stream-binder-kafka'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+}
+```
+
+**이벤트 클래스:**
+
+```java
+// 공통 이벤트 헤더
+public record SagaEventHeader(
+    String sagaId,
+    String correlationId,
+    String businessKey,
+    LocalDateTime timestamp
+) {}
+
+// 주문 생성 이벤트
+public record OrderCreatedEvent(
+    SagaEventHeader header,
+    String orderId,
+    String userId,
+    List<OrderItem> items,
+    BigDecimal totalAmount
+) {}
+
+// 결제 완료/실패 이벤트
+public record PaymentCompletedEvent(
+    SagaEventHeader header,
+    String paymentId,
+    String orderId,
+    BigDecimal amount
+) {}
+
+public record PaymentFailedEvent(
+    SagaEventHeader header,
+    String orderId,
+    String reason
+) {}
+
+// 재고 예약 완료/실패 이벤트
+public record InventoryReservedEvent(
+    SagaEventHeader header,
+    String orderId,
+    List<String> reservedItemIds
+) {}
+
+public record InventoryFailedEvent(
+    SagaEventHeader header,
+    String orderId,
+    String reason
+) {}
+```
+
+**주문 서비스 — 이벤트 발행:**
+
+```java
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+    private final StreamBridge streamBridge;
+
+    @Transactional
+    public Order createOrder(CreateOrderRequest request) {
+        Order order = Order.create(request);
+        orderRepository.save(order);
+
+        // Outbox 대신 직접 발행하는 구조.
+        // 운영에서는 Outbox 패턴을 써야 한다. 여기서는 흐름 이해용.
+        OrderCreatedEvent event = new OrderCreatedEvent(
+            new SagaEventHeader(
+                UUID.randomUUID().toString(),
+                request.correlationId(),
+                order.getId(),
+                LocalDateTime.now()
+            ),
+            order.getId(),
+            request.userId(),
+            order.getItems(),
+            order.getTotalAmount()
+        );
+
+        streamBridge.send("order-events-out-0", event);
+        return order;
+    }
+
+    // 결제 실패 시 보상: 주문 취소
+    @Transactional
+    public void cancelOrder(String orderId) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new IllegalStateException("주문 없음: " + orderId));
+        order.cancel();
+        orderRepository.save(order);
+    }
+}
+```
+
+**결제 서비스 — 이벤트 소비 및 발행:**
+
+```java
+@Configuration
+public class PaymentEventHandler {
+
+    @Bean
+    public Consumer<OrderCreatedEvent> processPayment(
+            PaymentService paymentService,
+            StreamBridge streamBridge
+    ) {
+        return event -> {
+            try {
+                Payment payment = paymentService.processPayment(
+                    event.orderId(),
+                    event.userId(),
+                    event.totalAmount()
+                );
+
+                streamBridge.send("payment-events-out-0",
+                    new PaymentCompletedEvent(
+                        event.header(),
+                        payment.getId(),
+                        event.orderId(),
+                        event.totalAmount()
+                    )
+                );
+            } catch (PaymentException e) {
+                streamBridge.send("payment-events-out-0",
+                    new PaymentFailedEvent(
+                        event.header(),
+                        event.orderId(),
+                        e.getMessage()
+                    )
+                );
+            }
+        };
+    }
+}
+```
+
+**재고 서비스 — 이벤트 소비 및 보상:**
+
+```java
+@Configuration
+public class InventoryEventHandler {
+
+    @Bean
+    public Consumer<PaymentCompletedEvent> reserveInventory(
+            InventoryService inventoryService,
+            StreamBridge streamBridge
+    ) {
+        return event -> {
+            try {
+                List<String> reservedIds = inventoryService
+                    .reserve(event.orderId());
+
+                streamBridge.send("inventory-events-out-0",
+                    new InventoryReservedEvent(
+                        event.header(),
+                        event.orderId(),
+                        reservedIds
+                    )
+                );
+            } catch (InsufficientStockException e) {
+                // 재고 부족 → 결제 취소 보상 이벤트 발행
+                streamBridge.send("inventory-events-out-0",
+                    new InventoryFailedEvent(
+                        event.header(),
+                        event.orderId(),
+                        e.getMessage()
+                    )
+                );
+            }
+        };
+    }
+}
+```
+
+**보상 이벤트 핸들러 (결제 서비스):**
+
+재고 실패 시 결제를 취소하는 보상 로직이다.
+
+```java
+@Configuration
+public class PaymentCompensationHandler {
+
+    @Bean
+    public Consumer<InventoryFailedEvent> compensatePayment(
+            PaymentService paymentService
+    ) {
+        return event -> {
+            // 멱등성 보장: 이미 취소된 결제는 건너뛴다
+            paymentService.cancelPayment(event.orderId());
+        };
+    }
+}
+```
+
+**application.yml 설정:**
+
+```yaml
+spring:
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+      bindings:
+        # 주문 서비스 출력
+        order-events-out-0:
+          destination: order-events
+          content-type: application/json
+        # 결제 서비스 입력 (주문 이벤트 구독)
+        processPayment-in-0:
+          destination: order-events
+          group: payment-service
+          content-type: application/json
+        # 결제 서비스 출력
+        payment-events-out-0:
+          destination: payment-events
+          content-type: application/json
+        # 재고 서비스 입력 (결제 이벤트 구독)
+        reserveInventory-in-0:
+          destination: payment-events
+          group: inventory-service
+          content-type: application/json
+        # 재고 서비스 출력
+        inventory-events-out-0:
+          destination: inventory-events
+          content-type: application/json
+        # 결제 보상 입력 (재고 실패 이벤트 구독)
+        compensatePayment-in-0:
+          destination: inventory-events
+          group: payment-compensation
+          content-type: application/json
+      # DLQ 설정 — 3번 재시도 후 DLQ로 보낸다
+      kafka:
+        bindings:
+          processPayment-in-0:
+            consumer:
+              enableDlq: true
+              dlqName: payment-events-dlq
+              autoCommitOnError: false
+          reserveInventory-in-0:
+            consumer:
+              enableDlq: true
+              dlqName: inventory-events-dlq
+              autoCommitOnError: false
+    function:
+      definition: processPayment;reserveInventory;compensatePayment
+```
+
+**운영 시 주의사항:**
+
+- consumer group을 서비스별로 고정해야 한다. 안 그러면 재배포 시 오프셋이 꼬인다.
+- `enableDlq: true`로 재시도 실패 메시지를 DLQ에 넣는다. DLQ 모니터링은 필수다.
+- 이 예제는 Outbox 패턴 없이 직접 발행한다. 프로덕션에서는 DB 저장과 이벤트 발행이 분리되어 유실 가능성이 있으니 Outbox를 써야 한다.
+- 이벤트 타입별로 토픽을 분리하는 편이 관리하기 낫다. 한 토픽에 여러 이벤트를 넣으면 소비자 필터링이 복잡해진다.
+
+---
+
+## Orchestration Saga
+
+### 형태
+
+오케스트레이터가 단계를 호출(메시지로 명령을 내리거나 동기 호출)하고, 결과를 보고 다음 단계로 진행한다.
+
+**오케스트레이터의 역할:**
+
+**1. 상태 관리:**
+- 현재 단계가 무엇인지 저장한다
+- 사가의 전체 상태를 추적한다
+- 각 단계의 성공/실패를 기록한다
+
+**2. 단계 실행:**
+- 다음 단계 실행 요청을 보낸다
+- 명령 메시지를 발행하거나 동기 호출을 한다
+- 결과를 기다린다
+
+**3. 실패 처리:**
+- 실패 시 보상 단계를 실행한다
+- 보상 순서를 관리한다
+- 재시도/타임아웃/중단 상태를 관리한다
+
+**주문 처리 예시:**
+
+**1. 주문 생성:**
+- 주문 서비스가 주문을 생성한다
+- 오케스트레이터에 사가 시작을 알린다
+
+**2. 결제 처리:**
+- 오케스트레이터가 결제 서비스에 결제 요청을 보낸다
+- 결제 서비스가 처리하고 결과를 반환한다
+- 성공 시 다음 단계로 진행, 실패 시 보상 시작
+
+**3. 재고 예약:**
+- 오케스트레이터가 재고 서비스에 예약 요청을 보낸다
+- 재고 서비스가 처리하고 결과를 반환한다
+- 성공 시 다음 단계로 진행, 실패 시 보상 시작
+
+**4. 배송 생성:**
+- 오케스트레이터가 배송 서비스에 생성 요청을 보낸다
+- 배송 서비스가 처리하고 결과를 반환한다
+- 성공 시 사가 완료, 실패 시 보상 시작
+
+### 장점
+
+**상태 추적의 용이성:**
+- "현재 어디까지 진행됐는지"를 한 곳에서 볼 수 있다
+- 사가 상태를 DB에 저장해 조회할 수 있다
+- 장애 대응이 빠르다
+
+**보상 순서의 고정:**
+- 실패 시 보상 호출 순서가 고정된다
+- 오케스트레이터가 보상 순서를 관리한다
+- 보상 실패 시 재시도도 관리한다
+
+**운영 대응의 빠름:**
+- 재처리도 통제 가능하다
+- 특정 사가를 수동으로 재시도할 수 있다
+- 보상이 필요한 사가를 찾아 처리할 수 있다
+
+### 운영에서 자주 터지는 문제
+
+**1. 오케스트레이터 병목:**
+트래픽이 커지면 오케스트레이터 DB가 먼저 터진다. 상태 저장이 잦기 때문이다.
+
+**문제 시나리오:**
+- 각 단계마다 상태를 저장한다
+- 트래픽이 많으면 DB 쓰기 부하가 크다
+- 오케스트레이터 DB가 병목이 된다
+
+**해결 방법:**
+- 상태 저장을 최적화한다
+- 비동기로 상태를 저장한다
+- 오케스트레이터를 수평 확장한다
+
+**2. 멈춘 사가:**
+오케스트레이터 장애 시 "멈춘 사가"가 생긴다. 사가 상태가 저장돼 있어도 워커가 다시 돌릴 수 있어야 한다.
+
+**문제 시나리오:**
+- 오케스트레이터가 단계 요청을 보냈다
+- 워커가 처리 중 오케스트레이터가 장애가 난다
+- 사가는 "진행 중" 상태로 남는다
+- 워커가 완료해도 오케스트레이터가 결과를 받지 못한다
+
+**해결 방법:**
+- 주기적으로 멈춘 사가를 찾아 재시도한다
+- 타임아웃을 설정해 자동으로 재시도한다
+- 워커가 결과를 이벤트로 발행해 오케스트레이터가 구독한다
+
+**3. 장애 전파:**
+오케스트레이터가 동기 호출을 섞기 시작하면 장애 전파가 되살아난다. 결제/재고/배송을 HTTP로 직렬 호출하면 다시 모놀리식처럼 터진다.
+
+**문제 시나리오:**
+- 오케스트레이터가 결제 서비스를 동기 호출한다
+- 결제 서비스가 느려지면 오케스트레이터도 느려진다
+- 오케스트레이터가 블로킹되어 다른 사가도 처리하지 못한다
+
+**해결 방법:**
+- 동기 호출을 피하고 메시지로 통신한다
+- 타임아웃을 짧게 설정한다
+- 비동기로 처리하고 결과를 이벤트로 받는다
+
+### 운영에서 많이 쓰는 타협
+
+**비동기 메시지 기반 오케스트레이션:**
+
+**1. 상태 저장과 명령 발행:**
+- 오케스트레이터는 상태 저장과 명령 발행만 한다
+- 실제 실행은 큐 소비자가 한다
+- 오케스트레이터는 블로킹되지 않는다
+
+**2. 결과 이벤트 수신:**
+- 결과는 이벤트로 돌아온다
+- 오케스트레이터는 결과 이벤트를 구독한다
+- 결과를 받아 상태를 전진시킨다
+
+**3. 장애 격리:**
+- 워커가 장애가 나도 오케스트레이터는 영향받지 않는다
+- 워커가 복구되면 메시지를 다시 처리한다
+- 오케스트레이터는 결과만 기다린다
+
+**예시:**
+```
+오케스트레이터 → 명령 메시지 발행 → 큐 → 워커 처리 → 결과 이벤트 발행 → 오케스트레이터 구독 → 상태 업데이트
+```
+
+### Axon Framework 기반 Orchestration Saga 구현
+
+Axon Framework는 CQRS와 Event Sourcing을 기본 지원하고, Saga를 1급 시민으로 다룬다. 오케스트레이터 코드를 직접 작성하지 않아도 `@Saga` 어노테이션 하나로 상태 관리, 보상 순서, 재시도를 프레임워크가 처리한다.
+
+**의존성 (build.gradle):**
+
+```groovy
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.axonframework:axon-spring-boot-starter:4.9.3'
+    // Axon Server 없이 쓰려면 아래 추가
+    // implementation 'org.axonframework.extensions.kafka:axon-kafka-spring-boot-starter:4.9.0'
+}
+```
+
+**명령(Command)과 이벤트 정의:**
+
+```java
+// 명령
+public record CreateOrderCommand(
+    @TargetAggregateIdentifier String orderId,
+    String userId,
+    List<OrderItem> items,
+    BigDecimal totalAmount
+) {}
+
+public record ProcessPaymentCommand(
+    @TargetAggregateIdentifier String paymentId,
+    String orderId,
+    BigDecimal amount
+) {}
+
+public record CancelPaymentCommand(
+    @TargetAggregateIdentifier String paymentId,
+    String orderId
+) {}
+
+public record ReserveInventoryCommand(
+    @TargetAggregateIdentifier String inventoryId,
+    String orderId,
+    List<OrderItem> items
+) {}
+
+public record ReleaseInventoryCommand(
+    @TargetAggregateIdentifier String inventoryId,
+    String orderId
+) {}
+
+// 이벤트
+public record OrderCreatedEvent(String orderId, String userId,
+    List<OrderItem> items, BigDecimal totalAmount) {}
+
+public record PaymentProcessedEvent(String paymentId, String orderId) {}
+public record PaymentFailedEvent(String orderId, String reason) {}
+public record PaymentCancelledEvent(String paymentId, String orderId) {}
+
+public record InventoryReservedEvent(String orderId) {}
+public record InventoryFailedEvent(String orderId, String reason) {}
+public record InventoryReleasedEvent(String orderId) {}
+```
+
+**주문 Aggregate:**
+
+```java
+@Aggregate
+public class OrderAggregate {
+
+    @AggregateIdentifier
+    private String orderId;
+    private OrderStatus status;
+
+    @CommandHandler
+    public OrderAggregate(CreateOrderCommand cmd) {
+        AggregateLifecycle.apply(new OrderCreatedEvent(
+            cmd.orderId(), cmd.userId(), cmd.items(), cmd.totalAmount()
+        ));
+    }
+
+    @EventSourcingHandler
+    public void on(OrderCreatedEvent event) {
+        this.orderId = event.orderId();
+        this.status = OrderStatus.CREATED;
+    }
+
+    protected OrderAggregate() {} // Axon 필수
+}
+```
+
+**Saga 오케스트레이터:**
+
+이 클래스가 핵심이다. `@Saga`로 선언하면 Axon이 상태를 자동으로 직렬화해서 DB에 저장한다. 서버가 죽어도 복구 시 이어서 진행한다.
+
+```java
+@Saga
+public class OrderSaga {
+
+    private transient CommandGateway commandGateway;
+
+    private String orderId;
+    private String paymentId;
+    private String inventoryId;
+
+    @Autowired
+    public void setCommandGateway(CommandGateway commandGateway) {
+        this.commandGateway = commandGateway;
+    }
+
+    // 1단계: 주문 생성 → 결제 요청
+    @StartSaga
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(OrderCreatedEvent event) {
+        this.orderId = event.orderId();
+        this.paymentId = UUID.randomUUID().toString();
+
+        // 결제 명령 발행. 실패 시 보상 시작.
+        commandGateway.send(new ProcessPaymentCommand(
+            paymentId, orderId, event.totalAmount()
+        )).exceptionally(ex -> {
+            // 결제 명령 자체가 실패하면 사가 종료
+            SagaLifecycle.end();
+            return null;
+        });
+    }
+
+    // 2단계: 결제 성공 → 재고 예약 요청
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(PaymentProcessedEvent event) {
+        this.inventoryId = UUID.randomUUID().toString();
+
+        commandGateway.send(new ReserveInventoryCommand(
+            inventoryId, orderId, List.of() // 실제로는 주문 항목 전달
+        ));
+    }
+
+    // 결제 실패 → 사가 종료 (보상할 것 없음)
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(PaymentFailedEvent event) {
+        // 주문 상태를 FAILED로 변경하는 명령을 보낼 수 있다
+        SagaLifecycle.end();
+    }
+
+    // 3단계: 재고 예약 성공 → 사가 완료
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(InventoryReservedEvent event) {
+        // 다음 단계(배송 등)를 이어갈 수 있다
+        SagaLifecycle.end();
+    }
+
+    // 재고 실패 → 결제 취소 보상
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(InventoryFailedEvent event) {
+        commandGateway.send(new CancelPaymentCommand(paymentId, orderId));
+    }
+
+    // 결제 취소 완료 → 사가 종료
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(PaymentCancelledEvent event) {
+        SagaLifecycle.end();
+    }
+}
+```
+
+**Saga 데드라인 (타임아웃) 설정:**
+
+Axon의 `DeadlineManager`를 쓰면 특정 단계가 응답을 안 줄 때 자동으로 보상을 시작한다.
+
+```java
+@Saga
+public class OrderSagaWithDeadline {
+
+    private transient CommandGateway commandGateway;
+    private transient DeadlineManager deadlineManager;
+
+    private String orderId;
+    private String paymentId;
+    private String paymentDeadlineId;
+
+    private static final String PAYMENT_TIMEOUT = "payment-timeout";
+
+    @Autowired
+    public void setDependencies(CommandGateway commandGateway,
+                                 DeadlineManager deadlineManager) {
+        this.commandGateway = commandGateway;
+        this.deadlineManager = deadlineManager;
+    }
+
+    @StartSaga
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(OrderCreatedEvent event) {
+        this.orderId = event.orderId();
+        this.paymentId = UUID.randomUUID().toString();
+
+        // 30초 타임아웃 설정
+        paymentDeadlineId = deadlineManager.schedule(
+            Duration.ofSeconds(30), PAYMENT_TIMEOUT
+        );
+
+        commandGateway.send(new ProcessPaymentCommand(
+            paymentId, orderId, event.totalAmount()
+        ));
+    }
+
+    @SagaEventHandler(associationProperty = "orderId")
+    public void handle(PaymentProcessedEvent event) {
+        // 정상 응답이 왔으니 데드라인 취소
+        deadlineManager.cancelSchedule(PAYMENT_TIMEOUT, paymentDeadlineId);
+        // 다음 단계 진행...
+    }
+
+    @DeadlineHandler(deadlineName = PAYMENT_TIMEOUT)
+    public void onPaymentTimeout() {
+        // 30초 동안 결제 응답이 없으면 여기로 온다
+        // 보상 로직 또는 재시도 판단
+        SagaLifecycle.end();
+    }
+}
+```
+
+**Axon 설정 (application.yml):**
+
+```yaml
+axon:
+  axonserver:
+    # Axon Server 사용 시
+    servers: localhost:8124
+  serializer:
+    general: jackson
+    messages: jackson
+    events: jackson
+  saga:
+    # Saga 상태 저장소 — JPA 기본
+    # saga_entry, association_value_entry 테이블이 자동 생성된다
+    jpa:
+      enabled: true
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  datasource:
+    url: jdbc:postgresql://localhost:5432/saga_db
+```
+
+**Axon 없이 직접 구현할 때와 비교:**
+
+Axon을 안 쓰면 아래를 직접 만들어야 한다:
+- Saga 상태 직렬화/역직렬화
+- Saga 인스턴스 조회 (association 기반)
+- 데드라인 스케줄링
+- 이벤트 핸들러 라우팅
+- 보상 순서 관리
+
+서비스가 3~4개 수준이면 직접 만들어도 된다. 서비스가 10개 이상으로 늘어나면 Axon이나 Temporal 같은 프레임워크 없이는 상태 관리가 감당이 안 된다.
+
+**Temporal을 쓰는 경우:**
+
+Temporal은 Axon과 접근이 다르다. Saga를 "워크플로우 함수"로 정의하고, Temporal 서버가 상태를 관리한다. Java SDK로 쓰면 이렇게 된다:
+
+```java
+@WorkflowInterface
+public interface OrderWorkflow {
+    @WorkflowMethod
+    void processOrder(String orderId, BigDecimal amount);
+}
+
+@ActivityInterface
+public interface PaymentActivity {
+    void processPayment(String orderId, BigDecimal amount);
+    void cancelPayment(String orderId);
+}
+
+@ActivityInterface
+public interface InventoryActivity {
+    void reserveInventory(String orderId);
+    void releaseInventory(String orderId);
+}
+```
+
+```java
+public class OrderWorkflowImpl implements OrderWorkflow {
+
+    private final PaymentActivity paymentActivity = Workflow.newActivityStub(
+        PaymentActivity.class,
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofSeconds(30))
+            .setRetryOptions(RetryOptions.newBuilder()
+                .setMaximumAttempts(3)
+                .build())
+            .build()
+    );
+
+    private final InventoryActivity inventoryActivity = Workflow.newActivityStub(
+        InventoryActivity.class,
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofSeconds(30))
+            .build()
+    );
+
+    @Override
+    public void processOrder(String orderId, BigDecimal amount) {
+        // Saga 본체: 순서대로 실행, 실패 시 보상
+        Saga saga = new Saga(new Saga.Options.Builder().build());
+
+        try {
+            paymentActivity.processPayment(orderId, amount);
+            // 보상 함수 등록 — 나중에 실패하면 역순으로 실행된다
+            saga.addCompensation(
+                paymentActivity::cancelPayment, orderId
+            );
+
+            inventoryActivity.reserveInventory(orderId);
+            saga.addCompensation(
+                inventoryActivity::releaseInventory, orderId
+            );
+
+        } catch (ActivityFailure e) {
+            // 실패 시 등록된 보상을 역순으로 실행
+            saga.compensate();
+            throw e;
+        }
+    }
+}
+```
+
+Temporal의 장점은 워크플로우 코드가 일반 Java처럼 보인다는 것이다. `try-catch`로 보상을 처리하니 코드 가독성이 높다. 단점은 Temporal 서버를 별도로 운영해야 한다는 것이다.
+
+---
+
+## 보상 트랜잭션
+
+### 보상 트랜잭션이란
+
+보상은 "되돌리기"가 아니라 "상태를 수습하기"다. 완벽하게 롤백이 안 되는 단계가 많다.
+
+**보상의 목적:**
+- 이미 성공한 단계를 되돌린다
+- 데이터 정합성을 복구한다
+- 사용자에게 영향을 최소화한다
+
+**보상 가능 여부:**
+
+**보상 가능한 작업:**
+- 결제 승인: 취소/환불로 수습 가능
+- 재고 예약: 해제로 수습 가능
+- 포인트 적립: 회수로 수습 가능 (일부는 불가능할 수 있음)
+
+**보상이 어려운 작업:**
+- 배송 생성: 취소 가능하지만 이미 출고되면 취소가 의미 없다
+- 이메일 발송: 이미 발송된 이메일은 취소할 수 없다
+- 외부 API 호출: 일부는 취소 가능하지만 일부는 불가능하다
+
+### 보상 설계의 중요 포인트
+
+**1. 보상 가능 기간**
+
+결제 취소는 "승인 후 N분" 제약이 있는 경우가 많다. 배송 취소는 출고 상태에 따라 갈린다.
+
+**예시:**
+- 결제 취소: 승인 후 30분 이내만 가능
+- 배송 취소: 출고 전까지만 가능
+- 재고 해제: 언제든지 가능
+
+**보상 불가능 시:**
+보상 가능 기간이 지나면 "인간 개입 프로세스"가 필요하다. 이걸 정의하지 않으면 장애 대응이 끝나지 않는다.
+
+**인간 개입 프로세스:**
+- 관리자 화면에서 수동으로 처리한다
+- 고객 서비스에 알림을 보낸다
+- 별도 워크플로우로 처리한다
+
+**2. 보상 순서**
+
+보상은 성공한 단계의 역순이 기본이다. 실무에서는 역순이 깨지는 케이스가 있다.
+
+**기본 순서 (역순):**
+1. 배송 취소
+2. 재고 해제
+3. 결제 취소
+
+**실무에서 깨지는 케이스:**
+- 재고 해제보다 결제 취소를 먼저 해야 하는 정책
+- 배송 취소가 안 되면 결제 환불을 막아야 하는 정책
+- 포인트 회수 전에 결제 취소를 해야 하는 정책
+
+**보상 순서의 중요성:**
+보상 순서는 비즈니스 정책으로 고정돼야 한다. 운영 중에 바꾸면 기존 사가와 충돌한다.
+
+**예시:**
+- 주문 취소 정책이 변경되어 보상 순서가 바뀐다
+- 기존에 진행 중인 사가는 이전 순서로 보상을 시도한다
+- 새 사가는 새 순서로 보상을 시도한다
+- 충돌이 발생할 수 있다
+
+**3. 보상의 멱등성**
+
+보상 이벤트도 중복이 생긴다. 보상 로직도 멱등하지 않으면 "보상 때문에" 사고가 난다.
+
+**중복 발생 원인:**
+- 보상 이벤트가 여러 번 전달된다
+- 보상 재시도로 중복 실행된다
+- 네트워크 문제로 중복 전달된다
+
+**멱등성 보장 방법:**
+- 보상 ID를 사용해 중복 실행을 방지한다
+- 보상 상태를 저장해 이미 실행된 보상은 건너뛴다
+- DB 유니크 제약으로 중복 실행을 막는다
+
+**보상 실패 처리:**
+- 보상이 실패하면 재시도한다
+- 재시도 횟수를 제한한다
+- 최종 실패 시 인간 개입이 필요하다
+
+### 보상 트랜잭션 구현
+
+**보상 명령 발행:**
+- 오케스트레이터가 보상 명령을 발행한다
+- 각 서비스가 보상 명령을 받아 처리한다
+- 보상 결과를 이벤트로 발행한다
+
+**보상 상태 추적:**
+- 각 보상 단계의 성공/실패를 기록한다
+- 보상이 완료되었는지 추적한다
+- 보상 실패 시 재시도한다
+
+**예시:**
+```
+주문 취소 요청 → 결제 취소 명령 → 결제 취소 완료 이벤트
+              → 재고 해제 명령 → 재고 해제 완료 이벤트
+              → 배송 취소 명령 → 배송 취소 완료 이벤트
+              → 사가 완료
+```
+
+---
+
+## 상태 저장과 재처리
+
+### 상태 저장의 중요성
+
+사가가 운영 가능한지 여부는 "상태 저장"에서 결정된다. 상태가 없으면 장애 대응이 불가능하다.
+
+**상태가 없는 사가가 만드는 사고:**
+
+**1. 이벤트는 흘렀는데 소비자가 죽은 경우:**
+- 이벤트는 발행되었지만 소비자가 처리하지 못했다
+- 어느 단계까지 진행되었는지 알 수 없다
+- 재처리할지 말지 판단할 수 없다
+
+**2. 중간 단계가 실패한 경우:**
+- 어느 단계에서 실패했는지 알 수 없다
+- 보상을 어디서부터 시작해야 할지 모른다
+- 수동으로 로그를 확인해야 한다
+
+**3. 수동 재처리가 필요한 경우:**
+- 장애 복구 후 재처리가 필요하다
+- 어떤 사가를 재처리해야 할지 모른다
+- 로그를 보고 추측해야 한다
+
+**상태 저장이 없으면:**
+이때 상태 저장이 없으면 결국 로그를 보고 추측한다. 운영에서 가장 위험한 형태다.
+
+### 상태 저장 스키마
+
+**필수 필드:**
+
+**식별자:**
+- `saga_id`: 사가의 고유 식별자
+- `business_key`: 비즈니스 키 (order_id 같은 값)
+- `saga_type`: 사가 타입 (주문 생성, 주문 취소 등)
+
+**진행 상태:**
+- `current_step`: 현재 진행 중인 단계
+- `status`: 사가 상태 (RUNNING/COMPLETED/FAILED/COMPENSATING/STOPPED)
+- `step_history`: 단계별 결과 기록 (JSON 또는 별도 테이블)
+
+**타임스탬프:**
+- `started_at`: 사가 시작 시간
+- `updated_at`: 마지막 업데이트 시간
+- `completed_at`: 완료 시간 (완료된 경우)
+
+**에러 정보:**
+- `last_error`: 마지막 에러 메시지
+- `error_step`: 에러가 발생한 단계
+- `retry_count`: 재시도 횟수
+
+**추가 필드:**
+- `timeout_at`: 타임아웃 시간
+- `compensation_status`: 보상 상태
+- `metadata`: 추가 메타데이터 (JSON)
+
+**상태 저장소 선택:**
+상태 저장소는 RDB가 제일 단순하다. 중요한 것은 "조회가 빨라야 한다"다. 운영 대응 화면이 필요하다.
+
+**인덱스 설계:**
+- `business_key`에 인덱스: 주문 ID로 사가 조회
+- `status`에 인덱스: 상태별 사가 조회
+- `updated_at`에 인덱스: 오래된 사가 찾기
+- 복합 인덱스: `(status, updated_at)` - 상태별 오래된 사가 찾기
+
+### 재처리 방식
+
+사가 재처리는 2가지로 나뉜다. 두 경우를 구분해야 한다.
+
+**1. 같은 단계 재시도:**
+- 실패한 단계를 다시 실행한다
+- 네트워크 오류 등 일시적 실패에 사용한다
+- 재시도 횟수를 제한한다
+
+**2. 보상 단계 재시도:**
+- 보상이 실패한 경우 다시 보상을 시도한다
+- 보상 순서를 유지한다
+- 보상 실패 시 인간 개입이 필요하다
+
+**재처리 전략:**
+"실패한 메시지 재발행"으로 퉁치면 중복이 커진다. 상태를 확인하고 적절한 재처리 방식을 선택해야 한다.
+
+**재처리 프로세스:**
+1. 멈춘 사가를 찾는다 (status가 RUNNING이고 updated_at이 오래된 경우)
+2. 현재 단계를 확인한다
+3. 단계가 실패했는지 확인한다
+4. 실패한 단계를 재시도하거나 보상을 시작한다
+
+**자동 재처리:**
+- 주기적으로 멈춘 사가를 찾아 재처리한다
+- 타임아웃이 지난 사가는 자동으로 재시도한다
+- 재시도 횟수를 초과하면 수동 개입이 필요하다
+
+## Outbox 패턴
+
+### Outbox 패턴이란
+
+Outbox 패턴은 트랜잭션 내에서 데이터 변경과 이벤트 발행을 원자적으로 처리하는 패턴이다.
+
+**문제 상황:**
+- 주문을 생성하고 이벤트를 발행한다
+- 주문 생성은 성공했지만 이벤트 발행이 실패한다
+- 데이터와 이벤트가 불일치한다
+
+**Outbox 패턴의 해결:**
+- 트랜잭션 내에서 데이터 변경과 이벤트를 함께 저장한다
+- 별도 프로세스가 Outbox 테이블을 읽어 이벤트를 발행한다
+- 이벤트 발행이 실패해도 재시도할 수 있다
+
+### Outbox 패턴 구현
+
+**Outbox 테이블 구조:**
+- `id`: 이벤트 ID
+- `aggregate_id`: 집계 ID (order_id 등)
+- `event_type`: 이벤트 타입
+- `event_data`: 이벤트 데이터 (JSON)
+- `status`: 발행 상태 (PENDING/PUBLISHED/FAILED)
+- `created_at`: 생성 시간
+- `published_at`: 발행 시간
+
+**동작 과정:**
+
+**1. 트랜잭션 내 저장:**
+- 주문을 생성한다
+- 동시에 Outbox 테이블에 이벤트를 저장한다
+- 같은 트랜잭션으로 커밋한다
+
+**2. 이벤트 발행:**
+- 별도 프로세스가 Outbox 테이블을 주기적으로 확인한다
+- PENDING 상태인 이벤트를 찾는다
+- 이벤트를 메시지 큐에 발행한다
+- 발행 성공 시 상태를 PUBLISHED로 변경한다
+
+**3. 재시도:**
+- 발행 실패 시 상태를 FAILED로 변경한다
+- 재시도 프로세스가 실패한 이벤트를 다시 발행한다
+- 최대 재시도 횟수를 초과하면 수동 개입이 필요하다
+
+**장점:**
+- 트랜잭션 내에서 원자적으로 처리된다
+- 이벤트 발행 실패 시 재시도할 수 있다
+- 데이터와 이벤트의 일관성이 보장된다
+
+**주의사항:**
+- Outbox 테이블이 커지면 성능 문제가 생긴다
+- 발행된 이벤트는 주기적으로 삭제해야 한다
+- TTL을 설정해 오래된 이벤트를 자동 삭제한다
+
+---
+
+## 메시지 설계 포인트
+
+Saga는 메시지 설계가 허술하면 바로 깨진다. 메시지 구조와 내용이 중요하다.
+
+### 이벤트/명령 구분
+
+**명령(Command):**
+- "해라"에 가깝다
+- 특정 작업을 수행하도록 지시한다
+- 실패하면 재시도를 강하게 한다
+- 하나의 소비자만 처리한다
+
+**이벤트(Event):**
+- "됐다/안됐다"에 가깝다
+- 이미 발생한 사건을 알린다
+- 소비자가 여러 명일 수 있다
+- 재시도보다는 재발행이 적절하다
+
+**사용 패턴:**
+- 오케스트레이션은 명령이 많다: 오케스트레이터가 명령을 발행하고 워커가 처리한다
+- 코레오그래피는 이벤트가 많다: 서비스가 이벤트를 발행하고 다른 서비스가 구독한다
+
+**예시:**
+- 명령: `ProcessPaymentCommand`, `ReserveInventoryCommand`
+- 이벤트: `PaymentCompletedEvent`, `InventoryReservedEvent`
+
+### 상관관계 키
+
+사가 디버깅은 결국 "같은 트랜잭션 묶음"을 찾는 작업이다. 상관관계 키가 없으면 추적이 불가능하다.
+
+**필수 키:**
+
+**saga_id:**
+- 사가의 고유 식별자
+- 모든 단계와 보상에 포함된다
+- 사가 전체를 추적하는 데 사용한다
+
+**correlation_id:**
+- 요청의 상관관계 식별자
+- 같은 요청에서 나온 모든 메시지를 묶는다
+- 로그 추적에 사용한다
+
+**business_key:**
+- 비즈니스 식별자 (order_id 등)
+- 사용자가 이해할 수 있는 키
+- 운영 대응 시 사용한다
+
+**메시지 구조:**
+이 3개가 메시지에 들어가야 한다. 헤더에 포함하거나 바디에 포함할 수 있다.
+
+**예시:**
+```json
+{
+  "headers": {
+    "saga_id": "saga-123",
+    "correlation_id": "req-456",
+    "business_key": "order-789"
+  },
+  "body": {
+    "event_type": "PaymentCompleted",
+    "order_id": "order-789",
+    "amount": 10000
+  }
+}
+```
+
+### 스키마 버전
+
+이벤트 버전이 없으면 배포 순서 사고가 난다. 버전은 메시지 헤더든 바디든 한 곳에 고정해야 한다.
+
+**버전 관리의 필요성:**
+- 이벤트 스키마가 변경된다
+- 새 필드가 추가되거나 기존 필드가 변경된다
+- 소비자가 이전 버전을 기대할 수 있다
+
+**버전 관리 방법:**
+- 메시지 헤더에 버전을 포함한다
+- 바디에 버전 필드를 포함한다
+- 한 곳에 고정해 일관성을 유지한다
+
+**하위 호환성:**
+- 새 버전 이벤트를 발행해도 이전 버전 소비자가 처리할 수 있어야 한다
+- 이전 버전 필드를 유지하거나 변환 로직을 추가한다
+- 버전이 올라가면 점진적으로 마이그레이션한다
+
+**예시:**
+```json
+{
+  "version": "1.2",
+  "event_type": "PaymentCompleted",
+  "order_id": "order-789",
+  "amount": 10000,
+  "new_field": "new_value"  // 새 버전에서 추가된 필드
+}
+```
+
+### 메시지 크기 제한
+
+메시지 크기가 크면 성능 문제가 생긴다. 큰 데이터는 별도 저장소에 저장하고 참조만 전달한다.
+
+**제한 사항:**
+- 메시지 큐의 크기 제한 (예: SQS 256KB)
+- 네트워크 전송 비용
+- 처리 시간 증가
+
+**해결 방법:**
+- 큰 데이터는 S3나 DB에 저장한다
+- 메시지에는 데이터 키만 포함한다
+- 소비자가 키로 데이터를 조회한다
+
+**예시:**
+- 주문 항목이 많을 때: 주문 항목을 DB에 저장하고 주문 ID만 메시지에 포함
+- 이미지나 파일: S3에 저장하고 S3 키만 메시지에 포함
+
+---
+
+## 관측과 장애 대응
+
+### 사가 관측 메트릭
+
+사가 관측에서 봐야 하는 메트릭들이다. "큐 적체"만 보면 늦다. 사가 상태 기준으로 봐야 실제 사용자 영향 구간을 찾는다.
+
+**진행 상태 메트릭:**
+- 진행 중 사가 수: 현재 처리 중인 사가 수
+- 완료 사가 수: 성공적으로 완료된 사가 수
+- 실패 사가 수: 실패한 사가 수
+- 보상 진행 중 사가 수: 보상이 진행 중인 사가 수
+- 보상 실패 사가 수: 보상이 실패한 사가 수
+
+**성능 메트릭:**
+- 단계별 평균 소요 시간: 각 단계가 평균적으로 얼마나 걸리는지
+- 단계별 실패율: 각 단계의 실패 비율
+- 특정 단계에서 오래 멈춘 사가 수: 타임아웃에 가까운 사가 수
+
+**비즈니스 메트릭:**
+- 시간대별 사가 생성 수: 트래픽 패턴 파악
+- 사가 타입별 분포: 어떤 사가가 많은지
+- 평균 완료 시간: 사용자 경험에 영향
+
+**알람 설정:**
+- 실패 사가 수가 임계값을 초과하면 알람
+- 보상 실패 사가 수가 증가하면 알람
+- 특정 단계에서 오래 멈춘 사가가 많으면 알람
+
+### 멈춘 사가
+
+멈춘 사가는 대부분 이 패턴이다. 타임아웃 후 재발행이 필요하다.
+
+**멈춘 사가 패턴:**
+
+**1. 오케스트레이터가 단계 요청을 보냈다:**
+- 오케스트레이터가 명령 메시지를 발행했다
+- 상태가 RUNNING으로 저장되었다
+
+**2. 워커가 받았는데 처리 중 죽었다:**
+- 워커가 메시지를 받아 처리하기 시작했다
+- 처리 중 워커가 장애가 났다
+- 결과 이벤트가 발행되지 않았다
+
+**3. 결과 이벤트가 오지 않는다:**
+- 오케스트레이터가 결과를 기다리고 있다
+- 타임아웃이 지나도 결과가 오지 않는다
+- 사가는 멈춘 상태로 남는다
+
+**타임아웃 설정:**
+타임아웃 값을 정할 때 외부 의존성 최대 지연을 반영해야 한다.
+
+**타임아웃 계산:**
+- 각 단계의 평균 처리 시간 측정
+- 외부 의존성의 최대 지연 시간 확인
+- 타임아웃 = 평균 시간 × 3 또는 최대 지연 시간 × 2
+
+**예시:**
+- 결제 처리 평균 시간: 2초
+- 최대 지연 시간: 10초
+- 타임아웃: 30초 (최대 지연 시간 × 3)
+
+**자동 재처리:**
+- 타임아웃이 지나면 자동으로 재시도한다
+- 재시도 횟수를 제한한다
+- 최대 재시도 횟수를 초과하면 수동 개입이 필요하다
+
+### 운영 대응 루틴
+
+사가 운영은 결국 "분기"다. 자동화가 안 되는 구간이 남는다.
+
+**1. 현재 상태 확인:**
+- 해당 order_id/saga_id 기준 현재 단계 확인
+- 사가 상태 테이블에서 상태 조회
+- 어느 단계에서 멈췄는지 파악
+
+**2. 로그 확인:**
+- 해당 단계 워커 로그 확인
+- 에러 메시지 확인
+- 처리 시간 확인
+
+**3. 외부 의존성 확인:**
+- 외부 의존성 상태 확인
+- 결제 서비스, 재고 서비스 등 상태 확인
+- 네트워크 문제 확인
+
+**4. 재시도 가능 여부 판단:**
+- 재시도 가능한 실패인지 판단
+- 일시적 오류면 재시도
+- 영구적 오류면 보상으로 전환
+
+**5. 보상 전환 판단:**
+- 보상으로 전환할지 판단
+- 보상 가능 기간 확인
+- 보상 순서 확인
+
+**6. 수동 개입:**
+- 수동 개입이 필요한지 분기
+- 관리자 화면에서 수동 처리
+- 고객 서비스에 알림
+
+**운영 대응 화면:**
+- 사가 상태 조회 화면
+- 수동 재시도 버튼
+- 보상 시작 버튼
+- 사가 상세 정보 표시
+
+### Saga 상태 추적 테이블 구현
+
+운영에서 "이 주문 지금 어디까지 갔냐"를 답하려면 상태 추적 테이블이 필수다. 아래는 Spring Data JPA 기반 구현이다.
+
+**엔티티 정의:**
+
+```java
+@Entity
+@Table(name = "saga_instance", indexes = {
+    @Index(name = "idx_saga_business_key", columnList = "businessKey"),
+    @Index(name = "idx_saga_status", columnList = "status"),
+    @Index(name = "idx_saga_status_updated",
+           columnList = "status, updatedAt")
+})
+public class SagaInstance {
+
+    @Id
+    private String sagaId;
+
+    @Column(nullable = false)
+    private String sagaType;  // ORDER_CREATE, ORDER_CANCEL 등
+
+    @Column(nullable = false)
+    private String businessKey;  // order_id
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private SagaStatus status;
+
+    @Column(nullable = false)
+    private String currentStep;
+
+    private String lastError;
+    private String errorStep;
+    private int retryCount;
+
+    @Column(nullable = false)
+    private LocalDateTime startedAt;
+
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    private LocalDateTime completedAt;
+    private LocalDateTime timeoutAt;
+
+    @OneToMany(mappedBy = "sagaInstance", cascade = CascadeType.ALL,
+               fetch = FetchType.LAZY)
+    @OrderBy("executedAt ASC")
+    private List<SagaStepLog> stepLogs = new ArrayList<>();
+
+    // 상태 전이 메서드
+    public void advanceTo(String nextStep) {
+        this.currentStep = nextStep;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        this.status = SagaStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void fail(String step, String error) {
+        this.status = SagaStatus.FAILED;
+        this.errorStep = step;
+        this.lastError = error;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void startCompensation() {
+        this.status = SagaStatus.COMPENSATING;
+        this.updatedAt = LocalDateTime.now();
+    }
+}
+
+public enum SagaStatus {
+    RUNNING, COMPLETED, FAILED, COMPENSATING, COMPENSATION_FAILED, STOPPED
+}
+```
+
+**단계별 로그 엔티티:**
+
+```java
+@Entity
+@Table(name = "saga_step_log")
+public class SagaStepLog {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "saga_id")
+    private SagaInstance sagaInstance;
+
+    @Column(nullable = false)
+    private String stepName;
+
+    @Enumerated(EnumType.STRING)
+    private StepStatus status;  // STARTED, COMPLETED, FAILED, COMPENSATED
+
+    private String errorMessage;
+
+    @Column(nullable = false)
+    private LocalDateTime executedAt;
+
+    private LocalDateTime completedAt;
+    private long durationMs;  // 처리 시간(밀리초)
+}
+```
+
+**Saga 상태 관리 서비스:**
+
+```java
+@Service
+@RequiredArgsConstructor
+public class SagaStateService {
+
+    private final SagaInstanceRepository sagaRepository;
+    private final SagaStepLogRepository stepLogRepository;
+
+    @Transactional
+    public SagaInstance startSaga(String sagaType, String businessKey,
+                                  String firstStep, Duration timeout) {
+        SagaInstance saga = new SagaInstance();
+        saga.setSagaId(UUID.randomUUID().toString());
+        saga.setSagaType(sagaType);
+        saga.setBusinessKey(businessKey);
+        saga.setStatus(SagaStatus.RUNNING);
+        saga.setCurrentStep(firstStep);
+        saga.setStartedAt(LocalDateTime.now());
+        saga.setUpdatedAt(LocalDateTime.now());
+        saga.setTimeoutAt(LocalDateTime.now().plus(timeout));
+        return sagaRepository.save(saga);
+    }
+
+    @Transactional
+    public void recordStepResult(String sagaId, String stepName,
+                                  StepStatus status, String error) {
+        SagaInstance saga = sagaRepository.findById(sagaId)
+            .orElseThrow();
+
+        SagaStepLog log = new SagaStepLog();
+        log.setSagaInstance(saga);
+        log.setStepName(stepName);
+        log.setStatus(status);
+        log.setErrorMessage(error);
+        log.setExecutedAt(LocalDateTime.now());
+        stepLogRepository.save(log);
+
+        if (status == StepStatus.FAILED) {
+            saga.fail(stepName, error);
+        }
+
+        sagaRepository.save(saga);
+    }
+
+    // 멈춘 사가 조회 — 스케줄러에서 주기적으로 호출
+    public List<SagaInstance> findStuckSagas(Duration threshold) {
+        LocalDateTime cutoff = LocalDateTime.now().minus(threshold);
+        return sagaRepository
+            .findByStatusAndUpdatedAtBefore(SagaStatus.RUNNING, cutoff);
+    }
+
+    // 타임아웃된 사가 조회
+    public List<SagaInstance> findTimedOutSagas() {
+        return sagaRepository
+            .findByStatusAndTimeoutAtBefore(
+                SagaStatus.RUNNING, LocalDateTime.now()
+            );
+    }
+}
+```
+
+**Repository:**
+
+```java
+public interface SagaInstanceRepository
+        extends JpaRepository<SagaInstance, String> {
+
+    List<SagaInstance> findByStatusAndUpdatedAtBefore(
+        SagaStatus status, LocalDateTime cutoff);
+
+    List<SagaInstance> findByStatusAndTimeoutAtBefore(
+        SagaStatus status, LocalDateTime now);
+
+    List<SagaInstance> findByBusinessKey(String businessKey);
+
+    // 운영 대시보드용: 상태별 카운트
+    @Query("SELECT s.status, COUNT(s) FROM SagaInstance s " +
+           "WHERE s.sagaType = :sagaType GROUP BY s.status")
+    List<Object[]> countByStatusAndSagaType(
+        @Param("sagaType") String sagaType);
+}
+```
+
+### 실패 알림 연동
+
+Saga 실패를 Slack이나 PagerDuty로 알리는 구조다. Spring의 `@Scheduled`로 멈춘 사가를 주기적으로 탐지하고, 실패 임계값을 넘으면 알림을 보낸다.
+
+**멈춘 사가 탐지 스케줄러:**
+
+```java
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class SagaMonitorScheduler {
+
+    private final SagaStateService sagaStateService;
+    private final SagaAlertService alertService;
+    private final MeterRegistry meterRegistry;
+
+    // 1분마다 실행
+    @Scheduled(fixedRate = 60_000)
+    public void detectStuckSagas() {
+        // 5분 이상 진행 중인 사가를 멈춘 것으로 판단
+        List<SagaInstance> stuckSagas =
+            sagaStateService.findStuckSagas(Duration.ofMinutes(5));
+
+        // 메트릭 기록 — Prometheus/Grafana에서 모니터링
+        meterRegistry.gauge("saga.stuck.count", stuckSagas.size());
+
+        if (stuckSagas.size() >= 5) {
+            // 5건 이상이면 알림
+            alertService.sendAlert(
+                "SAGA_STUCK",
+                String.format("멈춘 사가 %d건 감지. "
+                    + "가장 오래된 것: %s (saga_id: %s)",
+                    stuckSagas.size(),
+                    stuckSagas.get(0).getBusinessKey(),
+                    stuckSagas.get(0).getSagaId()
+                )
+            );
+        }
+
+        // 개별 사가 재시도
+        for (SagaInstance saga : stuckSagas) {
+            if (saga.getRetryCount() < 3) {
+                sagaStateService.retrySaga(saga.getSagaId());
+            } else {
+                saga.setStatus(SagaStatus.STOPPED);
+                alertService.sendAlert(
+                    "SAGA_STOPPED",
+                    String.format("사가 재시도 초과. "
+                        + "수동 개입 필요. saga_id: %s, order: %s",
+                        saga.getSagaId(),
+                        saga.getBusinessKey()
+                    )
+                );
+            }
+        }
+    }
+
+    // 보상 실패 모니터링
+    @Scheduled(fixedRate = 60_000)
+    public void detectCompensationFailures() {
+        List<SagaInstance> failed = sagaStateService
+            .findByStatus(SagaStatus.COMPENSATION_FAILED);
+
+        meterRegistry.gauge("saga.compensation_failed.count",
+                            failed.size());
+
+        if (!failed.isEmpty()) {
+            alertService.sendAlert(
+                "SAGA_COMPENSATION_FAILED",
+                String.format("보상 실패 사가 %d건. "
+                    + "데이터 정합성 깨질 수 있음. 즉시 확인 필요.",
+                    failed.size()
+                )
+            );
+        }
+    }
+}
+```
+
+**Slack 알림 서비스:**
+
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class SagaAlertService {
+
+    private final RestTemplate restTemplate;
+
+    @Value("${alert.slack.webhook-url}")
+    private String slackWebhookUrl;
+
+    public void sendAlert(String alertType, String message) {
+        log.warn("[{}] {}", alertType, message);
+
+        Map<String, Object> payload = Map.of(
+            "text", String.format("[%s] %s", alertType, message),
+            "channel", "#saga-alerts"
+        );
+
+        try {
+            restTemplate.postForEntity(
+                slackWebhookUrl, payload, String.class
+            );
+        } catch (Exception e) {
+            // 알림 실패가 사가 처리를 막으면 안 된다
+            log.error("Slack 알림 전송 실패", e);
+        }
+    }
+}
+```
+
+**Micrometer 메트릭 — Prometheus 연동:**
+
+```java
+@Component
+@RequiredArgsConstructor
+public class SagaMetrics {
+
+    private final MeterRegistry registry;
+
+    // 사가 시작 시 카운터 증가
+    public void sagaStarted(String sagaType) {
+        registry.counter("saga.started", "type", sagaType).increment();
+    }
+
+    // 사가 완료 시 카운터 증가 + 소요 시간 기록
+    public void sagaCompleted(String sagaType, Duration duration) {
+        registry.counter("saga.completed", "type", sagaType).increment();
+        registry.timer("saga.duration", "type", sagaType)
+            .record(duration);
+    }
+
+    // 사가 실패 시 카운터 증가 + 실패 단계 기록
+    public void sagaFailed(String sagaType, String failedStep) {
+        registry.counter("saga.failed",
+            "type", sagaType,
+            "step", failedStep
+        ).increment();
+    }
+}
+```
+
+**Grafana 대시보드에서 볼 메트릭:**
+
+```
+# 진행 중 사가 수
+saga_stuck_count
+
+# 분당 사가 시작/완료/실패 비율
+rate(saga_started_total[5m])
+rate(saga_completed_total[5m])
+rate(saga_failed_total[5m])
+
+# 단계별 실패율
+rate(saga_failed_total[5m]) by (step)
+
+# 사가 평균 소요 시간
+saga_duration_seconds{quantile="0.95"}
+
+# 보상 실패 건수 — 0이 아니면 즉시 확인
+saga_compensation_failed_count
+```
+
+이 메트릭들을 Grafana에 올려두면 "사가 어디서 막혔냐"를 로그 뒤지지 않고 대시보드에서 바로 확인할 수 있다. `saga_compensation_failed_count`가 0이 아닌 순간은 데이터 정합성이 깨진 상태이니 알림 임계값을 1로 잡아야 한다.
+
+---
+
+## 테스트
+
+### 실패 주입 테스트
+
+사가 테스트는 성공 시나리오보다 실패 시나리오가 더 중요하다. 실패 상황을 재현하고 처리 로직을 검증해야 한다.
+
+**주요 실패 시나리오:**
+
+**1. 중간 단계 실패:**
+- 결제 승인 성공 후 재고 실패
+- 재고 성공 후 배송 실패
+- 각 단계에서 실패가 발생했을 때 보상이 제대로 동작하는지 확인
+
+**2. 워커 장애:**
+- 배송 요청 직후 워커 다운
+- 처리 중 워커가 죽었을 때 재시도가 제대로 동작하는지 확인
+- 상태가 올바르게 저장되는지 확인
+
+**3. 중복 처리:**
+- 동일 order_id 중복 요청
+- 메시지 중복 전달
+- 멱등성이 제대로 보장되는지 확인
+
+**4. 순서 문제:**
+- 이벤트 순서 뒤집힘
+- 순서가 바뀌어도 정상 처리되는지 확인
+- 순서 보장이 필요한 경우 제대로 동작하는지 확인
+
+**5. 외부 의존성 장애:**
+- 결제 서비스 장애
+- 재고 서비스 장애
+- 외부 서비스가 느려질 때 타임아웃이 제대로 동작하는지 확인
+
+### 멱등성 검증
+
+멱등성은 사가의 핵심이다. 중복 실행에 대비해야 한다.
+
+**이벤트 멱등성:**
+- 동일 이벤트를 2회 이상 흘렸을 때 결과가 1회와 같아야 한다
+- 같은 주문 생성 이벤트를 여러 번 받아도 주문이 한 번만 생성되어야 한다
+- 멱등성 키를 사용해 중복을 방지한다
+
+**보상 멱등성:**
+- 보상 이벤트도 동일하게 검증해야 한다
+- 같은 보상 이벤트를 여러 번 받아도 보상이 한 번만 실행되어야 한다
+- 보상 ID를 사용해 중복을 방지한다
+
+**검증 방법:**
+- 같은 이벤트를 여러 번 발행한다
+- 결과가 동일한지 확인한다
+- DB에 중복 레코드가 생기지 않는지 확인한다
+
+### 타임아웃 검증
+
+타임아웃은 멈춘 사가를 방지하는 중요한 메커니즘이다.
+
+**타임아웃 동작 확인:**
+- 처리 시간을 일부러 늘려 타임아웃 동작을 확인한다
+- 타임아웃이 지나면 재시도가 시작되는지 확인한다
+- 타임아웃 값이 적절한지 확인한다
+
+**중복 처리 방지:**
+- 타임아웃 후 재발행이 중복 처리로 이어지지 않는지 확인한다
+- 워커가 처리 중이면 재발행하지 않아야 한다
+- 상태를 확인해 중복을 방지한다
+
+**타임아웃 값 검증:**
+- 평균 처리 시간보다 충분히 길어야 한다
+- 너무 짧으면 정상 처리도 타임아웃된다
+- 너무 길면 멈춘 사가가 오래 남는다
+
+### 통합 테스트
+
+**전체 흐름 테스트:**
+- 주문 생성부터 배송까지 전체 흐름을 테스트한다
+- 각 단계가 순서대로 진행되는지 확인한다
+- 실패 시 보상이 제대로 동작하는지 확인한다
+
+**부하 테스트:**
+- 동시에 여러 사가가 실행될 때 정상 동작하는지 확인한다
+- 오케스트레이터나 상태 저장소가 병목이 되지 않는지 확인한다
+- 처리량이 예상 범위 내인지 확인한다
+
+**장애 복구 테스트:**
+- 오케스트레이터가 장애가 났을 때 복구가 되는지 확인한다
+- 워커가 장애가 났을 때 재시도가 되는지 확인한다
+- 상태가 올바르게 복구되는지 확인한다

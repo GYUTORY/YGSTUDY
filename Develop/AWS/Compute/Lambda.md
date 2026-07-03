@@ -1,0 +1,755 @@
+---
+title: AWS Lambda
+tags: [aws, compute, lambda, serverless, event-driven, faas]
+updated: 2026-01-17
+---
+
+# AWS Lambda
+
+## 개요
+
+AWS Lambda는 서버 인프라를 관리하지 않고 코드를 실행할 수 있는 서버리스 컴퓨팅 서비스다. 이벤트가 발생하면 함수가 자동으로 실행된다.
+
+### 서버리스 컴퓨팅의 등장 배경
+
+전통적인 웹 애플리케이션 개발에서는 개발자가 서버를 직접 관리해야 했다.
+
+**필요했던 인프라 관리 작업들:**
+- 서버 프로비저닝 및 하드웨어 관리
+- 운영체제 설치 및 보안 패치
+- 런타임 환경 구성 (Node.js, Python 등)
+- 애플리케이션 배포 및 버전 관리
+- 모니터링 및 로그 관리
+- 보안 패치 및 업데이트
+
+**전통적 방식의 문제점:**
+- 개발자가 비즈니스 로직에 집중하는 것을 방해한다
+- 높은 운영 비용이 발생한다
+- 복잡한 인프라 관리로 인한 부담이 있다
+
+**Lambda의 해결책:**
+개발자는 코드 작성에만 집중하고, AWS가 인프라 관리를 담당한다. 서버 프로비저닝, 운영체제 관리, 런타임 환경 구성 등은 모두 AWS가 처리한다.
+
+### 핵심 개념
+
+**서버리스(Serverless):**
+서버가 없다는 뜻이 아니라, 개발자가 서버를 직접 관리하지 않는다는 뜻이다. AWS가 서버 관리를 담당하고, 개발자는 애플리케이션 로직에만 집중한다.
+
+**FaaS(Function as a Service):**
+애플리케이션을 함수 단위로 나눠 실행하는 서비스 모델이다. 각 함수는 독립적으로 배포되고 실행되며, 필요에 따라 자동으로 스케일링된다.
+
+**이벤트 기반 실행:**
+특정 이벤트가 발생했을 때만 함수가 실행된다. 이벤트는 S3 파일 업로드, API 요청, 데이터베이스 변경, 스케줄된 작업 등 다양한 형태가 될 수 있다.
+
+**콜드 스타트(Cold Start):**
+함수가 오랫동안 사용되지 않은 후 처음 실행될 때 발생하는 초기화 지연 시간이다. 함수 실행 환경을 준비하는 데 필요한 시간으로, 응답 시간에 영향을 준다.
+
+## Lambda 작동 원리
+
+### 서버리스 아키텍처 구현 방식
+
+Lambda는 마이크로 가상화 기술을 기반으로 작동한다.
+
+**기본 동작 원리:**
+- 각 함수 실행은 격리된 실행 환경에서 이루어진다
+- AWS가 자동으로 인프라를 관리한다
+- 개발자가 함수를 업로드하면, AWS가 패키징하고 실행 환경을 준비한다
+
+**함수 실행 과정:**
+
+1. **함수 호출 시:**
+   - AWS가 새로운 실행 컨테이너를 생성하거나 기존의 워밍된 컨테이너를 재사용한다
+   - 함수 코드가 로드되고 초기화된다
+   - 이벤트 데이터가 전달된다
+
+2. **함수 실행 완료 후:**
+   - 결과를 반환한다
+   - 일정 시간 후 컨테이너는 종료되거나 다른 요청을 위해 대기 상태로 전환된다
+
+### 이벤트 기반 실행 모델
+
+Lambda는 특정 조건이나 사건이 발생했을 때만 실행된다. 이벤트는 다양한 AWS 서비스에서 발생할 수 있다.
+
+**주요 이벤트 소스:**
+- **S3**: 파일 업로드, 삭제, 복사 등의 객체 이벤트
+- **API Gateway**: HTTP 요청을 통한 RESTful API 호출
+- **DynamoDB**: 테이블 변경 사항을 감지하는 스트림 이벤트
+- **SQS/SNS**: 메시지 큐나 알림 서비스의 메시지 수신
+- **CloudWatch Events**: 스케줄된 작업이나 시스템 이벤트
+- **Cognito**: 사용자 인증 및 인가 관련 이벤트
+- **Kinesis**: 실시간 데이터 스트림 처리
+
+### 자동 확장 메커니즘
+
+Lambda의 자동 확장은 동시성(Concurrency) 개념을 기반으로 작동한다. 각 함수는 독립적인 동시성 제한을 가지며, 요청이 증가하면 AWS가 자동으로 새로운 실행 환경을 생성한다.
+
+동시성은 함수가 동시에 처리할 수 있는 요청의 수를 의미한다. 예를 들어, 동시성이 100으로 설정된 함수는 최대 100개의 요청을 동시에 처리할 수 있다. 101번째 요청이 들어오면 대기 상태가 되거나, 동시성 제한을 늘려야 한다.
+
+자동 확장은 수직적(Scale Up)과 수평적(Scale Out) 확장을 모두 포함한다. 수직적 확장은 단일 함수 인스턴스의 메모리와 CPU 할당량을 조정하는 것이고, 수평적 확장은 여러 함수 인스턴스를 동시에 실행하는 것이다.
+
+**이벤트 기반 실행의 특징:**
+- 함수가 실행되지 않을 때는 리소스를 사용하지 않는다
+- 이벤트 발생 시 자동으로 함수가 실행되어 수동 개입이 불필요하다
+- 이벤트 소스와 함수 간의 독립성으로 유연한 아키텍처 구성이 가능하다
+
+### 동시성 관리
+
+Lambda는 요청량에 따라 자동으로 확장된다. 단일 요청부터 수천, 수만 개의 동시 요청까지 자동으로 처리할 수 있으며, 각 요청은 독립적인 실행 환경에서 병렬로 처리된다.
+
+**동시성 제한 레벨:**
+
+AWS는 두 가지 레벨에서 동시성 제한을 제공한다:
+
+1. **계정 레벨 동시성:**
+   - 전체 계정에서 동시에 실행될 수 있는 Lambda 함수의 총 개수를 제한한다
+   - 기본값은 리전별로 다르며, 필요시 증가 요청이 가능하다
+
+2. **함수 레벨 동시성:**
+   - 특정 함수의 동시 실행 수를 제한한다
+   - 각 함수별로 독립적으로 설정 가능하다
+   - 함수별로 다른 동시성 제한 설정이 가능하다
+
+### 사용량 기반 과금 모델
+
+Lambda는 실제 사용량에 기반한 과금을 제공한다. 과금은 다음 요소들로 결정된다:
+- **요청 수**: 함수가 실행된 횟수
+- **실행 시간**: 함수가 실제로 실행된 시간 (밀리초 단위)
+- **메모리 할당량**: 함수에 할당된 메모리 크기
+
+사용하지 않는 시간에 대한 비용이 발생하지 않는다. 트래픽이 불규칙한 애플리케이션에서 비용 절감 효과가 있다.
+
+### 프로그래밍 언어 지원
+
+Lambda는 다양한 프로그래밍 언어를 지원한다.
+
+**지원되는 런타임:**
+- **Node.js**: JavaScript와 TypeScript 개발
+- **Python**: 데이터 분석, 머신러닝, 웹 개발
+- **Java**: 엔터프라이즈 애플리케이션 개발
+- **Go**: 고성능과 간결함
+- **C#**: .NET 생태계 활용
+- **Ruby**: 웹 개발과 스크립팅
+- **커스텀 런타임**: 사용자 정의 런타임 환경 구성 가능
+
+## Lambda의 제약사항
+
+### 실행 시간 제한
+
+Lambda 함수는 최대 15분까지만 실행될 수 있다. 장시간 실행되는 작업의 경우 Lambda 대신 다른 AWS 서비스를 고려해야 한다.
+
+**대안 솔루션:**
+- **AWS Step Functions**: 장시간 워크플로우를 여러 단계로 나눠 처리
+- **AWS ECS/Fargate**: 컨테이너 기반 장시간 실행 작업
+- **AWS Batch**: 대용량 배치 작업 처리
+
+### 콜드 스타트
+
+콜드 스타트는 Lambda 함수가 오랫동안 사용되지 않은 후 처음 실행될 때 발생하는 초기화 지연이다. 함수 실행 환경을 준비하는 데 필요한 시간으로, 응답 시간에 영향을 준다.
+
+**콜드 스타트 최소화 방법:**
+- **Provisioned Concurrency**: 함수를 미리 워밍하여 콜드 스타트 제거
+- **함수 크기 최적화**: 불필요한 의존성 제거로 초기화 시간 단축
+- **Lambda Layer 활용**: 공통 라이브러리를 별도로 관리하여 재사용성 향상
+
+### 리소스 제한사항
+
+Lambda는 메모리와 디스크 사용에 제한이 있다. 메모리는 최대 10GB까지 할당 가능하며, 로컬 디스크는 /tmp 디렉토리만 사용할 수 있고 최대 10GB까지 사용 가능하다.
+
+**리소스 제한 대응 방안:**
+- **S3 연동**: 대용량 파일 처리를 위해 S3를 임시 저장소로 활용
+- **메모리 최적화**: 효율적인 메모리 사용을 위한 코드 최적화
+- **스트리밍 처리**: 대용량 데이터를 청크 단위로 처리
+
+### 동시성 제한
+
+AWS는 계정별로 동시 실행 가능한 Lambda 함수 수를 제한한다. 기본적으로 계정당 1,000개의 동시 실행이 가능하며, 필요에 따라 제한을 늘릴 수 있다.
+
+**동시성 관리 전략:**
+- **예약된 동시성**: 중요한 함수에 대해 동시성 예약
+- **동시성 제한 증가 요청**: AWS에 동시성 제한 증가 요청
+- **함수 분산**: 여러 함수로 로직을 분산하여 동시성 제한 회피
+
+## 사용 사례
+
+### S3 파일 업로드 트리거
+
+S3에 파일이 업로드될 때마다 Lambda 함수가 자동으로 실행된다. 이미지 리사이징, 파일 변환, 데이터 검증 등의 작업에 활용된다.
+
+**작동 원리:**
+1. 사용자가 S3 버킷에 파일을 업로드한다
+2. S3가 이벤트를 생성하여 Lambda 함수를 트리거한다
+3. Lambda 함수가 업로드된 파일을 처리한다
+4. 처리 결과를 다른 S3 버킷이나 데이터베이스에 저장한다
+
+**활용 사례:**
+- 업로드된 이미지의 썸네일 생성, 리사이징, 포맷 변환
+- PDF를 이미지로 변환, 문서 메타데이터 추출
+- 업로드된 파일의 형식 검증, 바이러스 스캔
+- 파일을 다른 리전이나 스토리지로 복사
+
+### API Gateway 연동
+
+API Gateway와 Lambda를 연동하여 RESTful API를 구축한다.
+
+**아키텍처 특징:**
+- 각 요청은 독립적으로 처리되며 상태를 유지하지 않는다
+- 트래픽 증가에 따라 자동으로 Lambda 인스턴스가 확장된다
+- 요청이 없을 때는 비용이 발생하지 않는다
+
+**일반적인 API 패턴:**
+- 데이터베이스의 생성, 읽기, 업데이트, 삭제 작업
+- JWT 토큰 검증, 사용자 권한 확인
+- 클라이언트 요청 데이터를 내부 형식으로 변환
+- 다른 API나 서비스와의 통신
+
+### DynamoDB 스트림 처리
+
+DynamoDB 스트림은 테이블의 변경 사항을 실시간으로 감지할 수 있는 기능이다. Lambda 함수를 DynamoDB 스트림과 연동하면 데이터 변경 시 자동으로 후속 처리를 수행할 수 있다.
+
+**활용 사례:**
+- 변경된 데이터를 다른 테이블이나 시스템에 복제
+- 데이터 변경 시 관련 캐시를 자동으로 무효화
+- 중요한 데이터 변경 시 사용자에게 알림 전송
+- 변경된 데이터의 무결성 검사 및 보정
+
+**스트림 처리 패턴:**
+- 새 레코드가 추가될 때의 처리
+- 기존 레코드가 수정될 때의 처리
+- 레코드가 삭제될 때의 처리
+
+## Lambda와 SQS/SNS 연동
+
+### SQS와 Lambda 연동
+
+SQS(Simple Queue Service)는 메시지 큐 서비스다. Lambda와 SQS를 연동하면 큐에 쌓인 메시지를 자동으로 처리할 수 있다.
+
+**연동 메커니즘:**
+
+SQS는 폴링(Polling) 방식으로 Lambda를 트리거한다. Lambda가 SQS 큐를 주기적으로 확인하고, 메시지가 있으면 함수를 실행한다. 이는 푸시 방식이 아니라 풀(Pull) 방식이다.
+
+**동작 과정:**
+
+1. **메시지 전송**: 애플리케이션이 SQS 큐에 메시지를 전송한다
+2. **폴링**: Lambda가 SQS 큐를 주기적으로 확인한다 (기본 20초 간격)
+3. **메시지 수신**: 큐에 메시지가 있으면 Lambda가 메시지를 가져온다
+4. **함수 실행**: Lambda 함수가 메시지를 처리한다
+5. **메시지 삭제**: 처리 성공 시 메시지가 큐에서 삭제된다
+
+**배치 처리:**
+
+SQS는 한 번에 최대 10개의 메시지를 Lambda에 전달할 수 있다. Lambda 함수는 이벤트 객체에 여러 메시지가 포함되어 있으면 순차적으로 처리한다. 배치 처리를 통해 처리 효율을 높일 수 있다.
+
+**가시성 타임아웃(Visibility Timeout):**
+
+메시지를 Lambda가 가져간 후 일정 시간 동안 다른 소비자가 메시지를 볼 수 없게 한다. 기본값은 30초다. Lambda 함수가 이 시간 내에 메시지를 처리하지 못하면 메시지가 다시 큐에 나타난다.
+
+**재시도 메커니즘:**
+
+Lambda 함수가 실패하면 메시지는 자동으로 큐에 다시 나타난다. SQS는 최대 수신 횟수(Receive Count)를 추적한다. 최대 수신 횟수를 초과하면 메시지는 DLQ(Dead Letter Queue)로 이동한다.
+
+**동시성 제어:**
+
+SQS 큐에 메시지가 많으면 Lambda가 여러 인스턴스를 동시에 실행한다. 각 인스턴스는 독립적으로 메시지를 처리한다. 동시성 제한을 설정하면 동시에 실행되는 Lambda 인스턴스 수를 제어할 수 있다.
+
+**SQS 연동의 특징:**
+
+- **신뢰성**: 메시지 처리 실패 시 자동 재시도
+- **확장성**: 메시지 수에 따라 Lambda 인스턴스 자동 확장
+- **비용 효율성**: 메시지가 없을 때는 비용이 발생하지 않음
+- **순서 보장**: FIFO 큐를 사용하면 메시지 순서를 보장할 수 있음
+
+**실무에서 주의할 점:**
+
+SQS 표준 큐는 최소 1회 전달(at-least-once delivery)을 보장한다. 같은 메시지가 여러 번 전달될 수 있으므로 멱등성(Idempotency)을 고려해야 한다.
+
+배치 크기를 너무 크게 설정하면 함수 실행 시간이 길어질 수 있다. 함수 실행 시간 제한(15분)을 고려해 배치 크기를 조정한다.
+
+가시성 타임아웃을 함수 실행 시간보다 충분히 길게 설정해야 한다. 함수가 타임아웃보다 오래 걸리면 메시지가 중복 처리될 수 있다.
+
+### SNS와 Lambda 연동
+
+SNS(Simple Notification Service)는 발행-구독(Pub-Sub) 메시징 서비스다. Lambda와 SNS를 연동하면 이벤트를 여러 Lambda 함수로 동시에 전파할 수 있다.
+
+**연동 메커니즘:**
+
+SNS는 푸시(Push) 방식으로 Lambda를 트리거한다. SNS에 메시지가 발행되면 구독한 모든 Lambda 함수가 동시에 실행된다. 이는 폴링이 아니라 이벤트 기반이다.
+
+**동작 과정:**
+
+1. **메시지 발행**: 애플리케이션이 SNS 토픽에 메시지를 발행한다
+2. **구독자 확인**: SNS가 해당 토픽을 구독한 모든 구독자를 확인한다
+3. **동시 전송**: SNS가 모든 구독자에게 메시지를 동시에 전송한다
+4. **함수 실행**: 각 Lambda 함수가 독립적으로 메시지를 처리한다
+5. **결과 확인**: Lambda 함수가 성공하면 SNS는 해당 구독을 성공으로 표시한다
+
+**팬아웃 패턴(Fan-out Pattern):**
+
+하나의 이벤트를 여러 Lambda 함수로 전파하는 패턴이다. 예를 들어, 주문 생성 이벤트를 발행하면 주문 처리 함수, 재고 관리 함수, 알림 발송 함수가 동시에 실행된다.
+
+**구독 설정:**
+
+SNS 토픽에 Lambda 함수를 구독자로 추가하면, 해당 토픽에 메시지가 발행될 때마다 Lambda 함수가 실행된다. 하나의 토픽에 여러 Lambda 함수를 구독자로 추가할 수 있다.
+
+**필터링:**
+
+SNS는 메시지 필터링을 지원한다. 특정 조건을 만족하는 메시지만 Lambda 함수로 전달할 수 있다. 예를 들어, 특정 이벤트 타입이나 우선순위에 따라 메시지를 필터링할 수 있다.
+
+**재시도 메커니즘:**
+
+Lambda 함수가 실패하면 SNS는 자동으로 재시도한다. 재시도 정책은 지수 백오프(Exponential Backoff)를 사용한다. 최대 재시도 횟수를 초과하면 메시지는 DLQ로 이동한다.
+
+**동시성 제어:**
+
+SNS는 각 Lambda 함수를 독립적으로 호출한다. 여러 Lambda 함수가 동시에 실행되면 각 함수의 동시성 제한이 적용된다. 함수별로 동시성 제한을 설정해 리소스 사용을 제어할 수 있다.
+
+**SNS 연동의 특징:**
+
+- **이벤트 알림**: 시스템 이벤트 발생 시 다수의 구독자에게 알림
+- **팬아웃 패턴**: 하나의 이벤트를 여러 Lambda 함수로 전파
+- **실시간 처리**: 메시지 발행 즉시 Lambda 함수 실행
+- **느슨한 결합**: 발행자와 구독자 간의 독립성
+
+**실무에서 주의할 점:**
+
+SNS는 최소 1회 전달을 보장한다. 같은 메시지가 여러 번 전달될 수 있으므로 멱등성을 고려해야 한다.
+
+하나의 Lambda 함수가 실패해도 다른 Lambda 함수의 실행에는 영향을 주지 않는다. 각 Lambda 함수는 독립적으로 실행된다.
+
+SNS 메시지 크기는 최대 256KB다. 더 큰 메시지는 S3에 저장하고 SNS에는 S3 객체 키만 전달하는 방식을 사용한다.
+
+### SQS vs SNS 연동 비교
+
+**SQS 연동:**
+- 폴링 방식으로 메시지를 가져온다
+- 하나의 Lambda 함수만 메시지를 처리한다
+- 메시지 순서를 보장할 수 있다 (FIFO 큐)
+- 배치 처리가 가능하다
+- 작업 큐(Job Queue) 패턴에 적합하다
+
+**SNS 연동:**
+- 푸시 방식으로 메시지를 전달한다
+- 여러 Lambda 함수가 동시에 메시지를 처리한다
+- 메시지 순서를 보장하지 않는다
+- 실시간 이벤트 처리에 적합하다
+- 이벤트 알림 패턴에 적합하다
+
+**혼합 사용:**
+
+SQS와 SNS를 함께 사용하는 경우가 많다. SNS가 이벤트를 발행하고, SQS 큐가 구독자로 등록되어 메시지를 받는다. 그 다음 Lambda가 SQS 큐에서 메시지를 가져와 처리한다. 이렇게 하면 이벤트 발행과 메시지 처리 사이에 버퍼 역할을 할 수 있다.
+
+### 마이크로서비스 아키텍처
+
+각 비즈니스 기능을 독립적인 Lambda 함수로 분리하여 개발, 배포, 확장을 독립적으로 관리할 수 있다.
+
+**마이크로서비스의 장점:**
+- 각 서비스를 독립적으로 배포하고 업데이트 가능하다
+- 서비스별로 다른 프로그래밍 언어나 프레임워크 사용 가능하다
+- 각 서비스의 트래픽에 따라 독립적으로 확장한다
+- 하나의 서비스 장애가 전체 시스템에 미치는 영향을 최소화한다
+
+### 이벤트 소싱 패턴
+
+애플리케이션의 상태 변경을 이벤트의 순서대로 저장하는 패턴이다. Lambda는 이벤트 소싱 구현에 적합한 플랫폼이다.
+
+**이벤트 소싱의 특징:**
+- 저장된 이벤트를 통해 과거의 모든 상태를 재구성할 수 있다
+- 모든 변경 사항이 이벤트로 기록되어 완전한 감사 추적이 가능하다
+- 특정 시점의 상태로 되돌아갈 수 있다
+- 이벤트를 다시 처리하여 새로운 뷰나 프로젝션을 생성할 수 있다
+
+### CQRS 패턴
+
+CQRS는 명령(Command)과 조회(Query)를 분리하는 패턴이다. Lambda를 활용하면 명령 처리와 조회 처리를 완전히 분리된 함수로 구현할 수 있다.
+
+**CQRS의 장점:**
+- 명령과 조회를 각각 최적화된 방식으로 처리한다
+- 명령과 조회를 독립적으로 확장할 수 있다
+- 각각의 책임을 명확히 분리하여 복잡성을 감소시킨다
+
+## 운영 및 최적화
+
+## 성능 최적화
+
+### 콜드 스타트 최소화
+
+콜드 스타트는 Lambda 함수의 성능에 큰 영향을 준다. 콜드 스타트를 최소화하는 방법이 있다.
+
+**함수 크기 최적화:**
+- 필요한 라이브러리만 포함하여 패키지 크기 축소
+- Lambda Layer 활용: 공통 라이브러리를 별도 레이어로 분리하여 재사용성 향상
+- Tree Shaking: 사용하지 않는 코드를 제거하여 번들 크기 최소화
+
+**Provisioned Concurrency:**
+- 함수를 미리 워밍하여 콜드 스타트 제거
+- 사용하지 않아도 비용이 발생하므로 신중한 계획이 필요하다
+- 지연 시간이 중요한 프로덕션 환경에 적합하다
+
+**초기화 최적화:**
+- 데이터베이스 연결, 캐시 등을 글로벌 변수로 관리
+- 필요한 시점에만 리소스를 로드하여 초기화 시간 단축
+
+### 메모리 및 CPU 최적화
+
+Lambda의 메모리 설정은 CPU 성능에도 영향을 미치므로 적절한 메모리 할당이 중요하다.
+
+**메모리 설정 가이드:**
+- **128MB**: 간단한 API 호출, 기본적인 데이터 처리
+- **256MB**: JSON 파싱, 간단한 계산 작업
+- **512MB**: 이미지 처리, 데이터베이스 쿼리
+- **1024MB**: 복잡한 계산, 대용량 데이터 처리
+- **3008MB**: 최대 성능, CPU 집약적 작업
+
+**메모리 사용량 모니터링:**
+- CloudWatch 메트릭으로 메모리 사용량과 실행 시간 모니터링
+- 실제 메모리 사용 패턴 분석을 통한 최적 설정 도출
+
+### 에러 처리 및 복원력
+
+#### 재시도 메커니즘
+
+Lambda 함수에서 에러가 발생했을 때 적절한 재시도 메커니즘이 필요하다.
+
+**지수 백오프(Exponential Backoff):**
+- 재시도 간격을 점진적으로 증가시켜 시스템 부하 감소
+- 무한 재시도를 방지하기 위한 제한 설정
+- 일시적인 네트워크 오류, 서비스 일시 중단 등에만 재시도 적용
+
+**재시도 전략:**
+- 일시적인 오류에 대한 즉시 재시도
+- 시스템 부하를 고려한 지연 후 재시도
+- 특정 조건을 만족하는 경우에만 재시도
+
+#### 데드레터 큐(DLQ) 활용
+
+데드레터 큐는 처리에 실패한 메시지를 별도로 저장하여 나중에 분석하거나 수동으로 처리할 수 있게 해주는 메커니즘이다.
+
+**DLQ의 장점:**
+- 처리 실패한 메시지의 영구 보존
+- 실패 원인 분석을 위한 로그 수집
+- 자동화된 재시도로 해결되지 않는 문제의 수동 처리
+- 시스템의 건강 상태 모니터링 지표 제공
+
+**DLQ 설정 고려사항:**
+- 충분한 저장 공간 확보
+- 메시지 보존 기간 설정
+- DLQ에 메시지가 쌓일 때 알림 받기
+
+## 비교 분석
+
+### Lambda vs 전통적 서버 아키텍처
+
+**서버 관리 측면:**
+- Lambda: AWS가 모든 인프라 관리 책임을 담당하여 개발자는 비즈니스 로직에만 집중한다
+- 전통적 서버: 개발팀이 서버 프로비저닝, 운영체제 관리, 보안 패치 등 모든 인프라 작업을 담당한다
+
+**확장성 측면:**
+- Lambda: 요청량에 따라 자동으로 확장되며, 수동 개입이 불필요하다
+- 전통적 서버: 트래픽 증가 시 수동으로 서버를 추가하거나 로드 밸런서 설정이 필요하다
+
+**비용 구조:**
+- Lambda: 실제 실행 시간과 메모리 사용량에 기반한 사용량 기반 과금
+- 전통적 서버: 서버가 실행되는 동안 지속적으로 비용이 발생한다
+
+**성능 특성:**
+- Lambda: 콜드 스타트로 인한 초기 지연이 가능하지만, 워밍 후 빠른 응답이 가능하다
+- 전통적 서버: 지속적으로 실행되어 즉시 응답이 가능하지만, 리소스 낭비 가능성이 있다
+
+### Lambda 적용 권장사항
+
+**적합한 사용 사례:**
+- 파일 업로드, 데이터베이스 변경, API 호출 등의 이벤트 처리
+- 독립적인 비즈니스 기능을 함수로 분리하여 구현
+- 실시간 데이터 처리, 포맷 변환, ETL 작업
+- RESTful API나 GraphQL API 구현
+- 스케줄된 배치 작업, 데이터 백업, 정리 작업
+
+**부적합한 사용 사례:**
+- 15분을 초과하는 작업
+- 메모리나 디스크 제한을 초과하는 작업
+- 세션 상태나 연결 풀 관리가 필요한 경우
+- 지속적인 데이터 스트림 처리
+
+---
+
+## 코드 예제
+
+### Lambda 함수 코드 (Node.js)
+
+```javascript
+// ── API Gateway 연동 (REST API) ───────────────────────
+exports.handler = async (event) => {
+    console.log('Event:', JSON.stringify(event));
+
+    try {
+        const { httpMethod, pathParameters, body } = event;
+        const userId = pathParameters?.id;
+        const data = body ? JSON.parse(body) : {};
+
+        let result;
+        if (httpMethod === 'GET') {
+            result = await getUser(userId);
+        } else if (httpMethod === 'POST') {
+            result = await createUser(data);
+        }
+
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify(result)
+        };
+    } catch (error) {
+        console.error('Error:', error);
+        return {
+            statusCode: error.statusCode || 500,
+            body: JSON.stringify({ message: error.message })
+        };
+    }
+};
+```
+
+```javascript
+// ── S3 이벤트 처리 (이미지 리사이징) ─────────────────
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+const sharp = require('sharp');
+
+const s3 = new S3Client({ region: 'ap-northeast-2' });
+
+exports.handler = async (event) => {
+    for (const record of event.Records) {
+        const bucket = record.s3.bucket.name;
+        const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
+
+        // 원본 이미지 다운로드
+        const { Body } = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        const buffer = await Body.transformToByteArray();
+
+        // 리사이징
+        const resized = await sharp(buffer).resize(400, 400, { fit: 'cover' }).webp().toBuffer();
+
+        // 썸네일 업로드
+        await s3.send(new PutObjectCommand({
+            Bucket: bucket,
+            Key: `thumbnails/${key.replace(/\.[^.]+$/, '.webp')}`,
+            Body: resized,
+            ContentType: 'image/webp'
+        }));
+        console.log(`Thumbnail created for: ${key}`);
+    }
+};
+```
+
+```javascript
+// ── SQS 이벤트 처리 (배치) ───────────────────────────
+exports.handler = async (event) => {
+    const failedItems = [];
+
+    for (const record of event.Records) {
+        try {
+            const message = JSON.parse(record.body);
+            await processMessage(message);
+        } catch (error) {
+            console.error('Failed to process:', record.messageId, error);
+            // SQS 부분 실패 처리 (batchItemFailures)
+            failedItems.push({ itemIdentifier: record.messageId });
+        }
+    }
+
+    return { batchItemFailures: failedItems };
+};
+```
+
+### Lambda 함수 코드 (Python)
+
+```python
+import json
+import boto3
+from datetime import datetime
+
+def handler(event, context):
+    """CloudWatch Events (EventBridge) 스케줄러 예제"""
+    print(f"Lambda started at: {context.invoked_function_arn}")
+    print(f"Remaining time: {context.get_remaining_time_in_millis()}ms")
+
+    dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-2')
+    table = dynamodb.Table('Orders')
+
+    # 만료된 임시 주문 정리
+    now = int(datetime.now().timestamp())
+    response = table.scan(
+        FilterExpression='#s = :status AND expires_at < :now',
+        ExpressionAttributeNames={'#s': 'status'},
+        ExpressionAttributeValues={':status': 'PENDING', ':now': now}
+    )
+
+    deleted = 0
+    for item in response['Items']:
+        table.delete_item(Key={'orderId': item['orderId']})
+        deleted += 1
+
+    return {'statusCode': 200, 'deleted': deleted}
+```
+
+### AWS CLI 배포
+
+```bash
+# ── Lambda 함수 생성 / 업데이트 ──────────────────────
+# 1. 패키지 압축
+zip -r function.zip index.js node_modules/
+
+# 2. 함수 생성
+aws lambda create-function \
+  --function-name my-api-handler \
+  --runtime nodejs20.x \
+  --handler index.handler \
+  --zip-file fileb://function.zip \
+  --role arn:aws:iam::123456789012:role/lambda-execution-role \
+  --timeout 30 \
+  --memory-size 256 \
+  --environment "Variables={DB_HOST=mydb.cluster.ap-northeast-2.rds.amazonaws.com,NODE_ENV=production}"
+
+# 3. 코드 업데이트
+aws lambda update-function-code \
+  --function-name my-api-handler \
+  --zip-file fileb://function.zip
+
+# 4. 함수 설정 업데이트
+aws lambda update-function-configuration \
+  --function-name my-api-handler \
+  --timeout 60 \
+  --memory-size 512
+
+# 5. 함수 호출 테스트
+aws lambda invoke \
+  --function-name my-api-handler \
+  --payload '{"httpMethod":"GET","pathParameters":{"id":"123"}}' \
+  --cli-binary-format raw-in-base64-out \
+  response.json && cat response.json
+```
+
+### SAM 템플릿 (Serverless Application Model)
+
+```yaml
+# template.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Environment:
+      Variables:
+        DB_HOST: !Ref DbHost
+        NODE_ENV: production
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/api.handler
+      Events:
+        GetUser:
+          Type: Api
+          Properties:
+            Path: /users/{id}
+            Method: get
+        CreateUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+
+  ImageProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/imageProcessor.handler
+      MemorySize: 1024
+      Events:
+        S3Upload:
+          Type: S3
+          Properties:
+            Bucket: !Ref ImageBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uploads/
+
+  OrderCleaner:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/cleaner.handler
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+
+  UsersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: userId
+        Type: String
+
+Parameters:
+  DbHost:
+    Type: String
+
+# 배포
+# sam build
+# sam deploy --guided
+```
+
+### VPC 연동 및 환경변수 관리
+
+```bash
+# VPC 내부 리소스 접근 (RDS 등)
+aws lambda update-function-configuration \
+  --function-name my-api-handler \
+  --vpc-config SubnetIds=subnet-aaa,subnet-bbb,SecurityGroupIds=sg-xxx
+
+# Secrets Manager에서 환경변수 안전하게 관리
+aws secretsmanager create-secret \
+  --name lambda/my-api/db-password \
+  --secret-string '{"password":"supersecret"}'
+```
+
+```javascript
+// Lambda 실행 시 Secrets Manager에서 비밀 조회 (캐싱 권장)
+const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
+
+const secretsManager = new SecretsManagerClient({ region: 'ap-northeast-2' });
+let cachedSecret;
+
+async function getSecret() {
+    if (!cachedSecret) {
+        const response = await secretsManager.send(
+            new GetSecretValueCommand({ SecretId: 'lambda/my-api/db-password' })
+        );
+        cachedSecret = JSON.parse(response.SecretString);
+    }
+    return cachedSecret;
+}
+```
+
+---
+
+## 참조
+
+- AWS Lambda 공식 문서: https://docs.aws.amazon.com/lambda/
+- AWS Lambda 개발자 가이드: https://docs.aws.amazon.com/lambda/latest/dg/
+- AWS Lambda 모범 사례: https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html
+- AWS Lambda 제한사항: https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html
+- AWS Lambda 가격 정책: https://aws.amazon.com/lambda/pricing/
+- 서버리스 아키텍처 패턴: https://aws.amazon.com/serverless/
+- AWS Well-Architected Framework: https://aws.amazon.com/architecture/well-architected/
+

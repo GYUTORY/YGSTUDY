@@ -1,0 +1,360 @@
+---
+title: Gateway (게이트웨이)
+tags: [network, gateway, definition, api-gateway, network-gateway]
+updated: 2025-12-11
+---
+
+# Gateway (게이트웨이)
+
+## 정의
+
+Gateway(게이트웨이)는 서로 다른 네트워크, 프로토콜, 또는 시스템 간의 통신을 가능하게 하는 중간 매개체 역할을 하는 장치 또는 소프트웨어 컴포넌트다.
+
+### 게이트웨이의 역할
+- 프로토콜 변환: 서로 다른 프로토콜 간의 통신 중재
+- 관리 및 제어: 모든 출입을 모니터링하고 제어하는 단일 진입점
+- 보안: 네트워크 경계에서의 보안 정책 적용
+
+**실무 팁:**
+게이트웨이는 네트워크의 진입점이다. API 게이트웨이는 마이크로서비스 아키텍처에서 필수다.
+
+## 동작 원리
+
+### 게이트웨이가 필요한 이유
+
+**1. 프로토콜 차이 해결**
+- 서로 다른 네트워크 프로토콜 간의 통신 가능
+- 예: HTTP와 TCP 간의 변환, IPv4와 IPv6 간의 변환
+
+**2. 네트워크 분리 및 보안**
+- 내부 네트워크와 외부 네트워크 간의 안전한 통신
+- 중앙집중식 보안 정책 적용
+
+**3. 서비스 통합 및 관리**
+- 여러 분산 서비스를 단일 진입점으로 통합
+- 마이크로서비스 아키텍처에서의 API 게이트웨이 역할
+
+**4. 부하 분산 및 성능 최적화**
+- 로드 밸런싱을 통한 트래픽 분산
+- 캐싱을 통한 응답 시간 단축
+
+**실무 팁:**
+API 게이트웨이는 마이크로서비스 아키텍처에서 필수다. 인증, 라우팅, 로드 밸런싱, 모니터링을 중앙에서 관리한다.
+
+### 게이트웨이 유형
+
+**1. 네트워크 게이트웨이 (Network Gateway)**
+- 서로 다른 네트워크 간의 통신을 가능하게 하는 하드웨어 또는 소프트웨어
+- 기능: 프로토콜 변환, 주소 변환(NAT), 라우팅, 방화벽
+- 예: 인터넷 공유기, 기업용 라우터, VPN 게이트웨이
+
+**2. API 게이트웨이 (API Gateway)**
+- 여러 개의 API 서비스를 하나의 진입점으로 통합
+- 기능: 요청 라우팅, 인증/인가, 로드 밸런싱, 모니터링, 캐싱
+- 예: AWS API Gateway, Kong, Zuul
+
+**3. 애플리케이션 게이트웨이 (Application Gateway)**
+- 특정 애플리케이션 프로토콜을 처리하는 게이트웨이
+- 기능: 프로토콜별 최적화, 애플리케이션 레벨 보안
+- 예: 웹 애플리케이션 방화벽(WAF), 이메일 게이트웨이
+
+## 주요 기능
+
+### 네트워크 게이트웨이
+
+**1. 프로토콜 변환**
+- 소스 네트워크의 프로토콜로 데이터 수신
+- 해당 프로토콜의 헤더와 페이로드 분석
+- 목적지 네트워크의 프로토콜 형식으로 재구성
+- 변환된 데이터를 목적지로 전송
+
+**2. NAT (Network Address Translation)**
+- 내부 네트워크: 사설 IP 주소 사용 (192.168.x.x, 10.x.x.x)
+- 외부 네트워크: 공인 IP 주소 사용
+- 내부 주소를 공인 주소로 변환하여 외부와 통신
+
+### API 게이트웨이
+
+**1. 요청 라우팅**
+- 경로 기반 라우팅: URL 경로에 따라 서비스 결정
+- 헤더 기반 라우팅: HTTP 헤더 정보를 활용
+- 로드 밸런싱: 여러 인스턴스 간의 부하 분산
+
+**2. 인증 및 인가**
+- 중앙집중식 보안 정책 구현
+- 토큰 검증 및 권한 확인
+- 암호화 통신 관리
+
+## 사용 사례
+
+### 전자상거래 플랫폼
+
+**백엔드 서비스들:**
+- 사용자 서비스: 회원가입, 로그인, 프로필 관리
+- 상품 서비스: 상품 정보, 재고 관리, 카테고리
+- 주문 서비스: 장바구니, 주문 처리, 배송 추적
+- 결제 서비스: 결제 처리, 환불, 포인트 관리
+- 알림 서비스: 이메일, SMS, 푸시 알림
+
+**API 게이트웨이의 역할:**
+- 단일 진입점: `api.shoppingmall.com`
+- 라우팅: `/users/*` → 사용자 서비스, `/products/*` → 상품 서비스
+- 인증: 모든 요청에 대해 JWT 토큰 검증
+- 로드 밸런싱: 각 서비스의 여러 인스턴스로 트래픽 분산
+- 캐싱: 상품 정보 등 자주 조회되는 데이터 캐싱
+
+### 기업 네트워크
+
+**네트워크 구조:**
+- 내부망: 사설 IP 대역 (10.0.0.0/8)
+- DMZ: 웹 서버, 메일 서버 (172.16.0.0/12)
+- 외부망: 인터넷 (공인 IP)
+
+**게이트웨이의 보안 기능:**
+- 방화벽: 허용된 포트와 프로토콜만 통과
+- NAT: 내부 IP를 공인 IP로 변환
+- VPN: 원격 근무자를 위한 보안 터널
+- 침입 탐지: 악성 트래픽 차단 및 알림
+- 웹 필터링: 부적절한 사이트 접근 차단
+
+### 클라우드 환경 (AWS)
+
+**주요 기능:**
+- 서버리스: 인프라 관리 없이 API 서비스 제공
+- 자동 스케일링: 트래픽에 따른 자동 확장/축소
+- Lambda 통합: 서버리스 함수와의 원활한 연동
+- API 버전 관리: v1, v2 등 API 버전별 관리
+- 사용량 기반 과금: 실제 API 호출량에 따른 과금
+
+## 운영 가이드
+
+### 모니터링
+
+**핵심 메트릭:**
+- 처리량 (Throughput): 초당 처리하는 요청 수
+- 응답 시간 (Latency): 요청부터 응답까지의 시간
+- 에러율 (Error Rate): 실패한 요청의 비율
+- 가용성 (Availability): 서비스 가동 시간 비율
+
+**시스템 메트릭:**
+- CPU 사용률
+- 메모리 사용률
+- 네트워크 I/O
+- 디스크 I/O
+
+### 보안 관리
+
+**다단계 인증:**
+- 1단계: API 키 또는 기본 토큰 검증
+- 2단계: JWT 토큰의 서명 및 만료 시간 검증
+- 3단계: 사용자 권한 및 리소스 접근 권한 확인
+
+**DDoS 공격 대응:**
+- 속도 제한 (Rate Limiting)
+- 트래픽 분석 및 비정상 패턴 탐지
+- 지리적 분석 및 봇 탐지
+
+## 설정 예제
+
+### Nginx API 게이트웨이
+
+```nginx
+# /etc/nginx/conf.d/api-gateway.conf
+
+upstream user_service {
+    server user-svc:8081;
+    keepalive 32;
+}
+
+upstream order_service {
+    server order-svc-1:8082;
+    server order-svc-2:8082;  # 로드 밸런싱
+    keepalive 32;
+}
+
+upstream product_service {
+    server product-svc:8083;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name api.example.com;
+
+    # 공통 헤더
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Request-ID $request_id;
+
+    # /users/* → 사용자 서비스
+    location /users/ {
+        proxy_pass http://user_service/;
+        proxy_read_timeout 10s;
+    }
+
+    # /orders/* → 주문 서비스
+    location /orders/ {
+        proxy_pass http://order_service/;
+        proxy_read_timeout 15s;
+    }
+
+    # /products/* → 상품 서비스 (캐싱 적용)
+    location /products/ {
+        proxy_pass http://product_service/;
+        proxy_cache_valid 200 60s;
+        add_header X-Cache-Status $upstream_cache_status;
+    }
+
+    # 속도 제한 (Rate Limiting)
+    limit_req_zone $binary_remote_addr zone=api:10m rate=100r/m;
+    location /api/ {
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://user_service/;
+    }
+
+    # Health Check 엔드포인트
+    location /health {
+        access_log off;
+        return 200 '{"status":"ok"}';
+        add_header Content-Type application/json;
+    }
+}
+```
+
+### AWS API Gateway + Lambda (OpenAPI 정의)
+
+```yaml
+# openapi.yaml — AWS API Gateway 연동
+openapi: 3.0.1
+info:
+  title: My API Gateway
+  version: "1.0"
+
+paths:
+  /users/{id}:
+    get:
+      summary: 사용자 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: arn:aws:apigateway:ap-northeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-2:123456789:function:GetUser/invocations
+        passthroughBehavior: when_no_match
+
+  /orders:
+    post:
+      summary: 주문 생성
+      security:
+        - BearerAuth: []
+      x-amazon-apigateway-integration:
+        type: http_proxy
+        httpMethod: POST
+        uri: http://order-service.internal/orders
+        passthroughBehavior: when_no_match
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-amazon-apigateway-authorizer:
+        type: jwt
+        jwtConfiguration:
+          issuer: https://cognito-idp.ap-northeast-2.amazonaws.com/ap-northeast-2_xxxxx
+          audience:
+            - my-client-id
+        identitySource: $request.header.Authorization
+```
+
+### AWS CLI로 API Gateway 생성
+
+```bash
+# REST API 생성
+API_ID=$(aws apigateway create-rest-api \
+  --name "my-api-gateway" \
+  --description "My API Gateway" \
+  --query 'id' --output text)
+
+# 루트 리소스 ID 조회
+ROOT_ID=$(aws apigateway get-resources \
+  --rest-api-id $API_ID \
+  --query 'items[?path==`/`].id' --output text)
+
+# /users 리소스 생성
+RESOURCE_ID=$(aws apigateway create-resource \
+  --rest-api-id $API_ID \
+  --parent-id $ROOT_ID \
+  --path-part users \
+  --query 'id' --output text)
+
+# GET 메서드 추가
+aws apigateway put-method \
+  --rest-api-id $API_ID \
+  --resource-id $RESOURCE_ID \
+  --http-method GET \
+  --authorization-type NONE
+
+# 사용량 계획 (Rate Limiting)
+aws apigateway create-usage-plan \
+  --name "standard-plan" \
+  --throttle burstLimit=100,rateLimit=50 \
+  --quota limit=10000,period=MONTH
+```
+
+### L4 vs L7 게이트웨이 비교
+
+```
+L4 게이트웨이 (Transport Layer):
+  클라이언트 → [IP:Port 기반 라우팅] → 백엔드
+  - TCP/UDP 레벨에서 동작
+  - 페이로드 내용 미검사 → 고성능
+  - 예: AWS NLB, HAProxy(TCP 모드)
+
+L7 게이트웨이 (Application Layer):
+  클라이언트 → [HTTP 헤더/Path/Cookie 기반 라우팅] → 백엔드
+  - HTTP/HTTPS 레벨에서 동작
+  - 인증, 캐싱, 압축, 재작성 가능
+  - 예: Nginx, AWS ALB, Kong, Istio
+```
+
+```nginx
+# L7: URL 경로 기반 라우팅
+location /api/v1/ { proxy_pass http://v1-backend/; }
+location /api/v2/ { proxy_pass http://v2-backend/; }
+
+# L7: 헤더 기반 라우팅 (카나리 배포)
+split_clients $request_id $backend {
+    10%     new_version;
+    *       stable_version;
+}
+server {
+    location / { proxy_pass http://$backend; }
+}
+```
+
+---
+
+## 참고
+
+### 게이트웨이 솔루션 비교
+
+| 솔루션 | 특징 | 장점 | 적합한 경우 |
+|--------|------|------|------------|
+| Kong | 플러그인 기반 | 풍부한 플러그인, 높은 성능 | 복잡한 요구사항 |
+| AWS API Gateway | 서버리스, 완전 관리형 | 자동 스케일링, 관리 불필요 | AWS 생태계 |
+| NGINX | 웹 서버/프록시 | 뛰어난 성능, 안정성 | 단순한 라우팅 |
+| Istio | 서비스 메시 | 고급 트래픽 관리 | 쿠버네티스 환경 |
+
+### 공식 문서
+- [Kong Gateway Documentation](https://docs.konghq.com/gateway/)
+- [AWS API Gateway Developer Guide](https://docs.aws.amazon.com/apigateway/)
+- [NGINX Plus API Gateway](https://www.nginx.com/products/nginx/api-gateway/)
+- [Istio Service Mesh](https://istio.io/latest/docs/)
+- [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)

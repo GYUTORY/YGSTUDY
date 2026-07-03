@@ -1,0 +1,18 @@
+nav:
+  - Claude_Code.md
+  - Claude_Code_Model.md
+  - Claude_Code_Harness.md
+  - Claude_Code_Agent.md
+  - Claude_Code_Memory.md
+  - Claude_Code_Plan_Mode.md
+  - Claude_Code_Auto_Mode.md
+  - Claude_Code_Web_Vulnerability.md
+  - Claude_Code_Tips.md
+  - Claude_Code_Ultra.md
+  - Claude_Code_Routine.md
+  - Claude_Code_Long_Job.md
+  - Claude_Code_Orchestration.md
+  - Claude_Code_OMC.md
+  - Claude_Code_Worktree.md
+  - Claude_Code_Fable_5.md
+  - Claude_Code_Troubleshooting.md

@@ -1,0 +1,18 @@
+title: Security
+nav:
+  - Basic.md
+  - IAM.md
+  - IAM_Permission_Management_Deep_Dive.md
+  - KMS.md
+  - Secrets_Manager.md
+  - Secrets_Manager_vs_KMS.md
+  - Cognito.md
+  - Cognito_Deep_Dive.md
+  - ACM.md
+  - WAF.md
+  - WAF_Bot_Control.md
+  - WAF_Advanced_Rules.md
+  - Shield.md
+  - Guard_Duty.md
+  - Inspector.md
+  - Security_Hub.md

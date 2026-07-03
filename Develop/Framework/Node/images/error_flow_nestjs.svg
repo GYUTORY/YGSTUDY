@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" font-family="'Pretendard', 'Noto Sans KR', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0f1a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399"/>
+    </marker>
+    <marker id="arrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+    </marker>
+    <marker id="arrowP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="450" fill="url(#bg)" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" fill="#a78bfa" font-size="17" font-weight="700">NestJS 에러 전파 흐름</text>
+  <text x="450" y="55" text-anchor="middle" fill="#64748b" font-size="11">어디서든 throw하면 Exception Filter가 자동으로 잡는다 — next(error) 수동 호출 불필요</text>
+
+  <!-- Pipeline stages (vertical flow) -->
+  <!-- Stage 1: Guard -->
+  <rect x="350" y="80" width="200" height="50" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="450" y="101" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="600">Guard</text>
+  <text x="450" y="118" text-anchor="middle" fill="#94a3b8" font-size="10">인증/인가 검사</text>
+
+  <line x1="450" y1="130" x2="450" y2="155" stroke="#34d399" stroke-width="2" marker-end="url(#arrowG)"/>
+
+  <!-- Stage 2: Interceptor (before) -->
+  <rect x="350" y="155" width="200" height="50" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="450" y="176" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="600">Interceptor (전처리)</text>
+  <text x="450" y="193" text-anchor="middle" fill="#94a3b8" font-size="10">요청 변환, 로깅 시작</text>
+
+  <line x1="450" y1="205" x2="450" y2="230" stroke="#34d399" stroke-width="2" marker-end="url(#arrowG)"/>
+
+  <!-- Stage 3: Pipe -->
+  <rect x="350" y="230" width="200" height="50" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="450" y="251" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="600">Pipe</text>
+  <text x="450" y="268" text-anchor="middle" fill="#94a3b8" font-size="10">유효성 검증 / 타입 변환</text>
+
+  <line x1="450" y1="280" x2="450" y2="305" stroke="#34d399" stroke-width="2" marker-end="url(#arrowG)"/>
+
+  <!-- Stage 4: Controller -->
+  <rect x="350" y="305" width="200" height="50" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+  <text x="450" y="326" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Controller 메서드</text>
+  <text x="450" y="343" text-anchor="middle" fill="#94a3b8" font-size="10">비즈니스 로직 실행</text>
+
+  <!-- Normal response -->
+  <line x1="450" y1="355" x2="450" y2="385" stroke="#34d399" stroke-width="2" marker-end="url(#arrowG)"/>
+  <rect x="375" y="385" width="150" height="40" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="450" y="406" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">Interceptor (후처리)</text>
+  <text x="450" y="420" text-anchor="middle" fill="#94a3b8" font-size="9">응답 변환, 로깅 완료</text>
+
+  <!-- Exception Filter (right side) -->
+  <rect x="650" y="180" width="210" height="130" rx="10" fill="#1e1018" stroke="#ef4444" stroke-width="2"/>
+  <text x="755" y="208" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="700">Exception Filter</text>
+  <text x="755" y="228" text-anchor="middle" fill="#94a3b8" font-size="10">@Catch() 데코레이터</text>
+
+  <!-- HttpException -->
+  <rect x="670" y="240" width="170" height="28" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="755" y="259" text-anchor="middle" fill="#fbbf24" font-size="10">HttpException → 해당 상태코드</text>
+
+  <!-- Unknown error -->
+  <rect x="670" y="275" width="170" height="28" rx="4" fill="#1e293b" stroke="#ef4444" stroke-width="1"/>
+  <text x="755" y="294" text-anchor="middle" fill="#fca5a5" font-size="10">그 외 에러 → 500 응답</text>
+
+  <!-- Error arrows from each stage to Exception Filter -->
+  <!-- From Guard -->
+  <line x1="550" y1="105" x2="650" y2="220" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowR)"/>
+  <text x="580" y="90" fill="#fca5a5" font-size="9">throw</text>
+
+  <!-- From Pipe -->
+  <line x1="550" y1="255" x2="650" y2="250" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowR)"/>
+  <text x="590" y="242" fill="#fca5a5" font-size="9">검증 실패</text>
+
+  <!-- From Controller -->
+  <line x1="550" y1="330" x2="650" y2="270" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowR)"/>
+  <text x="590" y="315" fill="#fca5a5" font-size="9">throw</text>
+
+  <!-- Key differences box (left side) -->
+  <rect x="30" y="90" width="280" height="130" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="170" y="115" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="600">Express와 다른 점</text>
+
+  <text x="50" y="140" fill="#94a3b8" font-size="10">1. next(error) 호출 불필요 — throw만 하면 됨</text>
+  <text x="50" y="160" fill="#94a3b8" font-size="10">2. async 에러 자동 전파 (래퍼 불필요)</text>
+  <text x="50" y="180" fill="#94a3b8" font-size="10">3. 컨트롤러/메서드 단위로 필터 지정 가능</text>
+  <text x="50" y="200" fill="#94a3b8" font-size="10">4. Pipe 검증 실패 시 자동 BadRequestException</text>
+
+  <!-- Scope label -->
+  <rect x="30" y="250" width="280" height="70" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="170" y="275" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">필터 적용 범위</text>
+  <text x="50" y="298" fill="#94a3b8" font-size="10">Global → Controller → Method 순서로 적용</text>
+  <text x="50" y="312" fill="#94a3b8" font-size="10">좁은 범위 필터가 우선</text>
+</svg>

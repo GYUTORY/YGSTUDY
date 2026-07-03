@@ -1,0 +1,16 @@
+nav:
+  - Compute
+  - Containers
+  - Network
+  - Security
+  - Database
+  - Analytics
+  - Storage
+  - Load_Balancer
+  - Application_Integration
+  - Monitoring
+  - Management
+  - CICD
+  - Cost
+  - AI
+  - ...

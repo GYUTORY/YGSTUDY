@@ -1,0 +1,23 @@
+nav:
+  - index.md
+  - Language
+  - Algorithm
+  - Framework
+  - Architecture
+  - Backend
+  - DataBase
+  - AWS
+  - GCP
+  - DevOps
+  - DevSecOps
+  - Git
+  - Infra
+  - Infrastructure
+  - AI
+  - Network
+  - Security
+  - OS
+  - Linux
+  - WebServer
+  - DataRepresentation
+  - tags.md

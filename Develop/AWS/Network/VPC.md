@@ -1,0 +1,761 @@
+---
+title: AWS VPC
+tags: [aws, vpc, networking, cidr, subnet, routing, ipv6, terraform, cloudformation, infrastructure]
+updated: 2026-05-06
+---
+
+# AWS VPC
+
+## 개요
+
+VPC(Virtual Private Cloud)는 AWS 계정 안에서 논리적으로 격리된 가상 네트워크다. 물리적으로는 AWS 데이터센터 안에 있지만 네트워크 수준에서는 완전히 분리되어 있다. EC2, RDS, ECS, Lambda(VPC 연결 모드) 같은 대부분의 리소스가 VPC 안에서 동작한다.
+
+VPC를 "내 계정 안의 데이터센터"로 생각하면 편하다. IP 대역을 직접 정하고, 서브넷을 자르고, 라우팅을 설계하고, 방화벽 규칙을 걸 수 있다. 사내 온프레미스 네트워크를 AWS에 그대로 옮겨놓는 구조다.
+
+신규 AWS 계정은 리전마다 기본 VPC(Default VPC) 하나를 자동으로 만들어 준다. 172.31.0.0/16 대역에 AZ마다 퍼블릭 서브넷이 있고 IGW가 붙어 있다. 실습이나 임시 테스트에는 편하지만 운영 환경에서는 직접 설계한 VPC를 쓰는 게 맞다. 기본 VPC는 모든 서브넷이 퍼블릭이고 보안 그룹이 느슨해서 실수로 노출되기 쉽다.
+
+## VPC의 기본 구성 요소
+
+VPC를 하나 만들면 함께 다뤄야 하는 요소들이 정해진다.
+
+- **CIDR 블록**: VPC에 할당한 IP 주소 범위. 최초 생성 시 Primary CIDR 하나를 지정하고, 필요하면 Secondary CIDR을 추가할 수 있다.
+- **서브넷(Subnet)**: VPC의 CIDR을 쪼갠 작은 네트워크. 반드시 하나의 AZ에 속한다. VPC는 리전 단위, 서브넷은 AZ 단위다.
+- **라우팅 테이블(Route Table)**: 서브넷에서 나가는 트래픽이 어디로 갈지 결정한다.
+- **인터넷 게이트웨이(IGW)**: VPC를 인터넷에 연결하는 게이트웨이. VPC당 하나만 붙일 수 있다.
+- **NAT 게이트웨이/NAT 인스턴스**: 프라이빗 서브넷에서 외부로 나갈 때 출발지 IP를 변환해 주는 장치.
+- **보안 그룹(Security Group)**: ENI 수준의 스테이트풀 방화벽.
+- **NACL(Network ACL)**: 서브넷 수준의 스테이트리스 방화벽.
+- **DHCP 옵션 세트**: VPC 내부에서 쓰는 DNS 서버, 도메인 이름 등을 지정한다.
+- **ENI(Elastic Network Interface)**: 실제 IP가 할당되는 가상 NIC. EC2, RDS, Lambda-in-VPC 전부 뒤에서 ENI를 사용한다.
+
+```mermaid
+graph TB
+    subgraph VPC["VPC 10.0.0.0/16"]
+        subgraph AZ1["AZ ap-northeast-2a"]
+            PubA["Public Subnet<br/>10.0.1.0/24"]
+            PrivA["Private Subnet<br/>10.0.11.0/24"]
+        end
+        subgraph AZ2["AZ ap-northeast-2c"]
+            PubB["Public Subnet<br/>10.0.2.0/24"]
+            PrivB["Private Subnet<br/>10.0.12.0/24"]
+        end
+        IGW["Internet Gateway"]
+        NAT["NAT Gateway"]
+        RT_Pub["Public Route Table<br/>0.0.0.0/0 → IGW"]
+        RT_Priv["Private Route Table<br/>0.0.0.0/0 → NAT"]
+    end
+
+    Internet((Internet))
+
+    Internet --- IGW
+    IGW --- VPC
+    PubA --- RT_Pub
+    PubB --- RT_Pub
+    PrivA --- RT_Priv
+    PrivB --- RT_Priv
+    NAT --- PubA
+    RT_Priv --- NAT
+```
+
+## CIDR 설계
+
+CIDR은 VPC 설계에서 가장 먼저 결정해야 하고, 한번 결정하면 나중에 바꾸기 어렵다. 운영 중인 VPC의 Primary CIDR은 변경할 수 없다. 잘못 잡으면 몇 년을 고생한다.
+
+### 사용 가능한 범위
+
+AWS는 RFC 1918 프라이빗 대역을 VPC CIDR로 권장한다.
+
+- 10.0.0.0/8 (10.0.0.0 ~ 10.255.255.255)
+- 172.16.0.0/12 (172.16.0.0 ~ 172.31.255.255)
+- 192.168.0.0/16 (192.168.0.0 ~ 192.168.255.255)
+
+VPC CIDR 크기는 /16 ~ /28 사이여야 한다. /16이 최대(65,536개 IP), /28이 최소(16개 IP)다. 실무에서는 거의 대부분 /16으로 잡는다. /20이나 /24로 작게 잡으면 서비스가 커졌을 때 IP가 금방 고갈된다.
+
+### 설계할 때 고려할 점
+
+**기존 네트워크와 겹치지 않게 잡아라.** VPC Peering, Transit Gateway, Site-to-Site VPN, Direct Connect 같은 걸 쓰면 다른 VPC나 온프레미스 네트워크와 라우팅을 공유한다. 이때 CIDR이 겹치면 피어링 자체가 불가능하거나, 연결되더라도 라우팅이 꼬인다.
+
+실무에서 자주 겹치는 대역:
+
+- 10.0.0.0/16: 너무 흔해서 다른 팀/계정 VPC와 겹치기 쉽다
+- 192.168.0.0/24: 사내 유무선 네트워크와 겹친다
+- 172.17.0.0/16: Docker 기본 브리지 네트워크 대역
+- 172.18.0.0/16 ~ 172.20.0.0/16: Docker compose 네트워크들
+
+회사 전체 IP 할당 정책을 먼저 정하는 게 맞다. 예를 들어 이런 식으로.
+
+- 개발 계정: 10.10.0.0/16
+- 스테이징 계정: 10.20.0.0/16
+- 프로덕션 서울: 10.100.0.0/16
+- 프로덕션 도쿄: 10.101.0.0/16
+- 공용 서비스 VPC: 10.200.0.0/16
+- 온프레미스: 172.16.0.0/12
+
+**충분히 크게 잡아라.** VPC가 작으면 서브넷을 세밀하게 나누기 어렵다. /16으로 잡으면 65,536개 IP가 있어서 AZ별로 /20씩 4개를 만들어도 여유가 있다. 크게 잡았다고 과금되지 않는다. VPC는 무료다.
+
+### Secondary CIDR
+
+Primary CIDR이 부족하면 Secondary CIDR을 추가할 수 있다. 같은 VPC에 최대 5개(쿼터 증설 시 50개)까지 CIDR을 붙일 수 있다.
+
+Secondary CIDR은 IP 부족을 해결하는 방법이지만 주의사항이 있다.
+
+- 같은 RFC 1918 범위 안에서만 추가할 수 있다. 예: Primary가 10.x.x.x면 Secondary도 10.x.x.x 대역을 쓰는 게 일반적이다.
+- 100.64.0.0/10(Carrier-Grade NAT 대역)을 Secondary로 쓰는 사례가 많다. AWS EKS에서 Pod IP 할당에 자주 쓴다.
+- 다른 VPC/온프레미스와의 라우팅도 Secondary CIDR 전부를 고려해야 한다.
+
+## 서브넷 분할
+
+서브넷은 VPC CIDR을 잘게 쪼갠 단위다. 하나의 서브넷은 반드시 하나의 AZ에 묶인다. 멀티 AZ 구성은 같은 역할의 서브넷을 AZ마다 하나씩 만들어 쌍으로 운영한다.
+
+### 서브넷 타입
+
+- **퍼블릭 서브넷**: 라우팅 테이블에 `0.0.0.0/0 → IGW` 라우트가 있다. 그리고 `auto-assign public IP` 옵션이 켜져 있거나 EIP가 붙은 ENI가 있다. ALB, NAT Gateway, Bastion 호스트 등이 들어간다.
+- **프라이빗 서브넷**: IGW 라우트가 없다. 외부로 나가려면 NAT Gateway를 거친다. 애플리케이션 서버, 내부 서비스가 들어간다.
+- **격리 서브넷(Isolated)**: 외부로 나가는 경로 자체가 없다. 0.0.0.0/0 라우트가 없고 NAT도 없다. RDS, ElastiCache 같은 DB 계층에 쓴다. VPC Endpoint를 통해서만 AWS API와 통신한다.
+
+### 서브넷 크기
+
+`/24` 서브넷은 IP 256개처럼 보이지만 실제로는 **251개**만 쓸 수 있다. AWS가 각 서브넷에서 5개를 예약한다.
+
+예: 10.0.1.0/24
+
+- 10.0.1.0: 네트워크 주소
+- 10.0.1.1: VPC 라우터
+- 10.0.1.2: DNS(Amazon-provided DNS)
+- 10.0.1.3: 예약(미래 사용)
+- 10.0.1.255: 브로드캐스트
+
+EKS, ECS Fargate, Lambda 같이 ENI를 많이 만드는 워크로드는 IP를 생각보다 훨씬 빠르게 먹는다. 특히 EKS는 Pod 하나마다 IP를 하나씩 쓴다(VPC CNI 기본 모드). Pod가 2,000개 뜨면 IP 2,000개를 먹는다. `/24` 서브넷 하나로는 부족하다.
+
+### 실무에서 자주 쓰는 분할
+
+`10.0.0.0/16` VPC 기준.
+
+| 서브넷 | CIDR | 용도 |
+|--------|------|------|
+| Public-A | 10.0.0.0/20 | AZ-a 퍼블릭 (ALB, NAT) |
+| Public-B | 10.0.16.0/20 | AZ-b 퍼블릭 |
+| Public-C | 10.0.32.0/20 | AZ-c 퍼블릭 |
+| App-A | 10.0.64.0/19 | AZ-a 애플리케이션 |
+| App-B | 10.0.96.0/19 | AZ-b 애플리케이션 |
+| App-C | 10.0.128.0/19 | AZ-c 애플리케이션 |
+| DB-A | 10.0.192.0/22 | AZ-a DB |
+| DB-B | 10.0.196.0/22 | AZ-b DB |
+| DB-C | 10.0.200.0/22 | AZ-c DB |
+
+애플리케이션 계층을 크게 잡은 이유는 EKS/ECS에서 IP를 많이 쓰기 때문이다. DB 계층은 RDS 인스턴스가 많지 않으니 /22(약 1,000개 IP)로 충분하다.
+
+## 라우팅 테이블
+
+라우팅 테이블은 서브넷에서 나가는 트래픽이 어느 타깃으로 가는지 정한다. 서브넷 하나는 정확히 하나의 라우팅 테이블과 연결된다. 명시적으로 연결하지 않으면 VPC의 Main Route Table이 자동으로 적용된다.
+
+### 라우트 평가 규칙
+
+라우팅 테이블에는 여러 라우트가 있을 수 있고, 가장 구체적인(Longest Prefix Match) 라우트가 우선한다.
+
+예시:
+
+```
+10.0.0.0/16 → local              # VPC 내부 (자동)
+172.16.0.0/12 → tgw-xxxx         # 온프레미스 (TGW)
+172.16.5.0/24 → pcx-xxxx         # 특정 서브넷만 Peering으로
+0.0.0.0/0 → nat-xxxx             # 나머지는 NAT
+```
+
+172.16.5.100으로 가는 트래픽은 `/24`가 더 구체적이므로 Peering으로 간다. 172.16.10.100은 `/12` 라우트에 걸려서 TGW로 간다.
+
+### local 라우트
+
+모든 라우팅 테이블에는 VPC CIDR에 대한 `local` 라우트가 자동으로 들어간다. 이건 지울 수 없다. VPC 안의 서브넷끼리는 이 라우트 덕분에 기본적으로 통신이 된다. 보안 그룹이나 NACL로 막지 않는 한 모두 연결된다.
+
+Secondary CIDR을 추가하면 그 대역에 대한 local 라우트도 자동으로 들어간다.
+
+### 라우트 충돌
+
+정확히 같은 목적지 CIDR을 두 라우트가 갖고 있으면 라우트를 추가할 때 에러가 난다. 하지만 더 흔한 문제는 **라우트가 의도와 다르게 작동하는 경우**다.
+
+사례 1: NAT 게이트웨이 라우트가 안 잡혀서 프라이빗 서브넷 EC2가 패키지 설치를 못 한다. 프라이빗 서브넷이 퍼블릭 라우팅 테이블에 연결되어 있었다. 이 경우 `0.0.0.0/0 → IGW` 라우트가 있지만 EIP가 없으니 인터넷으로 나가도 응답을 못 받는다.
+
+사례 2: Peering으로 다른 VPC DB에 접근하는데 연결이 안 된다. Peering은 생성했지만 라우팅 테이블에 상대 VPC CIDR 라우트를 안 넣었다. Peering Connection은 라우팅을 자동으로 넣어주지 않는다.
+
+## Internet Gateway와 NAT Gateway
+
+### IGW
+
+IGW는 VPC를 인터넷에 연결하는 단일 게이트웨이다. VPC당 하나만 붙일 수 있다. IGW 자체는 가용성이 AWS에서 관리하는 리전 단위 리소스라 사용자가 AZ나 이중화를 신경 쓸 필요가 없다.
+
+퍼블릭 서브넷의 조건:
+
+1. 서브넷이 연결된 라우팅 테이블에 `0.0.0.0/0 → IGW` 라우트가 있어야 한다.
+2. 해당 ENI에 퍼블릭 IP(자동 할당 또는 EIP)가 있어야 한다.
+
+둘 중 하나라도 빠지면 인터넷 통신이 안 된다. `ssh: connection timed out`이 나면 이 두 가지를 먼저 확인한다.
+
+### NAT Gateway
+
+프라이빗 서브넷에서 인터넷으로 나갈 때 쓴다. NAT Gateway는 AZ 단위 리소스다. 다른 AZ의 NAT Gateway를 쓰면 AZ 간 데이터 전송 비용이 발생한다.
+
+이중화를 위해 AZ마다 NAT Gateway를 하나씩 두는 게 표준이다. 프라이빗 서브넷은 같은 AZ의 NAT Gateway를 가리키는 라우팅 테이블을 쓴다.
+
+NAT Gateway는 비싸다. 시간당 요금 + 데이터 처리 요금이 있다. 서울 리전 기준 월 $30~40 + GB당 $0.045. 트래픽이 많으면 여기서 생각보다 많은 비용이 나온다. 가능한 한 VPC Endpoint로 대체할 수 있는 건 대체하는 게 좋다.
+
+### NAT Gateway 비용 절감 패턴
+
+운영 환경에서 NAT 비용이 청구서의 큰 부분을 차지하는 경우가 많다. 줄일 수 있는 방법이 몇 가지 있다.
+
+**S3/DynamoDB는 Gateway Endpoint로 빼라.** 가장 흔한 NAT 비용 원인이 컨테이너 이미지 풀(ECR), 로그 업로드(S3), 메트릭 수집이다. ECR도 Interface Endpoint(`ecr.api`, `ecr.dkr`)로 바꾸면 NAT를 거치지 않는다. ECR 백엔드는 결국 S3에서 레이어를 받는데 이건 S3 Gateway Endpoint가 처리한다.
+
+**리전 간 동일 서비스 호출도 NAT를 탄다.** 서울 리전 EC2가 도쿄 리전 S3에 호출하면 Gateway Endpoint가 안 잡힌다. Endpoint는 같은 리전에서만 동작한다.
+
+**개발/스테이징은 NAT 1개만 둬도 된다.** 가용성보다 비용이 우선이면 단일 AZ NAT로 충분하다. 운영만 AZ별 이중화한다.
+
+**NAT Instance(EC2 기반)** 도 옵션이지만 가용성과 운영 부담을 감수해야 한다. 트래픽이 작은 사이드 프로젝트나 개발 환경 정도에서만 쓰는 편이다.
+
+비용 분석은 VPC Flow Logs를 Athena로 분석해서 NAT를 거친 트래픽 중 어디로 나가는지 본다. 대부분 특정 호스트(ECR, S3, 외부 API) 몇 개에 몰려 있다.
+
+```sql
+SELECT dstaddr, SUM(bytes) AS total_bytes
+FROM vpc_flow_logs
+WHERE interface_id = 'eni-natgw-xxxx'
+  AND date = '2026-05-01'
+GROUP BY dstaddr
+ORDER BY total_bytes DESC
+LIMIT 20;
+```
+
+상위 IP를 reverse DNS로 풀어 보면 어떤 서비스가 NAT를 가장 많이 쓰는지 보인다. 거기서부터 Endpoint로 빼는 작업을 시작한다.
+
+## DNS 옵션
+
+VPC에는 두 가지 DNS 관련 옵션이 있다.
+
+- **enableDnsSupport**: VPC 내부에서 Amazon-provided DNS(서브넷 CIDR의 +2 주소, 예: 10.0.0.2)를 쓸 수 있게 해준다. 기본값은 true.
+- **enableDnsHostnames**: VPC 안에서 생성된 EC2 인스턴스에 퍼블릭/프라이빗 DNS 호스트네임을 자동 할당할지 여부. 기본값은 VPC 종류에 따라 다르다.
+
+`enableDnsHostnames`가 꺼져 있으면 VPC Endpoint(Interface Type)가 제대로 동작하지 않는다. S3/DynamoDB Gateway Endpoint는 상관없지만 Interface Endpoint는 프라이빗 DNS 네임에 의존한다. 커스텀 VPC에서는 이 옵션을 켜야 하는 경우가 많으니 자주 확인한다.
+
+### DHCP 옵션 세트
+
+VPC 안의 EC2가 DHCP로 받는 설정들이다. 기본 DHCP 옵션 세트는 AmazonProvidedDNS를 DNS 서버로 준다. 온프레미스 DNS(Active Directory 등)로 통합하려면 DHCP 옵션 세트를 새로 만들어서 사내 DNS 서버 IP를 지정한다.
+
+## VPC Endpoint
+
+VPC Endpoint는 VPC 안에서 AWS 서비스(S3, DynamoDB, SQS, SSM 등)를 인터넷을 거치지 않고 프라이빗하게 호출할 수 있게 해준다. 두 종류가 있다.
+
+- **Gateway Endpoint**: S3, DynamoDB 전용. 라우팅 테이블에 접두사 라우트가 추가되는 방식. 요금이 없다.
+- **Interface Endpoint(PrivateLink)**: 그 외 대부분의 서비스. VPC 안에 ENI가 생성되고 프라이빗 DNS가 엔드포인트로 해석된다. 시간당 요금 + 데이터 처리 요금이 있다.
+
+프라이빗 서브넷에서 S3에 많이 접근하는 워크로드라면 Gateway Endpoint를 안 쓰면 NAT Gateway 비용이 크게 증가한다. 웬만하면 S3/DynamoDB Gateway Endpoint는 기본으로 깔고 시작한다.
+
+## VPC 간 연결: Peering
+
+VPC Peering은 두 VPC를 1:1로 연결한다. 같은 계정/리전이든 다른 계정/리전이든 연결할 수 있다. 트래픽은 AWS 백본을 타고 흐르고 인터넷으로 나가지 않는다.
+
+연결 절차는 단순하다.
+
+1. 한쪽 VPC에서 Peering Connection을 생성하고 상대 VPC를 지정한다.
+2. 상대 VPC 소유자가 수락한다.
+3. **양쪽 VPC의 라우팅 테이블에 상대 CIDR 라우트를 직접 추가한다.** 이걸 빼먹는 경우가 많다.
+4. 양쪽 보안 그룹/NACL에서 상대 CIDR 또는 상대 보안 그룹을 허용한다.
+
+같은 리전 Peering은 보안 그룹 ID로 참조가 가능하다. 다른 리전(Inter-Region Peering)은 CIDR로만 참조해야 한다.
+
+### Peering의 한계
+
+가장 큰 한계는 **Transitive Routing이 안 된다**는 점이다. A-B, B-C로 Peering이 걸려 있어도 A에서 C로 직접 통신할 수 없다. B가 라우터 역할을 못 한다. VPC가 5개를 넘어가면 Peering을 메시로 까는 게 사실상 불가능해진다(N(N-1)/2개의 연결이 필요).
+
+겹치는 CIDR도 안 된다. Primary든 Secondary든 한 군데라도 겹치면 거부된다.
+
+비용은 데이터 전송 요금만 발생한다. 같은 AZ면 무료, 다른 AZ는 GB당 $0.01, 다른 리전은 더 비싸다.
+
+## 다수 VPC 연결: Transit Gateway
+
+VPC가 여러 개고 온프레미스까지 묶어야 하면 Transit Gateway(TGW)를 쓴다. TGW는 허브-스포크 구조로 동작하는 리전 수준의 네트워크 라우터다.
+
+```mermaid
+graph TB
+    TGW[Transit Gateway]
+    VPC1[VPC A<br/>10.10.0.0/16]
+    VPC2[VPC B<br/>10.20.0.0/16]
+    VPC3[VPC C<br/>10.30.0.0/16]
+    VPN[Site-to-Site VPN]
+    DX[Direct Connect]
+    OnPrem[온프레미스<br/>172.16.0.0/12]
+
+    VPC1 --- TGW
+    VPC2 --- TGW
+    VPC3 --- TGW
+    VPN --- TGW
+    DX --- TGW
+    VPN --- OnPrem
+    DX --- OnPrem
+```
+
+TGW에 VPC를 Attachment로 붙이면 라우팅 테이블 한 곳에서 전체 토폴로지를 관리할 수 있다. Transitive Routing이 된다. 온프레미스로 가는 라우트도 TGW에 한 번만 설정하면 모든 VPC가 공유한다.
+
+### TGW Route Table
+
+TGW도 자체 라우팅 테이블을 갖는다. 기본은 Default Route Table 하나에 모든 Attachment가 자동으로 들어가 서로 통신할 수 있다. 격리하려면 라우팅 테이블을 여러 개 만들고 Attachment마다 다른 라우팅 테이블에 연결한다.
+
+전형적인 설계는 두 가지다.
+
+- **Flat**: 모든 VPC가 한 라우팅 테이블에 묶여 자유롭게 통신.
+- **Segmented**: prod/dev/shared 같은 환경별로 라우팅 테이블을 분리. shared(공용 서비스 VPC)만 prod와 dev 양쪽에서 접근 가능하게 라우트를 둔다.
+
+### 비용
+
+TGW는 Peering보다 비싸다. Attachment당 시간 요금($0.05/h, 서울)이 있고 GB당 데이터 처리 요금($0.02)도 붙는다. VPC 5개를 TGW에 붙이면 월 $180+ 가 기본으로 나간다. Peering으로 충분히 풀 수 있는 규모면 굳이 TGW로 가지 않는 편이 낫다.
+
+VPC 수가 늘어나는 시점이나 온프레미스를 묶어야 하는 시점에 TGW로 옮기는 게 일반적이다.
+
+## IPv6 지원
+
+VPC는 IPv4와 IPv6를 동시에 쓰는 듀얼 스택을 지원한다. IPv6만 쓰는 단일 스택도 가능하지만 운영 환경에서는 거의 쓰지 않는다. 외부 클라이언트나 SaaS 중 IPv6를 지원하지 않는 게 많아서다.
+
+### 할당 방식
+
+IPv6 CIDR은 직접 정하지 못한다. AWS가 `/56`을 자동 할당한다. 서브넷에는 그 안에서 `/64`를 잘라서 쓴다. 모든 서브넷이 `/64`로 통일된다는 점이 IPv4와 다르다.
+
+BYOIP로 자기 IPv6 대역을 가져오는 것도 가능하지만 온프레미스와 IPv6 통합이 필요한 대형 조직 정도에서만 쓴다.
+
+### Egress-Only Internet Gateway
+
+IPv6에는 NAT라는 개념이 없다. IPv6는 주소가 충분해서 NAT을 쓸 이유가 없다는 게 설계 철학이다. 대신 프라이빗 서브넷에서 외부로 나가기만 하고 들어오는 연결은 막고 싶을 때 **Egress-Only Internet Gateway(EIGW)**를 쓴다.
+
+라우팅 테이블에 `::/0 → eigw-xxxx`를 넣으면 IPv6 아웃바운드만 허용된다. 인바운드는 차단된다. IPv4의 NAT Gateway와 비슷한 역할이지만 EIGW는 무료다. 시간 요금도 처리 요금도 없다.
+
+### 듀얼 스택 운영 시 주의
+
+라우팅 테이블에 IPv4 라우트(`0.0.0.0/0`)와 IPv6 라우트(`::/0`)를 따로 넣어야 한다. 하나만 넣으면 다른 쪽은 안 나간다.
+
+보안 그룹과 NACL도 IPv4 규칙과 IPv6 규칙을 따로 관리한다. 80 포트를 IPv4만 열어두고 IPv6를 빼먹는 사고가 종종 일어난다. 새로 추가한 ELB가 IPv6로도 응답하는데 보안 그룹은 IPv4만 받게 되어 있어 일부 클라이언트가 접속을 못 하는 식이다.
+
+EC2 인스턴스 타입에 따라 IPv6를 지원하지 않는 옛날 타입(`t1`, `m1`, `c1` 등)이 있다. 듀얼 스택을 쓰려면 nitro 기반 인스턴스로 통일하는 편이 안전하다.
+
+ALB/NLB는 듀얼 스택 모드를 지원한다. 클라이언트 IP가 IPv6로 들어오면 X-Forwarded-For에 IPv6 주소가 찍힌다. 백엔드 애플리케이션이 IPv6 형식 IP를 처리할 수 있는지 확인해야 한다. nginx/Apache는 기본 지원하지만 자체 파싱 로직이 있는 경우 깨지는 경우가 있다.
+
+### 듀얼 스택을 도입하는 이유
+
+대부분의 신규 VPC는 IPv4만 써도 문제없다. IPv6를 도입하는 이유는 대체로 두 가지다.
+
+1. **IP 고갈 회피**: 큰 EKS 클러스터에서 Pod IP를 IPv6로 빼면 RFC 1918 대역 고갈에서 자유롭다. EKS는 IPv6 모드를 지원한다.
+2. **모바일/IoT 클라이언트 대응**: 이동통신사 일부가 IPv6 우선이다. 클라이언트 단에서 IPv6 미지원 서버는 지연이 더 커지는 케이스가 있다.
+
+특별한 이유가 없으면 IPv4로 충분하고, 필요해진 시점에 추가하는 식으로 가도 된다.
+
+## 플로우 로그(VPC Flow Logs)
+
+VPC, 서브넷, ENI 단위로 트래픽을 기록한다. 출발지/목적지 IP, 포트, 프로토콜, 수락/거부 여부, 바이트 수 등이 남는다. CloudWatch Logs 또는 S3로 보낼 수 있다.
+
+플로우 로그는 디버깅에 굉장히 유용하다. 보안 그룹/NACL 때문에 트래픽이 막히는지 확인할 때 가장 먼저 보는 게 플로우 로그다.
+
+```
+2 123456789012 eni-abc 10.0.1.5 10.0.10.7 52345 3306 6 5 260 1680000000 1680000060 ACCEPT OK
+2 123456789012 eni-abc 10.0.1.5 10.0.10.7 52346 3306 6 1 40  1680000000 1680000060 REJECT OK
+```
+
+`REJECT`가 찍힌 줄은 방화벽이 막은 트래픽이다. 보안 그룹은 스테이트풀이라 아웃바운드만 열려 있어도 응답은 자동으로 돌아오지만, NACL은 스테이트리스라 양방향 규칙이 필요하다. 왕복 중 한 방향만 REJECT가 찍히면 NACL 문제일 가능성이 높다.
+
+기본 포맷의 필드 순서는 `version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status`다. 운영 환경에서는 Custom Format으로 `vpc-id`, `subnet-id`, `tcp-flags`, `pkt-srcaddr`(NAT 뒤 원본 IP) 같은 필드를 추가해두면 추적이 훨씬 쉽다. 특히 `pkt-srcaddr`는 NAT Gateway나 ELB를 거친 트래픽 디버깅에서 거의 필수다.
+
+S3로 보낸 Flow Logs를 Athena로 조회할 때 자주 쓰는 쿼리. 특정 ENI로 들어오는 REJECT 트래픽을 시간대별로 집계한다.
+
+```sql
+SELECT
+  from_unixtime(start) AS ts,
+  srcaddr, dstaddr, dstport, protocol, action
+FROM vpc_flow_logs
+WHERE interface_id = 'eni-0abcd1234'
+  AND action = 'REJECT'
+  AND start BETWEEN to_unixtime(timestamp '2026-05-04 09:00:00')
+                AND to_unixtime(timestamp '2026-05-04 10:00:00')
+ORDER BY ts DESC
+LIMIT 100;
+```
+
+단점이라면 로그 양이 어마어마하다. 대규모 VPC에서는 S3로 보내고 Athena로 분석하는 게 현실적이다. CloudWatch Logs로 그대로 보내면 비용이 금방 커진다. 운영 VPC에서는 보통 샘플링하거나 필요할 때만 켠다. 디버깅이 끝났는데도 켜둔 채 잊어버리는 경우가 많으니 한 번씩 점검해 두는 게 좋다.
+
+## 리소스 한계와 쿼터
+
+VPC를 설계할 때 놓치기 쉬운 한계들이 있다.
+
+### IP 주소 관련
+
+- **서브넷당 예약 IP 5개**: 이미 설명한 대로. `/28`은 실제 11개만 쓸 수 있다.
+- **VPC당 CIDR**: Primary 1개 + Secondary 4개 = 기본 5개. 증설 가능.
+- **리전당 VPC**: 기본 5개. 증설 가능.
+- **서브넷 수**: VPC당 200개. 증설 가능.
+
+### ENI와 IP
+
+EC2 인스턴스 타입마다 붙일 수 있는 ENI 수와 ENI당 IP 수가 정해져 있다. `t3.medium`은 ENI 3개, ENI당 6개 IP로 총 18개, `m5.large`는 ENI 3개 × 10개 IP = 30개. 인스턴스 타입이 크면 IP를 더 많이 쓴다.
+
+EKS에서는 이 제약이 바로 Pod 밀도로 이어진다. `t3.medium` 노드 하나에 Pod가 17개(+ 자기 자신 IP 1개)밖에 못 뜬다. 이게 싫으면 `VPC CNI prefix delegation`을 켜서 IP 대신 /28 블록을 할당받는 식으로 늘릴 수 있다.
+
+### 보안 그룹
+
+- ENI당 보안 그룹 **5개** (최대 16개까지 쿼터 증설 가능)
+- 보안 그룹당 인바운드/아웃바운드 규칙 각 **60개**
+- 계정당 보안 그룹 **2,500개** 까지
+
+규칙이 많은 보안 그룹을 여러 ENI에 붙이면 `rules per ENI` 제한(기본 250, 최대 1,000)에도 걸린다. 세밀하게 쪼갠 보안 그룹 20개를 하나의 ENI에 붙이면 성능 문제가 아니라 쿼터 문제가 먼저 터진다.
+
+## 실무에서 자주 겪는 문제
+
+### CIDR 겹침
+
+**증상**: Peering 생성은 성공했는데 상대 VPC와 통신이 안 된다. 혹은 TGW에 두 VPC를 붙였는데 라우팅이 이상하다.
+
+**원인**: 두 VPC의 CIDR이 겹친다. `10.0.0.0/16`끼리는 연결할 수 없다. AWS Peering은 겹친 CIDR에 대해 Peering 자체를 거부한다. TGW도 같은 CIDR을 가진 VPC가 여러 개 붙어 있으면 라우팅 우선순위가 꼬인다.
+
+**해결**: 회사 차원의 CIDR 할당 정책이 필요하다. 처음부터 겹치지 않게 분배한다. 이미 겹쳤으면 한쪽 VPC를 다시 만들어야 한다. CIDR 변경은 불가능하다.
+
+### IP 고갈
+
+**증상**: EKS에서 Pod가 `FailedScheduling`으로 뜨지 않는다. 노드가 있는데도 `insufficient pods` 에러가 난다. 혹은 ALB Target Group에 새 Target이 안 붙는다.
+
+**원인**: 서브넷 IP가 고갈됐다. `/24` 서브넷(251개 IP)인데 EKS Pod가 이미 200개 이상 떠 있다. ENI 한 개씩 만들 때마다 IP가 하나씩 줄어드는 걸 놓쳤다.
+
+**해결**:
+
+1. 서브넷에 남은 IP를 CLI로 확인.
+
+```bash
+aws ec2 describe-subnets \
+  --subnet-ids subnet-xxxx \
+  --query 'Subnets[0].AvailableIpAddressCount'
+```
+
+2. Secondary CIDR을 VPC에 추가하고 새 서브넷을 만든다.
+3. 100.64.0.0/10 대역을 Secondary로 추가해서 EKS용 IP 풀로 쓰는 패턴이 많이 쓰인다.
+
+### ENI 고갈
+
+**증상**: Lambda(VPC 연결 모드)에서 `ENILimitReachedException`이 뜨거나, RDS Proxy/EFS/EKS Pod 생성이 실패한다. EC2 인스턴스에 추가 ENI를 붙이려는데 `MaxENIperInstance` 에러가 난다.
+
+**원인**: 두 종류의 한계가 있어서 헷갈린다.
+
+1. 인스턴스 타입별 ENI 수 한계. `t3.medium` 3개, `m5.large` 3개, `m5.4xlarge` 8개 식으로 정해져 있고 늘릴 수 없다.
+2. 리전당 ENI 수 쿼터. 기본은 5,000개. EKS 노드 + Pod 워크로드 + Lambda VPC 연결을 한 계정에서 같이 쓰면 의외로 빨리 닿는다.
+
+EKS 환경에서는 노드 종료 후에도 ENI가 한동안 남아 있는 경우가 있다. `aws-node` DaemonSet이 미리 Warm Pool로 ENI를 잡아두기 때문이다. 노드를 자주 스케일 인/아웃하면 비활성 ENI(`available` 상태)가 쌓인다.
+
+**해결**:
+
+```bash
+# 계정에서 사용 중인 ENI 수 확인
+aws ec2 describe-network-interfaces \
+  --query 'length(NetworkInterfaces)'
+
+# 비활성 ENI 목록 (붙어 있지 않은 것들)
+aws ec2 describe-network-interfaces \
+  --filters Name=status,Values=available \
+  --query 'NetworkInterfaces[].[NetworkInterfaceId,SubnetId,Description]' \
+  --output table
+```
+
+비활성 ENI가 많으면 정리한다. EKS는 `WARM_ENI_TARGET`, `MAX_ENI` 환경변수로 Warm Pool 크기를 조절할 수 있다. Lambda VPC 연결은 함수마다 ENI를 새로 만들지 않고 Hyperplane이 공유 ENI를 쓰는 구조로 바뀌었으니 (2019년 이후) 이쪽은 보통 문제가 없다. 옛날에 만든 함수가 잘 안 옮겨졌다면 수동으로 다시 배포해야 한다.
+
+ENI 쿼터 자체는 Service Quotas 콘솔에서 증설 요청을 보낼 수 있다. 기본 5,000개로 부족한 환경이면 증설을 미리 해두는 편이 낫다.
+
+### 라우트 테이블 연결 누락
+
+**증상**: 신규 서브넷을 만들었는데 인터넷/NAT 연결이 안 된다.
+
+**원인**: 서브넷을 만들면 자동으로 VPC의 Main Route Table에 연결된다. 커스텀 라우팅 테이블이 따로 있으면 명시적으로 연결해줘야 한다. Terraform이나 CDK로 만들다 보면 Associate를 빼먹는 경우가 있다.
+
+**해결**: 서브넷 생성 후 반드시 라우팅 테이블을 지정해서 연결한다. IaC라면 `aws_route_table_association` 리소스를 빠뜨리지 않는다.
+
+### 보안 그룹과 NACL 혼동
+
+**증상**: 보안 그룹은 열려 있는데 트래픽이 막힌다.
+
+**원인**: NACL이 막고 있다. NACL은 스테이트리스라 인바운드/아웃바운드를 양쪽 다 허용해야 한다. 인바운드 80을 열어놓고 아웃바운드 ephemeral 포트(1024-65535)를 막아 놓으면 TCP 응답이 못 나간다.
+
+**해결**: 플로우 로그에서 REJECT를 확인한다. NACL 아웃바운드에 `0.0.0.0/0, 포트 1024-65535, ALLOW` 규칙이 있는지 본다. 특별한 사유가 없다면 NACL은 기본값(모두 허용)으로 두고 보안 그룹으로 통제하는 게 실무에서 편하다.
+
+### VPC Endpoint 프라이빗 DNS 문제
+
+**증상**: 프라이빗 서브넷에서 SSM Session Manager 연결이 안 된다. `ssm.ap-northeast-2.amazonaws.com`을 못 찾는다.
+
+**원인**: SSM Interface Endpoint는 만들었는데 VPC의 `enableDnsHostnames`가 꺼져 있거나, Endpoint의 Private DNS 옵션이 꺼져 있다.
+
+**해결**: VPC의 DNS 옵션 두 개를 모두 켠다. Endpoint도 Private DNS Enabled로 설정한다. SSM은 `ssm`, `ssmmessages`, `ec2messages` 세 개 Endpoint가 전부 필요하다.
+
+### DNS 옵션을 끈 VPC에서 RDS 연결 실패
+
+**증상**: 애플리케이션에서 RDS 엔드포인트 도메인이 resolve 안 된다.
+
+**원인**: VPC의 `enableDnsSupport`가 꺼져 있다. RDS 엔드포인트는 AWS가 관리하는 도메인이고, VPC 내부에서는 Amazon-provided DNS를 통해 프라이빗 IP로 해석된다. DNS 지원을 끄면 이 해석이 안 된다.
+
+**해결**: 특별한 사정이 없으면 `enableDnsSupport`는 무조건 켠다.
+
+## IaC로 VPC 만들기
+
+콘솔로 만들면 재현이 어렵고 환경 간 차이가 생긴다. VPC는 IaC로 관리한다. Terraform과 CloudFormation 둘 다 자주 쓴다.
+
+### Terraform 예제
+
+3-AZ 듀얼 스택 VPC. 퍼블릭/프라이빗 서브넷, AZ별 NAT Gateway, S3 Gateway Endpoint까지 한 번에 만든다.
+
+```hcl
+locals {
+  vpc_cidr = "10.10.0.0/16"
+  azs      = ["ap-northeast-2a", "ap-northeast-2b", "ap-northeast-2c"]
+
+  public_subnets  = ["10.10.0.0/20", "10.10.16.0/20", "10.10.32.0/20"]
+  private_subnets = ["10.10.64.0/19", "10.10.96.0/19", "10.10.128.0/19"]
+}
+
+resource "aws_vpc" "main" {
+  cidr_block                       = local.vpc_cidr
+  assign_generated_ipv6_cidr_block = true
+  enable_dns_support               = true
+  enable_dns_hostnames             = true
+
+  tags = { Name = "prod-vpc" }
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "prod-igw" }
+}
+
+resource "aws_egress_only_internet_gateway" "eigw" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "prod-eigw" }
+}
+
+resource "aws_subnet" "public" {
+  count                           = length(local.public_subnets)
+  vpc_id                          = aws_vpc.main.id
+  cidr_block                      = local.public_subnets[count.index]
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, count.index)
+  availability_zone               = local.azs[count.index]
+  map_public_ip_on_launch         = true
+  assign_ipv6_address_on_creation = true
+
+  tags = { Name = "prod-public-${local.azs[count.index]}" }
+}
+
+resource "aws_subnet" "private" {
+  count                           = length(local.private_subnets)
+  vpc_id                          = aws_vpc.main.id
+  cidr_block                      = local.private_subnets[count.index]
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, count.index + 10)
+  availability_zone               = local.azs[count.index]
+  assign_ipv6_address_on_creation = true
+
+  tags = { Name = "prod-private-${local.azs[count.index]}" }
+}
+
+resource "aws_eip" "nat" {
+  count  = length(local.azs)
+  domain = "vpc"
+}
+
+resource "aws_nat_gateway" "ngw" {
+  count         = length(local.azs)
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+
+  tags = { Name = "prod-nat-${local.azs[count.index]}" }
+
+  depends_on = [aws_internet_gateway.igw]
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_internet_gateway.igw.id
+  }
+
+  tags = { Name = "prod-public-rt" }
+}
+
+resource "aws_route_table_association" "public" {
+  count          = length(aws_subnet.public)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table" "private" {
+  count  = length(local.azs)
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.ngw[count.index].id
+  }
+
+  route {
+    ipv6_cidr_block        = "::/0"
+    egress_only_gateway_id = aws_egress_only_internet_gateway.eigw.id
+  }
+
+  tags = { Name = "prod-private-rt-${local.azs[count.index]}" }
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
+}
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.ap-northeast-2.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = aws_route_table.private[*].id
+
+  tags = { Name = "prod-s3-endpoint" }
+}
+
+resource "aws_flow_log" "vpc" {
+  vpc_id          = aws_vpc.main.id
+  traffic_type    = "ALL"
+  log_destination_type = "s3"
+  log_destination = "arn:aws:s3:::my-flowlogs-bucket/prod-vpc/"
+
+  log_format = "$${version} $${account-id} $${interface-id} $${srcaddr} $${dstaddr} $${srcport} $${dstport} $${protocol} $${packets} $${bytes} $${start} $${end} $${action} $${log-status} $${vpc-id} $${subnet-id} $${pkt-srcaddr} $${pkt-dstaddr} $${tcp-flags}"
+}
+```
+
+`cidrsubnet`으로 IPv6 `/56`에서 `/64`를 잘라낸다. AZ별로 라우팅 테이블을 따로 두어 같은 AZ NAT를 가리키게 한 점이 핵심이다. 다른 AZ NAT를 거치면 AZ 간 데이터 전송 비용이 발생한다.
+
+terraform-aws-modules의 `terraform-aws-modules/vpc/aws` 모듈을 쓰면 위 코드의 대부분을 한 모듈 호출로 끝낼 수 있다. 처음에는 직접 짜 보고 그다음에 모듈로 옮기는 게 학습에는 낫다.
+
+### CloudFormation 예제
+
+같은 구조를 CloudFormation으로 만들면 이런 식이다. 일부만 발췌했다.
+
+```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Production VPC with public/private subnets across 3 AZs
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: 10.10.0.0/16
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: prod-vpc
+
+  IPv6CidrBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref VPC
+      AmazonProvidedIpv6CidrBlock: true
+
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: prod-igw
+
+  IGWAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref IGW
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    DependsOn: IPv6CidrBlock
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.10.0.0/20
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Ipv6CidrBlock: !Select
+        - 0
+        - !Cidr [!Select [0, !GetAtt VPC.Ipv6CidrBlocks], 16, 64]
+      AssignIpv6AddressOnCreation: true
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    DependsOn: IPv6CidrBlock
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.10.64.0/19
+      AvailabilityZone: !Select [0, !GetAZs ""]
+
+  EipNatA:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGwA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EipNatA.AllocationId
+      SubnetId: !Ref PublicSubnetA
+
+  PublicRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IGWAttach
+    Properties:
+      RouteTableId: !Ref PublicRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IGW
+
+  PublicSubnetAAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRT
+
+Outputs:
+  VpcId:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${AWS::StackName}-VpcId"
+```
+
+CloudFormation은 `DependsOn`을 명시적으로 챙겨야 한다. `IGWAttach`가 안 끝났는데 `PublicDefaultRoute`가 먼저 만들어지면 `Route does not have a route to gateway` 에러가 난다. Terraform은 의존 관계를 자동 추론해서 이런 부분은 더 편하다.
+
+운영 환경에서는 NestedStack이나 Cross-stack Reference로 VPC 스택과 애플리케이션 스택을 분리한다. VPC를 한 스택에 다 넣으면 어느 한 리소스 변경으로 전체 스택이 롤백되는 사고가 난다. AWS 공식 도구로는 CloudFormation, IaC 표현력으로는 CDK, 멀티 클라우드/외부 리소스까지 묶으려면 Terraform 식으로 선택한다.
+
+## VPC 설계 시 고려할 관점
+
+VPC를 처음 만들 때 결정해야 하는 것들.
+
+**멀티 AZ 고가용성.** 최소 2개, 권장 3개 AZ에 서브넷을 각각 배치한다. AZ 하나가 죽어도 서비스가 계속 동작하게 해야 한다. 비용 때문에 단일 AZ에 몰면 AZ 장애 시 전체가 내려간다.
+
+**계층 분리.** 퍼블릭(ALB/NAT) / 애플리케이션 / DB 세 계층으로 나눈다. 각 계층 사이는 보안 그룹으로 통제한다. 애플리케이션이 DB 보안 그룹의 소스로 지정되어 있어야 한다. IP가 아닌 보안 그룹 ID로 참조하면 IP 변경에 영향을 안 받는다.
+
+**IaC로 관리.** VPC는 CloudFormation/Terraform/CDK로 관리한다. 콘솔에서 수동으로 만들면 재현이 어렵고 DR 환경 구축이 힘들다. 한번 만든 VPC 템플릿은 계정이 늘어나도 계속 재사용할 수 있어야 한다.
+
+**비용 관점.** VPC 자체는 무료다. 서브넷, 라우팅 테이블, IGW, 보안 그룹, NACL 전부 무료다. 돈이 나가는 건 NAT Gateway, Interface Endpoint, VPN, Direct Connect, AZ 간 데이터 전송이다. 이 부분의 구성을 미리 잘 잡는 게 비용 최적화의 핵심이다.
+
+## 관련 문서
+
+- [Public Subnet vs Private Subnet](./Private_Subnet__vs__Public_Subnet.md)
+- [NAT Gateway](./Nat_Gateway.md)
+- [VPC Peering](./VPC_Peering.md)
+- [Transit Gateway](./Transit_Gateway.md)
+- [VPC Endpoints](./VPC_Endpoints.md)
+- [PrivateLink](./PrivateLink.md)
+- [Security Groups vs NACLs](./Security_Groups_vs_NACLs.md)
+- [Direct Connect](./Direct_Connect.md)

@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 520" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.1"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#10b981"/>
+    </marker>
+    <marker id="arrOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrGray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#9ca3af"/>
+    </marker>
+  </defs>
+
+  <rect width="920" height="520" rx="12" fill="#f8fafc"/>
+  <text x="460" y="35" text-anchor="middle" font-size="18" font-weight="700" fill="#1e293b">ECS Blue/Green 배포 흐름</text>
+
+  <!-- Phase 1: 배포 전 -->
+  <rect x="20" y="55" width="270" height="200" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="20" y="55" width="270" height="30" rx="10" fill="#3b82f6"/>
+  <rect x="20" y="72" width="270" height="13" fill="#3b82f6"/>
+  <text x="155" y="75" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">1. 배포 전 (Blue 운영 중)</text>
+
+  <rect x="40" y="100" width="100" height="45" rx="6" fill="#fff" stroke="#6366f1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="90" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#4338ca">ALB</text>
+  <text x="90" y="135" text-anchor="middle" font-size="9" fill="#64748b">:443</text>
+
+  <rect x="170" y="100" width="100" height="45" rx="6" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="220" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">Blue TG</text>
+  <text x="220" y="135" text-anchor="middle" font-size="9" fill="#64748b">v1 태스크</text>
+
+  <line x1="140" y1="122" x2="168" y2="122" stroke="#3b82f6" stroke-width="2" marker-end="url(#arr)"/>
+
+  <text x="155" y="180" text-anchor="middle" font-size="10" fill="#64748b">Green TG: 비활성</text>
+  <rect x="100" y="190" width="110" height="35" rx="6" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="155" y="212" text-anchor="middle" font-size="10" fill="#9ca3af">Green TG</text>
+
+  <!-- Phase 2: Green 생성 -->
+  <rect x="320" y="55" width="270" height="200" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="320" y="55" width="270" height="30" rx="10" fill="#10b981"/>
+  <rect x="320" y="72" width="270" height="13" fill="#10b981"/>
+  <text x="455" y="75" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">2. Green 태스크 세트 생성</text>
+
+  <rect x="340" y="100" width="100" height="45" rx="6" fill="#fff" stroke="#6366f1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="390" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#4338ca">ALB</text>
+  <text x="390" y="135" text-anchor="middle" font-size="9" fill="#64748b">:443</text>
+
+  <rect x="470" y="100" width="100" height="45" rx="6" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="520" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">Blue TG</text>
+  <text x="520" y="135" text-anchor="middle" font-size="9" fill="#64748b">v1 태스크</text>
+
+  <line x1="440" y1="122" x2="468" y2="122" stroke="#3b82f6" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="400" y="190" width="110" height="35" rx="6" fill="#bbf7d0" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="455" y="205" text-anchor="middle" font-size="10" font-weight="600" fill="#065f46">Green TG</text>
+  <text x="455" y="218" text-anchor="middle" font-size="9" fill="#64748b">v2 태스크 기동 중</text>
+
+  <text x="390" y="175" text-anchor="middle" font-size="9" fill="#f59e0b">:8443 (테스트)</text>
+  <line x1="390" y1="145" x2="440" y2="190" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrOrange)"/>
+
+  <!-- Phase 3: 트래픽 전환 -->
+  <rect x="620" y="55" width="280" height="200" rx="10" fill="#fefce8" stroke="#f59e0b" stroke-width="1.5"/>
+  <rect x="620" y="55" width="280" height="30" rx="10" fill="#f59e0b"/>
+  <rect x="620" y="72" width="280" height="13" fill="#f59e0b"/>
+  <text x="760" y="75" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">3. 테스트 트래픽 + 훅 검증</text>
+
+  <rect x="640" y="100" width="100" height="45" rx="6" fill="#fff" stroke="#6366f1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="690" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#4338ca">ALB</text>
+  <text x="690" y="135" text-anchor="middle" font-size="9" fill="#64748b">:443 + :8443</text>
+
+  <rect x="770" y="100" width="110" height="45" rx="6" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="825" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">Blue TG</text>
+  <text x="825" y="135" text-anchor="middle" font-size="9" fill="#64748b">:443 트래픽</text>
+
+  <line x1="740" y1="115" x2="768" y2="115" stroke="#3b82f6" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="700" y="190" width="110" height="35" rx="6" fill="#bbf7d0" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="755" y="205" text-anchor="middle" font-size="10" font-weight="600" fill="#065f46">Green TG</text>
+  <text x="755" y="218" text-anchor="middle" font-size="9" fill="#64748b">:8443 테스트</text>
+
+  <line x1="700" y1="145" x2="735" y2="190" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrOrange)"/>
+
+  <rect x="825" y="188" width="65" height="40" rx="5" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="857" y="205" text-anchor="middle" font-size="9" font-weight="600" fill="#92400e">Lambda</text>
+  <text x="857" y="218" text-anchor="middle" font-size="8" fill="#92400e">훅 검증</text>
+
+  <!-- Phase arrows -->
+  <line x1="290" y1="155" x2="318" y2="155" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrGray)"/>
+  <line x1="590" y1="155" x2="618" y2="155" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrGray)"/>
+
+  <!-- Phase 4: 전환 완료 -->
+  <rect x="20" y="290" width="430" height="210" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.5"/>
+  <rect x="20" y="290" width="430" height="30" rx="10" fill="#10b981"/>
+  <rect x="20" y="307" width="430" height="13" fill="#10b981"/>
+  <text x="235" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">4. 프로덕션 트래픽 전환 완료</text>
+
+  <!-- ALB -->
+  <rect x="40" y="340" width="100" height="45" rx="6" fill="#fff" stroke="#6366f1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="90" y="360" text-anchor="middle" font-size="11" font-weight="600" fill="#4338ca">ALB</text>
+  <text x="90" y="375" text-anchor="middle" font-size="9" fill="#64748b">:443</text>
+
+  <!-- Green TG active -->
+  <rect x="180" y="340" width="110" height="45" rx="6" fill="#bbf7d0" stroke="#10b981" stroke-width="2" filter="url(#shadow)"/>
+  <text x="235" y="360" text-anchor="middle" font-size="11" font-weight="600" fill="#065f46">Green TG</text>
+  <text x="235" y="375" text-anchor="middle" font-size="9" fill="#065f46">v2 프로덕션</text>
+
+  <line x1="140" y1="362" x2="178" y2="362" stroke="#10b981" stroke-width="2" marker-end="url(#arrGreen)"/>
+
+  <!-- Blue TG draining -->
+  <rect x="180" y="420" width="110" height="45" rx="6" fill="#fecaca" stroke="#ef4444" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="235" y="440" text-anchor="middle" font-size="10" fill="#991b1b">Blue TG</text>
+  <text x="235" y="455" text-anchor="middle" font-size="9" fill="#991b1b">드레이닝 중</text>
+
+  <text x="320" y="445" font-size="9" fill="#64748b">deregistration_delay</text>
+  <text x="320" y="458" font-size="9" fill="#64748b">기본 300초 대기</text>
+
+  <!-- Phase 5: 정리 -->
+  <rect x="480" y="290" width="420" height="210" rx="10" fill="#f8fafc" stroke="#d1d5db" stroke-width="1.5"/>
+  <rect x="480" y="290" width="420" height="30" rx="10" fill="#64748b"/>
+  <rect x="480" y="307" width="420" height="13" fill="#64748b"/>
+  <text x="690" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">5. 정리 (Blue 태스크 종료)</text>
+
+  <rect x="500" y="340" width="100" height="45" rx="6" fill="#fff" stroke="#6366f1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="550" y="360" text-anchor="middle" font-size="11" font-weight="600" fill="#4338ca">ALB</text>
+  <text x="550" y="375" text-anchor="middle" font-size="9" fill="#64748b">:443</text>
+
+  <rect x="640" y="340" width="110" height="45" rx="6" fill="#bbf7d0" stroke="#10b981" stroke-width="2" filter="url(#shadow)"/>
+  <text x="695" y="360" text-anchor="middle" font-size="11" font-weight="600" fill="#065f46">Green TG</text>
+  <text x="695" y="375" text-anchor="middle" font-size="9" fill="#065f46">v2 프로덕션</text>
+
+  <line x1="600" y1="362" x2="638" y2="362" stroke="#10b981" stroke-width="2" marker-end="url(#arrGreen)"/>
+
+  <rect x="640" y="420" width="110" height="45" rx="6" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
+  <text x="695" y="440" text-anchor="middle" font-size="10" fill="#9ca3af">Blue TG</text>
+  <text x="695" y="455" text-anchor="middle" font-size="9" fill="#9ca3af">태스크 종료됨</text>
+
+  <rect x="790" y="420" width="90" height="45" rx="6" fill="#10b981"/>
+  <text x="835" y="440" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">배포</text>
+  <text x="835" y="455" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">완료</text>
+
+  <!-- Phase 4→5 arrow -->
+  <line x1="450" y1="395" x2="478" y2="395" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrGray)"/>
+</svg>
