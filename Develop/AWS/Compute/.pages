@@ -10,6 +10,7 @@ nav:
   - EC2_Tenancy_Dedicated_Hosts.md
   - EC2_Fleet.md
   - Auto_Scaling.md
+  - Auto_Scaling_Lifecycle_Hooks.md
   - Lambda.md
   - Lambda_Cold_Start_심화.md
   - Lambda_VPC_연동.md
