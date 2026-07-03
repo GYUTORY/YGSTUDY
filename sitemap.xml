@@ -2137,7 +2137,23 @@
          <lastmod>2026-07-03</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/GCP/Compute/GKE/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/GCP/Data/Big_Query/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/GCP/Data/Cloud_SQL/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/GCP/Data/Cloud_Storage/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/GCP/Data/Pub_Sub/</loc>
          <lastmod>2026-07-03</lastmod>
     </url>
     <url>
@@ -2150,6 +2166,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/GCP/Network/GCP_VPC/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/GCP/Security/IAM/</loc>
          <lastmod>2026-07-03</lastmod>
     </url>
     <url>
