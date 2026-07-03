@@ -2177,6 +2177,18 @@
          <lastmod>2026-07-03</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Git/Git_Hooks/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Git/Git_Internals/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Git/Git_Worktree_Submodule_LFS/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Git/Git_%EC%9E%90%EC%A3%BC_%EC%82%AC%EC%9A%A9%ED%95%98%EB%8A%94_%EB%AA%85%EB%A0%B9%EC%96%B4/</loc>
          <lastmod>2026-07-03</lastmod>
     </url>
@@ -2254,6 +2266,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Infrastructure/Infrastructure_High_Availability/</loc>
+         <lastmod>2026-07-03</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Infrastructure/Infrastructure_Network_Design/</loc>
          <lastmod>2026-07-03</lastmod>
     </url>
     <url>
