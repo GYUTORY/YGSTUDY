@@ -1,7 +1,7 @@
 ---
 title: NestJS Prisma 연동
 tags: [nestjs, prisma, database, orm, migration, transaction]
-updated: 2026-06-12
+updated: 2026-07-10
 ---
 
 ## 들어가며
@@ -145,11 +145,11 @@ TypeORM처럼 모델별 Repository를 주입받는 구조가 아니라, PrismaSe
 
 ## 트랜잭션
 
-Prisma의 트랜잭션은 두 가지 형태가 있다. 동작이 꽤 다르니 구분해서 써야 한다.
+Prisma의 트랜잭션은 두 가지 형태가 있다. 겉보기엔 비슷해 보여도 내부 동작이 다르니 구분해서 써야 한다.
 
 ### Sequential — 배열 방식
 
-쿼리 배열을 넘기면 한 트랜잭션 안에서 순서대로 실행한다. 쿼리 간에 앞 결과를 받아 분기하는 로직이 없을 때 쓴다.
+쿼리 배열을 넘기면 한 트랜잭션 안에서 순서대로 실행한다.
 
 ```typescript
 const [user, post] = await this.prisma.$transaction([
@@ -158,7 +158,9 @@ const [user, post] = await this.prisma.$transaction([
 ]);
 ```
 
-이 방식은 쿼리를 미리 다 정해놓고 넘기는 구조라, 첫 번째 쿼리 결과의 id를 두 번째 쿼리에서 써야 하는 경우엔 못 쓴다.
+`this.prisma.user.create(...)` 라인을 작성하는 시점에는 실제 쿼리가 나가지 않는다. Prisma는 이 호출을 `PrismaPromise`라는 지연 실행 객체로 만들고, `$transaction([...])` 호출 시점에 배열 안 쿼리들을 한꺼번에 실행한다. 내부적으로는 `BEGIN` → 순차 실행 → `COMMIT` 흐름이다.
+
+이 방식의 한계는 명확하다. 첫 번째 쿼리 결과의 id를 두 번째 쿼리에서 참조할 수 없다. 실행 전에 배열을 전부 구성해야 하기 때문이다. 쿼리 간에 의존성이 없을 때만 쓴다.
 
 ### Interactive — 콜백 방식
 
@@ -184,6 +186,8 @@ async transfer(fromId: number, toId: number, amount: number) {
 }
 ```
 
+Interactive 트랜잭션은 내부적으로 커넥션 풀에서 커넥션 하나를 예약하고 `BEGIN`을 실행한다. 콜백이 resolve되면 `COMMIT`, reject되면 `ROLLBACK`이 나가고 커넥션을 풀로 돌려보낸다. 배열 방식과 달리 콜백 실행 전체 시간 동안 커넥션을 점유한다. 콜백이 오래 걸리면 그만큼 풀 압박이 생긴다.
+
 콜백 안에서는 반드시 `tx`를 써야 한다. 실수로 `this.prisma`를 쓰면 그 쿼리는 트랜잭션 밖에서 별도 연결로 나가서, 롤백돼야 할 때 안 돌아간다. 이게 진짜 자주 나오는 버그다. 콜백 안에서 다른 서비스 메서드를 호출하는 구조라면 그 메서드도 `tx`를 인자로 받게 시그니처를 바꿔야 한다.
 
 ```typescript
@@ -206,6 +210,72 @@ this.prisma.$transaction(async (tx) => { /* ... */ }, {
 
 `timeout`을 무작정 늘리는 건 답이 아니다. 트랜잭션이 길수록 락을 오래 쥐고 있어 동시성이 떨어진다. 외부 호출을 트랜잭션 밖으로 빼는 게 먼저다.
 
+### Sequential vs Interactive 선택 기준
+
+두 방식 중 무엇을 쓸지 판단 기준이다.
+
+| 상황 | 방식 |
+|---|---|
+| 쿼리 간 의존성 없음 (id 참조 등) | Sequential |
+| 앞 결과를 보고 다음 쿼리 구성 | Interactive |
+| 중간에 분기 로직 있음 | Interactive |
+| 다른 서비스 메서드를 같은 트랜잭션으로 묶어야 함 | Interactive |
+| 쿼리가 완전히 독립적이고 단순 묶음이면 됨 | Sequential |
+
+Sequential이 커넥션을 덜 오래 점유하는 경향이 있지만, 차이가 두드러지는 경우는 드물다. 대부분은 쿼리 간 의존성 여부로 결정된다.
+
+### 중첩 트랜잭션과 Savepoint 제한
+
+Prisma는 중첩 트랜잭션을 지원하지 않는다. `tx` 안에서 `tx.$transaction()`을 호출하려고 하면 `tx`에 `$transaction` 메서드 자체가 없어서 타입 에러가 난다. 데이터베이스 레벨의 `SAVEPOINT`도 Prisma가 노출하지 않는다.
+
+이 제한이 문제가 되는 경우는 대개 서비스 계층이 서로를 호출하는 구조에서다. A 서비스가 트랜잭션을 열고, 그 안에서 B 서비스 메서드를 호출하는데 B 메서드 내부에도 `$transaction`이 있으면 중첩이 된다.
+
+```typescript
+// 문제가 되는 구조
+async transferAndNotify(fromId: number, toId: number, amount: number) {
+  return this.prisma.$transaction(async (tx) => {
+    await this.transferService.transfer(fromId, toId, amount); // 내부에 $transaction 있음
+    await this.notificationService.create(toId, amount);       // 내부에 $transaction 있음
+  });
+}
+```
+
+해결 방법은 `tx`를 명시적으로 인자로 내려보내는 것이다. `$transaction`을 열지 않고, 받은 `tx`로 쿼리만 실행하게 메서드를 나눈다.
+
+```typescript
+type TxClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+// TransferService
+async transfer(tx: TxClient, fromId: number, toId: number, amount: number) {
+  const from = await tx.account.update({
+    where: { id: fromId },
+    data: { balance: { decrement: amount } },
+  });
+  if (from.balance < 0) throw new Error('잔액 부족');
+  await tx.account.update({
+    where: { id: toId },
+    data: { balance: { increment: amount } },
+  });
+}
+
+// NotificationService
+async create(tx: TxClient, userId: number, amount: number) {
+  return tx.notification.create({ data: { userId, amount } });
+}
+
+// 호출부
+async transferAndNotify(fromId: number, toId: number, amount: number) {
+  return this.prisma.$transaction(async (tx) => {
+    await this.transferService.transfer(tx, fromId, toId, amount);
+    await this.notificationService.create(tx, toId, amount);
+  });
+}
+```
+
+`tx`를 인자로 받는 메서드와 `$transaction`을 여는 메서드를 분리하면, 혼자 쓸 때는 `$transaction`을 열고 같이 쓸 때는 받은 `tx`를 그대로 넘기는 구조가 된다.
+
+`SAVEPOINT`가 정말 필요하면 `$executeRaw`로 직접 SQL을 쓰는 방법이 있긴 하다. 하지만 Prisma가 커넥션을 어떻게 관리하는지 내부 동작과 맞물리는 부분이 있어서, 이 방향은 테스트를 충분히 하고 가야 한다.
+
 ### Nested write
 
 부모와 자식 레코드를 한 번에 만들 때는 트랜잭션을 명시적으로 안 열어도 된다. `create` 안에서 관계 필드에 중첩 write를 쓰면 Prisma가 알아서 한 트랜잭션으로 묶는다.
@@ -226,6 +296,126 @@ await this.prisma.user.create({
 
 User 생성과 Post 2개 생성이 모두 성공하거나 모두 실패한다. 중간에 하나라도 깨지면 User도 안 만들어진다. `connect`, `connectOrCreate`, `update`, `upsert`도 중첩으로 쓸 수 있다. 단순한 부모-자식 동시 생성은 `$transaction`을 직접 쓰는 것보다 중첩 write가 읽기 쉽다.
 
+### 트랜잭션 Context 패턴 — AsyncLocalStorage 활용
+
+`tx`를 인자로 내려보내는 방식의 문제는 호출 스택 깊이에 비례해 인자가 증가한다는 점이다. 서비스가 여러 레이어를 거치면 모든 메서드 시그니처가 `tx?: TxClient`를 달고 다녀야 한다. 이게 지저분해지면 Node.js의 `AsyncLocalStorage`로 트랜잭션 클라이언트를 컨텍스트에 태워 넘기는 방식을 쓸 수 있다.
+
+```typescript
+// prisma/prisma.service.ts
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+import { AsyncLocalStorage } from 'async_hooks';
+
+type TxClient = Omit<
+  PrismaClient,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+
+const txStorage = new AsyncLocalStorage<TxClient>();
+
+@Injectable()
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  constructor() {
+    super({ log: ['warn', 'error'] });
+  }
+
+  async onModuleInit() {
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+  }
+
+  // 현재 실행 컨텍스트의 tx 클라이언트를 반환한다
+  // 트랜잭션 밖이면 this(기본 PrismaClient)를 반환한다
+  get client(): TxClient {
+    return txStorage.getStore() ?? this;
+  }
+
+  // 트랜잭션을 열고 해당 컨텍스트 안에서 실행되는 모든 코드가 tx를 쓰게 한다
+  async runInTransaction<T>(fn: () => Promise<T>): Promise<T> {
+    return this.$transaction((tx) => txStorage.run(tx, fn));
+  }
+}
+```
+
+서비스에서는 `tx`를 인자로 받을 필요 없이 `this.prisma.client`로 현재 컨텍스트에 맞는 클라이언트를 가져온다.
+
+```typescript
+// user.service.ts
+@Injectable()
+export class UserService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createUser(data: CreateUserDto) {
+    // 트랜잭션 안이면 tx 클라이언트, 밖이면 기본 클라이언트
+    return this.prisma.client.user.create({ data });
+  }
+
+  async findById(id: number) {
+    return this.prisma.client.user.findUnique({ where: { id } });
+  }
+}
+
+// account.service.ts
+@Injectable()
+export class AccountService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async deductBalance(userId: number, amount: number) {
+    const account = await this.prisma.client.account.update({
+      where: { userId },
+      data: { balance: { decrement: amount } },
+    });
+    if (account.balance < 0) throw new Error('잔액 부족');
+    return account;
+  }
+}
+```
+
+트랜잭션을 여는 쪽에서만 `runInTransaction`을 호출한다. 내부에서 다른 서비스를 호출해도 인자 변경 없이 자동으로 같은 tx를 쓴다.
+
+```typescript
+// transfer.service.ts
+@Injectable()
+export class TransferService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly userService: UserService,
+    private readonly accountService: AccountService,
+  ) {}
+
+  async transfer(fromId: number, toId: number, amount: number) {
+    return this.prisma.runInTransaction(async () => {
+      await this.accountService.deductBalance(fromId, amount);
+      await this.accountService.addBalance(toId, amount);
+      // userService 내부도 같은 tx를 쓴다
+      await this.userService.recordTransfer(fromId, toId, amount);
+    });
+  }
+}
+```
+
+주의할 점이 있다. `AsyncLocalStorage`는 같은 비동기 실행 컨텍스트 안에서만 값이 전파된다. `setImmediate`, `setTimeout`, 별도로 띄운 `Promise.all` 중에 하나가 컨텍스트를 벗어나면 `txStorage.getStore()`가 `undefined`를 돌려줘서 트랜잭션 밖 클라이언트로 쿼리가 나간다. 이 경우 롤백돼야 할 쿼리가 커밋된 채로 남는다.
+
+```typescript
+// 이렇게 쓰면 안 된다 — setTimeout은 AsyncLocalStorage 컨텍스트를 잃는다
+await this.prisma.runInTransaction(async () => {
+  await this.accountService.deductBalance(fromId, amount);
+  setTimeout(() => {
+    this.accountService.addBalance(toId, amount); // tx 없이 실행된다
+  }, 0);
+});
+```
+
+트랜잭션 안에서는 `setTimeout`, 외부 이벤트 핸들러 같은 컨텍스트 탈출 경로를 쓰지 않아야 한다.
+
+이 패턴은 편리하지만 암묵적으로 동작하는 만큼 팀원이 동작 원리를 알고 써야 한다. `tx`를 명시적으로 넘기는 방식보다 추적이 어렵다. 서비스 호출 깊이가 얕고 구조가 단순하면 명시적 인자 전달이 더 낫다.
+
 ## 마이그레이션 운영
 
 개발할 때와 배포할 때 쓰는 명령이 다르다. 이걸 섞으면 운영 DB가 날아갈 수 있으니 확실히 구분해야 한다.
@@ -243,6 +433,20 @@ npx prisma migrate deploy
 
 마이그레이션 파일은 반드시 Git에 커밋해서 코드와 함께 버전 관리한다. 마이그레이션을 만든 개발자의 로컬에만 있고 커밋이 안 되면, 배포 환경에서 `migrate deploy`가 적용할 파일이 없어 스키마가 안 바뀐다.
 
+### 운영 배포 절차
+
+배포 파이프라인에서 마이그레이션 순서는 이렇게 가야 한다.
+
+```
+1. 새 앱 이미지 빌드
+2. prisma migrate deploy  (스키마 변경 적용)
+3. 앱 컨테이너 교체 (새 이미지로 롤링 업데이트)
+```
+
+앱을 먼저 배포하고 마이그레이션을 나중에 돌리면, 새 코드가 아직 없는 컬럼을 참조하다 에러가 난다. 반대로 마이그레이션 후 이전 앱이 잠깐 돌아가는 상황은 괜찮은 경우가 많다. 신규 컬럼 추가처럼 이전 버전에서는 무시되는 변경이면 큰 문제가 없다. 컬럼 이름 변경이나 삭제 같은 파괴적 변경은 구버전 앱이 참조하는 컬럼이 사라지므로 더 신중하게 진행해야 한다.
+
+`migrate deploy`는 쿠버네티스 환경에서 init container나 별도 Job으로 실행하는 경우가 많다. 여러 앱 파드가 동시에 `migrate deploy`를 실행해도 Prisma가 내부적으로 잠금을 잡아서 중복 실행을 막는다. 멱등하게 돌려도 괜찮다.
+
 ### 운영에서 마이그레이션이 막힐 때
 
 배포 중 마이그레이션이 중간에 실패하면 `_prisma_migrations` 테이블에 실패 기록이 남고, 이후 `migrate deploy`가 "이전 마이그레이션이 실패 상태"라며 멈춘다. 이때 함부로 `migrate dev`나 `migrate reset`을 운영에서 돌리면 안 된다. 실패한 마이그레이션을 수동으로 정리한 뒤 `prisma migrate resolve`로 상태를 맞춰야 한다.
@@ -254,6 +458,36 @@ npx prisma migrate resolve --rolled-back 20260101000000_add_column
 # 또는 수동으로 SQL을 직접 적용했다면 적용됨으로 표시
 npx prisma migrate resolve --applied 20260101000000_add_column
 ```
+
+`--rolled-back`은 해당 마이그레이션을 "적용 안 된 상태"로 기록만 바꾸는 것이다. DB 변경 사항을 실제로 되돌리지는 않는다. 마이그레이션이 중간에 실패했다면 SQL이 일부만 실행된 상태일 수 있으므로, `_prisma_migrations` 상태를 바꾸기 전에 DB를 직접 확인해야 한다.
+
+### 마이그레이션 롤백
+
+Prisma Migrate는 자동 롤백 기능이 없다. 롤백 SQL을 Prisma가 생성해주지 않는다. 운영에서 마이그레이션을 되돌리는 방법은 두 가지다.
+
+첫째, 새 마이그레이션으로 역방향 변경을 추가하는 방법이다. 컬럼을 추가했다면 컬럼을 삭제하는 마이그레이션을 새로 만들어 배포한다. Prisma 워크플로와 자연스럽게 맞고, 마이그레이션 히스토리가 남아서 추적하기 쉽다.
+
+```bash
+# 스키마를 이전 상태로 되돌린 뒤 새 마이그레이션 생성
+npx prisma migrate dev --name revert_add_column
+```
+
+둘째, 미리 준비해둔 롤백 SQL을 직접 실행하는 방법이다. 배포 전에 롤백 SQL 파일을 같이 준비해두고, 문제가 생기면 수동으로 실행한다.
+
+```sql
+-- migrations/rollback/20260101000000_add_column_rollback.sql
+ALTER TABLE "User" DROP COLUMN IF EXISTS "newColumn";
+```
+
+```bash
+# 롤백 SQL 직접 실행
+psql $DATABASE_URL -f migrations/rollback/20260101000000_add_column_rollback.sql
+
+# DB 상태를 바꾼 뒤 Prisma 마이그레이션 기록도 맞춘다
+npx prisma migrate resolve --rolled-back 20260101000000_add_column
+```
+
+롤백 SQL을 미리 준비하는 습관이 중요하다. 장애 상황에서 역방향 SQL을 즉석에서 작성하면 실수가 난다.
 
 컬럼 추가에 `NOT NULL` 제약을 기존 데이터가 있는 테이블에 걸면 마이그레이션이 깨진다. 기본값 없이 NOT NULL을 넣으면 기존 행이 제약을 위반하기 때문이다. 단계를 나눠서 nullable로 컬럼 추가 → 데이터 백필 → NOT NULL 제약 추가 순으로 가야 한다. 큰 테이블이면 이 과정에서 락 시간도 신경 써야 한다.
 
