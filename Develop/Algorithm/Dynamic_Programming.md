@@ -1,7 +1,7 @@
 ---
 title: Dynamic Programming (동적 계획법)
 tags: [algorithm, dynamic-programming, memoization, tabulation, optimization]
-updated: 2026-04-18
+updated: 2026-07-11
 ---
 
 # Dynamic Programming (동적 계획법)
@@ -97,6 +97,128 @@ DP의 90%는 상태 정의에서 갈린다. 점화식 자체는 상태가 정해
 **Push 방식**: 현재 상태 `dp[i]`에서 다음 상태들로 값을 전파한다. `dp[i+1] = max(dp[i+1], dp[i] + a[i+1])` 같은 형태다. 다음 상태가 여러 개일 때 깔끔하다.
 
 같은 문제를 두 방식 모두로 쓸 수 있는데, 어느 쪽이 코드가 짧아지는지는 문제마다 다르다. 점화식이 안 떠오르면 두 방식을 다 시도해본다.
+
+## 입문 예제로 보는 점화식 사고 과정
+
+점화식 세우는 연습은 쉬운 문제부터 손으로 해봐야 익숙해진다. "상태를 어떻게 정의할지 → 전이를 열거할지 → 점화식으로 압축"하는 3단계가 몸에 배야 어려운 문제에서도 같은 방식으로 접근할 수 있다.
+
+### 계단 오르기
+
+N개의 계단이 있다. 한 번에 1칸 또는 2칸씩 오를 수 있을 때, N번째 계단에 도달하는 경우의 수를 구한다.
+
+**1단계: 상태 정의**
+
+"N번째 계단에 도달하는 경우의 수"를 바로 구하려 하면 막힌다. 작게 쪼갠다.
+
+`dp[i]` = i번째 계단에 도달하는 경우의 수
+
+**2단계: 전이 열거**
+
+i번째 계단에 오기 직전 위치는 두 가지뿐이다.
+- i-1번째에서 1칸 올라온 경우 → dp[i-1]가지
+- i-2번째에서 2칸 올라온 경우 → dp[i-2]가지
+
+두 경우는 겹치지 않으니 합산한다.
+
+**3단계: 점화식과 기저 조건**
+
+```
+dp[i] = dp[i-1] + dp[i-2]
+dp[1] = 1, dp[2] = 2
+```
+
+```java
+public int climbStairs(int n) {
+    if (n <= 2) return n;
+    int[] dp = new int[n + 1];
+    dp[1] = 1;
+    dp[2] = 2;
+    for (int i = 3; i <= n; i++) {
+        dp[i] = dp[i - 1] + dp[i - 2];
+    }
+    return dp[n];
+}
+```
+
+피보나치와 구조가 같다. dp 배열 전체를 들고 있을 필요가 없으니 변수 두 개로 줄일 수 있다.
+
+```java
+public int climbStairs(int n) {
+    if (n <= 2) return n;
+    int prev2 = 1, prev1 = 2;
+    for (int i = 3; i <= n; i++) {
+        int curr = prev1 + prev2;
+        prev2 = prev1;
+        prev1 = curr;
+    }
+    return prev1;
+}
+```
+
+"3칸까지 오를 수 있다"는 변형이면 dp[i] = dp[i-1] + dp[i-2] + dp[i-3]이다. 기저 조건만 dp[1]=1, dp[2]=2, dp[3]=4로 바꾸면 구조는 그대로다.
+
+### 코인 거스름돈
+
+coins 배열로 주어진 동전 종류로 amount원을 만드는 최소 동전 개수를 구한다. 동전은 무한히 쓸 수 있다.
+
+동전이 1, 4, 6이고 amount가 8이면 그리디는 6+1+1=3개지만 최적은 4+4=2개다. 그리디가 틀리는 이유는 "지금의 최선"이 "전체 최선"을 보장하지 않기 때문이다. 화폐 단위가 임의로 주어지면 무조건 DP로 가야 한다.
+
+**1단계: 상태 정의**
+
+`dp[i]` = i원을 만드는 최소 동전 개수
+
+**2단계: 전이 열거**
+
+i원을 만들 때 마지막에 어떤 동전을 썼는가. 각 동전 c에 대해:
+- i-c원을 만든 뒤 c짜리 동전 1개를 추가 → dp[i-c] + 1
+
+모든 동전 종류를 시도하고 그 중 최솟값을 취한다.
+
+**3단계: 점화식과 기저 조건**
+
+```
+dp[i] = min(dp[i-c] + 1)  for all c in coins where i >= c
+dp[0] = 0
+```
+
+만들 수 없는 경우를 구분하려면 dp를 `amount + 1`로 초기화한다. Integer.MAX_VALUE로 하면 +1할 때 오버플로우가 난다. 동전이 모두 1원짜리라도 최대 amount개면 충분하니 amount+1은 절대 나올 수 없는 값이다.
+
+```java
+public int coinChange(int[] coins, int amount) {
+    int[] dp = new int[amount + 1];
+    Arrays.fill(dp, amount + 1);
+    dp[0] = 0;
+
+    for (int i = 1; i <= amount; i++) {
+        for (int coin : coins) {
+            if (i >= coin) {
+                dp[i] = Math.min(dp[i], dp[i - coin] + 1);
+            }
+        }
+    }
+    return dp[amount] > amount ? -1 : dp[amount];
+}
+```
+
+0-1 배낭과 비교하면 차이가 명확하다. 0-1 배낭은 물건을 한 번씩만 써야 해서 외부 반복문이 물건이고 내부를 역방향으로 돈다. 코인 거스름돈은 동전을 무한히 쓸 수 있으니 정방향으로 돌린다.
+
+경우의 수를 세는 변형(몇 가지 방법으로 만들 수 있는지)은 `min`을 `+`로 바꾸고 dp[0] = 1로 시작한다. 의미가 다르니 혼동하지 않아야 한다.
+
+```java
+public int coinWays(int[] coins, int amount) {
+    int[] dp = new int[amount + 1];
+    dp[0] = 1;
+
+    for (int coin : coins) {
+        for (int i = coin; i <= amount; i++) {
+            dp[i] += dp[i - coin];
+        }
+    }
+    return dp[amount];
+}
+```
+
+외부가 coin, 내부가 amount인 순서도 의미가 있다. 반대로 돌리면 같은 동전 조합을 순서만 다르게 쓴 경우도 별개로 세게 된다. coin-first는 조합, amount-first는 순열이다.
 
 ## 실무 예제
 

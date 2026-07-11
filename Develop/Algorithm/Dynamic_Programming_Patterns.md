@@ -1,7 +1,7 @@
 ---
 title: Dynamic Programming 유형 (자릿수·기댓값·카운팅·점화식 가속)
 tags: [algorithm, dynamic-programming, digit-dp, expected-value-dp, counting-dp, monotonic-deque, convex-hull-trick]
-updated: 2026-06-14
+updated: 2026-07-11
 ---
 
 # Dynamic Programming 유형 (자릿수·기댓값·카운팅·점화식 가속)
@@ -126,6 +126,39 @@ started까지 상태에 넣으면 메모이제이션 조건이 `tight == 0 && st
 
 "a 이상 b 이하"는 `solve(b) - solve(a - 1)`로 푼다. 한쪽 끝만 세는 함수를 만들고 누적 차를 쓰는 게 정석이다. a가 0일 수 있으니 `a - 1`이 음수가 되는 경우(a == 0)를 따로 처리하거나, solve가 0을 포함하도록 설계해 둔다.
 
+```java
+// [a, b] 구간에서 자리 합이 target인 수의 개수
+// solve(n)은 [0, n] 범위를 반환한다고 가정
+static long solveRange(long a, long b, int target) {
+    if (a > b) return 0;
+    if (a == 0) return solve(b, target);
+    return solve(b, target) - solve(a - 1, target);
+}
+```
+
+테스트 케이스가 여러 개인 문제에서는 호출마다 memo를 초기화해야 한다. solve 내부에서 초기화하거나, memo를 null로 채운 배열로 교체한다. 초기화를 빠뜨리면 이전 N의 tight 경계가 남아서 다른 케이스에 오염된다.
+
+```java
+// 멀티 테스트케이스 대응: 매 호출마다 memo 초기화
+static long solve(long N, int target) {
+    String s = Long.toString(N);
+    len = s.length();
+    num = new int[len];
+    for (int i = 0; i < len; i++) num[i] = s.charAt(i) - '0';
+    memo = new Long[len][2][target + 1];  // null로 자동 초기화
+    return count(0, 1, 0, target);
+}
+
+// 실제 사용: T개의 [a, b] 쿼리 처리
+static void handleQueries(long[][] queries, int target) {
+    for (long[] q : queries) {
+        System.out.println(solveRange(q[0], q[1], target));
+    }
+}
+```
+
+`solve(a - 1)`을 호출하면 내부에서 `Long.toString(a - 1)`로 새 문자열을 만들고 배열도 새로 세팅하므로, b 쿼리와 a-1 쿼리 사이에 상태가 섞이지 않는다. 단, 같은 solve 배열을 두 쿼리가 공유하도록 잘못 설계하면 두 번째 호출이 첫 번째 memo를 덮어써 버린다.
+
 자릿수 DP에서 흔한 실수를 모아보면:
 
 - tight 상태를 캐싱해서 다른 테스트 케이스 사이에 오염되는 경우
@@ -163,6 +196,34 @@ static double diceExpectation(int N) {
 ```
 
 여기까지는 위상정렬이 가능한 DAG라 쉽다. 상태 의존 그래프에 사이클이 없으면 의존 순서대로 한 번씩 계산하면 된다.
+
+### 단순 DAG 케이스: 이동 확률이 다를 때
+
+각 칸마다 이동 확률 분포가 달라도 사이클만 없으면 구조는 같다. 예를 들어 홀수 칸에서는 1칸 이동 확률 1/3, 2칸 이동 확률 2/3이고, 짝수 칸에서는 1칸 이동 확률 3/4, 3칸 이동 확률 1/4인 게임에서 1번 칸에서 N번 칸 이상 도달까지 평균 이동 횟수를 구한다고 하자.
+
+```java
+// 칸 번호 1~N, 칸마다 이동 확률 분포가 다른 경우
+// moves[i] = {delta1, prob1, delta2, prob2, ...} 형태
+static double variedMoveExpectation(int N, int[][] deltas, double[][] probs) {
+    // deltas[i], probs[i]: i번 칸에서 이동 가능한 delta와 확률
+    double[] E = new double[N + 1];
+    // E[N] = 0 (목표 도달, 이미 0으로 초기화됨)
+
+    for (int i = N - 1; i >= 1; i--) {
+        double sum = 0;
+        for (int k = 0; k < deltas[i].length; k++) {
+            int dest = Math.min(i + deltas[i][k], N);  // N 이상은 모두 N으로 처리
+            sum += probs[i][k] * E[dest];
+        }
+        E[i] = 1.0 + sum;
+    }
+    return E[1];
+}
+```
+
+이 구조의 핵심은 `dest = Math.min(i + delta, N)`으로 목표 범위 밖을 한 지점으로 묶는 것이다. N 이상에 도달하는 모든 경우를 E[N] = 0으로 수렴시키므로, 앞에서 뒤로만 상태가 전파되어 역순 반복으로 끝난다.
+
+같은 패턴으로 "전진만 하는" 모든 DP는 사이클 없이 처리된다. 앞 상태가 뒤 상태에 의존하고(E[i]가 E[i+d]만 참조), 의존 방향이 단방향이면 단순 역순 반복이면 충분하다. 이 조건이 깨지는 순간 가우스 소거가 필요하다.
 
 ### 상태가 사이클을 가질 때: 가우스 소거
 

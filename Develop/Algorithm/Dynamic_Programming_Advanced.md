@@ -1,7 +1,7 @@
 ---
 title: Dynamic Programming 심화 (비트마스킹·구간·트리 DP)
 tags: [algorithm, dynamic-programming, bitmask-dp, interval-dp, tree-dp, optimization]
-updated: 2026-06-09
+updated: 2026-07-11
 ---
 
 # Dynamic Programming 심화
@@ -271,28 +271,67 @@ for (int len = 2; len <= n; len++) {
 
 핵심 아이디어는 j의 중간값을 잡고 그 최적 k를 찾으면 좌측 j들의 최적 k는 그 이하, 우측 j들의 최적 k는 그 이상으로 분할 정복할 수 있다는 것이다.
 
+**구체 예제: 배열을 K 파트로 나눠 각 파트 원소 합의 제곱합 최소화**
+
+`cost(k, j)` = 구간 `(k, j]` 원소 합의 제곱. 배열 원소가 양수일 때 이 cost 함수는 사각형 부등식을 만족하므로 최적 분할점이 단조 증가한다.
+
 ```java
-void solve(int level, int lo, int hi, int optLo, int optHi) {
-    if (lo > hi) return;
-    int mid = (lo + hi) / 2;
-    int bestK = optLo;
-    int bestVal = Integer.MAX_VALUE;
+public class DivideConquerDP {
+    long[] prefix;
+    long[][] dp;  // dp[lv][j] = prefix[1..j]를 lv개 파트로 나눈 최소 비용
 
-    for (int k = optLo; k <= Math.min(mid - 1, optHi); k++) {
-        int v = dp[level - 1][k] + cost(k, mid);
-        if (v < bestVal) {
-            bestVal = v;
-            bestK = k;
-        }
+    // cost(k, j) = (prefix[j] - prefix[k])^2
+    // k번째 원소까지 이전 파트가 끝났을 때, k+1~j번째가 현재 파트의 비용
+    long cost(int k, int j) {
+        long s = prefix[j] - prefix[k];
+        return s * s;
     }
-    dp[level][mid] = bestVal;
 
-    solve(level, lo, mid - 1, optLo, bestK);
-    solve(level, mid + 1, hi, bestK, optHi);
+    void solve(int level, int lo, int hi, int optLo, int optHi) {
+        if (lo > hi) return;
+        int mid = (lo + hi) / 2;
+        int bestK = optLo;
+        long bestVal = Long.MAX_VALUE / 2;
+
+        // 최적 k는 [optLo, min(mid-1, optHi)] 범위를 벗어나지 않는다.
+        // mid-1 상한: split point k는 반드시 j보다 작아야 한다(빈 파트 방지).
+        for (int k = optLo; k <= Math.min(mid - 1, optHi); k++) {
+            long v = dp[level - 1][k] + cost(k, mid);
+            if (v < bestVal) {
+                bestVal = v;
+                bestK = k;
+            }
+        }
+        dp[level][mid] = bestVal;
+
+        solve(level, lo, mid - 1, optLo, bestK);
+        solve(level, mid + 1, hi, bestK, optHi);
+    }
+
+    long run(int[] arr, int K) {
+        int n = arr.length;
+        prefix = new long[n + 1];
+        for (int i = 0; i < n; i++) prefix[i + 1] = prefix[i] + arr[i];
+
+        dp = new long[K + 1][n + 1];
+        for (long[] row : dp) Arrays.fill(row, Long.MAX_VALUE / 2);
+        dp[0][0] = 0;
+        // level=1: 첫 파트는 prefix[1..j] 전체가 하나의 파트
+        for (int j = 1; j <= n; j++) dp[1][j] = cost(0, j);
+
+        for (int lv = 2; lv <= K; lv++) {
+            // lo=lv: lv개 파트로 나누려면 최소 lv개 원소가 필요
+            // optLo=lv-1: 이전 레벨에서 최소 lv-1개 원소를 소비했으므로
+            solve(lv, lv, n, lv - 1, n - 1);
+        }
+        return dp[K][n];
+    }
 }
 ```
 
-이 패턴은 직접 손으로 짜기보다 "단조성 만족 여부"를 빠르게 판별하는 게 중요하다. cost 함수가 사각형 부등식 비슷한 성질을 가지면 보통 단조성이 성립한다. 검증은 N이 작을 때 무식하게 모든 k를 다 확인해서 최적 k가 j에 대해 단조 증가하는지 출력해보는 식으로 한다.
+`dp[lv][j]`를 채울 때 `lv-1` 레벨이 완전히 채워진 상태여야 한다. `solve`를 레벨별로 순서대로 호출하는 이유가 이 의존 관계 때문이다. 같은 레벨 안에서는 mid를 중심으로 좌우를 분할 정복하므로 순서 무관하게 채워진다.
+
+단조성 검증은 N이 작을 때(N = 10~20) 브루트포스로 모든 k를 다 확인해 최적 k를 출력해보는 게 제일 빠르다. `optLo > optHi`인 구간이 있으면 단조성이 깨진 것이므로 비용 함수를 재검토해야 한다.
 
 ## 트리 DP
 
@@ -405,6 +444,10 @@ void dfs2(int node, int parent) {
         // node에서 child로 루트를 옮길 때
         // child 쪽 서브트리는 1만큼 가까워지고 (subSize[child]개 노드)
         // 나머지 노드는 1만큼 멀어진다 (n - subSize[child]개 노드)
+        // answer[child]는 여기서 쓰는 게 아니라 세팅하는 것이므로
+        // new long[n] 초기값(0)에 의존하는 코드가 아니다.
+        // answer[node]가 항상 먼저 세팅된 상태(루트는 solve에서, 나머지는 부모 방문 시)로
+        // 내려오기 때문에 미초기화 참조는 발생하지 않는다.
         answer[child] = answer[node] - subSize[child] + (n - subSize[child]);
         dfs2(child, node);
     }
