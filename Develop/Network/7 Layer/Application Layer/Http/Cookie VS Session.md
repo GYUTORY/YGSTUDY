@@ -1,138 +1,108 @@
 ---
 title: Cookie VS Session
 tags: [network, 7-layer, application-layer, http, cookie-vs-session]
-updated: 2025-12-26
+updated: 2026-07-11
 ---
 
 # Cookie VS Session
 
 ## 배경
-HTTP는 Stateless(무상태) 프로토콜로, 서버가 클라이언트의 상태를 기억하지 못한다는 한계가 있다. 이를 보완하기 위해 쿠키와 세션을 사용하여 클라이언트의 상태 정보를 저장하고 관리한다.
 
-**실무 팁:**
-HTTP는 무상태 프로토콜이다. 상태 관리를 위해 쿠키나 세션을 사용한다. 인증 정보는 세션으로, 사용자 선호도는 쿠키로 관리한다.
+HTTP는 Stateless 프로토콜이다. 서버는 이전 요청을 기억하지 않는다. 로그인 후 다음 요청에서도 서버가 "이 사람이 로그인했다"는 사실을 알려면 별도의 상태 저장 수단이 필요하다. 쿠키와 세션이 그 수단이다.
 
 ---
 
 ## 쿠키(Cookie)
 
 ### 정의
-- HTTP의 일종으로 사용자가 웹 사이트를 방문할 때, 서버에서 사용자의 컴퓨터에 저장하는 작은 기록 정보 파일
-- 클라이언트의 상태 정보를 클라이언트의 PC에 저장하여 필요시 정보를 참조하거나 재사용
-- HTTP 헤더에 `set-cookie` 옵션을 통해 쿠키를 포함해 응답을 보냄
 
-**실무 팁:**
-쿠키는 클라이언트에 저장된다. 서버 자원을 사용하지 않지만 보안에 취약하다. HttpOnly, Secure, SameSite 플래그를 설정한다.
+서버가 HTTP 응답의 `Set-Cookie` 헤더로 클라이언트에 저장시키는 작은 데이터 파일이다. 이후 브라우저는 동일 도메인에 요청할 때마다 `Cookie` 헤더에 이 값을 자동으로 포함한다. 데이터가 클라이언트 측에 저장된다는 것이 세션과 핵심적인 차이다.
 
 ### 쿠키의 종류
 
-#### 1. 세션 쿠키 (Session Cookie)
-- 브라우저를 닫으면 자동으로 삭제되는 임시 쿠키
-- 메모리에만 저장되며, 디스크에는 저장되지 않음
-- 주로 로그인 세션 관리에 사용
-
-#### 2. 영구 쿠키 (Persistent Cookie)
-- 만료일이 설정되어 있어 브라우저를 닫아도 유지됨
-- 디스크에 저장되어 브라우저를 재시작해도 유지
-- 자동 로그인, 사용자 선호도 저장 등에 사용
-
-#### 3. 보안 쿠키 (Secure Cookie)
-- HTTPS 연결에서만 전송되는 쿠키
-- 암호화된 통신에서만 사용되어 보안성 향상
+세션 쿠키는 `Max-Age`나 `Expires` 속성이 없어 브라우저를 닫으면 삭제된다. 영구 쿠키는 만료일이 지정되어 디스크에 저장된다. 보안 쿠키는 `Secure` 플래그를 붙여 HTTPS 연결에서만 전송된다. 실무에서는 이 세 가지를 조합해 쓰는 경우가 많다. 세션 ID는 세션 쿠키로, 자동 로그인 토큰은 영구 쿠키 + `Secure`로 관리한다.
 
 ### 쿠키의 특징
-- 구성 요소: 이름, 값, 만료일(저장기간), 경로 정보
-- 저장 제한: 
-  - 클라이언트에 총 300개의 쿠키 저장 가능
-  - 하나의 도메인당 20개의 쿠키 보유 가능
-  - 하나의 쿠키는 4KB(=4096byte)까지 저장 가능
-- 저장 방식: 도메인별로 구분되어 저장
-- 자동 전송: 쿠키는 자동으로 서버에 전송되므로, 불필요한 데이터 전송을 피해야 함
 
-**실무 팁:**
-쿠키는 자동으로 전송된다. 불필요한 데이터를 쿠키에 저장하지 않는다. 쿠키 크기를 최소화한다.
+쿠키는 이름, 값, 만료일, 경로 정보로 구성된다. 브라우저 기준으로 도메인당 20개, 총 300개, 개당 4KB 제한이 있다. 용량 제한이 작기 때문에 민감하지 않은 경량 데이터를 저장하는 데 적합하다. 브라우저가 자동으로 전송하기 때문에, 저장하는 데이터가 많아질수록 매 요청마다 불필요한 네트워크 트래픽이 증가한다.
 
 ### 쿠키 동작 과정
-1. 클라이언트가 페이지를 요청 (사용자가 웹사이트에 접근)
-2. 웹 서버가 쿠키를 생성
-3. 생성한 쿠키에 정보를 담아 HTTP 응답과 함께 클라이언트에게 전송
-4. 클라이언트는 받은 쿠키를 로컬 PC에 저장
-5. 동일 사이트 재방문 시 클라이언트의 PC에 해당 쿠키가 있는 경우, 요청 페이지와 함께 쿠키를 전송
+
+첫 방문 시 서버가 응답 헤더에 `Set-Cookie`를 포함해 쿠키를 내려준다. 이후 브라우저는 해당 도메인으로 요청할 때마다 `Cookie` 헤더에 저장된 값을 자동으로 실어 보낸다.
+
+```http
+# 첫 로그인 응답
+HTTP/1.1 200 OK
+Set-Cookie: sessionId=abc123; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600
+Set-Cookie: theme=dark; Path=/; Max-Age=2592000
+
+# 이후 요청
+GET /dashboard HTTP/1.1
+Host: example.com
+Cookie: sessionId=abc123; theme=dark
+```
+
+`theme` 쿠키는 영구 쿠키로 30일 유지되고, `sessionId`는 1시간 후 만료되는 보안 쿠키다.
 
 ### 쿠키 보안 위험 및 대응
 
-#### 1. XSS(Cross-Site Scripting) 공격
-- **위험**: 악의적인 스크립트를 통해 쿠키 정보 탈취 가능
-- **대응**: `HttpOnly` 플래그를 설정하여 JavaScript 접근 차단
+XSS 공격에서는 악성 스크립트가 `document.cookie`로 쿠키를 탈취한다. `HttpOnly` 플래그를 설정하면 JavaScript에서 쿠키에 접근할 수 없어 이 공격을 차단한다.
 
-#### 2. CSRF(Cross-Site Request Forgery) 공격
-- **위험**: 다른 사이트에서 사용자의 쿠키를 이용한 요청 위조
-- **대응**: `SameSite` 속성을 사용하여 방어 (Strict, Lax, None 옵션)
+CSRF 공격은 사용자 모르게 다른 사이트에서 쿠키를 이용한 요청을 위조한다. `SameSite=Strict`로 설정하면 외부 사이트에서 발생한 요청에는 쿠키가 포함되지 않는다. 단, `Strict`는 외부 링크를 통한 접근에도 쿠키를 보내지 않아 사용자 경험에 영향을 줄 수 있다. 이 경우 `SameSite=Lax`가 타협점이 된다.
 
-#### 3. 쿠키 스니핑
-- **위험**: 네트워크 상에서 쿠키 정보 탈취 가능
-- **대응**: `Secure` 플래그를 설정하여 HTTPS에서만 전송되도록 설정
+네트워크 스니핑은 패킷을 가로채 쿠키를 탈취한다. `Secure` 플래그로 HTTPS 연결에서만 쿠키를 전송하도록 강제한다.
 
 ---
 
 ## 세션(Session)
 
 ### 정의
-- 일정 시간 동안 같은 사용자(브라우저)로부터 들어오는 일련의 요구를 하나의 상태로 보고, 그 상태를 유지시키는 기술
-- 방문자가 웹 브라우저를 통해 웹 서버에 접속한 시점부터 웹 브라우저를 종료하여 연결을 끝내는 시점까지의 상태
-- 웹 서버에 웹 컨테이너의 상태를 유지하기 위한 정보를 저장
+
+사용자 상태 정보를 서버 측에 저장하는 방식이다. 서버는 클라이언트별로 고유한 Session ID를 발급하고, 이 ID를 쿠키로 클라이언트에 내려준다. 이후 클라이언트는 Session ID만 서버에 전달하고, 서버는 이를 키로 저장소에서 사용자 정보를 조회한다.
 
 ### 세션의 특징
-- 저장 위치: 서버 측에 저장 (웹 서버의 저장되는 쿠키 = 세션 쿠키)
-- 보안: 브라우저를 닫거나 서버에서 세션을 삭제했을 때만 삭제되므로, 쿠키보다 비교적 보안이 좋다
-- 용량 제한: 저장 데이터에 제한이 없다 (서버 용량이 허용하는 한에서)
-- 식별: 각 클라이언트에 고유 Session ID를 부여하여 클라이언트를 구분
-- 타임아웃: 세션 타임아웃 설정 가능 (일정 시간 동안 요청이 없으면 세션 만료)
 
-**실무 팁:**
-세션은 서버에 저장된다. 서버 메모리를 사용하므로 세션 수가 많아지면 부하가 증가한다. Redis 같은 외부 저장소를 사용한다.
+데이터는 서버에 있으므로 클라이언트에서 위변조할 수 없다. 저장 용량은 서버 용량 범위 내에서 제한이 없다. 서버 메모리나 Redis 같은 외부 저장소를 사용하기 때문에, 동시 접속자가 많아지면 저장소 부하가 증가한다.
+
+서버를 수평 확장할 때 세션 공유 문제가 생긴다. 특정 서버에만 세션이 있으면 로드 밸런서가 다른 서버로 요청을 보낼 때 세션을 찾지 못한다. Redis 같은 중앙 세션 저장소를 두거나, Sticky Session을 사용해야 한다.
+
+### 세션 동작 과정
+
+```http
+# 최초 로그인 요청
+POST /login HTTP/1.1
+Host: example.com
+Content-Type: application/json
+
+{"username": "user1", "password": "pass"}
+
+# 서버 응답 — 세션 ID를 쿠키로 전달
+HTTP/1.1 200 OK
+Set-Cookie: JSESSIONID=XYZ789; Path=/; HttpOnly; Secure; SameSite=Strict
+
+# 이후 인증 요청 — 브라우저가 쿠키 자동 전송
+GET /api/profile HTTP/1.1
+Host: example.com
+Cookie: JSESSIONID=XYZ789
+
+# 서버: Redis에서 XYZ789 키로 사용자 정보 조회 후 응답
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"userId": 42, "username": "user1"}
+```
+
+서버는 `JSESSIONID=XYZ789`를 받아 Redis에서 해당 키의 데이터를 조회한다. 세션이 없거나 만료됐으면 401을 반환한다.
 
 ### 세션 저장 방식
 
-#### 1. 메모리 기반 세션
-- 서버의 메모리에 세션 데이터 저장
-- 빠른 접근 속도
-- 서버 재시작 시 데이터 손실
-
-#### 2. 파일 기반 세션
-- 파일 시스템에 세션 데이터 저장
-- 영구적인 데이터 보존
-- 상대적으로 느린 접근 속도
-
-#### 3. 데이터베이스 기반 세션
-- DB에 세션 데이터 저장
-- 확장성과 안정성 확보
-- 추가적인 DB 부하 발생
-
-### 세션 동작 과정
-1. 클라이언트가 페이지에 요청
-2. 서버는 클라이언트의 Request-Header 필드인 Cookie를 확인하여 session-id 존재 여부 확인
-3. session-id가 존재하지 않으면 서버가 session-id를 생성하여 클라이언트에게 전송
-4. 클라이언트는 서버로부터 받은 session-id를 쿠키에 저장
-5. 클라이언트는 서버에 요청 시 이 쿠키의 session-id 값을 함께 전달
-6. 서버는 전달받은 session-id로 session에 있는 클라이언트 정보를 가지고 요청을 처리 후 응답
+메모리 기반 세션은 별도 설정 없이 사용할 수 있고 속도가 빠르지만, 서버 재시작 시 모든 세션이 날아간다. 개발 환경에서는 괜찮지만 운영 환경에서는 쓰지 않는다. 파일 기반 세션은 재시작 후에도 세션이 유지되지만 I/O가 느리고 서버 확장 시 공유 파일 시스템이 필요해진다. 데이터베이스 기반 세션은 안정적이지만 쿼리 오버헤드가 있다. 현재는 대부분 Redis를 사용한다. 메모리 기반으로 빠르고, 클러스터를 구성하면 수평 확장도 된다.
 
 ### 세션 보안 및 관리
 
-#### 1. 세션 하이재킹 방지
-- 세션 ID의 복잡성 확보
-- HTTPS 사용
-- 세션 타임아웃 설정
+세션 하이재킹은 유효한 Session ID를 탈취해 피해자로 위장하는 공격이다. HTTPS를 강제하고, Session ID를 충분히 길고 무작위로 생성해야 한다. 일정 시간 요청이 없으면 세션을 만료시키는 타임아웃 설정도 필수다.
 
-#### 2. 세션 고정 공격 방지
-- 로그인 성공 시 세션 ID 재생성
-- IP 바인딩
-- User-Agent 검증
-
-#### 3. 세션 관리
-- 적절한 세션 타임아웃 설정
-- 불필요한 세션 데이터 제거
-- 세션 저장소 보안
+세션 고정 공격은 공격자가 미리 만든 Session ID를 피해자에게 사용하게 만든 뒤, 피해자가 로그인하면 그 세션을 탈취하는 방식이다. 로그인 성공 시 반드시 새 Session ID를 발급해야 이 공격을 막는다.
 
 ---
 
@@ -146,35 +116,11 @@ HTTP는 무상태 프로토콜이다. 상태 관리를 위해 쿠키나 세션�
 | 라이프사이클 | 만료 기간 설정 가능 | 브라우저 종료 또는 서버에서 삭제 시 종료 |
 | 서버 자원 | 서버 자원 사용하지 않음 | 서버 메모리 사용 |
 
-**실무 팁:**
-쿠키는 클라이언트에, 세션은 서버에 저장된다. 인증 정보는 세션으로, 사용자 선호도는 쿠키로 관리한다.
-
 ---
 
-## Q&A: 세션을 사용하면 좋은데 왜 쿠키를 사용할까?
+## Q&A: 세션이 더 안전한데 왜 쿠키를 사용할까?
 
-### 세션이 쿠키에 비해 보안이 높은 편이나 쿠키를 사용하는 이유
-
-#### 서버 자원 효율성
-- 세션은 서버 메모리를 사용하므로, 많은 사용자가 동시에 접속할 경우 서버 부하 발생
-- 쿠키는 클라이언트 측에 저장되어 서버 자원을 사용하지 않음
-
-#### 확장성
-- 세션은 서버 메모리에 의존하므로, 서버 확장 시 세션 공유 문제 발생
-- 쿠키는 클라이언트 측에서 관리되므로 확장성 문제 없음
-
-#### 성능
-- 세션은 서버에서 데이터를 조회해야 하므로 상대적으로 느림
-- 쿠키는 클라이언트에서 바로 접근 가능하여 빠름
-
-#### 용도에 따른 선택
-- 보안이 중요한 정보: 세션으로 관리
-- 사용자 편의성 관련 정보: 쿠키로 관리
-
-**실무 팁:**
-세션은 서버 메모리를 사용한다. 서버 확장 시 세션 공유가 필요하다. Redis 같은 외부 저장소를 사용한다. 쿠키는 서버 자원을 사용하지 않지만 보안에 취약하다.
-
----
+세션은 서버 메모리를 소비한다. 동시 접속자가 수만 명이면 세션 데이터 저장소가 그만큼의 부하를 받는다. 쿠키는 데이터를 클라이언트에 두므로 서버 자원이 필요 없다. 사용자 선호도(테마, 언어 설정 등)는 탈취당해도 피해가 크지 않고, 서버 요청마다 조회할 필요도 없다. 이런 데이터는 쿠키에 저장하는 편이 낫다. 수평 확장 시에도 세션은 공유 저장소가 필요하지만 쿠키는 클라이언트가 관리하니 서버 측 고려사항이 없다.
 
 ---
 
@@ -209,11 +155,9 @@ const { createClient } = require('redis');
 
 const app = express();
 
-// Redis 클라이언트
 const redisClient = createClient({ url: 'redis://localhost:6379' });
 redisClient.connect();
 
-// 세션 미들웨어 (Redis 세션 저장소)
 app.use(session({
     store: new RedisStore({ client: redisClient }),
     secret: process.env.SESSION_SECRET,
@@ -221,30 +165,45 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',  // HTTPS에서만 Secure
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 60 * 60 * 1000  // 1시간
     }
 }));
 
-// 로그인 — 세션 생성
+// 로그인 — regenerate로 새 Session ID 발급 (세션 고정 공격 방어)
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await authenticate(username, password);
 
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    // 세션 재생성 (세션 고정 공격 방어)
     req.session.regenerate((err) => {
+        if (err) return res.status(500).json({ error: 'Session error' });
+
         req.session.userId = user.id;
         req.session.role = user.role;
+        // 로그인 시점 User-Agent 저장 — 하이재킹 탐지용
+        req.session.userAgent = req.headers['user-agent'];
         res.json({ message: 'Logged in' });
     });
 });
 
-// 로그아웃 — 세션 삭제
+// 인증 미들웨어 — User-Agent 불일치 시 세션 무효화 (하이재킹 탐지)
+function requireAuth(req, res, next) {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (req.session.userAgent && req.session.userAgent !== req.headers['user-agent']) {
+        req.session.destroy();
+        return res.status(401).json({ error: 'Session invalidated' });
+    }
+    next();
+}
+
+// 로그아웃 — 세션 완전 삭제
 app.post('/logout', (req, res) => {
-    req.session.destroy(() => {
+    req.session.destroy((err) => {
         res.clearCookie('connect.sid');
         res.json({ message: 'Logged out' });
     });
@@ -267,8 +226,8 @@ app.post('/preferences', (req, res) => {
 # application.yml
 spring:
   session:
-    store-type: redis           # 세션 저장소: Redis
-    timeout: 3600               # 세션 타임아웃 (초)
+    store-type: redis
+    timeout: 3600
   data:
     redis:
       host: localhost
@@ -279,7 +238,6 @@ spring:
 ```
 
 ```java
-// Spring Security 세션 관련 설정
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -289,7 +247,8 @@ public class SecurityConfig {
         http
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .maximumSessions(1)              // 동시 로그인 1개 제한
+                .sessionFixation(fixation -> fixation.newSession()) // 세션 고정 공격 방어
+                .maximumSessions(1)
                 .maxSessionsPreventsLogin(false) // 새 로그인 시 기존 세션 만료
             )
             .csrf(csrf -> csrf.csrfTokenRepository(
@@ -300,7 +259,6 @@ public class SecurityConfig {
     }
 }
 
-// 컨트롤러에서 세션 사용
 @PostMapping("/login")
 public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpSession session) {
     User user = authService.authenticate(req.getUsername(), req.getPassword());
@@ -322,7 +280,6 @@ public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpSession sessio
 // ── JWT 기반 인증 흐름 ──────────────────────────────
 const jwt = require('jsonwebtoken');
 
-// 로그인 → JWT 발급
 app.post('/login', async (req, res) => {
     const user = await authenticate(req.body);
     const token = jwt.sign(
@@ -335,7 +292,6 @@ app.post('/login', async (req, res) => {
     res.json({ message: 'Logged in' });
 });
 
-// 요청 검증
 app.get('/api/me', (req, res) => {
     const token = req.cookies.token;
     try {
@@ -354,6 +310,10 @@ app.get('/api/me', (req, res) => {
 | 즉시 무효화 | 가능 (세션 삭제) | 어려움 (만료 대기) |
 | 확장성 | 공유 저장소 필요 | 무상태 — 확장 용이 |
 | 정보 크기 | 제한 없음 | 최소화 권장 (Base64 인코딩) |
+
+JWT의 "즉시 무효화 어려움" 문제를 우회하려고 JWT를 HttpOnly 쿠키에 저장하는 하이브리드 패턴을 쓰는 경우가 있다. JWT를 쿠키에 넣으면 XSS로 탈취되는 문제는 줄어들지만, CSRF에는 여전히 취약하다. `SameSite=Strict`로 어느 정도 방어할 수 있지만, 크로스 도메인 API를 써야 하는 구조라면 `SameSite=None; Secure`를 써야 하고 그러면 CSRF 방어가 약해진다.
+
+토큰 무효화 문제도 그대로다. 로그아웃 시 서버에서 토큰을 폐기할 방법이 없으므로, Redis에 블랙리스트를 두거나 짧은 만료 시간(15분~1시간)으로 설정하고 Refresh Token으로 갱신하는 구조가 필요하다. Refresh Token을 별도로 관리해야 하는 시점에서, 단순 세션 방식 대비 복잡도가 크게 높아진다.
 
 ---
 
