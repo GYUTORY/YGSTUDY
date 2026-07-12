@@ -6,7 +6,7 @@ tags:
   - coredns
   - kubernetes
   - dns
-updated: 2026-06-22
+updated: 2026-07-12
 ---
 
 # CoreDNS
@@ -245,3 +245,191 @@ kubectl -n kube-system rollout restart deployment coredns
 ```
 
 CoreDNS 파드가 두 개뿐이라 트래픽 많은 큰 클러스터에서는 이게 병목이 되기도 한다. 노드마다 캐싱 DNS를 띄우는 NodeLocal DNSCache를 붙이면 노드 안에서 캐시를 먼저 받아서 CoreDNS로 가는 쿼리 자체가 줄고, conntrack 관련 DNS 타임아웃 문제도 같이 완화된다. 규모가 커지면 검토해볼 만하다.
+
+## Prometheus 메트릭으로 DNS 상태 보기
+
+Corefile의 `prometheus :9153`이 활성화돼 있으면 `:9153/metrics` 엔드포인트로 메트릭이 노출된다. CoreDNS가 느리다거나 에러율이 높다는 얘기가 나오면 이 메트릭부터 본다.
+
+**쿼리 처리량 및 레이턴시**
+
+```promql
+# 초당 DNS 쿼리 수 (서버, 존, 타입별)
+sum(rate(coredns_dns_requests_total[5m])) by (server, zone, type)
+
+# 응답 타입별 분포 (NOERROR, NXDOMAIN, SERVFAIL 등)
+sum(rate(coredns_dns_responses_total[5m])) by (rcode)
+
+# 99번째 백분위수 응답 시간
+histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket[5m])) by (le, server))
+```
+
+SERVFAIL 비율이 올라가거나 p99 레이턴시가 100ms를 넘기 시작하면 업스트림 DNS 장애나 CoreDNS 자체 과부하를 의심한다.
+
+**캐시 효율**
+
+```promql
+# 캐시 적중률
+sum(rate(coredns_cache_hits_total[5m])) by (type)
+  /
+(sum(rate(coredns_cache_hits_total[5m])) + sum(rate(coredns_cache_misses_total[5m])))
+
+# 캐시 항목 수
+coredns_cache_entries{type="success"}
+coredns_cache_entries{type="denial"}
+```
+
+적중률이 80% 아래로 떨어지면 ndots 문제로 search 도메인 헛질의가 많이 발생하는 경우가 많다. `coredns_cache_entries` 값이 `cache` 플러그인의 항목 수 상한에 붙어있으면 상한을 올리거나 TTL을 조정해야 한다.
+
+**forward 업스트림 상태**
+
+```promql
+# 업스트림으로 나간 쿼리 수
+sum(rate(coredns_forward_requests_total[5m])) by (to)
+
+# 업스트림 응답 실패율
+sum(rate(coredns_forward_responses_total{rcode!="NOERROR"}[5m])) by (to, rcode)
+
+# 업스트림 응답 시간
+histogram_quantile(0.95, sum(rate(coredns_forward_request_duration_seconds_bucket[5m])) by (le, to))
+```
+
+특정 업스트림 IP에서 SERVFAIL이 몰리면 그 업스트림이 죽었거나 CoreDNS에서 해당 IP로의 네트워크가 끊긴 것이다.
+
+**에러 및 패닉**
+
+```promql
+# 플러그인 처리 중 에러
+sum(rate(coredns_plugin_enabled{name="errors"}[5m]))
+
+# 패닉 발생 횟수 (0이 아니면 즉시 확인 필요)
+coredns_panics_total
+```
+
+`coredns_panics_total`이 0이 아니면 CoreDNS가 예상치 못한 충돌을 겪고 있다는 신호다. 버전 문제나 Corefile 설정 오류일 가능성이 높다.
+
+## autopath 플러그인
+
+`autopath`는 ndots 헛질의 문제를 CoreDNS 쪽에서 잘라내는 플러그인이다. 파드가 `user-service`처럼 짧은 이름을 보내면, CoreDNS가 그 파드의 네임스페이스를 파악해서 `user-service.default.svc.cluster.local`로 스스로 확장한 뒤 한 번만 조회하고 결과를 돌려준다. 파드 입장에서는 search 도메인을 순서대로 시도하는 것처럼 보이지만 실제로는 CoreDNS가 한 번 조회로 처리한다.
+
+Corefile에 이렇게 추가한다.
+
+```
+.:53 {
+    autopath @kubernetes
+    kubernetes cluster.local in-addr.arpa ip6.arpa {
+        pods verified
+        fallthrough in-addr.arpa ip6.arpa
+        ttl 30
+    }
+    ...
+}
+```
+
+`@kubernetes`는 파드 정보를 쿠버네티스 플러그인에서 가져온다는 뜻이다. `pods verified`가 함께 켜져야 CoreDNS가 조회 요청을 보낸 파드 IP를 확인해서 그 파드의 네임스페이스를 알아낼 수 있다. `pods insecure`로 두면 파드 IP 검증을 안 해서 보안상 좋지 않다.
+
+실제로 써본 결과 효과는 확실하다. external API를 자주 호출하는 서비스에서 CoreDNS 쿼리 수가 절반 이하로 줄어든 경우가 있었다. 다만 `pods verified` 모드에서는 CoreDNS가 파드 목록을 메모리에 유지해야 해서 파드 수가 수천 개 단위로 많은 클러스터에서는 CoreDNS 메모리 사용량이 눈에 띄게 늘어난다. 파드 수가 많은 클러스터라면 autopath 대신 ndots를 낮추거나 NodeLocal DNSCache를 먼저 고려한다.
+
+`autopath`를 쓸 때 한 가지 주의사항. `cache`와 같이 쓰면 autopath가 만든 응답이 캐시될 때 다른 네임스페이스의 파드가 같은 짧은 이름으로 질의할 경우 잘못된 응답을 받을 수 있다. 이 문제를 막으려면 autopath 응답의 TTL을 짧게 유지하거나, 어플리케이션에서 짧은 이름 대신 FQDN을 쓰는 편이 근본적인 해결책이다.
+
+## EKS/GKE 매니지드 클러스터에서 CoreDNS 커스터마이징
+
+매니지드 쿠버네티스에서 CoreDNS ConfigMap을 수정할 때는 일반 클러스터와 다른 점 몇 가지를 알고 가야 한다.
+
+**EKS**
+
+EKS에서는 CoreDNS ConfigMap(`kube-system/coredns`)을 직접 수정하면 되지만, EKS 업그레이드 시 ConfigMap이 덮어씌워질 수 있다. 수정 내역을 별도로 관리해두지 않으면 업그레이드 후 커스텀 설정이 사라진다.
+
+EKS는 CoreDNS 애드온을 별도로 관리한다. 콘솔이나 eksctl로 CoreDNS 애드온 버전을 올릴 때 "preserve" 옵션을 쓰면 기존 ConfigMap을 살린다. "overwrite" 옵션을 쓰면 기본값으로 덮어쓴다.
+
+```bash
+# CoreDNS 애드온 업데이트 시 기존 설정 보존
+aws eks update-addon \
+  --cluster-name my-cluster \
+  --addon-name coredns \
+  --resolve-conflicts PRESERVE
+```
+
+EKS에서 forward 업스트림을 VPC DNS(보통 10.x.x.2)가 아닌 외부로 바꿀 때 Security Group과 NACLs에서 53번 포트 아웃바운드가 열려있는지 확인해야 한다. 프라이빗 서브넷에 뜬 노드에서 외부 DNS로 직접 질의가 안 돼 CoreDNS가 전부 SERVFAIL을 내뱉는 경우가 있다.
+
+**GKE**
+
+GKE는 CoreDNS 대신 기본으로 kube-dns를 쓰는 클러스터도 있다. GKE Autopilot은 CoreDNS를 쓰지만 ConfigMap 직접 수정을 제한한다. Autopilot에서 CoreDNS를 건드리려면 `DNSPolicy`나 파드 레벨 `dnsConfig`로만 가능하고, ConfigMap 변경은 Autopilot이 주기적으로 원래 값으로 되돌린다.
+
+GKE Standard에서는 ConfigMap 수정이 된다. 다만 GKE가 컨트롤 플레인 업그레이드 시 ConfigMap을 재적용하는 경우가 있어, 여기도 Terraform이나 ArgoCD로 ConfigMap 상태를 코드로 관리해두는 게 안전하다.
+
+**공통 주의사항**
+
+매니지드 클러스터에서 Corefile을 바꿀 때 `reload` 플러그인이 켜져 있으면 ConfigMap 반영에 최대 2분 정도 걸린다. 변경 후 즉시 확인이 필요하면 파드를 직접 재시작한다.
+
+```bash
+kubectl -n kube-system rollout restart deployment coredns
+```
+
+CoreDNS 버전은 클러스터 쿠버네티스 버전과 호환성이 있어서, 플러그인 기능이 버전마다 조금씩 다르다. 새 플러그인을 추가하거나 기존 플러그인 옵션을 바꿀 때는 현재 클러스터에 뜬 CoreDNS 이미지 버전을 먼저 확인한다.
+
+```bash
+kubectl -n kube-system get deployment coredns -o jsonpath='{.spec.template.spec.containers[0].image}'
+```
+
+## HPA로 CoreDNS 레플리카 수 조정
+
+기본 CoreDNS Deployment는 레플리카 2개다. 클러스터가 커지면 이 두 개가 병목이 된다. 노드 300개 넘는 클러스터에서 CoreDNS 두 개가 초당 수만 쿼리를 처리하려다 CPU가 꽉 차서 SERVFAIL이 터진 경우를 실제로 겪었다.
+
+HPA를 붙이면 CPU 사용률에 따라 자동으로 레플리카를 늘린다.
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: coredns
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+CPU 70% 기준으로 스케일아웃을 잡는 게 일반적이다. CoreDNS는 CPU 바운드 작업이라 CPU 메트릭이 실제 부하를 잘 반영한다.
+
+HPA를 쓸 때 반드시 같이 설정해야 할 게 있다. CoreDNS Deployment에 리소스 request/limit이 없으면 HPA가 CPU 사용률을 계산하지 못한다.
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"
+    memory: "70Mi"
+  limits:
+    cpu: "500m"
+    memory: "170Mi"
+```
+
+리소스 한도는 클러스터 규모에 따라 다르지만, memory limit은 넉넉하게 잡는 편이 낫다. 특히 autopath를 켰거나 파드 수가 많은 클러스터에서 메모리를 더 쓰기 때문에 OOMKilled로 CoreDNS가 죽으면 DNS 전체가 영향을 받는다.
+
+HPA 외에 클러스터 노드 수에 비례해서 CoreDNS 레플리카를 잡는 방법도 있다. `cluster-proportional-autoscaler`라는 별도 컴포넌트를 쓰는 방식인데, 노드 수 기준으로 레플리카를 선형 또는 비례로 늘린다. 노드 기반으로 예측 가능하게 관리하고 싶을 때 유용하다. HPA는 메트릭 서버가 죽으면 스케일링이 멈추는 반면, cluster-proportional-autoscaler는 노드 수만 보기 때문에 메트릭 의존도가 없다는 차이가 있다.
+
+PodDisruptionBudget도 같이 설정해두는 걸 권장한다. 노드 드레인이나 롤링 업데이트 중에 CoreDNS 파드가 동시에 두 개 다 내려가면 클러스터 DNS가 전부 끊긴다.
+
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
+```
+
+`minAvailable: 1`로 두면 최소 한 개는 항상 떠 있어서 DNS가 완전히 끊기는 상황을 막는다.
