@@ -1,2 +1,3 @@
 nav:
   - IAM.md
+  - GCP_IAM.md
