@@ -82,26 +82,43 @@ class CachingProxy {
         this.ttl = ttlMs;
     }
 
+    _normalizeKey(query) {
+        // 객체 파라미터는 키 순서에 관계없이 동일하게 처리
+        if (typeof query === 'object' && query !== null) {
+            return JSON.stringify(
+                Object.fromEntries(
+                    Object.entries(query).sort(([a], [b]) => a.localeCompare(b))
+                )
+            );
+        }
+        return String(query);
+    }
+
     fetchData(query) {
-        const cached = this.cache.get(query);
+        const key = this._normalizeKey(query);
+        const cached = this.cache.get(key);
         if (cached && Date.now() - cached.ts < this.ttl) {
             return cached.data;
         }
 
         const result = this.service.fetchData(query);
-        this.cache.set(query, { data: result, ts: Date.now() });
+        this.cache.set(key, { data: result, ts: Date.now() });
         return result;
     }
 
     invalidate(query) {
-        this.cache.delete(query);
+        this.cache.delete(this._normalizeKey(query));
     }
 }
 ```
 
-TTL만 두면 캐시 무효화가 어렵다. 데이터가 갱신됐을 때 관련 캐시를 즉시 날려야 하는 경우가 생기므로 `invalidate` 메서드를 함께 두는 게 맞다. 캐시 키 설계도 중요한데, 쿼리 파라미터 순서가 달라도 같은 키로 처리해야 한다면 정규화 로직이 필요하다.
+### 캐시 키 충돌 문제
 
-메모리 누수도 신경 써야 한다. 캐시 크기를 제한하지 않으면 장기 운영 시 힙이 계속 늘어난다. LRU(Least Recently Used) 방식을 쓰거나 최대 항목 수를 두는 방식으로 관리한다.
+실무에서 캐시 버그의 상당수는 키 설계 실수에서 나온다. `{ userId: 1, type: "admin" }`과 `{ type: "admin", userId: 1 }`은 내용이 같지만 `JSON.stringify`로 직렬화하면 다른 키가 된다. 키 정규화 없이 쿼리를 그대로 캐시 키로 쓰면 캐시 히트율이 낮아지고 원인을 찾기 어렵다.
+
+더 위험한 경우는 사용자 컨텍스트가 키에 포함돼야 하는데 빠진 상황이다. `fetchData(userId, query)` 같은 메서드에서 캐시 키를 `query`만으로 구성하면, A 사용자 데이터가 B 사용자에게 반환되는 보안 버그가 생긴다. 캐시 키에 어떤 컨텍스트가 포함돼야 하는지 메서드마다 명시적으로 정해야 한다.
+
+TTL만 두면 캐시 무효화가 어렵다. 데이터가 갱신됐을 때 관련 캐시를 즉시 날려야 하는 경우가 생기므로 `invalidate` 메서드를 함께 두는 게 맞다. 캐시 크기를 제한하지 않으면 장기 운영 시 힙이 계속 늘어나기 때문에 LRU 방식을 쓰거나 최대 항목 수를 두는 방식으로 관리한다.
 
 ## 가상 프록시 (지연 로딩)
 
@@ -183,46 +200,210 @@ userProxy.age = -5;              // RangeError
 
 ES6 `Proxy`는 클래스 기반 프록시보다 범용적이지만 디버깅이 어렵다. `console.log(userProxy)`로 출력하면 원본 객체처럼 보여서 프록시가 걸려 있다는 걸 모르고 지나칠 수 있다. `instanceof` 체크도 원본 클래스 기준으로 동작한다.
 
-## 서킷 브레이커 결합
+## 원격 서비스 프록시: timeout과 재시도 구분
 
-원격 서비스를 호출하는 프록시에서는 재시도와 서킷 브레이커를 함께 두는 경우가 많다.
+원격 서비스를 호출하는 프록시에서 timeout과 재시도 정책은 분리해서 생각해야 한다. 같은 에러처럼 보여도 성격이 다르다.
+
+timeout 에러는 서버가 응답을 보내지 않은 상태다. 요청이 실제로 처리됐는지 알 수 없기 때문에 재시도가 위험하다. 쓰기 작업(POST, 상태 변경)에서 timeout 후 재시도하면 중복 처리가 생긴다. 반면 연결 자체가 거부된 connection refused는 요청이 도달하지 않았으므로 재시도가 안전하다.
 
 ```javascript
 class RemoteServiceProxy {
-    constructor(service) {
+    constructor(service, options = {}) {
         this.service = service;
+        this.timeoutMs = options.timeoutMs || 5000;
+        this.retryCount = options.retryCount || 3;
+        this.retryableErrors = new Set(["ECONNREFUSED", "ECONNRESET", "ENOTFOUND"]);
+        this.state = "CLOSED";
         this.failureCount = 0;
-        this.threshold = 5;
-        this.state = "CLOSED"; // CLOSED | OPEN | HALF_OPEN
+        this.threshold = options.threshold || 5;
         this.nextRetry = 0;
+    }
+
+    async _withTimeout(promise) {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) =>
+                setTimeout(
+                    () => reject(Object.assign(new Error("TIMEOUT"), { code: "ETIMEDOUT" })),
+                    this.timeoutMs
+                )
+            )
+        ]);
+    }
+
+    _isRetryable(err, isWriteOperation) {
+        // 쓰기 작업의 timeout은 재시도하지 않는다: 중복 처리 위험
+        if (err.code === "ETIMEDOUT" && isWriteOperation) return false;
+        return this.retryableErrors.has(err.code) || err.code === "ETIMEDOUT";
+    }
+
+    async request(args, isWriteOperation = false) {
+        if (this.state === "OPEN") {
+            if (Date.now() < this.nextRetry) {
+                throw new Error(`서킷 오픈 (다음 재시도: ${new Date(this.nextRetry).toISOString()})`);
+            }
+            this.state = "HALF_OPEN";
+        }
+
+        // 쓰기 작업은 재시도 없이 1회만 시도
+        const attempts = isWriteOperation ? 1 : this.retryCount;
+        let lastErr;
+
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const result = await this._withTimeout(this.service.request(args));
+                this.failureCount = 0;
+                this.state = "CLOSED";
+                return result;
+            } catch (err) {
+                lastErr = err;
+                if (!this._isRetryable(err, isWriteOperation)) break;
+                if (i < attempts - 1) {
+                    // 지수 백오프: 1초 → 2초 → 4초
+                    await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+                }
+            }
+        }
+
+        this.failureCount++;
+        if (this.failureCount >= this.threshold) {
+            this.state = "OPEN";
+            this.nextRetry = Date.now() + 60_000;
+        }
+        throw lastErr;
+    }
+}
+```
+
+읽기 작업은 3회 재시도하되, 쓰기 작업은 1회만 시도한다. 재시도 간격에 지수 백오프를 적용하면 연속 실패 시 서버 부하가 집중되는 상황을 피할 수 있다.
+
+### 서킷 브레이커 상태 모니터링
+
+서킷 브레이커를 운영하다 보면 OPEN 상태가 된 걸 뒤늦게 알아채는 경우가 있다. 에러 로그는 쌓이지만 "서킷 오픈" 메시지를 따로 집계하지 않으면 알람이 늦다.
+
+```javascript
+class MonitoredCircuitBreaker {
+    constructor(service, options = {}) {
+        this.service = service;
+        this.threshold = options.threshold || 5;
+        this.state = "CLOSED";
+        this.failureCount = 0;
+        this.nextRetry = 0;
+        this.stats = { success: 0, failure: 0, shortCircuited: 0 };
+        this.onStateChange = options.onStateChange || null;
+    }
+
+    _transition(newState) {
+        if (this.state === newState) return;
+        const prev = this.state;
+        this.state = newState;
+        if (this.onStateChange) {
+            this.onStateChange({ from: prev, to: newState, stats: { ...this.stats } });
+        }
+    }
+
+    getHealthStatus() {
+        return {
+            state: this.state,
+            failureCount: this.failureCount,
+            stats: { ...this.stats },
+            nextRetryAt: this.state === "OPEN"
+                ? new Date(this.nextRetry).toISOString()
+                : null
+        };
     }
 
     async request(args) {
         if (this.state === "OPEN") {
             if (Date.now() < this.nextRetry) {
-                throw new Error("서킷 오픈: 잠시 후 재시도");
+                this.stats.shortCircuited++;
+                throw new Error(`서킷 오픈 (다음 재시도: ${new Date(this.nextRetry).toISOString()})`);
             }
-            this.state = "HALF_OPEN";
+            this._transition("HALF_OPEN");
         }
 
         try {
             const result = await this.service.request(args);
             this.failureCount = 0;
-            this.state = "CLOSED";
+            this.stats.success++;
+            this._transition("CLOSED");
             return result;
         } catch (err) {
             this.failureCount++;
+            this.stats.failure++;
             if (this.failureCount >= this.threshold) {
-                this.state = "OPEN";
                 this.nextRetry = Date.now() + 60_000;
+                this._transition("OPEN");
             }
             throw err;
         }
     }
 }
+
+// 상태 변화를 로깅·알람 시스템에 연결
+const cb = new MonitoredCircuitBreaker(remoteService, {
+    threshold: 5,
+    onStateChange: ({ from, to, stats }) => {
+        logger.warn(`서킷 브레이커 상태 전환: ${from} → ${to}`, stats);
+        if (to === "OPEN") alerting.trigger("circuit_breaker_open", stats);
+    }
+});
+
+// 헬스체크 엔드포인트에서 노출
+app.get("/health/circuit-breaker", (req, res) => {
+    res.json(cb.getHealthStatus());
+});
 ```
 
-CLOSED 상태에서 실패가 threshold에 도달하면 OPEN으로 바뀌고, 이후 요청은 즉시 에러를 던진다. 일정 시간 뒤 HALF_OPEN으로 전환해 한 번 테스트하고, 성공하면 CLOSED로 돌아간다. 이 로직을 프록시에 두면 원본 서비스 코드가 깔끔하게 유지된다.
+`getHealthStatus()`를 헬스체크 엔드포인트에 노출하면 모니터링 대시보드에서 OPEN 상태를 실시간으로 확인할 수 있다. 운영 중 서킷이 자꾸 열린다면 `stats.failure / stats.success` 비율로 어느 시간대에 문제가 집중됐는지 파악할 수 있다.
+
+## 프록시 체인 디버깅
+
+캐싱 프록시 → 접근 제어 프록시 → 로깅 프록시처럼 여러 프록시를 쌓으면 스택 트레이스만으로 어느 계층에서 에러가 났는지 파악하기 어려워진다.
+
+```javascript
+class TracedProxy {
+    constructor(name, wrapped) {
+        this.name = name;
+        this.wrapped = wrapped;
+    }
+
+    async request(args) {
+        const traceId = `${this.name}:${Date.now()}`;
+        try {
+            console.log(`[${traceId}] 요청 진입`, args);
+            const result = await this.wrapped.request(args);
+            console.log(`[${traceId}] 요청 성공`);
+            return result;
+        } catch (err) {
+            // 에러에 어느 프록시 계층을 통과했는지 추적 정보를 붙인다
+            err.proxyTrace = [...(err.proxyTrace || []), traceId];
+            throw err;
+        }
+    }
+}
+
+// 체인 구성
+const service = new TracedProxy("circuit-breaker",
+    new TracedProxy("auth",
+        new TracedProxy("cache",
+            new RealService()
+        )
+    )
+);
+
+// 에러 발생 시
+try {
+    await service.request(args);
+} catch (err) {
+    console.error("프록시 체인 추적:", err.proxyTrace);
+    // ["circuit-breaker:1721300000", "auth:1721300001", "cache:1721300002"]
+}
+```
+
+에러 객체에 `proxyTrace` 배열을 누적하면 어느 계층을 통과했는지 순서대로 확인할 수 있다. 프로덕션에서는 이 정보를 로깅 시스템에 구조화된 필드로 남겨야 에러 분석이 가능하다.
+
+체인이 3단계 이상이면 프록시 자체를 의심해야 한다. 각 프록시가 정말 단일 책임을 가지는지, 기능이 겹치는 프록시끼리 합칠 수 없는지 점검하는 게 맞다.
 
 ## 다른 패턴과의 차이
 
@@ -231,8 +412,6 @@ CLOSED 상태에서 실패가 threshold에 도달하면 OPEN으로 바뀌고, �
 Adapter는 인터페이스를 변환하고, 프록시는 동일한 인터페이스를 유지한다. Facade는 여러 객체를 하나의 단순한 인터페이스로 묶고, 프록시는 단일 객체 앞에 선다.
 
 ## 주의사항
-
-프록시 체인이 길어지면 스택 트레이스가 알아보기 어려워진다. 캐싱 프록시 → 접근 제어 프록시 → 로깅 프록시가 쌓이면 어느 계층에서 에러가 난 건지 추적하기 힘들다. 계층을 둘 이상 쌓을 때는 각 프록시에서 의미 있는 에러 메시지를 붙여야 한다.
 
 프록시 내부에서 원본 객체를 직접 참조하는 코드가 생기면 순환 참조가 발생할 수 있다. 원본 객체가 이벤트를 발행하고 프록시가 그 이벤트를 구독하는 구조라면 특히 주의해야 한다.
 
