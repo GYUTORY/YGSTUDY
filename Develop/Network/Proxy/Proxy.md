@@ -1,7 +1,7 @@
 ---
 title: 프록시 (Proxy)
 tags: [network, proxy, forward-proxy, reverse-proxy, squid, nginx, x-forwarded-for, http-connect]
-updated: 2026-05-24
+updated: 2026-07-19
 ---
 
 # 프록시 (Proxy)

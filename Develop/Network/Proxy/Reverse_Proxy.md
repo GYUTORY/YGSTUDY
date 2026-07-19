@@ -1,7 +1,7 @@
 ---
 title: 리버스 프록시 (Reverse Proxy)
 tags: [network, proxy, reverse-proxy, nginx, upstream, health-check, x-forwarded-for, 502, 504, timeout, buffering]
-updated: 2026-06-17
+updated: 2026-07-19
 ---
 
 # 리버스 프록시 (Reverse Proxy)
@@ -222,7 +222,7 @@ location / {
 
 `SSL_do_handshake() failed`는 백엔드와 HTTPS로 통신하는데(`proxy_pass https://...`) TLS 핸드셰이크가 깨진 거다. 백엔드 인증서 만료, SNI 불일치, 프로토콜 버전 안 맞음 등이다.
 
-### 디버깅 순서를 정리하면
+### 502/504 디버깅 순서
 
 502/504가 나면 추측하지 말고 이 순서로 좁힌다.
 
@@ -240,10 +240,6 @@ log_format upstream_log '$remote_addr - $upstream_addr '
 ```
 
 `$request_time`(클라이언트가 보낸 전체 시간)과 `$upstream_response_time`(백엔드가 쓴 시간)을 비교하면, 느린 게 백엔드인지 네트워크/클라이언트인지 갈린다. 둘이 비슷하면 백엔드가 느린 거고, `$request_time`만 크면 클라이언트가 느리게 받아간 거다(느린 회선, 모바일).
-
-## 정리
-
-리버스 프록시는 서버를 대신해 요청을 받고, 그 뒤에서 부하 분산·TLS 종료·백엔드 은닉을 한다. 운영하면서 손대는 건 결국 몇 가지로 좁혀진다. upstream으로 백엔드를 묶고 분산 방식을 고르는 것, 헬스체크로 죽은 백엔드를 빼는 것, XFF·Host·X-Forwarded-Proto 헤더를 제대로 넘기는 것, 타임아웃과 버퍼링을 워크로드에 맞추는 것. 그리고 502/504가 나면 에러 로그부터 읽고 프록시를 건너뛴 직접 호출로 범위를 좁히는 것. 이 흐름만 몸에 익혀도 새벽 장애의 절반은 빨리 끝난다.
 
 관련 문서:
 

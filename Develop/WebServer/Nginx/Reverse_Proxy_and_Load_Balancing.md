@@ -1,16 +1,14 @@
 ---
 title: Nginx 리버스 프록시 & 로드밸런싱
-tags: [webserver, nginx, reverse-proxy, load-balancing, upstream, ssl, tls, https, proxy-buffering, keepalive]
-updated: 2026-04-10
+tags: [webserver, nginx, reverse-proxy, load-balancing, upstream, ssl, tls, https, proxy-buffering, keepalive, 502, 504]
+updated: 2026-07-19
 ---
 
 # Nginx 리버스 프록시 & 로드밸런싱
 
-## 배경
+백엔드 서버를 직접 외부에 노출하지 않고 Nginx를 앞에 두는 구성이다. 프로덕션에서 Nginx 없이 백엔드 포트를 80/443에 바인딩하는 경우는 거의 없다.
 
-백엔드 서버를 직접 외부에 노출하는 대신 **Nginx를 리버스 프록시**로 앞에 두면 보안, 성능, 확장성에서 큰 이점을 얻는다. 프로덕션 환경에서 Nginx는 거의 필수적인 인프라 구성 요소이다.
-
-### 리버스 프록시란
+## 리버스 프록시란
 
 ```
 포워드 프록시 (클라이언트 측):
@@ -22,7 +20,7 @@ updated: 2026-04-10
   (백엔드 서버를 숨김)
 ```
 
-### 리버스 프록시 요청 흐름
+### 요청 흐름
 
 클라이언트 요청이 Nginx를 거쳐 백엔드로 전달되는 전체 과정이다. 각 단계에서 Nginx가 어떤 처리를 하는지 파악해야 트러블슈팅할 때 원인을 빨리 찾는다.
 
@@ -51,7 +49,7 @@ sequenceDiagram
     end
 ```
 
-실무에서 자주 겪는 상황: `proxy_set_header`를 빠뜨리면 백엔드에서 클라이언트 IP를 알 수 없다. 로그를 보면 전부 `127.0.0.1`로 찍히는 경우가 이 문제다.
+`proxy_set_header`를 빠뜨리면 백엔드에서 클라이언트 IP를 알 수 없다. 로그를 보면 전부 `127.0.0.1`로 찍히는 경우가 이 문제다.
 
 ### Nginx가 리버스 프록시로 하는 일
 
@@ -65,11 +63,9 @@ sequenceDiagram
 | **보안 헤더** | HSTS, X-Frame-Options 등 보안 헤더 추가 |
 | **압축** | gzip/brotli 압축으로 응답 크기 감소 |
 
-## 핵심
+## 기본 설정
 
-### 1. 리버스 프록시 기본 설정
-
-#### 단일 백엔드 서버
+### 단일 백엔드 서버
 
 ```nginx
 server {
@@ -77,23 +73,19 @@ server {
     server_name api.example.com;
 
     location / {
-        proxy_pass http://localhost:8080;   # 백엔드 서버
+        proxy_pass http://localhost:8080;
 
-        # 필수 프록시 헤더
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # 타임아웃 설정
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
 }
 ```
-
-**프록시 헤더 설명:**
 
 | 헤더 | 용도 |
 |------|------|
@@ -102,9 +94,9 @@ server {
 | `X-Forwarded-For` | 프록시 체인의 IP 목록 |
 | `X-Forwarded-Proto` | 원본 프로토콜 (http/https) |
 
-Spring Boot에서 이 헤더를 인식하려면 `server.forward-headers-strategy=native` 설정이 필요하다. 이걸 안 하면 `HttpServletRequest.getRemoteAddr()`가 Nginx IP를 반환한다.
+Spring Boot에서 이 헤더를 인식하려면 `server.forward-headers-strategy=native` 설정이 필요하다. 안 하면 `HttpServletRequest.getRemoteAddr()`가 Nginx IP를 반환한다.
 
-#### 경로별 라우팅
+### 경로별 라우팅
 
 ```nginx
 server {
@@ -144,14 +136,11 @@ server {
 }
 ```
 
-### 2. 로드밸런싱
+## 로드밸런싱
 
-여러 백엔드 서버에 트래픽을 분산한다.
-
-#### upstream 블록
+### upstream 블록
 
 ```nginx
-# 백엔드 서버 그룹 정의
 upstream backend {
     server 10.0.1.10:8080;
     server 10.0.1.11:8080;
@@ -163,7 +152,7 @@ server {
     server_name api.example.com;
 
     location / {
-        proxy_pass http://backend;   # upstream 이름 사용
+        proxy_pass http://backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -171,7 +160,7 @@ server {
 }
 ```
 
-#### 로드밸런싱 알고리즘
+### 로드밸런싱 알고리즘
 
 | 알고리즘 | 설정 | 동작 | 사용 상황 |
 |---------|------|------|----------|
@@ -179,7 +168,7 @@ server {
 | **Weighted** | `weight=3` | 가중치 기반 분배 | 서버 성능 차이 |
 | **Least Connections** | `least_conn` | 연결 수 적은 서버 우선 | 요청 처리 시간 불균일 |
 | **IP Hash** | `ip_hash` | 클라이언트 IP 기반 고정 | 세션 유지 필요 |
-| **Hash** | `hash $request_uri` | 커스텀 키 기반 | 캐시 효율 극대화 |
+| **Hash** | `hash $request_uri` | 커스텀 키 기반 | 캐시 히트율 높일 때 |
 
 ```nginx
 # Weighted Round Robin
@@ -204,7 +193,7 @@ upstream backend {
 }
 ```
 
-#### 헬스 체크 및 장애 대응
+### 헬스체크 및 장애 대응
 
 ```nginx
 upstream backend {
@@ -242,16 +231,16 @@ stateDiagram-v2
     note right of 비활성: 이 기간 동안 해당 서버로\n트래픽을 보내지 않음
 ```
 
-여기서 주의할 점: `fail_timeout`은 두 가지 의미를 동시에 가진다.
+`fail_timeout`은 두 가지 의미를 동시에 가진다.
 
 1. 실패 횟수를 세는 시간 윈도우 — 이 시간 안에 `max_fails`만큼 실패해야 비활성 처리된다
 2. 비활성 상태 유지 시간 — 이 시간이 지나면 다시 요청을 보내서 살아있는지 확인한다
 
 `fail_timeout=30s`, `max_fails=3`이면 "30초 안에 3번 실패하면 30초 동안 제외"라는 뜻이다. 실패 카운트 윈도우와 제외 시간을 따로 설정할 수 없어서, 세밀한 제어가 필요하면 Nginx Plus의 액티브 헬스체크를 검토해야 한다.
 
-#### proxy_next_upstream으로 자동 재시도
+### proxy_next_upstream으로 자동 재시도
 
-백엔드가 에러를 반환했을 때 다른 서버로 자동 재시도할 수 있다.
+백엔드가 에러를 반환했을 때 다른 서버로 자동 재시도한다.
 
 ```nginx
 location /api/ {
@@ -262,11 +251,11 @@ location /api/ {
 }
 ```
 
-POST 요청에 대해 `proxy_next_upstream`이 걸리면 같은 요청이 두 번 전달될 수 있다. 멱등하지 않은 API(결제, 주문 생성 등)에서는 `proxy_next_upstream off;`로 비활성화하거나, `non_idempotent` 플래그를 확인해야 한다.
+POST 요청에 `proxy_next_upstream`이 걸리면 같은 요청이 두 번 전달될 수 있다. 멱등하지 않은 API(결제, 주문 생성 등)에서는 `proxy_next_upstream off;`로 꺼야 한다.
 
-### 3. proxy_buffering 설정과 성능 차이
+## proxy_buffering
 
-`proxy_buffering`은 Nginx가 백엔드 응답을 어떻게 클라이언트에 전달하는지 결정한다. 기본값은 `on`이고, 대부분의 경우 켜둬야 한다.
+`proxy_buffering`은 Nginx가 백엔드 응답을 어떻게 클라이언트에 전달하는지 결정한다. 기본값은 `on`이다.
 
 ```mermaid
 flowchart LR
@@ -285,26 +274,24 @@ flowchart LR
     end
 ```
 
-**on일 때 (기본값, 대부분의 API에 적합)**
+### on일 때 (기본값)
 
 ```nginx
 location /api/ {
     proxy_pass http://backend;
     proxy_buffering on;
 
-    # 버퍼 크기 설정
     proxy_buffer_size 4k;         # 응답 헤더용 버퍼
     proxy_buffers 8 8k;           # 응답 본문용 버퍼 (8개 × 8KB = 64KB)
     proxy_busy_buffers_size 16k;  # 클라이언트 전송 중 사용할 버퍼
 }
 ```
 
-- Nginx가 백엔드 응답을 전부 받은 뒤 클라이언트에 전달한다
-- 백엔드 커넥션을 빨리 반환하기 때문에 백엔드 리소스 점유 시간이 짧다
-- 느린 클라이언트(모바일, 저대역폭)가 있어도 백엔드에 영향을 주지 않는다
-- 응답이 버퍼보다 크면 디스크에 임시 파일을 쓰는데, 이건 `proxy_max_temp_file_size`로 제한한다
+Nginx가 백엔드 응답을 전부 받은 뒤 클라이언트에 전달한다. 백엔드 커넥션을 빨리 반환하기 때문에 백엔드 리소스 점유 시간이 짧다. 느린 클라이언트(모바일, 저대역폭)가 있어도 백엔드에 영향을 주지 않는다.
 
-**off일 때 (SSE, 스트리밍에 필요)**
+응답이 버퍼보다 크면 디스크에 임시 파일을 쓴다. `proxy_max_temp_file_size`로 제한한다.
+
+### off일 때 (SSE, 스트리밍)
 
 ```nginx
 # Server-Sent Events
@@ -312,7 +299,6 @@ location /api/events {
     proxy_pass http://backend;
     proxy_buffering off;
 
-    # SSE에 필요한 설정
     proxy_http_version 1.1;
     proxy_set_header Connection "";
     proxy_read_timeout 86400s;     # 장시간 연결 유지
@@ -327,11 +313,27 @@ location /download/ {
 }
 ```
 
-- 백엔드 응답을 받는 즉시 클라이언트에 전달한다
-- SSE(Server-Sent Events), 스트리밍, 장시간 응답에서 반드시 꺼야 한다
-- 문제는 클라이언트가 느리면 백엔드 프로세스가 그만큼 오래 붙잡힌다는 점이다
+백엔드 응답을 받는 즉시 클라이언트에 전달한다. 클라이언트가 느리면 백엔드 프로세스가 그만큼 오래 붙잡힌다.
 
-**성능 차이 정리**
+### 실제 장애 상황
+
+**SSE/스트리밍이 묶여서 나오는 경우**
+
+OpenAI API처럼 스트리밍으로 토큰을 하나씩 내려주는 백엔드를 프록시로 둘 때 흔하게 발생한다. 브라우저에서는 응답이 몇 초씩 안 오다가 갑자기 전부 한꺼번에 나타나는 증상이다. `proxy_buffering on` 상태라 Nginx가 백엔드 응답을 모아뒀다가 버퍼가 차거나 연결이 끊길 때 한꺼번에 내보내는 것이다.
+
+스트리밍 엔드포인트는 `proxy_buffering off`를 반드시 붙여야 한다. 전역 설정 대신 해당 location에만 건다.
+
+**버퍼 크기 부족으로 나는 502**
+
+백엔드가 큰 응답 헤더(긴 Set-Cookie 다수, 큰 JWT)를 보내면 `upstream sent too big header while reading response header from upstream` 에러와 함께 502가 난다. 응답 헤더가 `proxy_buffer_size` 기본값(4k)을 넘어서다. 마침 인증 방식을 바꿔서 쿠키나 토큰이 길어졌다면 이걸 의심한다.
+
+```nginx
+proxy_buffer_size       16k;
+proxy_buffers           8 16k;
+proxy_busy_buffers_size 32k;
+```
+
+### on/off 비교
 
 | 항목 | `on` | `off` |
 |------|------|-------|
@@ -341,9 +343,9 @@ location /download/ {
 | 메모리 사용 | 버퍼만큼 사용 | 최소 |
 | SSE/스트리밍 | 동작 안 함 | 필수 |
 
-실무에서는 기본 API 엔드포인트는 `on`, SSE나 파일 스트리밍 엔드포인트만 `off`로 설정하는 것이 일반적이다. 전역 설정을 건드리지 말고 location 블록 단위로 제어한다.
+기본 API 엔드포인트는 `on`, SSE나 파일 스트리밍 엔드포인트만 `off`로 설정한다. 전역 설정을 건드리지 말고 location 블록 단위로 제어한다.
 
-### 4. upstream 커넥션 재사용 (keepalive)
+## upstream 커넥션 재사용 (keepalive)
 
 upstream에 `keepalive` 설정이 없으면 Nginx는 백엔드로 요청을 보낼 때마다 TCP 커넥션을 새로 맺는다. 요청량이 많으면 이 오버헤드가 상당하다.
 
@@ -380,7 +382,7 @@ server {
     location /api/ {
         proxy_pass http://api_backend;
 
-        # keepalive 사용 시 반드시 필요한 설정
+        # keepalive 사용 시 반드시 필요
         proxy_http_version 1.1;            # HTTP/1.0은 keepalive 미지원
         proxy_set_header Connection "";    # "close" 헤더 제거
     }
@@ -389,7 +391,7 @@ server {
 
 `proxy_http_version 1.1`과 `proxy_set_header Connection ""`은 반드시 같이 설정해야 한다. 빠뜨리면 Nginx가 `Connection: close`를 보내서 매번 커넥션을 끊는다. 설정은 했는데 실제로 keepalive가 동작하지 않는 문제 대부분이 이 두 줄 누락이다.
 
-**keepalive 파라미터 설정 기준**
+### keepalive 파라미터 설정 기준
 
 | 파라미터 | 설명 | 설정 기준 |
 |---------|------|----------|
@@ -399,34 +401,47 @@ server {
 
 `keepalive` 값이 너무 크면 유휴 커넥션이 백엔드 리소스를 잡아먹고, 너무 작으면 커넥션을 자주 새로 맺게 된다. 워커 프로세스마다 이 수만큼 유휴 커넥션을 유지하므로, `worker_processes` × `keepalive` = 전체 유휴 커넥션 수다. 백엔드의 `max-connections` 설정과 맞춰야 한다.
 
-**keepalive_timeout 주의사항**
+### keepalive timeout 불일치로 나는 간헐적 502
 
-Nginx의 `keepalive_timeout`과 백엔드(Spring Boot의 `server.tomcat.keep-alive-timeout` 등)의 timeout 값 관계가 중요하다. 백엔드가 먼저 커넥션을 끊으면 Nginx는 이미 끊긴 커넥션에 요청을 보내게 되고, 502 에러가 발생한다.
+Nginx의 `keepalive_timeout`이 백엔드의 keepalive timeout보다 길면 간헐적 502가 발생한다. 백엔드가 먼저 커넥션을 끊는데 Nginx는 그 커넥션이 살아있다고 생각하고 요청을 보내는 시나리오다.
 
 ```
 # 올바른 설정
 Nginx keepalive_timeout (60s) < Backend keep-alive-timeout (65s)
 
-# 잘못된 설정 (간헐적 502 발생)
+# 잘못된 설정 — 간헐적 502 발생
 Nginx keepalive_timeout (60s) > Backend keep-alive-timeout (30s)
 ```
 
-이 502 에러는 간헐적으로 발생해서 원인 파악이 어렵다. 부하가 낮을 때 유휴 커넥션이 오래 남아있다가 타이밍이 맞으면 터지는 식이라, 재현도 잘 안 된다. Nginx 에러 로그에 `upstream prematurely closed connection`이 보이면 이 문제를 의심해야 한다.
+이 502는 트래픽이 낮을 때 더 자주 터진다. 부하가 낮으면 유휴 커넥션이 풀에 오래 남아있다가 백엔드가 먼저 끊어버리는 타이밍이 맞으면 나온다. 재현도 잘 안 되고, 로그에 `upstream prematurely closed connection`이 찍히는 게 유일한 단서다.
 
-### 5. SSL/TLS (HTTPS) 설정
+Spring Boot의 기본 Tomcat keepalive timeout은 약 20초다. Nginx `keepalive_timeout` 기본값인 75초보다 훨씬 짧다. Spring Boot를 쓰는데 keepalive를 켰다면 반드시 확인해야 한다.
 
-#### Let's Encrypt 인증서
+```bash
+# Nginx 에러 로그 확인
+grep "prematurely closed" /var/log/nginx/error.log
+
+# Spring Boot에서 keepalive timeout 늘리기
+# application.properties
+server.tomcat.keep-alive-timeout=65000  # ms 단위, 65초
+```
+
+백엔드 프레임워크별 keepalive timeout 기본값이 다르므로, keepalive를 켤 때는 반드시 백엔드 설정을 확인하고 Nginx timeout을 그보다 짧게 잡는다.
+
+## SSL/TLS (HTTPS) 설정
+
+### Let's Encrypt 인증서
 
 ```bash
 # Certbot으로 무료 SSL 인증서 발급
 sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d example.com -d www.example.com
 
-# 자동 갱신 (cron)
+# 자동 갱신 확인
 sudo certbot renew --dry-run
 ```
 
-#### HTTPS 설정
+### HTTPS 설정
 
 ```nginx
 # HTTP → HTTPS 리다이렉트
@@ -441,11 +456,9 @@ server {
     listen 443 ssl http2;
     server_name example.com;
 
-    # SSL 인증서
     ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
-    # SSL 보안 설정
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
     ssl_prefer_server_ciphers off;
@@ -467,9 +480,7 @@ server {
 }
 ```
 
-### 6. 캐싱
-
-Nginx에서 백엔드 응답을 캐시하면 서버 부하를 줄인다.
+## 캐싱
 
 ```nginx
 # 캐시 영역 정의 (http 블록)
@@ -487,8 +498,8 @@ server {
     location /api/products {
         proxy_pass http://backend;
         proxy_cache api_cache;
-        proxy_cache_valid 200 10m;           # 200 응답: 10분 캐시
-        proxy_cache_valid 404 1m;            # 404 응답: 1분 캐시
+        proxy_cache_valid 200 10m;
+        proxy_cache_valid 404 1m;
         proxy_cache_key "$request_method$request_uri";
 
         add_header X-Cache-Status $upstream_cache_status;   # 캐시 HIT/MISS 확인
@@ -503,9 +514,7 @@ server {
 }
 ```
 
-### 7. Rate Limiting
-
-과도한 요청이나 DDoS 공격을 방어한다.
+## Rate Limiting
 
 ```nginx
 # 요청 제한 영역 정의 (http 블록)
@@ -531,19 +540,19 @@ server {
 }
 ```
 
-### 8. 보안 헤더
+## 보안 헤더
 
 ```nginx
-# 보안 헤더 모음 (include로 재사용)
-add_header X-Frame-Options "SAMEORIGIN" always;           # 클릭재킹 방지
-add_header X-Content-Type-Options "nosniff" always;       # MIME 스니핑 방지
-add_header X-XSS-Protection "1; mode=block" always;       # XSS 필터
+# include로 재사용
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-XSS-Protection "1; mode=block" always;
 add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 add_header Content-Security-Policy "default-src 'self'" always;
 add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 ```
 
-### 9. Gzip 압축
+## Gzip 압축
 
 ```nginx
 # http 블록에 설정
@@ -562,9 +571,7 @@ gzip_types
     image/svg+xml;
 ```
 
-## 예시
-
-### 1. 프로덕션 전체 구성 예시
+## 프로덕션 전체 구성
 
 Spring Boot + React SPA를 Nginx로 서빙하는 실전 설정이다.
 
@@ -572,7 +579,7 @@ Spring Boot + React SPA를 Nginx로 서빙하는 실전 설정이다.
 # /etc/nginx/nginx.conf
 
 user nginx;
-worker_processes auto;                  # CPU 코어 수에 맞춤
+worker_processes auto;
 worker_rlimit_nofile 65535;
 
 events {
@@ -584,7 +591,6 @@ http {
     include mime.types;
     default_type application/octet-stream;
 
-    # 로그 포맷
     log_format main '$remote_addr - $remote_user [$time_local] '
                     '"$request" $status $body_bytes_sent '
                     '"$http_referer" "$http_user_agent" '
@@ -593,20 +599,17 @@ http {
     access_log /var/log/nginx/access.log main;
     error_log /var/log/nginx/error.log warn;
 
-    # 성능
     sendfile on;
     tcp_nopush on;
     tcp_nodelay on;
     keepalive_timeout 65;
     keepalive_requests 1000;
 
-    # 버퍼
-    client_max_body_size 10m;           # 업로드 최대 크기
+    client_max_body_size 10m;
     client_body_buffer_size 128k;
     proxy_buffer_size 128k;
     proxy_buffers 4 256k;
 
-    # Gzip
     gzip on;
     gzip_vary on;
     gzip_comp_level 6;
@@ -614,21 +617,18 @@ http {
     gzip_types text/plain text/css application/json application/javascript
                text/xml application/xml image/svg+xml;
 
-    # Rate Limiting
     limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
     limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 
-    # 캐시
     proxy_cache_path /var/cache/nginx levels=1:2
                      keys_zone=static_cache:10m max_size=1g inactive=7d;
 
-    # 업스트림
     upstream api_backend {
         least_conn;
         server 10.0.1.10:8080 max_fails=3 fail_timeout=30s;
         server 10.0.1.11:8080 max_fails=3 fail_timeout=30s;
-        keepalive 32;              # 워커당 유휴 커넥션 32개 유지
-        keepalive_timeout 60s;     # 백엔드 timeout(65s)보다 짧게
+        keepalive 32;
+        keepalive_timeout 60s;     # Tomcat keep-alive-timeout(65s)보다 짧게
         keepalive_requests 1000;
     }
 
@@ -644,7 +644,6 @@ http {
         listen 443 ssl http2;
         server_name example.com;
 
-        # SSL
         ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
         ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
         ssl_protocols TLSv1.2 TLSv1.3;
@@ -652,7 +651,6 @@ http {
         ssl_session_cache shared:SSL:10m;
         ssl_session_timeout 1d;
 
-        # 보안 헤더
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
@@ -663,7 +661,6 @@ http {
             index index.html;
             try_files $uri $uri/ /index.html;
 
-            # 정적 파일 캐시
             location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
                 expires 30d;
                 add_header Cache-Control "public, immutable";
@@ -712,7 +709,7 @@ http {
 }
 ```
 
-### 2. Docker Compose와 Nginx
+## Docker Compose와 Nginx
 
 ```yaml
 # docker-compose.yml
@@ -742,11 +739,11 @@ services:
 ```nginx
 # Docker 환경에서의 upstream (서비스 이름 사용)
 upstream api_backend {
-    server api:8080;      # Docker 서비스 이름으로 접근
+    server api:8080;
 }
 ```
 
-## 운영 팁
+## 운영
 
 ### 설정 검증 및 관리
 
@@ -765,7 +762,7 @@ sudo tail -f /var/log/nginx/access.log
 sudo tail -f /var/log/nginx/error.log
 ```
 
-### 성능 관련 설정 요약
+### 설정 요약
 
 | 항목 | 설정 | 효과 |
 |------|------|------|

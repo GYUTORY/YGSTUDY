@@ -1,7 +1,7 @@
 ---
 title: 포워드 프록시 (Forward Proxy)
 tags: [network, proxy, forward-proxy, squid, no-proxy, pac, ssl-intercept, http-connect]
-updated: 2026-05-24
+updated: 2026-07-19
 ---
 
 # 포워드 프록시 (Forward Proxy)
@@ -128,9 +128,13 @@ export no_proxy=localhost,127.0.0.1,.internal.corp,10.0.0.0/8
 
 여기가 사내망에서 가장 많은 시간을 잡아먹는 곳이다. "curl은 되는데 npm은 안 된다", "터미널에선 되는데 sudo로 하면 안 된다" 같은 증상이 전부 도구마다 프록시를 읽는 방식이 다른 데서 온다.
 
-**curl / wget** — 환경변수를 그대로 읽는다. curl은 `http_proxy`/`https_proxy`/`no_proxy`를 보고, `-x`(`--proxy`)와 `--noproxy`로 덮어쓴다. wget은 `http_proxy`/`https_proxy`를 보지만 `use_proxy=on`이 꺼져 있으면 무시하고, `~/.wgetrc`나 `/etc/wgetrc`의 설정이 우선하기도 한다. wget이 환경변수를 무시하는 것 같으면 wgetrc를 먼저 의심한다.
+### curl / wget
 
-**apt** — 여기서 많이 막힌다. apt는 환경변수가 아니라 자체 설정 파일을 본다.
+환경변수를 그대로 읽는다. curl은 `http_proxy`/`https_proxy`/`no_proxy`를 보고, `-x`(`--proxy`)와 `--noproxy`로 덮어쓴다. wget은 `http_proxy`/`https_proxy`를 보지만 `use_proxy=on`이 꺼져 있으면 무시하고, `~/.wgetrc`나 `/etc/wgetrc`의 설정이 우선하기도 한다. wget이 환경변수를 무시하는 것 같으면 wgetrc를 먼저 의심한다.
+
+### apt
+
+여기서 많이 막힌다. apt는 환경변수가 아니라 자체 설정 파일을 본다.
 
 ```
 # /etc/apt/apt.conf.d/95proxy
@@ -140,7 +144,9 @@ Acquire::https::Proxy "http://192.168.0.10:3128";
 
 게다가 apt는 보통 `sudo`로 돌리는데, `sudo`는 기본적으로 환경변수를 자식 프로세스에 안 넘긴다. 그래서 본인 셸에서 `export http_proxy`를 해도 `sudo apt update`는 프록시를 못 본다. 임시로는 `sudo -E apt update`로 환경을 넘기거나, 위처럼 apt.conf에 박는다. 운영 서버는 apt.conf에 고정하는 쪽이 깔끔하다.
 
-**git** — 프로토콜이 둘이라 헷갈린다. `git clone https://...`는 HTTP(S) 위에서 도니까 git 설정을 본다.
+### git
+
+프로토콜이 둘이라 헷갈린다. `git clone https://...`는 HTTP(S) 위에서 도니까 git 설정을 본다.
 
 ```bash
 git config --global http.proxy  http://192.168.0.10:3128
@@ -151,7 +157,9 @@ git config --global http.https://github.example.com.proxy ""
 
 git도 `http_proxy` 환경변수를 보긴 하는데, 사내 git 서버는 우회하고 외부 GitHub만 프록시로 보내는 식의 분기가 필요해서 보통 git config로 잡는다. 반면 `git clone git@...` 같은 SSH 프로토콜은 HTTP 프록시 설정과 완전히 무관하다. SSH는 `~/.ssh/config`의 `ProxyCommand`(예: `nc -X connect -x proxy:3128 %h %p`)로 따로 터널링해야 한다. "https clone은 되는데 ssh clone은 안 된다"면 이 차이다.
 
-**npm** — 환경변수도 보지만 `.npmrc`가 우선한다.
+### npm
+
+환경변수도 보지만 `.npmrc`가 우선한다.
 
 ```bash
 npm config set proxy       http://192.168.0.10:3128
@@ -161,7 +169,9 @@ npm config set noproxy     localhost,.internal.corp
 
 npm은 옛날엔 `https-proxy`(하이픈)였다가 환경변수는 `https_proxy`(언더바)라 표기가 헷갈린다. 그리고 사내 레지스트리(`registry` 설정)를 쓰는데 그 레지스트리를 no_proxy에 안 넣으면, 내부 레지스트리 요청까지 외부 프록시로 나가서 실패한다. yarn, pnpm도 각자 설정 키가 따로 있다.
 
-**Java(JVM)** — JVM은 `http_proxy` 환경변수를 보지 않는다. 무조건 시스템 프로퍼티로 넘겨야 한다.
+### Java(JVM)
+
+JVM은 `http_proxy` 환경변수를 보지 않는다. 무조건 시스템 프로퍼티로 넘겨야 한다.
 
 ```bash
 java -Dhttp.proxyHost=192.168.0.10 -Dhttp.proxyPort=3128 \
