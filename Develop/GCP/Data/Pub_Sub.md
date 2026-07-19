@@ -1,7 +1,7 @@
 ---
 title: "Cloud Pub/Sub"
-tags: [GCP, Pub/Sub, Messaging, Queue, Ordering Key, Dead Letter]
-updated: 2026-07-03
+tags: [GCP, Pub/Sub, Messaging, Queue, Ordering Key, Dead Letter, Filter, Snapshot, Schema]
+updated: 2026-07-19
 ---
 
 # Cloud Pub/Sub
@@ -172,3 +172,200 @@ deadline을 너무 길게 잡는 것도 문제다. 600초로 잡아뒀는데 워
 넷째, 실패가 특정 메시지 때문이라면 데드레터 토픽으로 그 메시지를 빼낸다. 독성 메시지 하나가 재전송을 반복하며 부하를 만드는 경우, DLQ로 격리하면 흐름이 정상으로 돌아온다.
 
 마지막으로, 유입 자체가 순간적으로 폭증한 거라면 워커를 늘리는 것과 별개로 다운스트림(DB 등)이 병목인지 본다. Pub/Sub는 메시지를 잘 밀어주는데 워커 뒤의 DB가 못 받아내서 처리가 느려지는 경우가 많다. 이때 Pub/Sub만 튜닝해봐야 소용이 없고, DB 커넥션 풀이나 배치 처리를 손봐야 한다.
+
+## 메시지 필터링
+
+구독 레벨에서 CEL(Common Expression Language) 필터를 걸면, 토픽으로 들어온 메시지 중 조건에 맞는 것만 해당 구독에 전달된다. 필터는 메시지 attributes에만 적용되고, 데이터(body)에는 적용되지 않는다.
+
+`order-events` 토픽에 주문 생성·결제·취소 이벤트가 섞여 들어올 때, 서비스마다 필요한 이벤트만 받고 싶은 상황이 대표적이다. 발행할 때 attributes에 분류 키를 붙이고, 구독 생성 시 필터를 건다.
+
+```bash
+# 발행 - attributes에 이벤트 타입과 리전 붙이기
+gcloud pubsub topics publish order-events \
+  --message='{"order_id":"123"}' \
+  --attribute=event_type=order_created,region=KR
+
+# order_created만 받는 구독
+gcloud pubsub subscriptions create order-created-sub \
+  --topic=order-events \
+  --message-filter='attributes.event_type = "order_created"'
+
+# AND 조건 - KR 리전의 결제 이벤트만
+gcloud pubsub subscriptions create payment-kr-sub \
+  --topic=order-events \
+  --message-filter='attributes.event_type = "payment_completed" AND attributes.region = "KR"'
+```
+
+```python
+from google.cloud import pubsub_v1
+
+publisher = pubsub_v1.PublisherClient()
+topic_path = publisher.topic_path("my-project", "order-events")
+
+future = publisher.publish(
+    topic_path,
+    b'{"order_id": "123", "amount": 50000}',
+    event_type="payment_completed",
+    region="KR",
+)
+future.result()
+```
+
+필터는 구독 생성 시점에만 설정할 수 있다. 이후 수정이 안 되므로 필터 조건을 바꾸려면 구독을 지우고 새로 만들어야 한다. attributes 키 이름을 처음부터 잘 정해야 하는 이유다.
+
+필터로 걸러진 메시지는 해당 구독에 전달되지 않는데, Pub/Sub가 그 메시지의 ack를 자동으로 처리한다. 구독자가 따로 신경 쓸 필요 없다. 토픽에는 모든 메시지가 들어오고 구독 단에서 잘리는 구조다.
+
+비용 측면에서 한 가지 알아둘 게 있다. 필터에 걸려서 전달되지 않은 메시지에 대해서도 구독 처리 비용이 발생한다. 이벤트 종류가 매우 많고 구독마다 걸러지는 비율이 높다면, 토픽 자체를 이벤트 종류별로 나누는 게 비용 면에서 나을 수도 있다. 필터는 관리 편의성을 주지만, 발행 트래픽이 대용량이면 비용 구조를 한 번 확인해봐야 한다.
+
+## Snapshot & Seek
+
+Seek는 구독의 커서를 특정 시점으로 되돌리거나 앞으로 건너뛰는 기능이다. Kafka의 오프셋 리셋과 개념이 비슷한데, 파티션 오프셋 대신 타임스탬프나 스냅샷 기반으로 동작한다.
+
+실무에서 이게 필요한 상황은 배포 버그로 잘못 처리한 메시지를 특정 시점부터 다시 처리해야 할 때, 또는 새로 짠 처리 로직을 과거 메시지로 검증하고 싶을 때다.
+
+### 스냅샷 방식
+
+스냅샷은 그 순간의 구독 ack 상태를 저장해둔다. 배포 전에 찍어두고, 문제가 생기면 그 시점으로 되돌린다.
+
+```bash
+# 배포 전 스냅샷 저장
+gcloud pubsub snapshots create pre-deploy-snapshot \
+  --subscription=order-worker
+
+# 배포 후 문제 발생 시 스냅샷으로 롤백
+gcloud pubsub subscriptions seek order-worker \
+  --snapshot=pre-deploy-snapshot
+```
+
+스냅샷 보관 기간은 구독의 메시지 보관 기간과 같다. 구독 보관 기간이 7일이면 스냅샷도 7일이 지나면 사라진다.
+
+### 타임스탬프 방식
+
+스냅샷 없이 특정 시각으로 직접 Seek할 수도 있다.
+
+```bash
+# 2026-07-19 09:00 KST 이후 메시지부터 재처리
+gcloud pubsub subscriptions seek order-worker \
+  --time="2026-07-19T00:00:00Z"
+```
+
+```python
+from google.cloud import pubsub_v1
+from google.protobuf import timestamp_pb2
+import datetime
+
+subscriber = pubsub_v1.SubscriberClient()
+sub_path = subscriber.subscription_path("my-project", "order-worker")
+
+seek_time = datetime.datetime(2026, 7, 19, 0, 0, 0, tzinfo=datetime.timezone.utc)
+ts = timestamp_pb2.Timestamp()
+ts.FromDatetime(seek_time)
+
+subscriber.seek(request={"subscription": sub_path, "time": ts})
+```
+
+Seek 후에는 이미 ack된 메시지가 다시 전달된다. 멱등 처리가 갖춰져 있지 않으면 중복 처리가 그대로 발생하므로, Seek 전에 반드시 확인해야 한다.
+
+Seek는 메시지 자체를 복원하는 게 아니라 구독 커서를 움직이는 것이다. 되돌리려는 시점의 메시지가 구독 보관 기간 안에 있어야 받을 수 있다. 보관 기간이 7일인데 2주 전으로 Seek하면 그 사이 메시지는 이미 사라져서 받을 수 없다.
+
+순서 보장 구독에서 Seek를 쓰면 특정 ordering key의 순서가 꼬일 수 있다. Seek 후에는 해당 키들의 처리 상태를 직접 확인하는 게 안전하다.
+
+Seek와 동시에 워커를 재시작하지 않으면 메시지가 쌓이기만 하고 처리가 안 되는 상황이 생긴다. Seek 명령과 워커 재시작을 묶어서 진행해야 한다.
+
+## Pub/Sub Schema Registry
+
+토픽에 스키마를 연결하면, 스키마에 맞지 않는 메시지는 발행 단계에서 거부된다. Avro와 Protocol Buffers(proto3) 두 형식을 지원한다.
+
+스키마 없이 쓰다가 발행 측이 필드명을 오타 내거나 타입을 바꾼 경우, 구독자가 파싱 오류를 낸 뒤에야 문제를 알게 된다. 스키마가 있으면 발행 시점에 잡힌다.
+
+### Avro 스키마
+
+```bash
+# 스키마 정의 파일 작성
+cat > order_schema.json << 'EOF'
+{
+  "type": "record",
+  "name": "OrderEvent",
+  "fields": [
+    {"name": "order_id", "type": "string"},
+    {"name": "amount",   "type": "int"},
+    {"name": "event_type", "type": "string"},
+    {"name": "created_at", "type": "long"}
+  ]
+}
+EOF
+
+# 스키마 등록
+gcloud pubsub schemas create order-event-schema \
+  --type=avro \
+  --definition-file=order_schema.json
+
+# 토픽에 스키마 연결 (JSON 인코딩)
+gcloud pubsub topics create order-events \
+  --schema=order-event-schema \
+  --message-encoding=json
+```
+
+### Protobuf 스키마
+
+```bash
+cat > order_event.proto << 'EOF'
+syntax = "proto3";
+
+message OrderEvent {
+  string order_id   = 1;
+  int32  amount     = 2;
+  string event_type = 3;
+  int64  created_at = 4;
+}
+EOF
+
+gcloud pubsub schemas create order-event-proto \
+  --type=protocol-buffer \
+  --definition-file=order_event.proto
+
+gcloud pubsub topics create order-events-proto \
+  --schema=order-event-proto \
+  --message-encoding=binary
+```
+
+인코딩을 json으로 쓸지 binary로 쓸지는 트레이드오프가 있다. json은 GCP 콘솔에서 메시지를 직접 읽을 수 있어서 디버깅이 훨씬 편하다. binary는 메시지 크기가 작지만 콘솔에서는 깨진 문자로 보인다. 운영 초기나 디버깅이 잦은 환경이면 json이 낫고, 메시지 처리량이 매우 많아서 크기 절약이 중요하면 binary를 쓴다.
+
+```python
+import io
+import avro.schema
+import avro.io
+from google.cloud import pubsub_v1
+
+publisher = pubsub_v1.PublisherClient()
+topic_path = publisher.topic_path("my-project", "order-events")
+
+schema_str = '''
+{
+  "type": "record",
+  "name": "OrderEvent",
+  "fields": [
+    {"name": "order_id",   "type": "string"},
+    {"name": "amount",     "type": "int"},
+    {"name": "event_type", "type": "string"},
+    {"name": "created_at", "type": "long"}
+  ]
+}
+'''
+schema = avro.schema.parse(schema_str)
+writer = avro.io.DatumWriter(schema)
+buf = io.BytesIO()
+encoder = avro.io.BinaryEncoder(buf)
+
+writer.write({
+    "order_id":   "order-123",
+    "amount":     50000,
+    "event_type": "order_created",
+    "created_at": 1721347200000,
+}, encoder)
+
+future = publisher.publish(topic_path, buf.getvalue())
+future.result()
+```
+
+스키마 변경은 조심해야 한다. 토픽에 연결된 스키마를 수정하려면 새 스키마 버전을 등록해야 한다. Avro는 스키마 진화(schema evolution)를 지원해서 optional 필드 추가는 하위 호환이 되지만, 필드 제거나 타입 변경은 기존 구독자 파싱을 깨뜨린다. 스키마를 바꿀 때는 발행자와 구독자 중 어느 쪽을 먼저 배포할지 순서를 정해야 한다. 필드를 추가하는 경우라면 구독자 먼저 배포해서 새 필드를 받을 준비를 하고, 그다음에 발행자를 바꾸는 게 안전하다.
