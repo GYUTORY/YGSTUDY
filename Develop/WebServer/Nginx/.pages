@@ -9,3 +9,4 @@ nav:
   - 성능_튜닝.md
   - 로그_설정과_모니터링.md
   - Location_Matching_Deep_Dive.md
+  - Nginx_Map_Directive.md
