@@ -1,7 +1,7 @@
 ---
 title: VPC Reachability Analyzer
 tags: [aws, vpc, reachability-analyzer, network, troubleshooting, security-groups, nacl, route-table, eni]
-updated: 2026-07-03
+updated: 2026-07-20
 ---
 
 # VPC Reachability Analyzer
@@ -123,6 +123,113 @@ aws ec2 describe-network-insights-analyses \
   --output table
 ```
 
+`describe-network-insights-analyses` 전체 출력에서 `ForwardPathComponents`가 실제로 어떻게 생겼는지 보면 이해가 빠르다. 아래는 EC2(`10.0.1.100`) → RDS ENI(`10.0.2.45`), TCP 5432로 도달 가능한 경우의 출력 전체다.
+
+```json
+{
+    "NetworkInsightsAnalyses": [
+        {
+            "NetworkInsightsAnalysisId": "nia-0a1b2c3d4e5f67890",
+            "NetworkInsightsPathId": "nip-0abc1234def567890",
+            "StartDate": "2026-07-10T04:12:33.000Z",
+            "Status": "succeeded",
+            "NetworkPathFound": true,
+            "ForwardPathComponents": [
+                {
+                    "SequenceNumber": 1,
+                    "Component": {
+                        "Id": "eni-0aa1234567890bbbb",
+                        "Arn": "arn:aws:ec2:ap-northeast-2:123456789012:network-interface/eni-0aa1234567890bbbb",
+                        "ResourceType": "AWS::EC2::NetworkInterface"
+                    },
+                    "OutboundHeader": {
+                        "DestinationAddresses": ["10.0.2.45"],
+                        "SourceAddresses": ["10.0.1.100"],
+                        "DestinationPortRanges": [{"From": 5432, "To": 5432}],
+                        "SourcePortRanges": [{"From": 0, "To": 65535}],
+                        "Protocol": "6"
+                    },
+                    "SecurityGroupRules": [
+                        {
+                            "Direction": "egress",
+                            "SecurityGroupId": "sg-0a1b2c3d4e5f67890",
+                            "Cidr": "0.0.0.0/0",
+                            "PortRange": {"From": 0, "To": 65535},
+                            "Protocol": "-1"
+                        }
+                    ]
+                },
+                {
+                    "SequenceNumber": 2,
+                    "Component": {
+                        "Id": "subnet-0111222333444555a",
+                        "Arn": "arn:aws:ec2:ap-northeast-2:123456789012:subnet/subnet-0111222333444555a",
+                        "ResourceType": "AWS::EC2::Subnet"
+                    },
+                    "AclRule": {
+                        "Cidr": "0.0.0.0/0",
+                        "Direction": "egress",
+                        "Protocol": "-1",
+                        "RuleAction": "allow",
+                        "RuleNumber": 100
+                    },
+                    "RouteTableRoute": {
+                        "DestinationCidr": "10.0.0.0/16",
+                        "Origin": "CreateRouteTable",
+                        "State": "active"
+                    }
+                },
+                {
+                    "SequenceNumber": 3,
+                    "Component": {
+                        "Id": "subnet-0222333444555666b",
+                        "Arn": "arn:aws:ec2:ap-northeast-2:123456789012:subnet/subnet-0222333444555666b",
+                        "ResourceType": "AWS::EC2::Subnet"
+                    },
+                    "AclRule": {
+                        "Cidr": "0.0.0.0/0",
+                        "Direction": "ingress",
+                        "Protocol": "-1",
+                        "RuleAction": "allow",
+                        "RuleNumber": 100
+                    }
+                },
+                {
+                    "SequenceNumber": 4,
+                    "Component": {
+                        "Id": "eni-0cc9876543210aaaa",
+                        "Arn": "arn:aws:ec2:ap-northeast-2:123456789012:network-interface/eni-0cc9876543210aaaa",
+                        "ResourceType": "AWS::EC2::NetworkInterface"
+                    },
+                    "InboundHeader": {
+                        "DestinationAddresses": ["10.0.2.45"],
+                        "SourceAddresses": ["10.0.1.100"],
+                        "DestinationPortRanges": [{"From": 5432, "To": 5432}],
+                        "SourcePortRanges": [{"From": 0, "To": 65535}],
+                        "Protocol": "6"
+                    },
+                    "SecurityGroupRules": [
+                        {
+                            "Direction": "ingress",
+                            "SecurityGroupId": "sg-0f1e2d3c4b5a67890",
+                            "ReferencedSecurityGroup": {
+                                "Id": "sg-0a1b2c3d4e5f67890"
+                            },
+                            "PortRange": {"From": 5432, "To": 5432},
+                            "Protocol": "6"
+                        }
+                    ]
+                }
+            ],
+            "ReturnPathComponents": ["..."],
+            "Explanations": []
+        }
+    ]
+}
+```
+
+홉 1은 EC2 ENI에서 나가는 트래픽이다. `SecurityGroupRules`에 `egress` 방향 규칙이 있고 `0.0.0.0/0` 전 포트 허용이 찍혀 있다. 홉 2는 EC2 서브넷의 NACL과 라우트다. `AclRule`에서 egress `allow`가 매칭됐고, `RouteTableRoute`에서 `10.0.0.0/16`이 로컬 라우트로 매칭됐다. 홉 3은 RDS 서브넷에 들어오는 NACL 체크다. 홉 4가 최종 RDS ENI로, `ingress` 보안 그룹 규칙의 `ReferencedSecurityGroup.Id`가 홉 1의 EC2 보안 그룹 ID와 일치해야 규칙이 맞다. `Explanations`가 빈 배열이면 막힌 곳이 없다는 뜻이다.
+
 콘솔에서는 이 경로가 시각적 다이어그램으로 그려진다. 끊긴 지점에 빨간 표시가 뜨고, 그 컴포넌트를 클릭하면 어떤 규칙이 문제인지 보여준다. 홉이 대여섯 개 이하로 짧으면 콘솔 다이어그램이 빠르고, 홉이 길거나 여러 경로를 스크립트로 반복 검사할 때는 위처럼 JMESPath 쿼리로 뽑는 게 낫다.
 
 ## Forward 경로와 Return 경로의 비대칭
@@ -133,6 +240,100 @@ Reachability Analyzer는 `ForwardPathComponents`(가는 길)와 `ReturnPathCompo
 
 - 서브넷 A는 라우트 테이블에 목적지로 가는 라우트가 있는데, 돌아올 서브넷 B의 라우트 테이블에는 A로 오는 라우트가 없다. `ForwardPathComponents`는 끝까지 가고 `ReturnPathComponents`가 중간에 끊긴다. Peering이나 TGW로 연결한 뒤 한쪽 라우트만 넣은 경우가 전형적이다.
 - 비대칭 라우팅(asymmetric routing). 가는 트래픽은 NAT Gateway를 타고, 돌아오는 트래픽은 다른 게이트웨이나 다른 NAT를 타도록 라우트가 갈려 있으면, NACL이 stateless라서 리턴 경로에서 막힌다. 두 경로의 홉을 나란히 놓고 게이트웨이가 다른지 확인한다.
+
+비대칭이 실제로 문제가 됐을 때 CLI 출력이 어떻게 나오는지 보면 구분이 빠르다. 아래는 VPC Peering으로 연결된 A VPC(`10.0.0.0/16`)에서 B VPC(`10.1.0.0/16`)로 가는 Forward 경로는 목적지까지 전부 도달했지만, B의 라우트 테이블에 A로 돌아오는 라우트가 없어 Return 경로가 끊긴 경우의 실제 출력이다.
+
+```json
+{
+    "NetworkInsightsAnalysisId": "nia-0b2c3d4e5f6a78901",
+    "Status": "succeeded",
+    "NetworkPathFound": false,
+    "ForwardPathComponents": [
+        {
+            "SequenceNumber": 1,
+            "Component": {
+                "Id": "eni-0aa1234567890bbbb",
+                "ResourceType": "AWS::EC2::NetworkInterface"
+            }
+        },
+        {
+            "SequenceNumber": 2,
+            "Component": {
+                "Id": "subnet-0111222333444555a",
+                "ResourceType": "AWS::EC2::Subnet"
+            },
+            "RouteTableRoute": {
+                "DestinationCidr": "10.1.0.0/16",
+                "GatewayId": "pcx-0aabbccddeeff1122",
+                "Origin": "CreateRoute",
+                "State": "active"
+            }
+        },
+        {
+            "SequenceNumber": 3,
+            "Component": {
+                "Id": "pcx-0aabbccddeeff1122",
+                "ResourceType": "AWS::EC2::VPCPeeringConnection"
+            }
+        },
+        {
+            "SequenceNumber": 4,
+            "Component": {
+                "Id": "eni-0bb5566778899cccc",
+                "ResourceType": "AWS::EC2::NetworkInterface"
+            }
+        }
+    ],
+    "ReturnPathComponents": [
+        {
+            "SequenceNumber": 1,
+            "Component": {
+                "Id": "eni-0bb5566778899cccc",
+                "ResourceType": "AWS::EC2::NetworkInterface"
+            },
+            "OutboundHeader": {
+                "DestinationAddresses": ["10.0.1.100"],
+                "SourceAddresses": ["10.1.2.50"],
+                "DestinationPortRanges": [{"From": 32768, "To": 60999}],
+                "SourcePortRanges": [{"From": 8080, "To": 8080}],
+                "Protocol": "6"
+            },
+            "SecurityGroupRules": [
+                {
+                    "Direction": "egress",
+                    "SecurityGroupId": "sg-0b1c2d3e4f5a67890",
+                    "Cidr": "0.0.0.0/0",
+                    "Protocol": "-1"
+                }
+            ]
+        },
+        {
+            "SequenceNumber": 2,
+            "Component": {
+                "Id": "subnet-0333444555666777b",
+                "ResourceType": "AWS::EC2::Subnet"
+            }
+        }
+    ],
+    "Explanations": [
+        {
+            "ExplanationCode": "NO_ROUTE_TO_DESTINATION",
+            "Component": {
+                "Id": "subnet-0333444555666777b",
+                "ResourceType": "AWS::EC2::Subnet"
+            },
+            "RouteTable": {
+                "Id": "rtb-0fffeeeddccbbaa99",
+                "Arn": "arn:aws:ec2:ap-northeast-2:123456789012:route-table/rtb-0fffeeeddccbbaa99"
+            }
+        }
+    ]
+}
+```
+
+`NetworkPathFound: false`인데 `ForwardPathComponents`는 홉 4(B VPC ENI)까지 전부 나온다. "포워드는 됐는데 리턴이 안 됐다"는 걸 출력 구조 자체가 보여주는 것이다. `ReturnPathComponents`는 홉 2의 B 서브넷에서 끊겼고, `Explanations`에 `NO_ROUTE_TO_DESTINATION`과 B 쪽 라우트 테이블 ID(`rtb-0fff...`)가 찍혀 있다. 이 라우트 테이블에 `10.0.0.0/16 → pcx-0aabb...` 라우트를 추가하면 해결된다.
+
+비대칭 라우팅 문제는 `ForwardPathComponents`가 끝까지 채워져 있는데 `NetworkPathFound: false`로 나오는 패턴으로 바로 잡아낸다. `ReturnPathComponents`가 몇 번 홉에서 끊겼는지, 그 컴포넌트 ID가 무엇인지를 `Explanations`와 대조하면 어느 리소스를 손봐야 하는지 바로 나온다.
 
 그래서 `NetworkPathFound: true`만 보고 끝내지 말고, `ReturnPathComponents`도 끝까지 갔는지를 같이 본다. 콘솔에서는 forward/return을 탭이나 방향 토글로 나눠 보여준다.
 
@@ -209,6 +410,164 @@ Reachability Analyzer는 점대점이다. "EC2 한 대에서 RDS 한 대로"처�
 Network Access Analyzer는 범위(Scope) 기반이다. "인터넷에서 데이터베이스 서브넷으로 도달 가능한 모든 경로를 찾아라" 같은 조건을 주면, 그 조건에 맞는 경로를 전부 찾아준다. 보안 감사용이다. "프라이빗으로 둬야 할 DB가 어딘가 잘못 뚫려 있나"를 점검할 때 쓴다.
 
 연결이 안 되는 걸 고칠 때는 Reachability Analyzer, 의도치 않게 뚫린 걸 찾을 때는 Network Access Analyzer라고 보면 된다.
+
+## IaC로 경로 관리
+
+보안 그룹이나 라우트를 Terraform으로 관리한다면 Reachability 경로도 코드로 정의하는 게 자연스럽다. `aws_ec2_network_insights_path`와 `aws_ec2_network_insights_analysis` 리소스를 쓴다.
+
+```hcl
+# RDS ENI를 data source로 찾는다
+data "aws_network_interface" "rds" {
+  filter {
+    name   = "description"
+    values = ["RDSNetworkInterface"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [aws_vpc.main.id]
+  }
+}
+
+resource "aws_ec2_network_insights_path" "ec2_to_rds" {
+  source           = aws_instance.app.id
+  destination      = data.aws_network_interface.rds.id
+  destination_port = 5432
+  protocol         = "tcp"
+
+  tags = {
+    Name = "${var.env}-ec2-to-rds"
+  }
+}
+
+resource "aws_ec2_network_insights_analysis" "ec2_to_rds" {
+  network_insights_path_id = aws_ec2_network_insights_path.ec2_to_rds.id
+
+  tags = {
+    Name = "${var.env}-ec2-to-rds-check"
+  }
+}
+
+output "ec2_to_rds_reachable" {
+  value = aws_ec2_network_insights_analysis.ec2_to_rds.network_path_found
+}
+
+output "ec2_to_rds_analysis_id" {
+  value = aws_ec2_network_insights_analysis.ec2_to_rds.id
+}
+```
+
+주의할 점이 있다. `aws_ec2_network_insights_analysis`는 `terraform apply`를 반복해도 분석을 재실행하지 않는다. Terraform이 이 리소스를 이미 존재하는 것으로 보고 넘어가기 때문이다. 보안 그룹을 바꾼 뒤 재분석을 강제하려면 `terraform taint aws_ec2_network_insights_analysis.ec2_to_rds`로 강제 재생성하거나, CI/CD 스크립트에서 AWS CLI로 직접 `start-network-insights-analysis`를 호출하는 게 낫다. Terraform 경로 정의는 "어떤 경로를 관리 대상으로 두는가"를 코드로 남기는 용도고, 실제 재분석 트리거는 CLI 스크립트로 하는 패턴이 실무에서 더 많이 쓰인다.
+
+Multi-AZ RDS처럼 ENI가 여러 개인 경우, 각 가용 영역의 ENI마다 경로를 따로 정의해야 한다.
+
+```hcl
+resource "aws_ec2_network_insights_path" "ec2_to_rds_az" {
+  for_each = toset(data.aws_network_interfaces.rds_all.ids)
+
+  source           = aws_instance.app.id
+  destination      = each.value
+  destination_port = 5432
+  protocol         = "tcp"
+
+  tags = {
+    Name = "${var.env}-ec2-to-rds-${each.value}"
+  }
+}
+```
+
+## CI/CD 파이프라인 연동
+
+배포 파이프라인에서 보안 그룹·라우트를 바꾼 뒤 자동으로 Reachability를 검증하는 패턴이다. 아래 스크립트는 분석 실행 → wait loop → jq 파싱 → 결과에 따른 파이프라인 성공/실패 처리까지 담고 있다.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+PATH_ID="${1:-${NETWORK_INSIGHTS_PATH_ID:-}}"
+MAX_WAIT=120
+POLL_INTERVAL=5
+
+if [ -z "$PATH_ID" ]; then
+  echo "Usage: $0 <network-insights-path-id>" >&2
+  exit 1
+fi
+
+# 분석 실행
+ANALYSIS_ID=$(aws ec2 start-network-insights-analysis \
+  --network-insights-path-id "$PATH_ID" \
+  --query 'NetworkInsightsAnalysis.NetworkInsightsAnalysisId' \
+  --output text)
+echo "Started: $ANALYSIS_ID"
+
+# wait loop — aws ec2 wait 대신 직접 폴링 (waiter 버전 호환성 문제로)
+elapsed=0
+while true; do
+  STATUS=$(aws ec2 describe-network-insights-analyses \
+    --network-insights-analysis-ids "$ANALYSIS_ID" \
+    --query 'NetworkInsightsAnalyses[0].Status' \
+    --output text)
+
+  case "$STATUS" in
+    succeeded) break ;;
+    failed)
+      echo "Analysis failed" >&2
+      exit 1
+      ;;
+    running)
+      if [ "$elapsed" -ge "$MAX_WAIT" ]; then
+        echo "Timeout after ${MAX_WAIT}s" >&2
+        exit 1
+      fi
+      sleep "$POLL_INTERVAL"
+      elapsed=$((elapsed + POLL_INTERVAL))
+      ;;
+    *)
+      echo "Unexpected status: $STATUS" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# jq로 결과 파싱
+RESULT=$(aws ec2 describe-network-insights-analyses \
+  --network-insights-analysis-ids "$ANALYSIS_ID")
+
+REACHABLE=$(echo "$RESULT" | jq -r '.NetworkInsightsAnalyses[0].NetworkPathFound')
+
+if [ "$REACHABLE" = "true" ]; then
+  echo "Reachable: OK"
+  exit 0
+else
+  echo "Not reachable — blocked components:" >&2
+  echo "$RESULT" | jq -r '
+    .NetworkInsightsAnalyses[0].Explanations[]
+    | "  Code=\(.ExplanationCode)  Component=\(.Component.Id)"
+  ' >&2
+  exit 1
+fi
+```
+
+이 스크립트를 파이프라인에 넣을 때 고려할 것들이 있다. 경로 ID는 SSM Parameter Store에 저장해두고 파이프라인에서 꺼내 쓰는 게 관리하기 쉽다. 분석 실행마다 비용이 붙으니, 보안 그룹이나 라우트를 바꾼 배포에만 호출하도록 조건을 건다. GitHub Actions 기준으로는 `paths` 필터로 네트워크 인프라 변경 시에만 이 스텝이 실행되게 한다.
+
+`aws ec2 wait network-insights-analysis-available`이 있는 환경이면 while 루프 대신 그걸 써도 되는데, 일부 CLI 버전에서 타임아웃이 짧게 박혀 있거나 waiter 자체가 없는 경우가 있어서 직접 폴링하는 게 더 안정적이다.
+
+복수 경로를 한꺼번에 검증할 때는 경로 ID 목록을 파일에 넣고 배열로 돌린다.
+
+```bash
+# paths.txt: 줄마다 network-insights-path-id 하나씩
+FAILED=0
+while IFS= read -r pid; do
+  [ -z "$pid" ] && continue
+  bash check_reachability.sh "$pid" || FAILED=$((FAILED + 1))
+done < paths.txt
+
+if [ "$FAILED" -gt 0 ]; then
+  echo "$FAILED path(s) not reachable" >&2
+  exit 1
+fi
+```
+
+Reachability Analyzer가 잡지 못하는 계층(OS 방화벽, 앱 LISTEN 상태)이 있어서, 파이프라인에서 이 검사를 통과했다고 네트워크가 완전하다고 보면 안 된다. AWS 네트워크 계층까지의 검증이고, 그 위는 별도 헬스체크나 smoke test로 커버한다.
 
 ## 비용과 운영 시 주의
 
