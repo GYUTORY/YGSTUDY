@@ -8,3 +8,5 @@ nav:
   - MFA_Passkey.md
   - MSA_Auth.md
   - RBAC_ABAC.md
+  - API_Key_Auth.md
+  - Token_Revocation.md
