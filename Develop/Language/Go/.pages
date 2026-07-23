@@ -2,6 +2,8 @@ title: Go
 nav:
   - Go_Basics.md
   - Go_Concurrency.md
+  - Go_Concurrency_Patterns.md
+  - Go_Sync_Primitives.md
   - Go_Context.md
   - Go_Interface.md
   - Go_Generics.md
