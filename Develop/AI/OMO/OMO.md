@@ -1,217 +1,237 @@
 ---
-title: Oh My Open Code (OMO)
-tags: [ai, omo, open-source, aider, cursor, ollama, agentic-coding]
-updated: 2026-06-29
+title: OMO (Online-Merge-Offline)
+tags: [omo, online-merge-offline, 채널통합, 재고동기화, 주문라우팅, 고객식별, e-commerce, backend]
+updated: 2026-07-23
 ---
 
-# Oh My Open Code (OMO)
+# OMO (Online-Merge-Offline)
 
 ## 1. OMO란
 
-Oh My Open Code(OMO)는 특정 벤더에 묶이지 않는 오픈소스 AI 코딩 도구를 한 설정으로 묶어 쓰는 에코시스템이다. Aider, Cursor 같은 도구를 각자 따로 설정하는 대신, OMO가 공통 설정 파일과 모델 백엔드 추상화를 제공해서 도구 사이를 옮겨다닐 때 설정을 다시 짜지 않게 해준다.
+OMO는 온라인과 오프라인 채널을 하나의 구매 흐름으로 합치는 리테일 운영 방식이다. "앱에서 주문하고 매장에서 픽업", "매장에서 재고를 확인하고 앱으로 결제", "온라인 쿠폰을 오프라인 매장에서 사용"이 전형적인 시나리오다.
 
-이름은 `oh-my-zsh`에서 따왔다. zsh 설정을 플러그인 단위로 관리하듯, AI 코딩 도구의 모델·프롬프트·컨텍스트 규칙을 한 곳에서 관리한다는 발상이다.
+프론트엔드에서 이 흐름을 만드는 건 어렵지 않다. 문제는 백엔드에서 재고, 주문, 고객 데이터를 단일한 진실로 수렴시키는 부분이다. 온라인 몰 DB와 POS 시스템이 서로 다른 재고를 바라보고 있으면, 화면에서는 통합처럼 보여도 내부는 이미 충돌 상태다.
 
-핵심은 두 가지다.
+백엔드 관점에서 OMO 구현의 핵심 문제는 세 가지로 압축된다. 재고 동기화, 주문 라우팅, 고객 식별 통합이다. 셋 모두 "온라인에서 발생한 사건이 오프라인에도 즉시 반영되어야 하고, 그 반대도 마찬가지"라는 요구에서 비롯된다.
 
-- 모델 백엔드를 코드와 분리한다. 같은 워크플로우를 로컬 Ollama로도, 원격 API로도 돌린다.
-- 도구별 설정을 하나의 `omo.yaml`로 모은다. Aider의 `.aider.conf.yml`, Cursor의 규칙 파일을 OMO가 생성하고 동기화한다.
+## 2. 재고 동기화
 
-## 2. 등장 배경
+### 2.1 채널 분리 구조의 문제
 
-Claude Code, Codex 같은 도구는 편하지만 벤더에 종속된다. 모델을 못 바꾸고, 설정이 그 도구 안에 갇히고, 회사가 가격 정책을 바꾸면 그대로 따라가야 한다. 사내망 격리 환경에서 외부 API를 못 쓰는 경우도 많다.
+오프라인 매장 재고는 POS가 관리하고, 온라인 주문 재고는 별도 서비스가 잡고 있는 구조가 기존 레거시에서 흔하다. 두 채널이 같은 SKU를 팔 때 차감을 각자 처리하면 oversell이 난다. 매장에서 마지막 한 개를 팔았는데 온라인에서도 주문이 성공하는 상황이다.
 
-실무에서 자주 겪는 상황은 이렇다. 개인 프로젝트는 원격 API로 빠르게, 회사 코드는 보안 때문에 로컬 모델로만 돌려야 한다. 도구가 벤더에 묶여 있으면 환경마다 다른 도구를 쓰고 설정을 두 벌 관리하게 된다.
+기본 해결 방향은 재고 원장을 단일 서비스로 모으고, 두 채널이 모두 이 서비스에 차감을 요청하는 구조다.
 
-OMO는 이 지점을 노린다. 도구와 모델을 분리하고, 설정을 한 벌로 유지해서 환경이 바뀌어도 같은 워크플로우를 쓰게 한다.
-
-## 3. 구성 요소
-
-OMO 자체는 오케스트레이션 레이어다. 실제 코드 생성은 연동된 도구가 한다.
-
-| 레이어 | 역할 | 대표 도구 |
-|--------|------|-----------|
-| 설정 | 공통 설정 관리, 도구별 설정 생성 | `omo` CLI |
-| 코딩 도구 | 실제 편집·생성 | Aider, Cursor |
-| 모델 백엔드 | 추론 | Ollama(로컬), OpenAI·Anthropic·기타 API(원격) |
-| 라우팅 | 작업별 모델 선택 | OMO 라우터 |
-
-연동 방식은 어댑터 구조다. OMO가 도구별 어댑터를 두고, 공통 설정을 각 도구가 읽는 형식으로 변환한다. Aider는 `.aider.conf.yml`과 환경변수로, Cursor는 규칙 파일과 모델 설정으로 받는다. 도구를 추가하려면 해당 어댑터만 붙이면 된다.
-
-## 4. 설치 및 기본 설정
-
-설치는 CLI 하나로 끝난다.
-
-```bash
-# pipx 권장 (전역 의존성 오염 방지)
-pipx install oh-my-open-code
-
-# 프로젝트 루트에서 초기화
-cd ~/projects/my-service
-omo init
+```
+온라인 주문 ─┐
+              ├──▶ 재고 서비스 ──▶ DB (단일 원장)
+POS 판매   ──┘
 ```
 
-`omo init`을 돌리면 프로젝트 루트에 `omo.yaml`이 생긴다.
+POS가 직접 DB를 건드리는 구조라면 마이그레이션이 필요하다. POS 벤더가 외부 API 연동을 지원하지 않는 경우, POS DB 변경을 CDC(Change Data Capture)로 감지해서 재고 서비스로 이벤트를 흘리는 방식을 우회책으로 쓰기도 한다.
 
-```yaml
-# omo.yaml
-version: 1
+### 2.2 선차감과 확정 차감
 
-# 기본으로 쓸 모델 프로파일
-default_backend: remote-claude
+재고 차감을 단순히 주문 확정 시점에 한 번만 하면 결제 실패 후 롤백이 복잡해진다. 보통 선차감(reservation)과 확정 차감(commit)을 분리한다.
 
-backends:
-  remote-claude:
-    type: api
-    provider: anthropic
-    model: claude-opus-4-8
-    api_key_env: ANTHROPIC_API_KEY   # 키는 파일에 직접 쓰지 않는다
-
-  local-qwen:
-    type: ollama
-    model: qwen2.5-coder:32b
-    host: http://localhost:11434
-
-# OMO가 관리할 도구
-tools:
-  - aider
-  - cursor
-
-# 컨텍스트에서 항상 제외할 경로
-ignore:
-  - node_modules
-  - dist
-  - "*.log"
+```
+주문 생성 요청
+    │
+    ▼
+재고 선차감 (available → reserved)
+    │
+    ├── 성공 → 주문 확정 → 재고 확정 차감 (reserved → sold)
+    │
+    └── 실패 (재고 부족) → 주문 거절
+            결제 실패 → 선차감 롤백 (reserved → available)
 ```
 
-설정을 저장한 뒤 동기화를 돌리면 OMO가 각 도구 설정 파일을 만들어준다.
+재고 상태를 `available`, `reserved`, `sold`로 구분하면 동시 주문에서 충돌을 줄일 수 있다.
 
-```bash
-omo sync
-# .aider.conf.yml 생성/갱신
-# .cursor/rules 생성/갱신
+```java
+@Transactional
+public ReservationResult reserve(String sku, int qty, String orderId) {
+    Stock stock = stockRepository.findBySkuForUpdate(sku); // SELECT FOR UPDATE
+    if (stock.getAvailable() < qty) {
+        return ReservationResult.insufficient();
+    }
+    stock.reserve(qty, orderId);
+    stockRepository.save(stock);
+    return ReservationResult.success();
+}
 ```
 
-이후 Aider든 Cursor든 평소처럼 실행하면 OMO가 만든 설정을 그대로 읽는다. 도구를 직접 설정할 일은 거의 없어진다.
+`SELECT FOR UPDATE`로 행 잠금을 잡는 방식은 구현이 단순하다. 단, 매장 수가 많고 인기 SKU에 트래픽이 몰리면 잠금 경합이 심해진다. 이 경우 매장별 재고 버킷을 분리해서 경합 범위를 좁히거나, 낙관적 락과 재시도로 전환한다.
 
-## 5. 모델 백엔드 교체
+### 2.3 POS 오프라인 동기화
 
-OMO를 쓰는 가장 큰 이유가 백엔드 교체다. 같은 작업을 로컬과 원격에서 바꿔 돌릴 수 있다.
+오프라인 매장 POS는 네트워크 상태가 불안정한 환경에서 돌아간다. POS가 실시간으로 재고 서비스를 호출하지 못하는 경우를 위해 로컬 캐시를 두고 나중에 일괄 동기화하는 패턴을 쓴다.
 
-명령행에서 한 번만 바꾸려면 플래그를 준다.
+문제는 POS 오프라인 시간 동안 온라인이 같은 재고를 소진했을 때다. POS는 재고가 있다고 보고 판매했는데, 동기화하면 이미 없는 상황이 된다.
 
-```bash
-# 이번 세션만 로컬 모델로
-omo run aider --backend local-qwen
+대응 방향은 두 가지다. 재고를 음수로 허용하고 후처리로 보상하거나, 매장 전용 재고 버킷을 따로 잡아서 온라인과 충돌하지 않도록 격리한다. 음수 허용 방식은 구현이 단순하지만 재고 불일치 리포트가 지저분해진다. 버킷 분리 방식은 버킷 간 재고 이동 로직이 추가로 필요하다. 매장 수가 많으면 버킷 분리가 더 안정적이다.
 
-# 기본 백엔드(remote-claude)로 그냥 실행
-omo run aider
+## 3. 주문 라우팅
+
+### 3.1 라우팅 결정 구조
+
+온라인 주문이 들어왔을 때 어느 물류 거점에서 처리할지 결정하는 것이 주문 라우팅이다. 물류 거점 후보는 중앙 물류 창고, 인근 매장, 지역 배송 허브로 나뉜다.
+
+라우팅 결정에 필요한 정보는 다음과 같다.
+
+- 거점별 해당 SKU 가용 재고 수량
+- 배송지까지 예상 배송 시간
+- 주문 유형(배송, 매장 픽업)
+- 거점 운영 상태와 현재 처리 작업량
+
+```java
+public FulfillmentCenter route(Order order) {
+    List<FulfillmentCenter> candidates = centerRepository
+        .findCandidates(order.getItems(), order.getDeliveryAddress());
+
+    return candidates.stream()
+        .filter(c -> c.hasStock(order.getItems()))
+        .filter(c -> c.isOperational())
+        .min(Comparator.comparingInt(
+            c -> c.estimatedDeliveryHours(order.getDeliveryAddress())))
+        .orElseThrow(() -> new NoAvailableCenterException(order.getId()));
+}
 ```
 
-기본값 자체를 바꾸려면 설정을 고치거나 환경변수를 쓴다.
+매장 재고를 온라인 주문에 무제한으로 열면 오프라인 고객이 매장에서 재고를 못 보는 상황이 생긴다. 매장 재고는 일정 임계값 이상일 때만 온라인 라우팅 대상에 포함시킨다.
 
-```bash
-# 환경변수가 omo.yaml의 default_backend를 덮어쓴다
-export OMO_BACKEND=local-qwen
-omo run cursor
+```java
+.filter(c -> {
+    if (c.getType() == CenterType.STORE) {
+        return c.getAvailableStock(sku) > STORE_ONLINE_ROUTING_THRESHOLD;
+    }
+    return true;
+})
 ```
 
-작업 종류에 따라 모델을 자동으로 가르려면 라우팅 규칙을 둔다. 간단한 수정은 로컬, 복잡한 리팩토링은 원격으로 보내는 식이다.
+임계값 설정은 매장 카테고리마다 다르게 가져간다. 회전율이 높은 식품은 넉넉하게 잡고, 장기 전시가 필요한 가구나 가전은 낮게 잡는다.
 
-```yaml
-# omo.yaml에 추가
-routing:
-  rules:
-    - match: { task: commit-message }   # 커밋 메시지는 가볍게
-      backend: local-qwen
-    - match: { task: refactor }         # 큰 리팩토링은 원격 고성능 모델
-      backend: remote-claude
-  fallback: local-qwen                  # 규칙에 안 걸리면 로컬
+### 3.2 BOPIS (Buy Online, Pick-up In Store)
+
+고객이 온라인으로 주문하고 매장에서 직접 수령하는 방식이다. 배송 시간이 없어서 당일 처리가 가능하고, 물류비가 줄어드는 대신 픽업 전 고객 알림과 미수령 처리 로직이 필요하다.
+
+주문 상태 흐름:
+
+```
+주문 확정 → PENDING_STORE
+매장 수령 확인 → PREPARING
+준비 완료 → READY_FOR_PICKUP  (→ 고객 알림 발송)
+고객 수령 → COMPLETED
+n일 미수령 → CANCELLED  (→ 재고 롤백)
 ```
 
-로컬 백엔드를 쓰려면 Ollama가 먼저 떠 있어야 한다. 모델을 미리 받아두지 않으면 첫 실행에서 수 GB를 내려받느라 멈춘 것처럼 보인다.
+미수령 자동 취소 처리가 빠지면 재고가 reserved 상태로 무기한 묶인다. 스케줄러로 n일 경과 BOPIS 주문을 주기적으로 조회해서 자동 취소하고 재고를 돌려놓는 로직이 반드시 있어야 한다.
 
-```bash
-ollama pull qwen2.5-coder:32b
-ollama list   # 받아진 모델 확인
+## 4. 고객 식별 통합
+
+### 4.1 채널별 ID 불일치
+
+온라인 시스템에는 회원 ID가 있고, 오프라인 POS CRM에는 전화번호나 멤버십 카드 번호 기반 레코드가 있다. 같은 고객인데 두 시스템에서 다른 ID로 존재한다.
+
+통합하지 않으면 구매 이력, 포인트, 쿠폰이 채널마다 따로 쌓인다. 앱에서 적립한 포인트를 매장에서 사용하려면 두 시스템이 같은 사람을 인식해야 한다.
+
+### 4.2 매핑 테이블 구조
+
+가장 단순한 방법은 식별자 매핑 테이블을 별도로 두는 것이다.
+
+```sql
+CREATE TABLE customer_identity_mapping (
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
+    online_id   VARCHAR(64) NOT NULL,
+    offline_id  VARCHAR(64) NOT NULL,
+    matched_at  TIMESTAMP NOT NULL,
+    match_type  VARCHAR(20) NOT NULL,  -- PHONE, EMAIL, MANUAL
+    confidence  DECIMAL(3,2) NOT NULL, -- 0.00 ~ 1.00
+    INDEX idx_online (online_id),
+    INDEX idx_offline (offline_id),
+    UNIQUE KEY uq_pair (online_id, offline_id)
+);
 ```
 
-## 6. Claude Code / Codex와의 차이, 마이그레이션 주의점
+`confidence`는 자동 매핑과 수동 매핑을 구분하고, 매핑의 신뢰도에 따라 사용 범위를 제한하기 위해 둔다. 전화번호 정확히 일치는 1.0, 이름+생년월일 일치는 0.8, 수동 연결은 0.95로 관리하는 식이다. confidence가 낮은 매핑은 주문 이력 조회에는 쓰더라도 포인트 합산에는 사용하지 않는 정책을 두기도 한다.
 
-Claude Code나 Codex는 도구와 모델이 한 묶음이다. 설치하면 바로 쓸 수 있고 품질도 안정적이지만, 모델을 못 고르고 설정이 그 안에 갇힌다. OMO는 반대로 도구·모델을 분리하는 대신 직접 설정해야 하고, 모델 품질도 고른 백엔드를 따라간다.
+### 4.3 중복 고객 처리
 
-| 항목 | Claude Code / Codex | OMO |
-|------|---------------------|-----|
-| 모델 선택 | 벤더 고정 | 백엔드 교체 자유 |
-| 초기 설정 | 거의 없음 | `omo.yaml` 직접 작성 |
-| 로컬 모델 | 불가 | Ollama 등 가능 |
-| 결과 일관성 | 높음 | 백엔드에 따라 편차 |
-| 오프라인 | 불가 | 로컬 백엔드면 가능 |
+고객 한 명이 온라인에 여러 계정을 가지거나, POS에 전화번호를 다르게 입력해서 레코드가 여러 개인 경우가 있다. 자동 매핑에 중복 감지 로직이 없으면 매핑이 N:1이나 1:N으로 오염된다.
 
-Claude Code에서 넘어올 때 자주 막히는 지점이 몇 개 있다.
+매핑 삽입 전에 기존 매핑과 충돌하는지 확인하고, 충돌 시 자동 처리하지 않고 검토 큐에 넣는 방식이 안전하다.
 
-`CLAUDE.md`에 쌓아둔 프로젝트 규칙은 자동으로 안 옮겨진다. OMO는 공통 컨텍스트를 `omo.yaml`의 `context` 항목이나 별도 규칙 파일로 받는다. 기존 `CLAUDE.md` 내용을 그쪽으로 옮겨야 도구가 같은 맥락을 본다.
+```java
+public void mapIdentities(String onlineId, String offlineId,
+                          MatchType type, double confidence) {
+    boolean hasConflict = mappingRepository
+        .existsConflict(onlineId, offlineId);
 
-```yaml
-# omo.yaml
-context:
-  files:
-    - CLAUDE.md        # 기존 규칙 파일을 그대로 컨텍스트로 재사용
-    - docs/arch.md
+    if (hasConflict) {
+        conflictQueue.enqueue(new IdentityConflict(onlineId, offlineId, type));
+        return;
+    }
+
+    mappingRepository.save(
+        new CustomerIdentityMapping(onlineId, offlineId, type, confidence));
+}
 ```
 
-Claude Code의 슬래시 커맨드나 서브에이전트 같은 기능은 1:1 대응이 없다. OMO는 라우팅과 도구 조합으로 비슷하게 흉내 낼 뿐, 같은 사용 경험을 기대하면 안 된다. 마이그레이션을 한 번에 다 하려 하지 말고, 커밋 메시지 생성처럼 단순한 작업부터 OMO로 옮기고 결과를 보면서 범위를 넓히는 편이 안전하다.
+자동으로 다 합치다가 실제로 다른 두 사람의 포인트를 합산하는 사고가 나면 복구가 매우 어렵다. 자동 매핑은 confidence 0.95 이상에만 적용하고, 나머지는 CS팀이 수동 처리하도록 큐에 쌓아두는 방식을 쓰는 편이 낫다.
 
-## 7. 실무 도입 시 겪는 문제와 해결
+## 5. 트러블슈팅
 
-### 7.1 설정 충돌
+### 5.1 재고 불일치
 
-`omo sync`가 만든 `.aider.conf.yml`을 손으로 또 고치면, 다음 `sync`에서 덮어써져 수정이 날아간다. 도구 설정은 직접 건드리지 말고 `omo.yaml`만 고치는 게 원칙이다. 도구별 예외 설정이 필요하면 OMO의 오버라이드 블록을 쓴다.
+OMO 시스템에서 가장 자주 터지는 장애는 채널마다 재고 숫자가 다른 상황이다. 원인 패턴은 거의 정해져 있다.
 
-```yaml
-# omo.yaml — 도구별 예외는 여기서
-overrides:
-  aider:
-    auto_commit: false      # aider만 자동 커밋 끄기
-  cursor:
-    max_context_files: 20
+**이벤트 중복 처리**: 재고 차감 이벤트가 두 번 소비되어 재고가 두 번 빠진다. Kafka 컨슈머에서 멱등성 처리가 없으면 재시도 시 중복 차감이 발생한다.
+
+```java
+@KafkaListener(topics = "stock-deduction")
+public void consumeDeduction(StockDeductionEvent event) {
+    if (deductionLogRepository.existsByEventId(event.getEventId())) {
+        return; // 멱등 처리
+    }
+    stockService.deduct(event.getSku(), event.getQty());
+    deductionLogRepository.save(new DeductionLog(event.getEventId()));
+}
 ```
 
-팀에서 쓸 때는 `omo.yaml`은 커밋하고, 도구가 생성하는 파일(`.aider.conf.yml`, `.cursor/`)은 `.gitignore`에 넣는다. 생성물을 커밋하면 사람마다 `sync` 결과가 달라 충돌이 난다.
+**트랜잭션 경계 오류**: 재고 차감과 이벤트 발행이 같은 트랜잭션 안에 없으면, 차감은 커밋됐는데 이벤트가 발행 안 된 상태나 반대 상황이 생긴다. Transactional Outbox 패턴으로 이벤트를 DB에 먼저 저장하고 별도 릴레이 프로세스가 발행하게 하면 이 문제를 막는다.
 
-### 7.2 토큰 비용
+**POS 동기화 실패 후 미재처리**: POS가 오프라인 중 기록한 판매 이력을 동기화할 때 실패하면, 재시도 없이 버려지는 경우가 있다. Dead Letter Queue에 넣고 알람을 보내서 반드시 후처리하는 구조가 필요하다.
 
-원격 API를 기본으로 두면 비용이 빨리 는다. 큰 코드베이스에서 컨텍스트를 통째로 보내면 호출 한 번에 수십만 토큰이 나가는 경우가 있다. 두 가지로 막는다.
+재고 불일치가 의심될 때 가장 먼저 하는 건 채널별 차감 로그를 같은 시간대로 붙여보는 것이다. 재고 서비스 차감 합계와 POS 판매 합계를 시간대별로 비교하는 배치를 돌리면 불일치가 언제부터 시작됐는지 좁힐 수 있다.
 
-```yaml
-# omo.yaml
-limits:
-  max_context_tokens: 32000   # 컨텍스트 상한
-  warn_cost_usd: 1.0          # 호출당 예상 비용이 넘으면 경고
+### 5.2 이벤트 유실
+
+재고 차감, 주문 상태 변경, 픽업 준비 완료 알림이 유실되면 데이터가 틀어지고 사용자 경험이 망가진다.
+
+Kafka 프로듀서가 `acks=0` 또는 `acks=1`로 설정되어 있으면, 브로커 장애 시 메시지가 유실된다. 재고와 주문에 직결된 이벤트는 `acks=all`에 `min.insync.replicas=2` 이상으로 설정한다.
+
+컨슈머가 처리 전에 오프셋을 먼저 커밋하면(`enable.auto.commit=true`), 처리 중 장애가 나도 오프셋이 이미 앞으로 이동해서 해당 메시지를 다시 읽지 않는다. 수동 커밋으로 처리 완료 후에만 커밋해야 한다.
+
+```java
+@KafkaListener(topics = "order-events")
+public void consume(ConsumerRecord<String, OrderEvent> record,
+                    Acknowledgment acknowledgment) {
+    try {
+        orderService.process(record.value());
+        acknowledgment.acknowledge(); // 처리 완료 후 커밋
+    } catch (Exception e) {
+        // 미커밋 → 재시도
+        throw e;
+    }
+}
 ```
 
-가벼운 작업은 라우팅으로 로컬 모델에 넘기고, 원격은 정말 필요한 작업에만 쓴다. `omo cost`로 누적 사용량을 확인하면서 어떤 작업이 비싼지 본다.
+이벤트 유실 감지는 이벤트 ID 기반 시퀀스 추적으로 한다. 주문 이벤트에 단조 증가하는 시퀀스 번호를 붙이고, 컨슈머 쪽에서 마지막 처리 시퀀스와 수신 시퀀스 간 gap을 모니터링한다. Gap이 임계값을 넘으면 알람을 보낸다.
 
-```bash
-omo cost --since 2026-06-01
-```
-
-### 7.3 모델별 결과 편차
-
-같은 프롬프트라도 백엔드마다 결과가 다르다. 로�� 32B 모델과 원격 최신 모델은 코드 품질 차이가 크고, 로컬 모델은 긴 컨텍스트에서 앞부분을 잘 놓친다. 백엔드를 바꿨는데 결과가 갑자기 나빠졌다면 모델 차이를 먼저 의심한다.
-
-대응은 작업과 모델을 맞추는 것이다. 리뷰·리팩토링처럼 정확도가 중요한 작업은 원격 고성능 모델로 고정하고, 보일러플레이트 생성이나 커밋 메시지처럼 실패해도 손해가 작은 작업만 로컬로 돌린다. 백엔드를 바꿀 때는 같은 입력으로 양쪽 결과를 한 번씩 비교해보고 차이를 파악한 뒤 적용한다.
-
-```bash
-# 같은 작업을 두 백엔드로 돌려 결과 비교
-omo run aider --backend local-qwen --dry-run
-omo run aider --backend remote-claude --dry-run
-```
-
-로컬 모델은 하드웨어도 본다. 32B급 모델을 VRAM 부족한 장비에서 돌리면 응답이 느려 체감 생산성이 떨어진다. 장비가 못 받쳐주면 더 작은 모델로 내리거나 원격으로 돌리는 게 현실적이다.
+POS 동기화 이벤트는 별도 배치로 보정한다. POS DB와 재고 서비스 DB를 주기적으로 비교해서 불일치 항목을 찾아 수동 검토 큐에 넣는다. 자동 보정은 양방향 충돌 시 어느 쪽이 진실인지 판단하기 어려워서, 정상 데이터를 덮어쓰는 사고가 날 수 있다. 자동 보정 범위는 단방향으로 명확히 틀린 경우에만 제한하고, 나머지는 사람이 검토한다.
 
 ## 관련 문서
 
-- [Claude Code 실전 팁](../Claude_Code/Claude_Code_Tips.md)
-- [Aider 연동에 쓰는 로컬 모델 — Ollama](../Ollama/Ollama.md)
-- [Cursor](../Cursor/Cursor.md)
+- [이벤트 기반 아키텍처](../../Backend/Architecture/Event_Driven_Architecture.md)
+- [분산 트랜잭션](../../DataBase/RDBMS/Distributed_Transaction.md)
+- [Saga 패턴 및 분산 트랜잭션](../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md)
