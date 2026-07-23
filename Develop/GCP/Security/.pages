@@ -1,3 +1,4 @@
 nav:
   - IAM.md
   - GCP_IAM.md
+  - IAM_Deny_Policy.md
