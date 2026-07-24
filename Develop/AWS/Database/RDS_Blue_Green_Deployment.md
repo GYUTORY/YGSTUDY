@@ -1,88 +1,89 @@
 ---
-title: RDS Blue/Green Deployment로 MySQL 5.7 → 8.0 업그레이드
-tags: [aws, rds, mysql, blue-green, upgrade, switchover, ddl, compatibility]
-updated: 2026-07-08
+title: RDS Blue/Green Deployment
+tags: [aws, rds, blue-green, switchover, upgrade, mysql, postgresql, binlog, multi-az]
+updated: 2026-07-24
 ---
 
-# RDS Blue/Green Deployment로 MySQL 5.7 → 8.0 업그레이드
+# RDS Blue/Green Deployment
 
-MySQL 5.7의 표준 지원은 2023년 10월 종료됐다. RDS 5.7 인스턴스는 extended support로 자동 전환되고, 해당 기간 동안 인스턴스 비용에 vCPU당 추가 요금이 붙는다. 결국 8.0으로 올려야 한다.
+운영 중인 RDS 인스턴스를 다운타임 없이 바꿔야 하는 상황이 있다. 메이저 버전 업그레이드, 대형 파라미터 변경, 대용량 테이블 DDL 작업이 그런 경우다. Blue/Green Deployment는 운영 인스턴스(blue)를 복제한 별도 환경(green)을 만들고, 거기서 변경을 먼저 적용해 검증한 뒤 DNS 교체로 트래픽을 넘기는 방식이다. RDS에서 2022년 말부터 지원한다.
 
-문제는 5.7 → 8.0이 MySQL 역사에서 가장 많이 깨지는 구간이라는 점이다. 예약어가 늘었고, 파라미터 여러 개가 사라졌고, 인증 플러그인 기본값이 바뀌었다. 단순히 버전 번호를 올리는 수준이 아니라 동작이 실제로 달라진다.
+## 1. 동작 방식
 
-RDS는 2022년부터 Blue/Green Deployment를 지원한다. 운영 인스턴스(blue)를 복제한 별도 환경(green)을 만들고, 거기서 먼저 8.0으로 올려 검증한 다음 switchover로 트래픽을 넘기는 방식이다. 다운타임을 최소화하면서 롤백 여지를 남길 수 있다.
+Blue/Green은 binlog 기반 복제로 돌아간다. green은 blue의 논리적 복제본으로 생성되고, 생성 이후에도 blue의 변경사항을 binlog로 계속 받아 적용한다. 애플리케이션은 switchover 전까지 blue만 바라보고, green은 뒤에서 따라잡으며 대기한다.
 
----
-
-## 1. RDS Blue/Green Deployment 동작 방식
-
-Blue/Green은 운영 DB 인스턴스(blue)를 소스로 삼아 green을 만든다. green은 blue의 논리적 복제본으로, binlog 기반 복제로 blue의 변경을 계속 따라잡는다. green이 완성된 뒤에도 애플리케이션은 blue만 바라본다. green은 뒤에서 binlog를 받아 적용하며 대기한다.
-
-switchover는 DNS 엔드포인트 이름을 교체하는 방식으로 트래픽을 전환한다. blue의 엔드포인트 이름(예: `mydb.xxxxx.ap-northeast-2.rds.amazonaws.com`)을 green이 가져가고, blue는 다른 이름으로 밀려난다. 애플리케이션 접속 문자열을 바꾸지 않아도 자동으로 green을 바라보게 된다.
+switchover는 DNS 엔드포인트 이름을 교체하는 방식으로 트래픽을 전환한다. blue의 엔드포인트(예: `mydb.xxxxx.ap-northeast-2.rds.amazonaws.com`)를 green이 가져가고, blue는 다른 이름으로 밀려난다. 애플리케이션 접속 문자열을 바꾸지 않아도 자동으로 green을 바라보게 된다.
 
 ```
 [앱] → mydb.xxxxx.ap-northeast-2.rds.amazonaws.com (blue, MySQL 5.7)
-                                ↓ binlog 복제
-                         (green, MySQL 8.0)
+                            ↓ binlog 복제
+                     (green, MySQL 8.0)
 
 switchover 후:
 
 [앱] → mydb.xxxxx.ap-northeast-2.rds.amazonaws.com (green, MySQL 8.0)
-                                ↓ (옛 blue는 다른 이름으로 남음)
+         (옛 blue는 접미사가 붙은 이름으로 남음)
 ```
 
-blue에서 green으로 이어지는 복제는 단방향이다. switchover 이후 green에 들어간 쓰기는 blue로 흘러가지 않는다. 이 점이 롤백 조건과 직결된다.
+복제는 단방향이다. switchover 이후 green에 들어간 쓰기는 blue로 흘러가지 않는다. 이 점이 롤백 조건을 제약한다.
 
----
+## 2. 생성 조건
 
-## 2. green 환경 생성
+Blue/Green Deployment를 쓰려면 blue 인스턴스에 binlog가 켜져 있어야 한다. binlog가 꺼진 상태면 green 생성 자체가 실패한다.
 
-blue 인스턴스를 지정해서 Blue/Green Deployment를 만든다. 이때 green의 엔진 버전을 8.0으로 지정한다.
+RDS에서 binlog가 활성화되려면 두 조건을 충족해야 한다. 첫째, 자동 백업 보존 기간(`backup_retention_period`)이 1일 이상이어야 한다. 이 값이 0이면 자동 백업이 꺼진 것이고, binlog도 켜지지 않는다. 둘째, `binlog_format`이 `ROW` 또는 `MIXED`여야 한다. `STATEMENT` 포맷은 지원하지 않는다. RDS MySQL 기본값이 `ROW`라 보통 따로 건드릴 일은 없지만, 파라미터 그룹을 커스텀하게 관리하는 환경이라면 확인해둬야 한다.
+
+```sql
+-- blue 인스턴스에서 확인
+SHOW VARIABLES LIKE 'binlog_format';
+SHOW VARIABLES LIKE 'log_bin';
+```
+
+`log_bin`이 `ON`이고 `binlog_format`이 `ROW`나 `MIXED`이면 조건을 충족한다. `OFF`라면 `backup_retention_period`를 1 이상으로 수정하고 재시작해야 한다.
+
+그 외 blue로 지정할 수 없는 케이스가 있다. Read Replica가 붙어있는 인스턴스, 이미 다른 Blue/Green Deployment의 green인 인스턴스, RDS on Outposts, `db.t2` 인스턴스 클래스는 사용할 수 없다.
+
+## 3. Green 환경 생성과 검증
+
+blue 인스턴스를 소스로 지정하고 Blue/Green Deployment를 만든다.
 
 ```bash
 aws rds create-blue-green-deployment \
-  --blue-green-deployment-name mysql80-upgrade \
+  --blue-green-deployment-name my-upgrade \
   --source arn:aws:rds:ap-northeast-2:123456789012:db:my-mysql57-db \
   --target-engine-version 8.0.35 \
   --target-db-parameter-group-name my-mysql80-pg
 ```
 
-`--target-db-parameter-group-name`은 8.0용 파라미터 그룹을 미리 만들어서 지정해야 한다. 5.7 그룹을 그대로 쓸 수 없다. 8.0에서 제거된 파라미터가 포함돼 있으면 green 생성이 실패하거나 적용 도중 오류가 난다.
+버전 업그레이드 없이 파라미터 변경이나 DDL만 적용하는 경우라면 `--target-engine-version`을 생략하거나 현재와 같은 버전을 지정하면 된다.
 
-green 생성에는 보통 수십 분이 걸린다. 인스턴스 크기와 데이터 양에 따라 다르다. RDS 콘솔이나 CLI로 상태를 확인한다.
+green 생성에는 수십 분이 걸린다. 데이터가 수백 GB 이상이면 한두 시간이 걸리기도 한다. 상태는 아래로 확인한다.
 
 ```bash
 aws rds describe-blue-green-deployments \
   --blue-green-deployment-identifier bgd-abc123
 ```
 
-`Status`가 `AVAILABLE`이 되면 green이 준비된 것이다.
+`Status`가 `AVAILABLE`로 바뀌면 green이 준비된 것이다. 이 시점부터 green 인스턴스에 직접 붙어서 테스트할 수 있다. 스테이징 애플리케이션을 green 엔드포인트에 연결해서 실제 쿼리를 돌려보는 것이 유일하게 믿을 수 있는 검증 방법이다.
 
-binlog 복제가 동작하려면 blue 인스턴스에 `binlog_format`이 설정돼 있어야 한다. RDS에서는 `ROW` 또는 `MIXED`로 잡아야 한다. 5.7 기본값이 `MIXED`라 대부분 별도 설정 없이 된다. 확인만 해두면 된다.
-
-```sql
-SHOW VARIABLES LIKE 'binlog_format';
-```
-
----
-
-## 3. 컷오버 타이밍
-
-switchover는 replica lag이 0에 수렴한 상태에서 해야 한다. lag이 크면 switchover 동안 green이 남은 binlog를 모두 적용할 때까지 쓰기가 막히고, 그 시간이 다운타임이 된다.
+switchover 전에 replica lag을 반드시 확인한다.
 
 ```bash
-# replica lag 확인
 aws cloudwatch get-metric-statistics \
   --namespace AWS/RDS \
   --metric-name ReplicaLag \
-  --dimensions Name=DBInstanceIdentifier,Value=green-instance-id \
-  --start-time 2026-07-08T10:00:00Z \
-  --end-time 2026-07-08T10:30:00Z \
+  --dimensions Name=DBInstanceIdentifier,Value=<green-instance-id> \
+  --start-time 2026-07-24T02:00:00Z \
+  --end-time 2026-07-24T02:30:00Z \
   --period 60 \
   --statistics Average
 ```
 
-lag이 수 초 이내로 안정적이면 switchover를 진행한다. 피크 트래픽이 몰리는 시간대는 피하는 게 낫다. 쓰기가 많을수록 lag이 순간적으로 튀고, 그만큼 switchover 중 대기 시간이 늘어난다.
+lag이 수 초 이내로 안정적인 상태에서 switchover를 진행한다.
+
+## 4. Switchover 과정과 쓰기 중단
+
+switchover를 실행하면 짧은 쓰기 중단이 발생한다. 대부분 30초~1분 안쪽으로 끝나지만 이유를 이해해야 시간을 예측할 수 있다.
 
 ```bash
 aws rds switchover-blue-green-deployment \
@@ -90,157 +91,118 @@ aws rds switchover-blue-green-deployment \
   --switchover-timeout 300
 ```
 
-`--switchover-timeout`은 초 단위다. 이 시간 안에 switchover가 끝나지 않으면 취소되고 blue가 그대로 유지된다. 300초(5분)이면 충분한 편이지만, lag이 크거나 데이터가 아주 많다면 더 넉넉하게 잡아야 한다.
+switchover가 시작되면 이 순서로 진행된다.
 
-switchover 과정:
-1. blue에 쓰기 차단
-2. green이 남은 binlog 전부 적용
-3. 데이터 일치 확인
-4. DNS 엔드포인트 이름 교체
-5. 쓰기 재개 (green에서)
+1. blue에 쓰기를 차단한다. 이미 진행 중인 트랜잭션은 완료될 때까지 기다리고, 새 쓰기 트랜잭션은 받지 않는다.
+2. green이 남은 binlog events를 모두 적용한다. lag이 0이 되는 시점까지 기다린다.
+3. blue와 green의 데이터 일치를 확인한다.
+4. DNS 엔드포인트 이름을 교체한다. RDS가 DNS TTL을 짧게 관리하지만, 기존 연결 풀이 캐시한 IP 주소를 버리고 재연결하는 시간이 필요하다.
+5. green에서 쓰기를 다시 허용한다.
 
-이 사이클이 보통 1분 안쪽에 끝난다. 짧은 연결 끊김이 발생하므로 애플리케이션이 재연결 로직을 갖추고 있어야 한다.
+30초~1분이 걸리는 이유는 2번과 4번이다. replica lag이 전혀 없어도 DNS 전파와 클라이언트 재연결에 시간이 소요된다. lag이 남아있다면 그만큼 더 길어진다. 이래서 switchover 직전 lag을 최대한 줄이고, 쓰기 트래픽이 낮은 시간대에 실행하는 게 중요하다.
 
----
+`--switchover-timeout` 시간 안에 완료되지 않으면 switchover가 취소되고 blue가 그대로 유지된다. 애플리케이션이 DB 연결 재시도 로직 없이 오류를 그대로 노출하는 구조라면, 이 30초~1분 동안 에러가 터진다. switchover 전에 재시도 로직을 반드시 확인해야 한다.
 
-## 4. 롤백 조건
+## 5. 롤백 가능 시점과 불가 시점
 
-switchover 직후 옛 blue 인스턴스는 `old1` 접미사가 붙은 이름으로 살아 있다. 여기서 치명적인 문제가 발견되면 blue로 트래픽을 되돌릴 수는 있다. 단, 이때 switchover 이후 green에 들어간 쓰기는 blue에 없다. 되돌리면 그 데이터는 잃는다.
+switchover가 끝나도 옛 blue 인스턴스는 살아 있다. 이름에 접미사가 붙은 채로 잠시 남아있어서, 이론상 되돌릴 수 있다.
 
-현실적으로 롤백이 안전한 시간은 switchover 직후 몇 분이다. 이 안에 치명적인 애플리케이션 오류를 확인하고 결정해야 한다. 시간이 지나 green에 데이터가 쌓이면 되돌리기보다는 green에서 문제를 수정하는 게 낫다.
+롤백이 현실적인 시점은 switchover 직후 몇 분 안이다. green에 쌓인 데이터가 적어서 되돌릴 때의 데이터 손실 규모가 작다. 치명적인 오류가 switchover 직후 바로 터진다면 빠르게 판단해서 되돌릴 수 있다.
 
-롤백을 실행하기보다는 switchover 전 green에서 충분히 검증하는 것이 실제로 유효한 안전장치다. green에 읽기 트래픽 일부를 먼저 보내거나, 스테이징 애플리케이션을 green에 연결해서 회귀 테스트를 돌려보는 방식으로 쓴다.
+시간이 지나면 이야기가 달라진다. switchover 이후 green에 들어간 모든 쓰기가 blue로 복제되지 않는다. 한 시간 후에 되돌리면 그 한 시간치 데이터는 사라진다. 현실적으로 롤백이 아니라 green에서 문제를 직접 수정하는 쪽을 택하게 된다. 이래서 switchover 전 green에서의 충분한 검증이 진짜 안전장치다.
 
----
+아예 롤백이 불가능한 시점은 Blue/Green Deployment 리소스를 삭제한 이후다. 삭제는 blue나 green 인스턴스를 지우는 게 아니라 배포 구성 자체를 정리하는 것인데, 이후에는 되돌릴 방법이 없다.
 
-## 5. MySQL 5.7 → 8.0 DDL 호환성 이슈
+```bash
+# Blue/Green Deployment 삭제 (green이 운영으로 자리잡은 뒤 정리)
+# --delete-target 없이 실행하면 옛 blue 인스턴스는 남는다
+aws rds delete-blue-green-deployment \
+  --blue-green-deployment-identifier bgd-abc123
 
-업그레이드 전 사전 점검에서 잡아내지 못하면 green 생성 단계에서 막히거나, 애플리케이션이 올라간 뒤 쿼리가 깨진다.
+# 옛 blue까지 완전 삭제할 때만 이 플래그를 붙인다
+aws rds delete-blue-green-deployment \
+  --blue-green-deployment-identifier bgd-abc123 \
+  --delete-target
+```
 
-### 5.1 예약어 충돌
+며칠 동안 지표를 모니터링한 뒤 완전히 안정됐다고 판단될 때 `--delete-target`을 붙여서 정리하는 게 안전하다.
 
-8.0에서 새로 예약어가 된 단어들이 있다. `RANK`, `GROUPS`, `ROW`, `LATERAL`, `SYSTEM`, `CUME_DIST`, `DENSE_RANK`, `PERCENT_RANK` 같은 윈도우 함수 관련 키워드가 대표적이다. 이 단어를 테이블명이나 컬럼명으로 백틱 없이 써왔다면 8.0에서 문법 오류가 난다.
+## 6. Multi-AZ 페일오버와의 차이
+
+Multi-AZ와 Blue/Green은 DNS 교체라는 메커니즘은 같지만 목적과 동작이 다르다.
+
+Multi-AZ 페일오버는 가용성 목적이다. primary에 장애가 생기면 standby가 자동으로 승격되고 DNS가 자동 교체된다. 사람이 트리거하는 게 아니다. primary와 standby는 항상 같은 엔진 버전과 스키마를 유지한다. standby는 읽기도 안 되는 완전한 대기 상태고, 페일오버 후 옛 primary는 새 standby가 된다.
+
+Blue/Green Deployment는 변경 목적이다. switchover는 수동으로 실행한다. blue와 green이 서로 다른 엔진 버전, 파라미터, 스키마를 가질 수 있다. green에서 실제 애플리케이션을 연결해 검증하는 시간이 있고, switchover 이후 옛 blue가 남아서 롤백 여지를 준다.
+
+| 항목 | Multi-AZ 페일오버 | Blue/Green Switchover |
+|---|---|---|
+| 목적 | 가용성 (장애 대응) | 변경 배포 (업그레이드, DDL) |
+| 트리거 | 자동 (장애 감지 시) | 수동 |
+| 엔진 버전 차이 | 불가 | 가능 |
+| 검증 시간 | 없음 | switchover 전 green에서 검증 가능 |
+| 쓰기 중단 | 1~2분 | 30초~1분 |
+| 롤백 | 없음 | switchover 직후 일정 시간 가능 |
+
+blue 인스턴스가 Multi-AZ 구성이면 green도 자동으로 Multi-AZ로 만들어진다.
+
+## 7. 버전 업그레이드에 활용
+
+메이저 버전 업그레이드를 Blue/Green으로 하는 이유는 검증 시간 확보다. 인플레이스 업그레이드는 시작하면 되돌리기 어렵다. Blue/Green은 green에서 버전을 올려두고 실제 쿼리를 돌려보면서 문제를 확인한 다음 전환한다.
+
+### MySQL 5.7 → 8.0
+
+MySQL 5.7 표준 지원이 2023년 10월 종료됐다. RDS 5.7 인스턴스는 extended support 비용이 추가로 붙는다. 8.0으로 올려야 하는데, 5.7→8.0이 MySQL 역사에서 가장 많이 깨지는 구간이다.
+
+green 생성 시 8.0용 파라미터 그룹을 미리 만들어야 한다. 5.7과 8.0은 파라미터 그룹을 공유하지 못하고, 5.7에만 있는 파라미터를 8.0 그룹에 넣으면 적용이 거부된다.
+
+| 파라미터 | 5.7 | 8.0 |
+|---|---|---|
+| `query_cache_type` | 존재 | 제거 (쿼리 캐시 자체가 없어짐) |
+| `query_cache_size` | 존재 | 제거 |
+| `innodb_file_format` | 존재 | 제거 |
+| `innodb_large_prefix` | 존재 | 제거 |
+| `tx_isolation` | 존재 | `transaction_isolation`으로 이름 변경 |
+
+### DDL 호환성 이슈
+
+**예약어**: 8.0에서 윈도우 함수 관련 키워드가 예약어로 추가됐다. `RANK`, `GROUPS`, `ROW`, `LATERAL`, `DENSE_RANK` 등을 컬럼명이나 테이블명으로 백틱 없이 써왔다면 8.0에서 오류가 난다.
 
 ```sql
--- 5.7에서는 통과, 8.0에서 오류
+-- 5.7 통과, 8.0 오류
 SELECT rank FROM leaderboard ORDER BY rank;
 
--- 백틱으로 감싸야 한다
+-- 8.0에서는 백틱 필요
 SELECT `rank` FROM leaderboard ORDER BY `rank`;
-```
 
-스키마에 이런 컬럼명이 박혀 있으면 컬럼명을 바꾸거나 쿼리를 전부 백틱 처리해야 한다. 어떤 테이블에 충돌하는 컬럼이 있는지 확인하는 쿼리를 돌려보면 된다.
-
-```sql
+-- 스키마에서 예약어 충돌 컬럼 찾기
 SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME
 FROM INFORMATION_SCHEMA.COLUMNS
-WHERE COLUMN_NAME IN (
-  'rank', 'groups', 'row', 'lateral', 'system',
-  'cume_dist', 'dense_rank', 'percent_rank', 'first_value',
-  'last_value', 'nth_value', 'ntile', 'lead', 'lag'
-)
-AND TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys');
+WHERE COLUMN_NAME IN ('rank', 'groups', 'row', 'lateral', 'dense_rank', 'lead', 'lag')
+  AND TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys');
 ```
 
-컬럼명을 바꾸는 작업은 8.0으로 올린 다음이 아니라 5.7에서 미리 끝내는 게 낫다. 8.0에서 오류가 나는 상태로는 ALTER TABLE 자체가 안 돌기 때문이다.
+컬럼명을 바꾸는 작업은 8.0 green 생성 전에 5.7에서 끝내는 게 낫다. 8.0에서 오류가 나는 상태로는 ALTER TABLE 자체가 안 돌기 때문이다.
 
-### 5.2 인증 플러그인 변경
-
-5.7의 기본 인증 플러그인은 `mysql_native_password`다. 8.0은 `caching_sha2_password`로 바뀌었다. 업그레이드 전에 만들어진 사용자 계정은 `mysql_native_password`로 남아 있어서 8.0에서 그대로 동작한다. 문제는 기존 드라이버나 커넥터가 `caching_sha2_password`를 지원하지 않는 경우다.
-
-오래된 MySQL JDBC 드라이버(5.1.x)나 PHP `mysql_` 확장(이미 deprecated) 같은 구버전 클라이언트는 `caching_sha2_password` 핸드셰이크를 처리하지 못한다. 8.0으로 올리면서 새로 만드는 계정은 `caching_sha2_password`가 기본이라, 신규 계정이 생기는 곳에서 연결이 실패한다.
+**인증 플러그인**: 5.7 기본이 `mysql_native_password`, 8.0 기본이 `caching_sha2_password`다. 기존 계정은 `mysql_native_password`로 남지만, 오래된 드라이버(MySQL JDBC 5.1.x 등)가 `caching_sha2_password`를 처리하지 못한다.
 
 ```sql
 -- 계정별 인증 플러그인 확인
 SELECT user, host, plugin FROM mysql.user;
 
--- 필요하다면 명시적으로 native password 유지
+-- 필요시 기존 방식 유지 (임시 조치)
 ALTER USER 'appuser'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
 ```
 
-운영에서 쓰는 드라이버 버전이 `caching_sha2_password`를 지원하는지 먼저 확인해야 한다. MySQL Connector/J 8.0+, PyMySQL 1.0.2+, mysqlclient 2.1.0+ 등은 지원한다.
+장기적으로는 드라이버를 올리고 `caching_sha2_password`로 이행해야 한다. MySQL Connector/J 8.0+, PyMySQL 1.0.2+, mysqlclient 2.1.0+ 이상이면 지원한다.
 
-### 5.3 제거된 함수
+**제거된 함수**: `PASSWORD()`, `ENCODE()`, `DECODE()`, `ENCRYPT()` 함수가 8.0에서 삭제됐다. 코드베이스에서 직접 호출하는 곳을 찾아 수정해야 한다.
 
-8.0에서 `PASSWORD()`, `ENCODE()`, `DECODE()`, `ENCRYPT()`, `DES_ENCRYPT()`, `DES_DECRYPT()` 함수가 제거됐다. 5.7까지 `PASSWORD()` 함수를 직접 쿼리에서 호출하는 코드가 있다면 8.0에서 오류가 난다.
+**ONLY_FULL_GROUP_BY**: 8.0에서 기본 활성화된다. `GROUP BY` 절에 없는 컬럼을 `SELECT`에 넣는 쿼리가 오류를 낸다. ORM이 생성하는 쿼리에도 이 패턴이 섞여 있는 경우가 있어서, green에서 실제 애플리케이션 쿼리를 돌려보기 전까지 모두 잡히지 않는다.
 
-```sql
--- 5.7에서는 동작, 8.0에서 오류
-SELECT PASSWORD('mypassword');
+### 사전 점검
 
--- 8.0에서는 SHA2 또는 다른 해시 함수를 직접 써야 한다
-SELECT SHA2('mypassword', 256);
-```
-
-레거시 코드에서 `PASSWORD()` 함수를 쓰는 경우가 드물지 않다. 코드베이스에서 이 함수를 직접 호출하는 곳을 찾아서 바꿔야 한다.
-
-### 5.4 ONLY_FULL_GROUP_BY 기본 활성화
-
-8.0에서 `ONLY_FULL_GROUP_BY`가 `sql_mode`에 기본으로 들어간다. 5.7에서도 기본값이지만 파라미터 그룹을 통해 끄고 쓰는 경우가 있었다. 8.0에서는 이걸 끄더라도 일부 동작이 달라진다.
-
-`GROUP BY` 절에 없는 컬럼을 `SELECT`에 넣는 쿼리가 5.7에서는 (`ONLY_FULL_GROUP_BY`가 꺼진 상태에서) 통과했다면 8.0에서는 오류 또는 경고가 난다.
-
-```sql
--- ONLY_FULL_GROUP_BY 위반 예시
--- category만 GROUP BY에 있는데 name을 SELECT
-SELECT category, name, COUNT(*) FROM products GROUP BY category;
-
--- 8.0에서 올바른 형태
-SELECT category, MIN(name), COUNT(*) FROM products GROUP BY category;
--- 또는 name도 GROUP BY에 추가
-SELECT category, name, COUNT(*) FROM products GROUP BY category, name;
-```
-
-ORM이 자동 생성하는 쿼리가 이 패턴을 타는 경우도 있다. 8.0 green 환경에서 실제 애플리케이션 쿼리를 돌려보기 전까지 모두 잡히지 않을 수 있다.
-
----
-
-## 6. 파라미터 차이 처리
-
-5.7과 8.0은 파라미터 그룹을 공유할 수 없다. 8.0용 파라미터 그룹을 따로 만들어야 한다. 이 과정에서 5.7에서 쓰던 파라미터 중 8.0에서 사라진 것들을 정리해야 한다.
-
-### 제거된 파라미터
-
-| 파라미터 | 5.7 | 8.0 |
-|----------|-----|-----|
-| `query_cache_type` | 존재 | 제거 (쿼리 캐시 자체가 없어짐) |
-| `query_cache_size` | 존재 | 제거 |
-| `innodb_file_format` | 존재 | 제거 (Barracuda가 유일한 포맷) |
-| `innodb_file_format_max` | 존재 | 제거 |
-| `innodb_large_prefix` | 존재 | 제거 (항상 활성화 상태) |
-| `innodb_support_xa` | 존재 | 제거 |
-| `tx_isolation` | 존재 | `transaction_isolation`으로 이름 변경 |
-
-커스텀 파라미터 그룹에 이 항목들이 있으면 8.0 그룹에서는 빼야 한다. 그냥 두면 적용 자체가 안 되거나 오류가 날 수 있다.
-
-### 인증 플러그인 기본값
-
-파라미터 그룹에서 `default_authentication_plugin`을 명시적으로 `mysql_native_password`로 잡아두면 8.0에서도 새 계정을 native password 방식으로 만든다. 기존 클라이언트 호환성을 유지해야 하는 상황에서 임시 조치로 쓴다.
-
-```
-default_authentication_plugin = mysql_native_password
-```
-
-다만 이건 임시 조치다. 장기적으로는 드라이버를 올리고 `caching_sha2_password`로 이행해야 한다.
-
-### sql_mode 확인
-
-5.7 파라미터 그룹에 `sql_mode`를 커스텀으로 설정해뒀다면 8.0 그룹에도 같은 값을 넣되, 8.0에서 추가된 모드가 있는지 확인해야 한다. 5.7에서 `NO_AUTO_CREATE_USER`가 `sql_mode`에 있었다면 8.0에서는 이 모드가 제거됐으므로 빼야 한다. 8.0에서 모르는 모드 이름을 넣으면 파라미터 그룹 적용이 거부된다.
-
-```bash
-# 현재 blue의 sql_mode 확인
-aws rds describe-db-parameters \
-  --db-parameter-group-name my-mysql57-pg \
-  --query "Parameters[?ParameterName=='sql_mode']"
-```
-
----
-
-## 7. 사전 점검: pre-upgrade 체크
-
-green 생성 전에 업그레이드 가능 여부를 확인할 수 있다. MySQL 공식 `mysqlcheck` 도구 또는 MySQL Shell의 `util.checkForServerUpgrade()`를 쓴다.
-
-MySQL Shell을 blue 인스턴스에 연결해서 돌리면 호환성 문제 목록을 뽑아준다.
+green 생성 전에 MySQL Shell로 호환성 문제를 확인할 수 있다.
 
 ```bash
 mysqlsh --host=mydb.xxxxx.ap-northeast-2.rds.amazonaws.com \
@@ -248,16 +210,10 @@ mysqlsh --host=mydb.xxxxx.ap-northeast-2.rds.amazonaws.com \
   -- util checkForServerUpgrade
 ```
 
-`error` 수준으로 찍힌 항목은 업그레이드 전에 반드시 해결해야 한다. `warning`은 진행은 되지만 동작이 달라질 수 있다는 뜻이라 같이 봐야 한다.
+운영 인스턴스에 직접 돌리기 부담스러우면 스냅샷을 복원해서 별도 인스턴스를 만들고 거기서 돌리면 된다. `error` 수준 항목은 반드시 해결해야 하고, `warning`도 동작이 달라질 수 있어서 같이 봐야 한다.
 
-운영 인스턴스에 직접 돌리기 부담스러우면 최신 스냅샷을 복원해서 별도 인스턴스를 만들고 거기서 돌리면 된다. green 생성 비용 없이 호환성 문제만 먼저 파악할 수 있다.
+## 8. 실제 운영 순서
 
----
+스냅샷에서 복원한 임시 인스턴스에서 `checkForServerUpgrade`를 돌려 error/warning 목록을 파악한다. error 항목을 운영 DB에서 수정한다(예약어 컬럼명 변경, 제거된 함수 코드 수정, 드라이버 버전 업). 8.0용 파라미터 그룹을 만든다. Blue/Green Deployment를 생성하면 green이 8.0으로 올라온다. `AVAILABLE` 상태가 되면 green에 스테이징 애플리케이션을 붙여서 쿼리 오류, 인증 플러그인 문제, `ONLY_FULL_GROUP_BY` 위반 등을 확인한다. replica lag이 수 초 이내로 안정되면 트래픽이 낮은 시간대에 switchover를 실행한다. switchover 직후 30초~1분 동안 모니터링한다. 며칠간 green 지표를 보면서 이상이 없으면 Blue/Green Deployment를 삭제한다.
 
-## 8. 실제 업그레이드 순서
-
-정리하면 실제 작업은 이 순서로 간다.
-
-스냅샷을 복원한 임시 인스턴스에서 `checkForServerUpgrade`를 돌려 error/warning 목록을 전부 파악한다. error 항목을 운영 DB에서 수정한다 — 예약어 컬럼명 변경, 제거된 함수 코드 수정, 드라이버 버전 업. 8.0용 파라미터 그룹을 만든다. Blue/Green Deployment를 생성하면 green이 8.0으로 올라온다. green에 스테이징 애플리케이션을 붙여서 쿼리 오류, 인증 플러그인 문제, `ONLY_FULL_GROUP_BY` 위반 등을 확인한다. replica lag이 안정되면 트래픽이 낮은 시간대에 switchover를 실행한다. switchover 후 며칠 동안 옛 blue를 살려두면서 지표를 모니터링한 뒤 삭제한다.
-
-green에서 실제 쿼리를 돌려보는 단계가 가장 중요하다. 사전 점검 도구가 잡아내지 못하는 애플리케이션 레벨 호환성 문제는 여기서 걸린다. switchover를 되돌리는 게 현실적으로 어렵다는 점을 감안하면, 전환 전 검증에 시간을 충분히 쓰는 게 낫다.
+green에서 실제 쿼리를 돌려보는 단계가 가장 중요하다. 사전 점검 도구가 잡아내지 못하는 애플리케이션 레벨 호환성 문제는 여기서만 걸린다. switchover를 되돌리는 게 현실적으로 어렵다는 점을 감안하면, 전환 전 검증에 시간을 충분히 쓰는 게 낫다.
