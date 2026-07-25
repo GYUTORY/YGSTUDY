@@ -1,5 +1,7 @@
 nav:
   - LLM.md
+  - LLM_Pretraining.md
+  - LLM_Tokenizer.md
   - LLM_Inference_Optimization.md
   - LLM_Fine_Tuning.md
   - LLM_Evaluation.md
@@ -24,5 +26,6 @@ nav:
   - Ontology.md
   - Obsidian.md
   - Karpathy_LLM_Obsidian.md
+  - LLM_Scaling_Laws.md
   - Palantir_AI_Workflow.md
   - Unsloth_Qwen3_GGUF.md
