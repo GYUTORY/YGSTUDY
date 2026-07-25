@@ -1,9 +1,14 @@
 title: Infra
 nav:
+  - Kubernetes
   - Service_Mesh
   - Service_Discovery
   - Coordination
   - Load_Balancer
+  - Monitoring
   - Secrets
   - Image_Build
   - Container_Registry
+  - Infrastructure_as_Code
+  - GitOps
+  - CI_CD
