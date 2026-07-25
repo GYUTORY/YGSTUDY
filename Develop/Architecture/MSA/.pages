@@ -5,6 +5,8 @@ nav:
   - 서버 간 통신 방식 정리.md
   - 서비스_디스커버리_및_API_Gateway.md
   - BFF_패턴.md
+  - BFF_Nest_JS_구현.md
+  - BFF_부분_실패_처리.md
   - 서비스_메시_및_사이드카_패턴.md
   - MSA_VPC_Network_Design.md
   - 멀티 레포.md
