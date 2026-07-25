@@ -5,3 +5,5 @@ nav:
   - VPN.md
   - Firewall.md
   - Network_Firewall_Architecture.md
+  - Zero_Trust_Network.md
+  - Network_Segmentation.md
