@@ -3,3 +3,4 @@ nav:
   - Protocol.md
   - WebSocket.md
   - Web_RTC.md
+  - SFU_Media_Server.md

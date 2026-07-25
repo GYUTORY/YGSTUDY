@@ -2,6 +2,7 @@ nav:
   - Networking_Fundamentals.md
   - Repeater.md
   - P2P.md
+  - IPFS.md
   - NAT.md
   - NAT_Traversal_STUN_TURN_ICE.md
   - 7 Layer
