@@ -1,7 +1,7 @@
 ---
 title: RDS Multi-AZ
-tags: [aws, database, rds, multi-az, failover, high-availability, dns, read-replica]
-updated: 2026-07-24
+tags: [aws, database, rds, multi-az, failover, high-availability, dns, read-replica, cloudwatch]
+updated: 2026-07-25
 ---
 
 # RDS Multi-AZ
@@ -64,7 +64,7 @@ Java는 기본 설정에 따라 DNS 조회 결과를 무기한 캐시하는 경�
 
 DNS가 바뀌어도 이미 맺어진 TCP 커넥션은 그대로 남아 있다. 이 커넥션들은 Primary가 죽을 때 TCP 레벨에서 끊기기 전까지 앱은 연결이 살아있다고 판단한다. 커넥션 풀 설정에서 `testOnBorrow`나 `validationQuery`를 켜두면 커넥션을 빌릴 때마다 상태를 확인해서 빨리 감지할 수 있다. JDBC URL에 `connectTimeout`과 `socketTimeout`을 짧게 잡아두는 것도 같은 목적이다.
 
-## Read Replica와 함께 쓸 때
+## Read Replica와 복제 지연 대응
 
 Multi-AZ와 Read Replica는 별개 개념이다. Multi-AZ는 고가용성(HA)을 위한 구성이고, Read Replica는 읽기 성능 분산을 위한 구성이다.
 
@@ -76,15 +76,95 @@ Read Replica는 비동기 복제다. Primary가 커밋한 데이터가 Replica�
 
 페일오버가 발생했을 때 Read Replica는 자동으로 새 Primary를 따라가지만, 복제 소스가 바뀌고 재동기화되는 과정에서 복제 지연이 급증한다. 이 시간에 Replica에서 오래된 데이터를 읽으면 사용자에게 잘못된 정보가 노출된다.
 
-대응 방법은 두 가지다. 최신성이 중요한 쿼리는 Primary에서만 읽는다. 읽기 성능이 더 나빠지지만 데이터 정합성이 보장된다. 세밀하게 제어하고 싶다면 `ReplicaLag` CloudWatch 메트릭을 보고 임계치를 넘은 Replica로는 트래픽을 보내지 않는 로직을 앱 쪽에 넣는다.
+### ReplicaLag 기반 라우팅
 
-Cross-Region Read Replica는 지연이 더 크다. 리전 간 네트워크 지연이 기본으로 수십 ms 이상이고, 대량 트랜잭션이 있을 때는 분 단위로 늘어난다. 강한 일관성이 필요한 쿼리는 Primary 리전에서만 처리하도록 설계해야 한다.
+`ReplicaLag` CloudWatch 메트릭을 주기적으로 조회해서 임계치를 넘은 Replica로는 트래픽을 보내지 않는 방법이다. 앱 안에서 DataSource를 동적으로 전환하는 구조로 구현한다.
+
+```java
+@Component
+public class ReplicaHealthChecker {
+    private static final long LAG_THRESHOLD_SECONDS = 30L;
+    private final AmazonCloudWatch cloudWatch;
+    private volatile boolean replicaHealthy = true;
+
+    @Scheduled(fixedRate = 5000)
+    public void checkReplicaLag() {
+        GetMetricStatisticsRequest request = new GetMetricStatisticsRequest()
+            .withNamespace("AWS/RDS")
+            .withMetricName("ReplicaLag")
+            .withDimensions(new Dimension()
+                .withName("DBInstanceIdentifier")
+                .withValue("my-read-replica"))
+            .withStartTime(new Date(System.currentTimeMillis() - 120_000))
+            .withEndTime(new Date())
+            .withPeriod(60)
+            .withStatistics("Average");
+
+        GetMetricStatisticsResult result = cloudWatch.getMetricStatistics(request);
+        result.getDatapoints().stream()
+            .max(Comparator.comparing(Datapoint::getTimestamp))
+            .ifPresent(dp -> replicaHealthy = dp.getAverage() < LAG_THRESHOLD_SECONDS);
+    }
+
+    public boolean isReplicaHealthy() {
+        return replicaHealthy;
+    }
+}
+```
+
+이 체커를 DataSource 라우터에 연결하면, Replica 지연이 30초를 넘는 순간 자동으로 Primary로 우회한다.
+
+```java
+public class RoutingDataSource extends AbstractRoutingDataSource {
+    private final ReplicaHealthChecker healthChecker;
+
+    @Override
+    protected Object determineCurrentLookupKey() {
+        boolean isReadOperation = TransactionSynchronizationManager.isCurrentTransactionReadOnly();
+        if (isReadOperation && healthChecker.isReplicaHealthy()) {
+            return "replica";
+        }
+        return "primary";
+    }
+}
+```
+
+### Sticky Primary 패턴
+
+쓰기 직후 바로 같은 데이터를 읽어야 하는 경우(주문 생성 후 주문 상세 조회 등)가 있다. 이 경우 Replica 지연 때문에 방금 쓴 데이터가 안 보이는 상황이 생긴다. 세션 단위로 일정 시간 Primary에서 읽도록 강제하면 해결된다.
+
+```java
+@Component
+public class StickyPrimaryContext {
+    private static final long STICKY_DURATION_MS = 10_000L; // 쓰기 후 10초
+    private final ThreadLocal<Long> primaryUntil = new ThreadLocal<>();
+
+    public void markWriteOccurred() {
+        primaryUntil.set(System.currentTimeMillis() + STICKY_DURATION_MS);
+    }
+
+    public boolean shouldUsePrimary() {
+        Long until = primaryUntil.get();
+        return until != null && System.currentTimeMillis() < until;
+    }
+
+    public void clear() {
+        primaryUntil.remove();
+    }
+}
+```
+
+AOP로 `@Transactional` 쓰기 트랜잭션 완료 시점에 `markWriteOccurred()`를 호출하도록 묶어두면, 서비스 레이어에서 별도 처리 없이 동작한다.
+
+### Cross-Region Replica 주의사항
+
+Cross-Region Read Replica는 지연이 더 크다. 리전 간 네트워크 지연이 기본으로 수십 ms 이상이고, 대량 트랜잭션이 있을 때는 분 단위로 늘어난다. 강한 일관성이 필요한 쿼리는 Primary 리전에서만 처리해야 한다.
 
 ## 페일오버 테스트
 
-운영 환경에 올리기 전에 반드시 테스트해봐야 한다. 이론상 60~120초라고 해도 우리 앱이 실제로 얼마나 버티는지는 직접 확인해야 안다.
+운영 환경에 올리기 전에 반드시 테스트해봐야 한다. 이론상 60~120초라고 해도 실제 앱이 얼마나 버티는지는 직접 확인해야 안다.
 
-AWS 콘솔에서 RDS 인스턴스를 선택하고 "Reboot" 옵션에서 "Reboot With Failover"를 선택하면 강제 페일오버가 발생한다. CLI로는 아래처럼 실행한다.
+### 강제 페일오버 실행
 
 ```bash
 # Multi-AZ 인스턴스 강제 페일오버
@@ -97,33 +177,181 @@ aws rds failover-db-cluster \
   --db-cluster-identifier my-db-cluster
 ```
 
-테스트할 때 앱 서버에서 DB 연결을 계속 시도하는 스크립트를 같이 돌려두면 어느 시점에 에러가 발생하고 몇 초 후에 복구되는지 정확히 측정할 수 있다.
+### 연결 상태 측정 스크립트
+
+페일오버를 트리거하면서 동시에 아래 스크립트를 실행하면, 정확히 어느 시점에 연결이 끊기고 몇 초 후에 복구되는지 기록된다. `@@hostname`을 조회하기 때문에 인스턴스가 교체되는 순간도 로그에 찍힌다.
 
 ```bash
-# 60초 동안 1초마다 연결 상태 확인 (MySQL)
-for i in $(seq 1 60); do
-  echo -n "$(date '+%H:%M:%S') - "
-  mysql -h mydb.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com \
-    -u admin -ppassword \
+#!/bin/bash
+DB_HOST="mydb.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com"
+DB_USER="admin"
+DB_PASS="password"
+LOG_FILE="failover_$(date +%Y%m%d_%H%M%S).log"
+
+echo "시작: $(date)" | tee -a "$LOG_FILE"
+
+for i in $(seq 1 120); do
+  TS=$(date '+%H:%M:%S.%3N')
+  RESULT=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" \
     --connect-timeout=3 \
-    -e "SELECT NOW();" 2>&1 | tail -1
+    -e "SELECT @@hostname, NOW();" 2>&1)
+
+  if [ $? -eq 0 ]; then
+    HOST=$(echo "$RESULT" | awk 'NR==2 {print $1}')
+    echo "$TS OK host=$HOST" | tee -a "$LOG_FILE"
+  else
+    ERR=$(echo "$RESULT" | head -1)
+    echo "$TS ERROR: $ERR" | tee -a "$LOG_FILE"
+  fi
+
   sleep 1
 done
 ```
 
-RDS 이벤트 로그에서 "Multi-AZ instance failover started" 이후 "Multi-AZ instance failover completed"까지 시간 차이를 기록한다. CloudWatch에서 `DatabaseConnections` 메트릭이 0으로 떨어졌다가 올라오는 구간도 함께 확인한다.
+페일오버 전후로 hostname이 달라지는 시점이 찍히고, ERROR 로그가 연속으로 나온 구간의 초 수가 실제 앱 다운타임이다.
 
-앱 레이어에서 DB 에러가 발생했을 때 재시도 로직이 제대로 동작하는지 검증하는 게 핵심이다. 재시도 없이 바로 에러를 사용자에게 내려보내는 구조라면 페일오버 시간 동안 실제 장애가 된다. 일시적인 DB 연결 오류를 잡아서 N회 재시도하도록 처리하면 다운타임을 크게 줄일 수 있다.
+### 시나리오별 검증 포인트
 
-커넥션 풀 설정도 함께 검증한다. HikariCP 기준으로 `connectionTimeout`이 너무 길면 (기본 30초) 페일오버 동안 스레드가 DB 연결 대기에 묶여서 앱 전체가 느려진다. `connectionTimeout`을 5~10초로 줄이고 재시도 로직을 조합해서 빠르게 실패하고 빠르게 재시도하는 패턴이 낫다.
+**앱 재시도 로직 검증**
+
+페일오버 중 발생하는 예외가 `CommunicationsException`, `MySQLNonTransientConnectionException` 같은 재시도 가능한 타입인지 확인한다. 이 예외를 잡아서 재시도하는 로직이 없으면 페일오버 시간 동안 전체가 에러다. 재시도 횟수는 3회, 재시도 간격은 지수 백오프(1초 → 2초 → 4초)로 잡는 게 일반적이다.
+
+**트랜잭션 도중 페일오버**
+
+긴 트랜잭션이 실행되는 도중 페일오버가 발생하면 트랜잭션은 롤백된다. 앱이 이 상황에서 재시도하면 동일 요청이 두 번 처리되는 중복 문제가 생긴다. 결제나 재고 차감처럼 멱등성이 중요한 작업은 재시도 전에 이미 처리됐는지 먼저 확인하는 로직이 있어야 한다.
+
+**커넥션 풀 소진 확인**
+
+페일오버 직후 새 연결을 맺으려는 요청이 몰리면서 커넥션 풀이 가득 차는 상황이 자주 나온다. HikariCP의 `connectionTimeout`을 5초로 잡아두면, 풀이 가득 찬 상태에서 5초 후 `SQLTransientConnectionException`이 발생한다. 이 예외를 재시도 대상으로 잡아야 한다. `maximum-pool-size`를 너무 작게 잡으면 병목이 되고, 너무 크게 잡으면 DB 쪽 `max_connections`를 초과한다. 인스턴스 타입별 `max_connections` 기본값은 RDS 파라미터 그룹에서 확인한다.
 
 ```yaml
-# HikariCP 설정 예시 (Spring Boot)
 spring:
   datasource:
     hikari:
-      connection-timeout: 5000    # 5초 내 연결 못 하면 실패
-      validation-timeout: 3000    # 헬스체크 타임아웃
-      max-lifetime: 1800000       # 커넥션 30분 후 교체 (페일오버 후 낡은 커넥션 정리)
-      keepalive-time: 30000       # 30초마다 keepalive
+      connection-timeout: 5000     # 5초 내 연결 못 하면 예외
+      validation-timeout: 3000     # 헬스체크 타임아웃
+      max-lifetime: 1800000        # 커넥션 30분 후 교체 (낡은 커넥션 정리)
+      keepalive-time: 30000        # 30초마다 keepalive 전송
+      minimum-idle: 5
+      maximum-pool-size: 20
 ```
+
+`max-lifetime`을 1800초(30분)로 설정하면, 페일오버 후 낡은 커넥션이 30분 안에 자연스럽게 교체된다. `keepalive-time`은 DB 쪽 `wait_timeout`보다 짧게 잡아야 유휴 커넥션이 서버 쪽에서 끊기는 걸 방지한다.
+
+## CloudWatch 모니터링
+
+페일오버 감지와 복제 지연 추적에 쓰는 핵심 메트릭들이다.
+
+| 메트릭 | 설명 | 알람 기준 |
+|---|---|---|
+| `ReplicaLag` | 복제 지연 시간 (초) | 30초 초과 |
+| `DatabaseConnections` | 현재 연결 수 | max_connections의 80% 초과 |
+| `FreeableMemory` | 사용 가능한 메모리 (bytes) | 전체의 10% 미만 |
+| `CPUUtilization` | CPU 사용률 (%) | 80% 초과 5분 지속 |
+| `WriteLatency` | 쓰기 응답시간 (초) | 0.1초 초과 |
+| `ReadLatency` | 읽기 응답시간 (초) | 0.05초 초과 |
+
+### CloudWatch Alarm 설정
+
+```bash
+# ReplicaLag 알람 (30초 초과 시 SNS 알림)
+aws cloudwatch put-metric-alarm \
+  --alarm-name "rds-replica-lag-high" \
+  --alarm-description "RDS Read Replica lag exceeds 30 seconds" \
+  --namespace "AWS/RDS" \
+  --metric-name "ReplicaLag" \
+  --dimensions Name=DBInstanceIdentifier,Value=my-read-replica \
+  --statistic Average \
+  --period 60 \
+  --evaluation-periods 2 \
+  --threshold 30 \
+  --comparison-operator GreaterThanThreshold \
+  --alarm-actions arn:aws:sns:ap-northeast-2:123456789012:rds-alerts \
+  --ok-actions arn:aws:sns:ap-northeast-2:123456789012:rds-alerts
+
+# DatabaseConnections 알람 (db.t3.medium 기준 max_connections ≈ 170, 80% = 136)
+aws cloudwatch put-metric-alarm \
+  --alarm-name "rds-connections-high" \
+  --alarm-description "RDS connections exceed 80 percent of max" \
+  --namespace "AWS/RDS" \
+  --metric-name "DatabaseConnections" \
+  --dimensions Name=DBInstanceIdentifier,Value=my-db-instance \
+  --statistic Average \
+  --period 60 \
+  --evaluation-periods 3 \
+  --threshold 136 \
+  --comparison-operator GreaterThanThreshold \
+  --alarm-actions arn:aws:sns:ap-northeast-2:123456789012:rds-alerts
+```
+
+### 페일오버 이벤트 감지
+
+EventBridge로 RDS 페일오버 이벤트를 실시간으로 받을 수 있다. RDS 콘솔의 이벤트 탭보다 빠르게 Lambda나 SNS로 전달된다.
+
+```bash
+# 페일오버 이벤트를 SNS로 전달하는 EventBridge 룰
+aws events put-rule \
+  --name "rds-failover-events" \
+  --event-pattern '{
+    "source": ["aws.rds"],
+    "detail-type": ["RDS DB Instance Event"],
+    "detail": {
+      "EventCategories": ["failover"]
+    }
+  }' \
+  --state ENABLED
+
+aws events put-targets \
+  --rule "rds-failover-events" \
+  --targets Id=sns-target,Arn=arn:aws:sns:ap-northeast-2:123456789012:rds-alerts
+```
+
+RDS 이벤트 로그에서 `Multi-AZ instance failover started`와 `Multi-AZ instance failover completed` 사이 시간 차이를 기록한다. `DatabaseConnections` 메트릭이 0으로 떨어졌다가 올라오는 구간과 비교하면 AWS 내부 복구 시간과 앱 레이어 복구 시간을 분리해서 볼 수 있다.
+
+### 대시보드 구성
+
+페일오버 대응 시 한 화면에서 상태를 확인하려면 CloudWatch 대시보드에 아래 위젯을 묶어두는 게 편하다.
+
+```json
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "my-db-instance"],
+          ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "my-read-replica"]
+        ],
+        "period": 60,
+        "stat": "Average",
+        "title": "DB Connections"
+      }
+    },
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["AWS/RDS", "ReplicaLag", "DBInstanceIdentifier", "my-read-replica"]
+        ],
+        "period": 60,
+        "stat": "Maximum",
+        "title": "Replica Lag (seconds)"
+      }
+    },
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["AWS/RDS", "WriteLatency", "DBInstanceIdentifier", "my-db-instance"],
+          ["AWS/RDS", "ReadLatency", "DBInstanceIdentifier", "my-read-replica"]
+        ],
+        "period": 60,
+        "stat": "p99",
+        "title": "Query Latency p99"
+      }
+    }
+  ]
+}
+```
+
+`WriteLatency`와 `ReadLatency`는 p99 기준으로 보는 게 맞다. Average는 스파이크를 숨기는 경우가 있어서 페일오버 직후 실제 영향 범위를 과소평가하게 된다.
