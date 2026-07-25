@@ -4,3 +4,4 @@ nav:
   - Mutual_TLS.md
   - VPN.md
   - Firewall.md
+  - Network_Firewall_Architecture.md
