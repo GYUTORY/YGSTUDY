@@ -1,7 +1,7 @@
 ---
 title: "프로세스 간 통신 (IPC)"
 tags: [OS, IPC, pipe, shared-memory, socket, signal, message-queue, msa, container]
-updated: 2026-03-31
+updated: 2026-07-25
 ---
 
 # 프로세스 간 통신 (IPC)
@@ -45,6 +45,8 @@ IPC(Inter-Process Communication)는 서로 다른 프로세스가 데이터를 �
 ls -la | grep ".md" | wc -l
 ```
 
+### C
+
 ```c
 #include <stdio.h>
 #include <unistd.h>
@@ -86,6 +88,49 @@ int main(void)
 }
 ```
 
+### Python
+
+`multiprocessing.Pipe()`는 내부적으로 `os.pipe()`를 쓰면서 직렬화까지 처리해준다. `duplex=False`로 단방향을 만든다.
+
+```python
+from multiprocessing import Process, Pipe
+
+def child_task(conn):
+    data = conn.recv()
+    print(f"child received: {data}")
+    conn.close()
+
+if __name__ == "__main__":
+    parent_conn, child_conn = Pipe(duplex=False)
+    p = Process(target=child_task, args=(child_conn,))
+    p.start()
+    child_conn.close()  # 부모 쪽에서는 닫아야 EOF가 제대로 전달된다
+    parent_conn.send("hello from parent")
+    parent_conn.close()
+    p.join()
+```
+
+`os.pipe()`를 직접 쓰면 C 코드와 동일한 방식으로 제어할 수 있다.
+
+```python
+import os, sys
+
+r, w = os.pipe()
+pid = os.fork()
+
+if pid == 0:
+    os.close(w)
+    data = os.read(r, 128)
+    print(f"child received: {data.decode()}")
+    os.close(r)
+    sys.exit(0)
+else:
+    os.close(r)
+    os.write(w, b"hello from parent")
+    os.close(w)
+    os.waitpid(pid, 0)
+```
+
 ### 실무에서 겪는 문제
 
 **pipe buffer가 가득 차면 write가 블록된다.** 리눅스 기본 pipe buffer 크기는 65,536바이트(64KB)다. 자식 프로세스가 읽기를 안 하고 있으면 부모의 `write()`가 멈춘다. 반대로 buffer가 비어 있으면 `read()`가 블록된다.
@@ -115,6 +160,8 @@ echo "Hello" > /tmp/myfifo
 # 터미널 B: 읽기
 cat /tmp/myfifo    # "Hello" 출력
 ```
+
+### C
 
 **writer.c**
 ```c
@@ -161,6 +208,36 @@ int main(void)
 }
 ```
 
+### Python
+
+reader가 `open()`하기 전에 writer가 먼저 열면 블록된다. threading으로 writer와 reader를 동시에 돌리는 게 가장 간단하다.
+
+```python
+import os
+import threading
+
+FIFO_PATH = "/tmp/my_fifo"
+
+def writer():
+    with open(FIFO_PATH, "w") as f:
+        f.write("data from writer")
+
+if __name__ == "__main__":
+    if os.path.exists(FIFO_PATH):
+        os.unlink(FIFO_PATH)
+    os.mkfifo(FIFO_PATH)
+
+    t = threading.Thread(target=writer)
+    t.start()
+
+    with open(FIFO_PATH, "r") as f:
+        data = f.read()
+    print(f"reader got: {data}")
+
+    t.join()
+    os.unlink(FIFO_PATH)
+```
+
 ### 실무에서 겪는 문제
 
 **reader 없이 writer가 `open()`하면 블록된다.** 양쪽 다 열려야 `open()`이 리턴한다. 타임아웃 처리를 하려면 `O_NONBLOCK`으로 열어야 하는데, 이 경우 writer는 reader가 없으면 `open()`이 `ENXIO`로 실패한다.
@@ -192,6 +269,8 @@ docker -H unix:///var/run/docker.sock ps
      │                                  │
   close()                            close()
 ```
+
+### C
 
 **server.c**
 ```c
@@ -285,6 +364,52 @@ int main(void)
 }
 ```
 
+### Python
+
+`socket.AF_UNIX`로 TCP 소켓과 동일한 API를 쓴다. 서버와 클라이언트를 각각 프로세스로 띄운다.
+
+```python
+import socket
+import os
+import time
+from multiprocessing import Process
+
+SOCK_PATH = "/tmp/my_uds.sock"
+
+def server():
+    if os.path.exists(SOCK_PATH):
+        os.unlink(SOCK_PATH)
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.bind(SOCK_PATH)
+    sock.listen(1)
+
+    conn, _ = sock.accept()
+    data = conn.recv(256)
+    print(f"server received: {data.decode()}")
+    conn.send(b"ack")
+    conn.close()
+    sock.close()
+    os.unlink(SOCK_PATH)
+
+def client():
+    time.sleep(0.3)  # 서버가 listen 상태가 될 때까지 대기
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.connect(SOCK_PATH)
+    sock.send(b"hello from client")
+    reply = sock.recv(256)
+    print(f"client received: {reply.decode()}")
+    sock.close()
+
+if __name__ == "__main__":
+    s = Process(target=server)
+    c = Process(target=client)
+    s.start()
+    c.start()
+    s.join()
+    c.join()
+```
+
 ### 실무에서 겪는 문제
 
 **소켓 파일이 남아 있으면 `bind()`가 실패한다.** `EADDRINUSE` 에러가 나는데, 서버 시작 전에 `unlink()`를 호출해야 한다. 위 예제처럼 서버 시작 시 기존 소켓 파일을 지우는 게 일반적인 패턴이다.
@@ -311,7 +436,7 @@ int main(void)
 
 두 가지 API가 있다.
 
-### shmget (System V)
+### C — shmget (System V)
 
 ```c
 #include <stdio.h>
@@ -354,7 +479,7 @@ int main(void)
 }
 ```
 
-### mmap (POSIX)
+### C — mmap (POSIX)
 
 `mmap`은 파일이나 익명 메모리를 프로세스 주소 공간에 매핑한다. `MAP_SHARED`와 `MAP_ANONYMOUS` 플래그 조합으로 shared memory를 만들 수 있다.
 
@@ -394,6 +519,38 @@ int main(void)
     return 0;
 }
 ```
+
+### Python
+
+Python 3.8부터 `multiprocessing.shared_memory.SharedMemory`가 표준 라이브러리에 들어왔다. 내부적으로 `shm_open()`을 쓴다.
+
+```python
+import time
+from multiprocessing import Process
+from multiprocessing.shared_memory import SharedMemory
+
+def reader(shm_name: str, msg_len: int):
+    time.sleep(0.5)
+    shm = SharedMemory(name=shm_name)
+    data = bytes(shm.buf[:msg_len]).decode()
+    print(f"reader got: {data}")
+    shm.close()
+
+if __name__ == "__main__":
+    shm = SharedMemory(create=True, size=4096)
+
+    msg = b"shared memory data"
+    shm.buf[:len(msg)] = msg
+
+    p = Process(target=reader, args=(shm.name, len(msg)))
+    p.start()
+    p.join()
+
+    shm.close()
+    shm.unlink()  # /dev/shm/ 아래 파일 정리
+```
+
+`shm.name`은 `/dev/shm/` 아래에 생성되는 파일 이름이다. 프로세스가 죽으면 자동으로 정리되지 않으므로 `unlink()`를 직접 호출해야 한다.
 
 ### 실무에서 겪는 문제
 
@@ -437,7 +594,7 @@ shm_unlink("/my_shm");  /* 정리 */
 프로세스 E ──┘   (커널 관리)    └── 프로세스 F
 ```
 
-### POSIX Message Queue
+### C — POSIX Message Queue
 
 ```c
 #include <stdio.h>
@@ -504,6 +661,52 @@ int main(void)
 gcc -o mq_demo mq_demo.c -lrt
 ```
 
+### Python
+
+Python 표준 라이브러리에 POSIX mq 바인딩은 없다. `multiprocessing.Queue`가 사실상 표준 대안으로, 내부적으로 pipe와 소켓을 조합해서 구현되어 있다.
+
+```python
+import time
+from multiprocessing import Process, Queue
+
+def consumer(q: Queue):
+    msg = q.get()  # 메시지 올 때까지 블록
+    print(f"consumer got: {msg}")
+
+if __name__ == "__main__":
+    q: Queue = Queue(maxsize=10)
+
+    p = Process(target=consumer, args=(q,))
+    p.start()
+
+    time.sleep(0.3)
+    q.put("message queue data")
+
+    p.join()
+```
+
+우선순위가 필요하면 `queue.PriorityQueue`를 쓰거나, `sysv_ipc` 서드파티 라이브러리로 System V message queue를 직접 다룰 수 있다.
+
+```bash
+pip install sysv-ipc
+```
+
+```python
+import sysv_ipc
+
+KEY = 12345
+mq = sysv_ipc.MessageQueue(KEY, sysv_ipc.IPC_CREAT)
+
+# 송신: (메시지 내용, 타입)
+mq.send(b"hello", type=1)
+
+# 수신: type 지정으로 선택적 수신 가능
+msg, _ = mq.receive(type=1)
+print(msg.decode())
+
+mq.remove()
+```
+
 ### 실무에서 겪는 문제
 
 **큐가 가득 차면 `mq_send()`가 블록된다.** `mq_maxmsg` 개수만큼 쌓이면 블록되거나 `O_NONBLOCK` 모드에서는 `EAGAIN`이 리턴된다. 수신 측이 느리면 송신 측이 멈추는 건 pipe와 같다.
@@ -539,6 +742,8 @@ kill -9 1234                    # 강제 종료 (SIGKILL)
 kill -HUP $(cat nginx.pid)      # Nginx 설정 리로드
 kill -TERM -$(pgrep -o myapp)   # 프로세스 그룹 전체에 시그널
 ```
+
+### C
 
 ```c
 #include <stdio.h>
@@ -581,9 +786,54 @@ int main(void)
 }
 ```
 
+### Python
+
+```python
+import os
+import signal
+import time
+import sys
+
+def handler(signum, frame):
+    print(f"child got signal {signum}")
+
+pid = os.fork()
+
+if pid == 0:
+    signal.signal(signal.SIGUSR1, handler)
+    print("child waiting for signal...")
+    signal.pause()  # 시그널 올 때까지 대기
+    sys.exit(0)
+else:
+    time.sleep(1)
+    os.kill(pid, signal.SIGUSR1)
+    os.wait()
+```
+
+Python에서 signal은 메인 스레드에서만 등록할 수 있다. 서브 스레드에서 `signal.signal()`을 호출하면 `ValueError`가 발생한다.
+
+```python
+import signal
+
+# SIGTERM 받으면 정상 종료 처리 — 서버 데몬에서 흔한 패턴
+_shutdown = False
+
+def on_sigterm(signum, frame):
+    global _shutdown
+    _shutdown = True
+
+signal.signal(signal.SIGTERM, on_sigterm)
+signal.signal(signal.SIGINT, on_sigterm)
+
+# 메인 루프에서 플래그 확인
+while not _shutdown:
+    # 작업 처리
+    pass
+```
+
 ### 실무에서 겪는 문제
 
-**signal handler 안에서 할 수 있는 일이 제한된다.** `printf()`, `malloc()`, `mutex lock` 등은 signal handler 안에서 호출하면 안 된다(async-signal-safe가 아닌 함수). handler에서는 플래그만 세우고, 메인 루프에서 처리하는 패턴을 써야 한다.
+**signal handler 안에서 할 수 있는 일이 제한된다.** `printf()`, `malloc()`, `mutex lock` 등은 signal handler 안에서 호출하면 안 된다(async-signal-safe가 아닌 함수). handler에서는 플래그만 세우고, 메인 루프에서 처리하는 패턴을 써야 한다. Python에서도 마찬가지로 handler에서 복잡한 작업을 하면 안 된다.
 
 **같은 signal이 연속으로 오면 하나만 처리된다.** 리눅스의 표준 시그널은 큐잉되지 않는다. SIGUSR1을 3번 보내도 pending 상태에서 1번만 전달될 수 있다. 큐잉이 필요하면 `sigqueue()`와 real-time signal(`SIGRTMIN` ~ `SIGRTMAX`)을 써야 한다.
 
@@ -593,7 +843,7 @@ int main(void)
 
 ## 성능 비교
 
-같은 머신에서 1MB 데이터를 전송하는 기준으로 대략적인 처리량을 비교하면 다음과 같다.
+같은 머신에서 1MB 데이터를 전송하는 기준으로 대략적인 처리량이다.
 
 | 방식 | 처리량 (대략) | 특징 |
 |------|-------------|------|
@@ -603,7 +853,7 @@ int main(void)
 | Message Queue | 수십 ~ 수백 MB/s | 메시지 단위 오버헤드 |
 | Signal | 해당 없음 | 데이터 전송 용도가 아님 |
 
-shared memory가 압도적으로 빠르지만, 동기화 코드를 직접 짜야 하는 부담이 있다. 대부분의 경우 Unix domain socket이 성능과 편의성의 균형점이다.
+shared memory가 데이터 복사 비용 자체가 없어서 가장 빠르지만, 동기화 코드를 직접 짜야 하는 부담이 있다. 대부분의 경우 Unix domain socket이 성능과 편의성의 균형점이다.
 
 ---
 

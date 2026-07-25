@@ -1,7 +1,7 @@
 ---
 title: ECS에서 Task 여러 개 연결하기 — 단일 Task 다중 컨테이너부터 Service 간 통신까지
 tags: [aws, ecs, sidecar, service-connect, cloud-map, internal-alb, microservices, depends-on]
-updated: 2026-04-21
+updated: 2026-07-25
 ---
 
 # ECS Multi Task Connection
@@ -10,7 +10,7 @@ updated: 2026-04-21
 
 ECS에서 "Task를 여러 개 띄워서 서로 연결한다"는 말은 두 가지 다른 상황을 동시에 가리킨다. 하나는 **하나의 Task 안에 컨테이너 여러 개**를 묶어서 같은 네트워크 네임스페이스를 공유하는 sidecar 패턴이고, 다른 하나는 **서로 다른 Service에 속한 Task끼리** 네트워크로 호출하는 마이크로서비스 패턴이다. 둘은 격리 단위, IP 할당, 보안 그룹, 디스커버리 메커니즘이 모두 다르다.
 
-실무에서 이 두 가지를 구분 못 하고 시작하면 이상한 구조가 나온다. 같이 죽고 같이 사는 컨테이너를 굳이 다른 Service로 분리해서 ALB로 호출하거나, 독립 배포가 필요한 모듈을 sidecar로 묶어서 한쪽 OOM이 전체를 끌어내리는 경우다. 이 문서는 "어떤 연결 방식이 어떤 상황에 맞는지"부터 정리하고, 패턴별 Task Definition / Service 설정, 보안 그룹 구성, 트러블슈팅을 다룬다.
+실무에서 이 두 가지를 구분 못 하고 시작하면 이상한 구조가 나온다. 같이 죽고 같이 사는 컨테이너를 굳이 다른 Service로 분리해서 ALB로 호출하거나, 독립 배포가 필요한 모듈을 sidecar로 묶어서 한쪽 OOM이 전체를 끌어내리는 경우다. "어떤 연결 방식이 어떤 상황에 맞는지"부터 잡고, 패턴별 Task Definition / Service 설정, 보안 그룹 구성, 트러블슈팅을 다룬다.
 
 ```mermaid
 flowchart TB
@@ -424,12 +424,12 @@ graph LR
 
 **제약.** Service Connect는 awsvpc 모드에서만 정상 동작한다고 봐야 한다. bridge에서도 설정은 되지만 포트 매핑 때문에 복잡해지고, awsvpc에서 얻을 수 있는 mTLS, 개별 SG 같은 이점을 잃는다.
 
-### 패턴별 선택 가이드
+### 패턴 선택 기준
 
 | 상황 | 권장 패턴 | 이유 |
 |------|---------|------|
 | 외부 노출 + 내부 호출 둘 다 | 외부 ALB (퍼블릭) + Service Connect | 외부는 ALB가 정통, 내부는 LB 비용 절감 |
-| 내부 호출 위주의 마이크로서비스 (10개 이상) | Service Connect | Envoy 메트릭/재시도/LB가 압도적으로 편함 |
+| 내부 호출 위주의 마이크로서비스 (10개 이상) | Service Connect | 메트릭/재시도/LB가 자동으로 붙어 운영 비용이 낮음 |
 | 레거시 서비스 + WAF/Path 라우팅 필요 | 내부 ALB | 검증된 구조, L7 기능 풍부 |
 | TCP/gRPC 또는 정적 IP 필요 | 내부 NLB | L4, IP 고정 |
 | 1~2개 Task만 띄우는 단순 백엔드 | Cloud Map | LB 비용 없이 디스커버리만 |
@@ -678,7 +678,7 @@ flowchart LR
 
 이런 혼합 구성에서 자주 사고나는 부분이 SG 사슬이다. 레거시가 신규 호출, 신규가 레거시 호출, 양방향이 다 열려야 한다. SG 정리표를 따로 만들어두지 않으면 한 달 후엔 누구도 이해 못 한다.
 
-## 정리
+## 결정 기준
 
 ECS에서 Task를 연결하는 방법은 결국 두 가지 결정으로 좁혀진다.
 

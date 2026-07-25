@@ -1,7 +1,7 @@
 ---
 title: HTTP 스트리밍과 실시간 통신
 tags: [network, http, streaming, chunked-transfer, sse, websocket, long-polling, server-sent-events, webtransport, http2-push, early-hints, llm-streaming, backpressure]
-updated: 2026-04-29
+updated: 2026-07-25
 ---
 
 # HTTP 스트리밍과 실시간 통신
@@ -728,21 +728,28 @@ ALB나 Nginx의 idle timeout이 짧으면 활동 없는 SSE/WebSocket이 일정 
 
 ## 실무에서 선택하는 기준
 
-**SSE를 사용하는 경우**: 서버에서 클라이언트로 이벤트를 보내는 단방향 통신이면 SSE가 가장 단순하다. 알림 시스템, 실시간 피드, 대시보드 업데이트 같은 상황에 적합하다. LLM 응답 스트리밍(ChatGPT 같은 서비스)도 SSE를 사용한다. 브라우저 내장 자동 재연결이 있어서 안정적이다.
+### SSE
 
-**WebSocket을 사용하는 경우**: 채팅, 실시간 게임, 공동 편집처럼 클라이언트와 서버가 동시에 데이터를 주고받아야 하면 WebSocket이 맞다. 바이너리 데이터 전송이 필요한 경우에도 WebSocket을 선택한다.
+서버에서 클라이언트로 이벤트를 보내는 단방향 통신이면 SSE가 가장 단순하다. 알림 시스템, 실시간 피드, 대시보드 업데이트 같은 상황에 적합하다. LLM 응답 스트리밍(ChatGPT 같은 서비스)도 SSE를 사용한다. 브라우저 내장 자동 재연결이 있어서 안정적이다.
 
-**Long Polling을 사용하는 경우**: SSE나 WebSocket을 쓸 수 없는 환경에서 대안으로 사용한다. IE 지원이 필요하거나, 인프라가 WebSocket/SSE를 지원하지 않는 레거시 환경에서 선택하게 된다. 새로 만드는 서비스에서 의도적으로 Long Polling을 선택하는 경우는 거의 없다.
+### WebSocket
 
-**Chunked Transfer-Encoding만 사용하는 경우**: 파일 다운로드 진행률 표시나 대용량 응답의 점진적 렌더링 같은 상황에서 사용한다. 실시간 이벤트 스트리밍 목적이면 SSE를 사용하는 게 맞다. Chunked Transfer-Encoding은 SSE의 하위 메커니즘이지 독립적인 실시간 통신 방법은 아니다.
+채팅, 실시간 게임, 공동 편집처럼 클라이언트와 서버가 동시에 데이터를 주고받아야 하면 WebSocket이 맞다. 바이너리 데이터 전송이 필요한 경우에도 WebSocket을 선택한다.
 
-**WebTransport를 검토하는 경우**: 클라우드 게임, 실시간 영상 협업, 다수의 독립 스트림을 동시에 처리해야 하는 시나리오에서 WebSocket의 HoL 블로킹이 병목이 되는 경우다. 다만 Chromium 외 브라우저 미지원, 서버 라이브러리 부족, UDP 차단 환경 같은 제약이 있어서 WebSocket으로 폴백하는 구조가 필수다. 신규 서비스에서 검증된 안정성이 필요하면 아직은 WebSocket을 기본으로 두고 WebTransport는 점진적 도입 대상으로 보는 게 현실적이다.
+### Long Polling
+
+SSE나 WebSocket을 쓸 수 없는 환경에서 대안으로 사용한다. IE 지원이 필요하거나, 인프라가 WebSocket/SSE를 지원하지 않는 레거시 환경에서 선택하게 된다. 새로 만드는 서비스에서 의도적으로 Long Polling을 선택하는 경우는 거의 없다.
+
+### Chunked Transfer-Encoding
+
+파일 다운로드 진행률 표시나 대용량 응답의 점진적 렌더링 같은 상황에서 사용한다. 실시간 이벤트 스트리밍 목적이면 SSE를 사용하는 게 맞다. Chunked Transfer-Encoding은 SSE의 하위 메커니즘이지 독립적인 실시간 통신 방법은 아니다.
+
+### WebTransport
+
+클라우드 게임, 실시간 영상 협업, 다수의 독립 스트림을 동시에 처리해야 하는 시나리오에서 WebSocket의 HoL 블로킹이 병목이 되는 경우다. Chromium 외 브라우저 미지원, 서버 라이브러리 부족, UDP 차단 환경 같은 제약이 있어서 WebSocket으로 폴백하는 구조가 필수다. 신규 서비스에서 안정성이 필요하면 WebSocket을 기본으로 두고 WebTransport는 점진적 도입 대상으로 본다.
 
 ## 인프라 설정 시 확인할 것
 
 어떤 방식을 쓰든 서버와 클라이언트 사이에 있는 중간 장비 설정을 확인해야 한다.
 
-- **Nginx/Apache**: 프록시 버퍼링, 타임아웃, WebSocket Upgrade 헤더 전달 설정
-- **로드밸런서**: WebSocket 지원 여부, sticky session 필요성, idle timeout 값
-- **CDN**: 대부분의 CDN은 SSE와 WebSocket을 제대로 처리하지 못한다. 실시간 통신 경로는 CDN을 우회하도록 구성해야 한다
-- **방화벽/보안장비**: 일부 기업 방화벽이 WebSocket 연결을 차단한다. 이 경우 SSE나 Long Polling으로 폴백하는 로직이 필요하다. Socket.IO 같은 라이브러리가 이 폴백을 자동으로 처리한다
+Nginx/Apache는 프록시 버퍼링, 타임아웃, WebSocket Upgrade 헤더 전달 설정을 봐야 한다. 로드밸런서는 WebSocket 지원 여부와 sticky session 필요성, idle timeout 값을 점검한다. 대부분의 CDN은 SSE와 WebSocket을 제대로 처리하지 못하므로 실시간 통신 경로는 CDN을 우회하도록 구성한다. 기업 방화벽이 WebSocket을 차단하는 경우도 있다. 이때는 SSE나 Long Polling으로 폴백하는 로직이 필요하고, Socket.IO 같은 라이브러리가 이 폴백을 자동으로 처리한다.

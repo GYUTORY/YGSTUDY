@@ -1,7 +1,7 @@
 ---
 title: 웹 통신의 흐름
 tags: [network, domain, http, tcp, tls, dns, troubleshooting]
-updated: 2026-04-29
+updated: 2026-07-25
 ---
 
 ## 개요
@@ -303,7 +303,7 @@ No ALPN negotiated
 Verification: OK
 ```
 
-확인해야 할 것은 다음과 같다.
+출력에서 봐야 할 항목들이다.
 
 - `verify return:1`이 모든 depth에서 나오는가 — 인증서 체인 검증 통과
 - `Certificate chain`에 root까지 가는 경로가 다 나오는가 — 중간 인증서 누락 여부
@@ -416,7 +416,7 @@ starttransfer: 0.275432s
 total:         0.276891s
 ```
 
-각 변수의 의미는 다음과 같다.
+각 변수 의미다.
 
 | 변수 | 의미 | 어디까지 끝났을 때 시각 |
 |------|------|--------------------------|

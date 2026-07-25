@@ -1,7 +1,7 @@
 ---
-title: WebSocket 심화 가이드
+title: WebSocket 심화
 tags: [network, websocket, real-time, socket, stomp, socket-io, sse]
-updated: 2026-05-04
+updated: 2026-07-25
 ---
 
 # WebSocket 심화
@@ -190,7 +190,118 @@ opcode 0x8(close), 0x9(ping), 0xA(pong)는 컨트롤 프레임이다. 데이터 
   ──Text continuation (FIN=1)──
 ```
 
-ping을 보낸 뒤 정해진 시간 내에 pong이 안 오면 죽은 연결로 간주하고 끊는 것이 일반적이다. Spring의 WebSocket 컨테이너는 이를 자동 처리하지만 타임아웃 값은 직접 설정해야 한다. 보통 25~30초 간격으로 ping을 보내고, 두 번 연속 응답 없으면 끊는다.
+ping을 보낸 뒤 정해진 시간 내에 pong이 안 오면 죽은 연결로 간주하고 끊는다.
+
+## Heartbeat와 ping-pong
+
+WebSocket 연결이 논리적으로는 살아있지만 실제로는 죽은 상태가 될 수 있다. NAT 장비나 방화벽이 idle TCP 소켓을 조용히 닫아버리는 상황이다. 클라이언트도 서버도 모르고 서로 데이터가 오기를 기다리다가, 실제로 메시지를 보내려 할 때 에러가 터진다. ping/pong이 이 상태를 미리 탐지한다.
+
+TCP keepalive는 기본 간격이 2시간이라 운영에서는 무의미하다. 애플리케이션 레벨에서 직접 구현해야 한다.
+
+### 서버 주도 ping
+
+서버가 주도해서 ping을 보내는 편이 낫다. 클라이언트 수천 개가 각자 타이머를 두는 것보다 서버 한 곳에서 주기를 관리하면 dead connection 탐지가 일정하다.
+
+```javascript
+// Node.js ws 라이브러리
+const WebSocket = require('ws');
+
+const wss = new WebSocket.Server({ port: 8080 });
+const PING_INTERVAL = 25000;  // 25초
+
+wss.on('connection', (ws) => {
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
+    ws.on('error', () => ws.terminate());
+});
+
+const heartbeat = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (!ws.isAlive) {
+            ws.terminate();
+            return;
+        }
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, PING_INTERVAL);
+
+wss.on('close', () => clearInterval(heartbeat));
+```
+
+`terminate()`는 close 프레임 없이 소켓을 강제로 닫는다. 이미 죽은 연결에 close 프레임을 보내봐야 응답이 올 리 없으니 terminate가 맞다.
+
+패턴은 단순하다. 주기마다 `isAlive`를 false로 세팅하고 ping을 보낸다. pong이 오면 즉시 true로 복원한다. 다음 주기에도 false이면 연결이 죽은 것으로 판단하고 종료한다. 최대 PING_INTERVAL 안에 dead connection이 정리된다.
+
+`ws.ping()`이 호출되는 시점에 이미 TCP 연결이 끊겼다면 OS 레벨에서 에러가 발생한다. `ws` 라이브러리는 이 경우 에러 이벤트를 발생시키므로 `ws.on('error', ...)` 핸들러가 없으면 `uncaughtException`으로 프로세스가 죽는다.
+
+### Spring의 ping
+
+Spring WebSocket은 ping을 자동으로 보내지 않는다. 스케줄러로 직접 구현해야 한다.
+
+```java
+@Component
+public class WebSocketPingScheduler {
+
+    private final Map<String, WebSocketSession> sessions;
+
+    @Scheduled(fixedRate = 25000)
+    public void ping() {
+        sessions.values().forEach(session -> {
+            if (!session.isOpen()) return;
+            try {
+                session.sendMessage(new PingMessage());
+            } catch (IOException e) {
+                // 이미 끊긴 세션
+            }
+        });
+    }
+}
+```
+
+pong 수신 시점을 기록해야 한다면 `TextWebSocketHandler` 대신 `AbstractWebSocketHandler`를 상속해서 `handleMessage()`에서 `PongMessage` 타입을 분기한다. `TextWebSocketHandler`는 pong 메시지를 조용히 무시한다.
+
+```java
+public class ChatWebSocketHandler extends AbstractWebSocketHandler {
+
+    @Override
+    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) {
+        if (message instanceof PongMessage) {
+            updateLastPong(session.getId());
+            return;
+        }
+        // 일반 메시지 처리
+    }
+}
+```
+
+### 애플리케이션 레벨 heartbeat
+
+ping/pong 컨트롤 프레임이 일부 환경에서 중간 프록시에 필터링되는 경우가 있다. 이 경우 데이터 프레임으로 heartbeat를 구현한다.
+
+```javascript
+// 클라이언트
+ws.onopen = () => {
+    const timer = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+        }
+    }, 30000);
+    ws.addEventListener('close', () => clearInterval(timer));
+};
+
+// 서버
+ws.on('message', (data) => {
+    const msg = JSON.parse(data);
+    if (msg.type === 'ping') {
+        ws.send(JSON.stringify({ type: 'pong' }));
+        return;
+    }
+    // 실제 메시지 처리
+});
+```
+
+컨트롤 프레임 ping보다 페이로드가 크고 애플리케이션 코드에서 분기해야 한다. 컨트롤 프레임 ping이 잘 동작하는 환경이라면 굳이 쓸 필요가 없다. 다만 둘을 같이 쓰기도 한다. 서버는 프로토콜 ping으로 dead connection을 탐지하고, 클라이언트는 애플리케이션 ping으로 자신이 여전히 활성 상태임을 서버에 알리는 방식이다.
 
 ## Close Frame 코드 전수 정리
 
@@ -635,39 +746,209 @@ eventSource.onerror = () => {
 
 ## 다중 서버 확장
 
-WebSocket은 stateful한 연결이라 라운드 로빈으로 메시지를 흩뿌릴 수 없다. 같은 방의 사용자 A, B가 다른 서버에 접속해 있으면 A의 메시지를 B에게 전달할 경로가 필요하다.
+WebSocket은 stateful한 연결이라 라운드 로빈으로 메시지를 흩뿌릴 수 없다. 같은 방의 사용자 A, B가 다른 서버에 접속해 있으면 A의 메시지를 B에게 전달할 경로가 없다.
+
+### Sticky Session의 역할과 한계
+
+Sticky session(세션 어피니티)은 같은 클라이언트의 요청을 항상 같은 서버로 보내는 LB 설정이다. WebSocket 자체는 TCP 연결이 유지되는 동안 이미 같은 서버와 통신한다. Sticky session이 필수적인 상황은 Socket.IO long polling 폴백처럼 HTTP 요청이 분리되는 경우다. 각 요청이 다른 서버로 가면 세션을 찾지 못해 핸드셰이크가 깨진다.
+
+근본적인 한계가 두 가지다. 하나는 서버 한 대가 죽으면 그 서버에 붙어있던 모든 연결이 끊긴다는 점이다. 재접속은 가능하지만 인메모리 상태(방 멤버십, 타이핑 상태, 미전송 메시지)는 사라진다. 상태가 프로세스 메모리에 있는 한 sticky session은 장애 복구 수단이 되지 못한다.
+
+다른 하나는 브로드캐스트 문제다. 서버 A에 연결된 클라이언트 10명, 서버 B에 연결된 클라이언트 10명이 같은 채팅방에 있을 때, 서버 A가 받은 메시지는 서버 B의 클라이언트들에게 전달할 경로가 없다. 이것이 메시지 브로커가 필요한 이유다.
+
+### Redis pub/sub로 브로드캐스트 해결
+
+각 서버가 Redis 채널을 구독하고 있으면, 어느 서버가 메시지를 받든 Redis에 publish하는 즉시 모든 서버가 수신해서 자기 서버에 연결된 클라이언트에게 전달한다.
 
 ```
-                    ┌──────────┐
-Client A ───────── │ Server 1 │
-                    │  (WS)    │──┐
-                    └──────────┘  │
-                                  ├── Redis Pub/Sub ─── 메시지 동기화
-                    ┌──────────┐  │
-Client B ───────── │ Server 2 │──┘
-                    │  (WS)    │
-                    └──────────┘
-
-→ Client A가 보낸 메시지를 Server 2의 Client B도 수신
+Client A ──▶ Server 1 ──publish──▶ Redis Channel "room:chat"
+                                          │
+                              ┌───────────┴───────────┐
+                           subscribe               subscribe
+                              │                       │
+                           Server 1               Server 2
+                              │                       │
+                           Client A             Client B, C
 ```
+
+Server 1은 자신에게 연결된 Client A에게, Server 2는 Client B, C에게 전달한다. 각 서버는 자기 서버에 연결된 클라이언트 목록만 관리하면 된다.
+
+#### Node.js + ioredis
+
+```javascript
+const Redis = require('ioredis');
+const WebSocket = require('ws');
+
+// publisher와 subscriber는 반드시 별개 연결
+const publisher = new Redis({ host: 'redis-host', port: 6379 });
+const subscriber = new Redis({ host: 'redis-host', port: 6379 });
+
+const wss = new WebSocket.Server({ port: 8080 });
+const rooms = new Map();  // roomId -> Set<WebSocket>
+
+wss.on('connection', (ws) => {
+    let currentRoom = null;
+
+    ws.on('message', async (data) => {
+        const msg = JSON.parse(data);
+
+        if (msg.type === 'join') {
+            currentRoom = msg.room;
+            if (!rooms.has(currentRoom)) rooms.set(currentRoom, new Set());
+            rooms.get(currentRoom).add(ws);
+            return;
+        }
+
+        if (msg.type === 'chat' && currentRoom) {
+            await publisher.publish(`room:${currentRoom}`, JSON.stringify({
+                from: msg.userId,
+                text: msg.text,
+                room: currentRoom,
+            }));
+        }
+    });
+
+    ws.on('close', () => {
+        if (currentRoom && rooms.has(currentRoom)) {
+            rooms.get(currentRoom).delete(ws);
+        }
+    });
+});
+
+// 패턴 구독으로 모든 room 채널 수신
+subscriber.psubscribe('room:*');
+subscriber.on('pmessage', (pattern, channel, message) => {
+    const roomId = channel.replace('room:', '');
+    const roomClients = rooms.get(roomId);
+    if (!roomClients) return;
+
+    roomClients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+});
+```
+
+publisher와 subscriber는 별개 Redis 연결이어야 한다. ioredis는 subscribe 모드에 진입하면 publish 명령을 실행할 수 없다. 같은 연결을 쓰면 런타임 오류가 난다.
+
+`pmessage` 이벤트는 일반 subscribe의 `message`와 달리 `(pattern, channel, message)` 인자 순서다. `message` 이벤트를 그대로 쓰다가 인자가 달라 데이터가 밀리는 실수가 흔하다.
+
+#### Socket.IO Redis Adapter
+
+Socket.IO를 쓴다면 `@socket.io/redis-adapter`가 위의 과정을 추상화한다.
+
+```javascript
+const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const { createClient } = require('redis');
+
+const pubClient = createClient({ url: 'redis://redis-host:6379' });
+const subClient = pubClient.duplicate();
+
+await Promise.all([pubClient.connect(), subClient.connect()]);
+
+const io = new Server(server);
+io.adapter(createAdapter(pubClient, subClient));
+
+io.on('connection', (socket) => {
+    socket.on('join-room', (roomId) => socket.join(roomId));
+
+    socket.on('chat', (data) => {
+        // 다른 서버에 연결된 클라이언트도 수신
+        io.to(data.room).emit('message', data);
+    });
+});
+```
+
+`io.to(roomId).emit()`이 내부적으로 Redis pub/sub을 통해 모든 서버에 전달한다. 방 멤버십도 Redis에 동기화된다.
+
+#### Spring Boot + Redis pub/sub
 
 ```java
-// Spring + 외부 STOMP 브로커
 @Configuration
-@EnableWebSocketMessageBroker
-public class StompConfig implements WebSocketMessageBrokerConfigurer {
+public class RedisConfig {
+
+    @Bean
+    public RedisMessageListenerContainer redisContainer(
+            RedisConnectionFactory factory,
+            ChatMessageSubscriber subscriber) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(factory);
+        container.addMessageListener(subscriber, new PatternTopic("room:*"));
+        return container;
+    }
+}
+
+@Service
+@RequiredArgsConstructor
+public class ChatService {
+
+    private final RedisTemplate<String, String> redisTemplate;
+    private final Map<String, Set<WebSocketSession>> rooms = new ConcurrentHashMap<>();
+
+    public void joinRoom(String roomId, WebSocketSession session) {
+        rooms.computeIfAbsent(roomId, k -> ConcurrentHashMap.newKeySet()).add(session);
+    }
+
+    public void leaveRoom(String roomId, WebSocketSession session) {
+        Set<WebSocketSession> room = rooms.get(roomId);
+        if (room != null) room.remove(session);
+    }
+
+    public void sendToRoom(String roomId, String message) {
+        redisTemplate.convertAndSend("room:" + roomId, message);
+    }
+}
+
+@Component
+@RequiredArgsConstructor
+public class ChatMessageSubscriber implements MessageListener {
+
+    private final Map<String, Set<WebSocketSession>> rooms;
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableStompBrokerRelay("/topic", "/queue")
-              .setRelayHost("rabbitmq-host")
-              .setRelayPort(61613);
-        config.setApplicationDestinationPrefixes("/app");
+    public void onMessage(Message message, byte[] pattern) {
+        String channel = new String(message.getChannel());
+        String roomId = channel.replace("room:", "");
+        String body = new String(message.getBody());
+
+        Set<WebSocketSession> sessions = rooms.get(roomId);
+        if (sessions == null) return;
+
+        sessions.forEach(session -> {
+            if (!session.isOpen()) return;
+            try {
+                synchronized (session) {
+                    session.sendMessage(new TextMessage(body));
+                }
+            } catch (IOException e) {
+                // 이미 끊긴 세션
+            }
+        });
     }
 }
 ```
 
-브로커 선택은 트래픽 패턴에 따른다. 메시지 보존이 필요 없는 채팅이면 Redis pub/sub이 가벼우면서 빠르다. 메시지 유실이 곤란한 알림이면 RabbitMQ나 Kafka를 두고 ack 기반으로 처리한다.
+`synchronized (session)` 블록은 Spring WebSocket 제약 때문이다. `sendMessage()`는 동시 호출이 금지되어 있고, Redis 메시지 리스너는 별도 스레드에서 실행된다. 락 없이 여러 방의 메시지가 동시에 한 세션으로 전송되면 프레임이 섞인다.
+
+Spring STOMP를 쓴다면 `enableStompBrokerRelay`로 RabbitMQ 같은 외부 브로커를 연결하는 방법도 있다.
+
+```java
+@Override
+public void configureMessageBroker(MessageBrokerRegistry config) {
+    config.enableStompBrokerRelay("/topic", "/queue")
+          .setRelayHost("rabbitmq-host")
+          .setRelayPort(61613);
+    config.setApplicationDestinationPrefixes("/app");
+}
+```
+
+### Redis pub/sub의 한계
+
+Redis pub/sub은 fire-and-forget이다. 서버가 재시작 중이거나 Redis 연결이 순간 끊기면 그 사이에 온 메시지는 소실된다. 수신 확인이 없다.
+
+채팅, 실시간 커서 공유, 게임 상태 동기화처럼 유실이 일어나도 무시하거나 재요청할 수 있는 도메인에는 충분하다. 결제 알림, 송금 완료처럼 유실이 허용되지 않는 경우는 Redis Streams나 Kafka처럼 영속성과 소비자 그룹이 있는 시스템을 써야 한다.
 
 ## 프록시/LB 트러블슈팅
 
@@ -814,6 +1095,9 @@ net.core.wmem_max = 16777216           # 소켓 송신 버퍼 최대
 
 ## 보안
 
+![보안 통신 개념 도식](../../assets/images/auto/통신/3c8e23c3.jpg)
+
+
 WebSocket은 양방향이라 HTTP보다 보안 표면이 넓다. 핸드셰이크 시점만 인증하고 끝내면 토큰 만료 후에도 연결이 살아 있어 권한 우회가 가능하다.
 
 `wss://`(TLS)는 프로덕션에서 선택이 아니다. 평문 ws://는 ISP, 카페 와이파이 등 모든 중간자가 메시지를 읽고 변조할 수 있다. TLS 종단을 LB에서 처리하더라도 LB와 백엔드 사이 트래픽도 암호화하는 것이 안전하다.
@@ -837,3 +1121,4 @@ JSON 파싱은 입력 검증의 첫 관문이다. 깊이 무제한 중첩, 거�
 - [STOMP over WebSocket](https://stomp.github.io/stomp-specification-1.2.html)
 - [네트워크 프로토콜](Protocol.md) — HTTP, TCP, UDP 개요
 - [Nginx 리버스 프록시](../../WebServer/Nginx/Reverse_Proxy_and_Load_Balancing.md) — WebSocket 프록시 설정
+
