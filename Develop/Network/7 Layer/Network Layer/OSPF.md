@@ -7,8 +7,9 @@ tags:
   - IGP
   - LinkState
   - Dijkstra
-  - RIP
-updated: 2026-06-22
+  - FRRouting
+  - Quagga
+updated: 2026-07-25
 ---
 
 # OSPF — 내부망을 굴리는 Link-State 라우팅
@@ -19,7 +20,7 @@ BGP가 AS와 AS 사이를 잇는다면, AS 안에서 실제로 패킷이 어느 
 
 서버 운영을 하다 보면 OSPF를 직접 설정할 일은 많지 않다. 보통 네트워크 팀이 세팅해둔다. 그런데 "특정 서버 대역으로 가는 경로가 갑자기 우회한다", "회선 하나 끊겼는데 복구가 30초 넘게 걸린다", "데이터센터 두 동 사이 트래픽이 한쪽 링크로만 몰린다" 같은 문제가 터지면 OSPF를 모르고는 원인을 못 짚는다. 패킷이 왜 그 길로 가는지 추적하려면 라우팅 테이블이 어떻게 채워지는지 알아야 한다.
 
-이 문서는 OSPF가 Link-State 방식으로 어떻게 경로를 계산하는지, Area 구조가 왜 필요한지, Dijkstra가 라우팅 테이블에 어떻게 박히는지, DR/BDR 선출이 왜 생겼는지, 그리고 옛날 프로토콜인 RIP와 뭐가 다르고 왜 OSPF가 그걸 밀어냈는지를 다룬다. 마지막에 데이터센터 내부 라우팅에서 실제로 부딪히는 상황을 정리한다.
+이 문서는 OSPF가 Link-State 방식으로 어떻게 경로를 계산하는지, Area 구조가 왜 필요한지, ABR이 구체적으로 무슨 역할을 하는지, Neighbor 상태 머신이 어떻게 동작하는지, 그리고 FRRouting 기반으로 실제 설정하는 방법과 EXSTART/2WAY에서 막히는 상황의 트러블슈팅을 다룬다.
 
 ## Distance-Vector와 Link-State
 
@@ -43,25 +44,56 @@ Link-State (OSPF):
   → 각자 Dijkstra로 최단 경로 직접 계산
 ```
 
-## LSA flooding과 LSDB 동기화
+## Neighbor 상태 머신
+
+OSPF가 이웃과 인접 관계를 맺는 과정은 단계별로 진행된다. `show ip ospf neighbor`를 쳤을 때 나오는 State 칸이 이 단계를 가리킨다. 이걸 모르면 "왜 Full이 안 되지"부터 막힌다.
+
+```
+Down → Init → 2-Way → ExStart → Exchange → Loading → Full
+```
+
+각 단계의 의미다.
+
+**Down**: Hello를 아직 받지 못한 상태. 인터페이스에 OSPF를 켰지만 이웃이 없거나, Dead 타이머가 만료돼 이웃 정보가 지워졌을 때.
+
+**Init**: 상대방 Hello를 받았지만, 그 Hello 안에 내 Router ID가 없다. 단방향 통신 상태다. 내 Hello가 상대에게 아직 닿지 않았거나 파라미터 불일치로 무시되고 있을 때.
+
+**2-Way**: 서로의 Hello에 상대방 Router ID가 포함된 상태. 양방향 통신이 확인됐다. **이더넷 세그먼트에서 DR도 BDR도 아닌 라우터끼리는 여기서 멈추는 게 정상이다.** DROther와 DROther 사이는 LSDB 동기화를 하지 않는다.
+
+**ExStart**: DB Description(DD) 패킷을 주고받으며 Master/Slave를 정하고 초기 시퀀스 번호를 협상하는 단계. Master가 먼저 DD를 보내고, Slave가 같은 시퀀스 번호로 응답한다. **실무에서 가장 자주 막히는 구간이다.**
+
+**Exchange**: DD 패킷으로 각자의 LSDB 목록을 교환하는 단계. 어떤 LSA를 갖고 있는지 목록만 주고받는다.
+
+**Loading**: Exchange 결과 상대방이 가진 LSA 중 내가 없는 것들을 LSR(Link-State Request)로 요청해서 LSU(Link-State Update)로 받는 단계.
+
+**Full**: LSDB 동기화가 완료된 정상 인접 상태. DR, BDR과의 관계, 그리고 point-to-point 링크에서는 이 상태여야 정상이다.
+
+## LSA flooding과 LSDB 수렴 과정
 
 OSPF가 켜진 라우터는 먼저 이웃을 찾는다. 인터페이스마다 Hello 패킷을 주기적으로(이더넷 기본 10초) 멀티캐스트로 뿌린다. 목적지는 224.0.0.5(모든 OSPF 라우터)다. 서로 Hello를 주고받으면서 Router ID, Area ID, Hello/Dead 간격, 인증 같은 파라미터가 맞으면 이웃(neighbor) 관계를 맺는다.
 
-여기서 주의할 게 있다. Hello/Dead 간격이나 Area ID가 한쪽이라도 다르면 인접 관계가 안 맺어진다. 양쪽 인터페이스를 다 OSPF에 넣었는데도 neighbor가 안 뜨면 십중팔구 이 파라미터 불일치나 서브넷 마스크 불일치다. MTU도 맞아야 한다. 한쪽이 점보 프레임이고 한쪽이 1500이면 DBD 교환 단계(ExStart/Exchange)에서 멈춰버린다. 이건 디버깅할 때 정말 헷갈리는 증상이다. Hello는 잘 가는데 인접 관계가 Full로 안 올라가고 ExStart에서 막혀 있으면 MTU부터 의심해야 한다.
+Hello/Dead 간격이나 Area ID가 한쪽이라도 다르면 인접 관계가 안 맺어진다. 양쪽 인터페이스를 다 OSPF에 넣었는데도 neighbor가 안 뜨면 십중팔구 이 파라미터 불일치나 서브넷 마스크 불일치다.
 
 이웃을 맺으면 LSDB를 동기화한다. 서로 자기가 가진 LSA 목록(DBD, Database Description)을 교환하고, 빠진 게 있으면 요청(LSR)해서 받아온다(LSU). 이 과정이 끝나면 두 라우터의 LSDB가 같아진다. 그 뒤로는 토폴로지가 바뀔 때마다(링크 다운, 새 네트워크 추가) 변경된 LSA만 flooding한다.
 
 LSA는 그냥 무한정 퍼지지 않는다. 각 LSA에는 시퀀스 번호와 age가 있다. 같은 LSA를 또 받으면 시퀀스 번호를 비교해서 더 최신 것만 받아들이고, 자기가 이미 가진 것과 같으면 버린다. 그래서 flooding이 폭주하지 않고 수렴한다. age가 3600초(MaxAge)에 도달하면 그 LSA는 폐기된다. 그리고 안정 상태에서도 30분(LSRefreshTime)마다 LSA를 갱신해서 다시 뿌린다. 이게 평소에도 약간씩 도는 OSPF 트래픽의 정체다.
 
+LSA 타입은 역할에 따라 구분된다.
+
+```
+Type 1 (Router-LSA): 각 라우터가 자기 링크 정보를 광고. Area 안에서만 flooding.
+Type 2 (Network-LSA): DR이 브로드캐스트 세그먼트를 대표해서 광고. Area 안에서만 flooding.
+Type 3 (Summary-LSA): ABR이 Area 경계를 넘겨줄 때 생성. 다른 Area로 넘어가는 요약 경로.
+Type 5 (AS-External-LSA): ASBR이 외부 경로를 OSPF로 재분배할 때 생성. 전체 도메인에 flooding.
+```
+
+Type 1, 2는 Area 내부에서만 돈다. Area 바깥으로는 ABR이 Type 3으로 요약해서 넘긴다. Type 5는 전체 도메인을 돌아다니기 때문에 외부 경로가 많으면 LSDB가 금방 커진다.
+
 ## Dijkstra SPF 계산
 
 LSDB가 동기화되면 각 라우터는 자기를 루트로 하는 최단 경로 트리(SPT, Shortest Path Tree)를 Dijkstra로 계산한다. 이걸 SPF(Shortest Path First) 계산이라고 부른다. OSPF라는 이름의 그 SPF다.
 
-Dijkstra는 그래프에서 한 노드에서 다른 모든 노드까지의 최단 경로를 구하는 알고리즘이다. OSPF에서 노드는 라우터와 네트워크, 간선의 가중치는 링크 비용(cost)이다.
-
-비용은 인터페이스마다 붙는다. 시스코 기본 공식은 `10^8 / 대역폭(bps)`이다. 100Mbps 인터페이스면 비용 1, 10Mbps면 10이다. 문제는 기준 대역폭(reference bandwidth)이 10^8, 즉 100Mbps로 고정돼 있어서 1Gbps나 10Gbps나 100Gbps나 다 비용이 1로 똑같이 계산된다는 점이다. 요즘 데이터센터는 다 10G/40G/100G인데 기본값을 그대로 두면 OSPF가 10G 링크와 100G 링크를 같은 비용으로 보고 트래픽을 나눠 보낸다. 그래서 `auto-cost reference-bandwidth`를 100000(100Gbps) 같은 값으로 올려줘야 한다. 이걸 안 맞춰서 트래픽이 느린 링크로 새는 경우가 실제로 있다. 단, 이 값은 OSPF 도메인 안의 모든 라우터에서 똑같이 맞춰야 한다. 한 대만 바꾸면 그 라우터만 비용 계산이 달라져서 경로가 꼬인다.
-
-SPF 계산은 간단히 이렇게 진행된다. 자기를 루트로 놓고, 아직 확정 안 된 노드 중 누적 비용이 가장 작은 노드를 하나씩 트리에 편입한다. 편입할 때마다 그 노드에 붙은 이웃들의 누적 비용을 갱신한다. 모든 노드가 트리에 들어가면 끝이다. 그 트리에서 각 목적지로 가는 첫 홉이 라우팅 테이블의 next-hop이 된다.
+비용은 인터페이스마다 붙는다. 기본 공식은 `10^8 / 대역폭(bps)`이다. 100Mbps 인터페이스면 비용 1, 10Mbps면 10이다. 문제는 기준 대역폭(reference bandwidth)이 10^8, 즉 100Mbps로 고정돼 있어서 1Gbps나 10Gbps나 100Gbps나 다 비용이 1로 똑같이 계산된다는 점이다. 요즘 데이터센터는 다 10G/40G/100G인데 기본값을 그대로 두면 OSPF가 10G 링크와 100G 링크를 같은 비용으로 보고 트래픽을 나눠 보낸다. `auto-cost reference-bandwidth`를 100000(100Gbps)으로 올려줘야 한다. 단, 이 값은 OSPF 도메인 안의 모든 라우터에서 똑같이 맞춰야 한다. 한 대만 바꾸면 그 라우터만 비용 계산이 달라져서 경로가 꼬인다.
 
 ```
        A
@@ -96,45 +128,410 @@ Area 0은 특별하다. Backbone Area라고 부르고, 모든 다른 Area는 반
 - ASBR(AS Boundary Router): OSPF 도메인 바깥(BGP, static, 다른 IGP)에서 들어온 경로를 OSPF로 재분배(redistribute)하는 라우터.
 
 ```
-        [Area 1]            [Area 0 - Backbone]            [Area 2]
-   R1 --- R2 --- ABR1 ------------ R3 ------------ ABR2 --- R4 --- R5
-                  |                                  |
-            Area1/Area0                        Area0/Area2
+[Area 1]            [Area 0 - Backbone]            [Area 2]
+R1 --- R2 --- ABR1 ------------ R3 ------------ ABR2 --- R4 --- R5
+               |                                  |
+         Area1/Area0                        Area0/Area2
 
-   Area 1 내부 변경 → Area 1에서만 flooding
-   ABR1이 Area 1 대역을 요약해 Area 0로 광고
-   Area 1에서 Area 2 가는 트래픽: R1 → ABR1 → R3 → ABR2 → R4
+Area 1 내부 변경 → Area 1에서만 flooding
+ABR1이 Area 1 대역을 요약해 Area 0로 광고 (Type 3 Summary LSA)
+Area 1에서 Area 2 가는 트래픽: R1 → ABR1 → R3 → ABR2 → R4
 ```
 
-ABR이 만드는 요약 LSA(Summary LSA, Type 3) 덕분에 다른 Area는 상세 토폴로지를 몰라도 된다. 다만 이 요약이 자동으로 대역을 합쳐주는 건 아니다. 기본적으로는 Area 안의 모든 네트워크를 그대로 Type 3으로 넘긴다. 진짜로 대역을 한 줄로 합치려면 ABR에서 `area range`로 명시적으로 요약을 걸어야 한다. 이걸 안 하면 Area를 나눈 의미가 절반만 산다. 대역 설계를 연속된 블록으로 해놔야 요약이 깔끔하게 떨어진다. 데이터센터에서 Area 대역을 띄엄띄엄 잘라놓으면 요약이 안 돼서 백본에 라우트가 잔뜩 올라온다.
+### ABR의 역할과 대역 요약
 
-Stub Area라는 것도 있다. 외부 경로(Type 5 LSA)를 안 받고 기본 경로(default route)로 퉁치는 Area다. 말단 Area에서 라우팅 테이블 크기를 줄이려고 쓴다. 어차피 바깥으로 나가는 길은 ABR 하나뿐이니 상세 외부 경로를 다 받을 필요가 없다.
+ABR이 만드는 요약 LSA(Summary LSA, Type 3) 덕분에 다른 Area는 상세 토폴로지를 몰라도 된다. ABR은 각 Area의 LSDB를 별도로 유지하면서 두 세계의 중개자 역할을 한다.
+
+ABR이 Summary LSA를 만드는 방식은 두 가지다.
+
+기본 동작은 Area 안의 모든 네트워크를 /prefix 단위 그대로 Type 3으로 넘기는 거다. Area 1에 10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24 세 대역이 있으면, 세 개의 Type 3 LSA가 Area 0으로 올라간다.
+
+대역 요약은 ABR에서 `area range` 명령으로 명시적으로 걸어야 한다. 위 세 대역을 10.1.0.0/22 하나로 묶으면 Area 0으로는 Type 3 LSA가 하나만 올라간다. LSDB 크기가 줄고, Area 1 내부 토폴로지 변경이 Area 0 SPF에 영향을 주지 않는다.
+
+`area range`를 안 걸면 Area를 나눈 효과가 절반만 산다. 대역 설계를 연속 블록으로 해놔야 요약이 깔끔하게 떨어진다. 데이터센터에서 Area 대역을 띄엄띄엄 잘라놓으면 요약이 안 돼서 백본에 라우트가 잔뜩 올라온다.
+
+Stub Area는 외부 경로(Type 5 LSA)를 안 받고 기본 경로(default route)로 퉁치는 Area다. 말단 Area에서 라우팅 테이블 크기를 줄이려고 쓴다. 어차피 바깥으로 나가는 길은 ABR 하나뿐이니 상세 외부 경로를 다 받을 필요가 없다.
 
 ## DR/BDR 선출
 
-이더넷 같은 멀티액세스 네트워크에서는 한 세그먼트에 라우터가 여러 대 붙는다. 스위치 하나에 라우터 5대가 물려 있다고 하자. 이들이 전부 서로 인접 관계를 맺으면 풀 메시가 된다. 5대면 10개의 인접 관계다. 그리고 각자 LSA를 모두에게 flooding하면 같은 정보가 중복으로 엄청 돈다. iBGP 풀 메시 문제와 비슷한 상황이다.
+이더넷 같은 멀티액세스 네트워크에서는 한 세그먼트에 라우터가 여러 대 붙는다. 스위치 하나에 라우터 5대가 물려 있다고 하자. 이들이 전부 서로 인접 관계를 맺으면 풀 메시가 된다. 5대면 10개의 인접 관계다. 그리고 각자 LSA를 모두에게 flooding하면 같은 정보가 중복으로 엄청 돈다.
 
-OSPF는 이걸 DR(Designated Router)과 BDR(Backup Designated Router)로 푼다. 세그먼트에서 라우터 한 대를 DR로 뽑는다. 모든 라우터는 DR하고만 완전한 인접 관계(Full)를 맺는다. LSA는 DR로 보내고(224.0.0.6), DR이 세그먼트의 모든 라우터에게 다시 뿌린다(224.0.0.5). 이러면 N대가 풀 메시로 떠드는 대신 DR을 중심으로 한 별 모양이 된다. 인접 관계 수가 확 준다.
+OSPF는 이걸 DR(Designated Router)과 BDR(Backup Designated Router)로 푼다. 세그먼트에서 라우터 한 대를 DR로 뽑는다. 모든 라우터는 DR하고만 완전한 인접 관계(Full)를 맺는다. LSA는 DR로 보내고(224.0.0.6), DR이 세그먼트의 모든 라우터에게 다시 뿌린다(224.0.0.5). 이러면 N대가 풀 메시로 떠드는 대신 DR을 중심으로 한 별 모양이 된다.
 
-BDR은 DR이 죽었을 때 즉시 대신하는 백업이다. DR과 같이 LSA를 다 듣고 있다가 DR이 사라지면 BDR이 DR로 승격한다. DR 죽고 나서 처음부터 선출하면 그동안 라우팅이 끊기니까 미리 백업을 정해둔다.
+BDR은 DR이 죽었을 때 즉시 대신하는 백업이다. DR과 같이 LSA를 다 듣고 있다가 DR이 사라지면 BDR이 DR로 승격한다.
 
 선출 기준은 두 가지다. 먼저 인터페이스 OSPF priority가 높은 라우터가 DR이 된다. priority가 0이면 아예 후보에서 빠진다. priority가 같으면 Router ID가 높은 라우터가 이긴다. Router ID는 명시적으로 지정 안 하면 가장 높은 루프백 IP, 루프백이 없으면 가장 높은 활성 인터페이스 IP가 된다.
 
-여기서 운영자가 자주 헷갈리는 함정이 있다. OSPF DR 선출은 선점(preempt)을 안 한다. 이미 DR이 정해진 세그먼트에 priority가 더 높은 라우터를 새로 넣어도 그 라우터는 DR이 안 된다. 기존 DR이 살아 있는 한 그대로다. priority는 어디까지나 "DR이 없을 때 누구를 뽑을지"의 기준이다. 그래서 의도한 라우터를 DR로 만들고 싶으면 그 라우터를 먼저 켜거나, OSPF 프로세스를 재시작해서 재선출을 유도해야 한다. 멀쩡히 도는 망에 라우터 추가했는데 DR이 안 바뀐다고 설정이 틀렸다고 오해하기 쉽다.
+여기서 운영자가 자주 헷갈리는 함정이 있다. OSPF DR 선출은 선점(preempt)을 안 한다. 이미 DR이 정해진 세그먼트에 priority가 더 높은 라우터를 새로 넣어도 그 라우터는 DR이 안 된다. 기존 DR이 살아 있는 한 그대로다. priority는 어디까지나 "DR이 없을 때 누구를 뽑을지"의 기준이다. 그래서 의도한 라우터를 DR로 만들고 싶으면 그 라우터를 먼저 켜거나, OSPF 프로세스를 재시작해서 재선출을 유도해야 한다.
 
 point-to-point 링크(라우터 두 대만 직접 연결)에서는 DR/BDR을 안 뽑는다. 어차피 둘뿐이라 선출이 무의미하다. 그래서 데이터센터에서 라우터 간 링크를 일부러 `ip ospf network point-to-point`로 잡아주는 경우가 많다. 이러면 DR 선출 과정을 건너뛰어서 인접 관계가 더 빨리 올라온다. 이더넷인데도 라우터 둘만 직결돼 있으면 굳이 멀티액세스로 둘 이유가 없다.
 
+## FRRouting 기반 실제 설정
+
+FRRouting(FRR)은 Quagga에서 포크된 프로젝트다. Quagga는 2000년대 초부터 리눅스에서 동적 라우팅을 돌리는 표준이었는데 유지보수가 느려지면서 2017년에 FRR이 나왔다. 지금은 FRR이 사실상 대체재다. 설정 문법은 Cisco IOS와 거의 동일해서 네트워크 장비 다뤄본 사람이면 바로 익숙하다.
+
+### 설치와 데몬 활성화
+
+```bash
+# Ubuntu/Debian
+apt install frr
+
+# ospfd를 켜야 한다. 기본값은 no로 꺼져 있다.
+vi /etc/frr/daemons
+# ospfd=yes 로 수정
+
+systemctl restart frr
+systemctl status frr
+```
+
+설정은 vtysh로 한다.
+
+```bash
+# 설정 셸 진입
+vtysh
+
+# 설정 저장 (running config → startup config)
+write memory
+
+# 현재 설정 확인
+show running-config
+```
+
+### 기본 설정 — 단일 Area
+
+라우터 세 대(R1, R2, R3)가 Area 0에 있고, 각자 서버 대역이 붙어 있는 구성이다.
+
+```
+R1 (10.0.12.1/30) ---- (10.0.12.2/30) R2 (10.0.23.1/30) ---- (10.0.23.2/30) R3
+   10.1.0.0/24                            10.2.0.0/24                            10.3.0.0/24
+```
+
+R1 vtysh 설정:
+
+```
+configure terminal
+
+interface lo
+ ip address 1.1.1.1/32
+!
+interface eth0
+ ip address 10.0.12.1/30
+ ip ospf network point-to-point
+ ip ospf hello-interval 1
+ ip ospf dead-interval 4
+!
+interface eth1
+ ip address 10.1.0.1/24
+!
+router ospf
+ ospf router-id 1.1.1.1
+ auto-cost reference-bandwidth 100000
+ passive-interface default
+ no passive-interface eth0
+ network 10.0.12.0/30 area 0
+ network 10.1.0.0/24 area 0
+ network 1.1.1.1/32 area 0
+!
+end
+write memory
+```
+
+설정에서 짚을 부분이 있다.
+
+`ospf router-id`는 명시적으로 박는 게 낫다. 안 박으면 FRR이 루프백 IP나 인터페이스 IP 중 가장 높은 걸 고르는데, 인터페이스 IP가 바뀌면 Router ID도 따라 바뀌어서 OSPF가 재수렴한다. 루프백에 /32를 박고 그걸 Router ID로 쓰는 게 관행이다.
+
+`auto-cost reference-bandwidth 100000`은 기준 대역폭을 100Gbps(100000 Mbps)로 설정한다. 기본값(100Mbps)을 그대로 두면 1G 이상 링크의 cost가 전부 1이 되어서 ECMP 계산이 무의미해진다. OSPF 도메인 전체 라우터에서 같은 값으로 맞춰야 한다.
+
+`passive-interface default` 후 `no passive-interface eth0` 패턴은 서버 대역 인터페이스를 기본으로 passive로 묶고, 라우터 간 링크만 선택적으로 여는 방식이다. passive 인터페이스는 Hello를 보내지 않아서 서버 쪽으로 OSPF 패킷이 새지 않는다. 대역은 여전히 OSPF에 광고된다.
+
+`ip ospf network point-to-point`는 라우터 간 직결 링크에서 DR/BDR 선출을 건너뛴다. 두 라우터만 있는 링크에서 DR 선출은 무의미하고 수렴 속도만 늦춘다.
+
+### Area 구성 — ABR 설정
+
+Area 0 코어와 Area 1 서버 팜을 ABR이 이어주는 구성이다.
+
+```
+[Area 1]                    [Area 0]
+R-Edge ---- ABR ---- R-Core
+10.1.0.0/24
+10.1.1.0/24
+10.1.2.0/24
+```
+
+ABR vtysh 설정:
+
+```
+configure terminal
+
+interface lo
+ ip address 10.10.10.10/32
+!
+interface eth0
+ description Area0-uplink
+ ip address 10.0.0.1/30
+ ip ospf network point-to-point
+!
+interface eth1
+ description Area1-downlink
+ ip address 10.1.254.1/30
+ ip ospf network point-to-point
+!
+router ospf
+ ospf router-id 10.10.10.10
+ auto-cost reference-bandwidth 100000
+ passive-interface default
+ no passive-interface eth0
+ no passive-interface eth1
+ network 10.0.0.0/30 area 0
+ network 10.1.0.0/24 area 1
+ network 10.1.1.0/24 area 1
+ network 10.1.2.0/24 area 1
+ network 10.1.254.0/30 area 1
+ area 1 range 10.1.0.0/22
+!
+end
+write memory
+```
+
+`area 1 range 10.1.0.0/22`가 핵심이다. ABR이 Area 1의 세 대역을 하나의 Type 3 Summary LSA(10.1.0.0/22)로 묶어서 Area 0으로 광고한다. 이걸 안 걸면 세 개의 /24가 그대로 Area 0에 뿌려지고, Area 1 내부 링크가 flapping할 때마다 Area 0 전체가 SPF를 다시 돌아야 한다.
+
+ABR 동작 확인:
+
+```bash
+# ABR로 인식됐는지 확인
+vtysh -c "show ip ospf"
+# "This router is an ABR" 문구가 있어야 한다
+
+# ABR이 만든 Summary LSA 확인
+vtysh -c "show ip ospf database summary"
+
+# Area별 LSDB 분리 확인
+vtysh -c "show ip ospf database database-summary"
+```
+
+### Stub Area 설정
+
+Area 1이 말단 Area라면 외부 경로(Type 5)를 받을 필요가 없다. Stub으로 만들면 ABR이 기본 경로 하나만 넣어준다.
+
+```
+# ABR에서
+router ospf
+ area 1 stub
+!
+
+# Area 1 내부 라우터에서도 동일하게 설정
+router ospf
+ area 1 stub
+!
+```
+
+Area 안의 모든 라우터에 똑같이 설정해야 한다. 한 대만 stub, 나머지는 일반이면 인접 관계가 안 맺어진다.
+
+### BFD 연동
+
+링크 감지를 밀리초 단위로 줄이려면 BFD를 붙인다.
+
+```bash
+# /etc/frr/daemons
+bfdd=yes
+
+systemctl restart frr
+```
+
+```
+configure terminal
+
+interface eth0
+ ip ospf bfd
+!
+```
+
+BFD 상태 확인:
+
+```bash
+vtysh -c "show bfd peers"
+```
+
+Hello 타이머를 1초/4초로 줄이는 것도 방법이지만, BFD가 더 정밀하다. Hello 1초는 1초 단위로 감지하는 반면 BFD는 설정에 따라 50~300ms까지 줄일 수 있다. 다만 타이머를 너무 공격적으로 줄이면 일시적인 부하나 마이크로 끊김에도 인접 관계가 떨어졌다 붙었다 하면서 SPF가 계속 돌 수 있으니 균형을 봐야 한다.
+
+## 트러블슈팅
+
+### Neighbor가 아예 안 뜨는 경우
+
+`show ip ospf neighbor`를 쳤을 때 아무것도 안 나오면 Hello 자체가 안 주고받히는 거다.
+
+**1단계: 인터페이스가 OSPF에 포함됐는지 확인**
+
+```bash
+vtysh -c "show ip ospf interface eth0"
+# "OSPF not enabled on this interface" 가 나오면 network 명령이 안 맞는 것
+```
+
+**2단계: Hello 패킷이 실제로 나가는지 확인**
+
+```bash
+# 상대 라우터 쪽에서 캡처. 89가 OSPF 프로토콜 번호.
+tcpdump -i eth0 -nn 'ip proto 89'
+# 패킷이 아예 안 보이면 인터페이스 설정 문제나 방화벽 차단
+```
+
+**3단계: 파라미터 불일치 확인**
+
+Hello가 오가는데도 neighbor가 안 뜨면 파라미터가 안 맞는 거다.
+
+```bash
+vtysh -c "show ip ospf interface eth0"
+# Hello due in X, Dead timer due in Y
+# Area (...) - Area ID 확인
+# MTU: ... - MTU 확인
+```
+
+불일치 항목: Hello/Dead 타이머, Area ID, 서브넷 마스크, 인증 설정. 양쪽 라우터에서 각각 찍어서 비교한다.
+
+**4단계: 방화벽 확인**
+
+멀티캐스트(224.0.0.5, 224.0.0.6)가 차단되거나 iptables가 proto 89를 드롭하면 Hello가 막힌다.
+
+```bash
+iptables -L -n -v | grep -i drop
+# 또는 OSPF 패킷 캡처로 직접 확인
+```
+
+### Neighbor Stuck in 2-Way
+
+`show ip ospf neighbor`에서 상태가 2-Way에서 더 안 올라가는 경우가 두 가지다.
+
+**정상인 경우**: 브로드캐스트 세그먼트에서 DR도 BDR도 아닌 라우터끼리는 2-Way/DROther가 정상이다. Full 인접 관계를 맺을 필요가 없다.
+
+```
+# 정상 출력 예시
+Neighbor ID   Pri  State             Dead Time  Address       Interface
+192.168.0.1   1    Full/DR           00:00:32   192.168.0.1   eth0
+192.168.0.2   1    Full/BDR          00:00:38   192.168.0.2   eth0
+192.168.0.3   1    2-Way/DROther     00:00:35   192.168.0.3   eth0
+```
+
+192.168.0.3과 2-Way/DROther인 건 문제가 아니다. 이 라우터와 나 모두 DR이 아니기 때문이다.
+
+**문제인 경우**: DR이나 BDR과의 관계가 2-Way에서 Full로 못 올라갈 때다.
+
+원인 1 — Network type 불일치. 한쪽은 broadcast, 한쪽은 point-to-point로 설정돼 있으면 동작 방식이 달라서 Full로 안 올라간다.
+
+```bash
+vtysh -c "show ip ospf interface eth0"
+# "Network Type Broadcast" 또는 "Network Type Point-to-Point" 확인
+# 양쪽이 같아야 한다
+```
+
+원인 2 — 양쪽 모두 priority 0. priority 0은 DR/BDR 선출 후보에서 빠진다는 뜻이다. 브로드캐스트 세그먼트에서 양쪽 다 priority 0이면 DR이 선출되지 않는다.
+
+```bash
+vtysh -c "show ip ospf interface eth0"
+# "OSPF Interface Priority: 0" 이 양쪽 다 나오면 DR 선출 불가
+```
+
+### Neighbor Stuck in ExStart
+
+ExStart는 DD(Database Description) 패킷으로 Master/Slave를 정하는 단계다. **여기서 막히면 십중팔구 MTU 불일치다.**
+
+DD 패킷이 인터페이스 MTU보다 크면 상대방이 못 받는다. 점보 프레임(9000) 쪽에서 일반 MTU(1500) 쪽으로 DD를 보내면 조각나거나 버려진다. Hello는 작아서 잘 가는데 ExStart에서 막히는 이유가 여기 있다.
+
+확인:
+
+```bash
+# 양쪽 인터페이스 MTU 확인
+ip link show eth0
+
+# FRR이 인식하는 OSPF MTU 확인
+vtysh -c "show ip ospf interface eth0"
+# "IP MTU: ..." 항목
+
+# OSPF 패킷 캡처 (DD 패킷 크기 확인)
+tcpdump -i eth0 -nn -s 0 'ip proto 89' -w /tmp/ospf.pcap
+```
+
+해결 방법 두 가지:
+
+1. **MTU를 맞춘다.** 근본 해결이다. 양쪽 인터페이스 MTU를 같게 설정한다.
+
+2. **`ip ospf mtu-ignore` 설정.** MTU 체크를 건너뛴다. DD 패킷이 실제로 조각나는 환경에서는 근본 해결이 아니라 또 다른 문제를 만들 수 있으니 사용 전에 환경을 확인한다.
+
+```
+interface eth0
+ ip ospf mtu-ignore
+```
+
+ExStart에서 막히는 다른 원인은 Router ID 중복이다. 두 라우터가 같은 Router ID를 쓰면 Master/Slave 협상 자체가 꼬인다.
+
+```bash
+vtysh -c "show ip ospf"
+# "Router ID: ..." 확인
+# 도메인 내에서 유일해야 한다
+```
+
+### 경로가 라우팅 테이블에 없는 경우
+
+인접 관계는 Full인데 특정 대역이 라우팅 테이블에 없는 경우다. LSDB부터 순서대로 확인한다.
+
+```bash
+# LSDB에 LSA가 있는지 확인
+vtysh -c "show ip ospf database"
+
+# OSPF가 계산한 경로 테이블 확인 (ip route와 별개)
+vtysh -c "show ip ospf route"
+
+# Area 경계를 넘어오는 Summary LSA 확인 (ABR 동작)
+vtysh -c "show ip ospf database summary"
+```
+
+Area 1 대역이 Area 0 라우터에 안 보인다면 ABR의 Summary LSA 문제다. ABR에서 `area range` 설정이 실제 대역을 포함하는지, `area 1 stub`이 양쪽에 다 설정됐는지 확인한다.
+
+passive-interface 설정도 확인 대상이다. 서버 대역 인터페이스에 `no passive-interface`를 빠뜨리면 해당 대역은 OSPF가 Hello를 안 보내고, `network` 명령에 포함됐더라도 라우팅 테이블에 올라오지 않을 수 있다.
+
+### 진단 명령어 정리
+
+```bash
+# 이웃 상태 한눈에 보기
+vtysh -c "show ip ospf neighbor"
+
+# 이웃 상세 (Dead 타이머, MTU, Hello 간격)
+vtysh -c "show ip ospf neighbor detail"
+
+# 인터페이스 OSPF 설정 (network type, MTU, cost, DR/BDR)
+vtysh -c "show ip ospf interface"
+vtysh -c "show ip ospf interface eth0"
+
+# LSDB 전체 목록
+vtysh -c "show ip ospf database"
+
+# Summary LSA만 (ABR 동작 확인)
+vtysh -c "show ip ospf database summary"
+
+# OSPF 경로 테이블
+vtysh -c "show ip ospf route"
+
+# SPF 실행 횟수와 마지막 시각 (flapping 감지)
+vtysh -c "show ip ospf"
+
+# 인접 관계 이벤트 실시간 로그
+vtysh
+debug ospf adj
+terminal monitor
+# 확인 후 반드시 끈다
+no debug ospf adj
+```
+
+`debug ospf adj`는 상태 전이(Init → 2-Way → ExStart 등)를 실시간으로 찍어준다. ExStart에서 멈추면 어느 단계에서 멈추는지 정확히 보인다. 로그가 많이 나오니 확인 후 바로 꺼야 한다.
+
 ## RIP와 비교, OSPF가 대체한 이유
 
-RIP는 OSPF보다 먼저 나온 Distance-Vector 프로토콜이다. 설정이 단순해서 작은 망에서는 지금도 쓰이긴 하지만, 규모가 조금만 커져도 한계가 뚜렷하다. OSPF가 RIP를 밀어낸 이유는 명확하다.
+RIP는 OSPF보다 먼저 나온 Distance-Vector 프로토콜이다. 설정이 단순해서 작은 망에서는 지금도 쓰이긴 하지만, 규모가 조금만 커져도 한계가 뚜렷하다.
 
-첫째, RIP는 홉 수만 본다. 메트릭이 홉 카운트다. 100Mbps 회선 2홉과 1Mbps 회선 1홉이 있으면 RIP는 무조건 1홉을 고른다. 대역폭이 1/100이어도 상관 안 한다. 느린 길로 트래픽을 보낸다. OSPF는 링크 비용을 대역폭 기반으로 계산하니까 빠른 길을 고른다.
+RIP는 홉 수만 본다. 100Mbps 회선 2홉과 1Mbps 회선 1홉이 있으면 RIP는 무조건 1홉을 고른다. 대역폭이 1/100이어도 상관 안 한다. OSPF는 링크 비용을 대역폭 기반으로 계산하니까 빠른 길을 고른다.
 
-둘째, RIP는 홉 수가 15까지밖에 안 된다. 16홉이면 도달 불가로 친다. 무한 카운트(count to infinity) 문제를 막으려고 일부러 상한을 낮게 둔 거다. 그래서 큰 네트워크에서는 아예 못 쓴다. OSPF는 이런 홉 제한이 없다.
+RIP는 홉 수가 15까지밖에 안 된다. 16홉이면 도달 불가로 친다. 무한 카운트(count to infinity) 문제를 막으려고 일부러 상한을 낮게 둔 거다. 그래서 큰 네트워크에서는 아예 못 쓴다.
 
-셋째, 컨버전스가 느리다. RIP는 30초마다 전체 테이블을 이웃에게 보낸다. 링크가 끊겨도 다음 주기까지 기다려야 알려지고, 그게 또 옆으로 전파되는 데 또 시간이 걸린다. 게다가 루프를 막으려고 hold-down timer(180초씩)를 쓰는데, 이것 때문에 장애 후 안정화에 분 단위가 걸린다. OSPF는 변경이 생기면 즉시 LSA를 flooding하고, 받은 라우터가 바로 SPF를 다시 돈다. 수 초 안에 수렴한다.
-
-넷째, 루프에 취약하다. Distance-Vector는 라우터가 전체 지도를 모르고 이웃 말만 믿으니까, 정보가 한 바퀴 돌아 자기한테 다시 오는 걸 못 알아챈다. split horizon, poison reverse 같은 장치로 막긴 하는데 완벽하진 않다. OSPF는 모든 라우터가 같은 지도를 보고 각자 계산하니까 Area 안에서 라우팅 루프가 구조적으로 안 생긴다.
+컨버전스도 느리다. RIP는 30초마다 전체 테이블을 이웃에게 보낸다. 링크가 끊겨도 다음 주기까지 기다려야 알려지고, 그게 또 옆으로 전파되는 데 시간이 걸린다. 루프를 막으려고 hold-down timer(180초씩)를 쓰는데, 이것 때문에 장애 후 안정화에 분 단위가 걸린다. OSPF는 변경이 생기면 즉시 LSA를 flooding하고, 받은 라우터가 바로 SPF를 다시 돈다. 수 초 안에 수렴한다.
 
 | 구분 | RIP | OSPF |
 |---|---|---|
@@ -154,12 +551,12 @@ RIP는 OSPF보다 먼저 나온 Distance-Vector 프로토콜이다. 설정이 �
 
 데이터센터에서 OSPF를 굴릴 때 실제로 부딪히는 상황 몇 가지를 정리한다.
 
-ECMP(Equal-Cost Multi-Path)를 쓰려면 경로 비용이 정확히 같아야 한다. 두 동 사이를 동일 사양 링크 2개로 연결하면 OSPF는 두 경로를 같은 비용으로 보고 트래픽을 양쪽으로 나눠 보낸다. 그런데 한쪽 인터페이스 비용이 1이라도 다르면 ECMP가 안 되고 한 링크로만 몰린다. 트래픽이 한쪽 링크로만 가서 그쪽만 포화되는 증상이 보이면 양쪽 인터페이스 cost를 `show ip ospf interface`로 찍어봐야 한다. 앞서 말한 reference-bandwidth가 라우터마다 다르거나, 한쪽 링크 속도가 다르게 잡혀 있으면 이 일이 벌어진다.
+ECMP(Equal-Cost Multi-Path)를 쓰려면 경로 비용이 정확히 같아야 한다. 두 동 사이를 동일 사양 링크 2개로 연결하면 OSPF는 두 경로를 같은 비용으로 보고 트래픽을 양쪽으로 나눠 보낸다. 그런데 한쪽 인터페이스 비용이 1이라도 다르면 ECMP가 안 되고 한 링크로만 몰린다. 트래픽이 한쪽 링크로만 가서 그쪽만 포화되는 증상이 보이면 양쪽 인터페이스 cost를 `show ip ospf interface`로 찍어봐야 한다. reference-bandwidth가 라우터마다 다르거나, 한쪽 링크 속도가 다르게 잡혀 있으면 이 일이 벌어진다.
 
 서버 대역을 OSPF에 올리는 방식도 신경 써야 한다. 서버가 붙은 VLAN 대역은 보통 라우터의 SVI(Switched Virtual Interface)에 붙어 있고, 이걸 OSPF에 광고한다. 그런데 서버 대역은 토폴로지가 바뀌는 일이 없는 말단 네트워크다. 이런 인터페이스는 `passive-interface`로 잡아야 한다. passive로 잡으면 그 인터페이스로는 Hello를 안 보내서 서버 쪽으로 OSPF 패킷이 새지 않고, 대역은 여전히 OSPF에 광고된다. 이걸 안 하면 서버 세그먼트로 OSPF Hello가 멀티캐스트로 흘러다니고, 최악의 경우 누가 서버에 OSPF 도는 장비를 붙여서 가짜 경로를 주입할 수도 있다. 보안상으로도 passive-interface는 기본으로 깔고 가야 한다.
 
 BGP에서 받은 경로를 OSPF로 재분배할 때는 조심해야 한다. 인터넷 풀 라우팅 테이블(수십만 경로)을 통째로 OSPF에 재분배하면 LSDB가 폭발하고 SPF가 못 돌 지경이 된다. 외부 경로는 OSPF로 끌어들이지 말고, 기본 경로(default route) 하나만 OSPF에 뿌리는 게 정석이다. 데이터센터 내부 라우터들은 "바깥으로 나가는 건 일단 이쪽 기본 경로로"만 알면 되고, 상세한 인터넷 경로는 경계 라우터(ASBR)가 BGP로 따로 들고 있으면 된다.
 
-장애 복구 속도가 중요하면 Hello/Dead 타이머를 줄이는 것도 방법이다. 기본은 Hello 10초, Dead 40초인데, 링크가 끊겨도 Dead 40초가 지나야 이웃이 죽은 걸 안다. 40초면 운영 환경에서는 길다. 그래서 Hello를 1초, Dead를 3~4초로 줄이거나, 더 빠른 감지가 필요하면 BFD(Bidirectional Forwarding Detection)를 OSPF에 붙인다. BFD는 밀리초 단위로 링크 단절을 감지해서 OSPF에 알려준다. 다만 타이머를 너무 공격적으로 줄이면 일시적인 부하나 마이크로 끊김에도 인접 관계가 떨어졌다 붙었다 하면서 SPF가 계속 돌 수 있으니 균형을 봐야 한다.
+장애 복구 속도가 중요하면 Hello/Dead 타이머를 줄이는 것도 방법이다. 기본은 Hello 10초, Dead 40초인데, 링크가 끊겨도 Dead 40초가 지나야 이웃이 죽은 걸 안다. 40초면 운영 환경에서는 길다. 그래서 Hello를 1초, Dead를 3~4초로 줄이거나, 더 빠른 감지가 필요하면 BFD를 OSPF에 붙인다.
 
 마지막으로 디버깅 순서. neighbor가 안 뜨면 Area ID, Hello/Dead 타이머, 서브넷/마스크, MTU, 인증을 순서대로 확인한다. neighbor는 떴는데 경로가 안 보이면 LSDB(`show ip ospf database`)에 해당 LSA가 있는지, ABR 요약이 제대로 넘어왔는지, 재분배 설정이 맞는지 본다. 경로는 보이는데 트래픽이 안 가면 next-hop 도달 가능성과 ECMP 비용 불일치를 의심한다. 이 순서대로만 짚어도 OSPF 문제의 대부분은 잡힌다.

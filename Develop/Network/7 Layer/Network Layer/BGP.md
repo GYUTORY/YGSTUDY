@@ -9,7 +9,7 @@ tags:
   - iBGP
   - RPKI
   - DirectConnect
-updated: 2026-06-04
+updated: 2026-07-25
 ---
 
 # BGP — 인터넷을 굴리는 라우팅 프로토콜
@@ -18,7 +18,7 @@ updated: 2026-06-04
 
 서버 운영을 5년 하면서 BGP를 직접 만질 일은 사실 드물다. OSPF는 사내 네트워크에서 가끔 마주치지만, BGP는 보통 네트워크 팀이 회선 사업자랑 협의해서 세팅해놓고 끝이다. 그런데 어느 날 갑자기 "특정 리전에서만 응답이 느려진다", "Direct Connect 회선을 새로 뽑는다", "트위터에서 BGP hijack이 났다는데 우리도 영향이 있나?" 같은 질문이 날아온다. 이때 BGP를 모르면 한 발짝도 못 움직인다.
 
-BGP는 AS(Autonomous System) 간에 도달 가능한 경로 정보를 교환하는 프로토콜이다. 인터넷이 굴러가는 골격이고, 동시에 인터넷에서 가장 신뢰가 없는 프로토콜이기도 하다. 이 문서는 AS 개념부터 시작해서 eBGP/iBGP 차이, Path Attribute로 경로를 어떻게 고르는지, Route Reflector가 왜 필요한지, 컨버전스가 왜 느린지, hijack과 leak이 실제로 어떻게 일어나는지, 그리고 AWS Direct Connect에서 BGP 세션이 어떻게 동작하는지까지 다룬다.
+BGP는 AS(Autonomous System) 간에 도달 가능한 경로 정보를 교환하는 프로토콜이다. 인터넷이 굴러가는 골격이고, 동시에 인터넷에서 가장 신뢰가 없는 프로토콜이기도 하다. 이 문서는 AS 개념부터 시작해서 eBGP/iBGP 차이, Path Attribute로 경로를 어떻게 고르는지, Route Reflector가 왜 필요한지, 컨버전스가 왜 느린지, hijack과 leak이 실제로 어떻게 일어나는지, 그리고 AWS Direct Connect와 Site-to-Site VPN에서 BGP 세션이 어떻게 동작하는지까지 다룬다.
 
 ## AS — 인터넷의 자치 단위
 
@@ -196,6 +196,59 @@ VIF는 두 종류다.
 
 ASN은 AWS 쪽이 7224(고정)이고, 고객 쪽은 보통 64512~65534 범위의 private ASN을 쓰거나 자기 공인 ASN을 쓴다. Direct Connect Gateway를 쓸 때는 ASN을 잘 골라야 한다. 같은 ASN을 여러 VIF에서 쓰면 AS_PATH 루프 방지 로직에 걸려서 광고가 막힌다.
 
+### 구성 예제 — Private VIF BGP 세션
+
+AWS 콘솔에서 Private VIF를 만들면 BGP peer IP와 /30 내부 서브넷 정보를 준다. 고객 ASN과 BGP 인증 키는 VIF 생성 시 입력한다. 이 값들로 고객 측 라우터에서 BGP 세션을 올린다.
+
+리눅스 기반 라우터에서 FRR(Free Range Routing)을 쓰는 경우 설정이 이렇다.
+
+```bash
+# /etc/frr/frr.conf — Direct Connect Private VIF
+router bgp 65001
+ bgp router-id 10.10.0.1
+ !
+ neighbor 169.254.100.2 remote-as 7224
+ neighbor 169.254.100.2 description AWS-DX-Primary
+ neighbor 169.254.100.2 password BGPauthkey1
+ neighbor 169.254.100.2 timers 10 30
+ !
+ address-family ipv4 unicast
+  network 10.10.0.0/16
+  neighbor 169.254.100.2 activate
+  neighbor 169.254.100.2 soft-reconfiguration inbound
+  neighbor 169.254.100.2 route-map TO-AWS out
+  neighbor 169.254.100.2 route-map FROM-AWS in
+ exit-address-family
+!
+ip prefix-list ON-PREM seq 10 permit 10.10.0.0/16
+!
+route-map TO-AWS permit 10
+ match ip address prefix-list ON-PREM
+ set metric 100
+!
+route-map FROM-AWS permit 10
+ set local-preference 200
+```
+
+`soft-reconfiguration inbound`를 넣어두면 FROM-AWS route-map을 수정한 뒤 세션을 끊지 않고 `clear ip bgp 169.254.100.2 soft in`으로 정책만 재적용할 수 있다. Direct Connect 세션을 hard reset하면 그 시간 동안 트래픽이 단절되므로, 정책 조정 시에는 soft reset을 써야 한다.
+
+세션 상태와 교환 중인 경로는 vtysh로 확인한다.
+
+```bash
+# 세션 상태
+$ vtysh -c 'show bgp summary'
+Neighbor        V    AS MsgRcvd MsgSent   Up/Down  State/PfxRcd
+169.254.100.2   4  7224    3821    3820 02:40:15            12
+
+# AWS에서 받은 VPC prefix
+$ vtysh -c 'show bgp ipv4 unicast neighbors 169.254.100.2 received-routes'
+
+# AWS로 광고 중인 온프레미스 prefix
+$ vtysh -c 'show bgp ipv4 unicast neighbors 169.254.100.2 advertised-routes'
+```
+
+`State/PfxRcd`가 숫자이면 세션이 살아 있는 것이다. `Idle`, `Active`, `Connect` 상태에 머물면 TCP 179 연결 자체가 안 되는 것이므로 BGP peer IP, ASN, 인증 키, 방화벽 규칙을 순서대로 확인한다. Direct Connect Gateway를 쓰는 경우 AWS ASN이 7224가 아닌 Direct Connect Gateway에서 설정한 ASN으로 달라질 수 있으니 콘솔에서 실제 값을 확인해야 한다.
+
 운영에서 만나는 함정 몇 가지를 적는다.
 
 **광고 prefix 수 제한.** Direct Connect는 한 BGP 세션당 광고받을 수 있는 prefix 수에 상한이 있다. Private VIF는 100개, Public VIF는 1000개가 기본이다. 회사 네트워크가 복잡해서 자기 쪽 prefix가 100개를 넘으면 summary route로 묶거나 한도 상향을 신청해야 한다. 한도를 넘으면 BGP 세션이 그냥 끊긴다.
@@ -205,6 +258,109 @@ ASN은 AWS 쪽이 7224(고정)이고, 고객 쪽은 보통 64512~65534 범위의
 **LOCAL_PREF/MED로 회선 우선순위.** Direct Connect 회선을 둘 이상 뽑으면 평소 어느 회선으로 트래픽이 흐를지 정해야 한다. 들어오는 트래픽(AWS → 온프레미스) 방향은 MED와 AS_PATH prepending으로 조절한다. AWS는 받은 광고 중 AS_PATH가 짧고 MED가 작은 쪽을 우선한다. 나가는 트래픽(온프레미스 → AWS) 방향은 자기 라우터의 LOCAL_PREF로 조절한다.
 
 **VPN 백업과의 경합.** Direct Connect가 죽었을 때 IPsec VPN으로 자동 페일오버하는 구성이 흔하다. AWS는 일반적으로 Direct Connect 광고를 VPN보다 우선한다. 그런데 prefix 길이가 다르거나 양쪽에서 prepending이 걸려 있으면 의도와 다르게 동작할 수 있다. 페일오버 테스트는 실제로 회선을 끊어보고 확인해야 한다. BGP 시뮬레이션만 보면 안 된다.
+
+## AWS Site-to-Site VPN과 BGP
+
+Direct Connect는 전용 물리 회선이 필요하고 구축에 수 주가 걸린다. Site-to-Site VPN은 인터넷 위의 IPsec 터널이라 빠르게 올릴 수 있고, Direct Connect의 백업 회선으로도 많이 쓴다. VPN에서도 정적 라우팅 대신 BGP 동적 라우팅을 쓸 수 있다.
+
+AWS는 VPN Connection을 만들 때 Virtual Private Gateway(VGW) 또는 Transit Gateway(TGW)를 선택한다. 어느 쪽이든 두 개의 터널을 준다. 두 터널이 각각 다른 가용 영역에 걸려 있어서 한 터널이 죽어도 다른 쪽으로 이어진다. BGP 동적 라우팅을 쓰면 죽은 터널을 감지하고 살아 있는 쪽으로 자동 전환한다.
+
+AWS 콘솔에서 VPN Connection을 만들면 각 터널의 설정값을 제공한다.
+
+```
+터널 1
+  AWS 외부 IP:       54.239.x.x
+  AWS BGP peer IP:  169.254.10.2/30
+  고객 BGP peer IP: 169.254.10.1/30
+  AWS ASN:          64512
+  Pre-shared key:   (자동 생성)
+
+터널 2
+  AWS 외부 IP:       52.94.x.x
+  AWS BGP peer IP:  169.254.11.2/30
+  고객 BGP peer IP: 169.254.11.1/30
+  AWS ASN:          64512
+  Pre-shared key:   (자동 생성)
+```
+
+리눅스 기반 구성은 StrongSwan(IPsec) + FRR(BGP)를 조합하는 게 표준이다. IPsec 터널로 패킷을 암호화하고, 그 위에서 BGP 세션을 올려 경로를 교환한다.
+
+```bash
+# /etc/ipsec.conf — 터널 1 (터널 2는 right만 다르게)
+conn aws-vpn-tunnel1
+  keyexchange=ikev2
+  left=<고객 외부 IP>
+  leftid=<고객 외부 IP>
+  right=54.239.x.x
+  rightid=54.239.x.x
+  authby=secret
+  type=tunnel
+  leftsubnet=0.0.0.0/0
+  rightsubnet=0.0.0.0/0
+  ike=aes256-sha256-modp2048
+  esp=aes256-sha256-modp2048
+  auto=start
+  mark=100
+```
+
+```bash
+# /etc/frr/frr.conf — VPN BGP 세션 (터널 2개)
+router bgp 65001
+ bgp router-id 10.10.0.1
+ !
+ neighbor 169.254.10.2 remote-as 64512
+ neighbor 169.254.10.2 description AWS-VPN-Tunnel1
+ neighbor 169.254.10.2 timers 10 30
+ !
+ neighbor 169.254.11.2 remote-as 64512
+ neighbor 169.254.11.2 description AWS-VPN-Tunnel2
+ neighbor 169.254.11.2 timers 10 30
+ !
+ address-family ipv4 unicast
+  network 10.10.0.0/16
+  !
+  neighbor 169.254.10.2 activate
+  neighbor 169.254.10.2 route-map FROM-AWS-VPN in
+  neighbor 169.254.10.2 route-map TO-AWS-VPN out
+  !
+  neighbor 169.254.11.2 activate
+  neighbor 169.254.11.2 route-map FROM-AWS-VPN in
+  neighbor 169.254.11.2 route-map TO-AWS-VPN-T2 out
+ exit-address-family
+!
+ip prefix-list ON-PREM seq 10 permit 10.10.0.0/16
+!
+route-map FROM-AWS-VPN permit 10
+ set local-preference 100
+!
+route-map TO-AWS-VPN permit 10
+ match ip address prefix-list ON-PREM
+!
+route-map TO-AWS-VPN-T2 permit 10
+ match ip address prefix-list ON-PREM
+ set as-path prepend 65001 65001
+```
+
+터널 2로 광고할 때 prepend를 2회 걸면 AWS 입장에서 터널 1을 통한 경로가 AS_PATH가 더 짧아 기본으로 선택된다. 터널 1이 죽으면 prepend가 걸려 있어도 살아 있는 터널 2로 트래픽이 넘어온다.
+
+VPN만 쓰는 환경에서 FROM-AWS-VPN의 LOCAL_PREF를 100으로 설정하는 건, Direct Connect와 혼용 시 Direct Connect를 더 높은 LOCAL_PREF(200)로 우선하기 위한 여지를 남기는 것이다. Direct Connect + VPN 혼용 구성에서는 Direct Connect 세션의 route-map에 `set local-preference 200`을 박고 VPN은 100으로 두면, 평소 트래픽이 Direct Connect로 흐르고 Direct Connect 장애 시 VPN으로 페일오버한다.
+
+```bash
+# 두 터널 세션 상태 확인
+$ vtysh -c 'show bgp summary'
+Neighbor        V    AS MsgRcvd MsgSent   Up/Down  State/PfxRcd
+169.254.10.2    4 64512     412     411 00:34:12             3
+169.254.11.2    4 64512     410     411 00:34:08             3
+
+# VPC에서 받은 경로 확인
+$ vtysh -c 'show ip route bgp'
+B>* 172.31.0.0/16 [20/100] via 169.254.10.2, vti0, 00:34:12
+B   172.31.0.0/16 [20/100] via 169.254.11.2, vti1, 00:34:08
+```
+
+`B>*`는 BGP로 배운 경로 중 라우팅 테이블에 설치된 최선 경로다. 두 번째 줄 `B`는 BGP에서 받았지만 best path가 아닌 것이다. 터널 1이 죽으면 `B>*`가 터널 2로 전환된다. 이 전환이 실제로 동작하는지는 터널 1을 직접 내려보고(`ip link set vti0 down`) 라우팅 테이블 변화를 확인해야 한다. 시뮬레이션만으로는 모른다.
+
+AWS 콘솔 쪽에서는 VPC 라우팅 테이블의 route propagation이 켜져 있는지 확인해야 한다. VGW나 TGW에 BGP로 받은 경로가 자동으로 VPC 라우팅 테이블에 전파되는 기능인데, 꺼져 있으면 BGP 세션은 올라와도 VPC에서 온프레미스로 패킷이 안 나간다.
 
 ## 트러블슈팅에서 자주 보는 패턴
 
@@ -220,6 +376,6 @@ ASN은 AWS 쪽이 7224(고정)이고, 고객 쪽은 보통 64512~65534 범위의
 
 ## 정리
 
-BGP는 인터넷의 라우팅 골격이다. AS 사이를 잇는 path-vector 프로토콜이고, 정책 기반으로 경로를 고른다. eBGP는 AS 간 세션이고 iBGP는 AS 내부 세션인데, iBGP는 루프 방지 때문에 풀 메시를 요구해서 Route Reflector로 우회한다. 경로 선택은 LOCAL_PREF, AS_PATH, MED 같은 attribute로 제어한다. 컨버전스는 MRAI와 path hunting 때문에 느리고, 신뢰 기반 설계 때문에 hijack과 leak이 끊이지 않는다. RPKI가 origin 검증을 풀고 있고 AWS Direct Connect 같은 클라우드 연동에서 BGP를 실제로 만지게 된다.
+BGP는 인터넷의 라우팅 골격이다. AS 사이를 잇는 path-vector 프로토콜이고, 정책 기반으로 경로를 고른다. eBGP는 AS 간 세션이고 iBGP는 AS 내부 세션인데, iBGP는 루프 방지 때문에 풀 메시를 요구해서 Route Reflector로 우회한다. 경로 선택은 LOCAL_PREF, AS_PATH, MED 같은 attribute로 제어한다. 컨버전스는 MRAI와 path hunting 때문에 느리고, 신뢰 기반 설계 때문에 hijack과 leak이 끊이지 않는다. RPKI가 origin 검증을 풀고 있고 AWS Direct Connect와 Site-to-Site VPN에서 BGP를 실제로 만지게 된다.
 
 백엔드 개발자가 BGP를 처음부터 끝까지 설정할 일은 드물지만, Direct Connect나 멀티 클라우드 환경에서 페일오버가 의도대로 안 동작할 때, CDN 트래픽이 이상한 경로로 흐를 때, 인터넷 어딘가에서 hijack 사고가 났을 때 — 이때 BGP를 알면 원인을 짚을 수 있다.
