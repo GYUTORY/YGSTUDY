@@ -16,6 +16,7 @@ nav:
   - Boot2.0__vs__Boot3.0.md
   - Spring_Boot_Migration_2_to_3.md
   - Gradle__vs__Maven.md
+  - Spring_Logging.md
   - SLF4J.md
   - Lombok.md
   - Lombok_Deep_Dive.md
