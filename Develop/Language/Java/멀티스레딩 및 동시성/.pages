@@ -4,3 +4,4 @@ nav:
   - Java_Concurrency.md
   - Java_Concurrency_Deep_Dive.md
   - Java_Util_Concurrent_Sync_Utilities.md
+  - Java_Virtual_Threads.md
