@@ -9,4 +9,9 @@ nav:
   - 성능_튜닝.md
   - 로그_설정과_모니터링.md
   - Location_Matching_Deep_Dive.md
+  - Virtual_Host_설정.md
   - Nginx_Map_Directive.md
+  - Stream_Module.md
+  - Web_Socket_Proxy.md
+  - URL_Rewrite_and_Redirect.md
+  - Fast_CGI_PHP_FPM.md
