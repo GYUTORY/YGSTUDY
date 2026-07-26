@@ -1,6 +1,7 @@
 title: API Design
 nav:
   - API_Design_Patterns.md
+  - REST_Resource_Modeling.md
   - API_Versioning.md
   - API_Pagination_Patterns.md
   - Polling_and_Webhook.md
@@ -9,3 +10,5 @@ nav:
   - API_Caching.md
   - API_Abuse_Prevention.md
   - m_TLS_Service_Auth.md
+  - HTTP_Error_Response_Design.md
+  - HTTP_Conditional_Requests.md
