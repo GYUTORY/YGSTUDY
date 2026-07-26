@@ -4,4 +4,8 @@ nav:
   - Cloud_SQL_Performance.md
   - Cloud_SQL_Migration.md
   - Cloud_Storage.md
+  - GCS_Object_Versioning.md
+  - GCS_Encryption.md
+  - GCS_Notifications.md
+  - GCS_CORS.md
   - Pub_Sub.md
