@@ -1,14 +1,16 @@
 ---
-title: Getter & Setter
+title: Getter와 Setter
 tags: [language, java, 객체지향-프로그래밍-oop, getter-and-setter]
-updated: 2026-07-20
+updated: 2026-07-26
 ---
 
 # Getter와 Setter
 
+Getter와 Setter는 private 필드에 대한 읽기/쓰기 메서드다. public 필드를 직접 노출하면 외부에서 유효하지 않은 값을 마음대로 넣을 수 있고, 나중에 검증 로직을 추가하거나 반환 타입을 바꿀 때 모든 호출 지점을 수정해야 한다. 메서드로 감싸면 내부 구현을 바꿔도 외부 인터페이스는 그대로 유지된다.
+
 ## 1. 기본 구조
 
-private 필드를 외부에서 직접 접근할 수 없게 막고, 메서드를 통해 읽기/쓰기 권한을 개별 제어하는 패턴이다. 캡슐화의 가장 기본적인 구현 방법이다.
+private 필드를 외부에서 직접 접근할 수 없게 막고, 메서드로 읽기/쓰기 권한을 개별 제어하는 패턴이다. 캡슐화의 가장 기본적인 구현이다.
 
 ```java
 class Person {
@@ -36,6 +38,14 @@ class Person {
 }
 ```
 
+```java
+Person person = new Person();
+person.setName("홍길동");
+person.setAge(25);
+System.out.println(person.getName()); // 홍길동
+person.setAge(-1); // IllegalArgumentException
+```
+
 ## 2. Setter에서 데이터 검증
 
 ### 2.1 예외를 던져야 하는 이유
@@ -59,6 +69,17 @@ public void setPrice(int price) {
         throw new IllegalArgumentException("가격은 0 이상이어야 한다: " + price);
     }
     this.price = price;
+}
+```
+
+null이나 빈 문자열 검증도 마찬가지다. `setName(null)`을 호출했을 때 아무 일도 안 일어나면 NPE가 나중에 엉뚱한 곳에서 터진다.
+
+```java
+public void setName(String name) {
+    if (name == null || name.isEmpty()) {
+        throw new IllegalArgumentException("상품명은 비어있을 수 없다");
+    }
+    this.name = name;
 }
 ```
 
@@ -157,7 +178,7 @@ class Order {
 
 ### 4.1 불변 객체와 VO
 
-`Money`, `Address`, `PhoneNumber` 같은 값 객체에는 Setter가 없어야 한다. 객체 생성 이후 상태가 바뀌면 안 되기 때문이다.
+`Money`, `Address`, `PhoneNumber` 같은 값 객체에는 Setter가 없어야 한다. 생성 이후 상태가 바뀌면 안 되는 객체들이다.
 
 ```java
 class Money {
