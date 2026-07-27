@@ -6,7 +6,9 @@ tags:
   - HealthCheck
   - ALB
   - Troubleshooting
-updated: 2026-06-17
+  - Terraform
+  - CloudWatch
+updated: 2026-07-27
 ---
 
 # ECS 헬스체크 3중 구조
@@ -69,6 +71,87 @@ Task Definition 안에 이렇게 들어간다.
 
 `healthCheck` 블록을 아예 안 넣으면 ECS는 컨테이너가 `RUNNING` 상태인 것만으로 HEALTHY로 본다. 프로세스가 떠 있기만 하면 통과다. 앱이 데드락에 빠져 요청을 못 받아도 프로세스만 살아 있으면 ECS는 모른다. 이 경우 판정은 전적으로 ALB 헬스체크에 의존하게 된다.
 
+### Docker HEALTHCHECK와 Task Definition healthCheck 우선순위
+
+Dockerfile에 `HEALTHCHECK` 지시어를 넣는 방법과 Task Definition에 `healthCheck` 블록을 넣는 방법이 있다. 둘 다 존재하면 Task Definition의 `healthCheck`가 이긴다. ECS Agent는 Task Definition에 `healthCheck` 블록이 있으면 이미지에 박힌 Docker HEALTHCHECK를 무시한다. Task Definition에 `healthCheck`를 안 넣은 경우에만 이미지의 HEALTHCHECK가 살아난다.
+
+```dockerfile
+# Dockerfile에 박힌 설정
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
+  CMD curl -f http://localhost:8080/health || exit 1
+```
+
+```json
+{
+  "healthCheck": {
+    "command": ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"],
+    "interval": 30,
+    "timeout": 5,
+    "retries": 3,
+    "startPeriod": 60
+  }
+}
+```
+
+ECS에서는 Task Definition 설정만 적용된다. Dockerfile의 10초 간격은 무시된다.
+
+개발팀이 Dockerfile에 HEALTHCHECK를 촘촘하게 넣었는데 인프라 팀이 Task Definition에 따로 정의해 두면, 로컬 `docker run`과 ECS 동작이 달라진다. 어디서 어떤 설정이 적용되는지 모르는 상태에서 트러블슈팅하면 시간을 허비한다. Task Definition에 `healthCheck`를 명시적으로 관리하고 Dockerfile의 HEALTHCHECK는 아예 안 쓰거나, 반대로 Task Definition에서는 안 정의하고 Dockerfile에만 두는 방식 중 하나로 통일하는 편이 낫다.
+
+ECS Exec으로 컨테이너에 직접 들어가 healthCheck command를 손으로 돌려보면 설정이 맞는지 빠르게 확인된다.
+
+```bash
+aws ecs execute-command \
+  --cluster my-cluster \
+  --task <task-id> \
+  --container app \
+  --interactive \
+  --command "curl -f http://localhost:8080/actuator/health"
+```
+
+## essential vs non-essential 컨테이너 전파
+
+ECS 태스크에 컨테이너를 여러 개 넣을 때 `essential` 플래그가 헬스체크 실패의 전파 범위를 결정한다.
+
+- **essential: true** 컨테이너가 UNHEALTHY로 판정되거나 종료되면 태스크 전체가 STOPPED된다.
+- **essential: false** 컨테이너가 UNHEALTHY가 되거나 죽어도 태스크는 계속 RUNNING을 유지한다.
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "essential": true,
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health/liveness || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 120
+      }
+    },
+    {
+      "name": "log-collector",
+      "essential": false,
+      "healthCheck": {
+        "command": ["CMD-SHELL", "pgrep fluent-bit || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 10
+      }
+    }
+  ]
+}
+```
+
+여기서 놓치기 쉬운 게 있다. healthCheck 실패와 프로세스 종료는 다른 개념이다. healthCheck가 UNHEALTHY 판정을 내려도 컨테이너 프로세스 자체는 살아 있다. ECS가 이 상태를 보고 태스크를 STOPPED 처리하는 거다. `essential: false` 컨테이너가 healthCheck 실패로 UNHEALTHY가 되면 태스크는 살아 있지만 그 컨테이너는 UNHEALTHY 상태로 방치된다. ECS가 non-essential 컨테이너를 자동 재시작해 주지 않는다. 태스크 단위로만 재시작한다.
+
+실무 패턴:
+
+- Fluent Bit, Datadog Agent 같은 로그/메트릭 수집기 → `essential: false`. 죽어도 앱은 살아야 한다.
+- Envoy (App Mesh) → 트래픽이 Envoy를 거쳐야 하므로 `essential: true`. Envoy가 죽으면 앱도 요청을 못 받는다.
+- X-Ray 데몬 → 트레이싱이 주 목적이고 앱이 X-Ray SDK에서 데몬 연결 실패를 무시하도록 설정했다면 `essential: false`로 둬도 무방하다.
+
 ## ALB Target Group 헬스체크
 
 ALB는 Target Group에 등록된 각 타깃(awsvpc면 Task의 ENI IP, bridge면 인스턴스 IP:동적포트)으로 직접 요청을 쏜다. 설정은 Target Group 쪽에 있다.
@@ -102,6 +185,270 @@ Service는 위 두 신호를 종합해서 태스크 운명을 결정한다. 둘 
 |------|------------------|----------|
 | 컨테이너 healthCheck | `startPeriod` | Task Definition |
 | ALB Target Group | `healthCheckGracePeriodSeconds` | Service Definition |
+
+## 멀티컨테이너 사이드카 헬스체크 주의사항
+
+X-Ray 데몬, Envoy 같은 사이드카는 앱 컨테이너와 헬스체크 설정이 다르게 돌아간다.
+
+### X-Ray 데몬
+
+X-Ray 데몬은 UDP 2000 포트로 세그먼트를 받는다. HTTP 기반 헬스체크로는 UDP를 확인할 방법이 없다. 데몬이 HTTP 관리 포트를 열지 않는 이미지가 많아서, 프로세스 존재 여부로 확인하는 편이 현실적이다.
+
+```json
+{
+  "name": "xray-daemon",
+  "image": "amazon/aws-xray-daemon",
+  "essential": false,
+  "healthCheck": {
+    "command": ["CMD-SHELL", "pgrep xray || exit 1"],
+    "interval": 30,
+    "timeout": 5,
+    "retries": 3,
+    "startPeriod": 10
+  }
+}
+```
+
+X-Ray를 `essential: false`로 두면 데몬이 죽어도 앱은 계속 돈다. 다만 X-Ray SDK가 데몬에 세그먼트를 보내다 실패하면 에러 로그가 쌓이므로, SDK 설정에서 데몬 연결 실패를 무시하도록 잡아둬야 한다.
+
+### Envoy (App Mesh)
+
+Envoy는 9901 포트로 관리 인터페이스를 열고 `/ready` 엔드포인트를 제공한다.
+
+```json
+{
+  "name": "envoy",
+  "image": "840364872350.dkr.ecr.us-east-1.amazonaws.com/aws-appmesh-envoy:v1.27.3.0-prod",
+  "essential": true,
+  "healthCheck": {
+    "command": ["CMD-SHELL", "curl -f http://localhost:9901/ready || exit 1"],
+    "interval": 5,
+    "timeout": 2,
+    "retries": 3,
+    "startPeriod": 10
+  }
+}
+```
+
+App Mesh를 쓰면 앱 컨테이너가 Envoy보다 나중에 시작해야 한다. `dependsOn`으로 순서를 강제한다.
+
+```json
+{
+  "name": "app",
+  "dependsOn": [
+    {
+      "containerName": "envoy",
+      "condition": "HEALTHY"
+    }
+  ]
+}
+```
+
+`condition: "HEALTHY"`를 쓰면 Envoy의 healthCheck가 통과돼야 앱이 시작한다. 전체 부팅 유예를 계산할 때 Envoy가 HEALTHY 되는 시간을 앱의 startPeriod에서 빼면 안 된다. `healthCheckGracePeriodSeconds`는 태스크가 RUNNING 상태로 전환된 시점부터 카운트하므로, Envoy가 HEALTHY 되고 나서 앱이 부팅하는 시간까지 전부 grace period 안에 들어오도록 잡아야 한다.
+
+## CloudWatch Container Insights 모니터링
+
+Container Insights를 켜면 클러스터, 서비스, 태스크 단위 메트릭이 `ECS/ContainerInsights` 네임스페이스로 들어온다. 헬스체크 실패를 직접 메트릭으로 주는 항목은 없지만, RUNNING 태스크 수가 급감하는 패턴으로 헬스체크 연쇄 실패를 잡는다.
+
+클러스터에 Container Insights를 켜는 명령:
+
+```bash
+aws ecs update-cluster-settings \
+  --cluster my-cluster \
+  --settings name=containerInsights,value=enabled
+```
+
+헬스체크 실패로 죽은 태스크는 CloudWatch Logs Insights로 추적한다. ECS 태스크 상태 변경 이벤트가 `/aws/ecs/containerinsights/<cluster>/performance` 로그 그룹에 쌓인다.
+
+```sql
+fields @timestamp, TaskId, StoppedReason
+| filter Type = "Task" and LastStatus = "STOPPED"
+| filter StoppedReason like /health check/
+| sort @timestamp desc
+| limit 50
+```
+
+알람은 `RunningTaskCount`가 threshold 밑으로 내려갈 때 SNS로 쏘는 구성이 기본이다.
+
+```hcl
+resource "aws_cloudwatch_metric_alarm" "ecs_running_task_low" {
+  alarm_name          = "${var.service_name}-running-task-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "RunningTaskCount"
+  namespace           = "ECS/ContainerInsights"
+  period              = 60
+  statistic           = "Average"
+  threshold           = var.min_healthy_task_count
+
+  dimensions = {
+    ClusterName = var.cluster_name
+    ServiceName = var.service_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+```
+
+`evaluation_periods = 2`에 `period = 60`이면 2분 연속 threshold 미달일 때 알람이 발생한다. 배포 중 롤링 교체로 태스크 수가 잠깐 줄어드는 상황에서 오탐이 나지 않도록 `evaluation_periods`를 조정한다. 배포 시간이 길다면 3~4로 올리는 편이 낫다.
+
+## Terraform 3중 헬스체크 구성
+
+컨테이너 healthCheck, ALB Target Group 헬스체크, ECS Service grace period를 Terraform으로 한 파일에서 관리하는 예제다. 세 레이어가 서로 어떤 값에 의존하는지 한눈에 보인다.
+
+```hcl
+# Layer 1: 컨테이너 레벨 헬스체크
+resource "aws_ecs_task_definition" "app" {
+  family                   = "${var.service_name}-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name  = var.service_name
+      image = "${var.ecr_repository_url}:${var.image_tag}"
+      portMappings = [
+        {
+          containerPort = 8080
+          protocol      = "tcp"
+        }
+      ]
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health/liveness || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 120
+      }
+      essential = true
+    }
+  ])
+}
+
+# Layer 2: ALB Target Group 헬스체크
+resource "aws_lb_target_group" "app" {
+  name        = "${var.service_name}-tg"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    path                = "/actuator/health/liveness"
+    port                = "traffic-port"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 15
+    matcher             = "200"
+  }
+
+  # Scale-In 시 ALB가 타깃을 deregister하기까지 기다리는 시간
+  # 기본 300초를 그대로 두면 Scale-In 속도가 매우 느려짐
+  deregistration_delay = 30
+}
+
+# Layer 3: ECS Service grace period
+resource "aws_ecs_service" "app" {
+  name                              = var.service_name
+  cluster                           = aws_ecs_cluster.main.id
+  task_definition                   = aws_ecs_task_definition.app.arn
+  desired_count                     = 2
+  launch_type                       = "FARGATE"
+  # startPeriod(120) + 여유분 = 150
+  health_check_grace_period_seconds = 150
+
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [aws_security_group.ecs_task.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = var.service_name
+    container_port   = 8080
+  }
+
+  # 연속 배포 실패 시 자동 롤백. 헬스체크 실패로 인한 무한 재시작을 조기에 차단함
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+}
+```
+
+`deregistration_delay`를 기본값 300초로 두면 Scale-In 한 번에 5분씩 기다려야 한다. 앱의 `stopTimeout`과 맞춰서 30~60초로 줄이는 게 현실적이다. 단, `deregistration_delay`보다 `stopTimeout`이 짧으면 ALB가 deregister하기 전에 컨테이너가 SIGKILL로 죽으므로, `stopTimeout`을 `deregistration_delay`보다 5~10초 더 길게 준다.
+
+## Scale-In과 Graceful Shutdown 상호작용
+
+Auto Scaling Scale-In이 발생하거나 배포 중 구 태스크를 교체할 때 ECS는 ALB deregistration을 먼저 시작하고 나서 SIGTERM을 보낸다. 순서는 이렇다.
+
+1. ECS가 태스크를 DRAINING 상태로 전환
+2. ALB가 해당 타깃을 deregistration 시작 (`deregistration_delay` 동안 기존 연결은 계속 처리)
+3. `deregistration_delay`가 끝나면 ECS가 SIGTERM을 컨테이너에 전송
+4. `stopTimeout`(기본 30초) 안에 컨테이너가 종료하지 않으면 SIGKILL 전송
+
+ALB는 deregistration 중에도 헬스체크를 계속 보낸다. 컨테이너가 SIGTERM을 받고 종료 시퀀스에 들어가 헬스 엔드포인트 응답을 멈추면, ALB는 이것을 헬스체크 실패로 찍는다. 로그에 불필요한 에러가 쌓이고 모니터링 알람이 오탐으로 뜨는 원인이 된다.
+
+SIGTERM을 받았을 때 헬스 엔드포인트를 503으로 바꿔 ALB가 빨리 연결을 끊게 하는 패턴이 낫다.
+
+```python
+import signal
+
+_shutting_down = False
+
+@app.route('/actuator/health/liveness')
+def liveness():
+    if _shutting_down:
+        return {'status': 'DOWN'}, 503
+    return {'status': 'UP'}, 200
+
+def _handle_sigterm(signum, frame):
+    global _shutting_down
+    _shutting_down = True
+
+signal.signal(signal.SIGTERM, _handle_sigterm)
+```
+
+Go라면 `http.Server.Shutdown`으로 graceful shutdown을 처리하면서 health 엔드포인트만 먼저 503으로 내리는 방식을 쓴다.
+
+```go
+var shuttingDown atomic.Bool
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+    if shuttingDown.Load() {
+        w.WriteHeader(http.StatusServiceUnavailable)
+        return
+    }
+    w.WriteHeader(http.StatusOK)
+}
+
+func main() {
+    srv := &http.Server{Addr: ":8080", Handler: mux}
+
+    sigCh := make(chan os.Signal, 1)
+    signal.Notify(sigCh, syscall.SIGTERM)
+
+    go func() {
+        <-sigCh
+        shuttingDown.Store(true)
+        ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+        defer cancel()
+        srv.Shutdown(ctx)
+    }()
+
+    srv.ListenAndServe()
+}
+```
+
+`stopTimeout`을 30초로 두고 `deregistration_delay`를 30초로 같게 맞추면 타이밍이 빠듯하다. ECS가 deregistration 완료를 확인한 뒤 SIGTERM을 보내는 과정에서 네트워크 전파 지연이 있다. `stopTimeout`을 `deregistration_delay`보다 5~10초 더 길게 잡는 편이 안전하다.
 
 ---
 
