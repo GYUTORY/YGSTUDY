@@ -7,7 +7,7 @@ tags:
   - go.mod
   - GOPATH
   - Workspace
-updated: 2026-07-10
+updated: 2026-07-27
 ---
 
 # Go Modules
@@ -23,6 +23,8 @@ module github.com/myorg/myapp
 
 go 1.21
 
+toolchain go1.21.5
+
 require (
     github.com/gin-gonic/gin v1.9.1
     github.com/jackc/pgx/v5 v5.5.4
@@ -36,9 +38,33 @@ require (
 
 `module` 줄은 이 모듈의 경로다. 다른 프로젝트에서 이 모듈을 임포트할 때 쓰는 이름이다. 퍼블릭 공개 예정이면 실제 저장소 경로로 맞춰야 하고, 내부 전용이면 아무 경로나 써도 된다.
 
-`go` 줄은 이 모듈이 요구하는 최소 Go 버전이다. 단순히 문서화 목적이 아니라, 해당 버전의 언어 기능 여부를 컴파일러가 이 값을 보고 판단한다. 1.21부터는 toolchain 줄도 생겼다.
+`go` 줄은 이 모듈이 요구하는 최소 Go 버전이다. 단순히 문서화 목적이 아니라, 해당 버전의 언어 기능 여부를 컴파일러가 이 값을 보고 판단한다.
 
 `require` 블록은 직접 의존성과 간접 의존성을 함께 담는다. `// indirect` 주석이 붙은 항목은 직접 import하지 않지만 의존 라이브러리가 필요로 하는 것들이다. `go mod tidy`를 실행하면 자동으로 정리된다.
+
+## toolchain 디렉티브 (Go 1.21+)
+
+Go 1.21부터 `toolchain` 디렉티브가 추가됐다. `go` 줄이 언어 최소 버전이라면, `toolchain`은 실제로 사용할 컴파일러 버전을 명시한다.
+
+```
+go 1.21
+toolchain go1.21.5
+```
+
+Go 1.21부터 Go 툴체인 자체도 모듈처럼 관리된다. `GOTOOLCHAIN` 환경변수로 동작을 제어한다.
+
+```bash
+# go.mod의 toolchain 버전보다 낮으면 자동으로 최신 버전 다운로드
+export GOTOOLCHAIN=auto
+
+# go.mod에 명시된 toolchain 버전만 사용
+export GOTOOLCHAIN=local
+
+# 특정 버전 고정
+export GOTOOLCHAIN=go1.21.5
+```
+
+`GOTOOLCHAIN=auto`일 때 현재 설치된 Go 버전이 `go.mod`의 `toolchain` 버전보다 낮으면, Go가 자동으로 적합한 버전을 다운로드해서 실행한다. CI에서 예상치 못한 버전이 사용되는 원인이 되기도 하니, CI 환경에서는 `GOTOOLCHAIN=local`로 고정하는 게 낫다.
 
 ## go.sum 역할
 
@@ -83,6 +109,31 @@ exclude github.com/some/lib v1.2.0
 
 MVS 알고리즘이 v1.2.0을 선택하더라도 이 버전은 건너뛰고 그 다음 버전을 선택한다. 보안 취약점이 발견된 버전을 강제로 배제할 때 쓴다. 단, `exclude`는 메인 모듈에서만 효과가 있다. 의존 라이브러리의 `go.mod`에 있는 `exclude`는 무시된다.
 
+## retract 디렉티브 (Go 1.16+)
+
+`retract`는 이미 배포한 버전을 철회할 때 쓴다. 버그가 심하거나 잘못 배포된 버전을 사용자가 받지 않도록 막는다.
+
+```
+module github.com/myorg/mylib
+
+go 1.16
+
+retract (
+    v1.3.0 // 치명적 데이터 손실 버그. v1.3.1 사용 권장
+    v1.2.5 // 실수로 배포된 미완성 버전
+    [v1.1.0, v1.1.9] // v1.1.x 전체 범위 철회
+)
+```
+
+`retract`를 추가한 뒤 새 버전을 배포해야 효과가 있다. 새 버전의 `go.mod`에 retract를 넣고 배포하면, 그때부터 `go get`이나 `go mod tidy`를 실행할 때 철회된 버전을 경고와 함께 표시한다.
+
+```bash
+# 철회된 버전 목록 확인
+go list -m -retracted all
+```
+
+`retract`는 실제로 버전을 삭제하지 않는다. 이미 그 버전을 쓰고 있는 프로젝트의 `go.mod`를 강제로 바꾸지도 않는다. 새로 사용하려는 사람에게 경고를 보여주는 것이다. 프록시 서버는 철회된 버전도 계속 제공한다.
+
 ## MVS (Minimum Version Selection)
 
 Go의 버전 선택 알고리즘이다. 이름이 '최소 버전 선택'이지만 실제로는 '요구하는 최소 버전 중 가장 높은 것을 선택'이다.
@@ -101,6 +152,125 @@ myapp
 
 `go mod graph` 명령으로 의존 그래프를 볼 수 있다. 왜 특정 버전이 선택됐는지 추적할 때 유용하다.
 
+## 메이저 버전 관리
+
+Go 모듈에서 v2 이상의 메이저 버전은 모듈 경로에 버전을 포함해야 한다.
+
+```
+github.com/myorg/mylib      → v0.x, v1.x
+github.com/myorg/mylib/v2   → v2.x
+github.com/myorg/mylib/v3   → v3.x
+```
+
+이렇게 설계된 이유가 있다. 메이저 버전 업은 하위 호환성을 깬다는 신호다. 하나의 프로그램에서 `mylib v1`과 `mylib v2`를 동시에 쓸 수 있어야 하는데, 경로가 같으면 둘을 구분할 방법이 없다. 경로에 `/v2`를 붙이면 Go 입장에서 완전히 다른 모듈이 된다.
+
+새 메이저 버전을 배포할 때는 `go.mod`의 module 경로를 바꿔야 한다.
+
+```
+# v1
+module github.com/myorg/mylib
+
+# v2로 올릴 때
+module github.com/myorg/mylib/v2
+```
+
+사용하는 쪽도 import 경로를 바꿔야 한다.
+
+```go
+// v1 사용
+import "github.com/myorg/mylib"
+
+// v2 사용
+import "github.com/myorg/mylib/v2"
+```
+
+이 규칙을 지키지 않고 v2를 배포하면 `+incompatible` 문제가 생긴다.
+
+디렉토리 구조는 두 가지 방식 중 하나를 선택한다. major branch 방식은 `main` 브랜치에서 v1을 유지하고 `v2` 브랜치에서 v2를 관리하는 방식이다. major subdirectory 방식은 같은 브랜치에 `v2/` 디렉토리를 만들어 관리한다. 어느 쪽이든 상관없지만, 팀 내에서 하나로 통일해야 한다.
+
+## pseudo-version
+
+`go get`으로 태그가 없는 특정 커밋을 지정하거나, 비공개 저장소의 최신 커밋을 받아오면 pseudo-version이 생긴다.
+
+```
+github.com/some/lib v0.0.0-20231015123456-abcdef012345
+```
+
+형식은 `vX.Y.Z-yyyymmddhhmmss-abcdefabcdef`다. 타임스탬프는 UTC 기준 커밋 시간이고, 마지막 12자리는 커밋 해시의 앞부분이다.
+
+pseudo-version이 생기는 상황은 세 가지다. 아직 릴리즈 태그가 없는 모듈을 `@latest`나 `@main`으로 받아올 때. 특정 커밋 해시를 직접 지정할 때(`go get lib@abc123`). 태그는 있는데 `go.mod`가 없는 구버전 패키지를 받아올 때다.
+
+```bash
+# 특정 브랜치의 최신 커밋
+go get github.com/some/lib@main
+
+# 특정 커밋 해시
+go get github.com/some/lib@abc1234
+
+# 결과: go.mod에 pseudo-version으로 기록됨
+```
+
+pseudo-version은 `go mod tidy`를 실행할 때 자동으로 유효성이 검사된다. 커밋이 존재하지 않거나 해시가 다르면 에러가 난다. 운영 코드에서 pseudo-version을 쓰는 건 그 커밋이 언제든 force-push로 사라질 수 있어서 위험하다. 가능하면 정식 태그를 기다리거나 fork해서 태그를 붙이는 게 낫다.
+
+## +incompatible 접미사
+
+모듈 시스템 도입 이전에 배포된 v2 이상의 패키지를 참조하면 `+incompatible` 접미사가 붙는다.
+
+```
+github.com/some/old-lib v2.3.0+incompatible
+```
+
+이 패키지는 `go.mod`가 없거나, 있더라도 module 경로에 `/v2`를 붙이지 않은 채 v2를 배포한 경우다. Go는 이 패키지를 v1 호환 방식으로 취급하면서 `+incompatible`로 표시한다.
+
+실제로 겪는 문제는 두 가지다. 하나는 이 패키지가 하위 호환성을 깼는데 그걸 알기 어렵다는 것이다. `+incompatible`이 붙어있으면 API 변경에 주의해야 한다. 다른 하나는 패키지 제작자가 나중에 `go.mod`를 추가하면 `+incompatible` 없이 새 버전이 배포되는데, 이 둘이 의존 그래프에서 충돌할 수 있다.
+
+```bash
+# +incompatible 패키지 확인
+go list -m all | grep incompatible
+```
+
+`+incompatible` 패키지를 장기간 유지하는 건 권장하지 않는다. 해당 라이브러리가 업데이트됐다면 정식 모듈 버전으로 마이그레이션하는 게 낫다.
+
+## 모듈 그래프 프루닝과 lazy loading (Go 1.17+)
+
+Go 1.17 이전에는 모든 의존성의 전체 의존 그래프를 로드했다. A → B → C → D 관계에서 A를 쓰면 B, C, D의 의존성까지 전부 `go.mod`에 반영됐다.
+
+Go 1.17부터는 `go.mod`에 `go 1.17` 이상이 명시되면 lazy loading이 활성화된다.
+
+lazy loading에서는 직접 의존하는 모듈의 `go.mod`만 읽는다. A → B에서 B의 하위 의존성은 B의 `go.mod`를 직접 참조하지 않는 한 로드하지 않는다. 대신 `go.mod`에 직접 의존성의 모든 간접 의존성이 기록된다. 파일이 길어지는 대신 빌드 시간과 메모리 사용이 줄어든다.
+
+실제로 Go 1.17 이상으로 올리고 `go mod tidy`를 실행하면 `// indirect` 항목이 눈에 띄게 늘어난다. 이게 정상이다. 이전에는 깊은 의존성을 암묵적으로 처리했는데, 이제는 명시적으로 기록하는 방식으로 바뀐 것이다.
+
+모듈 그래프 프루닝의 이점은 대규모 모노레포에서 두드러진다. 사용하지 않는 모듈의 `go.mod`를 읽느라 시간을 쓰지 않는다. `go.mod`의 `go` 버전을 올리는 것만으로 이 이점을 얻는다.
+
+## GOPROXY fallback 동작
+
+`GOPROXY`는 쉼표로 구분된 프록시 목록을 받는다.
+
+```bash
+export GOPROXY=https://proxy.golang.org,direct
+```
+
+각 항목은 순서대로 시도된다. 첫 번째 프록시에서 모듈을 찾으면 거기서 받아온다. 찾지 못하거나 에러가 나면 다음 항목으로 넘어간다. `direct`는 VCS에서 직접 받아오는 것이다.
+
+에러 처리에서 주의할 점이 있다. 프록시가 404나 410을 반환하면 "이 모듈은 없다"고 판단해서 fallback을 시도한다. 그런데 500이나 네트워크 에러가 나면 기본적으로 에러로 처리하고 멈춘다. fallback을 강제하려면 `|` 구분자를 쓴다.
+
+```bash
+# | 앞의 프록시는 어떤 에러가 나도 다음으로 넘어감
+export GOPROXY=https://proxy.internal.com|https://proxy.golang.org,direct
+```
+
+쉼표(`,`)와 파이프(`|`)의 차이가 중요하다. `,`는 404/410에만 fallback하고, `|`는 모든 에러에 fallback한다.
+
+`off`를 넣으면 그 이후 항목으로는 절대 진행하지 않는다.
+
+```bash
+# proxy.internal.com에서 못 찾으면 에러. 외부 인터넷 차단 환경에서 씀
+export GOPROXY=https://proxy.internal.com,off
+```
+
+CI에서 외부 접근을 차단하고 싶을 때 `off`를 끝에 추가하면, 사설 프록시에 없는 패키지를 실수로 외부에서 받아오는 상황을 막는다.
+
 ## private 모듈 설정
 
 회사 내부 모듈은 public proxy를 거치면 안 된다. Go는 기본적으로 `GOPROXY=https://proxy.golang.org,direct`를 쓰기 때문에, 별도 설정 없이는 모든 모듈 요청이 proxy를 거친다.
@@ -117,9 +287,7 @@ export GOPRIVATE=github.com/myorg/*,gitlab.internal.com/*
 
 **GONOSUMDB / GONOSUMCHECK**
 
-`GONOSUMDB`는 sum DB 검증을 건너뛸 모듈을 지정한다. `GONOSUMCHECK`는 이미 다운로드된 파일의 체크섬 확인을 건너뛴다. `GOPRIVATE`을 쓰면 두 설정이 자동으로 포함되기 때문에, 별도로 설정할 필요는 거의 없다. 다만 proxy는 통하되 sum 검증만 건너뛰고 싶을 때는 `GONOSUMDB`를 따로 쓴다.
-
-**GONOSUMCHECK vs GONOSUMDB 차이**
+`GONOSUMDB`는 sum DB 검증을 건너뛸 모듈을 지정한다. `GOPRIVATE`을 쓰면 두 설정이 자동으로 포함되기 때문에, 별도로 설정할 필요는 거의 없다. 다만 proxy는 통하되 sum 검증만 건너뛰고 싶을 때는 `GONOSUMDB`를 따로 쓴다.
 
 `GONOSUMDB`는 sum DB에 조회 자체를 안 하는 것이고, `GONOSUMCHECK`는 `go.sum`의 체크섬 비교를 건너뛰는 것이다. 내부 proxy를 직접 운영하면서 sum 검증은 proxy가 담당하는 구성에서 `GONOSUMDB`만 쓰는 경우가 있다.
 
@@ -140,6 +308,30 @@ go env -w GOPROXY=https://proxy.internal.com,direct
 ```
 
 `go env -w`로 설정하면 `$GOENV` 파일(기본값: `~/.config/go/env`)에 저장된다.
+
+## GOMODCACHE 관리
+
+모듈을 처음 다운로드하면 `GOMODCACHE`에 캐시된다. 기본 경로는 `$GOPATH/pkg/mod`다.
+
+```bash
+# 현재 캐시 경로 확인
+go env GOMODCACHE
+
+# 캐시 전체 크기 확인
+du -sh $(go env GOMODCACHE)
+```
+
+캐시 파일은 읽기 전용(0444)으로 저장된다. 실수로 수정하거나 삭제하지 못하도록 막는 것인데, 수동으로 지우려면 권한을 바꿔야 한다. `go clean -modcache`를 쓰면 Go가 권한 처리까지 해준다.
+
+```bash
+# 캐시 전체 삭제
+go clean -modcache
+
+# dry-run으로 삭제 대상 확인
+go clean -modcache -n
+```
+
+디스크 공간이 부족할 때 `GOMODCACHE`가 수 GB씩 쌓여있는 경우가 있다. 여러 버전을 번갈아가며 개발하는 환경에서 특히 빠르게 쌓인다. 주기적으로 `go clean -modcache`를 실행하거나, GOMODCACHE 경로를 tmpfs나 별도 볼륨으로 분리하는 방법을 쓴다.
 
 ## vendor 모드
 
@@ -223,6 +415,110 @@ go mod vendor
 
 # 현재 모듈 정보 확인
 go list -m all
+
+# 특정 패키지가 왜 의존성에 포함됐는지 추적
+go mod why github.com/some/lib
+
+# 모듈 단위로 추적
+go mod why -m github.com/some/lib
+
+# 다운로드된 모듈의 무결성 검증
+go mod verify
 ```
 
+**go mod why**
+
+`go mod why`는 왜 특정 패키지가 빌드에 포함됐는지 추적한다.
+
+```bash
+$ go mod why github.com/pelletier/go-toml/v2
+
+# github.com/pelletier/go-toml/v2
+github.com/myorg/myapp
+github.com/gin-gonic/gin
+github.com/pelletier/go-toml/v2
+```
+
+의존성 정리를 하다가 "이 패키지를 왜 쓰고 있지?"라는 의문이 들 때 쓴다. `-m` 플래그를 붙이면 패키지 단위가 아닌 모듈 단위로 추적한다.
+
+**go mod verify**
+
+`go mod verify`는 로컬에 캐시된 모듈 파일들이 `go.sum`의 해시와 일치하는지 검사한다.
+
+```bash
+$ go mod verify
+all modules verified
+```
+
+캐시가 손상됐거나 누군가 수동으로 파일을 건드렸을 때 감지한다. CI에서 빌드 전에 실행하면 환경 신뢰성을 높인다.
+
 `go get -u ./...`는 가끔 예상치 못한 버전으로 올라가서 빌드가 깨지는 경우가 있다. 운영 중인 서비스라면 라이브러리 하나씩 올리고 테스트하는 게 안전하다.
+
+## CI/Dockerfile에서 go.mod 레이어 캐싱
+
+Docker 빌드에서 의존성 다운로드를 매번 반복하지 않으려면 레이어 순서가 중요하다.
+
+```dockerfile
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# go.mod와 go.sum을 먼저 복사해서 별도 레이어로 만든다
+COPY go.mod go.sum ./
+RUN go mod download
+
+# 소스 코드는 그 다음에 복사
+COPY . .
+RUN go build -o /app/server ./cmd/server
+```
+
+`go.mod`와 `go.sum`이 변경되지 않으면 `go mod download` 레이어가 캐시에서 재사용된다. 소스 코드만 변경됐을 때 의존성 다운로드를 건너뛰는 게 핵심이다.
+
+멀티스테이지 빌드에서는 builder 스테이지에서 캐시를 최대한 활용한다.
+
+```dockerfile
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server
+
+FROM alpine:3.19
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /app/server /app/server
+CMD ["/app/server"]
+```
+
+`go mod verify`를 `go mod download` 직후에 실행하면 다운로드된 파일의 무결성을 확인하고 넘어간다.
+
+BuildKit의 `--mount=type=cache`를 쓰면 빌드 간에 모듈 캐시를 유지한다.
+
+```dockerfile
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+```
+
+컨테이너 레이어가 아닌 BuildKit 캐시에 모듈을 저장하기 때문에 이미지 크기는 커지지 않으면서 반복 빌드 속도를 높인다.
+
+GitHub Actions에서는 `go.sum`을 캐시 키로 쓰는 게 표준적인 방법이다.
+
+```yaml
+- name: Cache Go modules
+  uses: actions/cache@v3
+  with:
+    path: |
+      ~/go/pkg/mod
+      ~/.cache/go-build
+    key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+    restore-keys: |
+      ${{ runner.os }}-go-
+
+- name: Download dependencies
+  run: go mod download
+```
+
+`~/go/pkg/mod`(모듈 캐시)와 `~/.cache/go-build`(빌드 캐시) 두 경로를 함께 캐시하면 의존성 다운로드와 컴파일 결과 모두를 재사용한다.
