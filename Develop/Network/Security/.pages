@@ -6,4 +6,5 @@ nav:
   - Firewall.md
   - Network_Firewall_Architecture.md
   - Zero_Trust_Network.md
+  - Zero_Trust_CICD_Pipeline.md
   - Network_Segmentation.md

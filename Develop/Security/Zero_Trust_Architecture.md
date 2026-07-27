@@ -1,7 +1,7 @@
 ---
 title: "Zero Trust Architecture"
-tags: [Security, Zero-Trust, BeyondCorp, ZTNA, Microsegmentation, OPA]
-updated: 2026-04-08
+tags: [Security, Zero-Trust, BeyondCorp, ZTNA, Microsegmentation, OPA, MDM, Cloudflare, Tailscale, Zscaler]
+updated: 2026-07-27
 ---
 
 # Zero Trust Architecture
@@ -87,6 +87,210 @@ ZTNA는 애플리케이션 단위로 접근을 제어한다. 네트워크에 접
 ZTNA에서 중요한 부분은 "아웃바운드 연결"이다. 전통 VPN은 VPN 서버가 인터넷에 노출되어야 한다. ZTNA는 내부에 설치한 커넥터가 클라우드 쪽으로 아웃바운드 연결을 만든다. 내부에서 밖으로 연결하니까, 내부 인프라를 인터넷에 노출하지 않아도 된다.
 
 실무에서 VPN을 완전히 없애기는 어렵다. DB에 직접 접속하거나 레거시 시스템을 관리하는 경우에는 네트워크 레벨 접근이 필요하다. 보통은 일반 사용자를 ZTNA로 전환하고, 인프라 관리용으로 VPN을 남겨두는 식으로 전환한다.
+
+## ZTNA 상용 제품 비교
+
+Cloudflare Access, Tailscale, Zscaler Private Access(ZPA)는 각각 다른 규모와 요구사항을 겨냥한다. 이름만 보면 비슷해 보이지만, 실제로 설정하고 운영해보면 철학이 완전히 다르다.
+
+### Cloudflare Access
+
+Cloudflare Access는 cloudflared 터널 데몬을 서버에 설치하고, 그 데몬이 Cloudflare 엣지로 아웃바운드 연결을 맺는 구조다. 사용자가 `wiki.corp.com`에 접속하면 Cloudflare가 IdP(Google, Okta, Azure AD 등)로 리다이렉트하고, 인증 후 서버에 요청을 전달한다.
+
+```yaml
+# /etc/cloudflared/config.yml
+tunnel: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+credentials-file: /etc/cloudflared/creds/a1b2c3d4.json
+
+ingress:
+  - hostname: wiki.corp.example.com
+    service: http://localhost:8080
+  - hostname: grafana.corp.example.com
+    service: http://localhost:3000
+  - hostname: bastion.corp.example.com
+    service: ssh://localhost:22
+  - service: http_status:404
+```
+
+Cloudflare Access가 통과시킨 요청에는 `Cf-Access-Jwt-Assertion` 헤더가 붙는다. 백엔드에서 이 JWT를 검증하면 Cloudflare를 거치지 않은 직접 접근을 걸러낼 수 있다.
+
+```python
+import httpx
+import jwt
+from functools import lru_cache
+
+CF_TEAM_DOMAIN = "corp.cloudflareaccess.com"
+CF_AUD = "your-application-aud-tag"  # Cloudflare Zero Trust 대시보드에서 확인
+
+@lru_cache(maxsize=1)
+def _get_cf_certs() -> dict:
+    resp = httpx.get(f"https://{CF_TEAM_DOMAIN}/cdn-cgi/access/certs")
+    resp.raise_for_status()
+    return resp.json()
+
+def verify_cf_access(token: str) -> dict:
+    certs = _get_cf_certs()
+    try:
+        payload = jwt.decode(
+            token,
+            certs,
+            algorithms=["RS256"],
+            audience=CF_AUD,
+        )
+    except jwt.InvalidTokenError as exc:
+        raise PermissionError(f"Invalid Cloudflare Access token: {exc}")
+    # payload에 email, groups, country 등 포함
+    return payload
+```
+
+Terraform으로 Access Policy를 관리하면 정책 변경 이력이 남는다.
+
+```hcl
+resource "cloudflare_access_application" "internal_wiki" {
+  zone_id          = var.zone_id
+  name             = "Internal Wiki"
+  domain           = "wiki.corp.example.com"
+  type             = "self_hosted"
+  session_duration = "8h"
+}
+
+resource "cloudflare_access_policy" "corp_engineers" {
+  application_id = cloudflare_access_application.internal_wiki.id
+  zone_id        = var.zone_id
+  name           = "Engineering team only"
+  precedence     = 1
+  decision       = "allow"
+
+  include {
+    email_domain = ["corp.com"]
+    groups       = [cloudflare_access_group.engineering.id]
+  }
+
+  require {
+    # WARP 클라이언트 + Jamf 디바이스 포스처 필수
+    device_posture {
+      integration_uid = cloudflare_device_posture_integration.jamf.id
+    }
+  }
+}
+```
+
+운영하면서 겪은 한계가 있다. WARP 클라이언트를 설치해야만 디바이스 포스처 체크가 된다. 직원들이 WARP 설치를 거부하거나, iOS/Android에서 WARP가 배터리를 많이 소모한다는 불만이 나온다. 또한 TCP/UDP 레벨 터널링(예: DB 직접 접속)은 Cloudflare Tunnel + WARP 조합이 필요하고, 대역폭 비용이 추가된다. 50인 이하 팀에는 무료 티어로 충분하지만, 그 이상이면 비용 계산을 미리 해봐야 한다.
+
+### Tailscale
+
+Tailscale은 WireGuard 기반의 mesh 네트워크다. ZTNA라고 부르기보다는 "더 나은 VPN"에 가깝다. 각 노드가 Tailscale IP(100.x.x.x 대역)를 받고, 노드 간 직접 WireGuard 터널을 형성한다. 직접 연결이 안 되면 Tailscale의 DERP 릴레이 서버를 경유한다.
+
+설치는 간단하다. `brew install tailscale && tailscale up --login-server=https://login.tailscale.com` 한 줄이면 된다. 30분 만에 팀 전체 dev 환경을 연결한 경험이 있다.
+
+ACL 정책은 HuJSON(주석 포함 JSON) 형식으로 작성한다.
+
+```hujson
+{
+  "tagOwners": {
+    "tag:server":   ["autogroup:admin"],
+    "tag:database": ["autogroup:admin"],
+    "tag:ci":       ["autogroup:admin"]
+  },
+
+  "acls": [
+    // 개발자 → 개발 서버: SSH + 앱 포트
+    {
+      "action": "accept",
+      "src":    ["autogroup:member"],
+      "dst":    ["tag:server:22", "tag:server:8080-9090"]
+    },
+    // 백엔드 서버 → DB: PostgreSQL만
+    {
+      "action": "accept",
+      "src":    ["tag:server"],
+      "dst":    ["tag:database:5432"]
+    },
+    // CI/CD → 서버 SSH (배포용)
+    {
+      "action": "accept",
+      "src":    ["tag:ci"],
+      "dst":    ["tag:server:22"]
+    }
+    // 나머지는 기본 차단
+  ],
+
+  // Tailscale SSH: 공개키 없이 SSO 계정으로 SSH 접속
+  "ssh": [
+    {
+      "action": "accept",
+      "src":    ["autogroup:admin"],
+      "dst":    ["tag:server"],
+      "users":  ["root", "ubuntu"]
+    }
+  ]
+}
+```
+
+Subnet Router를 쓰면 온프레미스 네트워크 전체를 Tailscale 망에 연결할 수 있다. 레거시 시스템이 많은 환경에서 점진적 전환 시에 유용하다.
+
+Tailscale의 한계는 명확하다. ACL이 L3/L4(IP/포트) 수준이라, "이 사용자가 이 API 엔드포인트를 호출할 수 있는가" 같은 L7 정책은 불가능하다. 1000명 이상 규모의 enterprise 환경에서는 정책 관리가 복잡해진다. Tailscale은 소규모~중간 규모 개발팀 내부 접속 용도에 맞다.
+
+### Zscaler Private Access
+
+ZPA는 App Connector를 각 데이터센터나 네트워크 세그먼트에 배포하고, 커넥터가 Zscaler 클라우드로 아웃바운드 연결을 맺는 구조다. 사용자는 Zscaler Client Connector(에이전트)를 설치하거나, 브라우저 기반 접속을 사용한다.
+
+Terraform으로 App Segment와 Policy를 관리할 수 있다.
+
+```hcl
+# App Segment: 내부 앱을 hostname:port 단위로 정의
+resource "zpa_application_segment" "internal_wiki" {
+  name             = "Internal Wiki"
+  enabled          = true
+  health_reporting = "ON_ACCESS"
+  bypass_type      = "NEVER"
+
+  domain_names = ["wiki.internal.corp.com"]
+  tcp_port_ranges = ["443", "443"]
+
+  segment_group_id = zpa_segment_group.internal_apps.id
+  server_groups    = [zpa_server_group.corp_servers.id]
+}
+
+# Access Policy: SAML attribute 기반 접근 제어
+resource "zpa_policy_access_rule" "wiki_engineering" {
+  name        = "Wiki - Engineering Only"
+  action      = "ALLOW"
+  rule_order  = "1"
+  policy_type = "ACCESS_POLICY"
+
+  conditions {
+    operands {
+      object_type = "APP"
+      lhs         = "id"
+      rhs         = zpa_application_segment.internal_wiki.id
+    }
+  }
+
+  conditions {
+    operands {
+      object_type = "SAML"
+      lhs         = "department"
+      rhs         = "Engineering"
+      idp_id      = data.zpa_idp_controller.okta.id
+    }
+  }
+}
+```
+
+ZPA는 App Connector HA 구성, SAML/SCIM 완전 연동, ZIA(인터넷 트래픽 필터링)와 결합한 종합 보안 플랫폼을 원하는 enterprise에 맞다. 설정 복잡도가 높고, 도입 초기에 App Connector 배치 설계를 잘못 하면 나중에 수정 비용이 크다.
+
+### 제품 선택 기준
+
+| 항목 | Cloudflare Access | Tailscale | Zscaler ZPA |
+|------|:-----------------:|:---------:|:-----------:|
+| 규모 | 소~중 | 소~중 | 중~대 |
+| 설정 난이도 | 낮음 | 매우 낮음 | 높음 |
+| 정책 세밀도 | 중간 (IdP 그룹, 디바이스 포스처) | 낮음 (L3/L4) | 높음 (SAML attribute, SCIM) |
+| 디바이스 포스처 | WARP 필수 | 제한적 | Client Connector 필수 |
+| 레거시 연동 | 어려움 | Subnet Router로 가능 | App Connector로 가능 |
+| 비용 | 중간 | 낮음 | 높음 |
+
+개발팀 내부 접속 정도면 Tailscale로 빠르게 시작하고, 직원 전체 대상 SaaS 접근 제어가 필요하면 Cloudflare Access, 대규모 enterprise에 SAML/SCIM 완전 연동과 컴플라이언스가 필요하면 ZPA를 선택한다.
 
 ## 마이크로세그멘테이션
 
@@ -435,13 +639,11 @@ Gateway에서 인증(authentication)은 처리하되, 세밀한 인가(authoriza
 
 Gateway에서 모든 인가를 처리하려고 하면 Gateway가 모든 서비스의 비즈니스 로직을 알아야 하게 된다. 이러면 Gateway가 비대해지고, 서비스 배포와 Gateway 정책 업데이트가 결합된다. 서비스가 새 API를 추가할 때마다 Gateway 설정도 같이 바꿔야 하는 상황은 피해야 한다.
 
-## 디바이스 신뢰도 평가와 지속적 검증
+## 디바이스 신뢰도 평가와 MDM API 연동
 
-Zero Trust에서는 사용자 인증만으로는 부족하다. 인증된 사용자라도 감염된 디바이스에서 접속하면 위험하다. 그래서 디바이스 상태를 지속적으로 평가하고, 신뢰 수준에 따라 접근 범위를 조절한다.
+Zero Trust에서는 사용자 인증만으로는 부족하다. 인증된 사용자라도 감염된 디바이스에서 접속하면 위험하다. 디바이스 상태를 지속적으로 평가하고, 신뢰 수준에 따라 접근 범위를 조절한다.
 
 ### 디바이스 신뢰도 평가 항목
-
-디바이스를 평가할 때 보는 항목:
 
 - **디바이스 등록 여부**: 회사 MDM(Mobile Device Management)에 등록된 디바이스인가. 개인 디바이스면 접근 범위를 제한한다.
 - **OS 패치 수준**: 최신 보안 패치가 적용되어 있는가. 알려진 취약점이 있는 OS 버전에서의 접속은 제한한다.
@@ -464,35 +666,344 @@ Zero Trust에서는 사용자 인증만으로는 부족하다. 인증된 사용�
   → 웹 기반 SaaS만 접근 가능. 내부 시스템 접근 불가
 ```
 
-### 지속적 검증
+### Jamf Pro API 연동
 
-인증 시점에만 디바이스를 확인하면 안 된다. 세션 유지 중에 디바이스 상태가 바뀔 수 있다. EDR이 종료되거나, 네트워크가 변경되거나, 의심스러운 프로세스가 실행될 수 있다.
-
-지속적 검증을 구현하는 방법:
-
-**짧은 토큰 수명**: Access Token의 수명을 5~15분으로 짧게 설정한다. 토큰 갱신 시마다 디바이스 상태를 재평가한다. 디바이스 상태가 변경되었으면 갱신을 거부한다.
-
-**디바이스 상태 이벤트 구독**: MDM/EDR에서 디바이스 상태 변경 이벤트를 받아서, 해당 디바이스의 세션을 즉시 무효화한다. 예를 들어 EDR이 맬웨어를 탐지하면 해당 디바이스의 모든 활성 세션을 끊는다.
+macOS/iOS MDM으로 Jamf Pro를 쓰는 환경에서 실제 디바이스 컴플라이언스 상태를 조회하는 코드다. Jamf Pro API v2는 OAuth2 client credentials 방식으로 인증한다.
 
 ```python
-# 의사 코드 — 토큰 갱신 시 디바이스 상태 재검증
-def refresh_token(refresh_token, device_id):
-    user = validate_refresh_token(refresh_token)
-    device = get_device_state(device_id)
+import httpx
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional
 
-    if device.compliance_status != "COMPLIANT":
-        revoke_all_sessions(user.id, device_id)
-        raise AccessDenied("디바이스가 정책을 충족하지 않음")
+# OS별 최소 허용 버전 — 보안팀과 합의해서 주기적으로 업데이트
+OS_MIN_VERSIONS = {
+    "macOS": "14.0",
+    "Windows": "10.0.19041",  # 20H1 이상
+    "iOS": "17.0",
+    "Android": "13",
+}
 
-    if device.risk_score > RISK_THRESHOLD:
-        # 완전 차단 대신 접근 범위 축소
-        scopes = get_reduced_scopes(device.risk_score)
-        return issue_token(user, scopes, ttl=300)
 
-    return issue_token(user, user.default_scopes, ttl=900)
+@dataclass
+class DeviceTrustResult:
+    device_id: str
+    serial_number: str
+    is_corp_managed: bool
+    os_version: str
+    patch_compliant: bool
+    disk_encrypted: bool
+    edr_active: bool
+    last_checkin: Optional[datetime]
+    trust_score: int = field(init=False)
+    allowed_scopes: list[str] = field(init=False)
+
+    def __post_init__(self):
+        self.trust_score = self._calc_score()
+        self.allowed_scopes = self._derive_scopes()
+
+    def _calc_score(self) -> int:
+        if not self.is_corp_managed:
+            return 0
+        score = 40
+        if self.patch_compliant:
+            score += 25
+        if self.disk_encrypted:
+            score += 20
+        if self.edr_active:
+            score += 15
+        return score
+
+    def _derive_scopes(self) -> list[str]:
+        if self.trust_score >= 90:
+            return ["internal:*", "production:read", "production:write"]
+        if self.trust_score >= 65:
+            return ["internal:read", "saas:*"]
+        if self.trust_score >= 40:
+            return ["saas:*"]
+        return []
+
+
+class JamfProClient:
+    def __init__(self, base_url: str, client_id: str, client_secret: str):
+        self._base = base_url.rstrip("/")
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._token: Optional[str] = None
+
+    async def _refresh_token(self, client: httpx.AsyncClient) -> None:
+        resp = await client.post(
+            f"{self._base}/api/oauth/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": self._client_id,
+                "client_secret": self._client_secret,
+            },
+        )
+        resp.raise_for_status()
+        self._token = resp.json()["access_token"]
+
+    async def get_device_trust(self, serial_number: str) -> Optional[DeviceTrustResult]:
+        async with httpx.AsyncClient(timeout=10) as client:
+            if not self._token:
+                await self._refresh_token(client)
+
+            headers = {"Authorization": f"Bearer {self._token}"}
+            params = {
+                "filter": f"hardware.serialNumber=={serial_number}",
+                "section": ["HARDWARE", "OPERATING_SYSTEM", "DISK_ENCRYPTION", "GENERAL"],
+            }
+
+            resp = await client.get(
+                f"{self._base}/api/v1/computers-inventory",
+                params=params,
+                headers=headers,
+            )
+            if resp.status_code == 401:
+                await self._refresh_token(client)
+                headers["Authorization"] = f"Bearer {self._token}"
+                resp = await client.get(
+                    f"{self._base}/api/v1/computers-inventory",
+                    params=params,
+                    headers=headers,
+                )
+            resp.raise_for_status()
+
+            results = resp.json().get("results", [])
+            if not results:
+                return None
+
+            computer = results[0]
+            os_info = computer.get("operatingSystem", {})
+            disk_enc = computer.get("diskEncryption", {})
+            general = computer.get("general", {})
+
+            os_version = os_info.get("version", "0.0")
+
+            # bootPartitionFileVault2State: ENCRYPTED / NOT_ENCRYPTED / INELIGIBLE
+            fv_state = disk_enc.get("bootPartitionFileVault2State", "NOT_ENCRYPTED")
+
+            # EDR 활성 여부: Jamf Extension Attribute로 CrowdStrike/SentinelOne 상태를 별도 수집하는 게 정석.
+            # 여기서는 MDM supervised 상태로 대체 — 실제 환경에서는 EA 쿼리를 추가한다.
+            edr_active = general.get("supervised", False)
+
+            last_contact = general.get("lastContactTime")
+            last_checkin = None
+            if last_contact:
+                last_checkin = datetime.fromisoformat(
+                    last_contact.replace("Z", "+00:00")
+                )
+
+            return DeviceTrustResult(
+                device_id=computer["id"],
+                serial_number=serial_number,
+                is_corp_managed=True,
+                os_version=os_version,
+                patch_compliant=_version_gte(os_version, OS_MIN_VERSIONS["macOS"]),
+                disk_encrypted=(fv_state == "ENCRYPTED"),
+                edr_active=edr_active,
+                last_checkin=last_checkin,
+            )
+
+
+def _version_gte(version: str, minimum: str) -> bool:
+    def to_tuple(v: str) -> tuple:
+        return tuple(int(x) for x in v.split(".") if x.isdigit())
+    try:
+        return to_tuple(version) >= to_tuple(minimum)
+    except (ValueError, AttributeError):
+        return False
 ```
 
-디바이스 신뢰도 평가를 직접 구축하려면 MDM API 연동, 디바이스 인증서 발급, 상태 수집 에이전트 개발 등이 필요하다. 규모가 작은 조직이라면 Google BeyondCorp Enterprise, Microsoft Entra ID + Intune, Cloudflare Access + WARP 같은 SaaS를 쓰는 게 현실적이다.
+### Microsoft Intune (Graph API) 연동
+
+Windows/Android 환경에서 Intune을 쓰는 경우 Microsoft Graph API로 디바이스 컴플라이언스를 조회한다.
+
+```python
+class IntuneClient:
+    GRAPH_BASE = "https://graph.microsoft.com/v1.0"
+
+    def __init__(self, tenant_id: str, client_id: str, client_secret: str):
+        self._tenant_id = tenant_id
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._token: Optional[str] = None
+
+    async def _refresh_token(self, client: httpx.AsyncClient) -> None:
+        resp = await client.post(
+            f"https://login.microsoftonline.com/{self._tenant_id}/oauth2/v2.0/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": self._client_id,
+                "client_secret": self._client_secret,
+                "scope": "https://graph.microsoft.com/.default",
+            },
+        )
+        resp.raise_for_status()
+        self._token = resp.json()["access_token"]
+
+    async def get_device_trust(self, aad_device_id: str) -> Optional[DeviceTrustResult]:
+        select_fields = ",".join([
+            "id", "serialNumber", "managedDeviceOwnerType",
+            "osVersion", "operatingSystem", "complianceState",
+            "isEncrypted", "lastSyncDateTime", "deviceRegistrationState",
+        ])
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            if not self._token:
+                await self._refresh_token(client)
+
+            headers = {"Authorization": f"Bearer {self._token}"}
+            params = {
+                "$filter": f"azureADDeviceId eq '{aad_device_id}'",
+                "$select": select_fields,
+            }
+
+            resp = await client.get(
+                f"{self.GRAPH_BASE}/deviceManagement/managedDevices",
+                params=params,
+                headers=headers,
+            )
+            if resp.status_code == 401:
+                await self._refresh_token(client)
+                headers["Authorization"] = f"Bearer {self._token}"
+                resp = await client.get(
+                    f"{self.GRAPH_BASE}/deviceManagement/managedDevices",
+                    params=params,
+                    headers=headers,
+                )
+            resp.raise_for_status()
+
+            results = resp.json().get("value", [])
+            if not results:
+                return None
+
+            device = results[0]
+            os_type = device.get("operatingSystem", "Windows")
+            os_version = device.get("osVersion", "0")
+            min_ver = OS_MIN_VERSIONS.get(os_type, "0")
+
+            # complianceState: compliant / noncompliant / unknown / notApplicable
+            # Intune 컴플라이언스 정책이 설정되어 있어야 의미 있는 값이 나온다.
+            patch_compliant = device.get("complianceState") == "compliant"
+
+            last_sync = device.get("lastSyncDateTime", "")
+            last_checkin = None
+            if last_sync and last_sync != "0001-01-01T00:00:00Z":
+                last_checkin = datetime.fromisoformat(last_sync.replace("Z", "+00:00"))
+
+            return DeviceTrustResult(
+                device_id=device["id"],
+                serial_number=device.get("serialNumber", ""),
+                is_corp_managed=(device.get("managedDeviceOwnerType") == "company"),
+                os_version=os_version,
+                patch_compliant=patch_compliant,
+                disk_encrypted=device.get("isEncrypted", False),
+                edr_active=(device.get("deviceRegistrationState") == "registered"),
+                last_checkin=last_checkin,
+            )
+```
+
+### 토큰 갱신 시 디바이스 재평가
+
+```python
+class DeviceTrustService:
+    def __init__(self, jamf: JamfProClient, intune: IntuneClient):
+        self._jamf = jamf
+        self._intune = intune
+
+    async def evaluate(self, platform: str, device_identifier: str) -> DeviceTrustResult:
+        if platform in ("macOS", "iOS"):
+            result = await self._jamf.get_device_trust(device_identifier)
+        elif platform in ("Windows", "Android"):
+            result = await self._intune.get_device_trust(device_identifier)
+        else:
+            result = None
+
+        if result is None:
+            # MDM에 없는 디바이스 = 비관리 디바이스로 처리
+            return DeviceTrustResult(
+                device_id="unregistered",
+                serial_number=device_identifier,
+                is_corp_managed=False,
+                os_version="0",
+                patch_compliant=False,
+                disk_encrypted=False,
+                edr_active=False,
+                last_checkin=None,
+            )
+
+        return result
+
+
+# Access Token 갱신 엔드포인트
+async def handle_token_refresh(
+    refresh_token: str,
+    device_id: str,
+    platform: str,
+) -> TokenResponse:
+    user = validate_refresh_token(refresh_token)
+    trust = await device_trust_service.evaluate(platform, device_id)
+
+    if trust.trust_score < 40:
+        # 심각한 미준수 상태 — 해당 디바이스의 세션 전체 종료
+        await revoke_all_sessions(user.id, device_id)
+        raise HTTPException(403, "Device does not meet security requirements")
+
+    return issue_token(user, trust.allowed_scopes, ttl=900)
+```
+
+디바이스 신뢰도 평가를 직접 구축하는 게 부담스럽다면 Google BeyondCorp Enterprise, Microsoft Entra ID + Intune, Cloudflare Access + WARP처럼 통합된 SaaS를 쓰는 게 현실적이다. 특히 소규모 팀에서 MDM API 연동을 직접 개발하고 유지하는 비용이 생각보다 크다.
+
+## Zero Trust 전환 실패 원인
+
+Zero Trust는 기술 문제보다 운영과 조직 문제로 실패하는 경우가 더 많다. 몇 가지 패턴을 반복해서 보게 된다.
+
+### 정책 과잉으로 생산성이 무너진다
+
+Zero Trust 초기 도입 팀이 자주 저지르는 실수는 처음부터 정책을 너무 세밀하게 설정하는 것이다. Access Token TTL을 5분으로 설정하면, 개발자가 IDE에서 작업 중에 토큰이 만료돼서 재인증 팝업이 뜬다. `terraform apply`가 실행 도중에 크리덴셜이 만료되어 중단되는 경우도 생긴다.
+
+서비스 간 통신에 mTLS를 적용하면서 인증서 갱신 주기를 너무 짧게 설정하면(24시간 이하), 인증서 갱신이 배포 사이클과 겹쳐서 서비스가 간헐적으로 실패한다. CertManager가 인증서를 갱신하는 타이밍에 트래픽이 짧게 끊기는 현상이 나온다.
+
+NetworkPolicy를 기본 차단으로 설정한 직후, 개발팀이 "이거 왜 안 되냐"는 티켓을 쏟아내는 상황이 며칠간 이어질 수 있다. 관리자가 정책을 되돌리거나, 예외를 너무 많이 허용하면서 원래 목적이 흐려진다.
+
+정책은 처음부터 엄격하게 짜는 게 아니라, 허용 범위를 파악한 뒤 점진적으로 좁혀가야 한다.
+
+### 레거시 시스템 연동이 끊어진다
+
+이것이 실제로 Zero Trust 전환을 막는 가장 큰 원인이다. 사내에는 반드시 OIDC/SAML을 지원하지 않는 레거시 시스템이 있다.
+
+흔히 마주치는 케이스:
+- 구형 Java EE 애플리케이션이 LDAP 직접 조회로 인증한다. ZTNA 정책 엔진을 거치지 않는다.
+- Windows 환경의 NTLMv1/v2 기반 서비스. Kerberos로 전환해야 하는데, 연동된 시스템이 너무 많아서 일정이 계속 밀린다.
+- DB 클라이언트 툴(DBeaver, DataGrip 등)이 직접 DB 포트에 연결해야 한다. ZTNA로 이걸 처리하려면 L4 TCP 터널이 필요한데, 제품마다 지원 방식이 다르다.
+- 사내 CI/CD 시스템이 배포 스크립트에서 하드코딩된 내부 IP로 직접 SSH 접속한다.
+
+보통 "레거시 시스템 10개 중 9개 전환 완료" 상태에서 프로젝트가 멈춘다. 나머지 1개가 너무 복잡하거나, 다른 우선순위 작업에 밀리기 때문이다. 결국 그 1개를 위해 VPN이 계속 남아있게 되고, "Zero Trust 전환 완료"가 아닌 "Zero Trust와 VPN 공존" 상태가 된다.
+
+레거시 시스템 목록을 먼저 전수 조사하고, 연동 불가 시스템은 교체 일정을 확정해야 전환 계획이 현실적이 된다.
+
+### 가시성 없이 차단부터 적용한다
+
+모니터링 없이 기본 차단 정책을 바로 적용하면 어디서 무엇이 막히는지 알 수 없다. 서비스가 이상하게 동작할 때 "NetworkPolicy 때문인가, 코드 버그인가"를 구분하는 데 시간이 걸린다.
+
+Calico의 경우 `action: Log` 모드, Istio의 경우 `AUDIT` 모드로 먼저 트래픽을 기록하고, 실제 차단 전에 최소 2주는 로그를 분석해야 한다. Prometheus가 8080 포트를 scrape하는 트래픽, Kubernetes liveness probe가 사용하는 포트, 서비스 메시의 헬스체크 경로 등 개발자가 인지하지 못하는 내부 통신이 반드시 있다.
+
+### 사용자 마찰이 쌓인다
+
+보안팀이 WARP 클라이언트 설치를 강제하면, 직원들이 "배터리가 빨리 닳는다", "속도가 느려졌다", "이상한 소프트웨어를 왜 설치해야 하냐"는 반응을 보인다. MFA 피로(너무 잦은 인증 요청)도 비슷한 문제다.
+
+마찰이 쌓이면 직원들이 보안 정책을 우회하는 방법을 찾기 시작한다. 회사 계정 대신 개인 Google Drive에 파일을 올리거나, 사내 시스템 대신 외부 서비스를 쓰는 shadow IT가 늘어난다. 이러면 보안 통제 범위 밖에서 데이터가 유통된다.
+
+사용자 경험을 최대한 투명하게 만들어야 한다. 정상적인 업무 흐름에서는 추가 인증이 발생하지 않아야 한다. 추가 마찰은 고위험 상황(새 디바이스, 비정상적 위치, 민감한 리소스 접근)에서만 발생하도록 설계해야 한다.
+
+### 성능 비용을 과소평가한다
+
+모든 요청이 정책 엔진을 거치면 레이턴시가 추가된다. OPA ext_authz를 Envoy 사이드카로 붙이면 요청당 5~20ms가 추가된다. API가 초당 수천 건 처리하는 서비스라면 이게 누적되어 P99 레이턴시에 영향을 준다.
+
+mTLS handshake도 마찬가지다. 서비스 간 통신이 많은 환경에서 커넥션을 재사용하지 않으면 handshake 비용이 무시할 수 없다. Istio를 도입한 뒤 CPU 사용량이 20~30% 올라가는 경우가 흔하다. 사이드카 프록시가 모든 트래픽을 가로채고 처리하기 때문이다.
+
+도입 전에 부하 테스트를 반드시 해야 한다. "현재 레이턴시 P99 = 50ms, 정책 엔진 추가 후 P99 = 65ms, 허용 범위인가"를 확인해야 한다. 허용 범위를 벗어나면 OPA 정책 캐싱, 커넥션 풀링, 또는 eBPF 기반 정책 적용(Cilium)으로 오버헤드를 줄이는 방법을 검토해야 한다.
 
 ## 정리
 
@@ -507,4 +1018,4 @@ Zero Trust는 "경계를 없앤다"는 게 아니라, "경계에 의존하지 �
 5. 디바이스 신뢰도 평가 도입
 6. VPN → ZTNA 전환
 
-각 단계마다 모니터링을 먼저 붙이고, 차단은 나중에 켜야 한다. 모니터링 없이 차단부터 하면 정상 트래픽을 막아서 장애가 난다. 한번에 전환하려고 하면 실패한다. 기존 환경에서 점진적으로 전환하는 게 핵심이다.
+각 단계마다 모니터링을 먼저 붙이고, 차단은 나중에 켜야 한다. 전환 과정에서 레거시 시스템 목록을 미리 파악하지 않으면 중간에 막힌다. 정책은 처음부터 엄격하게 짜지 않고, 트래픽 패턴을 파악한 뒤 좁혀가는 방식이 현실적이다.
