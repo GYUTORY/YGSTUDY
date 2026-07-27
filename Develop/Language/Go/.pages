@@ -4,6 +4,8 @@ nav:
   - Go_Concurrency.md
   - Go_Concurrency_Patterns.md
   - Go_Sync_Primitives.md
+  - Go_Memory_Model.md
+  - Go_Scheduler_Internals.md
   - Go_Context.md
   - Go_Interface.md
   - Go_Generics.md
