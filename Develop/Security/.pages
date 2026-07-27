@@ -28,6 +28,7 @@ nav:
   - XML_External_Entity.md
   - Path_Traversal.md
   - Open_Redirect.md
+  - Open_Redirect_Deep_Dive.md
   - Web_Cache_Poisoning.md
   - OWASP_Top_10.md
   - API_Input_Validation.md
