@@ -1,16 +1,19 @@
 ---
-title: App Runner 컨테이너 자동 배포
+title: AWS App Runner 심층 가이드
 tags:
   - AWS
   - App_Runner
   - Container
   - ECR
-  - Fargate
+  - IAM
+  - CloudWatch
+  - X-Ray
+  - Terraform
   - Compute
-updated: 2026-06-16
+updated: 2026-07-27
 ---
 
-# App Runner 컨테이너 자동 배포
+# AWS App Runner 심층 가이드
 
 웹 API 하나를 배포하려고 ECS 클러스터, 태스크 정의, 서비스, ALB, 타깃 그룹, 오토스케일링 정책, 보안 그룹을 전부 손으로 짜본 사람이라면 "그냥 컨테이너 하나 올리는 건데 왜 이렇게 손이 많이 가나" 하는 생각을 한 번쯤 한다. App Runner는 그 중간 단계를 전부 감추고, 컨테이너 이미지나 소스 코드만 주면 HTTPS 엔드포인트가 달린 서비스를 띄워준다. 로드밸런서도, 인증서도, 오토스케일링도 따로 만들 필요가 없다.
 
@@ -31,7 +34,108 @@ graph LR
 
 소스 코드 기반은 GitHub 저장소를 연결해두면 App Runner가 코드를 받아서 직접 빌드하고 배포한다. Dockerfile 없이도 런타임(Python, Node.js, Java 등)을 지정하면 알아서 빌드한다. 작은 프로젝트나 도커 빌드 환경을 따로 만들기 귀찮을 때 쓴다. 단점은 지원하는 런타임 버전이 제한적이고, 빌드 과정을 세밀하게 제어하기 어렵다는 점이다.
 
-ECR 방식을 고를 때 한 가지 주의할 게 있다. ECR이 다른 계정에 있거나 퍼블릭 ECR이 아니면 App Runner가 이미지를 당겨올 수 있도록 액세스 역할(`AppRunnerECRAccessRole`)을 만들어줘야 한다. 콘솔에서 만들면 자동으로 붙지만, IaC로 짤 때 이걸 빠뜨려서 "이미지를 못 가져온다"는 에러로 막히는 경우가 흔하다.
+ECR 방식을 고를 때 한 가지 주의할 게 있다. ECR이 다른 계정에 있거나 퍼블릭 ECR이 아니면 App Runner가 이미지를 당겨올 수 있도록 액세스 역할을 만들어줘야 한다. 콘솔에서 만들면 자동으로 붙지만, IaC로 짤 때 이걸 빠뜨려서 "이미지를 못 가져온다"는 에러로 막히는 경우가 흔하다.
+
+## IAM 역할: AccessRole과 InstanceRole
+
+App Runner에서 IAM 역할은 두 개를 따로 만들어야 하는데, 이 둘의 역할이 완전히 다르다. 하나로 합치거나 둘 다 AdministratorAccess를 붙이는 식으로 대충 처리하다가 사고가 나는 경우가 있다.
+
+### AccessRole
+
+App Runner 서비스 자체가 ECR에서 이미지를 당겨올 때 쓰는 역할이다. 컨테이너가 아니라 App Runner 플랫폼이 assume한다. ECR 프라이빗 리포지터리를 소스로 쓸 때만 필요하고, 퍼블릭 ECR이면 없어도 된다.
+
+이 역할의 Trust Policy는 `build.apprunner.amazonaws.com`을 principal로 잡아야 한다. `tasks.apprunner.amazonaws.com`이 아니다. 헷갈리기 쉬운 부분이고, 잘못 쓰면 "AccessDenied: Not authorized to pull image" 에러로 배포가 멈춘다.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "build.apprunner.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+ECR 접근에 필요한 권한은 AWS 관리형 정책 `AWSAppRunnerServicePolicyForECRAccess`를 붙이면 된다. 직접 인라인 정책을 쓴다면 `ecr:GetDownloadUrlForLayer`, `ecr:BatchGetImage`, `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`, `ecr:DescribeImages`가 필요하다.
+
+### InstanceRole
+
+실제로 돌아가는 컨테이너가 assume하는 역할이다. 애플리케이션 코드가 AWS 서비스를 쓸 때 이 역할의 권한으로 접근한다. S3에서 파일을 읽거나, Secrets Manager에서 값을 가져오거나, SQS 메시지를 보내는 작업이 전부 이 역할 아래서 돈다.
+
+Trust Policy는 `tasks.apprunner.amazonaws.com`이다.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "tasks.apprunner.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+최소 권한 원칙을 지키려면 리소스 ARN을 구체적으로 명시해야 한다. `"Resource": "*"`로 두는 건 개발 단계에서 빠르게 연결 테스트할 때만 쓰고, 운영 환경에서는 반드시 특정 ARN으로 좁혀야 한다.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::my-app-bucket/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:ap-northeast-2:123456789012:secret:my-app/db-password-*"
+    }
+  ]
+}
+```
+
+Secrets Manager ARN 끝에 `-*`를 붙이는 건 AWS가 시크릿 버전마다 뒤에 랜덤 문자를 붙이기 때문이다. 정확한 ARN만 쓰면 버전이 바뀔 때마다 접근이 거부된다.
+
+## 환경 변수와 시크릿 관리
+
+앱 설정값을 넘기는 방법이 두 가지다. 일반 환경 변수는 평문으로 컨테이너에 들어가고, 시크릿은 Secrets Manager나 SSM Parameter Store를 거쳐서 들어온다.
+
+일반 환경 변수는 API 서버 주소, 타임존, 로그 레벨처럼 평문으로 봐도 상관없는 값에 쓴다. App Runner 설정에 직접 키-값으로 넣으면 된다.
+
+민감한 값(DB 비밀번호, API 키, 인증서 등)은 Secrets Manager나 SSM Parameter Store에 저장하고 ARN 또는 파라미터 이름으로 참조한다. App Runner가 시작할 때 해당 값을 가져와서 환경 변수로 주입해준다. 애플리케이션 코드에서 AWS SDK를 써서 직접 가져오는 방식보다 훨씬 간단하다.
+
+```json
+{
+  "EnvironmentVariables": [
+    { "Name": "LOG_LEVEL", "Value": "info" },
+    { "Name": "SERVER_TIMEOUT", "Value": "30" }
+  ],
+  "EnvironmentSecrets": [
+    {
+      "Name": "DB_PASSWORD",
+      "Value": "arn:aws:secretsmanager:ap-northeast-2:123456789012:secret:my-app/db-password-AbCdEf"
+    },
+    {
+      "Name": "API_KEY",
+      "Value": "arn:aws:ssm:ap-northeast-2:123456789012:parameter/my-app/api-key"
+    }
+  ]
+}
+```
+
+SSM Parameter Store에서 SecureString 타입을 쓰면 InstanceRole에 `ssm:GetParameters`와 `kms:Decrypt` 권한이 필요하다. KMS 권한을 빠뜨리면 "AccessDenied" 에러가 나는데, Secrets Manager 에러와 메시지가 비슷해서 혼동하기 쉽다.
+
+한 가지 주의할 점이 있다. Secrets Manager에서 시크릿 값을 바꿔도 실행 중인 컨테이너는 새 값을 자동으로 받지 않는다. App Runner는 서비스가 시작될 때 한 번만 시크릿을 읽어서 환경 변수로 넣는다. 시크릿을 로테이션했을 때 서비스를 재배포해야 반영된다는 걸 모르면, 왜 아직도 구 비밀번호로 접속이 되는지 한참 헤매게 된다.
 
 ## 자동 배포 동작
 
@@ -64,7 +168,7 @@ App Runner의 스케일링은 ECS나 EC2 오토스케일링과 기준이 다르�
 - `MinSize`: 항상 떠 있는 최소 인스턴스 수. 기본 1.
 - `MaxSize`: 늘어날 수 있는 최대 인스턴스 수. 기본 25.
 
-동작 원리는 이렇다. 인스턴스 하나가 `MaxConcurrency`만큼 요청을 받고 있는데 그 이상이 들어오면, App Runner가 인스턴스를 하나 더 띄운다. 즉 동시 요청이 250개이고 `MaxConcurrency`가 100이면 인스턴스는 3개로 늘어난다.
+인스턴스 하나가 `MaxConcurrency`만큼 요청을 받고 있는데 그 이상이 들어오면, App Runner가 인스턴스를 하나 더 띄운다. 동시 요청이 250개이고 `MaxConcurrency`가 100이면 인스턴스는 3개로 늘어난다.
 
 이 모델이 함정이 되는 경우가 있다. 요청 하나가 CPU를 많이 쓰는 작업(이미지 처리, 무거운 연산)인데 `MaxConcurrency`를 기본값 100으로 두면, 인스턴스 하나에 무거운 요청이 100개씩 몰리면서 CPU가 포화되는데도 동시 요청 수는 한계에 안 닿아서 스케일아웃이 안 일어난다. 이런 워크로드는 `MaxConcurrency`를 10~20 수준으로 낮춰서 인스턴스당 부하를 줄이고 인스턴스 개수로 분산시켜야 한다.
 
@@ -83,13 +187,304 @@ graph LR
     C --> D[RDS / ElastiCache]
 ```
 
-설정할 때 주의할 점이 몇 가지 있다.
-
 VPC 커넥터를 붙이면 아웃바운드 트래픽 전체가 VPC를 거쳐 나간다. 이전에는 App Runner가 자기 네트워크로 인터넷에 바로 나갔지만, 커넥터를 붙이는 순간 외부 API 호출도 VPC 경로를 탄다. 따라서 NAT 게이트웨이가 있는 프라이빗 서브넷에 커넥터를 두지 않으면, RDS는 붙는데 외부 인터넷(서드파티 API, 외부 OAuth 등)은 안 되는 상황이 생긴다.
 
 RDS 쪽 보안 그룹에서 VPC 커넥터의 보안 그룹을 인바운드로 허용해야 한다. 이걸 빠뜨리면 ENI는 만들어졌는데 DB 포트가 막혀서 또 타임아웃이 난다.
 
 서브넷의 가용 IP가 부족하면 커넥터 생성이 실패한다. ENI가 서브넷 IP를 잡아먹기 때문에, IP 여유가 빠듯한 서브넷을 골랐다가 생성 단계에서 막히는 경우가 있다.
+
+## CloudWatch 로그와 X-Ray 트레이싱
+
+### 로그 그룹 구조
+
+App Runner 서비스를 만들면 CloudWatch에 두 개의 로그 그룹이 자동으로 생긴다.
+
+- `/aws/apprunner/{서비스명}/{서비스ID}/service`: App Runner 플랫폼 로그. 배포 이벤트, 헬스체크 결과, 스케일링 이벤트가 여기 쌓인다.
+- `/aws/apprunner/{서비스명}/{서비스ID}/application`: 컨테이너가 stdout으로 출력하는 애플리케이션 로그.
+
+배포가 실패했을 때 service 로그를 먼저 보고, 애플리케이션 에러가 의심되면 application 로그를 봐야 한다. 처음엔 어느 로그를 봐야 하는지 몰라서 시간을 낭비하는 경우가 많다.
+
+로그 보존 기간은 기본값이 "만료 없음(Never expire)"이다. CloudWatch 저장 비용이 은근히 쌓이므로, Terraform이나 콘솔에서 서비스를 만들 때 `retention_in_days`를 명시적으로 설정해야 한다.
+
+App Runner가 로그 그룹을 자동으로 만들기 때문에, Terraform으로 먼저 만들어두면 충돌이 날 수 있다. 이미 App Runner가 만든 로그 그룹을 import하는 게 더 안전하다.
+
+```bash
+terraform import aws_cloudwatch_log_group.app_runner_application \
+  /aws/apprunner/my-api/application
+```
+
+### X-Ray 트레이싱
+
+`ObservabilityConfiguration`에서 `TracingVendor`를 `AWSXRAY`로 설정하면 X-Ray 데몬이 컨테이너 옆에 붙는다. 단, X-Ray SDK를 애플리케이션 코드에 추가해야 의미 있는 트레이스가 생긴다. 데몬만 켜고 SDK를 안 쓰면 App Runner가 생성하는 기본 트레이스만 나오고, 코드 안에서 무슨 일이 일어나는지는 보이지 않는다.
+
+InstanceRole에 다음 권한을 추가해야 트레이스가 X-Ray 서비스로 올라간다. X-Ray 관련 API는 리소스 ARN을 특정할 수 없어서 `"Resource": "*"`가 불가피하다. 그래도 Action을 X-Ray 관련으로만 좁혀야 한다.
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "xray:PutTraceSegments",
+    "xray:PutTelemetryRecords",
+    "xray:GetSamplingRules",
+    "xray:GetSamplingTargets",
+    "xray:GetSamplingStatisticSummaries"
+  ],
+  "Resource": "*"
+}
+```
+
+Python FastAPI 기준으로 SDK를 붙이는 예는 이렇다.
+
+```python
+from aws_xray_sdk.core import xray_recorder, patch_all
+from aws_xray_sdk.ext.fastapi.middleware import XRayMiddleware
+
+patch_all()  # boto3, requests 등 자동으로 계측
+
+app = FastAPI()
+app.add_middleware(XRayMiddleware, recorder=xray_recorder)
+```
+
+`patch_all()`은 임포트 초반에 호출해야 한다. 나중에 호출하면 이미 임포트된 라이브러리에는 패치가 안 붙는다.
+
+## 커스텀 도메인 연결
+
+App Runner가 제공하는 기본 도메인(`{id}.{region}.awsapprunner.com`)을 그대로 쓰는 경우는 드물다. 실제 서비스라면 커스텀 도메인을 연결해야 한다.
+
+`AssociateCustomDomain` API를 호출하거나 콘솔에서 도메인을 등록하면 App Runner가 인증서 검증용 CNAME 레코드를 돌려준다. 이 레코드를 DNS에 추가해야 ACM 인증서가 발급된다.
+
+```
+도메인 등록 요청
+    → App Runner가 ACM 인증서 발급 요청
+    → ACM이 DNS 검증용 CNAME 레코드 반환
+    → DNS에 CNAME 추가
+    → ACM 인증서 발급 완료
+    → App Runner가 커스텀 도메인으로 트래픽 수신 시작
+```
+
+Route 53을 쓴다면 Terraform으로 이 흐름을 자동화할 수 있다.
+
+```hcl
+resource "aws_apprunner_custom_domain_association" "main" {
+  domain_name          = "api.example.com"
+  service_arn          = aws_apprunner_service.main.arn
+  enable_www_subdomain = false
+}
+
+resource "aws_route53_record" "app_runner_validation" {
+  for_each = {
+    for record in aws_apprunner_custom_domain_association.main.certificate_validation_records :
+    record.name => record
+  }
+
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = each.value.name
+  type    = each.value.type
+  ttl     = 60
+  records = [each.value.value]
+}
+
+resource "aws_route53_record" "app_runner_cname" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "api.example.com"
+  type    = "CNAME"
+  ttl     = 300
+  records = [aws_apprunner_service.main.service_url]
+}
+```
+
+`certificate_validation_records`는 `aws_apprunner_custom_domain_association`이 만들어진 뒤에 값이 채워진다. `for_each`로 동적으로 처리하지 않으면 plan 단계에서 개수를 모른다는 에러가 나온다.
+
+ACM 인증서는 만료 전에 자동으로 갱신된다. 단, 갱신 시점에 DNS 검증 레코드가 DNS에 살아있어야 한다. 검증 레코드를 처음에만 추가하고 지우는 실수를 하면 나중에 갱신이 실패한다. Terraform 상태에서 레코드를 관리하면 이 문제를 피할 수 있다.
+
+## Terraform으로 전체 구성
+
+지금까지 설명한 내용을 하나의 Terraform 구성으로 합친 예다. VPC 커넥터, IAM 역할, Secrets Manager 연동, X-Ray 활성화, 오토스케일링까지 포함한다.
+
+```hcl
+locals {
+  service_name = "my-api"
+  region       = "ap-northeast-2"
+  account_id   = data.aws_caller_identity.current.account_id
+}
+
+data "aws_caller_identity" "current" {}
+
+# AccessRole: App Runner 플랫폼이 ECR 이미지를 당겨올 때 씀
+resource "aws_iam_role" "access_role" {
+  name = "${local.service_name}-apprunner-access-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "build.apprunner.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecr_access" {
+  role       = aws_iam_role.access_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+}
+
+# InstanceRole: 실행 중인 컨테이너가 AWS 서비스를 쓸 때 씀
+resource "aws_iam_role" "instance_role" {
+  name = "${local.service_name}-apprunner-instance-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "tasks.apprunner.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "instance_policy" {
+  role = aws_iam_role.instance_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["secretsmanager:GetSecretValue"]
+        Resource = [
+          "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:${local.service_name}/*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject"]
+        Resource = ["arn:aws:s3:::${local.service_name}-bucket/*"]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# VPC 커넥터
+resource "aws_security_group" "app_runner" {
+  name   = "${local.service_name}-apprunner-sg"
+  vpc_id = var.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_apprunner_vpc_connector" "main" {
+  vpc_connector_name = "${local.service_name}-vpc-connector"
+  subnets            = var.private_subnet_ids
+  security_groups    = [aws_security_group.app_runner.id]
+}
+
+# X-Ray 관찰성 설정
+resource "aws_apprunner_observability_configuration" "main" {
+  observability_configuration_name = "${local.service_name}-observability"
+
+  trace_configuration {
+    vendor = "AWSXRAY"
+  }
+}
+
+# 오토스케일링
+resource "aws_apprunner_auto_scaling_configuration_version" "main" {
+  auto_scaling_configuration_name = "${local.service_name}-scaling"
+  max_concurrency                 = 50
+  min_size                        = 1
+  max_size                        = 10
+}
+
+# App Runner 서비스 본체
+resource "aws_apprunner_service" "main" {
+  service_name = local.service_name
+
+  source_configuration {
+    authentication_configuration {
+      access_role_arn = aws_iam_role.access_role.arn
+    }
+
+    image_repository {
+      image_identifier      = "${local.account_id}.dkr.ecr.${local.region}.amazonaws.com/${local.service_name}:${var.image_tag}"
+      image_repository_type = "ECR"
+
+      image_configuration {
+        port = "8080"
+
+        environment_variables = {
+          LOG_LEVEL      = "info"
+          SERVER_TIMEOUT = "30"
+        }
+
+        environment_secrets = {
+          DB_PASSWORD = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:${local.service_name}/db-password"
+          API_KEY     = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:${local.service_name}/api-key"
+        }
+      }
+    }
+
+    auto_deployments_enabled = false
+  }
+
+  instance_configuration {
+    cpu               = "1 vCPU"
+    memory            = "2 GB"
+    instance_role_arn = aws_iam_role.instance_role.arn
+  }
+
+  auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.main.arn
+
+  network_configuration {
+    egress_configuration {
+      egress_type       = "VPC"
+      vpc_connector_arn = aws_apprunner_vpc_connector.main.arn
+    }
+  }
+
+  observability_configuration {
+    observability_configuration_arn = aws_apprunner_observability_configuration.main.arn
+    observability_enabled           = true
+  }
+
+  health_check_configuration {
+    protocol            = "HTTP"
+    path                = "/healthz"
+    interval            = 10
+    timeout             = 5
+    healthy_threshold   = 1
+    unhealthy_threshold = 5
+  }
+}
+
+# CloudWatch 로그 보존 기간 (App Runner 생성 후 import 권장)
+resource "aws_cloudwatch_log_group" "app_runner_application" {
+  name              = "/aws/apprunner/${local.service_name}/application"
+  retention_in_days = 30
+}
+
+resource "aws_cloudwatch_log_group" "app_runner_service" {
+  name              = "/aws/apprunner/${local.service_name}/service"
+  retention_in_days = 30
+}
+```
+
+`auto_deployments_enabled = false`로 두는 건 의도적이다. 운영 환경에서 자동 배포를 켜두면 ECR 이미지 푸시 순간 배포가 트리거되는데, CI 파이프라인 완료를 기다리지 않고 배포되는 타이밍 문제가 생길 수 있다. 배포는 파이프라인에서 `aws apprunner start-deployment` 명령으로 명시적으로 트리거하는 방식이 제어하기 쉽다.
 
 ## Fargate, Beanstalk과 비교
 
