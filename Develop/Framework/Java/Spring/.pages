@@ -22,3 +22,4 @@ nav:
   - Lombok_Deep_Dive.md
   - Lombok_Minor_Annotations.md
   - AOP_트랜잭션.md
+  - Optimistic_Lock_Retry_Pattern.md
