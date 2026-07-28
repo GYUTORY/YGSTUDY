@@ -13,6 +13,7 @@ nav:
   - 정규화.md
   - 갱신_이상.md
   - BCNF.md
+  - 비정규화.md
   - Hierarchical_Data_Modeling.md
   - Data_Type_Selection.md
   - CDC_Pipeline.md
