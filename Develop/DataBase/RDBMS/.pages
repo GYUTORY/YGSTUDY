@@ -14,3 +14,4 @@ nav:
   - CDC_Pipeline.md
   - ClickHouse.md
   - My_SQL_vs_Postgre_SQL.md
+  - Type_ORM_Entity_Relations.md
