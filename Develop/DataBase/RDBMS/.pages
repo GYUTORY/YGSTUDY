@@ -9,6 +9,7 @@ nav:
   - 읽기_전용_복제본.md
   - 쿼리_옵티마이저.md
   - DB_Modeling.md
+  - Codd_12_Rules.md
   - 함수_종속.md
   - 정규화.md
   - 갱신_이상.md
