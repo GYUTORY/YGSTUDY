@@ -10,6 +10,7 @@ nav:
   - 쿼리_옵티마이저.md
   - DB_Modeling.md
   - 함수_종속.md
+  - 정규화.md
   - Hierarchical_Data_Modeling.md
   - Data_Type_Selection.md
   - CDC_Pipeline.md
