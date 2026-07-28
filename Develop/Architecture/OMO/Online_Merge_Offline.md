@@ -230,6 +230,6 @@ POS 오프라인 구간의 재고 처리도 Eventually Consistent 문제다. POS
 
 ## 관련 문서
 
-- [이벤트 기반 아키텍처](../../Backend/Architecture/Event_Driven_Architecture.md)
+- [이벤트 기반 아키텍처](../Event_Driven_Architecture.md)
 - [분산 트랜잭션](../../DataBase/RDBMS/Distributed_Transaction.md)
 - [Saga 패턴 및 분산 트랜잭션](../MSA/Saga_패턴_및_분산_트랜잭션.md)

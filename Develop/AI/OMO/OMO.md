@@ -232,6 +232,6 @@ POS 동기화 이벤트는 별도 배치로 보정한다. POS DB와 재고 서�
 
 ## 관련 문서
 
-- [이벤트 기반 아키텍처](../../Backend/Architecture/Event_Driven_Architecture.md)
+- [이벤트 기반 아키텍처](../../Architecture/Event_Driven_Architecture.md)
 - [분산 트랜잭션](../../DataBase/RDBMS/Distributed_Transaction.md)
 - [Saga 패턴 및 분산 트랜잭션](../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md)
