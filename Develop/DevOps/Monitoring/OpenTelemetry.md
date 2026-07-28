@@ -2038,3 +2038,6 @@ curl -X POST http://localhost:4318/v1/traces \
   -H "Content-Type: application/json" \
   -d '{"resourceSpans":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"test"}}]},"scopeSpans":[{"spans":[{"traceId":"a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4","spanId":"1a2b3c4d5e6f7a8b","name":"test-span","kind":1,"startTimeUnixNano":"1700000000000000000","endTimeUnixNano":"1700000001000000000"}]}]}]}'
 ```
+
+---
+이 문서는 [관측성 허브](../../_hub/관측성.md)의 일부입니다.

@@ -546,3 +546,6 @@ topk(10, count by (__name__)({__name__=~".+"}))
 **Thanos Store에서 쿼리가 느릴 때**
 
 Thanos Store는 Object Store에서 index를 캐싱해서 쿼리를 처리한다. 캐시가 비어있는 콜드 스타트 상황이나 시간 범위가 넓은 쿼리는 느릴 수 있다. `--store.grpc.series-max-concurrency`와 `--index-cache-size` 설정으로 조정한다.
+
+---
+이 문서는 [관측성 허브](../../_hub/관측성.md)의 일부입니다.

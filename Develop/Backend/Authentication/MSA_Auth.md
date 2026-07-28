@@ -606,3 +606,6 @@ public class MdcFilter extends OncePerRequestFilter {
 - [인증/인가 방식 비교](Authentication_Strategy.md) — 단일 서비스 기준 인증 방식
 - [RBAC/ABAC](RBAC_ABAC.md) — 역할/속성 기반 접근 제어
 - [API 인증/인가 실무 패턴](../API/API_Security_Patterns.md)
+
+---
+이 문서는 [인증과 토큰 허브](../../_hub/인증과_토큰.md)의 일부입니다.

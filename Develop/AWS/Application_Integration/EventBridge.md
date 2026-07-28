@@ -903,3 +903,6 @@ await eventBridge.putEvents({
 - EventBridge 요금: https://aws.amazon.com/eventbridge/pricing/
 - 이벤트 패턴 레퍼런스: https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-patterns.html
 
+---
+이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.
+

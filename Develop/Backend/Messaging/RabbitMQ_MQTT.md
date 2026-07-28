@@ -521,3 +521,6 @@ spring:
 ### MQTT 5.0 지원
 
 RabbitMQ 3.13부터 MQTT 5.0을 지원한다. Shared Subscription, Message Expiry, Topic Alias 등을 쓸 수 있다. 다만 아직 모든 MQTT 5.0 기능이 구현된 건 아니라서, 사용 전에 RabbitMQ 릴리스 노트를 확인해야 한다.
+
+---
+이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.

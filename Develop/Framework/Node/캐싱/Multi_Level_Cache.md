@@ -641,3 +641,6 @@ Redis 클러스터 모드에서 pub/sub은 모든 노드에 브로드캐스트�
 - Caffeine(자바) 디자인 문서 — 다층 캐시 설계 참고: https://github.com/ben-manes/caffeine/wiki/Efficiency
 - Redis pub/sub 한계와 Streams 비교: https://redis.io/docs/latest/develop/interact/pubsub/
 - prom-client(Node Prometheus exporter): https://github.com/siimon/prom-client
+
+---
+이 문서는 [캐싱 허브](../../_hub/캐싱.md)의 일부입니다.

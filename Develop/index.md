@@ -233,4 +233,57 @@ hide:
   </div>
 </section>
 
+<section class="yg-section">
+  <div class="yg-section-head">
+    <div>
+      <span class="yg-section-kicker">HUBS</span>
+      <h2 class="yg-section-title">주제별 허브</h2>
+    </div>
+  </div>
+  <div class="yg-series-grid">
+    <a class="yg-series" href="_hub/트랜잭션과_동시성/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">Database · OS</span>
+        <h3>트랜잭션과 동시성</h3>
+        <p>ACID, 격리 수준, 분산 트랜잭션, Saga 패턴까지.</p>
+      </div>
+    </a>
+    <a class="yg-series" href="_hub/인증과_토큰/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">Security · Auth</span>
+        <h3>인증과 토큰</h3>
+        <p>JWT, OAuth2, SSO, Passkey, NestJS Guards까지.</p>
+      </div>
+    </a>
+    <a class="yg-series" href="_hub/메시징과_전달_보장/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">Messaging · Queue</span>
+        <h3>메시징과 전달 보장</h3>
+        <p>Kafka, RabbitMQ, SQS, Outbox 패턴, 멱등성까지.</p>
+      </div>
+    </a>
+    <a class="yg-series" href="_hub/인덱스와_쿼리_성능/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">Database · Performance</span>
+        <h3>인덱스와 쿼리 성능</h3>
+        <p>B-Tree 인덱스, EXPLAIN, 옵티마이저, 성능 튜닝까지.</p>
+      </div>
+    </a>
+    <a class="yg-series" href="_hub/캐싱/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">Cache · Redis</span>
+        <h3>캐싱</h3>
+        <p>Cache-Aside, Write-Through, Redis, 분산 캐싱까지.</p>
+      </div>
+    </a>
+    <a class="yg-series" href="_hub/관측성/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">Observability · Monitoring</span>
+        <h3>관측성</h3>
+        <p>분산 추적, 메트릭, 로그, OpenTelemetry, SLI/SLO까지.</p>
+      </div>
+    </a>
+  </div>
+</section>
+
 </div>

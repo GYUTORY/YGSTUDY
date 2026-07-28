@@ -716,3 +716,6 @@ export async function getSWR<T>(
 - Pasquale Foggia et al., "An O(1) algorithm for implementing the LFU cache eviction scheme" (2010)
 - Andrei Broder, "Optimal Probabilistic Cache Stampede Prevention" (XFetch 알고리즘, 2015)
 - IETF RFC 5861: HTTP Cache-Control Extensions for Stale Content
+
+---
+이 문서는 [캐싱 허브](../../_hub/캐싱.md)의 일부입니다.

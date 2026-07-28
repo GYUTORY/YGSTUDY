@@ -691,3 +691,6 @@ args.put("x-max-length", 100000);
 args.put("x-overflow", "reject-publish"); // 큐 가득 차면 publisher에게 nack
 // 또는 "drop-head": 가장 오래된 메시지 버림
 ```
+
+---
+이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.

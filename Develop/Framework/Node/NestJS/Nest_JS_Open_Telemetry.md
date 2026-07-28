@@ -410,4 +410,7 @@ class ErrorAwareSampler implements Sampler {
     return 'ErrorAwareSampler';
   }
 }
+
+---
+이 문서는 [관측성 허브](../../_hub/관측성.md)의 일부입니다.
 ```

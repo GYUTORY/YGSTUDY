@@ -659,3 +659,6 @@ public class MdcFilter extends OncePerRequestFilter {
 - [OpenTelemetry 공식 문서](https://opentelemetry.io/docs/)
 - [Elasticsearch 공식 문서](https://www.elastic.co/guide/index.html)
 - [Grafana Loki 공식 문서](https://grafana.com/docs/loki/latest/)
+
+---
+이 문서는 [관측성 허브](../../_hub/관측성.md)의 일부입니다.

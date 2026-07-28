@@ -445,3 +445,6 @@ public void revokeApiKey(Long keyId, Long clientId) {
 - [Spring Security](../../Framework/Java/Spring/Spring_Security.md) — Spring 구현 상세
 - [OAuth 개요](../../Security/OAuth.md)
 - [CORS](../../WebServer/Nginx/CORS.md)
+
+---
+이 문서는 [인증과 토큰 허브](../../_hub/인증과_토큰.md)의 일부입니다.

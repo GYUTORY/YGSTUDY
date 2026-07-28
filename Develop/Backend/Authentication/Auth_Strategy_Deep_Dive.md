@@ -454,3 +454,6 @@ CSRF와 XSS는 독립적인 공격이다. `SameSite=Lax` + Double Submit 또는 
 - OAuth 2.0 for Browser-Based Apps (draft, BFF 권장)
 - OWASP Cheat Sheet - Session Management, CSRF Prevention, XSS Prevention
 - OWASP ASVS v4 - V3 Session Management, V13 API
+
+---
+이 문서는 [인증과 토큰 허브](../../_hub/인증과_토큰.md)의 일부입니다.

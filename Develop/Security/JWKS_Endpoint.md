@@ -505,3 +505,6 @@ Google, Auth0 같은 외부 IdP는 통보 없이 키를 회전하고 옛 키를 
 - [보안 심화 및 취약점 분석](보안_심화_및_취약점_분석.md) — jku/x5u 헤더 공격 상세 분석
 - [SSRF.md](SSRF.md) — JWKS fetch 시 SSRF 방어, 도메인 화이트리스트
 - [OAuth.md](OAuth.md) — OAuth 2.0 기본 개념
+
+---
+이 문서는 [인증과 토큰 허브](../_hub/인증과_토큰.md)의 일부입니다.

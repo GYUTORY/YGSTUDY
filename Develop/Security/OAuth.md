@@ -686,3 +686,6 @@ public class JwtTokenProvider {
 - OpenID Connect Core 1.0 Specification
 - OAuth 2.0 Security Best Current Practice (RFC 9700)
 - OWASP OAuth 2.0 Security Cheat Sheet
+
+---
+이 문서는 [인증과 토큰 허브](../_hub/인증과_토큰.md)의 일부입니다.

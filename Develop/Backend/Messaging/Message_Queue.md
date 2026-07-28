@@ -698,3 +698,6 @@ public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerCont
 - [Spring for Apache Kafka](https://docs.spring.io/spring-kafka/reference/)
 - [Spring AMQP](https://docs.spring.io/spring-amqp/reference/)
 - [메시지 큐 및 분산 락](../../Architecture/MSA/메시지_큐_및_분산_락.md)
+
+---
+이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.

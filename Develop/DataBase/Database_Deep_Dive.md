@@ -1517,4 +1517,9 @@ Member도 같은 방식으로 설정한다. 패키지를 기준으로 어떤 Rep
 - Redisson GitHub: https://github.com/redisson/redisson
 - Debezium 공식 문서: https://debezium.io/documentation/
 
+---
+이 문서는 [인덱스와 쿼리 성능 허브](../_hub/인덱스와_쿼리_성능.md)의 일부입니다.
+
+이 문서는 [트랜잭션과 동시성 허브](../_hub/트랜잭션과_동시성.md)의 일부입니다.
+
 
