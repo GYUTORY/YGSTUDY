@@ -159,50 +159,80 @@ RT1 → 사용 → RT2 발급 (RT1은 USED 상태로 기록)
 
 구현하려면 Refresh Token마다 식별자(jti 또는 토큰 해시)와 사용 상태를 저장해야 한다. 보통 세션 단위로 토큰 패밀리를 묶고, 재사용이 감지되면 패밀리 전체를 폐기한다.
 
-```java
-@Service
-public class RefreshTokenService {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { createHash, randomBytes } from 'crypto';
 
-    private final RefreshTokenRepository repo;
-    private final TokenFamilyRepository familyRepo;
+enum TokenStatus {
+  ACTIVE = 'ACTIVE',
+  USED = 'USED',
+  REVOKED = 'REVOKED',
+}
 
-    @Transactional
-    public TokenPair rotate(String presentedToken) {
-        RefreshToken current = repo.findByTokenHash(hash(presentedToken))
-            .orElseThrow(() -> new InvalidTokenException("unknown token"));
+@Injectable()
+export class RefreshTokenService {
+  constructor(
+    @InjectRepository(RefreshToken)
+    private readonly repo: Repository<RefreshToken>,
+    @InjectRepository(TokenFamily)
+    private readonly familyRepo: Repository<TokenFamily>,
+    private readonly dataSource: DataSource,
+  ) {}
 
-        if (current.getStatus() == Status.USED) {
-            // 재사용 감지 - 패밀리 전체 폐기
-            familyRepo.revokeFamily(current.getFamilyId());
-            throw new SecurityException("refresh token reuse detected");
-        }
+  async rotate(presentedToken: string): Promise<TokenPair> {
+    return this.dataSource.transaction(async (em) => {
+      const current = await em.findOne(RefreshToken, {
+        where: { tokenHash: this.hash(presentedToken) },
+      });
 
-        if (current.getStatus() == Status.REVOKED) {
-            throw new InvalidTokenException("revoked");
-        }
+      if (!current) {
+        throw new Error('unknown token');
+      }
 
-        if (current.getExpiresAt().isBefore(Instant.now())) {
-            throw new InvalidTokenException("expired");
-        }
+      if (current.status === TokenStatus.USED) {
+        // 재사용 감지 - 패밀리 전체 폐기
+        await em.update(TokenFamily, { id: current.familyId }, { revoked: true });
+        throw new Error('refresh token reuse detected');
+      }
 
-        // 현재 토큰을 USED로 마킹
-        current.setStatus(Status.USED);
-        repo.save(current);
+      if (current.status === TokenStatus.REVOKED) {
+        throw new Error('revoked');
+      }
 
-        // 새 토큰 발급 (같은 패밀리)
-        String newRefresh = generateToken();
-        RefreshToken next = RefreshToken.builder()
-            .tokenHash(hash(newRefresh))
-            .familyId(current.getFamilyId())
-            .userId(current.getUserId())
-            .status(Status.ACTIVE)
-            .expiresAt(Instant.now().plus(Duration.ofDays(30)))
-            .build();
-        repo.save(next);
+      if (current.expiresAt < new Date()) {
+        throw new Error('expired');
+      }
 
-        String newAccess = issueAccessToken(current.getUserId());
-        return new TokenPair(newAccess, newRefresh);
-    }
+      // 현재 토큰을 USED로 마킹
+      await em.update(RefreshToken, { id: current.id }, { status: TokenStatus.USED });
+
+      // 새 토큰 발급 (같은 패밀리)
+      const newRefresh = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30일
+
+      await em.save(RefreshToken, {
+        tokenHash: this.hash(newRefresh),
+        familyId: current.familyId,
+        userId: current.userId,
+        status: TokenStatus.ACTIVE,
+        expiresAt,
+      });
+
+      const newAccess = this.issueAccessToken(current.userId);
+      return { accessToken: newAccess, refreshToken: newRefresh };
+    });
+  }
+
+  private hash(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private issueAccessToken(userId: string): string {
+    // JWT 발급 로직
+    return '';
+  }
 }
 ```
 
@@ -264,13 +294,20 @@ Spring Security, Django, Rails가 기본으로 쓰는 방식이다. 서버가 �
 
 `Origin` 헤더는 브라우저가 자동으로 붙이고 JS로 변조할 수 없다. 서버에서 `Origin`이 허용된 도메인인지 확인하면 CSRF를 막을 수 있다.
 
-```java
-public boolean isValidOrigin(HttpServletRequest req) {
-    String origin = req.getHeader("Origin");
-    if (origin == null) {
-        origin = req.getHeader("Referer");
-    }
-    return origin != null && allowedOrigins.contains(extractOrigin(origin));
+```typescript
+import { Request } from 'express';
+
+const ALLOWED_ORIGINS = new Set(['https://app.example.com', 'https://www.example.com']);
+
+function isValidOrigin(req: Request): boolean {
+  const origin = req.headers['origin'] ?? req.headers['referer'];
+  if (!origin) return false;
+  try {
+    const extracted = new URL(origin as string).origin;
+    return ALLOWED_ORIGINS.has(extracted);
+  } catch {
+    return false;
+  }
 }
 ```
 

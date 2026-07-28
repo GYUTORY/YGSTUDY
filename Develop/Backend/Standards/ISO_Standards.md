@@ -39,17 +39,21 @@ UTC: 2026-04-06T06:30:00Z
 
 **오프셋과 타임존은 다르다.** `+09:00`은 오프셋이지 `Asia/Seoul`이 아니다. 한국은 서머타임이 없어서 항상 `+09:00`이지만, 미국 동부는 EST(`-05:00`)와 EDT(`-04:00`)를 오간다. 오프셋만 저장하면 서머타임 전환 시점에 시간 계산이 틀어진다.
 
-```java
-// 틀리기 쉬운 방식 — 오프셋만 저장
-OffsetDateTime odt = OffsetDateTime.parse("2026-03-08T02:30:00-05:00");
+```typescript
+import { parseISO, formatISO, toZonedTime, fromZonedTime } from 'date-fns-tz';
+
+// 틀리기 쉬운 방식 — 오프셋 문자열만 보존
+const odt = parseISO('2026-03-08T02:30:00-05:00');
 // 이 시간이 EST인지 EDT인지 알 수 없다
 
-// 타임존 ID를 사용해야 한다
-ZonedDateTime zdt = ZonedDateTime.of(
-    LocalDateTime.of(2026, 3, 8, 2, 30),
-    ZoneId.of("America/New_York")
-);
-// 서머타임 전환 시 자동으로 처리된다
+// 타임존 ID를 함께 사용해야 한다
+const timeZone = 'America/New_York';
+const utcDate = new Date('2026-03-08T07:30:00Z');
+const zonedDate = toZonedTime(utcDate, timeZone);
+// date-fns-tz가 서머타임 전환을 자동으로 처리한다
+
+// UTC로 다시 변환 (DB 저장용)
+const backToUtc = fromZonedTime(zonedDate, timeZone);
 ```
 
 **DB에는 UTC로 저장한다.** 이건 거의 예외 없는 규칙이다. `TIMESTAMP WITH TIME ZONE` 컬럼을 써도 PostgreSQL은 내부적으로 UTC로 변환해서 저장한다. MySQL의 `DATETIME`은 타임존 정보가 없으므로 애플리케이션 레벨에서 UTC 변환을 해야 한다.
@@ -71,8 +75,8 @@ INSERT INTO events (event_time) VALUES ('2026-04-06T15:30:00+09:00');
 
 외부 시스템과 연동하면 ISO 8601을 따른다고 하면서 미묘하게 다른 포맷을 보내는 경우가 많다.
 
-```java
-// 실제로 받아본 형식들
+```
+실제로 받아본 형식들:
 "2026-04-06T15:30:00Z"          // 정상
 "2026-04-06T15:30:00.000Z"      // 밀리초 포함 — 정상
 "2026-04-06T15:30:00.000+0000"  // 콜론 없는 오프셋 — ISO 8601에서는 허용하지만 파서에 따라 실패
@@ -80,18 +84,26 @@ INSERT INTO events (event_time) VALUES ('2026-04-06T15:30:00+09:00');
 "20260406T153000Z"              // 기본 형식(basic format) — ISO 8601 허용, 파서에 따라 실패
 ```
 
-Java의 `DateTimeFormatter.ISO_OFFSET_DATE_TIME`은 `+0000` 형식(콜론 없는 오프셋)을 파싱하지 못한다. 외부 API와 연동할 때 이 차이 때문에 장애가 나는 경우가 있다.
+JavaScript의 `Date.parse()`와 `new Date(string)`은 상대적으로 관대하지만, 일부 포맷에서 브라우저/Node.js 버전마다 동작이 다를 수 있다. 외부 API와 연동할 때는 `date-fns`나 `dayjs` 같은 라이브러리를 쓰는 게 안전하다.
 
-```java
-// 콜론 없는 오프셋을 처리하려면 커스텀 포매터가 필요하다
-DateTimeFormatter flexible = new DateTimeFormatterBuilder()
-    .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-    .optionalStart()
-    .appendOffset("+HHMMss", "Z")  // +0900, +09:00 모두 처리
-    .optionalEnd()
-    .toFormatter();
+```typescript
+import { parseISO, parse } from 'date-fns';
 
-OffsetDateTime parsed = OffsetDateTime.parse("2026-04-06T15:30:00+0900", flexible);
+// ISO 8601 정석 파싱 (date-fns)
+const dt1 = parseISO('2026-04-06T15:30:00Z');          // 정상
+const dt2 = parseISO('2026-04-06T15:30:00.000Z');       // 밀리초 포함
+const dt3 = parseISO('2026-04-06T15:30:00+09:00');      // 오프셋 포함
+
+// 콜론 없는 오프셋 (+0900) — 직접 정규화
+function normalizeOffset(raw: string): string {
+  // "+0900" → "+09:00", "-0530" → "-05:30"
+  return raw.replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3');
+}
+
+const dt4 = parseISO(normalizeOffset('2026-04-06T15:30:00+0900'));
+
+// T 없이 공백인 경우
+const dt5 = parseISO('2026-04-06 15:30:00'.replace(' ', 'T') + 'Z');
 ```
 
 Python은 상대적으로 관대한 편이다:
@@ -115,10 +127,22 @@ utc_dt = dt.astimezone(timezone.utc)
 
 로그 파싱 시 타임스탬프 포맷이 통일되지 않으면 집계가 안 된다. 서비스별로 포맷이 다르면 ELK나 Datadog에서 시간 기준 정렬이 깨진다.
 
-로그 타임스탬프는 UTC ISO 8601로 통일하는 게 맞다. Logback 설정 예시:
+로그 타임스탬프는 UTC ISO 8601로 통일하는 게 맞다. winston 설정 예시:
 
-```xml
-<pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z', UTC} [%thread] %-5level %logger - %msg%n</pattern>
+```typescript
+import * as winston from 'winston';
+
+const logger = winston.createLogger({
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.timestamp({ format: () => new Date().toISOString() }),
+        // 출력 예: 2026-04-06T15:30:00.123Z
+        winston.format.json(),
+      ),
+    }),
+  ],
+});
 ```
 
 이렇게 하면 모든 서비스의 로그가 같은 시간 기준으로 정렬된다.

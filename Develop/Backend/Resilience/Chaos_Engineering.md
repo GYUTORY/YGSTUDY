@@ -25,107 +25,122 @@ Chaos Engineering은 의도적으로 장애를 주입해서 시스템이 장애 
 이런 문제는 실제로 장애를 만들어봐야 알 수 있다.
 
 
-## Spring Boot Chaos Monkey
+## Node.js 애플리케이션 레벨 장애 주입
 
-Spring Boot 애플리케이션에 장애를 주입하는 라이브러리다. 애플리케이션 레벨에서 지연, 예외, 메모리 부족 같은 장애를 만든다.
+Node.js/NestJS 애플리케이션에서는 미들웨어나 인터셉터를 이용해 특정 비율의 요청에 지연이나 예외를 주입할 수 있다.
 
-### 설정
+### NestJS 장애 주입 인터셉터
 
-```xml
-<!-- pom.xml -->
-<dependency>
-    <groupId>de.codecentric</groupId>
-    <artifactId>chaos-monkey-spring-boot</artifactId>
-    <version>3.1.0</version>
-</dependency>
+```typescript
+// chaos.interceptor.ts
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { delay } from 'rxjs/operators';
+
+interface ChaosConfig {
+  enabled: boolean;
+  latencyActive: boolean;
+  latencyRangeStartMs: number;
+  latencyRangeEndMs: number;
+  exceptionsActive: boolean;
+  /** 0~1 사이 비율. 0.2이면 약 20%의 요청에 장애 주입 */
+  probability: number;
+}
+
+@Injectable()
+export class ChaosInterceptor implements NestInterceptor {
+  private config: ChaosConfig = {
+    enabled: process.env.CHAOS_ENABLED === 'true',
+    latencyActive: true,
+    latencyRangeStartMs: 1000,
+    latencyRangeEndMs: 5000,
+    exceptionsActive: false,
+    probability: 0.2,
+  };
+
+  updateConfig(partial: Partial<ChaosConfig>): void {
+    this.config = { ...this.config, ...partial };
+  }
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    if (!this.config.enabled || Math.random() > this.config.probability) {
+      return next.handle();
+    }
+
+    if (this.config.exceptionsActive) {
+      throw new Error('[Chaos] 강제 예외 발생');
+    }
+
+    if (this.config.latencyActive) {
+      const latency =
+        this.config.latencyRangeStartMs +
+        Math.random() * (this.config.latencyRangeEndMs - this.config.latencyRangeStartMs);
+      return next.handle().pipe(delay(latency));
+    }
+
+    return next.handle();
+  }
+}
 ```
-
-```yaml
-# application-chaos.yml
-# chaos-monkey 프로파일에서만 활성화한다
-spring:
-  profiles: chaos
-
-chaos:
-  monkey:
-    enabled: true
-    watcher:
-      controller: true
-      restController: true
-      service: true
-      repository: true
-    assaults:
-      level: 5                    # 1~10, 숫자가 낮을수록 공격 빈도가 높다
-      latencyActive: true
-      latencyRangeStart: 1000     # ms
-      latencyRangeEnd: 5000       # ms
-      exceptionsActive: false
-      killApplicationActive: false
-```
-
-`level`이 헷갈리는데, level 5면 약 20%의 요청에 장애가 주입된다. level 1이면 100%다. 직관과 반대라서 처음에 실수하기 쉽다.
 
 ### 런타임에서 장애 조작
 
-Spring Boot Actuator 엔드포인트로 런타임에 장애를 켜고 끌 수 있다.
+REST 엔드포인트로 런타임에 장애 설정을 변경할 수 있다.
 
 ```bash
-# 현재 상태 확인
-curl http://localhost:8080/actuator/chaosmonkey/status
-
-# 장애 활성화
-curl -X POST http://localhost:8080/actuator/chaosmonkey/enable
-
-# 지연 장애 설정 변경
-curl -X POST http://localhost:8080/actuator/chaosmonkey/assaults \
+# 장애 활성화 (20% 확률로 1~5초 지연)
+curl -X PATCH http://localhost:3000/admin/chaos \
   -H 'Content-Type: application/json' \
-  -d '{
-    "latencyActive": true,
-    "latencyRangeStart": 3000,
-    "latencyRangeEnd": 10000,
-    "exceptionsActive": false,
-    "level": 3
-  }'
+  -d '{"enabled": true, "latencyActive": true, "probability": 0.2}'
 
-# 특정 서비스에만 장애 주입
-curl -X POST http://localhost:8080/actuator/chaosmonkey/watchers \
+# 장애 비활성화
+curl -X PATCH http://localhost:3000/admin/chaos \
   -H 'Content-Type: application/json' \
-  -d '{
-    "controller": false,
-    "restController": false,
-    "service": true,
-    "repository": false
-  }'
+  -d '{"enabled": false}'
 ```
 
 ### 테스트 시나리오 예시
 
-```java
-@SpringBootTest
-@ActiveProfiles("chaos")
-class PaymentServiceChaosTest {
+```typescript
+import { Test, TestingModule } from '@nestjs/testing';
+import { OrderService } from './order.service';
+import { ChaosInterceptor } from './chaos.interceptor';
 
-    @Autowired
-    private OrderService orderService;
+describe('PaymentService Chaos Test', () => {
+  let orderService: OrderService;
+  let chaosInterceptor: ChaosInterceptor;
 
-    @Test
-    void 결제_서비스_지연시_타임아웃이_동작하는지_확인() {
-        // Chaos Monkey가 PaymentService에 3~5초 지연을 주입한 상태
-        // OrderService의 타임아웃이 2초로 설정되어 있다면
-        // 타임아웃 예외가 발생해야 한다
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [OrderService, ChaosInterceptor],
+    }).compile();
 
-        assertThatThrownBy(() -> orderService.createOrder(request))
-            .isInstanceOf(TimeoutException.class);
+    orderService = module.get(OrderService);
+    chaosInterceptor = module.get(ChaosInterceptor);
+  });
 
-        // Circuit Breaker 상태 확인
-        CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("payment");
-        // 연속 실패 후 OPEN 상태가 되어야 한다
-        assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.OPEN);
-    }
-}
+  it('결제 서비스 지연 시 타임아웃이 동작하는지 확인', async () => {
+    // 3~5초 지연 주입 (OrderService 타임아웃은 2초로 설정)
+    chaosInterceptor.updateConfig({
+      enabled: true,
+      latencyActive: true,
+      latencyRangeStartMs: 3000,
+      latencyRangeEndMs: 5000,
+      probability: 1.0,
+    });
+
+    // 타임아웃 예외가 발생해야 한다
+    await expect(orderService.createOrder(mockRequest)).rejects.toThrow(/timeout/i);
+  });
+});
 ```
 
-Chaos Monkey의 한계는 애플리케이션 레벨에서만 동작한다는 점이다. 네트워크 장애, DNS 문제, 디스크 I/O 장애 같은 인프라 수준의 장애는 만들 수 없다. 그때는 Toxiproxy가 필요하다.
+이 방식의 한계는 애플리케이션 레벨에서만 동작한다는 점이다. 네트워크 장애, DNS 문제, 디스크 I/O 장애 같은 인프라 수준의 장애는 만들 수 없다. 그때는 Toxiproxy가 필요하다.
 
 
 ## Toxiproxy — 네트워크 장애 시뮬레이션
@@ -176,72 +191,93 @@ toxiproxy-cli toxic add redis -t slicer -a average_size=1 -a size_variation=1
 toxiproxy-cli toxic remove redis -n latency_downstream
 ```
 
-### Java 테스트 코드에서 사용
+### Node.js 테스트 코드에서 사용
 
-```java
-// build.gradle
-// testImplementation 'eu.rekawek.toxiproxy:toxiproxy-java:2.1.7'
+Toxiproxy는 언어에 관계없이 REST API로 제어한다. Node.js에서는 `toxiproxy-node-client` 패키지나 직접 fetch로 제어할 수 있다.
 
-@Testcontainers
-class RedisResilienceTest {
+```typescript
+// redis-resilience.test.ts
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
+import IORedis from 'ioredis';
 
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:7")
-        .withExposedPorts(6379);
+// npm install --save-dev testcontainers ioredis
 
-    @Container
-    static ToxiproxyContainer toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.7.0")
-        .dependsOn(redis);
+describe('Redis Resilience Test', () => {
+  let redisContainer: StartedTestContainer;
+  let toxiproxyContainer: StartedTestContainer;
+  let redisClient: IORedis;
+  const TOXIPROXY_API = 'http://localhost:8474';
+  const PROXY_NAME = 'redis';
 
-    static ToxiproxyContainer.ContainerProxy redisProxy;
+  beforeAll(async () => {
+    redisContainer = await new GenericContainer('redis:7').withExposedPorts(6379).start();
 
-    @BeforeAll
-    static void setUp() {
-        redisProxy = toxiproxy.getProxy(redis, 6379);
-    }
+    toxiproxyContainer = await new GenericContainer('ghcr.io/shopify/toxiproxy:2.7.0')
+      .withExposedPorts(8474, 26379)
+      .start();
 
-    @Test
-    void Redis_연결이_끊기면_캐시_미스로_처리되는지_확인() throws Exception {
-        RedisTemplate<String, String> template = createRedisTemplate(
-            redisProxy.getContainerIpAddress(),
-            redisProxy.getProxyPort()
-        );
+    // Toxiproxy에 Redis 프록시 등록
+    await fetch(`${TOXIPROXY_API}/proxies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: PROXY_NAME,
+        listen: '0.0.0.0:26379',
+        upstream: `${redisContainer.getHost()}:${redisContainer.getMappedPort(6379)}`,
+      }),
+    });
 
-        // 정상 상태에서 캐시 저장
-        template.opsForValue().set("key", "value");
+    redisClient = new IORedis({
+      host: toxiproxyContainer.getHost(),
+      port: toxiproxyContainer.getMappedPort(26379),
+    });
+  });
 
-        // 네트워크 장애 주입: 연결 끊김
-        redisProxy.toxics()
-            .timeout("redis-timeout", ToxicDirection.DOWNSTREAM, 0);
+  afterAll(async () => {
+    await redisClient.quit();
+    await toxiproxyContainer.stop();
+    await redisContainer.stop();
+  });
 
-        // Redis 장애 상태에서 서비스 호출
-        // 캐시 미스로 처리되고, DB에서 직접 조회해야 한다
-        String result = cacheService.get("key");
-        assertThat(result).isEqualTo("value-from-db");
+  it('Redis 연결이 끊기면 캐시 미스로 처리되는지 확인', async () => {
+    // 정상 상태에서 캐시 저장
+    await redisClient.set('key', 'value');
 
-        // 장애 제거
-        redisProxy.toxics().get("redis-timeout").remove();
-    }
+    // 네트워크 장애 주입: 연결 끊김 (timeout=0은 즉시 연결 종료)
+    await fetch(`${TOXIPROXY_API}/proxies/${PROXY_NAME}/toxics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'redis-timeout', type: 'timeout', attributes: { timeout: 0 } }),
+    });
 
-    @Test
-    void Redis_지연_발생시_타임아웃_후_DB_폴백_확인() throws Exception {
-        // 3초 지연 주입
-        redisProxy.toxics()
-            .latency("redis-latency", ToxicDirection.DOWNSTREAM, 3000);
+    // Redis 장애 상태에서 서비스 호출 — 캐시 미스로 처리되고 DB에서 직접 조회해야 한다
+    const result = await cacheService.get('key');
+    expect(result).toBe('value-from-db');
 
-        // Redis 타임아웃이 1초로 설정되어 있으면
-        // 1초 후 타임아웃 → DB 폴백
-        long start = System.currentTimeMillis();
-        String result = cacheService.get("key");
-        long elapsed = System.currentTimeMillis() - start;
+    // 장애 제거
+    await fetch(`${TOXIPROXY_API}/proxies/${PROXY_NAME}/toxics/redis-timeout`, { method: 'DELETE' });
+  });
 
-        // 3초를 기다리지 않고 1초 근처에서 DB 폴백이 되어야 한다
-        assertThat(elapsed).isLessThan(2000);
-        assertThat(result).isEqualTo("value-from-db");
+  it('Redis 지연 발생 시 타임아웃 후 DB 폴백 확인', async () => {
+    // 3초 지연 주입
+    await fetch(`${TOXIPROXY_API}/proxies/${PROXY_NAME}/toxics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'redis-latency', type: 'latency', attributes: { latency: 3000 } }),
+    });
 
-        redisProxy.toxics().get("redis-latency").remove();
-    }
-}
+    // Redis 타임아웃이 1초로 설정되어 있으면 1초 후 타임아웃 → DB 폴백
+    const start = Date.now();
+    const result = await cacheService.get('key');
+    const elapsed = Date.now() - start;
+
+    // 3초를 기다리지 않고 1초 근처에서 DB 폴백이 되어야 한다
+    expect(elapsed).toBeLessThan(2000);
+    expect(result).toBe('value-from-db');
+
+    await fetch(`${TOXIPROXY_API}/proxies/${PROXY_NAME}/toxics/redis-latency`, { method: 'DELETE' });
+  });
+});
 ```
 
 Toxiproxy의 장점은 애플리케이션 코드를 수정하지 않아도 된다는 점이다. 프록시 주소만 바꾸면 된다. Testcontainers와 조합하면 CI에서도 네트워크 장애 테스트를 자동화할 수 있다.
@@ -511,15 +547,15 @@ A의 전체 대기: 최대 30초 × 3(Retry) = 90초
 
 ## 도구 비교
 
-| 구분 | Chaos Monkey | Toxiproxy | Kubernetes 수동 | Litmus Chaos |
-|------|-------------|-----------|-----------------|--------------|
+| 구분 | NestJS 인터셉터 | Toxiproxy | Kubernetes 수동 | Litmus Chaos |
+|------|---------------|-----------|-----------------|--------------|
 | 장애 수준 | 애플리케이션 | 네트워크 | 인프라 | 인프라 |
 | 설정 난이도 | 낮음 | 중간 | 낮음 | 높음 |
-| 자동화 | Actuator API | CLI/API | 스크립트 | CRD 기반 |
+| 자동화 | REST API | CLI/API | 스크립트 | CRD 기반 |
 | CI 통합 | 쉬움 | Testcontainers | kubectl | ChaosEngine |
 | 프로덕션 사용 | 가능 | 가능 | 위험 | 가능 |
-| 모니터링 연동 | Spring 메트릭 | 없음 | 없음 | probe 내장 |
+| 모니터링 연동 | prom-client 메트릭 | 없음 | 없음 | probe 내장 |
 
-개발/테스트 단계에서는 Chaos Monkey와 Toxiproxy를 CI에 통합해서 매 배포마다 장애 대응이 동작하는지 확인한다. Kubernetes 환경에서 스테이징/프로덕션 수준의 장애 테스트를 하려면 Litmus Chaos를 쓴다.
+개발/테스트 단계에서는 NestJS 인터셉터와 Toxiproxy를 CI에 통합해서 매 배포마다 장애 대응이 동작하는지 확인한다. Kubernetes 환경에서 스테이징/프로덕션 수준의 장애 테스트를 하려면 Litmus Chaos를 쓴다.
 
 장애 주입 테스트를 처음 시작한다면 Toxiproxy + Testcontainers 조합을 추천한다. 로컬에서 바로 실행할 수 있고, CI에 넣기도 쉽고, 네트워크 장애라는 가장 흔한 장애 유형을 테스트할 수 있다.

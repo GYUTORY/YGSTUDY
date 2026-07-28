@@ -108,19 +108,28 @@ ch.basic_consume(queue='orders', on_message_callback=on_message)
 
 프로듀서는 `acks=all`, `retries=Integer.MAX_VALUE`, `max.in.flight.requests.per.connection`을 1 또는 5(+ idempotent)로 둔다. 브로커는 `min.insync.replicas=2` 이상. 컨슈머는 `enable.auto.commit=false`로 두고 처리 후 수동 커밋한다.
 
-```java
-Properties p = new Properties();
-p.put("bootstrap.servers", "kafka:9092");
-p.put("acks", "all");
-p.put("retries", Integer.MAX_VALUE);
-p.put("enable.idempotence", true);
-p.put("max.in.flight.requests.per.connection", 5);
+```typescript
+import { Kafka, Partitioners } from 'kafkajs';
 
-KafkaProducer<String, String> producer = new KafkaProducer<>(p);
-producer.send(new ProducerRecord<>("orders", orderId, json), (meta, ex) -> {
-    if (ex != null) {
-        log.error("publish failed, offset={}, partition={}", meta.offset(), meta.partition(), ex);
-    }
+const kafka = new Kafka({ brokers: ['kafka:9092'] });
+
+const producer = kafka.producer({
+  idempotent: true,                       // enable.idempotence=true
+  maxInFlightRequests: 5,                 // max.in.flight.requests.per.connection
+  // acks: -1 (all) 은 idempotent=true 시 자동으로 적용됨
+});
+
+await producer.connect();
+
+const result = await producer.send({
+  topic: 'orders',
+  messages: [{ key: orderId, value: json }],
+});
+
+result.forEach(({ partition, baseOffset, errorCode }) => {
+  if (errorCode !== 0) {
+    console.error(`publish failed: partition=${partition}, offset=${baseOffset}, errorCode=${errorCode}`);
+  }
 });
 ```
 
@@ -229,9 +238,12 @@ ch.queue_declare(
 
 Kafka의 순서 보장은 **파티션 내부**에서만이다. 같은 키의 메시지가 같은 파티션으로 가도록 해시되므로, **키를 `order_id`나 `user_id`로 지정**하면 해당 엔티티 단위의 순서가 지켜진다.
 
-```java
-producer.send(new ProducerRecord<>("order-events", orderId, event));
-// orderId가 파티션 키가 된다
+```typescript
+await producer.send({
+  topic: 'order-events',
+  messages: [{ key: orderId, value: JSON.stringify(event) }],
+  // key가 파티션 키가 된다
+});
 ```
 
 주의할 점:
@@ -323,19 +335,49 @@ def should_dlq(properties):
 
 ### 4.3 Kafka DLQ — 토픽 이름 컨벤션
 
-Kafka는 DLQ라는 내장 기능이 없다. 컨슈머 애플리케이션이 실패 시 **별도의 dead-letter 토픽으로 publish**하는 패턴이 표준이다. 보통 Spring Kafka의 `DeadLetterPublishingRecoverer`나 Kafka Connect의 `errors.deadletterqueue.topic.name` 설정을 쓴다.
+Kafka는 DLQ라는 내장 기능이 없다. 컨슈머 애플리케이션이 실패 시 **별도의 dead-letter 토픽으로 publish**하는 패턴이 표준이다. 컨슈머 애플리케이션에서 실패 시 dead-letter 토픽으로 직접 publish하는 패턴이 표준이다.
 
-```java
-DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
-    kafkaTemplate,
-    (record, ex) -> new TopicPartition(record.topic() + ".DLT", record.partition())
-);
+```typescript
+import { Kafka } from 'kafkajs';
 
-DefaultErrorHandler errorHandler = new DefaultErrorHandler(
-    recoverer,
-    new ExponentialBackOff(1000L, 2.0)  // 1s, 2s, 4s, ...
-);
-errorHandler.addNotRetryableExceptions(DeserializationException.class);
+const kafka = new Kafka({ brokers: ['kafka:9092'] });
+const consumer = kafka.consumer({ groupId: 'order-consumer' });
+const producer = kafka.producer({ idempotent: true });
+
+async function processWithDLT(topic: string): Promise<void> {
+  await consumer.subscribe({ topic, fromBeginning: false });
+
+  await consumer.run({
+    eachMessage: async ({ topic: srcTopic, partition, message }) => {
+      try {
+        await processMessage(message);
+      } catch (err: unknown) {
+        const isDeserializationError = err instanceof SyntaxError;
+        const dltTopic = `${srcTopic}.DLT`;
+
+        // 역직렬화 오류 등 재시도 불가 에러는 즉시 DLT로
+        if (isDeserializationError) {
+          await producer.send({
+            topic: dltTopic,
+            messages: [{
+              key: message.key,
+              value: message.value,
+              headers: {
+                'x-original-topic': srcTopic,
+                'x-original-partition': String(partition),
+                'x-error-class': (err as Error).name,
+                'x-error-message': (err as Error).message,
+              },
+            }],
+          });
+        } else {
+          // 재시도 가능한 에러는 예외를 다시 throw해서 KafkaJS가 재시도하게 함
+          throw err;
+        }
+      }
+    },
+  });
+}
 ```
 
 Kafka DLQ 설계에서 주의할 점:
@@ -459,9 +501,11 @@ ON CONFLICT (tx_id) DO NOTHING;
 
 `enable.idempotence=true`를 켜면 브로커가 `(producer_id, sequence_number)` 단위로 중복을 감지해서 거른다. 이건 **프로듀서 측 재시도로 인한 중복**만 막는다. 컨슈머 처리 레벨의 중복은 관여하지 않는다.
 
-```java
-props.put("enable.idempotence", true);
-// 자동으로 acks=all, max.in.flight=5, retries=Integer.MAX_VALUE가 됨
+```typescript
+const producer = kafka.producer({
+  idempotent: true,
+  // idempotent=true 시 자동으로 acks=-1(all), maxInFlightRequests=5 가 적용됨
+});
 ```
 
 **SQS FIFO Deduplication**

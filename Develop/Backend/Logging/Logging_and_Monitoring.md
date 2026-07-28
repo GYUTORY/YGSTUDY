@@ -49,44 +49,60 @@ JSON 방식:
 
 텍스트 로그는 사람이 눈으로 읽기엔 편하지만, Kibana나 Loki에서 검색할 때 문제가 된다. `orderId=12345`로 필터링하려면 JSON이어야 한다. 텍스트 로그에서 정규식으로 파싱하는 건 느리고 깨지기 쉽다.
 
-### Spring Boot 설정
+### NestJS 설정
 
-```xml
-<!-- logback-spring.xml -->
-<configuration>
-    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"service":"order-service","env":"prod"}</customFields>
-        </encoder>
-    </appender>
+NestJS에서 구조화된 JSON 로그를 출력하려면 `winston`과 `nest-winston`을 사용한다.
 
-    <root level="INFO">
-        <appender-ref ref="JSON" />
-    </root>
-</configuration>
+```typescript
+// logger.module.ts
+import { Module } from '@nestjs/common';
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
+
+@Module({
+  imports: [
+    WinstonModule.forRoot({
+      transports: [
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.json(),
+            winston.format.metadata({ key: 'fields' }),
+          ),
+          defaultMeta: { service: 'order-service', env: process.env.NODE_ENV },
+        }),
+      ],
+    }),
+  ],
+})
+export class LoggerModule {}
 ```
 
-```java
-@Slf4j
-@Service
-public class OrderService {
+```typescript
+// order.service.ts
+import { Injectable, Logger } from '@nestjs/common';
 
-    public Order createOrder(CreateOrderRequest request) {
-        log.info("주문 생성 시작: userId={}, items={}", request.getUserId(), request.getItems().size());
+@Injectable()
+export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
 
-        try {
-            Order order = processOrder(request);
-            log.info("주문 생성 완료: orderId={}, totalPrice={}", order.getId(), order.getTotalPrice());
-            return order;
-        } catch (PaymentException e) {
-            log.error("결제 실패: userId={}, errorCode={}", request.getUserId(), e.getCode(), e);
-            throw e;
-        }
+  async createOrder(request: CreateOrderRequest): Promise<Order> {
+    this.logger.log(`주문 생성 시작: userId=${request.userId}, items=${request.items.length}`);
+
+    try {
+      const order = await this.processOrder(request);
+      this.logger.log(`주문 생성 완료: orderId=${order.id}, totalPrice=${order.totalPrice}`);
+      return order;
+    } catch (e: unknown) {
+      const err = e as PaymentException;
+      this.logger.error(`결제 실패: userId=${request.userId}, errorCode=${err.code}`, err.stack);
+      throw e;
     }
+  }
 }
 ```
 
-주의할 점이 하나 있다. `LogstashEncoder`를 쓰면 예외의 스택트레이스도 JSON 필드 안에 들어간다. 그런데 스택트레이스가 길면 Elasticsearch 인덱싱 시 필드 크기 제한에 걸리는 경우가 있다. `stackTraceMaxLength`를 설정해서 적당히 잘라야 한다.
+주의할 점이 하나 있다. winston JSON 포맷을 쓰면 예외의 스택트레이스도 JSON 필드 안에 들어간다. 그런데 스택트레이스가 길면 Elasticsearch 인덱싱 시 필드 크기 제한에 걸리는 경우가 있다. 스택트레이스를 적절한 길이로 잘라서 로그에 남겨야 한다.
 
 ---
 
@@ -112,14 +128,7 @@ logging:
     org.springframework.web: INFO
 ```
 
-프로덕션에서 `hibernate.SQL`을 DEBUG로 켜두면 로그 양이 수십 배로 늘어난다. 장애 디버깅 때 일시적으로 켜야 하는 경우가 있는데, Spring Boot Actuator의 `/actuator/loggers` 엔드포인트로 런타임에 로그 레벨을 바꿀 수 있다. 재배포 없이 된다.
-
-```bash
-# 런타임에 Hibernate SQL 로그 활성화
-curl -X POST http://localhost:8080/actuator/loggers/org.hibernate.SQL \
-  -H 'Content-Type: application/json' \
-  -d '{"configuredLevel": "DEBUG"}'
-```
+프로덕션에서 TypeORM 쿼리 로그를 DEBUG로 켜두면 로그 양이 수십 배로 늘어난다. 장애 디버깅 때 일시적으로 켜야 하는 경우가 있는데, NestJS 환경에서는 환경 변수로 런타임에 로그 레벨을 제어할 수 있다.
 
 ---
 
@@ -234,40 +243,52 @@ API Gateway (spanId: 001)
 | **Span ID** | 각 작업의 고유 ID |
 | **Parent Span ID** | 이 작업을 호출한 부모의 ID |
 
-### Spring Boot + OpenTelemetry
+### NestJS + OpenTelemetry
 
-```gradle
-// build.gradle
-implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+```bash
+npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
+            @opentelemetry/exporter-trace-otlp-http
 ```
 
-```yaml
-# application.yml
-management:
-  tracing:
-    sampling:
-      probability: 1.0    # 개발: 전체 샘플링, 프로덕션: 0.1~0.3
-  otlp:
-    tracing:
-      endpoint: http://jaeger:4318/v1/traces
+```typescript
+// tracing.ts — main.ts보다 먼저 import해야 한다
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { Resource } from '@opentelemetry/resources';
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+
+const sdk = new NodeSDK({
+  resource: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'order-service',
+  }),
+  traceExporter: new OTLPTraceExporter({
+    url: 'http://jaeger:4318/v1/traces',
+  }),
+  instrumentations: [getNodeAutoInstrumentations()],
+  // 개발: 1.0(전체 샘플링), 프로덕션: 0.1~0.3
+  // sampler: new TraceIdRatioBased(0.1),
+});
+
+sdk.start();
 ```
 
-프로덕션에서 `probability: 1.0`으로 두면 모든 요청마다 트레이스 데이터가 생성되어 Jaeger 저장소가 빠르게 찬다. 보통 0.1(10%)로 시작해서, 특정 서비스만 높이는 방식으로 운영한다.
+프로덕션에서 샘플링 비율을 1.0으로 두면 모든 요청마다 트레이스 데이터가 생성되어 Jaeger 저장소가 빠르게 찬다. 보통 0.1(10%)로 시작해서, 특정 서비스만 높이는 방식으로 운영한다.
 
-```java
-// traceId가 자동으로 MDC에 들어감
-// logback 패턴: %d{yyyy-MM-dd HH:mm:ss} [%X{traceId}] %-5level %msg%n
+```typescript
+// traceId가 자동으로 요청 컨텍스트에 들어감
+import { Injectable, Logger } from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 
-@Slf4j
-@Service
-public class OrderService {
+@Injectable()
+export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
 
-    public Order createOrder(CreateOrderRequest request) {
-        log.info("주문 생성 시작");
-        // 출력: 2026-03-01 10:30:00 [abc-123] INFO 주문 생성 시작
-        // 이 traceId로 Jaeger에서 검색하면 관련 서비스 호출 전부 나온다
-    }
+  async createOrder(request: CreateOrderRequest): Promise<Order> {
+    const traceId = trace.getActiveSpan()?.spanContext().traceId ?? 'no-trace';
+    this.logger.log(`주문 생성 시작 [traceId=${traceId}]`);
+    // 이 traceId로 Jaeger에서 검색하면 관련 서비스 호출 전부 나온다
+  }
 }
 ```
 
@@ -280,9 +301,9 @@ public class OrderService {
 ```mermaid
 flowchart TB
     subgraph 애플리케이션 서버
-        APP1[order-service<br/>/actuator/prometheus]
-        APP2[payment-service<br/>/actuator/prometheus]
-        APP3[user-service<br/>/actuator/prometheus]
+        APP1[order-service<br/>/metrics]
+        APP2[payment-service<br/>/metrics]
+        APP3[user-service<br/>/metrics]
     end
 
     subgraph Prometheus
@@ -316,30 +337,35 @@ flowchart TB
     TSDB -->|PromQL query| DASH
 ```
 
-Prometheus가 각 서비스의 `/actuator/prometheus` 엔드포인트를 주기적으로 긁어간다(Pull 방식). 수집된 메트릭은 TSDB에 저장되고, Grafana가 PromQL로 조회해서 대시보드에 그린다. 알림은 Prometheus의 alerting rule이 발화하면 Alertmanager를 거쳐 Slack이나 PagerDuty로 간다.
+Prometheus가 각 서비스의 `/metrics` 엔드포인트를 주기적으로 긁어간다(Pull 방식). 수집된 메트릭은 TSDB에 저장되고, Grafana가 PromQL로 조회해서 대시보드에 그린다. 알림은 Prometheus의 alerting rule이 발화하면 Alertmanager를 거쳐 Slack이나 PagerDuty로 간다.
 
-```yaml
-# application.yml
-management:
-  endpoints:
-    web:
-      exposure:
-        include: prometheus, health, info
-  metrics:
-    tags:
-      application: order-service
+NestJS에서는 `prom-client` 라이브러리로 `/metrics` 엔드포인트를 노출한다.
+
+```typescript
+// app.module.ts
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+
+@Module({
+  imports: [
+    PrometheusModule.register({
+      defaultMetrics: { enabled: true },
+      defaultLabels: { app: 'order-service' },
+    }),
+  ],
+})
+export class AppModule {}
 ```
 
 ### 봐야 하는 메트릭
 
 | 카테고리 | 메트릭 | 의미 |
 |---------|--------|------|
-| **응답 시간** | `http_server_requests_seconds` | API 응답 시간. p50보다 p99를 봐야 한다 |
-| **에러율** | `http_server_requests` (status=5xx) | 서버 에러 비율 |
-| **처리량** | `http_server_requests_seconds_count` | 초당 요청 수. 급격한 변화가 이상 징후 |
-| **JVM 메모리** | `jvm_memory_used_bytes` | 힙 사용량. Old Gen 위주로 본다 |
-| **DB 커넥션** | `hikaricp_connections_active` | 활성 커넥션 수 |
-| **GC** | `jvm_gc_pause_seconds` | GC 중단 시간. 500ms 넘으면 문제 |
+| **응답 시간** | `http_request_duration_seconds` | API 응답 시간. p50보다 p99를 봐야 한다 |
+| **에러율** | `http_requests_total` (status=5xx) | 서버 에러 비율 |
+| **처리량** | `http_requests_total` | 초당 요청 수. 급격한 변화가 이상 징후 |
+| **Node.js 메모리** | `nodejs_heap_size_used_bytes` | 힙 사용량. 지속 증가 시 메모리 누수 의심 |
+| **DB 커넥션** | `pg_pool_connections_active` | 활성 커넥션 수 |
+| **이벤트 루프 랙** | `nodejs_eventloop_lag_seconds` | 이벤트 루프 지연. 높으면 블로킹 코드 의심 |
 
 p99를 보는 이유가 있다. 평균 응답 시간이 200ms여도, 100번 중 1번은 5초가 걸릴 수 있다. 그 1번이 결제 요청이면 사용자가 이탈한다. p50(중간값)은 시스템이 "대체로 괜찮은지" 볼 때, p99는 "최악의 경우가 얼마나 나쁜지" 볼 때 쓴다.
 
@@ -395,14 +421,14 @@ payment-service 자체는 응답을 보냈는데 5초가 걸렸다. payment-serv
 
 **4단계: 근본 원인 찾기**
 
-payment-service의 Grafana 대시보드를 보니, 3시부터 DB 커넥션 풀(`hikaricp_connections_active`)이 최대치에 도달해 있다. `hikaricp_connections_pending`도 치솟았다.
+payment-service의 Grafana 대시보드를 보니, 3시부터 DB 커넥션 풀(`pg_pool_connections_active`)이 최대치에 도달해 있다. `pg_pool_connections_idle`도 0으로 떨어졌다.
 
 payment-service 로그를 보면:
 
 ```json
 {
   "level": "WARN",
-  "message": "HikariPool-1 - Connection is not available, request timed out after 30000ms",
+  "message": "Connection pool exhausted — request timed out after 30000ms",
   "activeConnections": 10,
   "maxPoolSize": 10
 }
@@ -598,45 +624,60 @@ groups:
 
 ## 로그 잘 남기는 법
 
-```java
-// 정보가 없는 로그 - 이걸로는 아무것도 할 수 없다
-log.error("에러 발생");
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
 
-// 민감 정보 노출 - user.toString()에 뭐가 들었는지 모른다
-log.info("User: " + user.toString());
+@Injectable()
+export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
 
-// 디버깅에 쓸 수 있는 로그
-log.error("결제 실패: orderId={}, errorCode={}, pgResponse={}",
-    orderId, e.getCode(), e.getPgResponseCode(), e);
+  badExamples(user: User, orderId: string, e: PaymentError): void {
+    // 정보가 없는 로그 - 이걸로는 아무것도 할 수 없다
+    this.logger.error('에러 발생');
 
-// 민감 정보 없이 식별 가능한 로그
-log.info("사용자 로그인: userId={}", user.getId());
+    // 민감 정보 노출 - JSON.stringify(user)에 뭐가 들었는지 모른다
+    this.logger.log(`User: ${JSON.stringify(user)}`);
+  }
+
+  goodExamples(user: User, orderId: string, e: PaymentError): void {
+    // 디버깅에 쓸 수 있는 로그
+    this.logger.error(
+      `결제 실패: orderId=${orderId}, errorCode=${e.code}, pgResponse=${e.pgResponseCode}`,
+      e.stack,
+    );
+
+    // 민감 정보 없이 식별 가능한 로그
+    this.logger.log(`사용자 로그인: userId=${user.id}`);
+  }
+}
 ```
 
 몇 가지 실수하기 쉬운 부분이 있다.
 
-**민감 정보 마스킹.** 카드 번호, 비밀번호, 주민번호가 로그에 찍히면 개인정보 유출 사고다. `toString()`을 호출할 때 어떤 필드가 포함되는지 반드시 확인해야 한다. Lombok의 `@ToString(exclude = {"password", "cardNumber"})` 같은 걸 쓰거나, 로그용 DTO를 따로 만들어야 한다.
+**민감 정보 마스킹.** 카드 번호, 비밀번호, 주민번호가 로그에 찍히면 개인정보 유출 사고다. `JSON.stringify()`를 호출할 때 어떤 필드가 포함되는지 반드시 확인해야 한다. 로그용 DTO를 따로 만들거나, 직렬화 시 민감 필드를 제외하는 `toLogSafe()` 메서드를 정의해야 한다.
 
-**예외 로그에 스택트레이스 포함.** `log.error("실패: {}", e.getMessage())`로 남기면 스택트레이스가 안 찍힌다. `log.error("실패: {}", e.getMessage(), e)`처럼 마지막 인자로 예외 객체를 넘겨야 한다.
+**예외 로그에 스택트레이스 포함.** `this.logger.error(e.message)`로 남기면 스택트레이스가 안 찍힌다. `this.logger.error(message, e.stack)`처럼 두 번째 인자로 스택트레이스를 넘겨야 한다.
 
-**로그에 요청 컨텍스트 포함.** MDC(Mapped Diagnostic Context)에 traceId, userId, requestId를 넣어두면, 모든 로그에 자동으로 포함된다. 서블릿 필터나 인터셉터에서 한 번 설정하면 된다.
+**로그에 요청 컨텍스트 포함.** NestJS 미들웨어나 인터셉터에서 requestId, userId, traceId를 AsyncLocalStorage에 저장해두면, 모든 로그에 자동으로 포함할 수 있다.
 
-```java
-@Component
-public class MdcFilter extends OncePerRequestFilter {
+```typescript
+// request-context.middleware.ts
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+import { randomBytes } from 'crypto';
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain chain) throws ServletException, IOException {
-        try {
-            MDC.put("requestId", UUID.randomUUID().toString().substring(0, 8));
-            MDC.put("clientIp", request.getRemoteAddr());
-            chain.doFilter(request, response);
-        } finally {
-            MDC.clear();
-        }
-    }
+@Injectable()
+export class RequestContextMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction): void {
+    const requestId = randomBytes(4).toString('hex');
+    const clientIp = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+
+    // AsyncLocalStorage나 cls-hooked 패키지로 컨텍스트 전파
+    req['requestId'] = requestId;
+    req['clientIp'] = clientIp;
+    res.setHeader('X-Request-Id', requestId);
+    next();
+  }
 }
 ```
 

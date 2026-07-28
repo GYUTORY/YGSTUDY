@@ -225,120 +225,93 @@ echo "Days until expiry: $days_left"
 
 Prometheus를 쓴다면 `x509_cert_not_after` 메트릭으로 인증서 만료를 추적하고, 7일 이내면 알림을 보내는 규칙을 설정한다.
 
-## Spring Boot mTLS 설정
+## Node.js / NestJS mTLS 설정
 
 ### 서버 측 설정
 
-```yaml
-# application.yml
-server:
-  port: 8443
-  ssl:
-    enabled: true
-    key-store: classpath:keystore.p12
-    key-store-password: ${KEYSTORE_PASSWORD}
-    key-store-type: PKCS12
-    key-alias: order-service
-    # mTLS 핵심 설정
-    client-auth: need        # 클라이언트 인증서 필수 (want: 선택, need: 필수)
-    trust-store: classpath:truststore.p12
-    trust-store-password: ${TRUSTSTORE_PASSWORD}
-    trust-store-type: PKCS12
-    protocol: TLS
-    enabled-protocols: TLSv1.3
+Node.js의 `https` 모듈로 mTLS를 활성화한다.
+
+```typescript
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import * as https from 'https';
+import * as fs from 'fs';
+
+async function bootstrap(): Promise<void> {
+  const httpsOptions: https.ServerOptions = {
+    key: fs.readFileSync(process.env.SSL_KEY_PATH ?? 'certs/service.key'),
+    cert: fs.readFileSync(process.env.SSL_CERT_PATH ?? 'certs/service.crt'),
+    ca: fs.readFileSync(process.env.SSL_CA_PATH ?? 'certs/ca.crt'),
+    // mTLS 핵심 설정
+    requestCert: true,    // 클라이언트에게 인증서 요청
+    rejectUnauthorized: true,  // 유효하지 않은 인증서 거부 (need에 해당)
+    // rejectUnauthorized: false → want에 해당 (운영 환경에서는 true 사용)
+    minVersion: 'TLSv1.3',
+  };
+
+  const app = await NestFactory.create(AppModule, { httpsOptions });
+  await app.listen(8443);
+}
+bootstrap();
 ```
 
-`client-auth: need`가 mTLS를 활성화하는 설정이다. `want`로 설정하면 인증서가 있으면 검증하고, 없어도 연결을 허용한다. 운영 환경에서는 `need`를 써야 한다.
+`rejectUnauthorized: true`가 mTLS를 강제한다. `false`로 설정하면 인증서가 없어도 연결이 허용되므로 운영 환경에서는 반드시 `true`를 써야 한다.
 
-keystore와 truststore의 차이:
-- **keystore**: 자기 자신의 인증서와 개인키를 저장
-- **truststore**: 신뢰할 CA 인증서를 저장. 상대방 인증서를 검증할 때 사용
+인증서 파일 준비:
+- **service.key**: 서비스 자신의 개인키
+- **service.crt**: 서비스 자신의 인증서
+- **ca.crt**: 클라이언트 인증서를 검증할 CA 인증서
 
 ```bash
-# keystore 생성 (서비스 인증서 + 개인키)
-openssl pkcs12 -export \
-  -in service.crt \
-  -inkey service.key \
-  -certfile ca-chain.crt \
-  -out keystore.p12 \
-  -name order-service \
-  -password pass:${KEYSTORE_PASSWORD}
-
-# truststore 생성 (CA 인증서)
-keytool -importcert \
-  -file ca.crt \
-  -alias internal-ca \
-  -keystore truststore.p12 \
-  -storetype PKCS12 \
-  -storepass ${TRUSTSTORE_PASSWORD} \
-  -noprompt
+# 서비스 인증서 + 개인키 생성
+openssl ecparam -name prime256v1 -genkey -noout -out service.key
+openssl req -new -key service.key -out service.csr \
+  -subj "/CN=order-service.production.svc.cluster.local"
+openssl x509 -req -in service.csr \
+  -CA intermediate-ca.crt -CAkey intermediate-ca.key \
+  -CAcreateserial -out service.crt -days 30 -sha256
 ```
 
-### 클라이언트 측 설정 (RestTemplate)
+### 클라이언트 측 설정
 
 다른 서비스를 호출할 때도 클라이언트 인증서를 제시해야 한다.
 
-```java
-@Configuration
-public class MtlsRestTemplateConfig {
+```typescript
+// mtls-http.service.ts
+import { Injectable } from '@nestjs/common';
+import * as https from 'https';
+import * as fs from 'fs';
+import axios, { AxiosInstance } from 'axios';
 
-    @Value("${client.ssl.key-store}")
-    private Resource keyStore;
+@Injectable()
+export class MtlsHttpService {
+  private readonly client: AxiosInstance;
 
-    @Value("${client.ssl.key-store-password}")
-    private String keyStorePassword;
+  constructor() {
+    const agent = new https.Agent({
+      key: fs.readFileSync(process.env.SSL_KEY_PATH ?? 'certs/service.key'),
+      cert: fs.readFileSync(process.env.SSL_CERT_PATH ?? 'certs/service.crt'),
+      ca: fs.readFileSync(process.env.SSL_CA_PATH ?? 'certs/ca.crt'),
+      rejectUnauthorized: true,
+    });
 
-    @Value("${client.ssl.trust-store}")
-    private Resource trustStore;
+    this.client = axios.create({ httpsAgent: agent });
+  }
 
-    @Value("${client.ssl.trust-store-password}")
-    private String trustStorePassword;
+  async get<T>(url: string): Promise<T> {
+    const response = await this.client.get<T>(url);
+    return response.data;
+  }
 
-    @Bean
-    public RestTemplate mtlsRestTemplate() throws Exception {
-        SSLContext sslContext = SSLContextBuilder.create()
-            .loadKeyMaterial(
-                keyStore.getURL(),
-                keyStorePassword.toCharArray(),
-                keyStorePassword.toCharArray()
-            )
-            .loadTrustMaterial(
-                trustStore.getURL(),
-                trustStorePassword.toCharArray()
-            )
-            .build();
-
-        HttpClient httpClient = HttpClients.custom()
-            .setSSLContext(sslContext)
-            .build();
-
-        HttpComponentsClientHttpRequestFactory factory =
-            new HttpComponentsClientHttpRequestFactory(httpClient);
-
-        return new RestTemplate(factory);
-    }
+  async post<T>(url: string, data: unknown): Promise<T> {
+    const response = await this.client.post<T>(url, data);
+    return response.data;
+  }
 }
 ```
 
-Spring Boot 3.1부터는 `spring.ssl.bundle`로 SSL 설정을 묶어서 관리할 수 있다:
-
-```yaml
-spring:
-  ssl:
-    bundle:
-      jks:
-        mtls-bundle:
-          key:
-            alias: order-service
-          keystore:
-            location: classpath:keystore.p12
-            password: ${KEYSTORE_PASSWORD}
-            type: PKCS12
-          truststore:
-            location: classpath:truststore.p12
-            password: ${TRUSTSTORE_PASSWORD}
-            type: PKCS12
-```
+환경 변수로 인증서 경로를 관리하고, cert-manager나 Vault Agent가 파일을 갱신하면 서비스를 재시작하거나 파일을 주기적으로 다시 읽도록 처리한다.
 
 ## Nginx mTLS 설정
 

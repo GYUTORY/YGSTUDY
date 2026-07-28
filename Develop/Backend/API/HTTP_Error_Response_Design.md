@@ -115,110 +115,121 @@ https://api.example.com/problems/auth/insufficient-scope
 
 에러 슬러그는 명사+상태 형태(`out-of-stock`)가 동사 형태(`cannot-purchase`)보다 낫다. 나중에 같은 에러가 다른 흐름에서 발생해도 재사용할 수 있다.
 
-서비스 내 에러 enum으로 type URI를 관리한다.
+서비스 내 에러 상수로 type URI를 관리한다.
 
-```java
-public enum ProblemType {
-    INSUFFICIENT_BALANCE(
-        "https://api.example.com/problems/payment/insufficient-balance",
-        "Insufficient Balance",
-        HttpStatus.BAD_REQUEST
-    ),
-    DUPLICATE_TRANSACTION(
-        "https://api.example.com/problems/payment/duplicate-transaction",
-        "Duplicate Transaction",
-        HttpStatus.CONFLICT
-    ),
-    OUT_OF_STOCK(
-        "https://api.example.com/problems/inventory/out-of-stock",
-        "Out of Stock",
-        HttpStatus.UNPROCESSABLE_ENTITY
-    );
+```typescript
+import { HttpStatus } from '@nestjs/common';
 
-    private final String typeUri;
-    private final String title;
-    private final HttpStatus status;
+interface ProblemTypeDefinition {
+  typeUri: string;
+  title: string;
+  status: HttpStatus;
 }
+
+export const ProblemType = {
+  INSUFFICIENT_BALANCE: {
+    typeUri: 'https://api.example.com/problems/payment/insufficient-balance',
+    title: 'Insufficient Balance',
+    status: HttpStatus.BAD_REQUEST,
+  },
+  DUPLICATE_TRANSACTION: {
+    typeUri: 'https://api.example.com/problems/payment/duplicate-transaction',
+    title: 'Duplicate Transaction',
+    status: HttpStatus.CONFLICT,
+  },
+  OUT_OF_STOCK: {
+    typeUri: 'https://api.example.com/problems/inventory/out-of-stock',
+    title: 'Out of Stock',
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
+} as const satisfies Record<string, ProblemTypeDefinition>;
 ```
 
-하드코딩된 문자열을 여러 곳에 쓰지 말고, 이런 enum 하나에서 관리해야 type 오타나 불일치를 막을 수 있다.
+하드코딩된 문자열을 여러 곳에 쓰지 말고, 이런 상수 객체 하나에서 관리해야 type 오타나 불일치를 막을 수 있다.
 
-## Spring ProblemDetail 구현
+## NestJS ProblemDetail 구현 (심화)
 
-Spring 6(Spring Boot 3.x)부터 `ProblemDetail`이 내장됐다.
+NestJS 필터에서 커스텀 예외를 잡아 ValidationPipe 에러도 함께 처리하는 예시다.
 
-```java
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+```typescript
+// global-exception.filter.ts
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  BadRequestException,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
 
-    @ExceptionHandler(InsufficientBalanceException.class)
-    public ResponseEntity<ProblemDetail> handleInsufficientBalance(
-            InsufficientBalanceException ex,
-            HttpServletRequest request) {
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            ex.getMessage()
-        );
-        problem.setType(URI.create(
-            "https://api.example.com/problems/payment/insufficient-balance"
-        ));
-        problem.setTitle("Insufficient Balance");
-        problem.setInstance(URI.create(request.getRequestURI()));
-
-        // 확장 필드
-        problem.setProperty("currentBalance", ex.getCurrentBalance());
-        problem.setProperty("requiredAmount", ex.getRequiredAmount());
-
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-            .body(problem);
-    }
+interface ValidationErrorDetail {
+  field: string;
+  message: string;
 }
-```
 
-`application.properties`에서 활성화 설정이 필요하다.
+@Catch()
+export class GlobalProblemDetailFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost): void {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
-```properties
-spring.mvc.problemdetails.enabled=true
-```
-
-이 설정을 켜면 Spring이 기본 예외(`MethodArgumentNotValidException`, `HttpMessageNotReadableException` 등)도 ProblemDetail 형태로 자동 변환한다.
-
-Bean Validation 에러의 경우 기본 ProblemDetail에 validation 오류 목록이 포함되지 않아서 커스터마이징이 필요하다.
-
-```java
-@ExceptionHandler(MethodArgumentNotValidException.class)
-public ResponseEntity<ProblemDetail> handleValidation(
-        MethodArgumentNotValidException ex,
-        HttpServletRequest request) {
-
-    ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-        HttpStatus.BAD_REQUEST,
-        "입력값 검증에 실패했습니다."
-    );
-    problem.setType(URI.create(
-        "https://api.example.com/problems/validation-failed"
-    ));
-    problem.setTitle("Validation Failed");
-    problem.setInstance(URI.create(request.getRequestURI()));
-
-    List<Map<String, String>> errors = ex.getBindingResult()
-        .getFieldErrors()
-        .stream()
-        .map(fe -> Map.of(
-            "field", fe.getField(),
-            "message", Objects.requireNonNullElse(fe.getDefaultMessage(), "invalid")
-        ))
-        .toList();
-
-    problem.setProperty("errors", errors);
-
-    return ResponseEntity
+    if (exception instanceof InsufficientBalanceException) {
+      response
         .status(HttpStatus.BAD_REQUEST)
-        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-        .body(problem);
+        .header('Content-Type', 'application/problem+json')
+        .json({
+          type: 'https://api.example.com/problems/payment/insufficient-balance',
+          title: 'Insufficient Balance',
+          status: HttpStatus.BAD_REQUEST,
+          detail: exception.message,
+          instance: request.url,
+          // 확장 필드
+          currentBalance: exception.currentBalance,
+          requiredAmount: exception.requiredAmount,
+        });
+      return;
+    }
+
+    // class-validator (ValidationPipe) 에러 처리
+    if (exception instanceof BadRequestException) {
+      const res = exception.getResponse() as Record<string, unknown>;
+      const rawErrors = Array.isArray(res['message']) ? res['message'] : [res['message']];
+
+      const errors: ValidationErrorDetail[] = rawErrors.map((msg: unknown) => ({
+        field: typeof msg === 'string' ? msg.split(' ')[0] : 'unknown',
+        message: typeof msg === 'string' ? msg : 'invalid',
+      }));
+
+      response
+        .status(HttpStatus.BAD_REQUEST)
+        .header('Content-Type', 'application/problem+json')
+        .json({
+          type: 'https://api.example.com/problems/validation-failed',
+          title: 'Validation Failed',
+          status: HttpStatus.BAD_REQUEST,
+          detail: '입력값 검증에 실패했습니다.',
+          instance: request.url,
+          errors,
+        });
+      return;
+    }
+
+    const status =
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    response
+      .status(status)
+      .header('Content-Type', 'application/problem+json')
+      .json({
+        type: 'https://api.example.com/problems/internal-error',
+        title: 'Internal Server Error',
+        status,
+        detail: 'An unexpected error occurred.',
+        instance: request.url,
+      });
+  }
 }
 ```
 
@@ -341,18 +352,22 @@ MSA에서 서비스 A가 서비스 B를 호출하고 B에서 에러가 발생하
 
 주의할 점은 `context` 필드를 외부 클라이언트에 노출할 때다. 내부 서비스 명칭이나 구조가 드러나면 보안상 문제가 될 수 있다. 외부 API Gateway에서 `context` 필드를 제거하거나 내부 API와 외부 API의 에러 형식을 분리하는 방법을 쓴다.
 
-```java
+```typescript
 // Gateway 레벨 필터 예시
-public ProblemDetail sanitizeForExternal(ProblemDetail problem) {
-    ProblemDetail sanitized = ProblemDetail.forStatusAndDetail(
-        HttpStatusCode.valueOf(problem.getStatus()),
-        problem.getDetail()
-    );
-    sanitized.setType(problem.getType());
-    sanitized.setTitle(problem.getTitle());
-    sanitized.setInstance(problem.getInstance());
-    // context 필드 제외 — 내부 서비스 정보 노출 방지
-    return sanitized;
+interface ProblemDetailPayload {
+  type: string;
+  title: string;
+  status: number;
+  detail: string;
+  instance: string;
+  context?: unknown;
+  [key: string]: unknown;
+}
+
+function sanitizeForExternal(problem: ProblemDetailPayload): Omit<ProblemDetailPayload, 'context'> {
+  const { context: _context, ...rest } = problem;
+  // context 필드 제외 — 내부 서비스 정보 노출 방지
+  return rest;
 }
 ```
 
