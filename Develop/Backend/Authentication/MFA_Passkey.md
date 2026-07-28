@@ -42,29 +42,49 @@ otpauth://totp/MyService:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=MyServi
 
 `secret`은 base32로 인코딩한 공유 키다. base32를 쓰는 이유는 QR 인식 오류를 줄이고 사용자가 수동 입력할 때 헷갈리지 않도록 하기 위해서다(0/O, 1/I 같은 글자가 없다). 키 길이는 RFC 권장이 160비트(SHA1 출력 길이)지만, 128비트도 보안상 충분하다. 128비트 미만은 쓰지 마라.
 
-```java
-// Spring Boot에서 TOTP secret 생성과 QR URI
-import org.apache.commons.codec.binary.Base32;
-import java.security.SecureRandom;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+```typescript
+// NestJS TOTP secret 생성과 QR URI — npm install otpauth base32-encode
+import { randomBytes } from 'crypto';
+import { Injectable } from '@nestjs/common';
 
-public class TotpRegistration {
-
-    public TotpSetup createSecret(String userId, String issuer) {
-        byte[] secretBytes = new byte[20]; // 160 bits
-        new SecureRandom().nextBytes(secretBytes);
-        String base32Secret = new Base32().encodeToString(secretBytes)
-                .replace("=", ""); // padding 제거 권장
-
-        String label = URLEncoder.encode(issuer + ":" + userId, StandardCharsets.UTF_8);
-        String otpauthUri = String.format(
-                "otpauth://totp/%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30",
-                label, base32Secret,
-                URLEncoder.encode(issuer, StandardCharsets.UTF_8));
-
-        return new TotpSetup(base32Secret, otpauthUri);
+// base32 인코딩 (RFC 4648 alphabet, no padding)
+function base32Encode(buf: Buffer): string {
+  const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0;
+  let value = 0;
+  let output = '';
+  for (const byte of buf) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      output += ALPHABET[(value >>> (bits - 5)) & 31];
+      bits -= 5;
     }
+  }
+  if (bits > 0) {
+    output += ALPHABET[(value << (5 - bits)) & 31];
+  }
+  return output; // padding 없음
+}
+
+export interface TotpSetup {
+  base32Secret: string;
+  otpauthUri: string;
+}
+
+@Injectable()
+export class TotpRegistration {
+  createSecret(userId: string, issuer: string): TotpSetup {
+    const secretBytes = randomBytes(20); // 160 bits
+    const base32Secret = base32Encode(secretBytes);
+
+    const label = encodeURIComponent(`${issuer}:${userId}`);
+    const otpauthUri =
+      `otpauth://totp/${label}?secret=${base32Secret}` +
+      `&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+
+    return { base32Secret, otpauthUri };
+  }
 }
 ```
 
@@ -74,17 +94,32 @@ QR 이미지는 클라이언트에서 그리거나 서버가 PNG로 만들어서
 
 TOTP에서 가장 자주 만나는 문제가 시계 어긋남이다. 사용자 휴대폰 시계가 서버보다 30초 이상 앞서거나 뒤처져 있으면 코드가 안 맞는다. 이걸 해결하려고 시간 윈도(time skew)를 둔다. 보통 ±1 step(±30초) 정도를 허용한다.
 
-```java
-public boolean verify(String base32Secret, String userCode) {
-    long currentStep = Instant.now().getEpochSecond() / 30;
-    // 현재 step과 ±1 범위를 비교
-    for (int offset = -1; offset <= 1; offset++) {
-        String candidate = generateCode(base32Secret, currentStep + offset);
-        if (constantTimeEquals(candidate, userCode)) {
-            return true;
-        }
+```typescript
+// npm install otpauth
+import * as OTPAuth from 'otpauth';
+import { timingSafeEqual } from 'crypto';
+
+function verify(base32Secret: string, userCode: string): boolean {
+  const totp = new OTPAuth.TOTP({
+    algorithm: 'SHA1',
+    digits: 6,
+    period: 30,
+    secret: OTPAuth.Secret.fromBase32(base32Secret),
+  });
+
+  const currentStep = Math.floor(Date.now() / 1000 / 30);
+
+  // 현재 step과 ±1 범위를 비교 (시계 어긋남 허용)
+  for (let offset = -1; offset <= 1; offset++) {
+    const candidate = totp.generate({ timestamp: (currentStep + offset) * 30 * 1000 });
+    // 타이밍 공격 방지: 상수 시간 비교
+    const a = Buffer.from(candidate.padEnd(8, '0'), 'utf-8');
+    const b = Buffer.from(userCode.padEnd(8, '0'), 'utf-8');
+    if (a.length === b.length && timingSafeEqual(a, b)) {
+      return true;
     }
-    return false;
+  }
+  return false;
 }
 ```
 
@@ -113,25 +148,44 @@ CREATE TABLE totp_used_steps (
 
 백업 코드는 비밀번호와 같은 수준으로 보호해야 한다. DB에는 평문으로 저장하지 말고 해시(bcrypt나 argon2)해서 저장한다. 비교는 사용자가 입력한 코드를 같은 함수로 해시해서 매칭한다. 한 번 쓰면 즉시 무효화하고 새 코드를 발급한다.
 
-```java
-public class BackupCodeService {
-    private static final int CODE_COUNT = 10;
-    private static final int CODE_LENGTH = 10;
+```typescript
+// npm install bcrypt @types/bcrypt
+import { randomBytes } from 'crypto';
+import * as bcrypt from 'bcrypt';
+import { Injectable } from '@nestjs/common';
 
-    public List<String> generate(Long userId) {
-        SecureRandom random = new SecureRandom();
-        List<String> plaintextCodes = new ArrayList<>();
-        List<String> hashedCodes = new ArrayList<>();
+const CODE_COUNT = 10;
+const CODE_LENGTH = 10; // characters
 
-        for (int i = 0; i < CODE_COUNT; i++) {
-            String code = randomAlphanumeric(random, CODE_LENGTH);
-            plaintextCodes.add(code);
-            hashedCodes.add(BCrypt.hashpw(code, BCrypt.gensalt(12)));
-        }
-        // hashedCodes만 DB 저장, plaintextCodes는 사용자에게 한 번만 보여줌
-        backupCodeRepo.saveAll(userId, hashedCodes);
-        return plaintextCodes;
+function randomAlphanumeric(length: number): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = randomBytes(length * 2);
+  let result = '';
+  for (let i = 0; i < bytes.length && result.length < length; i++) {
+    const idx = bytes[i] % chars.length;
+    result += chars[idx];
+  }
+  return result;
+}
+
+@Injectable()
+export class BackupCodeService {
+  constructor(private readonly backupCodeRepo: BackupCodeRepository) {}
+
+  async generate(userId: number): Promise<string[]> {
+    const plaintextCodes: string[] = [];
+    const hashedCodes: string[] = [];
+
+    for (let i = 0; i < CODE_COUNT; i++) {
+      const code = randomAlphanumeric(CODE_LENGTH);
+      plaintextCodes.push(code);
+      hashedCodes.push(await bcrypt.hash(code, 12));
     }
+
+    // hashedCodes만 DB 저장, plaintextCodes는 사용자에게 한 번만 보여줌
+    await this.backupCodeRepo.saveAll(userId, hashedCodes);
+    return plaintextCodes;
+  }
 }
 ```
 
@@ -238,14 +292,16 @@ RP(Relying Party) ID는 키가 묶여 있는 도메인이다. 보통 호스트�
 
 origin은 인증 요청이 발생한 사이트의 전체 origin(scheme + host + port)이다. 예를 들면 `https://app.example.com` 같은 값이다. 검증 시 서버는 `clientDataJSON.origin`이 자기가 허용하는 origin 목록에 포함되는지 확인한다.
 
-```java
-public void verifyOrigin(String clientDataJsonOrigin) {
-    Set<String> allowedOrigins = Set.of(
-            "https://app.example.com",
-            "https://login.example.com");
-    if (!allowedOrigins.contains(clientDataJsonOrigin)) {
-        throw new SecurityException("Origin mismatch: " + clientDataJsonOrigin);
-    }
+```typescript
+// origin 검증 — SimpleWebAuthn의 expectedOrigin 옵션이 자동 처리하지만 직접 구현 시
+function verifyOrigin(clientDataJsonOrigin: string): void {
+  const allowedOrigins = new Set<string>([
+    'https://app.example.com',
+    'https://login.example.com',
+  ]);
+  if (!allowedOrigins.has(clientDataJsonOrigin)) {
+    throw new Error(`Origin mismatch: ${clientDataJsonOrigin}`);
+  }
 }
 ```
 
@@ -255,11 +311,14 @@ public void verifyOrigin(String clientDataJsonOrigin) {
 
 Authenticator는 인증할 때마다 카운터를 1씩 올려서 서명 데이터에 포함시킨다. 서버는 이전에 저장한 카운터보다 새 값이 커야만 통과시킨다. 같거나 작으면 키가 복제됐을 가능성을 의심한다. 하드웨어 키를 누가 복사해서 쓰면 두 디바이스의 카운터가 어긋나면서 한 쪽이 거부된다.
 
-```java
-if (newSignCount != 0 && newSignCount <= storedSignCount) {
-    throw new SecurityException("Possible cloned authenticator");
+```typescript
+// Counter (Sign Count) 검증
+function verifySignCount(newSignCount: number, storedSignCount: number): number {
+  if (newSignCount !== 0 && newSignCount <= storedSignCount) {
+    throw new Error('Possible cloned authenticator');
+  }
+  return newSignCount; // 검증 성공 시 갱신할 값 반환
 }
-storedSignCount = newSignCount; // 검증 성공 시 갱신
 ```
 
 다만 패스키(아래에서 다룬다) 시대에는 카운터가 항상 0으로 오는 경우가 많다. 키가 클라우드에 동기화되니까 더 이상 단일 디바이스의 단조 증가 카운터를 유지할 수 없어서다. `newSignCount == 0 && storedSignCount == 0`이면 정상 케이스로 받아들이는 분기를 두자. 이거 안 해두면 패스키 사용자가 두 번째 로그인부터 막힌다.
@@ -357,44 +416,17 @@ sequenceDiagram
 
 `navigator.credentials.get({mediation: "conditional"})`을 쓰면 username 입력 필드에 포커스가 갈 때 자동으로 사용 가능한 패스키가 뜬다. 사용자가 입력 필드에 손도 안 대고 패스키 한 번에 로그인이 끝난다. 진짜로 비밀번호가 필요 없는 시대가 가능해진 이유다.
 
-## Spring Security 6.4+ WebAuthn 모듈
+## NestJS WebAuthn 모듈
 
-Spring Security가 6.4부터 WebAuthn을 정식 지원한다. 그 전에는 yubico의 `webauthn-server-core`를 직접 통합해야 했는데, 이제 framework가 보일러플레이트를 거의 다 처리해 준다.
+NestJS에서는 `@simplewebauthn/server` 패키지가 사실상 표준이다. 등록/인증 challenge 발급·검증을 추상화해 주며, 아래 SimpleWebAuthn 섹션에서 NestJS Controller 기반 구현 예제를 확인할 수 있다.
 
-```kotlin
-@Configuration
-@EnableWebSecurity
-class SecurityConfig {
-
-    @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        http
-            .formLogin { }
-            .webAuthn { webAuthn ->
-                webAuthn
-                    .rpName("My Service")
-                    .rpId("example.com")
-                    .allowedOrigins("https://example.com", "https://app.example.com")
-            }
-        return http.build()
-    }
-
-    @Bean
-    fun userCredentialRepository(): UserCredentialRepository {
-        return JdbcUserCredentialRepository(jdbcTemplate)
-    }
-}
-```
-
-`UserCredentialRepository`가 자격증명 저장소 인터페이스다. JDBC 기반 구현체가 기본 제공되고, 커스텀 저장소를 만들고 싶으면 인터페이스 5개 메서드만 구현하면 된다.
-
-엔드포인트는 자동으로 노출된다.
+자동으로 노출해야 할 엔드포인트는 다음과 같다.
 - `POST /webauthn/register/options`: 등록용 challenge 발급
 - `POST /webauthn/register`: 등록 완료
 - `POST /webauthn/authenticate/options`: 인증용 challenge 발급
-- `POST /login/webauthn`: 인증 완료
+- `POST /webauthn/authenticate`: 인증 완료
 
-비밀번호 로그인과 패스키 로그인을 함께 두는 일반적인 케이스는 이걸로 충분하다. 다만 conditional UI나 패스키 전용 단순 흐름을 원하면 컨트롤러를 직접 만들고 `WebAuthnRelyingPartyOperations`를 주입받아서 처리하는 편이 깔끔하다.
+자격증명 저장소(`WebAuthnCredentialRepository`)는 TypeORM Repository나 Prisma를 통해 직접 구현하고, 위의 DB 스키마(`webauthn_credentials`)와 연결하면 된다.
 
 ## SimpleWebAuthn (Node.js)
 

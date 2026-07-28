@@ -87,9 +87,9 @@ argon2에는 세 가지 변종이 있다.
 | 입력 길이 제한 | 72 bytes | 없음 | 없음 |
 | 표준화 | de facto | RFC 7914 | RFC 9106 |
 | OWASP 권장순위 | 3순위 | 4순위 | 1순위 |
-| 라이브러리 지원 | 매우 좋음 | 좋음 | 좋음 (점점 늘어남) |
+| Node.js 패키지 | `bcrypt` | `crypto.scrypt` (내장) | `argon2` |
 
-OWASP가 argon2id를 1순위로 두지만 bcrypt를 여전히 권장 목록에 둔 이유는 호환성과 검증 이력 때문이다. argon2 라이브러리가 없는 환경에서는 bcrypt를 쓰면 된다.
+OWASP가 argon2id를 1순위로 두지만 bcrypt를 여전히 권장 목록에 둔 이유는 호환성과 검증 이력 때문이다. Node.js에서는 `argon2` npm 패키지로 쉽게 사용할 수 있다.
 
 ## cost factor 튜닝
 
@@ -101,22 +101,22 @@ OWASP가 argon2id를 1순위로 두지만 bcrypt를 여전히 권장 목록에 �
 
 bcrypt cost factor 측정 예제:
 
-```java
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+```typescript
+// npm install bcrypt @types/bcrypt
+import * as bcrypt from 'bcrypt';
 
-public class CostMeasurement {
-    public static void main(String[] args) {
-        String password = "test_password_for_measurement";
+async function measureBcryptCost(): Promise<void> {
+  const password = 'test_password_for_measurement';
 
-        for (int cost = 10; cost <= 14; cost++) {
-            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(cost);
-            long start = System.currentTimeMillis();
-            encoder.encode(password);
-            long elapsed = System.currentTimeMillis() - start;
-            System.out.printf("cost=%d, %dms%n", cost, elapsed);
-        }
-    }
+  for (let cost = 10; cost <= 14; cost++) {
+    const start = Date.now();
+    await bcrypt.hash(password, cost);
+    const elapsed = Date.now() - start;
+    console.log(`cost=${cost}, ${elapsed}ms`);
+  }
 }
+
+measureBcryptCost();
 ```
 
 출력 예시 (M1 Pro 기준):
@@ -133,22 +133,28 @@ cost=14, 1040ms
 
 argon2id 파라미터 측정:
 
-```java
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+```typescript
+// npm install argon2
+import * as argon2 from 'argon2';
 
-public class Argon2Measurement {
-    public static void main(String[] args) {
-        String password = "test_password_for_measurement";
+async function measureArgon2(): Promise<void> {
+  const password = 'test_password_for_measurement';
 
-        // saltLength=16, hashLength=32, parallelism=1, memory=19456KB, iterations=2
-        Argon2PasswordEncoder encoder = new Argon2PasswordEncoder(16, 32, 1, 19456, 2);
-
-        long start = System.currentTimeMillis();
-        encoder.encode(password);
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.printf("memory=19MB, t=2, %dms%n", elapsed);
-    }
+  // OWASP 권장: memoryCost=19456 KB, timeCost=2, parallelism=1
+  const start = Date.now();
+  await argon2.hash(password, {
+    type: argon2.argon2id,
+    memoryCost: 19456, // KB 단위
+    timeCost: 2,
+    parallelism: 1,
+    saltLength: 16,
+    hashLength: 32,
+  });
+  const elapsed = Date.now() - start;
+  console.log(`memory=19MB, t=2, ${elapsed}ms`);
 }
+
+measureArgon2();
 ```
 
 argon2id는 memory(m)와 iterations(t)를 같이 조절한다. 메모리가 빠듯하면 m을 줄이고 t를 늘려서 시간을 맞춘다. OWASP 권장 조합 몇 개:
@@ -163,7 +169,7 @@ argon2id는 memory(m)와 iterations(t)를 같이 조절한다. 메모리가 빠�
 
 해싱은 CPU bound 작업이다. cost를 높이면 동시 로그인 처리량이 떨어진다. cost=12로 100ms 걸리는 서버에서 4 vCPU라면 이론상 초당 40회밖에 처리 못 한다. 로그인 요청이 몰리는 서비스면 인증 서버를 따로 분리하거나 인스턴스를 늘려야 한다.
 
-해싱을 비동기로 돌리고 싶다면 별도 스레드 풀을 써야 한다. Spring 환경에서 톰캣 워커 스레드를 그대로 쓰면 해싱 중에 요청 처리가 막힌다. `@Async` + 전용 `Executor`로 분리하는 게 안전하다.
+해싱을 비동기로 돌리고 싶다면 별도 워커를 써야 한다. Node.js에서 `argon2`나 `bcrypt` 패키지는 내부적으로 libuv 스레드 풀에서 실행되므로 `await`로 호출하면 이벤트 루프를 막지 않는다. 동시에 많은 해싱 요청이 들어오면 `worker_threads`로 분리하거나 인증 서버를 스케일 아웃하는 게 안전하다.
 
 ## 솔트 자동 생성
 
@@ -212,34 +218,32 @@ peppering이 항상 답은 아니다. argon2id를 m=19MB, t=2로 잘 쓰고 있�
 
 HMAC 방식의 peppering도 있다. 비밀번호를 먼저 HMAC-SHA256으로 한 번 처리한 뒤 그 결과를 bcrypt에 넣는 방식이다. 이렇게 하면 bcrypt 72바이트 제한도 우회된다.
 
-```java
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.Base64;
+```typescript
+// npm install bcrypt @types/bcrypt
+import { createHmac } from 'crypto';
+import * as bcrypt from 'bcrypt';
 
-public class PepperedHasher {
-    private final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder(12);
-    private final byte[] pepper;
+export class PepperedHasher {
+  private readonly BCRYPT_COST = 12;
 
-    public PepperedHasher(byte[] pepper) {
-        this.pepper = pepper;
-    }
+  constructor(private readonly pepper: Buffer) {}
 
-    public String hash(String password) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(pepper, "HmacSHA256"));
-        byte[] preHashed = mac.doFinal(password.getBytes("UTF-8"));
-        String prepared = Base64.getEncoder().encodeToString(preHashed);
-        return bcrypt.encode(prepared);
-    }
+  private applyPepper(password: string): string {
+    // HMAC-SHA256으로 pepper 적용 → Base64 → bcrypt 72바이트 제한 우회
+    return createHmac('sha256', this.pepper)
+      .update(password, 'utf-8')
+      .digest('base64');
+  }
 
-    public boolean verify(String password, String stored) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(pepper, "HmacSHA256"));
-        byte[] preHashed = mac.doFinal(password.getBytes("UTF-8"));
-        String prepared = Base64.getEncoder().encodeToString(preHashed);
-        return bcrypt.matches(prepared, stored);
-    }
+  async hash(password: string): Promise<string> {
+    const prepared = this.applyPepper(password);
+    return bcrypt.hash(prepared, this.BCRYPT_COST);
+  }
+
+  async verify(password: string, stored: string): Promise<boolean> {
+    const prepared = this.applyPepper(password);
+    return bcrypt.compare(prepared, stored);
+  }
 }
 ```
 
@@ -257,40 +261,70 @@ public class PepperedHasher {
 4. 검증 성공 시, 현재 권장 알고리즘/파라미터인지 확인
 5. 구버전이면 평문을 새 알고리즘으로 해시하고 DB 업데이트
 
-```java
-public class PasswordService {
-    private final UserRepository userRepository;
-    private final PasswordEncoder currentEncoder;  // argon2id
+```typescript
+// npm install argon2 bcrypt @types/bcrypt
+import * as argon2 from 'argon2';
+import * as bcrypt from 'bcrypt';
+import { Injectable } from '@nestjs/common';
 
-    public PasswordService(UserRepository userRepository, PasswordEncoder currentEncoder) {
-        this.userRepository = userRepository;
-        this.currentEncoder = currentEncoder;
+export interface User {
+  id: string;
+  username: string;
+  passwordHash: string;
+}
+
+export interface UserRepository {
+  findByUsername(username: string): Promise<User | null>;
+  save(user: User): Promise<void>;
+}
+
+@Injectable()
+export class PasswordService {
+  constructor(private readonly userRepository: UserRepository) {}
+
+  async authenticate(username: string, rawPassword: string): Promise<boolean> {
+    const user = await this.userRepository.findByUsername(username);
+    if (!user) {
+      // 타이밍 공격 방어 — 가짜 해시를 한 번 돌린다
+      await argon2.hash(rawPassword, { type: argon2.argon2id });
+      return false;
     }
 
-    public boolean authenticate(String username, String rawPassword) {
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
-            // 타이밍 공격 방어. 가짜 해시를 한 번 돌린다.
-            currentEncoder.encode(rawPassword);
-            return false;
-        }
+    const valid = await this.verifyPassword(rawPassword, user.passwordHash);
+    if (!valid) return false;
 
-        if (!currentEncoder.matches(rawPassword, user.getPasswordHash())) {
-            return false;
-        }
-
-        // 마이그레이션 필요 여부 확인
-        if (currentEncoder.upgradeEncoding(user.getPasswordHash())) {
-            String newHash = currentEncoder.encode(rawPassword);
-            user.setPasswordHash(newHash);
-            userRepository.save(user);
-        }
-        return true;
+    // 마이그레이션 필요 여부 확인 (bcrypt prefix → argon2id로 재해싱)
+    if (this.needsUpgrade(user.passwordHash)) {
+      user.passwordHash = await argon2.hash(rawPassword, {
+        type: argon2.argon2id,
+        memoryCost: 19456,
+        timeCost: 2,
+        parallelism: 1,
+      });
+      await this.userRepository.save(user);
     }
+    return true;
+  }
+
+  private async verifyPassword(raw: string, stored: string): Promise<boolean> {
+    if (stored.startsWith('$argon2')) {
+      return argon2.verify(stored, raw);
+    }
+    if (stored.startsWith('$2')) {
+      // bcrypt 해시 (구버전)
+      return bcrypt.compare(raw, stored);
+    }
+    return false;
+  }
+
+  private needsUpgrade(stored: string): boolean {
+    // bcrypt prefix이면 마이그레이션 대상
+    return stored.startsWith('$2');
+  }
 }
 ```
 
-Spring Security의 `PasswordEncoder` 인터페이스에 `upgradeEncoding()` 메서드가 있다. 현재 해시가 권장 파라미터를 만족하는지 검사해서, 못 미치면 true를 반환한다. 이걸 보고 재해싱하면 된다.
+`needsUpgrade()`에서 해시 prefix를 보고 알고리즘을 판별한다. bcrypt prefix(`$2a$`, `$2b$` 등)이면 argon2id로 재해싱한다.
 
 마이그레이션 기간 중에는 두 알고리즘이 DB에 공존한다. 사용자가 한 번도 로그인 안 하면 영영 구버전으로 남는다. 일정 기간(예: 1년) 후에는 비활성 사용자에게 비밀번호 재설정을 강제하거나 계정을 잠가야 한다.
 
@@ -365,51 +399,41 @@ API 호출: GET https://api.pwnedpasswords.com/range/5BAA6
 
 서버에 전체 해시를 보내지 않으니까 프라이버시가 보장된다.
 
-Java 구현 예제:
+TypeScript 구현 예제:
 
-```java
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.security.MessageDigest;
+```typescript
+// npm install axios
+import { createHash } from 'crypto';
+import axios from 'axios';
 
-public class PwnedPasswordChecker {
-    private final HttpClient client = HttpClient.newHttpClient();
+export class PwnedPasswordChecker {
+  async isPwned(password: string): Promise<boolean> {
+    const sha1 = this.sha1Hex(password);
+    const prefix = sha1.substring(0, 5);
+    const suffix = sha1.substring(5);
 
-    public boolean isPwned(String password) throws Exception {
-        String sha1 = sha1Hex(password);
-        String prefix = sha1.substring(0, 5);
-        String suffix = sha1.substring(5);
+    const response = await axios.get<string>(
+      `https://api.pwnedpasswords.com/range/${prefix}`,
+      {
+        headers: { 'Add-Padding': 'true' }, // 응답 길이 패딩
+        timeout: 3_000,
+        responseType: 'text',
+      },
+    );
 
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("https://api.pwnedpasswords.com/range/" + prefix))
-            .header("Add-Padding", "true")  // 응답 길이 패딩
-            .timeout(java.time.Duration.ofSeconds(3))
-            .GET()
-            .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        for (String line : response.body().split("\n")) {
-            String[] parts = line.split(":");
-            if (parts[0].equalsIgnoreCase(suffix)) {
-                int count = Integer.parseInt(parts[1].trim());
-                return count > 0;
-            }
-        }
-        return false;
+    for (const line of response.data.split('\n')) {
+      const [hashSuffix, countStr] = line.split(':');
+      if (hashSuffix.toUpperCase() === suffix.toUpperCase()) {
+        const count = parseInt(countStr.trim(), 10);
+        return count > 0;
+      }
     }
+    return false;
+  }
 
-    private String sha1Hex(String input) throws Exception {
-        MessageDigest md = MessageDigest.getInstance("SHA-1");
-        byte[] bytes = md.digest(input.getBytes("UTF-8"));
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X", b));
-        }
-        return sb.toString();
-    }
+  private sha1Hex(input: string): string {
+    return createHash('sha1').update(input, 'utf-8').digest('hex').toUpperCase();
+  }
 }
 ```
 
@@ -419,9 +443,9 @@ API 응답이 느리거나 실패하면 회원가입이 막힌다. 타임아웃�
 
 API 호출이 부담스러우면 전체 데이터셋(약 40GB)을 다운로드 받아서 자체 서버에 두는 방법도 있다. 한 달에 한 번 갱신한다.
 
-## Spring Security DelegatingPasswordEncoder
+## DelegatingPasswordEncoder 패턴
 
-Spring Security 5부터 `DelegatingPasswordEncoder`가 기본값이 됐다. 여러 알고리즘 해시를 동시에 DB에 저장하고, 해시 prefix로 어떤 인코더를 쓸지 결정하는 구조다.
+여러 알고리즘 해시를 동시에 DB에 저장하고, 해시 prefix로 어떤 인코더를 쓸지 결정하는 구조다. NestJS에서는 직접 구현하거나 `PasswordService`에 통합하면 된다.
 
 ### 동작 원리
 
@@ -437,36 +461,54 @@ DB에 저장되는 해시 형식:
 
 ### 설정 예제
 
-```java
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
-import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+```typescript
+// NestJS DelegatingPasswordEncoder 패턴 — prefix로 알고리즘 구분
+// npm install argon2 bcrypt @types/bcrypt
+import * as argon2 from 'argon2';
+import * as bcrypt from 'bcrypt';
+import { Injectable } from '@nestjs/common';
 
-import java.util.HashMap;
-import java.util.Map;
+type EncoderType = 'argon2id' | 'bcrypt';
 
-@Configuration
-public class PasswordEncoderConfig {
+@Injectable()
+export class DelegatingPasswordEncoder {
+  // 신규 비밀번호는 argon2id로 인코딩
+  private readonly defaultEncoder: EncoderType = 'argon2id';
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        String defaultEncoder = "argon2id";
-
-        Map<String, PasswordEncoder> encoders = new HashMap<>();
-        encoders.put("bcrypt", new BCryptPasswordEncoder(12));
-        encoders.put("argon2id", new Argon2PasswordEncoder(16, 32, 1, 19456, 2));
-
-        DelegatingPasswordEncoder delegating = new DelegatingPasswordEncoder(defaultEncoder, encoders);
-
-        // 구버전 해시(prefix 없음)에 대한 fallback
-        delegating.setDefaultPasswordEncoderForMatches(new BCryptPasswordEncoder(10));
-
-        return delegating;
+  async encode(rawPassword: string): Promise<string> {
+    if (this.defaultEncoder === 'argon2id') {
+      const hash = await argon2.hash(rawPassword, {
+        type: argon2.argon2id,
+        memoryCost: 19456,
+        timeCost: 2,
+        parallelism: 1,
+        saltLength: 16,
+        hashLength: 32,
+      });
+      return `{argon2id}${hash}`;
     }
+    const hash = await bcrypt.hash(rawPassword, 12);
+    return `{bcrypt}${hash}`;
+  }
+
+  async matches(rawPassword: string, encodedPassword: string): Promise<boolean> {
+    if (encodedPassword.startsWith('{argon2id}')) {
+      return argon2.verify(encodedPassword.slice('{argon2id}'.length), rawPassword);
+    }
+    if (encodedPassword.startsWith('{bcrypt}')) {
+      return bcrypt.compare(rawPassword, encodedPassword.slice('{bcrypt}'.length));
+    }
+    // 구버전 해시 (prefix 없음) — fallback: bcrypt cost=10으로 검증
+    if (encodedPassword.startsWith('$2')) {
+      return bcrypt.compare(rawPassword, encodedPassword);
+    }
+    return false;
+  }
+
+  needsUpgrade(encodedPassword: string): boolean {
+    // argon2id가 아니면 마이그레이션 대상
+    return !encodedPassword.startsWith('{argon2id}');
+  }
 }
 ```
 
@@ -500,7 +542,7 @@ GROUP BY algorithm;
 
 ### 비밀번호를 로그에 찍는 실수
 
-스택 트레이스나 디버그 로그에 평문 비밀번호가 남는 경우가 의외로 많다. DTO를 통째로 `toString()` 했다가 비밀번호 필드까지 찍히는 식이다. Lombok `@ToString(exclude = "password")`를 거는 게 안전하다. JSON 직렬화도 `@JsonIgnore`로 막는다.
+스택 트레이스나 디버그 로그에 평문 비밀번호가 남는 경우가 의외로 많다. DTO를 통째로 직렬화했다가 비밀번호 필드까지 찍히는 식이다. NestJS에서는 `@Exclude()` 데코레이터(`class-transformer`)로 직렬화를 막고, 로깅 시 DTO 객체를 통째로 찍지 않도록 주의한다.
 
 ### HTTPS 안 거치는 로그인
 

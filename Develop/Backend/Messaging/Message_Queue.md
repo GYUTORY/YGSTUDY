@@ -78,82 +78,101 @@ Producer ──▶ Broker Cluster ──▶ Consumer Group
 | **Broker** | Kafka 서버 인스턴스 |
 | **Replication** | 파티션 복제본으로 장애 대응 |
 
-#### Spring Boot + Kafka 예시
+#### NestJS + Kafka 예시
 
-```yaml
-# application.yml
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-    consumer:
-      group-id: order-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "com.example.event"
+```typescript
+// .env
+// KAFKA_BROKERS=localhost:9092
+
+// main.ts - Kafka 마이크로서비스 설정
+import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { AppModule } from './app.module';
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        brokers: [process.env.KAFKA_BROKERS ?? 'localhost:9092'],
+      },
+      consumer: {
+        groupId: 'order-service',
+      },
+    },
+  });
+  await app.listen();
+}
+bootstrap();
 ```
 
-```java
+```typescript
 // 이벤트 정의
-public record OrderCreatedEvent(
-    Long orderId,
-    Long userId,
-    int totalPrice,
-    LocalDateTime createdAt
-) {}
+export interface OrderCreatedEvent {
+  orderId: number;
+  userId: number;
+  totalPrice: number;
+  createdAt: string;
+}
 
 // Producer
-@Service
-@RequiredArgsConstructor
-public class OrderEventPublisher {
+import { Injectable, Logger } from '@nestjs/common';
+import { ClientKafka, Client, Transport } from '@nestjs/microservices';
 
-    private final KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate;
+@Injectable()
+export class OrderEventPublisher {
+  private readonly logger = new Logger(OrderEventPublisher.name);
 
-    public void publishOrderCreated(Order order) {
-        OrderCreatedEvent event = new OrderCreatedEvent(
-            order.getId(), order.getUserId(),
-            order.getTotalPrice(), LocalDateTime.now());
+  @Client({
+    transport: Transport.KAFKA,
+    options: {
+      client: { brokers: ['localhost:9092'] },
+    },
+  })
+  private kafkaClient: ClientKafka;
 
-        kafkaTemplate.send("order-events", order.getId().toString(), event)
-            .whenComplete((result, ex) -> {
-                if (ex != null) {
-                    log.error("이벤트 발행 실패: orderId={}", order.getId(), ex);
-                } else {
-                    log.info("이벤트 발행 성공: topic={}, offset={}",
-                        result.getRecordMetadata().topic(),
-                        result.getRecordMetadata().offset());
-                }
-            });
-    }
+  async publishOrderCreated(order: { id: number; userId: number; totalPrice: number }): Promise<void> {
+    const event: OrderCreatedEvent = {
+      orderId: order.id,
+      userId: order.userId,
+      totalPrice: order.totalPrice,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.kafkaClient.emit('order-events', { key: String(order.id), value: event })
+      .subscribe({
+        error: (err: Error) => this.logger.error(`이벤트 발행 실패: orderId=${order.id}`, err.stack),
+        complete: () => this.logger.log(`이벤트 발행 성공: topic=order-events, orderId=${order.id}`),
+      });
+  }
 }
 
 // Consumer
-@Service
-@Slf4j
-public class OrderEventConsumer {
+import { Controller, Logger } from '@nestjs/common';
+import { EventPattern, Payload } from '@nestjs/microservices';
 
-    @KafkaListener(topics = "order-events", groupId = "notification-service")
-    public void handleOrderCreated(OrderCreatedEvent event) {
-        log.info("주문 이벤트 수신: orderId={}", event.orderId());
-        // 알림 발송, 포인트 적립 등
-        notificationService.sendOrderConfirmation(event.userId(), event.orderId());
-    }
+@Controller()
+export class OrderEventConsumer {
+  private readonly logger = new Logger(OrderEventConsumer.name);
 
-    // 에러 처리
-    @KafkaListener(topics = "order-events", groupId = "inventory-service")
-    public void handleInventoryUpdate(OrderCreatedEvent event) {
-        try {
-            inventoryService.decreaseStock(event.orderId());
-        } catch (Exception e) {
-            log.error("재고 차감 실패: orderId={}", event.orderId(), e);
-            // Dead Letter Topic으로 전송하거나 재시도
-            throw e;
-        }
+  @EventPattern('order-events')
+  async handleOrderCreated(@Payload() event: OrderCreatedEvent): Promise<void> {
+    this.logger.log(`주문 이벤트 수신: orderId=${event.orderId}`);
+    // 알림 발송, 포인트 적립 등
+    await this.notificationService.sendOrderConfirmation(event.userId, event.orderId);
+  }
+
+  // 에러 처리 (별도 Consumer 그룹)
+  @EventPattern('order-events')
+  async handleInventoryUpdate(@Payload() event: OrderCreatedEvent): Promise<void> {
+    try {
+      await this.inventoryService.decreaseStock(event.orderId);
+    } catch (e) {
+      this.logger.error(`재고 차감 실패: orderId=${event.orderId}`, (e as Error).stack);
+      // Dead Letter Topic으로 전송하거나 재시도
+      throw e;
     }
+  }
 }
 ```
 
@@ -175,78 +194,92 @@ Producer → Exchange → Binding → Queue → Consumer
 | **Fanout** | 모든 바인딩된 큐로 브로드캐스트 | 이벤트 알림 |
 | **Headers** | 헤더 속성 기반 | 복잡한 라우팅 조건 |
 
-#### Spring Boot + RabbitMQ 기본 예시
+#### NestJS + RabbitMQ 기본 예시
 
-```yaml
-# application.yml
-spring:
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+```typescript
+// .env
+// RABBITMQ_URL=amqp://guest:guest@localhost:5672
+
+// app.module.ts
+import { Module } from '@nestjs/common';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
+
+@Module({
+  imports: [
+    RabbitMQModule.forRoot(RabbitMQModule, {
+      uri: process.env.RABBITMQ_URL ?? 'amqp://guest:guest@localhost:5672',
+      exchanges: [
+        { name: 'order.exchange', type: 'topic' },
+        { name: 'dlx.exchange', type: 'direct' },
+      ],
+      queues: [
+        {
+          name: 'order.created.queue',
+          bindingExchanges: [
+            { exchange: 'order.exchange', routingKey: 'order.created' },
+          ],
+          options: {
+            durable: true,
+            arguments: {
+              'x-dead-letter-exchange': 'dlx.exchange',
+              'x-dead-letter-routing-key': 'dlq.order.created',
+            },
+          },
+        },
+      ],
+    }),
+  ],
+})
+export class AppModule {}
 ```
 
-```java
-// 설정
-@Configuration
-public class RabbitConfig {
+```typescript
+// Producer
+import { Injectable } from '@nestjs/common';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
-    @Bean
-    public TopicExchange orderExchange() {
-        return new TopicExchange("order.exchange");
-    }
-
-    @Bean
-    public Queue orderCreatedQueue() {
-        return QueueBuilder.durable("order.created.queue")
-            .withArgument("x-dead-letter-exchange", "dlx.exchange")
-            .withArgument("x-dead-letter-routing-key", "dlq.order.created")
-            .build();
-    }
-
-    @Bean
-    public Binding orderCreatedBinding() {
-        return BindingBuilder
-            .bind(orderCreatedQueue())
-            .to(orderExchange())
-            .with("order.created");
-    }
-
-    @Bean
-    public Jackson2JsonMessageConverter messageConverter() {
-        return new Jackson2JsonMessageConverter();
-    }
+export interface OrderCreatedEvent {
+  orderId: number;
+  userId: number;
+  totalPrice: number;
 }
 
-// Producer
-@Service
-@RequiredArgsConstructor
-public class OrderEventPublisher {
+@Injectable()
+export class OrderEventPublisher {
+  constructor(private readonly amqpConnection: AmqpConnection) {}
 
-    private final RabbitTemplate rabbitTemplate;
+  async publishOrderCreated(order: { id: number; userId: number; totalPrice: number }): Promise<void> {
+    const event: OrderCreatedEvent = {
+      orderId: order.id,
+      userId: order.userId,
+      totalPrice: order.totalPrice,
+    };
 
-    public void publishOrderCreated(Order order) {
-        OrderCreatedEvent event = new OrderCreatedEvent(
-            order.getId(), order.getUserId(), order.getTotalPrice());
-
-        rabbitTemplate.convertAndSend(
-            "order.exchange",       // exchange
-            "order.created",        // routing key
-            event);
-    }
+    await this.amqpConnection.publish(
+      'order.exchange',   // exchange
+      'order.created',    // routing key
+      event,
+    );
+  }
 }
 
 // Consumer
-@Service
-@Slf4j
-public class OrderEventConsumer {
+import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 
-    @RabbitListener(queues = "order.created.queue")
-    public void handleOrderCreated(OrderCreatedEvent event) {
-        log.info("주문 이벤트 수신: orderId={}", event.orderId());
-        notificationService.sendOrderConfirmation(event);
-    }
+@Injectable()
+export class OrderEventConsumer {
+  private readonly logger = new Logger(OrderEventConsumer.name);
+
+  @RabbitSubscribe({
+    exchange: 'order.exchange',
+    routingKey: 'order.created',
+    queue: 'order.created.queue',
+  })
+  async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    this.logger.log(`주문 이벤트 수신: orderId=${event.orderId}`);
+    await this.notificationService.sendOrderConfirmation(event);
+  }
 }
 ```
 
@@ -268,77 +301,67 @@ Producer → order.exchange (topic)
                                                   → sms.queue
 ```
 
-```java
-@Configuration
-public class E2EBindingConfig {
+```typescript
+// NestJS + golevelup/nestjs-rabbitmq E2E 바인딩 설정
+import { Module } from '@nestjs/common';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
-    // 1단계: 메인 Exchange
-    @Bean
-    public TopicExchange orderExchange() {
-        return new TopicExchange("order.exchange");
-    }
+@Module({
+  imports: [
+    RabbitMQModule.forRoot(RabbitMQModule, {
+      uri: process.env.RABBITMQ_URL ?? 'amqp://localhost:5672',
+      exchanges: [
+        // 1단계: 메인 Exchange
+        { name: 'order.exchange', type: 'topic' },
+        // 2단계: 도메인별 하위 Exchange
+        { name: 'payment.exchange', type: 'direct' },
+        { name: 'notification.exchange', type: 'fanout' },
+      ],
+      queues: [
+        {
+          name: 'payment.queue',
+          bindingExchanges: [
+            { exchange: 'payment.exchange', routingKey: 'order.created' },
+          ],
+          options: { durable: true },
+        },
+        {
+          name: 'email.queue',
+          bindingExchanges: [
+            { exchange: 'notification.exchange', routingKey: '' },
+          ],
+          options: { durable: true },
+        },
+        {
+          name: 'sms.queue',
+          bindingExchanges: [
+            { exchange: 'notification.exchange', routingKey: '' },
+          ],
+          options: { durable: true },
+        },
+      ],
+    }),
+  ],
+})
+export class E2EBindingModule {}
 
-    // 2단계: 도메인별 하위 Exchange
-    @Bean
-    public DirectExchange paymentExchange() {
-        return new DirectExchange("payment.exchange");
-    }
+// Exchange → Exchange 바인딩은 amqplib를 통해 수동으로 설정
+// (golevelup/nestjs-rabbitmq가 E2E 바인딩을 직접 지원하지 않을 경우)
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
-    @Bean
-    public FanoutExchange notificationExchange() {
-        return new FanoutExchange("notification.exchange");
-    }
+@Injectable()
+export class ExchangeBindingSetup implements OnModuleInit {
+  constructor(private readonly amqpConnection: AmqpConnection) {}
 
+  async onModuleInit(): Promise<void> {
+    const channel = this.amqpConnection.channel;
     // Exchange → Exchange 바인딩
-    @Bean
-    public Binding orderToPayment() {
-        return BindingBuilder
-            .bind(paymentExchange())
-            .to(orderExchange())
-            .with("order.created");
-    }
-
-    @Bean
-    public Binding orderToNotification() {
-        return BindingBuilder
-            .bind(notificationExchange())
-            .to(orderExchange())
-            .with("order.#");  // 주문 관련 모든 이벤트를 알림으로
-    }
-
-    // 하위 Exchange → Queue 바인딩
-    @Bean
-    public Queue paymentQueue() {
-        return QueueBuilder.durable("payment.queue").build();
-    }
-
-    @Bean
-    public Binding paymentBinding() {
-        return BindingBuilder
-            .bind(paymentQueue())
-            .to(paymentExchange())
-            .with("order.created");
-    }
-
-    @Bean
-    public Queue emailQueue() {
-        return QueueBuilder.durable("email.queue").build();
-    }
-
-    @Bean
-    public Queue smsQueue() {
-        return QueueBuilder.durable("sms.queue").build();
-    }
-
-    @Bean
-    public Binding emailBinding() {
-        return BindingBuilder.bind(emailQueue()).to(notificationExchange());
-    }
-
-    @Bean
-    public Binding smsBinding() {
-        return BindingBuilder.bind(smsQueue()).to(notificationExchange());
-    }
+    await channel.bindExchange('payment.exchange', 'order.exchange', 'order.created');
+    await channel.bindExchange('notification.exchange', 'order.exchange', 'order.#');
+    // Exchange → Queue 바인딩
+    await channel.bindQueue('payment.queue', 'payment.exchange', 'order.created');
+  }
 }
 ```
 
@@ -356,36 +379,41 @@ Producer → order.exchange (routing key 매칭 실패)
               └── alternate ──▶ unrouted.exchange (fanout) → unrouted.queue
 ```
 
-```java
-@Configuration
-public class AlternateExchangeConfig {
+```typescript
+// NestJS에서 Alternate Exchange 설정
+import { Module } from '@nestjs/common';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
-    // 라우팅 실패 메시지를 받을 Exchange + Queue
-    @Bean
-    public FanoutExchange unroutedExchange() {
-        return new FanoutExchange("unrouted.exchange");
-    }
-
-    @Bean
-    public Queue unroutedQueue() {
-        return QueueBuilder.durable("unrouted.queue").build();
-    }
-
-    @Bean
-    public Binding unroutedBinding() {
-        return BindingBuilder.bind(unroutedQueue()).to(unroutedExchange());
-    }
-
-    // 메인 Exchange에 alternate-exchange 설정
-    @Bean
-    public TopicExchange orderExchange() {
-        return ExchangeBuilder
-            .topicExchange("order.exchange")
-            .durable(true)
-            .alternate("unrouted.exchange")
-            .build();
-    }
-}
+@Module({
+  imports: [
+    RabbitMQModule.forRoot(RabbitMQModule, {
+      uri: process.env.RABBITMQ_URL ?? 'amqp://localhost:5672',
+      exchanges: [
+        // 라우팅 실패 메시지를 받을 Exchange
+        { name: 'unrouted.exchange', type: 'fanout' },
+        // 메인 Exchange에 alternate-exchange 설정
+        {
+          name: 'order.exchange',
+          type: 'topic',
+          options: {
+            durable: true,
+            arguments: { 'alternate-exchange': 'unrouted.exchange' },
+          },
+        },
+      ],
+      queues: [
+        {
+          name: 'unrouted.queue',
+          bindingExchanges: [
+            { exchange: 'unrouted.exchange', routingKey: '' },
+          ],
+          options: { durable: true },
+        },
+      ],
+    }),
+  ],
+})
+export class AlternateExchangeModule {}
 ```
 
 운영 환경에서 `unrouted.queue`를 모니터링하면 라우팅 설정 실수를 빨리 잡을 수 있다. routing key 오타 같은 문제가 여기서 잡힌다.
@@ -409,52 +437,45 @@ Producer → hash.exchange (x-consistent-hash)
 
 routing key가 `user-123`이면 항상 같은 큐로 간다. weight 값은 해시 링에서 차지하는 비중이다. 모든 큐에 같은 값을 주면 균등 분배된다.
 
-```java
-@Configuration
-public class ConsistentHashConfig {
+```typescript
+// NestJS에서 Consistent Hash Exchange 설정
+import { Module } from '@nestjs/common';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
-    @Bean
-    public CustomExchange hashExchange() {
-        Map<String, Object> args = new HashMap<>();
-        args.put("hash-header", "user-id");  // 헤더 기반 해싱을 쓸 경우
-        return new CustomExchange(
-            "hash.exchange",
-            "x-consistent-hash",  // Exchange 타입
-            true,   // durable
-            false,  // auto-delete
-            args
-        );
-    }
-
-    @Bean
-    public Queue workerQueue1() {
-        return QueueBuilder.durable("worker.queue.1").build();
-    }
-
-    @Bean
-    public Queue workerQueue2() {
-        return QueueBuilder.durable("worker.queue.2").build();
-    }
-
-    // routing key 자리에 weight 값을 넣는다
-    @Bean
-    public Binding hashBinding1() {
-        return BindingBuilder
-            .bind(workerQueue1())
-            .to(hashExchange())
-            .with("10")    // weight
-            .noargs();
-    }
-
-    @Bean
-    public Binding hashBinding2() {
-        return BindingBuilder
-            .bind(workerQueue2())
-            .to(hashExchange())
-            .with("10")
-            .noargs();
-    }
-}
+@Module({
+  imports: [
+    RabbitMQModule.forRoot(RabbitMQModule, {
+      uri: process.env.RABBITMQ_URL ?? 'amqp://localhost:5672',
+      exchanges: [
+        {
+          name: 'hash.exchange',
+          type: 'x-consistent-hash', // Exchange 타입 (플러그인 필요)
+          options: {
+            durable: true,
+            arguments: { 'hash-header': 'user-id' }, // 헤더 기반 해싱을 쓸 경우
+          },
+        },
+      ],
+      queues: [
+        {
+          name: 'worker.queue.1',
+          bindingExchanges: [
+            { exchange: 'hash.exchange', routingKey: '10' }, // routing key 자리에 weight 값을 넣는다
+          ],
+          options: { durable: true },
+        },
+        {
+          name: 'worker.queue.2',
+          bindingExchanges: [
+            { exchange: 'hash.exchange', routingKey: '10' },
+          ],
+          options: { durable: true },
+        },
+      ],
+    }),
+  ],
+})
+export class ConsistentHashModule {}
 ```
 
 주의할 점이 있다. Consumer 수를 늘리거나 줄이면 해시 링이 재배치된다. 이때 일부 메시지의 라우팅 대상이 바뀌므로, 순서가 중요한 경우 Consumer 수를 쉽게 변경하면 안 된다. Kafka의 파티션 리밸런싱과 비슷한 문제다.
@@ -481,125 +502,146 @@ public class ConsistentHashConfig {
     → DLQ Consumer (로깅, 알림, 수동 재처리)
 ```
 
-```java
-@Configuration
-public class DlxConfig {
+```typescript
+// NestJS DLX + DLQ 설정
+import { Module } from '@nestjs/common';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
-    // === 정상 처리 경로 ===
-
-    @Bean
-    public TopicExchange orderExchange() {
-        return new TopicExchange("order.exchange");
-    }
-
-    @Bean
-    public Queue orderCreatedQueue() {
-        return QueueBuilder.durable("order.created.queue")
-            .withArgument("x-dead-letter-exchange", "dlx.exchange")
-            .withArgument("x-dead-letter-routing-key", "dlq.order.created")
-            .withArgument("x-message-ttl", 60000)    // 60초 TTL (선택)
-            .withArgument("x-max-length", 10000)      // 큐 최대 길이 (선택)
-            .build();
-    }
-
-    @Bean
-    public Binding orderCreatedBinding() {
-        return BindingBuilder
-            .bind(orderCreatedQueue())
-            .to(orderExchange())
-            .with("order.created");
-    }
-
-    // === DLX 경로 ===
-
-    @Bean
-    public DirectExchange dlxExchange() {
-        return new DirectExchange("dlx.exchange");
-    }
-
-    @Bean
-    public Queue dlqOrderCreatedQueue() {
-        // DLQ에도 TTL을 걸어서 일정 시간 후 원래 큐로 재진입시킬 수 있다
-        return QueueBuilder.durable("dlq.order.created.queue")
-            .withArgument("x-dead-letter-exchange", "order.exchange")
-            .withArgument("x-dead-letter-routing-key", "order.created")
-            .withArgument("x-message-ttl", 300000)  // 5분 후 원래 큐로 재시도
-            .build();
-    }
-
-    @Bean
-    public Binding dlqBinding() {
-        return BindingBuilder
-            .bind(dlqOrderCreatedQueue())
-            .to(dlxExchange())
-            .with("dlq.order.created");
-    }
-}
+@Module({
+  imports: [
+    RabbitMQModule.forRoot(RabbitMQModule, {
+      uri: process.env.RABBITMQ_URL ?? 'amqp://localhost:5672',
+      exchanges: [
+        // === 정상 처리 경로 ===
+        { name: 'order.exchange', type: 'topic' },
+        // === DLX 경로 ===
+        { name: 'dlx.exchange', type: 'direct' },
+      ],
+      queues: [
+        {
+          name: 'order.created.queue',
+          bindingExchanges: [
+            { exchange: 'order.exchange', routingKey: 'order.created' },
+          ],
+          options: {
+            durable: true,
+            arguments: {
+              'x-dead-letter-exchange': 'dlx.exchange',
+              'x-dead-letter-routing-key': 'dlq.order.created',
+              'x-message-ttl': 60000,   // 60초 TTL (선택)
+              'x-max-length': 10000,    // 큐 최대 길이 (선택)
+            },
+          },
+        },
+        {
+          name: 'dlq.order.created.queue',
+          // DLQ에도 TTL을 걸어서 일정 시간 후 원래 큐로 재진입시킬 수 있다
+          bindingExchanges: [
+            { exchange: 'dlx.exchange', routingKey: 'dlq.order.created' },
+          ],
+          options: {
+            durable: true,
+            arguments: {
+              'x-dead-letter-exchange': 'order.exchange',
+              'x-dead-letter-routing-key': 'order.created',
+              'x-message-ttl': 300000, // 5분 후 원래 큐로 재시도
+            },
+          },
+        },
+      ],
+    }),
+  ],
+})
+export class DlxModule {}
 ```
 
 위 설정에서 `dlq.order.created.queue`에 다시 `x-dead-letter-exchange`를 걸어 원래 Exchange로 보내는 패턴이 "재시도 큐" 패턴이다. 5분 후 자동으로 다시 처리를 시도한다. 무한 루프가 되지 않도록 메시지 헤더의 `x-death` 카운트를 확인해서 최대 재시도 횟수를 제한해야 한다.
 
-```java
-@Service
-@Slf4j
-public class DlqConsumer {
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe, Nack } from '@golevelup/nestjs-rabbitmq';
+import { ConsumeMessage } from 'amqplib';
 
-    private static final int MAX_RETRY_COUNT = 3;
+@Injectable()
+export class DlqConsumer {
+  private readonly logger = new Logger(DlqConsumer.name);
+  private static readonly MAX_RETRY_COUNT = 3;
 
-    @RabbitListener(queues = "dlq.order.created.queue")
-    public void handleDeadLetter(Message message) {
-        Map<String, Object> headers = message.getMessageProperties().getHeaders();
-        List<Map<String, Object>> xDeath =
-            (List<Map<String, Object>>) headers.get("x-death");
+  @RabbitSubscribe({
+    exchange: 'dlx.exchange',
+    routingKey: 'dlq.order.created',
+    queue: 'dlq.order.created.queue',
+  })
+  async handleDeadLetter(msg: unknown, amqpMsg: ConsumeMessage): Promise<Nack | void> {
+    const headers = amqpMsg.properties.headers as Record<string, unknown>;
+    const xDeath = headers['x-death'] as Array<{ count: number }> | undefined;
 
-        long retryCount = 0;
-        if (xDeath != null && !xDeath.isEmpty()) {
-            retryCount = (long) xDeath.get(0).get("count");
-        }
-
-        if (retryCount >= MAX_RETRY_COUNT) {
-            // 최대 재시도 초과 → 파킹 큐로 보내거나 DB에 기록
-            log.error("최대 재시도 초과. 메시지 파킹 처리: {}",
-                new String(message.getBody()));
-            saveToParkingLot(message);
-            return;
-        }
-
-        log.warn("DLQ 메시지 수신. 재시도 횟수: {}, 메시지: {}",
-            retryCount, new String(message.getBody()));
-        // TTL 만료 후 자동으로 원래 큐로 재진입
+    let retryCount = 0;
+    if (xDeath && xDeath.length > 0) {
+      retryCount = xDeath[0].count;
     }
 
-    private void saveToParkingLot(Message message) {
-        // DB에 저장하거나 parking-lot 큐로 전송
-        // 운영자가 확인 후 수동으로 재처리
+    if (retryCount >= DlqConsumer.MAX_RETRY_COUNT) {
+      // 최대 재시도 초과 → 파킹 큐로 보내거나 DB에 기록
+      this.logger.error(
+        `최대 재시도 초과. 메시지 파킹 처리: ${JSON.stringify(msg)}`,
+      );
+      await this.saveToParkingLot(msg);
+      return new Nack(false); // requeue=false
     }
+
+    this.logger.warn(`DLQ 메시지 수신. 재시도 횟수: ${retryCount}, 메시지: ${JSON.stringify(msg)}`);
+    // TTL 만료 후 자동으로 원래 큐로 재진입
+  }
+
+  private async saveToParkingLot(msg: unknown): Promise<void> {
+    // DB에 저장하거나 parking-lot 큐로 전송
+    // 운영자가 확인 후 수동으로 재처리
+  }
 }
 ```
 
 재시도 간격을 점진적으로 늘리고 싶으면 DLQ를 여러 개 만들어서 TTL을 다르게 설정한다. `retry.1.queue` (10초) → `retry.2.queue` (30초) → `retry.3.queue` (5분) 식이다. 구현이 복잡해지므로 Spring의 `RetryTemplate`이나 `spring-retry`를 같이 쓰는 게 관리하기 편하다.
 
-```java
-// Spring AMQP 재시도 설정 (SimpleRetryPolicy + DLQ 조합)
-@Bean
-public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-        ConnectionFactory connectionFactory) {
+```typescript
+// NestJS + golevelup/nestjs-rabbitmq 재시도 설정
+// (RabbitMQModule 옵션에서 재시도 전략 설정)
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
-    SimpleRabbitListenerContainerFactory factory =
-        new SimpleRabbitListenerContainerFactory();
-    factory.setConnectionFactory(connectionFactory);
+RabbitMQModule.forRoot(RabbitMQModule, {
+  uri: process.env.RABBITMQ_URL ?? 'amqp://localhost:5672',
+  // 3회 재시도, 재시도 간격 1초 → 2초 → 4초 (exponential backoff)
+  prefetchCount: 10,
+  // Consumer에서 예외 발생 시 Nack(false)를 반환해 DLX로 전달하는 방식을 사용
+  // 또는 커스텀 errorHandler를 통해 재시도 로직 구현
+  connectionInitOptions: { wait: false },
+});
 
-    // 3회 재시도, 재시도 간격 1초 → 2초 → 4초 (exponential backoff)
-    RetryInterceptorBuilder.StatelessRetryInterceptorBuilder retryBuilder =
-        RetryInterceptorBuilder.stateless()
-            .maxAttempts(3)
-            .backOffOptions(1000, 2.0, 10000);
+// Consumer에서 직접 재시도 로직 구현 예시
+import { Injectable } from '@nestjs/common';
+import { RabbitSubscribe, Nack } from '@golevelup/nestjs-rabbitmq';
 
-    // 재시도 모두 실패 시 reject → DLX로 전달
-    retryBuilder.recoverer(new RejectAndDontRequeueRecoverer());
+@Injectable()
+export class OrderEventConsumerWithRetry {
+  private readonly maxAttempts = 3;
 
-    factory.setAdviceChain(retryBuilder.build());
-    return factory;
+  @RabbitSubscribe({
+    exchange: 'order.exchange',
+    routingKey: 'order.created',
+    queue: 'order.created.queue',
+  })
+  async handleWithRetry(msg: unknown): Promise<Nack | void> {
+    try {
+      await this.processMessage(msg);
+    } catch {
+      // 재시도 모두 실패 시 requeue=false → DLX로 전달
+      return new Nack(false);
+    }
+  }
+
+  private async processMessage(msg: unknown): Promise<void> {
+    // 처리 로직
+  }
 }
 ```
 
@@ -620,30 +662,39 @@ DB 트랜잭션과 메시지 발행의 원자성을 보장하는 패턴이다.
   3. 발행 완료 후 Outbox 레코드 삭제
 ```
 
-```java
-@Service
-@RequiredArgsConstructor
-public class OrderService {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { Order } from './order.entity';
+import { OutboxEvent } from './outbox-event.entity';
 
-    private final OrderRepository orderRepository;
-    private final OutboxRepository outboxRepository;
+@Injectable()
+export class OrderService {
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(OutboxEvent)
+    private readonly outboxRepository: Repository<OutboxEvent>,
+    private readonly dataSource: DataSource,
+  ) {}
 
-    @Transactional
-    public Order createOrder(CreateOrderRequest request) {
-        // 주문 저장
-        Order order = orderRepository.save(Order.from(request));
+  async createOrder(request: CreateOrderRequest): Promise<Order> {
+    return this.dataSource.transaction(async (manager) => {
+      // 주문 저장
+      const order = await manager.save(Order, Order.from(request));
 
-        // 같은 트랜잭션에서 Outbox에 이벤트 저장
-        outboxRepository.save(OutboxEvent.builder()
-            .aggregateType("Order")
-            .aggregateId(order.getId().toString())
-            .eventType("OrderCreated")
-            .payload(objectMapper.writeValueAsString(
-                new OrderCreatedEvent(order.getId(), order.getTotalPrice())))
-            .build());
+      // 같은 트랜잭션에서 Outbox에 이벤트 저장
+      await manager.save(OutboxEvent, {
+        aggregateType: 'Order',
+        aggregateId: String(order.id),
+        eventType: 'OrderCreated',
+        payload: JSON.stringify({ orderId: order.id, totalPrice: order.totalPrice }),
+      });
 
-        return order;
-    }
+      return order;
+    });
+  }
 }
 ```
 
@@ -656,18 +707,33 @@ public class OrderService {
 | **Exponential Backoff** | 재시도 간격을 점점 늘림 | 외부 서비스 과부하 방지 |
 | **Circuit Breaker** | 연속 실패 시 일시 중단 | 연쇄 장애 방지 |
 
-```java
-// Spring Kafka 재시도 설정
-@Bean
-public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-    ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
-    factory.setConsumerFactory(consumerFactory());
-    factory.setCommonErrorHandler(new DefaultErrorHandler(
-        new DeadLetterPublishingRecoverer(kafkaTemplate),   // DLT로 전송
-        new FixedBackOff(1000L, 3)                          // 1초 간격, 3회 재시도
-    ));
-    return factory;
+```typescript
+// NestJS + kafkajs 재시도 설정 (main.ts)
+import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { AppModule } from './app.module';
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        brokers: [process.env.KAFKA_BROKERS ?? 'localhost:9092'],
+        retry: {
+          retries: 3,           // 3회 재시도
+          initialRetryTime: 1000, // 1초 간격
+          factor: 1,            // 고정 간격 (exponential backoff는 factor > 1)
+        },
+      },
+      consumer: {
+        groupId: 'order-service',
+      },
+    },
+  });
+  await app.listen();
 }
+bootstrap();
+// DLT(Dead Letter Topic)로 전송하려면 Consumer에서 예외 캐치 후 별도 토픽으로 emit
 ```
 
 ## 운영 팁

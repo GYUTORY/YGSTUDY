@@ -57,17 +57,32 @@ Client ──Cookie: JSESSIONID=abc123──▶ Server
 - 모바일 앱에서 쿠키 관리 불편
 - CSRF 공격에 취약 (쿠키 자동 전송)
 
-```java
-// Spring Security 세션 설정
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    return http
-        .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-            .maximumSessions(1)                // 동시 세션 1개
-            .maxSessionsPreventsLogin(false))   // 기존 세션 만료
-        .build();
+```typescript
+// NestJS 세션 설정 (express-session 사용)
+import * as session from 'express-session';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET ?? 'change-me',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 60 * 1000, // 30분
+      },
+      // 동시 세션 1개 제한은 별도 미들웨어나 store 레벨에서 구현
+    }),
+  );
+
+  await app.listen(3000);
 }
+bootstrap();
 ```
 
 ### 3. JWT 기반 인증
@@ -107,34 +122,62 @@ Refresh Token (긴 수명: 7~14일)
   └─ Rotation: 사용 시 새 Refresh Token 발급, 이전 것 폐기
 ```
 
-```java
-// Refresh Token Rotation
-@Transactional
-public AuthResponse refresh(String refreshToken) {
+```typescript
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { RefreshToken } from './refresh-token.entity';
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
+    private readonly jwtService: JwtService,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  // Refresh Token Rotation
+  async refresh(refreshToken: string): Promise<AuthResponse> {
     // 1. Refresh Token 유효성 확인
-    if (!tokenProvider.validateToken(refreshToken)) {
-        throw new InvalidTokenException();
+    let email: string;
+    try {
+      const payload = this.jwtService.verify<{ email: string }>(refreshToken);
+      email = payload.email;
+    } catch {
+      throw new UnauthorizedException('유효하지 않은 토큰');
     }
 
-    // 2. DB에서 저장된 Refresh Token과 비교
-    String email = tokenProvider.getEmailFromToken(refreshToken);
-    RefreshToken stored = refreshTokenRepository.findByEmail(email)
-        .orElseThrow(InvalidTokenException::new);
+    return this.dataSource.transaction(async (manager) => {
+      // 2. DB에서 저장된 Refresh Token과 비교
+      const stored = await manager.findOne(RefreshToken, { where: { email } });
+      if (!stored) {
+        throw new UnauthorizedException('유효하지 않은 토큰');
+      }
 
-    if (!stored.getToken().equals(refreshToken)) {
+      if (stored.token !== refreshToken) {
         // 이미 사용된 토큰 → 탈취 의심 → 모든 토큰 무효화
-        refreshTokenRepository.deleteByEmail(email);
-        throw new TokenReusedException("토큰 재사용 감지. 재로그인 필요.");
-    }
+        await manager.delete(RefreshToken, { email });
+        throw new UnauthorizedException('토큰 재사용 감지. 재로그인 필요.');
+      }
 
-    // 3. 새 토큰 쌍 발급 (Rotation)
-    String newAccessToken = tokenProvider.generateAccessToken(email, stored.getRole());
-    String newRefreshToken = tokenProvider.generateRefreshToken(email);
+      // 3. 새 토큰 쌍 발급 (Rotation)
+      const newAccessToken = this.jwtService.sign({ email, role: stored.role }, { expiresIn: '15m' });
+      const newRefreshToken = this.jwtService.sign({ email }, { expiresIn: '14d' });
 
-    // 4. 기존 Refresh Token 교체
-    stored.updateToken(newRefreshToken);
+      // 4. 기존 Refresh Token 교체
+      stored.token = newRefreshToken;
+      await manager.save(stored);
 
-    return new AuthResponse(newAccessToken, newRefreshToken);
+      return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    });
+  }
 }
 ```
 
@@ -224,61 +267,64 @@ spring:
             issuer-uri: https://auth.example.com/realms/my-realm
 ```
 
-```java
-@Configuration
-@EnableWebSecurity
-public class SsoSecurityConfig {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy, VerifyCallback } from 'passport-openidconnect';
+import { ConfigService } from '@nestjs/config';
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/public/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-                .userInfoEndpoint(userInfo -> userInfo
-                    .oidcUserService(customOidcUserService())
-                )
-            )
-            .oauth2ResourceServer(resource -> resource
-                .jwt(jwt -> jwt
-                    .jwtAuthenticationConverter(keycloakJwtConverter())
-                )
-            )
-            .build();
-    }
+// Keycloak의 realm_access.roles를 NestJS 권한으로 매핑하는 전략
+@Injectable()
+export class OidcStrategy extends PassportStrategy(Strategy, 'oidc') {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly userSyncService: UserSyncService,
+  ) {
+    super({
+      issuer: configService.get<string>('OAUTH_ISSUER'),
+      authorizationURL: `${configService.get<string>('OAUTH_ISSUER')}/protocol/openid-connect/auth`,
+      tokenURL: `${configService.get<string>('OAUTH_ISSUER')}/protocol/openid-connect/token`,
+      userInfoURL: `${configService.get<string>('OAUTH_ISSUER')}/protocol/openid-connect/userinfo`,
+      clientID: configService.get<string>('OAUTH_CLIENT_ID'),
+      clientSecret: configService.get<string>('OAUTH_CLIENT_SECRET'),
+      callbackURL: configService.get<string>('OAUTH_REDIRECT_URI'),
+      scope: ['openid', 'profile', 'email'],
+    });
+  }
 
-    // Keycloak의 realm_access.roles를 Spring Security 권한으로 매핑
-    private JwtAuthenticationConverter keycloakJwtConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-            if (realmAccess == null) {
-                return List.of();
-            }
-            @SuppressWarnings("unchecked")
-            List<String> roles = (List<String>) realmAccess.get("roles");
-            return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                .collect(Collectors.toList());
-        });
-        return converter;
-    }
+  async validate(
+    _issuer: string,
+    profile: Record<string, unknown>,
+    _context: unknown,
+    idToken: string,
+    accessToken: string,
+    _refreshToken: string,
+    _params: unknown,
+    done: VerifyCallback,
+  ): Promise<void> {
+    try {
+      // Keycloak의 realm_access.roles 추출
+      const realmAccess = profile['realm_access'] as { roles?: string[] } | undefined;
+      const roles = (realmAccess?.roles ?? []).map((role) => 'ROLE_' + role);
 
-    private OidcUserService customOidcUserService() {
-        OidcUserService delegate = new OidcUserService();
-        return new OidcUserService() {
-            @Override
-            public OidcUser loadUser(OidcUserRequest request) {
-                OidcUser oidcUser = delegate.loadUser(request);
-                // Keycloak에서 받은 사용자 정보로 자체 DB 동기화
-                // 최초 로그인 시 사용자 생성, 이후에는 정보 갱신
-                userSyncService.syncFromOidc(oidcUser);
-                return oidcUser;
-            }
-        };
+      const user = {
+        sub: profile['id'] as string,
+        email: profile['emails']?.[0],
+        name: profile['displayName'] as string,
+        roles,
+        idToken,
+        accessToken,
+      };
+
+      // Keycloak에서 받은 사용자 정보로 자체 DB 동기화
+      // 최초 로그인 시 사용자 생성, 이후에는 정보 갱신
+      await this.userSyncService.syncFromOidc(user);
+
+      done(null, user);
+    } catch (err) {
+      done(err as Error);
     }
+  }
 }
 ```
 
@@ -288,19 +334,28 @@ public class SsoSecurityConfig {
 
 **로그아웃 전파**: 서비스 A에서 로그아웃했는데 서비스 B에서는 여전히 로그인 상태인 경우가 흔하다. Keycloak의 Back-Channel Logout을 설정해야 한다.
 
-```java
-// Back-Channel Logout 수신 엔드포인트
-@PostMapping("/logout/backchannel")
-public ResponseEntity<Void> backChannelLogout(
-        @RequestParam("logout_token") String logoutToken) {
+```typescript
+import { Controller, Post, Body } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+
+@Controller('logout')
+export class LogoutController {
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly sessionRegistry: SessionRegistry,
+  ) {}
+
+  // Back-Channel Logout 수신 엔드포인트
+  @Post('/backchannel')
+  async backChannelLogout(@Body('logout_token') logoutToken: string): Promise<void> {
     // logout_token에서 sid(세션 ID)를 추출
-    DecodedJWT decoded = JWT.decode(logoutToken);
-    String sessionId = decoded.getClaim("sid").asString();
+    const decoded = this.jwtService.decode<{ sid: string }>(logoutToken);
+    const sessionId = decoded?.sid;
+    if (!sessionId) return;
 
     // 해당 세션으로 로그인한 사용자의 로컬 세션 무효화
-    sessionRegistry.removeSession(sessionId);
-
-    return ResponseEntity.ok().build();
+    await this.sessionRegistry.removeSession(sessionId);
+  }
 }
 ```
 
@@ -320,30 +375,48 @@ Client ──X-API-Key: sk_live_abc123──▶ Server
 
 API Key는 발급 시점에 원본을 보여주고, DB에는 해시값만 저장한다. 비밀번호와 같은 원리다.
 
-```java
-@Transactional
-public ApiKeyResponse issueApiKey(Long clientId, String description) {
-    byte[] keyBytes = new byte[32];
-    new SecureRandom().nextBytes(keyBytes);
-    String rawKey = "sk_live_" + Base64.getUrlEncoder()
-        .withoutPadding().encodeToString(keyBytes);
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { randomBytes, createHash } from 'crypto';
+import { ApiKeyEntity } from './api-key.entity';
+
+export interface ApiKeyResponse {
+  rawKey: string;
+  prefix: string;
+  id: number;
+}
+
+@Injectable()
+export class ApiKeyService {
+  constructor(
+    @InjectRepository(ApiKeyEntity)
+    private readonly apiKeyRepository: Repository<ApiKeyEntity>,
+  ) {}
+
+  async issueApiKey(clientId: number, description: string): Promise<ApiKeyResponse> {
+    const keyBytes = randomBytes(32);
+    const rawKey = 'sk_live_' + keyBytes.toString('base64url');
 
     // prefix는 목록 조회/식별용
-    String prefix = rawKey.substring(0, 12);
+    const prefix = rawKey.substring(0, 12);
 
     // SHA-256 해시만 DB에 저장
-    String hashedKey = sha256(rawKey);
+    const hashedKey = createHash('sha256').update(rawKey).digest('hex');
 
-    ApiKeyEntity entity = new ApiKeyEntity();
-    entity.setClientId(clientId);
-    entity.setKeyHash(hashedKey);
-    entity.setKeyPrefix(prefix);
-    entity.setDescription(description);
-    entity.setCreatedAt(Instant.now());
-    apiKeyRepository.save(entity);
+    const entity = this.apiKeyRepository.create({
+      clientId,
+      keyHash: hashedKey,
+      keyPrefix: prefix,
+      description,
+      createdAt: new Date(),
+    });
+    const saved = await this.apiKeyRepository.save(entity);
 
     // 원본은 이 응답에서만 반환. 이후 조회 불가
-    return new ApiKeyResponse(rawKey, prefix, entity.getId());
+    return { rawKey, prefix, id: saved.id };
+  }
 }
 ```
 
@@ -351,56 +424,59 @@ public ApiKeyResponse issueApiKey(Long clientId, String description) {
 
 #### 검증 필터
 
-```java
-@Component
-public class ApiKeyAuthFilter extends OncePerRequestFilter {
+```typescript
+import { Injectable, NestMiddleware, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Request, Response, NextFunction } from 'express';
+import { createHash } from 'crypto';
+import { ApiKeyEntity } from './api-key.entity';
 
-    private final ApiKeyRepository apiKeyRepository;
-    private final LoadingCache<String, Optional<ApiKeyEntity>> keyCache;
+// 간단한 인메모리 캐시 (운영에서는 Redis 사용 권장)
+const keyCache = new Map<string, { entity: ApiKeyEntity | null; expiresAt: number }>();
 
-    public ApiKeyAuthFilter(ApiKeyRepository apiKeyRepository) {
-        this.apiKeyRepository = apiKeyRepository;
-        // 캐시: DB 조회를 매 요청마다 하면 느리다
-        this.keyCache = Caffeine.newBuilder()
-            .maximumSize(1000)
-            .expireAfterWrite(Duration.ofMinutes(5))
-            .build(hash -> apiKeyRepository.findByKeyHash(hash));
+@Injectable()
+export class ApiKeyAuthMiddleware implements NestMiddleware {
+  constructor(
+    @InjectRepository(ApiKeyEntity)
+    private readonly apiKeyRepository: Repository<ApiKeyEntity>,
+  ) {}
+
+  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const apiKey = req.headers['x-api-key'] as string | undefined;
+    if (!apiKey) {
+      next();
+      return;
     }
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain) throws ServletException, IOException {
+    const hashedKey = createHash('sha256').update(apiKey).digest('hex');
 
-        String apiKey = request.getHeader("X-API-Key");
-        if (apiKey == null) {
-            chain.doFilter(request, response);
-            return;
-        }
-
-        String hashedKey = sha256(apiKey);
-        Optional<ApiKeyEntity> entity = keyCache.get(hashedKey);
-
-        if (entity.isEmpty()) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-
-        ApiKeyEntity key = entity.get();
-        if (key.getRevokedAt() != null) {
-            // 폐기된 키: 401이 아니라 403
-            // 클라이언트가 키 재발급이 필요한지 구분할 수 있다
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "API Key revoked");
-            return;
-        }
-
-        // SecurityContext에 인증 정보 설정
-        ApiKeyAuthentication auth = new ApiKeyAuthentication(key);
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        chain.doFilter(request, response);
+    // 캐시: DB 조회를 매 요청마다 하면 느리다
+    let entity: ApiKeyEntity | null = null;
+    const cached = keyCache.get(hashedKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      entity = cached.entity;
+    } else {
+      entity = await this.apiKeyRepository.findOne({ where: { keyHash: hashedKey } }) ?? null;
+      keyCache.set(hashedKey, { entity, expiresAt: Date.now() + 5 * 60 * 1000 }); // 5분 캐시
     }
+
+    if (!entity) {
+      res.status(401).end();
+      return;
+    }
+
+    if (entity.revokedAt) {
+      // 폐기된 키: 401이 아니라 403
+      // 클라이언트가 키 재발급이 필요한지 구분할 수 있다
+      res.status(403).json({ message: 'API Key revoked' });
+      return;
+    }
+
+    // 요청 컨텍스트에 인증 정보 설정
+    (req as Request & { apiKeyEntity: ApiKeyEntity }).apiKeyEntity = entity;
+    next();
+  }
 }
 ```
 
@@ -408,16 +484,27 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
 **키 폐기 시 캐시 무효화**: 위 코드처럼 캐시를 쓰면, 키를 폐기해도 캐시 TTL(5분) 동안은 계속 접근이 된다. 즉시 차단이 필요하면 폐기 시점에 캐시를 직접 날려야 한다.
 
-```java
-@Transactional
-public void revokeApiKey(Long keyId, Long clientId) {
-    ApiKeyEntity key = apiKeyRepository.findByIdAndClientId(keyId, clientId)
-        .orElseThrow(() -> new NotFoundException("API Key not found"));
-    key.setRevokedAt(Instant.now());
-    apiKeyRepository.save(key);
+```typescript
+// ApiKeyService 내 메서드 — 키 폐기 + 캐시 즉시 무효화
+import { Injectable, NotFoundException } from '@nestjs/common';
 
-    // 캐시 즉시 무효화
-    keyCache.invalidate(key.getKeyHash());
+// (ApiKeyService 클래스 내부)
+// async revokeApiKey(keyId: number, clientId: number): Promise<void>
+export async function revokeApiKey(
+  keyId: number,
+  clientId: number,
+  apiKeyRepository: ApiKeyRepository,
+  keyCache: Map<string, ApiKey>,
+): Promise<void> {
+  const key = await apiKeyRepository.findOne({ where: { id: keyId, clientId } });
+  if (!key) {
+    throw new NotFoundException('API Key not found');
+  }
+  key.revokedAt = new Date();
+  await apiKeyRepository.save(key);
+
+  // 캐시 즉시 무효화
+  keyCache.delete(key.keyHash);
 }
 ```
 

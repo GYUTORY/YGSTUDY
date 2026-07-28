@@ -30,7 +30,7 @@ LIMIT 20 OFFSET 40;
 
 ### 장점
 
-- 구현이 단순하다. `Pageable`이 알아서 처리해 준다.
+- 구현이 단순하다. 대부분의 ORM이 offset/limit을 기본으로 지원한다.
 - 1페이지에서 5페이지로 바로 점프할 수 있다.
 - 전체 페이지 수를 계산해 UI에 노출한다.
 
@@ -152,32 +152,35 @@ LIMIT 20;
 
 Base64로 감싸는 것은 보안 목적이 아니다. "이 토큰의 내부 구조에 의존하지 마라"는 신호다. 진짜 보안이 필요하면 HMAC 서명이나 암호화를 추가한다.
 
-```java
-public String encodeCursor(Long id, Instant createdAt) {
-    String raw = id + "," + createdAt.toEpochMilli();
-    return Base64.getUrlEncoder().withoutPadding()
-        .encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+```typescript
+interface CursorData {
+  id: number;
+  createdAt: Date;
 }
 
-public CursorData decodeCursor(String cursor) {
-    String raw = new String(
-        Base64.getUrlDecoder().decode(cursor),
-        StandardCharsets.UTF_8
-    );
-    String[] parts = raw.split(",");
-    return new CursorData(
-        Long.parseLong(parts[0]),
-        Instant.ofEpochMilli(Long.parseLong(parts[1]))
-    );
+function encodeCursor(id: number, createdAt: Date): string {
+  const raw = `${id},${createdAt.getTime()}`;
+  return Buffer.from(raw, 'utf-8').toString('base64url');
+}
+
+function decodeCursor(cursor: string): CursorData {
+  const raw = Buffer.from(cursor, 'base64url').toString('utf-8');
+  const [idStr, msStr] = raw.split(',');
+  return {
+    id: parseInt(idStr, 10),
+    createdAt: new Date(parseInt(msStr, 10)),
+  };
 }
 ```
 
 서비스에서 커서 변조를 우려한다면 페이로드 + HMAC을 묶는다.
 
-```java
-public String signedCursor(String payload) {
-    String sig = hmacSha256(secret, payload);
-    return base64Url(payload + "." + sig);
+```typescript
+import { createHmac } from 'crypto';
+
+function signedCursor(payload: string, secret: string): string {
+  const sig = createHmac('sha256', secret).update(payload).digest('hex');
+  return Buffer.from(`${payload}.${sig}`, 'utf-8').toString('base64url');
 }
 ```
 
@@ -358,61 +361,98 @@ OFFSET은 깊이에 비례해 늘어나고, Keyset은 평탄하다.
 - 기존 모바일 클라이언트가 `?page=N`으로 호출하고 있어서 한동안 두 API를 병행 운영했다. 구버전은 6개월 후 단계적으로 sunset.
 - "총 N건" 표시도 같이 사라졌다. 대신 추정값을 노출(아래 참조).
 
-## Spring Data JPA에서 Keyset 구현
+## NestJS + TypeORM에서 Keyset 구현
 
-```java
-@Repository
-public interface PostRepository extends JpaRepository<Post, Long> {
+```typescript
+// TypeORM Repository — Keyset 페이지네이션 쿼리
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Post } from './post.entity';
 
-    @Query("SELECT p FROM Post p " +
-           "WHERE p.createdAt < :createdAt " +
-           "OR (p.createdAt = :createdAt AND p.id < :id) " +
-           "ORDER BY p.createdAt DESC, p.id DESC")
-    List<Post> findNextPage(
-        @Param("createdAt") Instant createdAt,
-        @Param("id") Long id,
-        Pageable pageable
-    );
+@Injectable()
+export class PostRepository {
+  constructor(
+    @InjectRepository(Post)
+    private readonly repo: Repository<Post>,
+  ) {}
+
+  async findNextPage(
+    createdAt: Date,
+    id: number,
+    limit: number,
+  ): Promise<Post[]> {
+    return this.repo
+      .createQueryBuilder('p')
+      .where(
+        // MySQL 호환: OR 분기로 복합 keyset 조건 표현
+        '(p.createdAt < :createdAt OR (p.createdAt = :createdAt AND p.id < :id))',
+        { createdAt, id },
+      )
+      .orderBy('p.createdAt', 'DESC')
+      .addOrderBy('p.id', 'DESC')
+      .take(limit)
+      .getMany();
+  }
+
+  async findFirstPage(limit: number): Promise<Post[]> {
+    return this.repo
+      .createQueryBuilder('p')
+      .orderBy('p.createdAt', 'DESC')
+      .addOrderBy('p.id', 'DESC')
+      .take(limit)
+      .getMany();
+  }
 }
 ```
 
-```java
-@Service
-public class PostService {
+```typescript
+// NestJS Service — Keyset 커서 페이지네이션
+import { Injectable } from '@nestjs/common';
 
-    private final PostRepository postRepository;
+export interface PostDto {
+  id: number;
+  title: string;
+  createdAt: Date;
+}
 
-    public CursorPage<PostDto> getPosts(String cursor, int size) {
-        List<Post> posts;
+export interface CursorPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  hasNext: boolean;
+}
 
-        if (cursor == null) {
-            posts = postRepository.findAll(
-                PageRequest.of(0, size + 1, Sort.by("createdAt", "id").descending())
-            ).getContent();
-        } else {
-            CursorData c = decodeCursor(cursor);
-            posts = postRepository.findNextPage(
-                c.createdAt(),
-                c.id(),
-                PageRequest.of(0, size + 1)
-            );
-        }
+@Injectable()
+export class PostService {
+  constructor(private readonly postRepository: PostRepository) {}
 
-        boolean hasNext = posts.size() > size;
-        if (hasNext) {
-            posts = posts.subList(0, size);
-        }
+  async getPosts(cursor: string | null, size: number): Promise<CursorPage<PostDto>> {
+    // size + 1건을 조회해서 hasNext를 판단 — 별도 COUNT 쿼리 불필요
+    const limit = size + 1;
+    let posts: Post[];
 
-        String nextCursor = hasNext
-            ? encodeCursor(posts.get(posts.size() - 1))
-            : null;
-
-        return new CursorPage<>(
-            posts.stream().map(PostDto::from).toList(),
-            nextCursor,
-            hasNext
-        );
+    if (!cursor) {
+      posts = await this.postRepository.findFirstPage(limit);
+    } else {
+      const c = decodeCursor(cursor);
+      posts = await this.postRepository.findNextPage(c.createdAt, c.id, limit);
     }
+
+    const hasNext = posts.length > size;
+    if (hasNext) {
+      posts = posts.slice(0, size);
+    }
+
+    const nextCursor = hasNext
+      ? encodeCursor(posts[posts.length - 1].id, posts[posts.length - 1].createdAt)
+      : null;
+
+    return {
+      items: posts.map((p) => ({ id: p.id, title: p.title, createdAt: p.createdAt })),
+      nextCursor,
+      hasNext,
+    };
+  }
 }
 ```
 
@@ -587,15 +627,32 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY post_count_by_category;
 
 OFFSET 기반 API에 `?page=99999` 같은 요청이 들어오면 DB를 보호해야 한다.
 
-```java
-public Page<Post> getPosts(int page, int size) {
+```typescript
+// NestJS Service — 깊은 페이지 차단
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+@Injectable()
+export class PostOffsetService {
+  constructor(
+    @InjectRepository(Post)
+    private readonly repo: Repository<Post>,
+  ) {}
+
+  async getPostsWithOffset(page: number, size: number): Promise<Post[]> {
     if (page > 100) {
-        throw new BadRequestException("100페이지 이후 조회는 검색 조건을 좁혀 주세요.");
+      throw new BadRequestException(
+        '100페이지 이후 조회는 검색 조건을 좁혀 주세요.',
+      );
     }
-    if (size > 100) {
-        size = 100;
-    }
-    return postRepository.findAll(PageRequest.of(page, size));
+    const clampedSize = Math.min(size, 100);
+    return this.repo.find({
+      order: { createdAt: 'DESC', id: 'DESC' },
+      skip: page * clampedSize,
+      take: clampedSize,
+    });
+  }
 }
 ```
 
@@ -680,21 +737,25 @@ REST에서 차용한 응답 형태:
 
 `totalCount`는 옵션으로 두고, 클라이언트가 `?includeCount=true`로 명시할 때만 계산한다.
 
-```java
-public record Connection<T>(
-    List<Edge<T>> edges,
-    PageInfo pageInfo,
-    Long totalCount
-) {}
+```typescript
+// Relay Connection 타입 — TypeScript 인터페이스
+export interface Connection<T> {
+  edges: Edge<T>[];
+  pageInfo: PageInfo;
+  totalCount?: number; // 옵션: 클라이언트가 명시할 때만 계산
+}
 
-public record Edge<T>(T node, String cursor) {}
+export interface Edge<T> {
+  node: T;
+  cursor: string;
+}
 
-public record PageInfo(
-    boolean hasNextPage,
-    boolean hasPreviousPage,
-    String startCursor,
-    String endCursor
-) {}
+export interface PageInfo {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  startCursor: string | null;
+  endCursor: string | null;
+}
 ```
 
 `totalCount`를 nullable로 두고, 클라이언트가 요청할 때만 추정값을 채운다. 매 응답에 정확한 카운트를 넣지 않는다.

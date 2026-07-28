@@ -21,31 +21,34 @@ Credential Stuffing은 다른 서비스에서 유출된 이메일/비밀번호 �
 
 로그인 API에서 다음 지표를 추적한다:
 
-```java
-@Component
-public class LoginAttemptTracker {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    private final RedisTemplate<String, String> redis;
+@Injectable()
+export class LoginAttemptTracker {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-    // IP 기반: 단일 IP에서 서로 다른 계정으로 로그인 시도
-    public void trackByIp(String ip, String username) {
-        String key = "login:ip:" + ip;
-        redis.opsForSet().add(key, username);
-        redis.expire(key, Duration.ofMinutes(10));
-    }
+  // IP 기반: 단일 IP에서 서로 다른 계정으로 로그인 시도
+  async trackByIp(ip: string, username: string): Promise<void> {
+    const key = 'login:ip:' + ip;
+    await this.redis.sadd(key, username);
+    await this.redis.expire(key, 600); // 10분
+  }
 
-    // 계정 기반: 단일 계정에 여러 IP에서 로그인 시도
-    public void trackByAccount(String username, String ip) {
-        String key = "login:account:" + username;
-        redis.opsForSet().add(key, ip);
-        redis.expire(key, Duration.ofMinutes(10));
-    }
+  // 계정 기반: 단일 계정에 여러 IP에서 로그인 시도
+  async trackByAccount(username: string, ip: string): Promise<void> {
+    const key = 'login:account:' + username;
+    await this.redis.sadd(key, ip);
+    await this.redis.expire(key, 600); // 10분
+  }
 
-    public boolean isCredentialStuffing(String ip) {
-        Long distinctAccounts = redis.opsForSet().size("login:ip:" + ip);
-        // 10분 내 한 IP에서 5개 이상 서로 다른 계정으로 시도하면 의심
-        return distinctAccounts != null && distinctAccounts >= 5;
-    }
+  async isCredentialStuffing(ip: string): Promise<boolean> {
+    const distinctAccounts = await this.redis.scard('login:ip:' + ip);
+    // 10분 내 한 IP에서 5개 이상 서로 다른 계정으로 시도하면 의심
+    return distinctAccounts >= 5;
+  }
 }
 ```
 
@@ -55,20 +58,30 @@ public class LoginAttemptTracker {
 
 Have I Been Pwned의 Passwords API를 사용하면 회원가입이나 비밀번호 변경 시 이미 유출된 비밀번호인지 확인할 수 있다. k-Anonymity 모델을 써서 비밀번호 원문을 외부로 보내지 않는다.
 
-```java
-public boolean isBreachedPassword(String password) throws Exception {
-    String sha1 = DigestUtils.sha1Hex(password).toUpperCase();
-    String prefix = sha1.substring(0, 5);
-    String suffix = sha1.substring(5);
+```typescript
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { createHash } from 'crypto';
+import { firstValueFrom } from 'rxjs';
+
+@Injectable()
+export class BreachedPasswordChecker {
+  constructor(private readonly httpService: HttpService) {}
+
+  async isBreachedPassword(password: string): Promise<boolean> {
+    const sha1 = createHash('sha1').update(password).digest('hex').toUpperCase();
+    const prefix = sha1.substring(0, 5);
+    const suffix = sha1.substring(5);
 
     // prefix만 전송 — 원문 비밀번호는 외부에 노출되지 않음
-    String response = restClient.get()
-        .uri("https://api.pwnedpasswords.com/range/" + prefix)
-        .retrieve()
-        .body(String.class);
+    const { data } = await firstValueFrom(
+      this.httpService.get<string>(`https://api.pwnedpasswords.com/range/${prefix}`),
+    );
 
-    return response.lines()
-        .anyMatch(line -> line.startsWith(suffix + ":"));
+    return data
+      .split('\n')
+      .some((line) => line.startsWith(suffix + ':'));
+  }
 }
 ```
 
@@ -85,42 +98,57 @@ Credential Stuffing으로 실제 로그인에 성공한 경우, 공격자는 비
 
 로그인 성공 시점의 환경 정보를 저장해두고, 이후 요청과 비교한다:
 
-```java
-@Data
-public class SessionContext {
-    private String ip;
-    private String userAgent;
-    private String country;
-    private String deviceFingerprint;
-    private Instant loginTime;
+```typescript
+export interface SessionContext {
+  ip: string;
+  userAgent: string;
+  country: string;
+  deviceFingerprint: string;
+  loginTime: Date;
 }
 
-@Service
-public class SessionRiskEvaluator {
+export enum RiskLevel {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
 
-    public RiskLevel evaluate(SessionContext loginCtx, HttpServletRequest request) {
-        int score = 0;
+import { Injectable } from '@nestjs/common';
+import { Request } from 'express';
 
-        // IP 변경
-        if (!loginCtx.getIp().equals(getClientIp(request))) {
-            score += 2;
-        }
+@Injectable()
+export class SessionRiskEvaluator {
+  constructor(private readonly geoIpService: GeoIpService) {}
 
-        // User-Agent 변경 — 같은 세션 내에서 브라우저가 바뀔 일은 없다
-        if (!loginCtx.getUserAgent().equals(request.getHeader("User-Agent"))) {
-            score += 3;
-        }
+  async evaluate(loginCtx: SessionContext, request: Request): Promise<RiskLevel> {
+    let score = 0;
 
-        // 국가 변경 — VPN을 쓰더라도 세션 중간에 국가가 바뀌면 의심
-        String currentCountry = geoIpService.getCountry(getClientIp(request));
-        if (!loginCtx.getCountry().equals(currentCountry)) {
-            score += 4;
-        }
+    const clientIp = this.getClientIp(request);
 
-        if (score >= 4) return RiskLevel.HIGH;
-        if (score >= 2) return RiskLevel.MEDIUM;
-        return RiskLevel.LOW;
+    // IP 변경
+    if (loginCtx.ip !== clientIp) {
+      score += 2;
     }
+
+    // User-Agent 변경 — 같은 세션 내에서 브라우저가 바뀔 일은 없다
+    if (loginCtx.userAgent !== request.headers['user-agent']) {
+      score += 3;
+    }
+
+    // 국가 변경 — VPN을 쓰더라도 세션 중간에 국가가 바뀌면 의심
+    const currentCountry = await this.geoIpService.getCountry(clientIp);
+    if (loginCtx.country !== currentCountry) {
+      score += 4;
+    }
+
+    if (score >= 4) return RiskLevel.HIGH;
+    if (score >= 2) return RiskLevel.MEDIUM;
+    return RiskLevel.LOW;
+  }
+
+  private getClientIp(request: Request): string {
+    return (request.headers['x-forwarded-for'] as string)?.split(',')[0] ?? request.ip ?? '';
+  }
 }
 ```
 
@@ -130,30 +158,51 @@ public class SessionRiskEvaluator {
 
 비밀번호 변경, 이메일 변경, 2FA 해제 같은 작업에는 별도 보호가 필요하다:
 
-```java
-@Aspect
-@Component
-public class SensitiveActionGuard {
+```typescript
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Request } from 'express';
+import * as bcrypt from 'bcrypt';
 
-    @Around("@annotation(SensitiveAction)")
-    public Object guard(ProceedingJoinPoint joinPoint) throws Throwable {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        SessionContext ctx = sessionStore.get(auth.getName());
+// @SensitiveAction() 데코레이터와 함께 사용하는 Guard
+@Injectable()
+export class SensitiveActionGuard implements CanActivate {
+  constructor(
+    private readonly sessionStore: SessionStore,
+    private readonly userService: UserService,
+  ) {}
 
-        // 로그인 후 5분 이내면 추가 검증 없이 통과
-        if (ctx.getLoginTime().isAfter(Instant.now().minus(Duration.ofMinutes(5)))) {
-            return joinPoint.proceed();
-        }
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<
+      Request & { user: { username: string } }
+    >();
+    const username = request.user.username;
+    const ctx = await this.sessionStore.get(username);
 
-        // 5분 이후라면 현재 비밀번호 재입력 필요
-        HttpServletRequest request = getCurrentRequest();
-        String confirmPassword = request.getHeader("X-Confirm-Password");
-        if (confirmPassword == null || !passwordEncoder.matches(confirmPassword, userService.getHashedPassword(auth.getName()))) {
-            throw new ReauthenticationRequiredException();
-        }
-
-        return joinPoint.proceed();
+    // 로그인 후 5분 이내면 추가 검증 없이 통과
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    if (ctx.loginTime > fiveMinutesAgo) {
+      return true;
     }
+
+    // 5분 이후라면 현재 비밀번호 재입력 필요
+    const confirmPassword = request.headers['x-confirm-password'] as string | undefined;
+    if (!confirmPassword) {
+      throw new UnauthorizedException('재인증이 필요합니다.');
+    }
+
+    const hashedPassword = await this.userService.getHashedPassword(username);
+    const isValid = await bcrypt.compare(confirmPassword, hashedPassword);
+    if (!isValid) {
+      throw new UnauthorizedException('비밀번호가 올바르지 않습니다.');
+    }
+
+    return true;
+  }
 }
 ```
 
@@ -168,37 +217,46 @@ public class SensitiveActionGuard {
 
 브라우저 핑거프린팅은 클라이언트에서 하는 것(FingerprintJS 등)과 서버 사이드에서 하는 것이 있다. 서버에서는 HTTP 요청 자체의 특성을 본다:
 
-```java
-@Component
-public class BotDetector {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Request } from 'express';
 
-    public boolean isSuspicious(HttpServletRequest request) {
-        int score = 0;
+@Injectable()
+export class BotDetector {
+  private readonly knownBotJa3Set = new Set<string>(/* 알려진 봇 JA3 해시 */);
 
-        // 1. TLS fingerprint (JA3) — HTTP/2 환경에서는 JA4로 대체
-        // TLS 핸드셰이크 특성으로 클라이언트 종류를 식별한다
-        // 프록시/로드밸런서에서 JA3 해시를 헤더로 전달받는 구조
-        String ja3Hash = request.getHeader("X-JA3-Hash");
-        if (knownBotJa3Set.contains(ja3Hash)) {
-            score += 5;
-        }
+  isSuspicious(request: Request): boolean {
+    let score = 0;
 
-        // 2. 헤더 순서와 존재 여부
-        // 실제 브라우저는 Accept, Accept-Language, Accept-Encoding을 항상 보낸다
-        if (request.getHeader("Accept-Language") == null) {
-            score += 3;
-        }
-
-        // 3. 요청 간격 분석
-        // 사람은 요청 간격이 불규칙하다. 봇은 일정한 간격으로 요청한다
-        Double intervalStdDev = requestIntervalTracker.getStdDev(getClientIp(request));
-        if (intervalStdDev != null && intervalStdDev < 0.05) {
-            // 표준편차가 극도로 낮으면 기계적 요청
-            score += 4;
-        }
-
-        return score >= 5;
+    // 1. TLS fingerprint (JA3) — HTTP/2 환경에서는 JA4로 대체
+    // TLS 핸드셰이크 특성으로 클라이언트 종류를 식별한다
+    // 프록시/로드밸런서에서 JA3 해시를 헤더로 전달받는 구조
+    const ja3Hash = request.headers['x-ja3-hash'] as string | undefined;
+    if (ja3Hash && this.knownBotJa3Set.has(ja3Hash)) {
+      score += 5;
     }
+
+    // 2. 헤더 순서와 존재 여부
+    // 실제 브라우저는 Accept, Accept-Language, Accept-Encoding을 항상 보낸다
+    if (!request.headers['accept-language']) {
+      score += 3;
+    }
+
+    // 3. 요청 간격 분석
+    // 사람은 요청 간격이 불규칙하다. 봇은 일정한 간격으로 요청한다
+    const clientIp = this.getClientIp(request);
+    const intervalStdDev = this.requestIntervalTracker.getStdDev(clientIp);
+    if (intervalStdDev !== null && intervalStdDev < 0.05) {
+      // 표준편차가 극도로 낮으면 기계적 요청
+      score += 4;
+    }
+
+    return score >= 5;
+  }
+
+  private getClientIp(request: Request): string {
+    return (request.headers['x-forwarded-for'] as string)?.split(',')[0] ?? request.ip ?? '';
+  }
 }
 ```
 
@@ -208,40 +266,65 @@ JA3/JA4 핑거프린팅은 Cloudflare, Nginx(OpenResty), HAProxy 등에서 모�
 
 CAPTCHA는 모든 요청에 적용하면 사용자 경험이 나빠진다. 위험 점수 기반으로 조건부 적용한다:
 
-```java
-@Service
-public class CaptchaGateway {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
 
-    private final String recaptchaSecret;
+export enum CaptchaDecision {
+  SKIP = 'SKIP',
+  INVISIBLE = 'INVISIBLE',
+  CHALLENGE = 'CHALLENGE',
+}
 
-    // risk score가 일정 수준 이상일 때만 CAPTCHA 검증 요구
-    public CaptchaDecision decide(int riskScore) {
-        if (riskScore < 3) {
-            return CaptchaDecision.SKIP;
-        }
-        if (riskScore < 7) {
-            // invisible reCAPTCHA — 사용자에게 보이지 않음
-            return CaptchaDecision.INVISIBLE;
-        }
-        // 명시적 챌린지
-        return CaptchaDecision.CHALLENGE;
+interface RecaptchaResponse {
+  success: boolean;
+  score: number;
+}
+
+@Injectable()
+export class CaptchaGateway {
+  private readonly recaptchaSecret: string;
+
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {
+    this.recaptchaSecret = this.configService.get<string>('RECAPTCHA_SECRET') ?? '';
+  }
+
+  // risk score가 일정 수준 이상일 때만 CAPTCHA 검증 요구
+  decide(riskScore: number): CaptchaDecision {
+    if (riskScore < 3) {
+      return CaptchaDecision.SKIP;
     }
-
-    public boolean verify(String captchaToken) {
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("secret", recaptchaSecret);
-        params.add("response", captchaToken);
-
-        RecaptchaResponse response = restClient.post()
-            .uri("https://www.google.com/recaptcha/api/siteverify")
-            .body(params)
-            .retrieve()
-            .body(RecaptchaResponse.class);
-
-        // reCAPTCHA v3는 0.0~1.0 점수를 반환한다
-        // 0.5 미만이면 봇으로 판단하는 게 일반적
-        return response.isSuccess() && response.getScore() >= 0.5;
+    if (riskScore < 7) {
+      // invisible reCAPTCHA — 사용자에게 보이지 않음
+      return CaptchaDecision.INVISIBLE;
     }
+    // 명시적 챌린지
+    return CaptchaDecision.CHALLENGE;
+  }
+
+  async verify(captchaToken: string): Promise<boolean> {
+    const params = new URLSearchParams({
+      secret: this.recaptchaSecret,
+      response: captchaToken,
+    });
+
+    const { data } = await firstValueFrom(
+      this.httpService.post<RecaptchaResponse>(
+        'https://www.google.com/recaptcha/api/siteverify',
+        params.toString(),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+      ),
+    );
+
+    // reCAPTCHA v3는 0.0~1.0 점수를 반환한다
+    // 0.5 미만이면 봇으로 판단하는 게 일반적
+    return data.success && data.score >= 0.5;
+  }
 }
 ```
 
@@ -258,39 +341,41 @@ API 스크래핑은 공개 API를 정상적으로 호출하되 대량으로 데�
 
 목록 API를 처음부터 끝까지 순차적으로 전부 조회하는 패턴을 잡는다:
 
-```java
-@Component
-public class PaginationAbuseDetector {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    // 사용자별 페이지네이션 패턴 추적
-    public boolean isSequentialScraping(String userId, String endpoint, int page) {
-        String key = "pagination:" + userId + ":" + endpoint;
+@Injectable()
+export class PaginationAbuseDetector {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-        // 최근 조회한 페이지 번호 기록
-        redis.opsForList().rightPush(key, String.valueOf(page));
-        redis.expire(key, Duration.ofMinutes(30));
+  // 사용자별 페이지네이션 패턴 추적
+  async isSequentialScraping(userId: string, endpoint: string, page: number): Promise<boolean> {
+    const key = `pagination:${userId}:${endpoint}`;
 
-        List<String> pages = redis.opsForList().range(key, 0, -1);
-        if (pages == null || pages.size() < 10) {
-            return false;
-        }
+    // 최근 조회한 페이지 번호 기록
+    await this.redis.rpush(key, String(page));
+    await this.redis.expire(key, 1800); // 30분
 
-        // 최근 10개 페이지가 연속된 숫자인지 확인
-        List<Integer> recent = pages.stream()
-            .skip(Math.max(0, pages.size() - 10))
-            .map(Integer::parseInt)
-            .toList();
-
-        boolean sequential = true;
-        for (int i = 1; i < recent.size(); i++) {
-            if (recent.get(i) - recent.get(i - 1) != 1) {
-                sequential = false;
-                break;
-            }
-        }
-
-        return sequential;
+    const pages = await this.redis.lrange(key, 0, -1);
+    if (pages.length < 10) {
+      return false;
     }
+
+    // 최근 10개 페이지가 연속된 숫자인지 확인
+    const recent = pages
+      .slice(Math.max(0, pages.length - 10))
+      .map((p) => parseInt(p, 10));
+
+    for (let i = 1; i < recent.length; i++) {
+      if (recent[i] - recent[i - 1] !== 1) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
 ```
 
@@ -300,27 +385,35 @@ public class PaginationAbuseDetector {
 
 API 응답에 사용자별 고유 마커를 심어두면 데이터가 유출됐을 때 출처를 추적할 수 있다:
 
-```java
-@Component
-public class ResponseWatermarker {
+```typescript
+import { Injectable } from '@nestjs/common';
 
-    // 텍스트 필드에 zero-width 문자로 사용자 ID를 인코딩
-    public String watermark(String text, String userId) {
-        String encoded = toBinary(userId);
-        StringBuilder sb = new StringBuilder();
+@Injectable()
+export class ResponseWatermarker {
+  // 텍스트 필드에 zero-width 문자로 사용자 ID를 인코딩
+  watermark(text: string, userId: string): string {
+    const encoded = this.toBinary(userId);
 
-        // 텍스트 중간에 zero-width 문자 삽입
-        int insertPos = text.length() / 2;
-        sb.append(text, 0, insertPos);
+    // 텍스트 중간에 zero-width 문자 삽입
+    const insertPos = Math.floor(text.length / 2);
+    const beforeStr = text.substring(0, insertPos);
+    const afterStr = text.substring(insertPos);
 
-        for (char bit : encoded.toCharArray()) {
-            // U+200B (zero-width space) = 0, U+200C (zero-width non-joiner) = 1
-            sb.append(bit == '0' ? '\u200B' : '\u200C');
-        }
+    const hidden = [...encoded]
+      .map((bit) =>
+        // U+200B (zero-width space) = 0, U+200C (zero-width non-joiner) = 1
+        bit === '0' ? '\u200B' : '\u200C',
+      )
+      .join('');
 
-        sb.append(text.substring(insertPos));
-        return sb.toString();
-    }
+    return beforeStr + hidden + afterStr;
+  }
+
+  private toBinary(str: string): string {
+    return [...str]
+      .map((c) => c.charCodeAt(0).toString(2).padStart(8, '0'))
+      .join('');
+  }
 }
 ```
 
@@ -333,39 +426,64 @@ public class ResponseWatermarker {
 
 단순히 분당 요청 수만 보면 놓치는 패턴이 있다. 정상 트래픽은 시간대별 패턴이 있고, 공격 트래픽은 그 패턴을 벗어난다.
 
-```java
-@Service
-public class AnomalyDetector {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Cron } from '@nestjs/schedule';
+import Redis from 'ioredis';
 
-    // 시간대별 평균 요청량을 기준으로 이상치 탐지
-    // 이동 평균(Moving Average)과 표준편차로 간단하게 구현
-    public boolean isAnomaly(String apiKey, Instant now) {
-        int currentHour = now.atZone(ZoneId.of("Asia/Seoul")).getHour();
-        String baselineKey = "baseline:" + apiKey + ":" + currentHour;
-        String countKey = "count:" + apiKey + ":" + formatMinute(now);
+interface BaselineStats {
+  mean: number;
+  stdDev: number;
+}
 
-        // 현재 분당 요청 수
-        Long currentCount = redis.opsForValue().increment(countKey);
-        redis.expire(countKey, Duration.ofMinutes(2));
+@Injectable()
+export class AnomalyDetector {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-        // 같은 시간대의 과거 평균과 표준편차
-        BaselineStats stats = getBaseline(baselineKey);
-        if (stats == null) {
-            // 데이터가 충분하지 않으면 판단하지 않음
-            return false;
-        }
+  // 시간대별 평균 요청량을 기준으로 이상치 탐지
+  // 이동 평균(Moving Average)과 표준편차로 간단하게 구현
+  async isAnomaly(apiKey: string, now: Date): Promise<boolean> {
+    const seoulHour = new Intl.DateTimeFormat('ko-KR', {
+      hour: 'numeric',
+      hour12: false,
+      timeZone: 'Asia/Seoul',
+    }).format(now);
 
-        // 평균 + 3 * 표준편차를 넘으면 이상치
-        double threshold = stats.getMean() + 3 * stats.getStdDev();
-        return currentCount > threshold;
+    const baselineKey = `baseline:${apiKey}:${seoulHour}`;
+    const countKey = `count:${apiKey}:${this.formatMinute(now)}`;
+
+    // 현재 분당 요청 수
+    const currentCount = await this.redis.incr(countKey);
+    await this.redis.expire(countKey, 120); // 2분
+
+    // 같은 시간대의 과거 평균과 표준편차
+    const stats = await this.getBaseline(baselineKey);
+    if (!stats) {
+      // 데이터가 충분하지 않으면 판단하지 않음
+      return false;
     }
 
-    // 매일 같은 시간대의 요청량을 기록해서 baseline을 쌓는다
-    @Scheduled(fixedRate = 60000)
-    public void updateBaseline() {
-        // 현재 시간대의 요청량을 baseline에 추가
-        // 최근 7일 데이터로 이동 평균 계산
-    }
+    // 평균 + 3 * 표준편차를 넘으면 이상치
+    const threshold = stats.mean + 3 * stats.stdDev;
+    return currentCount > threshold;
+  }
+
+  // 매일 같은 시간대의 요청량을 기록해서 baseline을 쌓는다
+  @Cron('* * * * *') // 1분마다
+  async updateBaseline(): Promise<void> {
+    // 현재 시간대의 요청량을 baseline에 추가
+    // 최근 7일 데이터로 이동 평균 계산
+  }
+
+  private formatMinute(date: Date): string {
+    return `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, '0')}${String(date.getUTCDate()).padStart(2, '0')}${String(date.getUTCHours()).padStart(2, '0')}${String(date.getUTCMinutes()).padStart(2, '0')}`;
+  }
+
+  private async getBaseline(key: string): Promise<BaselineStats | null> {
+    const data = await this.redis.get(key);
+    return data ? (JSON.parse(data) as BaselineStats) : null;
+  }
 }
 ```
 
@@ -400,52 +518,72 @@ IP 차단은 가장 기본적인 방어인데, 실무에서는 몇 가지 문제
 
 ### 계층별 차단 구조
 
-```java
-@Service
-public class AccessController {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Request } from 'express';
 
-    // 차단 레벨: NONE -> CAPTCHA -> THROTTLE -> BLOCK
-    public AccessDecision evaluate(RequestContext ctx) {
-        // 1단계: 블랙리스트 확인 (즉시 차단)
-        if (isBlacklisted(ctx.getIp()) || isBlacklisted(ctx.getApiKey())) {
-            return AccessDecision.BLOCK;
-        }
+export enum AccessDecision {
+  ALLOW = 'ALLOW',
+  CAPTCHA = 'CAPTCHA',
+  THROTTLE = 'THROTTLE',
+  BLOCK = 'BLOCK',
+}
 
-        // 2단계: 화이트리스트 확인 (내부 서비스, 파트너 등)
-        if (isWhitelisted(ctx.getIp()) || isWhitelisted(ctx.getApiKey())) {
-            return AccessDecision.ALLOW;
-        }
+export interface RequestContext {
+  ip: string;
+  apiKey: string;
+  request: Request;
+}
 
-        // 3단계: 위험 점수 기반 판단
-        int riskScore = calculateRiskScore(ctx);
+@Injectable()
+export class AccessController {
+  constructor(
+    private readonly ipReputationService: IpReputationService,
+    private readonly botDetector: BotDetector,
+  ) {}
 
-        if (riskScore >= 8) return AccessDecision.BLOCK;
-        if (riskScore >= 5) return AccessDecision.THROTTLE;  // 요청 속도 제한
-        if (riskScore >= 3) return AccessDecision.CAPTCHA;   // 봇 확인
-        return AccessDecision.ALLOW;
+  // 차단 레벨: ALLOW -> CAPTCHA -> THROTTLE -> BLOCK
+  async evaluate(ctx: RequestContext): Promise<AccessDecision> {
+    // 1단계: 블랙리스트 확인 (즉시 차단)
+    if ((await this.isBlacklisted(ctx.ip)) || (await this.isBlacklisted(ctx.apiKey))) {
+      return AccessDecision.BLOCK;
     }
 
-    private int calculateRiskScore(RequestContext ctx) {
-        int score = 0;
-
-        // IP 평판 점수
-        score += ipReputationService.getScore(ctx.getIp());
-
-        // 최근 실패율
-        double failRate = getRecentFailRate(ctx.getApiKey());
-        if (failRate > 0.5) score += 3;
-
-        // 요청 빈도
-        long rpm = getRequestsPerMinute(ctx.getApiKey());
-        if (rpm > 100) score += 2;
-
-        // 봇 탐지 점수
-        if (botDetector.isSuspicious(ctx.getRequest())) {
-            score += 4;
-        }
-
-        return score;
+    // 2단계: 화이트리스트 확인 (내부 서비스, 파트너 등)
+    if ((await this.isWhitelisted(ctx.ip)) || (await this.isWhitelisted(ctx.apiKey))) {
+      return AccessDecision.ALLOW;
     }
+
+    // 3단계: 위험 점수 기반 판단
+    const riskScore = await this.calculateRiskScore(ctx);
+
+    if (riskScore >= 8) return AccessDecision.BLOCK;
+    if (riskScore >= 5) return AccessDecision.THROTTLE; // 요청 속도 제한
+    if (riskScore >= 3) return AccessDecision.CAPTCHA;  // 봇 확인
+    return AccessDecision.ALLOW;
+  }
+
+  private async calculateRiskScore(ctx: RequestContext): Promise<number> {
+    let score = 0;
+
+    // IP 평판 점수
+    score += await this.ipReputationService.getScore(ctx.ip);
+
+    // 최근 실패율
+    const failRate = await this.getRecentFailRate(ctx.apiKey);
+    if (failRate > 0.5) score += 3;
+
+    // 요청 빈도
+    const rpm = await this.getRequestsPerMinute(ctx.apiKey);
+    if (rpm > 100) score += 2;
+
+    // 봇 탐지 점수
+    if (this.botDetector.isSuspicious(ctx.request)) {
+      score += 4;
+    }
+
+    return score;
+  }
 }
 ```
 
@@ -453,37 +591,46 @@ public class AccessController {
 
 차단은 영구적이면 안 된다. 오탐(false positive)으로 정상 사용자가 차단될 수 있기 때문이다:
 
-```java
-@Service
-public class AdaptiveBlocker {
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    // 차단 시간을 점진적으로 늘린다
-    public Duration getBlockDuration(String identifier) {
-        String key = "block:count:" + identifier;
-        Long blockCount = redis.opsForValue().increment(key);
-        redis.expire(key, Duration.ofDays(7));
+@Injectable()
+export class AdaptiveBlocker {
+  private readonly logger = new Logger(AdaptiveBlocker.name);
 
-        // 1차: 1분, 2차: 5분, 3차: 30분, 4차 이후: 24시간
-        return switch (blockCount.intValue()) {
-            case 1 -> Duration.ofMinutes(1);
-            case 2 -> Duration.ofMinutes(5);
-            case 3 -> Duration.ofMinutes(30);
-            default -> Duration.ofHours(24);
-        };
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
+  // 차단 시간을 점진적으로 늘린다 (초 단위 반환)
+  async getBlockDurationSeconds(identifier: string): Promise<number> {
+    const key = 'block:count:' + identifier;
+    const blockCount = await this.redis.incr(key);
+    await this.redis.expire(key, 7 * 24 * 3600); // 7일
+
+    // 1차: 1분, 2차: 5분, 3차: 30분, 4차 이후: 24시간
+    switch (blockCount) {
+      case 1: return 60;
+      case 2: return 300;
+      case 3: return 1800;
+      default: return 86400;
     }
+  }
 
-    public void block(String identifier, Duration duration) {
-        String key = "blocked:" + identifier;
-        redis.opsForValue().set(key, "1", duration);
+  async block(identifier: string, durationSeconds: number): Promise<void> {
+    const key = 'blocked:' + identifier;
+    await this.redis.setex(key, durationSeconds, '1');
 
-        // 차단 이벤트 로깅 — 나중에 오탐 분석에 사용
-        auditLogger.log(AuditEvent.builder()
-            .type("ACCESS_BLOCKED")
-            .identifier(identifier)
-            .duration(duration)
-            .reason(getCurrentRiskContext())
-            .build());
-    }
+    // 차단 이벤트 로깅 — 나중에 오탐 분석에 사용
+    this.logger.warn(
+      JSON.stringify({
+        type: 'ACCESS_BLOCKED',
+        identifier,
+        durationSeconds,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
 }
 ```
 
@@ -493,35 +640,63 @@ public class AdaptiveBlocker {
 
 API 키 기반 서비스에서는 IP보다 API 키 단위로 관리하는 게 정확하다:
 
-```java
-@Service
-public class ApiKeyManager {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    // API 키별 사용량 추적과 제한
-    public RateLimitResult checkRateLimit(String apiKey) {
-        ApiKeyConfig config = getConfig(apiKey);
+export interface RateLimitResult {
+  allowed: boolean;
+  message?: string;
+  limit?: number;
+  remainingMinute?: number;
+  remainingDaily?: number;
+}
 
-        String minuteKey = "rate:" + apiKey + ":" + currentMinute();
-        String dailyKey = "rate:" + apiKey + ":" + currentDate();
+@Injectable()
+export class ApiKeyManager {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-        Long minuteCount = redis.opsForValue().increment(minuteKey);
-        redis.expire(minuteKey, Duration.ofMinutes(2));
+  // API 키별 사용량 추적과 제한
+  async checkRateLimit(apiKey: string): Promise<RateLimitResult> {
+    const config = await this.getConfig(apiKey);
 
-        Long dailyCount = redis.opsForValue().increment(dailyKey);
-        redis.expire(dailyKey, Duration.ofDays(2));
+    const now = new Date();
+    const minuteKey = `rate:${apiKey}:${this.currentMinute(now)}`;
+    const dailyKey = `rate:${apiKey}:${this.currentDate(now)}`;
 
-        if (minuteCount > config.getRpmLimit()) {
-            return RateLimitResult.exceeded("분당 요청 한도 초과", config.getRpmLimit());
-        }
-        if (dailyCount > config.getDailyLimit()) {
-            return RateLimitResult.exceeded("일일 요청 한도 초과", config.getDailyLimit());
-        }
+    const minuteCount = await this.redis.incr(minuteKey);
+    await this.redis.expire(minuteKey, 120); // 2분
 
-        return RateLimitResult.allowed(
-            config.getRpmLimit() - minuteCount,   // 남은 분당 한도
-            config.getDailyLimit() - dailyCount    // 남은 일일 한도
-        );
+    const dailyCount = await this.redis.incr(dailyKey);
+    await this.redis.expire(dailyKey, 2 * 24 * 3600); // 2일
+
+    if (minuteCount > config.rpmLimit) {
+      return { allowed: false, message: '분당 요청 한도 초과', limit: config.rpmLimit };
     }
+    if (dailyCount > config.dailyLimit) {
+      return { allowed: false, message: '일일 요청 한도 초과', limit: config.dailyLimit };
+    }
+
+    return {
+      allowed: true,
+      remainingMinute: config.rpmLimit - minuteCount,   // 남은 분당 한도
+      remainingDaily: config.dailyLimit - dailyCount,    // 남은 일일 한도
+    };
+  }
+
+  private currentMinute(date: Date): string {
+    return `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, '0')}${String(date.getUTCDate()).padStart(2, '0')}${String(date.getUTCHours()).padStart(2, '0')}${String(date.getUTCMinutes()).padStart(2, '0')}`;
+  }
+
+  private currentDate(date: Date): string {
+    return `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, '0')}${String(date.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  private async getConfig(apiKey: string): Promise<{ rpmLimit: number; dailyLimit: number }> {
+    // API 키 설정 조회 로직
+    return { rpmLimit: 100, dailyLimit: 10000 };
+  }
 }
 ```
 

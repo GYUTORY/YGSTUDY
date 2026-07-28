@@ -249,53 +249,64 @@ Nginx (Leaky Bucket)
 
 ### 2. Redis 기반 구현
 
-```java
-// Sliding Window Counter (Redis + Spring)
-@Component
-public class RateLimiter {
+```typescript
+// Sliding Window Counter (Redis + NestJS)
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    private final StringRedisTemplate redis;
+@Injectable()
+export class RateLimiter {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-    public boolean isAllowed(String key, int limit, Duration window) {
-        String redisKey = "rate:" + key;
-        long now = System.currentTimeMillis();
-        long windowStart = now - window.toMillis();
+  async isAllowed(key: string, limit: number, windowMs: number): Promise<boolean> {
+    const redisKey = 'rate:' + key;
+    const now = Date.now();
+    const windowStart = now - windowMs;
 
-        // 윈도우 밖의 오래된 요청 제거
-        redis.opsForZSet().removeRangeByScore(redisKey, 0, windowStart);
+    // 윈도우 밖의 오래된 요청 제거
+    await this.redis.zremrangebyscore(redisKey, 0, windowStart);
 
-        // 현재 윈도우 내 요청 수
-        Long count = redis.opsForZSet().zCard(redisKey);
+    // 현재 윈도우 내 요청 수
+    const count = await this.redis.zcard(redisKey);
 
-        if (count != null && count >= limit) {
-            return false;  // 제한 초과
-        }
-
-        // 새 요청 기록
-        redis.opsForZSet().add(redisKey, String.valueOf(now), now);
-        redis.expire(redisKey, window);
-
-        return true;
+    if (count >= limit) {
+      return false; // 제한 초과
     }
+
+    // 새 요청 기록
+    await this.redis.zadd(redisKey, now, String(now));
+    await this.redis.pexpire(redisKey, windowMs);
+
+    return true;
+  }
 }
 
-// 사용 (Spring Interceptor)
-@Component
-public class RateLimitInterceptor implements HandlerInterceptor {
+// 사용 (NestJS Interceptor)
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, HttpException, HttpStatus } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { Request, Response } from 'express';
 
-    @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
-                             Object handler) {
-        String clientId = extractClientId(request);
+@Injectable()
+export class RateLimitInterceptor implements NestInterceptor {
+  constructor(private readonly rateLimiter: RateLimiter) {}
 
-        if (!rateLimiter.isAllowed(clientId, 100, Duration.ofMinutes(1))) {
-            response.setStatus(429);
-            response.setHeader("Retry-After", "60");
-            response.getWriter().write("{\"error\": \"Too Many Requests\"}");
-            return false;
-        }
-        return true;
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
+    const req = context.switchToHttp().getRequest<Request>();
+    const res = context.switchToHttp().getResponse<Response>();
+    const clientId = this.extractClientId(req);
+
+    const allowed = await this.rateLimiter.isAllowed(clientId, 100, 60_000);
+    if (!allowed) {
+      res.setHeader('Retry-After', '60');
+      throw new HttpException({ error: 'Too Many Requests' }, HttpStatus.TOO_MANY_REQUESTS);
     }
+    return next.handle();
+  }
+
+  private extractClientId(req: Request): string {
+    return req.headers['x-api-key'] as string ?? req.ip ?? 'anonymous';
+  }
 }
 ```
 
@@ -354,39 +365,38 @@ X-RateLimit-Reset: 1709280000
 
 각 외부 서비스 호출에 **별도 스레드 풀**을 할당한다.
 
-```java
-// Resilience4j Thread Pool Bulkhead
-resilience4j:
-  thread-pool-bulkhead:
-    instances:
-      paymentService:
-        maxThreadPoolSize: 10     # 최대 스레드 수
-        coreThreadPoolSize: 5     # 기본 스레드 수
-        queueCapacity: 20         # 대기 큐 크기
-        keepAliveDuration: 60s    # 유휴 스레드 생존 시간
-      deliveryService:
-        maxThreadPoolSize: 5
-        coreThreadPoolSize: 3
-        queueCapacity: 10
+```typescript
+// NestJS Thread Pool Bulkhead — 서비스별 동시 실행 풀 분리
+// p-limit 패키지로 동시 실행 수 제어
+import pLimit from 'p-limit';
+
+// 서비스별 concurrency 제한 (스레드 풀 격리와 유사한 효과)
+const paymentPool = pLimit(10);  // 최대 동시 실행 10개
+const deliveryPool = pLimit(5);  // 최대 동시 실행 5개
 ```
 
-```java
-@Service
-public class OrderService {
+```typescript
+import { Injectable } from '@nestjs/common';
+import pLimit from 'p-limit';
 
-    @Bulkhead(name = "paymentService", type = Bulkhead.Type.THREADPOOL)
-    public CompletableFuture<PaymentResult> processPayment(Order order) {
-        return CompletableFuture.supplyAsync(() ->
-            paymentClient.charge(order.getAmount())
-        );
-    }
+@Injectable()
+export class OrderService {
+  private readonly paymentPool = pLimit(10);
+  private readonly deliveryPool = pLimit(5);
 
-    @Bulkhead(name = "deliveryService", type = Bulkhead.Type.THREADPOOL)
-    public CompletableFuture<DeliveryResult> requestDelivery(Order order) {
-        return CompletableFuture.supplyAsync(() ->
-            deliveryClient.schedule(order)
-        );
-    }
+  async processPayment(order: { amount: number }): Promise<PaymentResult> {
+    // paymentPool로 동시 실행 수 제한 (격리)
+    return this.paymentPool(() =>
+      this.paymentClient.charge(order.amount),
+    );
+  }
+
+  async requestDelivery(order: Order): Promise<DeliveryResult> {
+    // deliveryPool로 동시 실행 수 제한 (격리)
+    return this.deliveryPool(() =>
+      this.deliveryClient.schedule(order),
+    );
+  }
 }
 ```
 
@@ -394,24 +404,59 @@ public class OrderService {
 
 별도 스레드 없이 **동시 호출 수만 제한**한다. 오버헤드가 적다.
 
-```java
-// Resilience4j Semaphore Bulkhead
-resilience4j:
-  bulkhead:
-    instances:
-      paymentService:
-        maxConcurrentCalls: 10    # 최대 동시 호출 수
-        maxWaitDuration: 500ms    # 대기 시간 (초과 시 거절)
+```typescript
+// NestJS Semaphore Bulkhead — 동시 호출 수만 제한
+// async-semaphore 또는 직접 구현
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class SemaphoreBulkhead {
+  private running = 0;
+  constructor(
+    private readonly maxConcurrentCalls: number,
+    private readonly maxWaitMs: number,
+  ) {}
+
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.running >= this.maxConcurrentCalls) {
+      // 대기 시간(maxWaitMs) 초과 시 거절
+      await this.waitForSlot();
+    }
+    this.running++;
+    try {
+      return await fn();
+    } finally {
+      this.running--;
+    }
+  }
+
+  private waitForSlot(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Bulkhead full')), this.maxWaitMs);
+      const interval = setInterval(() => {
+        if (this.running < this.maxConcurrentCalls) {
+          clearInterval(interval);
+          clearTimeout(timeout);
+          resolve();
+        }
+      }, 10);
+    });
+  }
+}
 ```
 
-```java
-@Service
-public class OrderService {
+```typescript
+import { Injectable } from '@nestjs/common';
 
-    @Bulkhead(name = "paymentService")  // 기본: SEMAPHORE
-    public PaymentResult processPayment(Order order) {
-        return paymentClient.charge(order.getAmount());
-    }
+@Injectable()
+export class OrderService {
+  private readonly paymentBulkhead = new SemaphoreBulkhead(10, 500); // 기본: Semaphore 방식
+
+  async processPayment(order: { amount: number }): Promise<PaymentResult> {
+    return this.paymentBulkhead.execute(() =>
+      this.paymentClient.charge(order.amount),
+    );
+  }
 }
 ```
 
@@ -438,67 +483,108 @@ public class OrderService {
   5. Timeout: 응답 대기 시간 제한
 ```
 
-```java
-@Service
-public class PaymentService {
+```typescript
+// NestJS 패턴 조합 — Rate Limiting + Bulkhead + Circuit Breaker + Retry + Timeout
+// 각 패턴을 직접 구성하여 조합 (@nestjs/axios, p-limit, opossum, async-retry 사용)
+import { Injectable, Logger } from '@nestjs/common';
+import pLimit from 'p-limit';
+import CircuitBreaker from 'opossum';
+import retry from 'async-retry';
 
-    @RateLimiter(name = "paymentApi")
-    @Bulkhead(name = "paymentApi")
-    @CircuitBreaker(name = "paymentApi", fallbackMethod = "paymentFallback")
-    @Retry(name = "paymentApi")
-    @TimeLimiter(name = "paymentApi")
-    public CompletableFuture<PaymentResult> processPayment(PaymentRequest request) {
-        return CompletableFuture.supplyAsync(() ->
-            paymentClient.charge(request)
-        );
-    }
+export interface PaymentRequest {
+  orderId: string;
+  amount: number;
+  currency: string;
+}
 
-    private CompletableFuture<PaymentResult> paymentFallback(
-            PaymentRequest request, Throwable t) {
-        return CompletableFuture.completedFuture(
-            PaymentResult.pending("결제 시스템 점검 중. 잠시 후 처리됩니다.")
-        );
-    }
+export interface PaymentResult {
+  status: 'success' | 'pending' | 'failed';
+  message: string;
+  transactionId?: string;
+}
+
+@Injectable()
+export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
+  // Bulkhead: 동시 호출 수 20개 제한
+  private readonly bulkhead = pLimit(20);
+
+  // Circuit Breaker: 10회 중 50% 실패 시 OPEN, 30초 후 HALF-OPEN
+  private readonly circuitBreaker: CircuitBreaker<[PaymentRequest], PaymentResult>;
+
+  constructor(private readonly paymentClient: PaymentClient) {
+    this.circuitBreaker = new CircuitBreaker(
+      (req: PaymentRequest) => this.paymentClient.charge(req),
+      {
+        volumeThreshold: 10,       // 최소 요청 수
+        errorThresholdPercentage: 50,
+        resetTimeout: 30_000,      // 30초 후 HALF-OPEN
+        timeout: 3_000,            // Timeout: 3초
+      },
+    );
+
+    this.circuitBreaker.fallback((_req: PaymentRequest) =>
+      this.paymentFallback(),
+    );
+
+    this.circuitBreaker.on('open', () =>
+      this.logger.warn('Circuit OPEN: paymentApi'),
+    );
+    this.circuitBreaker.on('halfOpen', () =>
+      this.logger.log('Circuit HALF-OPEN: paymentApi'),
+    );
+    this.circuitBreaker.on('close', () =>
+      this.logger.log('Circuit CLOSED: paymentApi'),
+    );
+  }
+
+  async processPayment(request: PaymentRequest): Promise<PaymentResult> {
+    // Rate Limiting은 RateLimitInterceptor 또는 Guard에서 처리
+    // Bulkhead (pLimit) → Circuit Breaker (opossum) 순으로 실행
+    return this.bulkhead(async () => {
+      // Retry: 최대 3회, 1초 간격
+      return retry(
+        async () => {
+          return this.circuitBreaker.fire(request);
+        },
+        {
+          retries: 3,
+          minTimeout: 1_000,
+          onRetry: (err: Error, attempt: number) => {
+            this.logger.warn(`Retry ${attempt} for paymentApi: ${err.message}`);
+          },
+        },
+      );
+    });
+  }
+
+  private paymentFallback(): PaymentResult {
+    return {
+      status: 'pending',
+      message: '결제 시스템 점검 중. 잠시 후 처리됩니다.',
+    };
+  }
 }
 ```
 
 ```yaml
-# application.yml (전체 설정)
-resilience4j:
-  ratelimiter:
-    instances:
-      paymentApi:
-        limitForPeriod: 50
-        limitRefreshPeriod: 1s
-        timeoutDuration: 500ms
+# .env / ConfigModule 기반 설정 (application.yml → NestJS 환경 변수)
+# PAYMENT_RATE_LIMIT_COUNT=50          # 1초 내 최대 요청 수
+# PAYMENT_RATE_LIMIT_WINDOW_MS=1000
 
-  bulkhead:
-    instances:
-      paymentApi:
-        maxConcurrentCalls: 20
-        maxWaitDuration: 500ms
+# PAYMENT_BULKHEAD_MAX_CONCURRENT=20   # 최대 동시 호출 수
+# PAYMENT_BULKHEAD_MAX_WAIT_MS=500
 
-  circuitbreaker:
-    instances:
-      paymentApi:
-        slidingWindowSize: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 30s
-        permittedNumberOfCallsInHalfOpenState: 3
+# PAYMENT_CB_SLIDING_WINDOW=10         # Circuit Breaker 슬라이딩 윈도우 크기
+# PAYMENT_CB_FAILURE_THRESHOLD=50      # 실패율 임계값 (%)
+# PAYMENT_CB_WAIT_OPEN_MS=30000        # OPEN 유지 시간
+# PAYMENT_CB_HALF_OPEN_CALLS=3        # HALF-OPEN 허용 호출 수
 
-  retry:
-    instances:
-      paymentApi:
-        maxAttempts: 3
-        waitDuration: 1s
-        retryExceptions:
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
+# PAYMENT_RETRY_MAX_ATTEMPTS=3        # 최대 재시도 횟수
+# PAYMENT_RETRY_WAIT_MS=1000          # 재시도 대기 시간
 
-  timelimiter:
-    instances:
-      paymentApi:
-        timeoutDuration: 3s
+# PAYMENT_TIMEOUT_MS=3000             # 응답 타임아웃
 ```
 
 ### 4. 모니터링

@@ -88,54 +88,72 @@ mqtt.exchange = my.mqtt.exchange
                                Queue (AMQP binding)
                                        |
                                        v
-                            [Spring Boot AMQP Consumer]
+                            [NestJS AMQP Consumer]
 ```
 
 AMQP 쪽에서 이 메시지를 받으려면 queue를 만들고 `amq.topic`에 바인딩하면 된다:
 
-```java
-@Configuration
-public class MqttAmqpConfig {
+```typescript
+// NestJS + @golevelup/nestjs-rabbitmq: MQTT Exchange/Queue 바인딩 설정
+import { Module } from '@nestjs/common';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 
-    @Bean
-    public TopicExchange mqttExchange() {
-        // MQTT 플러그인이 사용하는 기본 exchange
-        return new TopicExchange("amq.topic");
-    }
-
-    @Bean
-    public Queue sensorQueue() {
-        return QueueBuilder.durable("sensor.data.queue")
-                .withArgument("x-message-ttl", 60000) // 1분 TTL
-                .build();
-    }
-
-    @Bean
-    public Binding sensorBinding(Queue sensorQueue, TopicExchange mqttExchange) {
-        // MQTT 토픽 sensor/temperature/# 에 해당
-        return BindingBuilder.bind(sensorQueue)
-                .to(mqttExchange)
-                .with("sensor.temperature.#");
-    }
-}
+@Module({
+  imports: [
+    RabbitMQModule.forRoot(RabbitMQModule, {
+      uri: 'amqp://user:password@rabbitmq-host:5672',
+      exchanges: [
+        {
+          name: 'amq.topic',
+          type: 'topic',
+          // MQTT 플러그인이 사용하는 기본 exchange — 미리 선언되어 있으므로 durable: true
+          options: { durable: true },
+        },
+      ],
+      queues: [
+        {
+          name: 'sensor.data.queue',
+          options: {
+            durable: true,
+            arguments: { 'x-message-ttl': 60000 }, // 1분 TTL
+          },
+          exchange: 'amq.topic',
+          // MQTT 토픽 sensor/temperature/# 에 해당
+          routingKey: 'sensor.temperature.#',
+        },
+      ],
+    }),
+  ],
+})
+export class MqttAmqpModule {}
 ```
 
-```java
-@Component
-public class SensorDataConsumer {
+```typescript
+// NestJS @golevelup/nestjs-rabbitmq: MQTT 메시지 소비
+import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe, AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { ConsumeMessage } from 'amqplib';
 
-    @RabbitListener(queues = "sensor.data.queue")
-    public void handleSensorData(Message message) {
-        byte[] body = message.getBody();
-        String payload = new String(body, StandardCharsets.UTF_8);
+@Injectable()
+export class SensorDataConsumer {
+  private readonly logger = new Logger(SensorDataConsumer.name);
 
-        // MQTT 메시지의 원본 토픽은 헤더에서 확인 가능
-        MessageProperties props = message.getMessageProperties();
-        String receivedRoutingKey = props.getReceivedRoutingKey();
-        // "sensor.temperature.room1" → 원래 MQTT 토픽은 sensor/temperature/room1
+  @RabbitSubscribe({
+    exchange: 'amq.topic',
+    routingKey: 'sensor.temperature.#',
+    queue: 'sensor.data.queue',
+  })
+  handleSensorData(msg: Buffer | string, amqpMsg: ConsumeMessage): void {
+    // MQTT 메시지의 payload는 Buffer로 들어올 수 있으므로 직접 파싱
+    const payload =
+      typeof msg === 'string' ? msg : Buffer.from(msg).toString('utf-8');
 
-        log.info("routing key: {}, payload: {}", receivedRoutingKey, payload);
-    }
+    // 원본 MQTT 토픽은 AMQP routing key로 확인 (sensor.temperature.room1)
+    const receivedRoutingKey = amqpMsg.fields.routingKey;
+    // "sensor.temperature.room1" → 원래 MQTT 토픽은 sensor/temperature/room1
+
+    this.logger.log(`routing key: ${receivedRoutingKey}, payload: ${payload}`);
+  }
 }
 ```
 
@@ -199,114 +217,117 @@ client.connect("rabbitmq-host", 1883)
 client.publish("sensor/temperature/room1", payload=b"", retain=True)
 ```
 
-## Spring Boot에서 MQTT 인바운드/아웃바운드 채널 설정
+## NestJS에서 MQTT 인바운드/아웃바운드 채널 설정
 
-Spring Integration의 MQTT 지원을 쓰면 AMQP가 아닌 MQTT 프로토콜로 직접 RabbitMQ에 연결할 수 있다.
+`mqtt` npm 패키지를 사용하면 AMQP가 아닌 MQTT 프로토콜로 직접 RabbitMQ에 연결할 수 있다.
 
 ### 의존성
 
-```xml
-<dependency>
-    <groupId>org.springframework.integration</groupId>
-    <artifactId>spring-integration-mqtt</artifactId>
-</dependency>
+```bash
+npm install mqtt
 ```
 
 ### 인바운드 (Subscribe)
 
-```java
-@Configuration
-public class MqttInboundConfig {
+```typescript
+// NestJS MQTT 직접 연결 인바운드 — mqtt 패키지 사용
+// npm install mqtt
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import * as mqtt from 'mqtt';
+import { MqttClient } from 'mqtt';
+import { randomBytes } from 'crypto';
 
-    @Bean
-    public MqttPahoClientFactory mqttClientFactory() {
-        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
-        MqttConnectOptions options = new MqttConnectOptions();
-        options.setServerURIs(new String[]{"tcp://rabbitmq-host:1883"});
-        options.setUserName("mqtt_user");
-        options.setPassword("mqtt_password".toCharArray());
-        options.setCleanSession(false); // 세션 유지
-        options.setAutomaticReconnect(true);
-        options.setKeepAliveInterval(30);
-        options.setConnectionTimeout(10);
-        factory.setConnectionOptions(options);
-        return factory;
-    }
+@Injectable()
+export class MqttInboundService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(MqttInboundService.name);
+  private client: MqttClient;
 
-    @Bean
-    public MessageProducerSupport mqttInbound(MqttPahoClientFactory factory) {
-        MqttPahoMessageDrivenChannelAdapter adapter =
-                new MqttPahoMessageDrivenChannelAdapter(
-                        "spring-subscriber-" + UUID.randomUUID().toString().substring(0, 8),
-                        factory,
-                        "sensor/temperature/#",
-                        "device/status/#"
-                );
-        adapter.setCompletionTimeout(5000);
-        adapter.setConverter(new DefaultPahoMessageConverter());
-        adapter.setQos(1);
-        adapter.setOutputChannel(mqttInputChannel());
-        return adapter;
-    }
+  onModuleInit(): void {
+    // Client ID에 랜덤 값 추가 — 인스턴스가 여러 개 뜰 때 충돌 방지
+    const clientId = `nestjs-subscriber-${randomBytes(4).toString('hex')}`;
 
-    @Bean
-    public MessageChannel mqttInputChannel() {
-        return new DirectChannel();
-    }
+    this.client = mqtt.connect('tcp://rabbitmq-host:1883', {
+      clientId,
+      username: 'mqtt_user',
+      password: 'mqtt_password',
+      clean: false,           // 세션 유지 (cleanSession=false)
+      reconnectPeriod: 1000,  // 자동 재연결 (ms)
+      keepalive: 30,
+      connectTimeout: 10_000,
+    });
 
-    @ServiceActivator(inputChannel = "mqttInputChannel")
-    public void handleMqttMessage(
-            @Header(MqttHeaders.RECEIVED_TOPIC) String topic,
-            @Payload String payload) {
-        log.info("topic: {}, payload: {}", topic, payload);
-    }
+    this.client.on('connect', () => {
+      this.logger.log(`MQTT connected: ${clientId}`);
+      // 구독 토픽 등록
+      this.client.subscribe(['sensor/temperature/#', 'device/status/#'], { qos: 1 });
+    });
+
+    this.client.on('message', (topic: string, payload: Buffer) => {
+      this.handleMqttMessage(topic, payload.toString('utf-8'));
+    });
+
+    this.client.on('error', (err: Error) => {
+      this.logger.error(`MQTT error: ${err.message}`);
+    });
+  }
+
+  private handleMqttMessage(topic: string, payload: string): void {
+    this.logger.log(`topic: ${topic}, payload: ${payload}`);
+  }
+
+  onModuleDestroy(): void {
+    this.client?.end();
+  }
 }
 ```
 
-Client ID에 랜덤 값을 넣는 이유가 있다. Spring Boot 인스턴스가 여러 개 뜰 때 Client ID가 같으면 먼저 접속한 클라이언트가 강제로 끊긴다. MQTT 스펙상 같은 Client ID로 새 연결이 들어오면 기존 연결을 끊어버린다. 이걸 모르고 고정 Client ID를 쓰면 두 인스턴스가 서로를 계속 끊는 현상이 발생한다.
+Client ID에 랜덤 값을 넣는 이유가 있다. NestJS 인스턴스가 여러 개 뜰 때 Client ID가 같으면 먼저 접속한 클라이언트가 강제로 끊긴다. MQTT 스펙상 같은 Client ID로 새 연결이 들어오면 기존 연결을 끊어버린다. 이걸 모르고 고정 Client ID를 쓰면 두 인스턴스가 서로를 계속 끊는 현상이 발생한다.
 
 ### 아웃바운드 (Publish)
 
-```java
-@Configuration
-public class MqttOutboundConfig {
+```typescript
+// NestJS MQTT 아웃바운드 — MqttPublisher Injectable 서비스
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import * as mqtt from 'mqtt';
+import { MqttClient } from 'mqtt';
+import { randomBytes } from 'crypto';
 
-    @Bean
-    public MessageChannel mqttOutboundChannel() {
-        return new DirectChannel();
-    }
+@Injectable()
+export class MqttPublisher implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(MqttPublisher.name);
+  private client: MqttClient;
 
-    @Bean
-    @ServiceActivator(inputChannel = "mqttOutboundChannel")
-    public MessageHandler mqttOutbound(MqttPahoClientFactory factory) {
-        MqttPahoMessageHandler handler = new MqttPahoMessageHandler(
-                "spring-publisher-" + UUID.randomUUID().toString().substring(0, 8),
-                factory
-        );
-        handler.setAsync(true);
-        handler.setDefaultTopic("command/response");
-        handler.setDefaultQos(1);
-        return handler;
-    }
-}
-```
+  onModuleInit(): void {
+    const clientId = `nestjs-publisher-${randomBytes(4).toString('hex')}`;
 
-```java
-@Component
-@RequiredArgsConstructor
-public class MqttPublisher {
+    this.client = mqtt.connect('tcp://rabbitmq-host:1883', {
+      clientId,
+      username: 'mqtt_user',
+      password: 'mqtt_password',
+      clean: true,
+      reconnectPeriod: 1000,
+    });
 
-    @Qualifier("mqttOutboundChannel")
-    private final MessageChannel mqttOutboundChannel;
+    this.client.on('connect', () => {
+      this.logger.log(`MQTT publisher connected: ${clientId}`);
+    });
 
-    public void publish(String topic, String payload) {
-        Message<String> message = MessageBuilder
-                .withPayload(payload)
-                .setHeader(MqttHeaders.TOPIC, topic)
-                .setHeader(MqttHeaders.QOS, 1)
-                .build();
-        mqttOutboundChannel.send(message);
-    }
+    this.client.on('error', (err: Error) => {
+      this.logger.error(`MQTT publisher error: ${err.message}`);
+    });
+  }
+
+  publish(topic: string, payload: string, qos: 0 | 1 | 2 = 1): void {
+    this.client.publish(topic, payload, { qos }, (err?: Error) => {
+      if (err) {
+        this.logger.error(`MQTT publish failed [${topic}]: ${err.message}`);
+      }
+    });
+  }
+
+  onModuleDestroy(): void {
+    this.client?.end();
+  }
 }
 ```
 
@@ -342,32 +363,50 @@ auth_http.resource_path = http://auth-service:8080/rabbitmq/resource
 auth_http.topic_path    = http://auth-service:8080/rabbitmq/topic
 ```
 
-```java
-// Spring Boot 인증 서비스 예시
-@RestController
-@RequestMapping("/rabbitmq")
-public class RabbitMqAuthController {
+```typescript
+// NestJS 인증 서비스 예시 — RabbitMQ HTTP Auth Backend 연동
+import { Controller, Post, Body } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-    @PostMapping("/user")
-    public String checkUser(
-            @RequestParam String username,
-            @RequestParam String password) {
-        // 디바이스 인증 로직
-        boolean valid = deviceAuthService.authenticate(username, password);
-        return valid ? "allow" : "deny";
-    }
+interface RabbitMqUserRequest {
+  username: string;
+  password: string;
+}
 
-    @PostMapping("/topic")
-    public String checkTopic(
-            @RequestParam String username,
-            @RequestParam String routing_key,
-            @RequestParam String permission) {
-        // routing_key는 AMQP 형식 (sensor.temperature.room1)
-        // username별 토픽 접근 권한 확인
-        boolean allowed = aclService.checkTopicPermission(
-                username, routing_key, permission);
-        return allowed ? "allow" : "deny";
-    }
+interface RabbitMqTopicRequest {
+  username: string;
+  routing_key: string;
+  permission: string;
+}
+
+@Controller('rabbitmq')
+export class RabbitMqAuthController {
+  constructor(
+    private readonly deviceAuthService: DeviceAuthService,
+    private readonly aclService: AclService,
+  ) {}
+
+  @Post('user')
+  async checkUser(@Body() body: RabbitMqUserRequest): Promise<string> {
+    // 디바이스 인증 로직
+    const valid = await this.deviceAuthService.authenticate(
+      body.username,
+      body.password,
+    );
+    return valid ? 'allow' : 'deny';
+  }
+
+  @Post('topic')
+  async checkTopic(@Body() body: RabbitMqTopicRequest): Promise<string> {
+    // routing_key는 AMQP 형식 (sensor.temperature.room1)
+    // username별 토픽 접근 권한 확인
+    const allowed = await this.aclService.checkTopicPermission(
+      body.username,
+      body.routing_key,
+      body.permission,
+    );
+    return allowed ? 'allow' : 'deny';
+  }
 }
 ```
 
@@ -509,13 +548,14 @@ rabbitmqctl list_bindings source_name routing_key destination_name \
 
 MQTT QoS 1에서 재전송이 발생하면 순서가 바뀔 수 있다. 단일 queue에 단일 consumer면 RabbitMQ 내에서는 순서가 보장되지만, prefetch count가 1보다 크면 처리 순서가 뒤바뀔 수 있다.
 
-```yaml
-# application.yml
-spring:
-  rabbitmq:
-    listener:
-      simple:
-        prefetch: 1  # 순서 보장이 필요하면 1로 설정
+```typescript
+// NestJS @golevelup/nestjs-rabbitmq prefetch 설정
+// RabbitMQModule.forRoot 옵션에서 prefetchCount 지정
+RabbitMQModule.forRoot(RabbitMQModule, {
+  uri: 'amqp://user:password@rabbitmq-host:5672',
+  prefetchCount: 1, // 순서 보장이 필요하면 1로 설정
+  exchanges: [/* ... */],
+});
 ```
 
 ### MQTT 5.0 지원

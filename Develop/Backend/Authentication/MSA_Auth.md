@@ -34,51 +34,46 @@ Client ──Bearer Token──▶ API Gateway ──내부 헤더──▶ 각 
                       4. 내부 헤더에 담아 전달
 ```
 
-### Spring Cloud Gateway 구현
+### NestJS API Gateway 구현
 
-```java
-@Component
-public class AuthGatewayFilterFactory extends AbstractGatewayFilterFactory<Object> {
+```typescript
+import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Request, Response, NextFunction } from 'express';
 
-    private final JwtDecoder jwtDecoder;
+@Injectable()
+export class AuthGatewayMiddleware implements NestMiddleware {
+  constructor(private readonly jwtService: JwtService) {}
 
-    public AuthGatewayFilterFactory(JwtDecoder jwtDecoder) {
-        this.jwtDecoder = jwtDecoder;
+  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const authHeader = req.headers['authorization'];
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).end();
+      return;
     }
 
-    @Override
-    public GatewayFilter apply(Object config) {
-        return (exchange, chain) -> {
-            String authHeader = exchange.getRequest()
-                .getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+    const token = authHeader.substring(7);
 
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
-            }
+    try {
+      const jwt = await this.jwtService.verifyAsync<{
+        sub: string;
+        roles: string[];
+        email: string;
+      }>(token);
 
-            String token = authHeader.substring(7);
+      // 검증된 사용자 정보를 내부 헤더로 전달
+      req.headers['x-user-id'] = jwt.sub;
+      req.headers['x-user-roles'] = jwt.roles.join(',');
+      req.headers['x-user-email'] = jwt.email;
+      // 원본 Authorization 헤더는 제거
+      delete req.headers['authorization'];
 
-            try {
-                Jwt jwt = jwtDecoder.decode(token);
-
-                // 검증된 사용자 정보를 내부 헤더로 전달
-                ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .header("X-User-Id", jwt.getSubject())
-                    .header("X-User-Roles", String.join(",",
-                        jwt.getClaimAsStringList("roles")))
-                    .header("X-User-Email", jwt.getClaimAsString("email"))
-                    // 원본 Authorization 헤더는 제거
-                    .headers(h -> h.remove(HttpHeaders.AUTHORIZATION))
-                    .build();
-
-                return chain.filter(exchange.mutate().request(mutatedRequest).build());
-            } catch (JwtException e) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
-            }
-        };
+      next();
+    } catch {
+      res.status(401).end();
     }
+  }
 }
 ```
 
@@ -86,40 +81,47 @@ public class AuthGatewayFilterFactory extends AbstractGatewayFilterFactory<Objec
 
 ### 내부 서비스에서 사용자 정보 수신
 
-```java
-@Component
-public class InternalAuthFilter extends OncePerRequestFilter {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain) throws ServletException, IOException {
+@Injectable()
+export class InternalAuthMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction): void {
+    const userId = req.headers['x-user-id'] as string | undefined;
+    const roles = req.headers['x-user-roles'] as string | undefined;
 
-        String userId = request.getHeader("X-User-Id");
-        String roles = request.getHeader("X-User-Roles");
+    if (userId) {
+      const authorities = (roles ?? '')
+        .split(',')
+        .filter((r) => r.trim() !== '')
+        .map((r) => 'ROLE_' + r);
 
-        if (userId != null) {
-            List<GrantedAuthority> authorities = Arrays.stream(
-                    roles != null ? roles.split(",") : new String[0])
-                .filter(r -> !r.isBlank())
-                .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                .toList();
-
-            InternalAuthentication auth = new InternalAuthentication(userId, authorities);
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        }
-
-        chain.doFilter(request, response);
+      // 요청 컨텍스트에 사용자 정보 저장
+      (req as Request & { internalUser: { userId: string; roles: string[] } }).internalUser = {
+        userId,
+        roles: authorities,
+      };
     }
+
+    next();
+  }
 }
 ```
 
-```java
+```typescript
 // 컨트롤러에서 사용
-@GetMapping("/orders")
-public List<Order> getMyOrders(@AuthenticationPrincipal String userId) {
-    return orderService.findByUserId(userId);
+import { Controller, Get, Req } from '@nestjs/common';
+import { Request } from 'express';
+
+@Controller('orders')
+export class OrderController {
+  constructor(private readonly orderService: OrderService) {}
+
+  @Get()
+  getMyOrders(@Req() req: Request & { internalUser: { userId: string } }): Promise<Order[]> {
+    return this.orderService.findByUserId(req.internalUser.userId);
+  }
 }
 ```
 
@@ -163,43 +165,53 @@ spec:
 
 서비스 간 호출에 별도의 JWT를 발급하는 방식이다. mTLS보다 구현이 간단하고, 토큰에 서비스 정보와 권한을 담을 수 있다.
 
-```java
-@Service
-public class ServiceTokenProvider {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
-    private final SecretKey serviceSigningKey;
+@Injectable()
+export class ServiceTokenProvider {
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
-    public ServiceTokenProvider(@Value("${auth.service-signing-key}") String key) {
-        this.serviceSigningKey = Keys.hmacShaKeyFor(
-            Decoders.BASE64.decode(key));
-    }
-
-    // 서비스 자체 인증용 토큰 발급
-    public String issueServiceToken(String sourceService) {
-        return Jwts.builder()
-            .subject(sourceService)
-            .claim("type", "service")
-            .claim("permissions", List.of("order:read", "payment:process"))
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + 300_000)) // 5분
-            .signWith(serviceSigningKey)
-            .compact();
-    }
+  // 서비스 자체 인증용 토큰 발급
+  issueServiceToken(sourceService: string): string {
+    return this.jwtService.sign(
+      {
+        sub: sourceService,
+        type: 'service',
+        permissions: ['order:read', 'payment:process'],
+      },
+      {
+        secret: this.configService.get<string>('AUTH_SERVICE_SIGNING_KEY'),
+        expiresIn: 300, // 5분
+      },
+    );
+  }
 }
 ```
 
-```java
-// 다른 서비스 호출 시 토큰 첨부
-@Component
-public class ServiceFeignInterceptor implements RequestInterceptor {
+```typescript
+// 다른 서비스 호출 시 토큰 첨부 (HttpService 인터셉터)
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ServiceTokenProvider } from './service-token.provider';
 
-    private final ServiceTokenProvider tokenProvider;
-
-    @Override
-    public void apply(RequestTemplate template) {
-        String token = tokenProvider.issueServiceToken("order-service");
-        template.header("X-Service-Auth", "Bearer " + token);
-    }
+@Injectable()
+export class PaymentServiceClient {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly tokenProvider: ServiceTokenProvider,
+  ) {
+    this.httpService.axiosRef.interceptors.request.use((config) => {
+      const token = this.tokenProvider.issueServiceToken('order-service');
+      config.headers['X-Service-Auth'] = `Bearer ${token}`;
+      return config;
+    });
+  }
 }
 ```
 
@@ -225,52 +237,54 @@ Order Service ──사용자 토큰 그대로 전달──▶ Payment Service
 
 Gateway에서 내부 서비스로 요청을 전달할 때, 해당 서비스에 필요한 최소 권한만 담은 토큰으로 교체한다.
 
-```java
-@Component
-public class TokenDownScopingFilter implements GatewayFilter {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Request, Response, NextFunction } from 'express';
 
-    private final JwtEncoder jwtEncoder;
+// 서비스별 허용 권한 매핑
+const SERVICE_SCOPES: Record<string, Set<string>> = {
+  'order-service': new Set(['order:read', 'order:write', 'user:read']),
+  'payment-service': new Set(['payment:process', 'user:read']),
+  'inventory-service': new Set(['inventory:read']),
+};
 
-    // 서비스별 허용 권한 매핑
-    private static final Map<String, Set<String>> SERVICE_SCOPES = Map.of(
-        "order-service", Set.of("order:read", "order:write", "user:read"),
-        "payment-service", Set.of("payment:process", "user:read"),
-        "inventory-service", Set.of("inventory:read")
+@Injectable()
+export class TokenDownScopingMiddleware implements NestMiddleware {
+  constructor(private readonly jwtService: JwtService) {}
+
+  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const targetService = this.resolveTargetService(req);
+    const allowedScopes = SERVICE_SCOPES[targetService] ?? new Set<string>();
+
+    const auth = (req as Request & { auth?: { userId: string; scopes: string[] } }).auth;
+    if (!auth) {
+      next();
+      return;
+    }
+
+    // 원본 토큰의 권한 중 대상 서비스에 허용된 것만 남김
+    const originalScopes: string[] = auth.scopes;
+    const downScoped = originalScopes.filter((s) => allowedScopes.has(s));
+
+    // 축소된 권한으로 새 토큰 발급
+    const scopedToken = this.jwtService.sign(
+      {
+        sub: auth.userId,
+        scopes: downScoped,
+        original_scopes: originalScopes, // 디버깅용
+      },
+      { expiresIn: 30 }, // 짧은 수명
     );
 
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String targetService = resolveTargetService(exchange);
-        Set<String> allowedScopes = SERVICE_SCOPES.getOrDefault(
-            targetService, Set.of());
+    req.headers['x-scoped-token'] = scopedToken;
+    next();
+  }
 
-        Authentication auth = exchange.getAttribute("auth");
-        if (auth == null) {
-            return chain.filter(exchange);
-        }
-
-        // 원본 토큰의 권한 중 대상 서비스에 허용된 것만 남김
-        Set<String> originalScopes = auth.getScopes();
-        Set<String> downScoped = originalScopes.stream()
-            .filter(allowedScopes::contains)
-            .collect(Collectors.toSet());
-
-        // 축소된 권한으로 새 토큰 발급
-        String scopedToken = jwtEncoder.encode(
-            JwtClaimsSet.builder()
-                .subject(auth.getUserId())
-                .claim("scopes", downScoped)
-                .claim("original_scopes", originalScopes)  // 디버깅용
-                .expiresAt(Instant.now().plusSeconds(30))   // 짧은 수명
-                .build()
-        ).getTokenValue();
-
-        ServerHttpRequest request = exchange.getRequest().mutate()
-            .header("X-Scoped-Token", scopedToken)
-            .build();
-
-        return chain.filter(exchange.mutate().request(request).build());
-    }
+  private resolveTargetService(req: Request): string {
+    // URL 경로에서 대상 서비스 이름 추출 (구현에 따라 다를 수 있음)
+    return req.headers['x-target-service'] as string ?? '';
+  }
 }
 ```
 
@@ -319,29 +333,40 @@ spring:
 - 데이터 레벨 접근 제어: 특정 리소스의 소유자인지 확인
 - 도메인 규칙에 따른 상태 기반 접근 제어: "배송 시작된 주문은 수정 불가"
 
-```java
-@Service
-public class OrderService {
+```typescript
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Order, OrderStatus } from './order.entity';
 
-    // Gateway가 ROLE_USER는 확인했지만,
-    // "이 주문이 이 사용자의 것인지"는 서비스가 확인해야 한다
-    public Order cancelOrder(String orderId, String userId) {
-        Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new NotFoundException("주문을 찾을 수 없음"));
+@Injectable()
+export class OrderService {
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+  ) {}
 
-        // 본인 주문인지 확인
-        if (!order.getUserId().equals(userId)) {
-            throw new ForbiddenException("본인의 주문만 취소할 수 있음");
-        }
-
-        // 상태 기반 접근 제어
-        if (order.getStatus() == OrderStatus.SHIPPED) {
-            throw new BusinessException("배송이 시작된 주문은 취소할 수 없음");
-        }
-
-        order.cancel();
-        return orderRepository.save(order);
+  // Gateway가 ROLE_USER는 확인했지만,
+  // "이 주문이 이 사용자의 것인지"는 서비스가 확인해야 한다
+  async cancelOrder(orderId: string, userId: string): Promise<Order> {
+    const order = await this.orderRepository.findOne({ where: { id: orderId } });
+    if (!order) {
+      throw new NotFoundException('주문을 찾을 수 없음');
     }
+
+    // 본인 주문인지 확인
+    if (order.userId !== userId) {
+      throw new ForbiddenException('본인의 주문만 취소할 수 있음');
+    }
+
+    // 상태 기반 접근 제어
+    if (order.status === OrderStatus.SHIPPED) {
+      throw new Error('배송이 시작된 주문은 취소할 수 없음');
+    }
+
+    order.cancel();
+    return this.orderRepository.save(order);
+  }
 }
 ```
 
@@ -349,88 +374,84 @@ public class OrderService {
 
 Gateway에 비즈니스 로직을 넣기 시작하면 Gateway가 모든 서비스의 도메인을 알아야 하는 상황이 된다. 서비스 하나 바뀔 때마다 Gateway도 수정해야 하고, Gateway가 단일 장애점(SPOF)이 될 위험도 커진다.
 
-## Spring Cloud Gateway + Spring Security 조합
+## NestJS API Gateway + JWT 조합
 
 전체 구조를 코드로 정리한다.
 
-### Gateway 설정
+### Gateway 모듈 설정
 
-```java
-@Configuration
-@EnableWebFluxSecurity  // Gateway는 WebFlux 기반
-public class GatewaySecurityConfig {
+```typescript
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthGatewayMiddleware } from './auth-gateway.middleware';
 
-    @Bean
-    public SecurityWebFilterChain gatewayFilterChain(ServerHttpSecurity http) {
-        return http
-            .csrf(ServerHttpSecurity.CsrfSpec::disable)  // API Gateway는 CSRF 불필요
-            .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-            .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-            .authorizeExchange(exchange -> exchange
-                .pathMatchers("/api/auth/**").permitAll()      // 로그인/회원가입
-                .pathMatchers("/actuator/health").permitAll()   // 헬스체크
-                .pathMatchers("/admin/**").hasRole("ADMIN")
-                .anyExchange().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt
-                    .jwtAuthenticationConverter(jwtConverter())
-                )
-            )
-            .build();
-    }
-
-    private ReactiveJwtAuthenticationConverter jwtConverter() {
-        ReactiveJwtAuthenticationConverter converter = new ReactiveJwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            List<String> roles = jwt.getClaimAsStringList("roles");
-            if (roles == null) return Flux.empty();
-            return Flux.fromIterable(roles)
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role));
-        });
-        return converter;
-    }
+@Module({
+  imports: [
+    ConfigModule.forRoot(),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+})
+export class GatewayModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(AuthGatewayMiddleware)
+      .exclude('/api/auth/(.*)', '/health')
+      .forRoutes('*');
+  }
 }
 ```
 
-### Gateway 글로벌 필터 - 사용자 정보 전파
+### Gateway 글로벌 미들웨어 - 사용자 정보 전파
 
-```java
-@Component
-@Order(1)
-public class UserContextRelayFilter implements GlobalFilter {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
 
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        return ReactiveSecurityContextHolder.getContext()
-            .map(SecurityContext::getAuthentication)
-            .filter(auth -> auth instanceof JwtAuthenticationToken)
-            .cast(JwtAuthenticationToken.class)
-            .flatMap(auth -> {
-                Jwt jwt = auth.getToken();
+@Injectable()
+export class UserContextRelayMiddleware implements NestMiddleware {
+  constructor(private readonly jwtService: JwtService) {}
 
-                ServerHttpRequest request = exchange.getRequest().mutate()
-                    .header("X-User-Id", jwt.getSubject())
-                    .header("X-User-Email", jwt.getClaimAsString("email"))
-                    .header("X-User-Roles", String.join(",",
-                        jwt.getClaimAsStringList("roles")))
-                    .header("X-Request-Id", generateRequestId())
-                    // 외부에서 주입한 내부 헤더 제거 (보안)
-                    .headers(h -> {
-                        h.remove("X-User-Id");
-                        h.remove("X-User-Email");
-                        h.remove("X-User-Roles");
-                    })
-                    .build();
+  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const authHeader = req.headers['authorization'];
 
-                return chain.filter(exchange.mutate().request(request).build());
-            })
-            .switchIfEmpty(chain.filter(exchange));
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const jwt = await this.jwtService.verifyAsync<{
+          sub: string;
+          email: string;
+          roles: string[];
+        }>(token);
+
+        // 외부에서 주입한 내부 헤더 제거 (보안)
+        delete req.headers['x-user-id'];
+        delete req.headers['x-user-email'];
+        delete req.headers['x-user-roles'];
+
+        // 검증된 사용자 정보 설정
+        req.headers['x-user-id'] = jwt.sub;
+        req.headers['x-user-email'] = jwt.email;
+        req.headers['x-user-roles'] = jwt.roles.join(',');
+        req.headers['x-request-id'] = randomUUID().substring(0, 8);
+      } catch {
+        // 인증 실패 시 헤더 제거만 수행
+        delete req.headers['x-user-id'];
+        delete req.headers['x-user-email'];
+        delete req.headers['x-user-roles'];
+      }
     }
 
-    private String generateRequestId() {
-        return UUID.randomUUID().toString().substring(0, 8);
-    }
+    next();
+  }
 }
 ```
 
@@ -440,66 +461,61 @@ public class UserContextRelayFilter implements GlobalFilter {
 
 ### 내부 서비스 Security 설정
 
-```java
-@Configuration
-@EnableWebSecurity
-@Profile("!gateway")  // Gateway가 아닌 내부 서비스용
-public class InternalServiceSecurityConfig {
+```typescript
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { InternalAuthMiddleware } from './internal-auth.middleware';
 
-    @Bean
-    public SecurityFilterChain internalFilterChain(HttpSecurity http) throws Exception {
-        return http
-            .csrf(AbstractHttpConfigurer::disable)
-            // JWT 검증은 Gateway가 했으므로 여기서는 하지 않음
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(
-                new InternalAuthFilter(),
-                UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/internal/**").hasAuthority("SERVICE")
-                .requestMatchers("/actuator/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .build();
-    }
+// Gateway가 아닌 내부 서비스용
+// JWT 검증은 Gateway가 했으므로 여기서는 하지 않음
+@Module({})
+export class InternalServiceModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(InternalAuthMiddleware)
+      .forRoutes('*');
+  }
 }
 ```
 
 ### 서비스 간 호출 시 사용자 컨텍스트 전파
 
-Order Service가 Payment Service를 호출할 때, 원래 사용자 정보를 같이 전달해야 한다. WebClient를 쓰는 경우:
+Order Service가 Payment Service를 호출할 때, 원래 사용자 정보를 같이 전달해야 한다. Axios(HttpService)를 쓰는 경우:
 
-```java
-@Configuration
-public class WebClientConfig {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ServiceTokenProvider } from './service-token.provider';
+import { Request } from 'express';
 
-    @Bean
-    public WebClient paymentServiceClient(
-            ServiceTokenProvider serviceTokenProvider) {
-        return WebClient.builder()
-            .baseUrl("http://payment-service")
-            .filter((request, next) -> {
-                // 현재 요청의 사용자 정보를 꺼내서 전파
-                return ReactiveSecurityContextHolder.getContext()
-                    .map(ctx -> ctx.getAuthentication())
-                    .flatMap(auth -> {
-                        ClientRequest modified = ClientRequest.from(request)
-                            // 사용자 컨텍스트 전파
-                            .header("X-User-Id", auth.getName())
-                            .header("X-User-Roles",
-                                auth.getAuthorities().stream()
-                                    .map(GrantedAuthority::getAuthority)
-                                    .collect(Collectors.joining(",")))
-                            // 서비스 인증 토큰 추가
-                            .header("X-Service-Auth", "Bearer " +
-                                serviceTokenProvider.issueServiceToken("order-service"))
-                            .build();
-                        return next.exchange(modified);
-                    });
-            })
-            .build();
-    }
+@Injectable()
+export class PaymentServiceClient {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly serviceTokenProvider: ServiceTokenProvider,
+  ) {}
+
+  async chargePayment(
+    amount: number,
+    req: Request & { internalUser?: { userId: string; roles: string[] } },
+  ): Promise<unknown> {
+    const userId = req.internalUser?.userId ?? '';
+    const roles = req.internalUser?.roles.join(',') ?? '';
+    const serviceToken = this.serviceTokenProvider.issueServiceToken('order-service');
+
+    return this.httpService.axiosRef.post(
+      'http://payment-service/charge',
+      { amount },
+      {
+        headers: {
+          // 사용자 컨텍스트 전파
+          'X-User-Id': userId,
+          'X-User-Roles': roles,
+          // 서비스 인증 토큰 추가
+          'X-Service-Auth': `Bearer ${serviceToken}`,
+        },
+      },
+    );
+  }
 }
 ```
 
@@ -532,31 +548,27 @@ spring:
 
 A → B → C → A 같은 순환 호출이 발생하면, 토큰 전파가 무한 루프에 빠질 수 있다. 순환 호출 자체가 설계 문제이지만, 방어 차원에서 `X-Hop-Count` 같은 헤더를 두고 일정 횟수 이상이면 요청을 거부하는 방법이 있다.
 
-```java
-@Component
-public class HopCountFilter extends OncePerRequestFilter {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    private static final int MAX_HOPS = 5;
+@Injectable()
+export class HopCountMiddleware implements NestMiddleware {
+  private static readonly MAX_HOPS = 5;
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain) throws ServletException, IOException {
+  use(req: Request, res: Response, next: NextFunction): void {
+    const hopHeader = req.headers['x-hop-count'] as string | undefined;
+    const hopCount = hopHeader != null ? parseInt(hopHeader, 10) : 0;
 
-        String hopHeader = request.getHeader("X-Hop-Count");
-        int hopCount = hopHeader != null ? Integer.parseInt(hopHeader) : 0;
-
-        if (hopCount >= MAX_HOPS) {
-            response.sendError(HttpServletResponse.SC_LOOP_DETECTED,
-                "서비스 호출 깊이 초과");
-            return;
-        }
-
-        // 다음 서비스 호출 시 hop count 증가시키도록 ThreadLocal에 저장
-        HopCountContext.set(hopCount + 1);
-        chain.doFilter(request, response);
+    if (hopCount >= HopCountMiddleware.MAX_HOPS) {
+      res.status(508).json({ message: '서비스 호출 깊이 초과' });
+      return;
     }
+
+    // 다음 서비스 호출 시 hop count 증가
+    req.headers['x-hop-count'] = String(hopCount + 1);
+    next();
+  }
 }
 ```
 
@@ -564,31 +576,36 @@ public class HopCountFilter extends OncePerRequestFilter {
 
 분산 환경에서 문제 추적 시 "어떤 사용자의 요청이 어떤 서비스를 거쳤는지" 로그로 남겨야 한다. MDC(Mapped Diagnostic Context)를 쓴다.
 
-```java
-@Component
-@Order(0)  // 가장 먼저 실행
-public class MdcFilter extends OncePerRequestFilter {
+```typescript
+import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain) throws ServletException, IOException {
-        try {
-            MDC.put("userId", request.getHeader("X-User-Id"));
-            MDC.put("requestId", request.getHeader("X-Request-Id"));
-            MDC.put("service", "order-service");
-            chain.doFilter(request, response);
-        } finally {
-            MDC.clear();
-        }
-    }
+@Injectable()
+export class LogContextMiddleware implements NestMiddleware {
+  private readonly logger = new Logger('order-service');
+
+  use(req: Request, res: Response, next: NextFunction): void {
+    const userId = req.headers['x-user-id'] as string | undefined;
+    const requestId = req.headers['x-request-id'] as string | undefined;
+
+    // NestJS Logger에 컨텍스트를 심어서 요청 추적
+    (req as Request & { logContext: Record<string, string | undefined> }).logContext = {
+      userId,
+      requestId,
+      service: 'order-service',
+    };
+
+    // 예: Logger.log(`[${requestId}] [${userId}] [order-service] 요청 처리`);
+    this.logger.log(`[${requestId}] [${userId}] [order-service] ${req.method} ${req.path}`);
+    next();
+  }
 }
 ```
 
-```xml
-<!-- logback 패턴 -->
-<pattern>%d{HH:mm:ss} [%X{requestId}] [%X{userId}] [%X{service}] %msg%n</pattern>
+```typescript
+// winston 또는 pino 사용 시 로그 포맷 예시
+// {timestamp} [{requestId}] [{userId}] [{service}] {message}
+// 14:23:01 [a1b2c3d4] [user-123] [order-service] 주문 생성 요청
 ```
 
 이렇게 하면 로그가 이렇게 찍힌다:

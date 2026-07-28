@@ -202,24 +202,48 @@ Client Credentials의 가장 흔한 실수가 모든 클라이언트에게 같�
 
 Client Credentials 토큰은 만료까지 재사용 가능하다. 매 요청마다 발급받으면 인가 서버에 부하를 준다. 보통 만료 시간의 80% 정도까지 캐시하다가 갱신한다.
 
-```java
-public class TokenCache {
-    private volatile CachedToken cache;
+```typescript
+interface CachedToken {
+  token: string;
+  expiresAt: number;
+}
 
-    public synchronized String getToken() {
-        long now = System.currentTimeMillis();
-        if (cache != null && cache.expiresAt > now + 60_000) {
-            return cache.token;
-        }
-        TokenResponse fresh = fetchNewToken();
-        cache = new CachedToken(
-            fresh.accessToken,
-            now + fresh.expiresIn * 1000L
-        );
-        return cache.token;
+interface TokenResponse {
+  accessToken: string;
+  expiresIn: number;
+}
+
+class TokenCache {
+  private cache: CachedToken | null = null;
+  private refreshing: Promise<string> | null = null;
+
+  async getToken(): Promise<string> {
+    const now = Date.now();
+    if (this.cache && this.cache.expiresAt > now + 60_000) {
+      return this.cache.token;
     }
 
-    record CachedToken(String token, long expiresAt) {}
+    // 동시 갱신 방지
+    if (this.refreshing) {
+      return this.refreshing;
+    }
+
+    this.refreshing = this.fetchNewToken().then((fresh) => {
+      this.cache = {
+        token: fresh.accessToken,
+        expiresAt: now + fresh.expiresIn * 1000,
+      };
+      this.refreshing = null;
+      return this.cache.token;
+    });
+
+    return this.refreshing;
+  }
+
+  private async fetchNewToken(): Promise<TokenResponse> {
+    // Client Credentials 토큰 발급 로직
+    throw new Error('구현 필요');
+  }
 }
 ```
 
@@ -394,13 +418,24 @@ if (idTokenPayload.nonce !== sessionStorage.getItem('oidc_nonce')) {
 
 라이브러리 설정에서 허용 알고리즘을 명시적으로 지정하라.
 
-```java
-// jjwt 예시 - 허용 알고리즘 화이트리스트
-JwtParser parser = Jwts.parser()
-    .verifyWith(publicKey)
-    .requireIssuer(EXPECTED_ISSUER)
-    .requireAudience(EXPECTED_CLIENT_ID)
-    .build();
+```typescript
+// jose 예시 - 허용 알고리즘 화이트리스트
+import { jwtVerify, createRemoteJWKSet, JWTPayload } from 'jose';
+
+const JWKS = createRemoteJWKSet(new URL('https://auth.example.com/.well-known/jwks.json'));
+
+async function verifyIdToken(
+  idToken: string,
+  expectedIssuer: string,
+  expectedClientId: string,
+): Promise<JWTPayload> {
+  const { payload } = await jwtVerify(idToken, JWKS, {
+    issuer: expectedIssuer,
+    audience: expectedClientId,
+    algorithms: ['RS256', 'ES256'], // none, HS256 등 거부
+  });
+  return payload;
+}
 ```
 
 ## Discovery 엔드포인트
@@ -446,25 +481,16 @@ $ curl https://auth.example.com/.well-known/openid-configuration
 
 캐싱과 키 회전이 충돌하는 경우가 있다. 예를 들어 Discovery는 1시간 캐시, JWKS도 1시간 캐시인데 인가 서버가 30분 만에 키를 회전시키면 그 사이 발급된 토큰을 클라이언트가 검증 못 한다. 이건 다음 절에서 다룬다.
 
-### Spring Security OAuth2 Client 설정
+### NestJS Passport OAuth2 Client 설정
 
-Spring Security는 Discovery URL만 주면 알아서 모든 엔드포인트를 가져온다.
+NestJS에서는 passport-openidconnect 또는 openid-client를 사용해 Discovery URL을 통해 엔드포인트를 자동으로 가져올 수 있다.
 
-```yaml
-spring:
-  security:
-    oauth2:
-      client:
-        registration:
-          keycloak:
-            client-id: my-app
-            client-secret: ${OAUTH_CLIENT_SECRET}
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
-            scope: openid, profile, email
-        provider:
-          keycloak:
-            issuer-uri: https://auth.example.com/realms/myrealm
+```typescript
+// .env
+// OAUTH_CLIENT_ID=my-app
+// OAUTH_CLIENT_SECRET=...
+// OAUTH_ISSUER=https://auth.example.com/realms/myrealm
+// OAUTH_REDIRECT_URI=https://app.example.com/login/oauth2/code/keycloak
 ```
 
 `issuer-uri`만 주면 Spring이 부팅 시 `${issuer-uri}/.well-known/openid-configuration`을 한 번 호출해서 나머지를 채운다. 이때 인가 서버가 다운되어 있으면 부팅이 실패한다. 운영에서 이게 골치 아플 때가 있어서, lazy initialization을 쓰거나 Discovery를 직접 캐시해서 주입하는 방식도 쓴다.
@@ -519,36 +545,27 @@ JWKS는 활성 키와 회전 중인 키를 모두 포함한다.
 
 JWKS를 캐시하되, 모르는 `kid`가 들어오면 즉시 갱신해야 한다. 단순히 1시간 캐시만 하면 회전 직후 새 `kid`로 서명된 토큰을 검증 못 한다.
 
-```java
-public class JwksCache {
-    private volatile Map<String, PublicKey> keysByKid = Map.of();
-    private volatile long lastFetched = 0;
-    private static final long MIN_REFETCH_INTERVAL_MS = 5 * 60 * 1000;
+```typescript
+import { createRemoteJWKSet, JWTVerifyGetKey } from 'jose';
 
-    public PublicKey getKey(String kid) {
-        PublicKey key = keysByKid.get(kid);
-        if (key != null) return key;
+const MIN_REFETCH_INTERVAL_MS = 5 * 60 * 1000;
 
-        // 모르는 kid - 갱신 시도. 단, 갱신 폭주 방지
-        long now = System.currentTimeMillis();
-        if (now - lastFetched < MIN_REFETCH_INTERVAL_MS) {
-            throw new IllegalStateException("Unknown kid: " + kid);
-        }
+class JwksCache {
+  private jwks: JWTVerifyGetKey;
+  private lastFetched = 0;
 
-        synchronized (this) {
-            if (keysByKid.containsKey(kid)) return keysByKid.get(kid);
-            refetchJwks();
-            lastFetched = System.currentTimeMillis();
-        }
+  constructor(private readonly jwksUri: string) {
+    this.jwks = createRemoteJWKSet(new URL(jwksUri), {
+      cacheMaxAge: MIN_REFETCH_INTERVAL_MS,
+    });
+  }
 
-        key = keysByKid.get(kid);
-        if (key == null) throw new IllegalStateException("Unknown kid: " + kid);
-        return key;
-    }
-
-    private synchronized void refetchJwks() {
-        // 인가 서버에서 JWKS 가져와 keysByKid 업데이트
-    }
+  // jose의 createRemoteJWKSet이 kid 기반 캐시 + 자동 갱신을 처리해 준다
+  // 모르는 kid가 들어오면 자동으로 JWKS를 다시 가져온다
+  // MIN_REFETCH_INTERVAL 이내에 재요청이 오면 캐시된 결과를 반환
+  getJwks(): JWTVerifyGetKey {
+    return this.jwks;
+  }
 }
 ```
 
@@ -609,106 +626,112 @@ $ curl http://localhost:8080/realms/myrealm/.well-known/openid-configuration | j
 
 `issuer`, `authorization_endpoint`, `token_endpoint`, `jwks_uri`가 다 나온다. 이게 클라이언트 설정의 기준이다.
 
-### Spring Boot 클라이언트
+### NestJS 클라이언트
 
-`build.gradle`:
+`package.json` 의존성:
 
-```gradle
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+```json
+{
+  "dependencies": {
+    "@nestjs/passport": "^10.0.0",
+    "passport": "^0.7.0",
+    "openid-client": "^5.0.0",
+    "@nestjs/jwt": "^10.0.0"
+  }
 }
 ```
 
-`application.yml`:
+`auth.module.ts`:
 
-```yaml
-server:
-  port: 8081
+```typescript
+import { Module } from '@nestjs/common';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { OidcStrategy } from './oidc.strategy';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
-spring:
-  security:
-    oauth2:
-      client:
-        registration:
-          keycloak:
-            client-id: my-spring-app
-            client-secret: ${KEYCLOAK_CLIENT_SECRET}
-            authorization-grant-type: authorization_code
-            scope: openid, profile, email
-            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
-        provider:
-          keycloak:
-            issuer-uri: http://localhost:8080/realms/myrealm
-            user-name-attribute: preferred_username
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8080/realms/myrealm
+@Module({
+  imports: [
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        // Keycloak JWKS를 통해 공개키로 검증
+        secret: configService.get<string>('JWT_SECRET'),
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  providers: [OidcStrategy, JwtAuthGuard],
+  exports: [JwtAuthGuard],
+})
+export class AuthModule {}
 ```
 
-`SecurityConfig`:
+`jwt-auth.guard.ts` (리소스 서버 역할):
 
-```java
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 
-    @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/public/**").permitAll()
-                .requestMatchers("/api/**").authenticated()
-                .anyRequest().authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-                .defaultSuccessUrl("/me", true)
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter()))
-            )
-            .logout(logout -> logout
-                .logoutSuccessUrl("/")
-            );
-        return http.build();
-    }
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {}
 
-    private Converter<Jwt, AbstractAuthenticationToken> jwtAuthConverter() {
-        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
-        authorities.setAuthoritiesClaimName("realm_access.roles");
-        authorities.setAuthorityPrefix("ROLE_");
+// 역할 기반 Guard
+import { CanActivate, ExecutionContext, Injectable as Inj } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authorities);
-        return converter;
-    }
+@Inj()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
+    if (!requiredRoles) return true;
+
+    const { user } = context.switchToHttp().getRequest<{ user: { roles: string[] } }>();
+    return requiredRoles.some((role) => user.roles?.includes(role));
+  }
 }
 ```
 
-`MeController`:
+`me.controller.ts`:
 
-```java
-@RestController
-public class MeController {
+```typescript
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
+import { Roles } from './roles.decorator';
+import { Request } from 'express';
 
-    @GetMapping("/me")
-    public Map<String, Object> me(@AuthenticationPrincipal OidcUser user) {
-        return Map.of(
-            "sub", user.getSubject(),
-            "email", user.getEmail(),
-            "name", user.getFullName(),
-            "roles", user.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority).toList()
-        );
-    }
+interface OidcUser {
+  sub: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
 
-    @GetMapping("/api/protected")
-    @PreAuthorize("hasRole('user')")
-    public String protectedEndpoint() {
-        return "ok";
-    }
+@Controller()
+export class MeController {
+  @Get('/me')
+  @UseGuards(JwtAuthGuard)
+  me(@Req() req: Request & { user: OidcUser }): Record<string, unknown> {
+    const user = req.user;
+    return {
+      sub: user.sub,
+      email: user.email,
+      name: user.name,
+      roles: user.roles,
+    };
+  }
+
+  @Get('/api/protected')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('user')
+  protectedEndpoint(): string {
+    return 'ok';
+  }
 }
 ```
 
@@ -727,57 +750,44 @@ $ curl -X POST http://localhost:8080/realms/myrealm/protocol/openid-connect/toke
 
 응답으로 받은 `access_token`을 디코딩하면(`jwt.io`에서) `aud`, `azp`, `realm_access.roles`가 보인다. 이걸 다른 서비스에서 `Authorization: Bearer ...`로 호출하면 Spring Security의 Resource Server 부분이 자동으로 검증한다.
 
-## Spring Authorization Server를 직접 쓰는 경우
+## Node.js 자체 인가 서버를 직접 쓰는 경우
 
-Keycloak이 무겁다거나, JVM 안에서 인가 서버를 돌리고 싶을 때 Spring Authorization Server를 쓴다. 2023년 이후 정식 릴리즈됐고, OAuth2와 OIDC를 모두 지원한다.
+Keycloak이 무겁다거나, Node.js 안에서 인가 서버를 돌리고 싶을 때 `node-oidc-provider`를 쓴다. 2023년 이후 정식 릴리즈됐고, OAuth2와 OIDC를 모두 지원한다.
 
-```java
-@Configuration
-@EnableWebSecurity
-public class AuthServerConfig {
+```typescript
+import Provider from 'oidc-provider';
+import { generateKeyPair, exportJWK } from 'jose';
 
-    @Bean
-    @Order(1)
-    SecurityFilterChain authServerChain(HttpSecurity http) throws Exception {
-        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
-        http.oidc(Customizer.withDefaults());
-        return http.build();
-    }
+async function createOidcProvider(): Promise<Provider> {
+  // RSA 키 쌍 생성
+  const { privateKey } = await generateKeyPair('RS256');
+  const jwk = await exportJWK(privateKey);
+  jwk.kid = crypto.randomUUID();
+  jwk.use = 'sig';
 
-    @Bean
-    RegisteredClientRepository registeredClientRepository() {
-        RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())
-            .clientId("my-spa")
-            .clientAuthenticationMethod(ClientAuthenticationMethod.NONE) // Public Client
-            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-            .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-            .redirectUri("http://localhost:3000/callback")
-            .scope(OidcScopes.OPENID)
-            .scope(OidcScopes.PROFILE)
-            .clientSettings(ClientSettings.builder()
-                .requireProofKey(true)  // PKCE 강제
-                .requireAuthorizationConsent(true)
-                .build())
-            .tokenSettings(TokenSettings.builder()
-                .accessTokenTimeToLive(Duration.ofMinutes(15))
-                .refreshTokenTimeToLive(Duration.ofDays(7))
-                .reuseRefreshTokens(false)  // Refresh Token 회전
-                .build())
-            .build();
-        return new InMemoryRegisteredClientRepository(client);
-    }
-
-    @Bean
-    JWKSource<SecurityContext> jwkSource() {
-        KeyPair keyPair = generateRsaKey();
-        RSAKey rsaKey = new RSAKey.Builder((RSAPublicKey) keyPair.getPublic())
-            .privateKey((RSAPrivateKey) keyPair.getPrivate())
-            .keyID(UUID.randomUUID().toString())
-            .build();
-        JWKSet jwkSet = new JWKSet(rsaKey);
-        return new ImmutableJWKSet<>(jwkSet);
-    }
+  return new Provider('https://auth.example.com', {
+    clients: [
+      {
+        client_id: 'my-spa',
+        client_secret: undefined,       // Public Client (비밀 없음)
+        token_endpoint_auth_method: 'none',
+        grant_types: ['authorization_code', 'refresh_token'],
+        redirect_uris: ['http://localhost:3000/callback'],
+        response_types: ['code'],
+        scope: 'openid profile',
+        require_pkce: true,             // PKCE 강제
+      },
+    ],
+    jwks: { keys: [jwk] },
+    pkce: { required: () => true },     // 모든 클라이언트에 PKCE 강제
+    ttl: {
+      AccessToken: 15 * 60,             // 15분
+      RefreshToken: 7 * 24 * 60 * 60,  // 7일
+    },
+    rotateRefreshToken: true,           // Refresh Token 회전
+  });
 }
+// 운영 환경에서는 jwks를 메모리 키쌍이 아니라 KMS/HSM에서 관리
 ```
 
 `requireProofKey(true)`가 PKCE 강제, `reuseRefreshTokens(false)`가 회전이다. 이 두 가지를 빠뜨리면 인가 서버를 직접 만들었음에도 보안이 약해진다.
@@ -792,25 +802,42 @@ Refresh Token 회전을 켰는데 모바일 앱에서 가끔 토큰 갱신이 �
 
 해결은 클라이언트 쪽에서 갱신을 직렬화하는 것이다. Refresh 진행 중이면 다른 요청은 그 결과를 기다리게 한다.
 
-```java
-private final Object refreshLock = new Object();
-private CompletableFuture<TokenResponse> refreshing = null;
+```typescript
+class TokenManager {
+  private currentAccessToken: string | null = null;
+  private expiresAt = 0;
+  private refreshing: Promise<string> | null = null;
 
-public String getValidAccessToken() {
-    if (!isExpired(currentAccessToken)) return currentAccessToken;
-
-    CompletableFuture<TokenResponse> task;
-    synchronized (refreshLock) {
-        if (refreshing != null) {
-            task = refreshing;
-        } else {
-            task = refreshing = CompletableFuture.supplyAsync(this::doRefresh);
-            task.whenComplete((r, e) -> {
-                synchronized (refreshLock) { refreshing = null; }
-            });
-        }
+  async getValidAccessToken(): Promise<string> {
+    if (this.currentAccessToken && !this.isExpired()) {
+      return this.currentAccessToken;
     }
-    return task.join().accessToken;
+
+    // 진행 중인 갱신이 있으면 그 결과를 기다린다 (직렬화)
+    if (this.refreshing) {
+      return this.refreshing;
+    }
+
+    this.refreshing = this.doRefresh().then((token) => {
+      this.currentAccessToken = token;
+      this.refreshing = null;
+      return token;
+    }).catch((err) => {
+      this.refreshing = null;
+      throw err;
+    });
+
+    return this.refreshing;
+  }
+
+  private isExpired(): boolean {
+    return Date.now() >= this.expiresAt;
+  }
+
+  private async doRefresh(): Promise<string> {
+    // Refresh Token으로 새 Access Token 발급
+    throw new Error('구현 필요');
+  }
 }
 ```
 
