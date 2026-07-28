@@ -41,26 +41,33 @@ GitHub의 Push 이벤트 알림, Stripe의 결제 완료 알림, Slack의 메시
 
 가장 기본적인 Polling 방식이다. 일정 간격으로 요청을 보내고, 서버는 즉시 응답한다.
 
-### Spring Boot 서버
+### NestJS 서버
 
-```java
-@RestController
-@RequestMapping("/api/orders")
-public class OrderController {
+```typescript
+import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Order } from './order.entity';
 
-    private final OrderRepository orderRepository;
+interface OrderStatus {
+  status: string;
+  updatedAt: Date;
+}
 
-    public OrderController(OrderRepository orderRepository) {
-        this.orderRepository = orderRepository;
-    }
+@Controller('api/orders')
+export class OrderController {
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+  ) {}
 
-    @GetMapping("/{orderId}/status")
-    public ResponseEntity<OrderStatus> getOrderStatus(@PathVariable Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException(orderId));
+  @Get(':orderId/status')
+  async getOrderStatus(@Param('orderId') orderId: string): Promise<OrderStatus> {
+    const order = await this.orderRepository.findOneBy({ id: Number(orderId) });
+    if (!order) throw new NotFoundException(`Order ${orderId} not found`);
 
-        return ResponseEntity.ok(new OrderStatus(order.getStatus(), order.getUpdatedAt()));
-    }
+    return { status: order.status, updatedAt: order.updatedAt };
+  }
 }
 ```
 
@@ -100,44 +107,67 @@ async function pollOrderStatus(orderId) {
 
 서버가 새 데이터가 생길 때까지 응답을 보류하는 방식이다. 클라이언트는 요청을 보내고, 서버는 데이터가 준비될 때까지 커넥션을 열어둔다.
 
-### Spring Boot 서버 (DeferredResult 사용)
+### NestJS 서버 (Observable + Subject 사용)
 
-```java
-@RestController
-@RequestMapping("/api/orders")
-public class OrderLongPollingController {
+```typescript
+import { Controller, Get, Param, Res } from '@nestjs/common';
+import { Response } from 'express';
+import { Subject, firstValueFrom } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 
-    // orderId → 대기 중인 클라이언트 목록
-    private final ConcurrentHashMap<Long, List<DeferredResult<OrderStatus>>> waitingClients
-            = new ConcurrentHashMap<>();
+interface OrderStatus {
+  status: string;
+  updatedAt: Date;
+}
 
-    @GetMapping("/{orderId}/status/poll")
-    public DeferredResult<OrderStatus> pollOrderStatus(@PathVariable Long orderId) {
-        // 25초 타임아웃 — 프록시 타임아웃보다 짧게
-        DeferredResult<OrderStatus> result = new DeferredResult<>(25_000L);
+@Controller('api/orders')
+export class OrderLongPollingController {
+  // orderId → 대기 중인 클라이언트 Subject 목록
+  private readonly waitingClients = new Map<number, Subject<OrderStatus>[]>();
 
-        waitingClients.computeIfAbsent(orderId, k -> new CopyOnWriteArrayList<>()).add(result);
+  @Get(':orderId/status/poll')
+  async pollOrderStatus(
+    @Param('orderId') orderId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const id = Number(orderId);
+    const subject = new Subject<OrderStatus>();
 
-        // 타임아웃되면 목록에서 제거하고 204 응답
-        result.onTimeout(() -> {
-            waitingClients.getOrDefault(orderId, List.of()).remove(result);
-            result.setResult(null);
-        });
-
-        result.onCompletion(() -> {
-            waitingClients.getOrDefault(orderId, List.of()).remove(result);
-        });
-
-        return result;
+    if (!this.waitingClients.has(id)) {
+      this.waitingClients.set(id, []);
     }
+    this.waitingClients.get(id)!.push(subject);
 
-    // 주문 상태가 변경되면 대기 중인 클라이언트에게 알림
-    public void notifyStatusChange(Long orderId, OrderStatus status) {
-        List<DeferredResult<OrderStatus>> clients = waitingClients.remove(orderId);
-        if (clients != null) {
-            clients.forEach(client -> client.setResult(status));
-        }
+    try {
+      // 25초 타임아웃 — 프록시 타임아웃보다 짧게
+      const status = await firstValueFrom(
+        subject.pipe(
+          timeout(25_000),
+          catchError(() => of(null)), // 타임아웃 시 null 반환
+        ),
+      );
+
+      if (status === null) {
+        // 타임아웃: 204 No Content
+        res.status(204).send();
+      } else {
+        res.status(200).json(status);
+      }
+    } finally {
+      // 목록에서 제거
+      const clients = this.waitingClients.get(id) ?? [];
+      const idx = clients.indexOf(subject);
+      if (idx !== -1) clients.splice(idx, 1);
     }
+  }
+
+  // 주문 상태가 변경되면 대기 중인 클라이언트에게 알림
+  notifyStatusChange(orderId: number, status: OrderStatus): void {
+    const clients = this.waitingClients.get(orderId) ?? [];
+    clients.forEach((subject) => subject.next(status));
+    this.waitingClients.delete(orderId);
+  }
 }
 ```
 
@@ -171,9 +201,7 @@ async function longPollOrderStatus(orderId) {
 
 #### 스레드 점유 문제
 
-전통적인 서블릿 방식에서 Long Polling을 구현하면 대기 중인 요청마다 스레드를 하나씩 잡는다. `DeferredResult`나 `CompletableFuture`를 써서 비동기로 처리해야 한다. 그렇지 않으면 동시 접속자가 늘어날 때 스레드 풀이 고갈된다.
-
-WebFlux 같은 비동기 스택이라면 이벤트 루프 위에서 돌기 때문에 스레드 점유 자체는 거의 신경 쓸 필요가 없다. 다만 백프레셔를 어디서 처리할지는 따로 설계해야 한다.
+NestJS/Node.js는 이벤트 루프 기반이라 커넥션을 열어두는 것 자체는 스레드를 점유하지 않는다. Promise/Observable로 비동기 처리가 기본이다. 다만 백프레셔를 어디서 처리할지는 따로 설계해야 한다.
 
 #### LB·프록시 타임아웃과의 충돌
 
@@ -201,23 +229,39 @@ API Gateway나 Heroku처럼 타임아웃 변경이 막혀 있는 환경에서는
 
 Sticky Session이 없으면, 클라이언트가 재연결할 때 다른 서버로 갈 수 있다. 이벤트 발생 서버와 대기 중인 클라이언트가 연결된 서버가 다르면 알림이 전달되지 않는다. Redis Pub/Sub이나 Kafka로 서버 간 이벤트를 전파해야 한다.
 
-```java
-@Component
-public class OrderEventBridge {
+```typescript
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { OrderLongPollingController } from './order-long-polling.controller';
 
-    private final RedisMessageListenerContainer container;
-    private final OrderLongPollingController controller;
+interface OrderEvent {
+  orderId: number;
+  status: string;
+  updatedAt: string;
+}
 
-    @PostConstruct
-    public void subscribe() {
-        container.addMessageListener(
-            (message, pattern) -> {
-                OrderEvent event = deserialize(message.getBody());
-                controller.notifyStatusChange(event.getOrderId(), event.getStatus());
-            },
-            new PatternTopic("order.status.*")
-        );
-    }
+@Injectable()
+export class OrderEventBridge implements OnModuleInit {
+  private readonly subscriber: Redis;
+
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    private readonly controller: OrderLongPollingController,
+  ) {
+    this.subscriber = new Redis({ host: 'localhost', port: 6379 });
+  }
+
+  async onModuleInit(): Promise<void> {
+    await this.subscriber.psubscribe('order.status.*');
+    this.subscriber.on('pmessage', (_pattern, _channel, message) => {
+      const event = JSON.parse(message) as OrderEvent;
+      this.controller.notifyStatusChange(event.orderId, {
+        status: event.status,
+        updatedAt: new Date(event.updatedAt),
+      });
+    });
+  }
 }
 ```
 
@@ -233,92 +277,113 @@ public class OrderEventBridge {
 
 해결책은 jitter다. 재시도 간격에 무작위성을 섞어서 요청을 시간축에 분산시킨다.
 
-```java
-@Component
-public class WebhookRetryScheduler {
+```typescript
+import { Injectable } from '@nestjs/common';
 
-    // exponential backoff base: 1분
-    private static final long BASE_DELAY_MS = 60_000L;
-    // 최대 재시도: 24시간
-    private static final long MAX_DELAY_MS = 24 * 60 * 60 * 1000L;
-    // 최대 재시도 횟수
-    private static final int MAX_ATTEMPTS = 10;
+@Injectable()
+export class WebhookRetryScheduler {
+  // exponential backoff base: 1분
+  private static readonly BASE_DELAY_MS = 60_000;
+  // 최대 재시도: 24시간
+  private static readonly MAX_DELAY_MS = 24 * 60 * 60 * 1000;
+  // 최대 재시도 횟수
+  private static readonly MAX_ATTEMPTS = 10;
 
-    private final Random random = new Random();
-
-    /**
-     * Full Jitter: AWS Architecture Blog에서 추천하는 방식
-     * delay = random(0, min(MAX, BASE * 2^attempt))
-     */
-    public Duration nextDelay(int attempt) {
-        if (attempt >= MAX_ATTEMPTS) {
-            return null; // 더 이상 재시도하지 않음
-        }
-
-        long exponential = (long) (BASE_DELAY_MS * Math.pow(2, attempt));
-        long capped = Math.min(exponential, MAX_DELAY_MS);
-        long jittered = (long) (random.nextDouble() * capped);
-
-        // 최소 BASE_DELAY_MS는 보장 (너무 즉시 재시도 방지)
-        return Duration.ofMillis(Math.max(jittered, BASE_DELAY_MS));
+  /**
+   * Full Jitter: AWS Architecture Blog에서 추천하는 방식
+   * delay = random(0, min(MAX, BASE * 2^attempt))
+   */
+  nextDelay(attempt: number): number | null {
+    if (attempt >= WebhookRetryScheduler.MAX_ATTEMPTS) {
+      return null; // 더 이상 재시도하지 않음
     }
+
+    const exponential = WebhookRetryScheduler.BASE_DELAY_MS * Math.pow(2, attempt);
+    const capped = Math.min(exponential, WebhookRetryScheduler.MAX_DELAY_MS);
+    const jittered = Math.random() * capped;
+
+    // 최소 BASE_DELAY_MS는 보장 (너무 즉시 재시도 방지)
+    return Math.max(jittered, WebhookRetryScheduler.BASE_DELAY_MS);
+  }
 }
 ```
 
 `Full Jitter` 외에 `Equal Jitter`(절반은 고정, 절반은 랜덤), `Decorrelated Jitter`(이전 delay를 기반으로 다음 delay 결정) 같은 변형이 있다. AWS 벤치마크 기준으로는 Full Jitter가 가장 분산이 잘 된다.
 
-```java
-@Component
-public class WebhookSender {
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import * as crypto from 'crypto';
+import { WebhookDelivery } from './webhook-delivery.entity';
+import { WebhookRetryScheduler } from './webhook-retry-scheduler.service';
 
-    private final RestTemplate restTemplate;
-    private final WebhookRetryRepository retryRepository;
-    private final WebhookRetryScheduler scheduler;
+@Injectable()
+export class WebhookSender {
+  private readonly logger = new Logger(WebhookSender.name);
 
-    public void send(WebhookDelivery delivery) {
-        String signature = sign(delivery.getPayload(), delivery.getSecret());
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly retryScheduler: WebhookRetryScheduler,
+  ) {}
 
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Signature", signature);
-            headers.set("X-Webhook-Id", delivery.getDeliveryId());
-            headers.set("X-Webhook-Event", delivery.getEventType());
-            headers.set("X-Webhook-Timestamp", String.valueOf(Instant.now().getEpochSecond()));
+  async send(delivery: WebhookDelivery): Promise<void> {
+    const signature = this.sign(delivery.payload, delivery.secret);
 
-            HttpEntity<String> entity = new HttpEntity<>(delivery.getPayload(), headers);
-            ResponseEntity<String> response = restTemplate.exchange(
-                    delivery.getUrl(), HttpMethod.POST, entity, String.class);
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(delivery.url, delivery.payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Signature': signature,
+            'X-Webhook-Id': delivery.deliveryId,
+            'X-Webhook-Event': delivery.eventType,
+            'X-Webhook-Timestamp': String(Math.floor(Date.now() / 1000)),
+          },
+          timeout: 10_000, // 10초 타임아웃
+        }),
+      );
 
-            int status = response.getStatusCode().value();
+      const status = response.status;
 
-            if (status >= 200 && status < 300) {
-                markSuccess(delivery);
-            } else if (status >= 400 && status < 500 && status != 408 && status != 429) {
-                // 4xx는 재시도해도 의미 없음 (클라이언트 에러). 408, 429는 예외.
-                markPermanentFailure(delivery, status);
-            } else {
-                // 5xx, 408, 429는 재시도
-                scheduleRetry(delivery);
-            }
-        } catch (ResourceAccessException e) {
-            // 네트워크/타임아웃 에러는 재시도
-            scheduleRetry(delivery);
-        }
+      if (status >= 200 && status < 300) {
+        this.markSuccess(delivery);
+      } else if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+        // 4xx는 재시도해도 의미 없음 (클라이언트 에러). 408, 429는 예외.
+        this.markPermanentFailure(delivery, status);
+      } else {
+        // 5xx, 408, 429는 재시도
+        this.scheduleRetry(delivery);
+      }
+    } catch (err) {
+      // 네트워크/타임아웃 에러는 재시도
+      this.scheduleRetry(delivery);
+    }
+  }
+
+  private scheduleRetry(delivery: WebhookDelivery): void {
+    const nextAttempt = delivery.attempt + 1;
+    const delayMs = this.retryScheduler.nextDelay(nextAttempt);
+
+    if (delayMs === null) {
+      this.moveToDeadLetterQueue(delivery);
+      return;
     }
 
-    private void scheduleRetry(WebhookDelivery delivery) {
-        int nextAttempt = delivery.getAttempt() + 1;
-        Duration delay = scheduler.nextDelay(nextAttempt);
+    delivery.nextRetryAt = new Date(Date.now() + delayMs);
+    delivery.attempt = nextAttempt;
+    // retryRepository.save(delivery);
+  }
 
-        if (delay == null) {
-            moveToDeadLetterQueue(delivery);
-            return;
-        }
+  private sign(payload: string, secret: string): string {
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(payload, 'utf8');
+    return `sha256=${hmac.digest('hex')}`;
+  }
 
-        delivery.scheduleNext(nextAttempt, Instant.now().plus(delay));
-        retryRepository.save(delivery);
-    }
+  private markSuccess(_delivery: WebhookDelivery): void { /* ... */ }
+  private markPermanentFailure(_delivery: WebhookDelivery, _status: number): void { /* ... */ }
+  private moveToDeadLetterQueue(_delivery: WebhookDelivery): void { /* ... */ }
 }
 ```
 
@@ -330,32 +395,26 @@ public class WebhookSender {
 
 발신 측에서 페이로드에 서명을 붙인다. 수신 측이 위변조를 검증할 수 있게 해준다.
 
-```java
-@Component
-public class WebhookSignatureSigner {
+```typescript
+import { Injectable } from '@nestjs/common';
+import * as crypto from 'crypto';
 
-    public String sign(String payload, String secret) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec key = new SecretKeySpec(
-                    secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(key);
+@Injectable()
+export class WebhookSignatureSigner {
+  sign(payload: string, secret: string): string {
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(payload, 'utf8');
+    return `sha256=${hmac.digest('hex')}`;
+  }
 
-            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-            return "sha256=" + HexFormat.of().formatHex(hash);
-        } catch (GeneralSecurityException e) {
-            throw new IllegalStateException("HMAC 계산 실패", e);
-        }
-    }
-
-    /**
-     * 타임스탬프를 포함한 서명 — replay attack 방지
-     * Stripe 방식: signed_payload = timestamp + "." + body
-     */
-    public String signWithTimestamp(String payload, long timestamp, String secret) {
-        String signedPayload = timestamp + "." + payload;
-        return sign(signedPayload, secret);
-    }
+  /**
+   * 타임스탬프를 포함한 서명 — replay attack 방지
+   * Stripe 방식: signed_payload = timestamp + "." + body
+   */
+  signWithTimestamp(payload: string, timestamp: number, secret: string): string {
+    const signedPayload = `${timestamp}.${payload}`;
+    return this.sign(signedPayload, secret);
+  }
 }
 ```
 
@@ -365,37 +424,50 @@ public class WebhookSignatureSigner {
 
 10번 재시도해도 실패하는 이벤트는 DLQ(Dead Letter Queue)로 보낸다. DLQ는 단순한 실패 보관소가 아니라 운영의 핵심이다.
 
-```java
-@Service
-public class DeadLetterQueueService {
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { DeadLetterEntry } from './dead-letter-entry.entity';
+import { WebhookDelivery } from './webhook-delivery.entity';
 
-    private final DlqRepository dlqRepository;
-    private final NotificationService notificationService;
+@Injectable()
+export class DeadLetterQueueService {
+  private readonly logger = new Logger(DeadLetterQueueService.name);
 
-    public void enqueue(WebhookDelivery delivery, String reason) {
-        DeadLetterEntry entry = DeadLetterEntry.builder()
-                .deliveryId(delivery.getDeliveryId())
-                .url(delivery.getUrl())
-                .payload(delivery.getPayload())
-                .eventType(delivery.getEventType())
-                .lastStatusCode(delivery.getLastStatusCode())
-                .lastError(delivery.getLastError())
-                .totalAttempts(delivery.getAttempt())
-                .firstFailedAt(delivery.getFirstFailedAt())
-                .deadAt(Instant.now())
-                .reason(reason)
-                .build();
+  constructor(
+    @InjectRepository(DeadLetterEntry)
+    private readonly dlqRepository: Repository<DeadLetterEntry>,
+  ) {}
 
-        dlqRepository.save(entry);
+  async enqueue(delivery: WebhookDelivery, reason: string): Promise<void> {
+    const entry = this.dlqRepository.create({
+      deliveryId: delivery.deliveryId,
+      url: delivery.url,
+      payload: delivery.payload,
+      eventType: delivery.eventType,
+      lastStatusCode: delivery.lastStatusCode,
+      lastError: delivery.lastError,
+      totalAttempts: delivery.attempt,
+      firstFailedAt: delivery.firstFailedAt,
+      deadAt: new Date(),
+      reason,
+    });
 
-        // 같은 endpoint에서 임계치 이상 누적되면 알림
-        long recentFailures = dlqRepository.countByUrlAndDeadAtAfter(
-                delivery.getUrl(), Instant.now().minus(Duration.ofHours(1)));
+    await this.dlqRepository.save(entry);
 
-        if (recentFailures > 10) {
-            notificationService.alertEndpointDown(delivery.getUrl(), recentFailures);
-        }
+    // 같은 endpoint에서 임계치 이상 누적되면 알림
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentFailures = await this.dlqRepository.count({
+      where: { url: delivery.url },
+      // deadAt > oneHourAgo 조건은 QueryBuilder로 처리
+    });
+
+    if (recentFailures > 10) {
+      this.logger.error(`Endpoint 장애 감지: url=${delivery.url}, failures=${recentFailures}`);
+      // notificationService.alertEndpointDown(delivery.url, recentFailures);
     }
+  }
 }
 ```
 
@@ -409,38 +481,59 @@ DLQ를 운영할 때 필요한 것들이 있다.
 
 **4. 재처리 API**: 운영자가 DLQ에 쌓인 이벤트를 다시 큐에 넣을 수 있어야 한다. 한 건씩 또는 endpoint 단위로 일괄 재처리.
 
-```java
-@PostMapping("/admin/dlq/{entryId}/replay")
-public ResponseEntity<Void> replayEntry(@PathVariable Long entryId) {
-    DeadLetterEntry entry = dlqRepository.findById(entryId).orElseThrow();
+```typescript
+import { Controller, Post, Param, Body } from '@nestjs/common';
 
-    WebhookDelivery delivery = WebhookDelivery.fromDlqEntry(entry);
-    delivery.resetAttempts();
-    webhookSender.send(delivery);
-
-    dlqRepository.markReplayed(entryId, Instant.now());
-    return ResponseEntity.ok().build();
+interface ReplayRequest {
+  url?: string;
+  eventType?: string;
+  since?: string;
 }
 
-@PostMapping("/admin/dlq/replay")
-public ResponseEntity<ReplayResult> replayBatch(@RequestBody ReplayRequest request) {
-    List<DeadLetterEntry> entries = dlqRepository.findReplayable(
-            request.getUrl(), request.getEventType(), request.getSince());
+interface ReplayResult {
+  replayed: number;
+  total: number;
+}
 
-    int replayed = 0;
-    for (DeadLetterEntry entry : entries) {
-        try {
-            WebhookDelivery delivery = WebhookDelivery.fromDlqEntry(entry);
-            delivery.resetAttempts();
-            webhookSender.send(delivery);
-            dlqRepository.markReplayed(entry.getId(), Instant.now());
-            replayed++;
-        } catch (Exception e) {
-            log.error("재처리 실패: entryId={}", entry.getId(), e);
-        }
+@Controller('admin/dlq')
+export class DlqAdminController {
+  constructor(
+    private readonly dlqService: DeadLetterQueueService,
+    private readonly webhookSender: WebhookSender,
+  ) {}
+
+  @Post(':entryId/replay')
+  async replayEntry(@Param('entryId') entryId: string): Promise<void> {
+    const entry = await this.dlqService.findById(Number(entryId));
+    const delivery = WebhookDelivery.fromDlqEntry(entry);
+    delivery.resetAttempts();
+    await this.webhookSender.send(delivery);
+    await this.dlqService.markReplayed(Number(entryId), new Date());
+  }
+
+  @Post('replay')
+  async replayBatch(@Body() request: ReplayRequest): Promise<ReplayResult> {
+    const entries = await this.dlqService.findReplayable(
+      request.url,
+      request.eventType,
+      request.since ? new Date(request.since) : undefined,
+    );
+
+    let replayed = 0;
+    for (const entry of entries) {
+      try {
+        const delivery = WebhookDelivery.fromDlqEntry(entry);
+        delivery.resetAttempts();
+        await this.webhookSender.send(delivery);
+        await this.dlqService.markReplayed(entry.id, new Date());
+        replayed++;
+      } catch (err) {
+        this.logger.error(`재처리 실패: entryId=${entry.id}`, err);
+      }
     }
 
-    return ResponseEntity.ok(new ReplayResult(replayed, entries.size()));
+    return { replayed, total: entries.length };
+  }
 }
 ```
 
@@ -452,46 +545,47 @@ public ResponseEntity<ReplayResult> replayBatch(@RequestBody ReplayRequest reque
 
 ## Webhook 수신 서버 구현
 
-### 기본 구조 (Spring Boot)
+### 기본 구조 (NestJS)
 
-```java
-@RestController
-@RequestMapping("/webhooks")
-public class WebhookController {
+```typescript
+import {
+  Controller, Post, Headers, Body, HttpCode,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { WebhookEventProcessor } from './webhook-event-processor.service';
+import { WebhookSignatureVerifier } from './webhook-signature-verifier.service';
 
-    private final WebhookEventProcessor eventProcessor;
-    private final WebhookSignatureVerifier verifier;
+@Controller('webhooks')
+export class WebhookController {
+  constructor(
+    private readonly eventProcessor: WebhookEventProcessor,
+    private readonly verifier: WebhookSignatureVerifier,
+  ) {}
 
-    public WebhookController(WebhookEventProcessor eventProcessor,
-                              WebhookSignatureVerifier verifier) {
-        this.eventProcessor = eventProcessor;
-        this.verifier = verifier;
+  @Post('payment')
+  @HttpCode(200)
+  async handlePaymentWebhook(
+    @Headers('x-signature') signature: string,
+    @Headers('x-webhook-timestamp') timestamp: string,
+    @Headers('x-webhook-id') deliveryId: string,
+    @Body() rawBody: string, // raw body를 받으려면 별도 설정 필요
+  ): Promise<void> {
+    // 1. 타임스탬프 윈도우 검증 (replay attack 방지)
+    const now = Math.floor(Date.now() / 1000);
+    if (Math.abs(now - Number(timestamp)) > 300) { // 5분
+      throw new UnauthorizedException('Timestamp out of window');
     }
 
-    @PostMapping("/payment")
-    public ResponseEntity<Void> handlePaymentWebhook(
-            @RequestHeader("X-Signature") String signature,
-            @RequestHeader("X-Webhook-Timestamp") long timestamp,
-            @RequestHeader("X-Webhook-Id") String deliveryId,
-            @RequestBody String rawBody) {
-
-        // 1. 타임스탬프 윈도우 검증 (replay attack 방지)
-        long now = Instant.now().getEpochSecond();
-        if (Math.abs(now - timestamp) > 300) { // 5분
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        // 2. 서명 검증
-        if (!verifier.verifyWithTimestamp(rawBody, timestamp, signature)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        // 3. 멱등 큐에 적재 (즉시 응답)
-        eventProcessor.enqueue(deliveryId, rawBody);
-
-        // 4. 빠르게 200 반환
-        return ResponseEntity.ok().build();
+    // 2. 서명 검증
+    if (!this.verifier.verifyWithTimestamp(rawBody, Number(timestamp), signature)) {
+      throw new UnauthorizedException('Invalid signature');
     }
+
+    // 3. 멱등 큐에 적재 (즉시 응답)
+    void this.eventProcessor.enqueue(deliveryId, rawBody);
+
+    // 4. 빠르게 200 반환 (void이므로 자동 응답)
+  }
 }
 ```
 
@@ -501,55 +595,71 @@ public class WebhookController {
 
 `X-Signature` 헤더에 들어 있는 서명을 검증한다. 발신 측과 동일한 비밀키·동일한 알고리즘을 사용한다.
 
-```java
-@Component
-public class WebhookSignatureVerifier {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 
-    @Value("${webhook.secret}")
-    private String webhookSecret;
+@Injectable()
+export class WebhookSignatureVerifier {
+  private readonly webhookSecret: string;
 
-    public boolean verifyWithTimestamp(String payload, long timestamp, String receivedSignature) {
-        String signedPayload = timestamp + "." + payload;
-        return verify(signedPayload, receivedSignature);
+  constructor(private readonly configService: ConfigService) {
+    this.webhookSecret = this.configService.get<string>('WEBHOOK_SECRET', '');
+  }
+
+  verifyWithTimestamp(payload: string, timestamp: number, receivedSignature: string): boolean {
+    const signedPayload = `${timestamp}.${payload}`;
+    return this.verify(signedPayload, receivedSignature);
+  }
+
+  verify(payload: string, receivedSignature: string): boolean {
+    try {
+      const hmac = crypto.createHmac('sha256', this.webhookSecret);
+      hmac.update(payload, 'utf8');
+      const computed = `sha256=${hmac.digest('hex')}`;
+
+      // 타이밍 공격 방지: crypto.timingSafeEqual은 상수 시간 비교
+      return crypto.timingSafeEqual(
+        Buffer.from(computed, 'utf8'),
+        Buffer.from(receivedSignature, 'utf8'),
+      );
+    } catch {
+      return false;
     }
+  }
 
-    public boolean verify(String payload, String receivedSignature) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKey = new SecretKeySpec(
-                    webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(secretKey);
+  // 비밀키 로테이션: 현재 키와 이전 키를 둘 다 시도
+  verifyWithRotation(payload: string, signature: string, previousSecret: string): boolean {
+    return (
+      this.verify(payload, signature) ||
+      this.verifyWithSecret(payload, signature, previousSecret)
+    );
+  }
 
-            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-            String computed = "sha256=" + HexFormat.of().formatHex(hash);
-
-            // 타이밍 공격 방지: MessageDigest.isEqual은 상수 시간 비교
-            return MessageDigest.isEqual(
-                    computed.getBytes(StandardCharsets.UTF_8),
-                    receivedSignature.getBytes(StandardCharsets.UTF_8));
-        } catch (GeneralSecurityException e) {
-            return false;
-        }
+  private verifyWithSecret(payload: string, receivedSignature: string, secret: string): boolean {
+    try {
+      const hmac = crypto.createHmac('sha256', secret);
+      hmac.update(payload, 'utf8');
+      const computed = `sha256=${hmac.digest('hex')}`;
+      return crypto.timingSafeEqual(
+        Buffer.from(computed, 'utf8'),
+        Buffer.from(receivedSignature, 'utf8'),
+      );
+    } catch {
+      return false;
     }
+  }
 }
 ```
 
 검증 단계에서 자주 실수하는 것들이 있다.
 
-**raw body를 그대로 받아야 한다.** `@RequestBody Map<String, Object>`로 받으면 Jackson이 JSON을 파싱해서 객체로 만든다. 이걸 다시 직렬화하면 키 순서, 공백, 숫자 표현(1.0 vs 1)이 원본과 달라져서 서명이 안 맞는다. `@RequestBody String`이나 `HttpServletRequest.getInputStream()`으로 원문을 받아야 한다.
+**raw body를 그대로 받아야 한다.** NestJS에서 JSON을 파싱하면 키 순서, 공백이 달라져서 서명이 안 맞는다. raw body 미들웨어를 설정해야 한다.
 
-**상수 시간 비교를 써야 한다.** `String.equals()`나 `Arrays.equals()`는 첫 다른 바이트를 만나면 즉시 false를 반환한다. 응답 시간 차이로 서명을 한 글자씩 맞춰가는 타이밍 공격이 가능하다. `MessageDigest.isEqual()`은 길이가 같으면 모든 바이트를 비교하기 때문에 시간이 일정하다.
+**상수 시간 비교를 써야 한다.** `===`는 첫 다른 바이트를 만나면 즉시 false를 반환한다. 응답 시간 차이로 서명을 한 글자씩 맞춰가는 타이밍 공격이 가능하다. `crypto.timingSafeEqual()`은 길이가 같으면 모든 바이트를 비교하기 때문에 시간이 일정하다.
 
 **서명 헤더 형식을 명확히 정의한다.** `sha256=abc123...` 형식으로 알고리즘 prefix를 붙이면 나중에 알고리즘을 바꿀 때 호환을 유지할 수 있다. 알고리즘이 둘 이상이면 `t=timestamp,v1=hash1,v0=hash0` 같이 콤마로 구분하는 형식을 쓴다(Stripe 방식).
-
-**비밀키 로테이션을 고려한다.** 서명 검증 시 현재 키와 이전 키를 둘 다 시도해서 하나라도 맞으면 통과시킨다. 그래야 키 교체 중에 발생한 webhook이 누락되지 않는다.
-
-```java
-public boolean verifyWithRotation(String payload, String signature) {
-    return verify(payload, signature, currentSecret)
-        || verify(payload, signature, previousSecret);
-}
-```
 
 ### 멱등키 처리
 
@@ -557,54 +667,82 @@ public boolean verifyWithRotation(String payload, String signature) {
 
 멱등키는 발신 측이 보내는 unique ID(`X-Webhook-Id` 또는 페이로드의 `event_id`)를 사용한다. 받은 키를 DB에 기록하고, 이미 있으면 처리를 건너뛴다.
 
-```java
-@Service
-public class WebhookEventProcessor {
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { ProcessedEvent, ProcessingStatus } from './processed-event.entity';
 
-    private final ProcessedEventRepository processedRepo;
-    private final PaymentService paymentService;
-    private final TransactionTemplate txTemplate;
+@Injectable()
+export class WebhookEventProcessor {
+  private readonly logger = new Logger(WebhookEventProcessor.name);
 
-    public void process(String deliveryId, String payload) {
-        WebhookEvent event = parse(payload);
-        String idempotencyKey = event.getEventId(); // 또는 deliveryId
+  constructor(
+    @InjectRepository(ProcessedEvent)
+    private readonly processedRepo: Repository<ProcessedEvent>,
+    private readonly dataSource: DataSource,
+  ) {}
 
-        try {
-            txTemplate.executeWithoutResult(status -> {
-                // 1. 멱등 레코드 먼저 INSERT (유니크 제약으로 중복 차단)
-                ProcessedEvent record = ProcessedEvent.builder()
-                        .eventId(idempotencyKey)
-                        .processedAt(Instant.now())
-                        .status(ProcessingStatus.IN_PROGRESS)
-                        .build();
-                processedRepo.save(record);
+  async process(deliveryId: string, payload: string): Promise<void> {
+    const event = JSON.parse(payload) as { eventId: string };
+    const idempotencyKey = event.eventId ?? deliveryId;
 
-                // 2. 비즈니스 로직 실행
-                executeBusinessLogic(event);
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        // 1. 멱등 레코드 먼저 INSERT (유니크 제약으로 중복 차단)
+        const record = manager.create(ProcessedEvent, {
+          eventId: idempotencyKey,
+          processedAt: new Date(),
+          status: ProcessingStatus.IN_PROGRESS,
+        });
+        await manager.save(record);
 
-                // 3. 완료 상태로 업데이트
-                processedRepo.markCompleted(idempotencyKey, Instant.now());
-            });
-        } catch (DataIntegrityViolationException e) {
-            // 유니크 제약 위반 — 이미 처리되었거나 처리 중
-            handleDuplicate(idempotencyKey);
-        }
+        // 2. 비즈니스 로직 실행
+        await this.executeBusinessLogic(event);
+
+        // 3. 완료 상태로 업데이트
+        await manager.update(ProcessedEvent, { eventId: idempotencyKey }, {
+          status: ProcessingStatus.COMPLETED,
+          completedAt: new Date(),
+        });
+      });
+    } catch (err: unknown) {
+      // 유니크 제약 위반 — 이미 처리되었거나 처리 중
+      if (this.isDuplicateKeyError(err)) {
+        await this.handleDuplicate(idempotencyKey);
+        return;
+      }
+      throw err;
     }
+  }
 
-    private void handleDuplicate(String key) {
-        ProcessedEvent existing = processedRepo.findByEventId(key);
+  async enqueue(deliveryId: string, payload: string): Promise<void> {
+    // 비동기 처리를 위한 큐 적재 (실제 구현에서는 Bull 등 사용)
+    void this.process(deliveryId, payload);
+  }
 
-        if (existing.getStatus() == ProcessingStatus.IN_PROGRESS) {
-            // 다른 worker가 처리 중. 처리 시간이 너무 길면 stale로 보고 정리
-            if (Duration.between(existing.getProcessedAt(), Instant.now())
-                    .compareTo(Duration.ofMinutes(10)) > 0) {
-                processedRepo.delete(existing);
-                throw new RetryableException("stale lock 정리, 재시도 필요");
-            }
-        }
-        // COMPLETED면 그냥 무시
-        log.info("중복 이벤트 무시: eventId={}, status={}", key, existing.getStatus());
+  private async handleDuplicate(key: string): Promise<void> {
+    const existing = await this.processedRepo.findOneBy({ eventId: key });
+    if (!existing) return;
+
+    if (existing.status === ProcessingStatus.IN_PROGRESS) {
+      const staleThreshold = new Date(Date.now() - 10 * 60 * 1000); // 10분
+      if (existing.processedAt < staleThreshold) {
+        await this.processedRepo.delete({ eventId: key });
+        throw new Error('stale lock 정리, 재시도 필요');
+      }
     }
+    // COMPLETED면 그냥 무시
+    this.logger.log(`중복 이벤트 무시: eventId=${key}, status=${existing.status}`);
+  }
+
+  private isDuplicateKeyError(err: unknown): boolean {
+    // TypeORM QueryFailedError with unique constraint violation
+    return (err as { code?: string })?.code === '23505' // PostgreSQL
+      || (err as { code?: string })?.code === 'ER_DUP_ENTRY'; // MySQL
+  }
+
+  private async executeBusinessLogic(_event: unknown): Promise<void> { /* ... */ }
 }
 ```
 
@@ -631,17 +769,25 @@ DELETE FROM processed_events WHERE processed_at < NOW() - INTERVAL '30 days';
 
 Redis로 멱등 체크를 하는 경우는 더 간단하지만 영속성에 주의해야 한다. Redis가 죽었다 살아나면 데이터가 날아갈 수 있고, 그 시점에 들어온 webhook은 중복 처리될 수 있다. 결제 같은 critical한 영역은 DB로, 알림 같은 영역은 Redis로 나누는 식으로 쓴다.
 
-```java
-@Service
-public class RedisIdempotencyGuard {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    private final StringRedisTemplate redis;
+@Injectable()
+export class RedisIdempotencyGuard {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-    public boolean tryClaim(String key, Duration ttl) {
-        Boolean claimed = redis.opsForValue().setIfAbsent(
-                "webhook:idem:" + key, "1", ttl);
-        return Boolean.TRUE.equals(claimed);
-    }
+  async tryClaim(key: string, ttlSeconds: number): Promise<boolean> {
+    const result = await this.redis.set(
+      `webhook:idem:${key}`,
+      '1',
+      'NX',
+      'EX',
+      ttlSeconds,
+    );
+    return result === 'OK';
+  }
 }
 ```
 
@@ -657,69 +803,128 @@ public class RedisIdempotencyGuard {
 
 Slack의 Events API가 쓰는 방식이다. 등록 시점에 한 번 호출한다.
 
-```java
-@PostMapping("/api/webhooks/subscriptions")
-public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-    String url = request.getUrl();
+```typescript
+import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import * as crypto from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { WebhookSubscription } from './webhook-subscription.entity';
+
+interface RegisterRequest {
+  url: string;
+}
+
+@Controller('api/webhooks/subscriptions')
+export class WebhookSubscriptionController {
+  constructor(
+    private readonly httpService: HttpService,
+    @InjectRepository(WebhookSubscription)
+    private readonly subscriptionRepository: Repository<WebhookSubscription>,
+  ) {}
+
+  @Post()
+  async register(@Body() request: RegisterRequest): Promise<void> {
+    const { url } = request;
 
     // 1. URL 형식과 도메인 검증
-    if (!isValidWebhookUrl(url)) {
-        return ResponseEntity.badRequest().body("invalid url");
+    if (!this.isValidWebhookUrl(url)) {
+      throw new BadRequestException('invalid url');
     }
 
     // 2. challenge 발송
-    String challenge = generateChallenge();
-    Map<String, String> body = Map.of(
-            "type", "url_verification",
-            "challenge", challenge
-    );
+    const challenge = this.generateChallenge();
 
     try {
-        ResponseEntity<Map> response = restTemplate.exchange(
-                RequestEntity.post(URI.create(url))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-Webhook-Verification", "challenge")
-                        .body(body),
-                Map.class);
+      const response = await firstValueFrom(
+        this.httpService.post<{ challenge: string }>(
+          url,
+          { type: 'url_verification', challenge },
+          {
+            headers: { 'X-Webhook-Verification': 'challenge' },
+            timeout: 5_000, // 5초 타임아웃
+          },
+        ),
+      );
 
-        // 3. challenge 값이 그대로 echo되는지 확인
-        String echoed = (String) response.getBody().get("challenge");
-        if (!challenge.equals(echoed)) {
-            return ResponseEntity.badRequest().body("challenge mismatch");
-        }
+      // 3. challenge 값이 그대로 echo되는지 확인
+      if (response.data.challenge !== challenge) {
+        throw new BadRequestException('challenge mismatch');
+      }
 
-        // 4. 검증 성공 — 구독 저장
-        subscriptionRepository.save(WebhookSubscription.builder()
-                .url(url)
-                .secret(generateSecret())
-                .verifiedAt(Instant.now())
-                .build());
-
-        return ResponseEntity.ok().build();
-    } catch (RestClientException e) {
-        return ResponseEntity.badRequest().body("verification failed: " + e.getMessage());
+      // 4. 검증 성공 — 구독 저장
+      const subscription = this.subscriptionRepository.create({
+        url,
+        secret: this.generateSecret(),
+        verifiedAt: new Date(),
+      });
+      await this.subscriptionRepository.save(subscription);
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException(`verification failed: ${(err as Error).message}`);
     }
-}
+  }
 
-private String generateChallenge() {
-    byte[] random = new byte[32];
-    new SecureRandom().nextBytes(random);
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+  private generateChallenge(): string {
+    return crypto.randomBytes(32).toString('base64url');
+  }
+
+  private generateSecret(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  private isValidWebhookUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:') return false; // HTTPS만 허용
+
+      const hostname = parsed.hostname;
+      // 내부 IP 차단 (SSRF 방지)
+      const privateRanges = [
+        /^127\./,
+        /^10\./,
+        /^172\.(1[6-9]|2\d|3[01])\./,
+        /^192\.168\./,
+        /^169\.254\./,
+        /^::1$/,
+        /^fc00:/,
+        /^fe80:/,
+      ];
+      return !privateRanges.some((re) => re.test(hostname));
+    } catch {
+      return false;
+    }
+  }
 }
 ```
 
 수신 측 구현:
 
-```java
-@PostMapping("/webhooks/payment")
-public ResponseEntity<?> handle(@RequestBody Map<String, Object> body) {
+```typescript
+import { Controller, Post, Body, HttpCode } from '@nestjs/common';
+
+interface WebhookBody {
+  type?: string;
+  challenge?: string;
+  [key: string]: unknown;
+}
+
+@Controller('webhooks/payment')
+export class PaymentWebhookController {
+  @Post()
+  @HttpCode(200)
+  async handle(@Body() body: WebhookBody): Promise<Record<string, unknown> | void> {
     // URL 검증 요청이면 challenge를 그대로 돌려준다
-    if ("url_verification".equals(body.get("type"))) {
-        return ResponseEntity.ok(Map.of("challenge", body.get("challenge")));
+    if (body.type === 'url_verification') {
+      return { challenge: body.challenge };
     }
 
     // 일반 이벤트 처리
-    return processEvent(body);
+    return this.processEvent(body);
+  }
+
+  private processEvent(_body: WebhookBody): void { /* ... */ }
 }
 ```
 
@@ -727,17 +932,29 @@ public ResponseEntity<?> handle(@RequestBody Map<String, Object> body) {
 
 Meta Webhook은 GET 요청으로 challenge를 보낸다. 수신 측은 `hub.challenge` 쿼리 파라미터를 plain text로 그대로 응답한다.
 
-```java
-@GetMapping("/webhooks/payment")
-public ResponseEntity<String> verify(
-        @RequestParam("hub.mode") String mode,
-        @RequestParam("hub.verify_token") String verifyToken,
-        @RequestParam("hub.challenge") String challenge) {
+```typescript
+import { Controller, Get, Query, ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
-    if ("subscribe".equals(mode) && configuredVerifyToken.equals(verifyToken)) {
-        return ResponseEntity.ok(challenge);
+@Controller('webhooks/payment')
+export class PaymentWebhookController {
+  private readonly verifyToken: string;
+
+  constructor(private readonly configService: ConfigService) {
+    this.verifyToken = this.configService.get<string>('WEBHOOK_VERIFY_TOKEN', '');
+  }
+
+  @Get()
+  verify(
+    @Query('hub.mode') mode: string,
+    @Query('hub.verify_token') verifyToken: string,
+    @Query('hub.challenge') challenge: string,
+  ): string {
+    if (mode === 'subscribe' && verifyToken === this.verifyToken) {
+      return challenge;
     }
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    throw new ForbiddenException();
+  }
 }
 ```
 
@@ -748,28 +965,6 @@ GET 방식은 브라우저 등에서 우연히 호출돼도 부수효과가 없�
 검증 자체보다 검증 단계의 SSRF가 더 큰 문제다. 임의의 URL로 HTTP 요청을 보내는 코드가 외부에서 호출 가능한 상태로 노출되는 셈이다.
 
 내부 IP로 가는 요청을 차단해야 한다. `127.0.0.1`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.169.254`(AWS 메타데이터 endpoint) 같은 주소가 들어오면 거부한다.
-
-```java
-private boolean isValidWebhookUrl(String url) {
-    try {
-        URI uri = URI.create(url);
-        if (!"https".equals(uri.getScheme())) return false; // HTTPS만 허용
-
-        InetAddress addr = InetAddress.getByName(uri.getHost());
-        if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()
-                || addr.isSiteLocalAddress() || addr.isAnyLocalAddress()) {
-            return false;
-        }
-
-        // AWS/GCP 메타데이터 차단
-        if ("169.254.169.254".equals(addr.getHostAddress())) return false;
-
-        return true;
-    } catch (Exception e) {
-        return false;
-    }
-}
-```
 
 DNS resolution도 한 번만 하고 끝나면 안 된다. 처음 검증할 때 외부 IP로 응답하다가, 실제 webhook 발송 시점에 내부 IP로 응답이 바뀌는 DNS rebinding 공격이 가능하다. 검증한 IP를 저장해두고 실제 발송 시 다시 확인하거나, HTTP 클라이언트 레벨에서 매번 IP를 검증하는 식으로 방어한다.
 
@@ -783,22 +978,40 @@ DNS resolution도 한 번만 하고 끝나면 안 된다. 처음 검증할 때 �
 
 Webhook을 붙였다고 바로 Polling을 끄면 안 된다. Webhook이 실패하거나 누락될 수 있으니, 전환 기간에는 Polling을 fallback으로 유지한다.
 
-```java
-@Service
-public class OrderStatusService {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { WebhookSubscription } from './webhook-subscription.entity';
 
-    private final WebhookSubscription webhookSubscription;
+@Injectable()
+export class OrderStatusService {
+  constructor(
+    @InjectRepository(WebhookSubscription)
+    private readonly webhookSubscriptionRepository: Repository<WebhookSubscription>,
+  ) {}
 
-    public void checkOrderStatus(Long orderId) {
-        if (webhookSubscription.isActive(orderId)) {
-            // Webhook이 정상 동작 중이면 대기
-            // 일정 시간 내에 Webhook이 안 오면 Polling fallback
-            schedulePollingFallback(orderId, Duration.ofMinutes(5));
-        } else {
-            // Webhook이 없으면 기존 Polling 방식
-            pollOrderStatus(orderId);
-        }
+  async checkOrderStatus(orderId: number): Promise<void> {
+    const subscription = await this.webhookSubscriptionRepository.findOneBy({
+      orderId,
+      active: true,
+    });
+
+    if (subscription) {
+      // Webhook이 정상 동작 중이면 대기
+      // 일정 시간 내에 Webhook이 안 오면 Polling fallback
+      this.schedulePollingFallback(orderId, 5 * 60 * 1000); // 5분 후 폴백
+    } else {
+      // Webhook이 없으면 기존 Polling 방식
+      await this.pollOrderStatus(orderId);
     }
+  }
+
+  private schedulePollingFallback(orderId: number, delayMs: number): void {
+    setTimeout(() => void this.pollOrderStatus(orderId), delayMs);
+  }
+
+  private async pollOrderStatus(_orderId: number): Promise<void> { /* ... */ }
 }
 ```
 
@@ -818,21 +1031,49 @@ Polling은 아웃바운드 요청이라 대부분 방화벽에 걸리지 않는�
 
 Webhook은 이벤트 발생 순서대로 도착한다는 보장이 없다. 네트워크 상황이나 재시도 일정에 따라 먼저 보낸 요청이 나중에 도착할 수 있다. 순서가 중요한 경우에는 이벤트에 타임스탬프나 시퀀스 번호를 포함하고, 수신 측에서 순서를 맞춰야 한다.
 
-```java
-@Transactional
-public void processOrderEvent(WebhookEvent event) {
-    Order order = orderRepository.findById(event.getOrderId()).orElseThrow();
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Order } from './order.entity';
+import { DataSource } from 'typeorm';
 
-    // 이전 이벤트보다 오래된 이벤트면 무시
-    if (event.getTimestamp().isBefore(order.getLastEventTimestamp())) {
-        log.warn("순서가 맞지 않는 이벤트 무시: orderId={}, eventTime={}, lastTime={}",
-                event.getOrderId(), event.getTimestamp(), order.getLastEventTimestamp());
+interface WebhookEvent {
+  orderId: number;
+  status: string;
+  timestamp: string; // ISO 8601
+}
+
+@Injectable()
+export class OrderEventProcessor {
+  private readonly logger = new Logger(OrderEventProcessor.name);
+
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  async processOrderEvent(event: WebhookEvent): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOneBy(Order, { id: event.orderId });
+      if (!order) return;
+
+      const eventTime = new Date(event.timestamp);
+
+      // 이전 이벤트보다 오래된 이벤트면 무시
+      if (order.lastEventTimestamp && eventTime < order.lastEventTimestamp) {
+        this.logger.warn(
+          `순서가 맞지 않는 이벤트 무시: orderId=${event.orderId}, eventTime=${eventTime.toISOString()}, lastTime=${order.lastEventTimestamp.toISOString()}`,
+        );
         return;
-    }
+      }
 
-    order.updateStatus(event.getStatus());
-    order.setLastEventTimestamp(event.getTimestamp());
-    orderRepository.save(order);
+      order.status = event.status;
+      order.lastEventTimestamp = eventTime;
+      await manager.save(order);
+    });
+  }
 }
 ```
 
@@ -859,27 +1100,44 @@ public void processOrderEvent(WebhookEvent event) {
 
 실무에서는 Webhook을 기본으로 쓰되, Polling을 보조 수단으로 두는 패턴이 많다. Webhook이 누락됐을 때 Polling으로 상태를 맞추는 방식이다. Stripe, GitHub 같은 대형 서비스가 Webhook과 함께 이벤트 목록 조회 API를 제공하는 이유가 이것이다.
 
-```java
-// Webhook으로 실시간 이벤트 수신
-@PostMapping("/webhooks/payment")
-public ResponseEntity<Void> onPaymentEvent(...) {
-    // 즉시 처리
-}
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ProcessedEvent } from './processed-event.entity';
 
-// 5분마다 누락된 이벤트가 없는지 Polling으로 확인
-@Scheduled(fixedRate = 300_000)
-public void reconcilePaymentEvents() {
-    Instant lastChecked = stateStore.getLastCheckedTime();
-    List<PaymentEvent> events = paymentApi.getEvents(lastChecked, Instant.now());
+@Injectable()
+export class PaymentReconciliationService {
+  private lastCheckedTime: Date = new Date();
 
-    for (PaymentEvent event : events) {
-        if (!eventRepository.existsByEventId(event.getId())) {
-            log.warn("Webhook 누락된 이벤트 발견: {}", event.getId());
-            eventProcessor.process(event);
-        }
-    }
+  constructor(
+    @InjectRepository(ProcessedEvent)
+    private readonly eventRepository: Repository<ProcessedEvent>,
+    private readonly eventProcessor: WebhookEventProcessor,
+  ) {}
 
-    stateStore.updateLastCheckedTime(Instant.now());
+  // Webhook으로 실시간 이벤트 수신은 WebhookController에서 처리
+
+  // 5분마다 누락된 이벤트가 없는지 Polling으로 확인
+  @Cron('*/5 * * * *')
+  async reconcilePaymentEvents(): Promise<void> {
+    const since = this.lastCheckedTime;
+    const now = new Date();
+
+    // paymentApi.getEvents(since, now)로 이벤트 목록 조회
+    // const events = await this.paymentApi.getEvents(since, now);
+
+    // for (const event of events) {
+    //   const exists = await this.eventRepository.existsBy({ eventId: event.id });
+    //   if (!exists) {
+    //     console.warn(`Webhook 누락된 이벤트 발견: ${event.id}`);
+    //     await this.eventProcessor.process(event.id, JSON.stringify(event));
+    //   }
+    // }
+
+    this.lastCheckedTime = now;
+  }
 }
 ```
 

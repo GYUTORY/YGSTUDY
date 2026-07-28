@@ -96,26 +96,33 @@ Content-Type: application/json
 
 응답 본문을 해시해서 ETag를 만드는 방식이다. 데이터가 조금이라도 바뀌면 ETag가 달라진다.
 
-```java
-@GetMapping("/products/{id}")
-public ResponseEntity<Product> getProduct(@PathVariable Long id,
-        HttpServletRequest request) {
+```typescript
+// NestJS — 해시 기반 ETag
+import { Controller, Get, Param, Req, Res, HttpStatus } from '@nestjs/common';
+import { Request, Response } from 'express';
+import { createHash } from 'crypto';
 
-    Product product = productService.findById(id);
-    String body = objectMapper.writeValueAsString(product);
-    String etag = "\"" + DigestUtils.md5Hex(body) + "\"";
+@Controller('products')
+export class ProductController {
+    constructor(private readonly productService: ProductService) {}
 
-    String ifNoneMatch = request.getHeader("If-None-Match");
-    if (etag.equals(ifNoneMatch)) {
-        return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
-                .eTag(etag)
-                .build();
+    @Get(':id')
+    async getProduct(@Param('id') id: string, @Req() req: Request, @Res() res: Response): Promise<void> {
+        const product = await this.productService.findById(Number(id));
+        const body = JSON.stringify(product);
+        const etag = `"${createHash('md5').update(body).digest('hex')}"`;
+
+        const ifNoneMatch = req.headers['if-none-match'];
+        if (etag === ifNoneMatch) {
+            res.status(HttpStatus.NOT_MODIFIED).setHeader('ETag', etag).end();
+            return;
+        }
+
+        res.status(HttpStatus.OK)
+            .setHeader('ETag', etag)
+            .setHeader('Cache-Control', 'no-cache')
+            .json(product);
     }
-
-    return ResponseEntity.ok()
-            .eTag(etag)
-            .cacheControl(CacheControl.noCache())
-            .body(product);
 }
 ```
 
@@ -125,27 +132,25 @@ public ResponseEntity<Product> getProduct(@PathVariable Long id,
 
 DB의 `updated_at` 컬럼이나 버전 번호로 ETag를 만든다. 데이터를 전부 읽지 않아도 ETag를 비교할 수 있다.
 
-```java
-@GetMapping("/products/{id}")
-public ResponseEntity<Product> getProduct(@PathVariable Long id,
-        HttpServletRequest request) {
-
+```typescript
+// NestJS — 타임스탬프 기반 ETag (더 효율적)
+@Get(':id')
+async getProduct(@Param('id') id: string, @Req() req: Request, @Res() res: Response): Promise<void> {
     // updated_at만 조회하는 가벼운 쿼리
-    Instant updatedAt = productService.getUpdatedAt(id);
-    String etag = "\"" + id + "-" + updatedAt.toEpochMilli() + "\"";
+    const updatedAt = await this.productService.getUpdatedAt(Number(id));
+    const etag = `"${id}-${updatedAt.getTime()}"`;
 
-    String ifNoneMatch = request.getHeader("If-None-Match");
-    if (etag.equals(ifNoneMatch)) {
-        return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
-                .eTag(etag)
-                .build();
+    const ifNoneMatch = req.headers['if-none-match'];
+    if (etag === ifNoneMatch) {
+        res.status(HttpStatus.NOT_MODIFIED).setHeader('ETag', etag).end();
+        return;
     }
 
-    Product product = productService.findById(id);
-    return ResponseEntity.ok()
-            .eTag(etag)
-            .cacheControl(CacheControl.noCache())
-            .body(product);
+    const product = await this.productService.findById(Number(id));
+    res.status(HttpStatus.OK)
+        .setHeader('ETag', etag)
+        .setHeader('Cache-Control', 'no-cache')
+        .json(product);
 }
 ```
 
@@ -155,14 +160,23 @@ public ResponseEntity<Product> getProduct(@PathVariable Long id,
 
 Spring에는 응답 본문을 자동으로 해시해서 ETag를 붙여주는 필터가 있다.
 
-```java
-@Bean
-public FilterRegistrationBean<ShallowEtagHeaderFilter> shallowEtagFilter() {
-    FilterRegistrationBean<ShallowEtagHeaderFilter> registration =
-            new FilterRegistrationBean<>(new ShallowEtagHeaderFilter());
-    registration.addUrlPatterns("/api/*");
-    return registration;
-}
+```typescript
+// NestJS에서는 etag npm 패키지 또는 직접 미들웨어로 구현한다
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import * as etag from 'etag';
+
+const app = await NestFactory.create(AppModule);
+// 응답에 ETag 자동 생성 미들웨어 (express etag 패키지)
+app.use((req, res, next) => {
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+        const serialized = JSON.stringify(body);
+        res.setHeader('ETag', etag(serialized));
+        return originalJson(body);
+    };
+    next();
+});
 ```
 
 편하지만, 위에서 말한 해시 기반의 단점을 그대로 가진다. 매 요청마다 컨트롤러 로직이 전부 실행되고, 응답 본문을 메모리에 버퍼링한 뒤 해시를 계산한다. 대역폭만 절약하고 싶을 때 쓴다.
@@ -185,23 +199,24 @@ If-Modified-Since: Tue, 15 Apr 2026 10:30:00 GMT
 HTTP/1.1 304 Not Modified
 ```
 
-```java
-@GetMapping("/products/{id}")
-public ResponseEntity<Product> getProduct(@PathVariable Long id,
-        WebRequest request) {
+```typescript
+// NestJS — Last-Modified 기반 조건부 요청
+@Get(':id')
+async getProduct(@Param('id') id: string, @Req() req: Request, @Res() res: Response): Promise<void> {
+    const updatedAt = await this.productService.getUpdatedAt(Number(id));
+    const lastModified = updatedAt.toUTCString();
 
-    Instant updatedAt = productService.getUpdatedAt(id);
-    long lastModifiedMillis = updatedAt.toEpochMilli();
-
-    // checkNotModified가 true를 반환하면 304
-    if (request.checkNotModified(lastModifiedMillis)) {
-        return null;
+    // If-Modified-Since 체크 → 304
+    const ifModifiedSince = req.headers['if-modified-since'];
+    if (ifModifiedSince && new Date(ifModifiedSince) >= updatedAt) {
+        res.status(HttpStatus.NOT_MODIFIED).end();
+        return;
     }
 
-    Product product = productService.findById(id);
-    return ResponseEntity.ok()
-            .lastModified(lastModifiedMillis)
-            .body(product);
+    const product = await this.productService.findById(Number(id));
+    res.status(HttpStatus.OK)
+        .setHeader('Last-Modified', lastModified)
+        .json(product);
 }
 ```
 
@@ -235,32 +250,39 @@ Cache-Control: public, max-age=10, s-maxage=300
 
 #### CloudFront 캐시 무효화
 
-```java
-@Service
-public class CdnInvalidationService {
+```typescript
+// NestJS — CloudFront 캐시 무효화 서비스 (AWS SDK v3)
+import { Injectable } from '@nestjs/common';
+import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
+import { randomUUID } from 'crypto';
 
-    private final CloudFrontClient cloudFront;
-    private final String distributionId;
+@Injectable()
+export class CdnInvalidationService {
+    private readonly cloudFront = new CloudFrontClient({});
+    private readonly distributionId: string;
 
-    public void invalidate(List<String> paths) {
-        cloudFront.createInvalidation(req -> req
-                .distributionId(distributionId)
-                .invalidationBatch(batch -> batch
-                        .callerReference(UUID.randomUUID().toString())
-                        .paths(p -> p
-                                .quantity(paths.size())
-                                .items(paths)
-                        )
-                )
+    constructor() {
+        this.distributionId = process.env.CLOUDFRONT_DISTRIBUTION_ID ?? '';
+    }
+
+    async invalidate(paths: string[]): Promise<void> {
+        await this.cloudFront.send(
+            new CreateInvalidationCommand({
+                DistributionId: this.distributionId,
+                InvalidationBatch: {
+                    CallerReference: randomUUID(),
+                    Paths: { Quantity: paths.length, Items: paths },
+                },
+            }),
         );
     }
 
     // 상품 수정 시 캐시 무효화
-    public void onProductUpdated(Long productId) {
-        invalidate(List.of(
-                "/api/v1/products/" + productId,
-                "/api/v1/products"  // 목록 캐시도 무효화
-        ));
+    async onProductUpdated(productId: number): Promise<void> {
+        await this.invalidate([
+            `/api/v1/products/${productId}`,
+            '/api/v1/products', // 목록 캐시도 무효화
+        ]);
     }
 }
 ```
@@ -271,17 +293,16 @@ CloudFront 무효화는 즉시 되지 않는다. 전 세계 엣지 로케이션�
 
 Fastly 같은 CDN은 `Surrogate-Key` 헤더로 태그 기반 무효화를 지원한다. 경로 패턴 대신 태그로 무효화할 수 있어서 더 정밀하다.
 
-```java
-@GetMapping("/products/{id}")
-public ResponseEntity<Product> getProduct(@PathVariable Long id) {
-    Product product = productService.findById(id);
+```typescript
+// NestJS — Surrogate-Key 기반 태그 캐시 (Fastly CDN)
+@Get(':id')
+async getProduct(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    const product = await this.productService.findById(Number(id));
 
-    return ResponseEntity.ok()
-            .header("Surrogate-Key",
-                    "product-" + id + " category-" + product.getCategoryId())
-            .header("Surrogate-Control", "max-age=3600")
-            .cacheControl(CacheControl.noCache())
-            .body(product);
+    res.setHeader('Surrogate-Key', `product-${id} category-${product.categoryId}`)
+        .setHeader('Surrogate-Control', 'max-age=3600')
+        .setHeader('Cache-Control', 'no-cache')
+        .json(product);
 }
 ```
 
@@ -332,112 +353,91 @@ Vary: Accept-Encoding
 | 로컬 캐시 (Caffeine 등) | 5초 ~ 1분 | JVM 내부, 네트워크 비용 없음 |
 | Redis | 1분 ~ 1시간 | 인스턴스 간 공유, DB 부하 감소 |
 
-### Spring Boot + Caffeine + Redis 2단 캐시
+### NestJS + node-cache + Redis 2단 캐시
 
-```java
-@Configuration
-@EnableCaching
-public class CacheConfig {
+```typescript
+// NestJS — L1(메모리) + L2(Redis) 2단 캐시 서비스
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import NodeCache from 'node-cache';
 
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory redisFactory) {
-        // L1: Caffeine (로컬)
-        CaffeineCacheManager localCacheManager = new CaffeineCacheManager();
-        localCacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(Duration.ofSeconds(10)));
+@Injectable()
+export class ProductCacheService {
+    // L1: 로컬 인메모리 캐시 (node-cache)
+    private readonly l1Cache = new NodeCache({ stdTTL: 10, maxKeys: 10_000 });
 
-        // L2: Redis
-        RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisFactory)
-                .cacheDefaults(RedisCacheConfiguration.defaultCacheConfig()
-                        .entryTtl(Duration.ofMinutes(10))
-                        .serializeValuesWith(
-                                SerializationPair.fromSerializer(
-                                        new GenericJackson2JsonRedisSerializer())))
-                .build();
+    constructor(
+        @InjectRedis() private readonly redis: Redis,
+        private readonly productRepository: ProductRepository,
+    ) {}
 
-        // L1 → L2 순서로 조회
-        return new CompositeCacheManager(localCacheManager, redisCacheManager);
-    }
-}
-```
+    async findById(id: number): Promise<Product> {
+        // L1 조회
+        const l1 = this.l1Cache.get<Product>(`product:${id}`);
+        if (l1) return l1;
 
-```java
-@Service
-public class ProductService {
+        // L2 조회
+        const json = await this.redis.get(`product:${id}`);
+        if (json) {
+            const product = JSON.parse(json) as Product;
+            this.l1Cache.set(`product:${id}`, product); // L1 채움
+            return product;
+        }
 
-    private final ProductRepository productRepository;
-    private final CacheManager cacheManager;
-
-    @Cacheable(value = "products", key = "#id")
-    public Product findById(Long id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없음: " + id));
+        // DB 조회
+        const product = await this.productRepository.findOneOrFail({ where: { id } });
+        this.l1Cache.set(`product:${id}`, product);
+        await this.redis.set(`product:${id}`, JSON.stringify(product), 'EX', 600);
+        return product;
     }
 
-    @CacheEvict(value = "products", key = "#id")
-    public Product update(Long id, ProductUpdateRequest request) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없음: " + id));
-        product.update(request);
-        return productRepository.save(product);
+    async evict(id: number): Promise<void> {
+        this.l1Cache.del(`product:${id}`);
+        await this.redis.del(`product:${id}`);
     }
 }
 ```
 
 `CompositeCacheManager`는 단순히 여러 CacheManager를 순서대로 조회한다. L1 miss → L2 조회 → L2 miss → DB 조회 흐름이 자동으로 동작한다. 다만 L1에 없고 L2에 있는 경우, L1에 자동으로 채우지 않는다. 이런 세밀한 제어가 필요하면 직접 구현해야 한다.
 
-```java
-@Service
-public class ProductCacheService {
+```typescript
+// NestJS — 세밀한 L1+L2 캐시 직접 구현 (L2 hit 시 L1에도 자동 채움)
+@Injectable()
+export class ProductCacheService {
+    private readonly l1Cache = new NodeCache({ stdTTL: 10, maxKeys: 10_000 });
 
-    private final Cache<Long, Product> localCache;
-    private final StringRedisTemplate redis;
-    private final ObjectMapper objectMapper;
-    private final ProductRepository productRepository;
+    constructor(
+        @InjectRedis() private readonly redis: Redis,
+        @InjectRepository(Product)
+        private readonly productRepository: Repository<Product>,
+    ) {}
 
-    public ProductCacheService(StringRedisTemplate redis,
-                                ObjectMapper objectMapper,
-                                ProductRepository productRepository) {
-        this.localCache = Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(Duration.ofSeconds(10))
-                .build();
-        this.redis = redis;
-        this.objectMapper = objectMapper;
-        this.productRepository = productRepository;
-    }
-
-    public Product findById(Long id) {
+    async findById(id: number): Promise<Product> {
         // L1 조회
-        Product cached = localCache.getIfPresent(id);
-        if (cached != null) return cached;
+        const l1 = this.l1Cache.get<Product>(`product:${id}`);
+        if (l1) return l1;
 
         // L2 조회
-        String redisKey = "product:" + id;
-        String json = redis.opsForValue().get(redisKey);
-        if (json != null) {
-            Product product = objectMapper.readValue(json, Product.class);
-            localCache.put(id, product); // L1에 채움
+        const json = await this.redis.get(`product:${id}`);
+        if (json) {
+            const product = JSON.parse(json) as Product;
+            this.l1Cache.set(`product:${id}`, product); // L1에 채움
             return product;
         }
 
         // DB 조회
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없음: " + id));
+        const product = await this.productRepository.findOneByOrFail({ id });
 
         // L1, L2 모두 저장
-        localCache.put(id, product);
-        redis.opsForValue().set(redisKey,
-                objectMapper.writeValueAsString(product),
-                Duration.ofMinutes(10));
-
+        this.l1Cache.set(`product:${id}`, product);
+        await this.redis.set(`product:${id}`, JSON.stringify(product), 'EX', 600);
         return product;
     }
 
-    public void evict(Long id) {
-        localCache.invalidate(id);
-        redis.delete("product:" + id);
+    async evict(id: number): Promise<void> {
+        this.l1Cache.del(`product:${id}`);
+        await this.redis.del(`product:${id}`);
     }
 }
 ```
@@ -446,34 +446,38 @@ public class ProductCacheService {
 
 서버가 여러 대인 경우, 한 인스턴스에서 데이터를 수정하면 다른 인스턴스의 로컬 캐시는 여전히 이전 데이터를 가지고 있다. Redis Pub/Sub으로 캐시 무효화 이벤트를 전파하는 방식이 일반적이다.
 
-```java
-@Component
-public class CacheInvalidationPublisher {
+```typescript
+// NestJS — Redis Pub/Sub 캐시 무효화 Publisher
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    private final StringRedisTemplate redis;
-    private static final String CHANNEL = "cache:invalidation";
+const CHANNEL = 'cache:invalidation';
 
-    public void publishEviction(String cacheName, String key) {
-        String message = cacheName + ":" + key;
-        redis.convertAndSend(CHANNEL, message);
+@Injectable()
+export class CacheInvalidationPublisher {
+    constructor(@InjectRedis() private readonly redis: Redis) {}
+
+    async publishEviction(cacheName: string, key: string): Promise<void> {
+        await this.redis.publish(CHANNEL, `${cacheName}:${key}`);
     }
 }
 
-@Component
-public class CacheInvalidationSubscriber implements MessageListener {
+// NestJS — Redis Pub/Sub 캐시 무효화 Subscriber
+@Injectable()
+export class CacheInvalidationSubscriber {
+    private readonly l1Cache = new NodeCache({ stdTTL: 10 });
 
-    private final Cache<Long, Product> localCache;
-
-    @Override
-    public void onMessage(Message message, byte[] pattern) {
-        String payload = new String(message.getBody());
-        String[] parts = payload.split(":");
-        String cacheName = parts[0];
-        String key = parts[1];
-
-        if ("products".equals(cacheName)) {
-            localCache.invalidate(Long.parseLong(key));
-        }
+    constructor(@InjectRedis() private readonly redis: Redis) {
+        // 별도 subscriber 연결 (Redis 스펙상 subscribe 중엔 다른 명령 불가)
+        const sub = redis.duplicate();
+        void sub.subscribe(CHANNEL);
+        sub.on('message', (_channel: string, payload: string) => {
+            const [cacheName, key] = payload.split(':');
+            if (cacheName === 'products') {
+                this.l1Cache.del(`product:${key}`);
+            }
+        });
     }
 }
 ```
@@ -486,79 +490,84 @@ public class CacheInvalidationSubscriber implements MessageListener {
 
 캐시가 만료되는 순간 대량의 요청이 동시에 DB로 몰리는 현상이다. 인기 상품의 캐시가 만료되면 수십~수백 개의 요청이 동시에 같은 쿼리를 실행한다.
 
-```java
-public Product findById(Long id) {
-    String key = "product:" + id;
-    String json = redis.opsForValue().get(key);
-    if (json != null) return deserialize(json);
+```typescript
+// Cache Stampede 발생 케이스 — 동시 요청이 모두 DB로 몰린다
+async findById(id: number): Promise<Product> {
+    const key = `product:${id}`;
+    const json = await this.redis.get(key);
+    if (json) return JSON.parse(json) as Product;
 
     // 여기에 100개의 요청이 동시에 도달
     // → DB에 같은 쿼리 100번 실행
-    Product product = productRepository.findById(id).orElseThrow();
-    redis.opsForValue().set(key, serialize(product), Duration.ofMinutes(10));
+    const product = await this.productRepository.findOneByOrFail({ id });
+    await this.redis.set(key, JSON.stringify(product), 'EX', 600);
     return product;
 }
 ```
 
 해결 방법은 분산 락을 걸어 하나의 요청만 DB에 접근하게 하는 것이다.
 
-```java
-public Product findById(Long id) {
-    String key = "product:" + id;
-    String json = redis.opsForValue().get(key);
-    if (json != null) return deserialize(json);
+```typescript
+// 분산 락으로 Stampede 방지
+async findById(id: number): Promise<Product> {
+    const key = `product:${id}`;
+    const json = await this.redis.get(key);
+    if (json) return JSON.parse(json) as Product;
 
-    String lockKey = "lock:" + key;
-    Boolean acquired = redis.opsForValue()
-            .setIfAbsent(lockKey, "1", Duration.ofSeconds(5));
+    const lockKey = `lock:${key}`;
+    const acquired = await this.redis.set(lockKey, '1', 'EX', 5, 'NX');
 
-    if (Boolean.TRUE.equals(acquired)) {
+    if (acquired === 'OK') {
         try {
-            // 다시 한번 확인 (락 대기 중 다른 스레드가 캐시를 채웠을 수 있다)
-            json = redis.opsForValue().get(key);
-            if (json != null) return deserialize(json);
+            // 다시 한번 확인 (락 대기 중 다른 요청이 캐시를 채웠을 수 있다)
+            const cached = await this.redis.get(key);
+            if (cached) return JSON.parse(cached) as Product;
 
-            Product product = productRepository.findById(id).orElseThrow();
-            redis.opsForValue().set(key, serialize(product),
-                    Duration.ofMinutes(10));
+            const product = await this.productRepository.findOneByOrFail({ id });
+            await this.redis.set(key, JSON.stringify(product), 'EX', 600);
             return product;
         } finally {
-            redis.delete(lockKey);
+            await this.redis.del(lockKey);
         }
     } else {
         // 락 획득 실패: 잠깐 대기 후 재시도
-        Thread.sleep(50);
-        return findById(id);
+        await new Promise((r) => setTimeout(r, 50));
+        return this.findById(id);
     }
 }
 ```
 
 다른 방법은 TTL을 랜덤하게 분산시키는 것이다. 모든 캐시가 같은 시각에 만료되면 stampede가 발생하므로, 기본 TTL에 랜덤 값을 더한다.
 
-```java
-Duration ttl = Duration.ofMinutes(10)
-        .plusSeconds(ThreadLocalRandom.current().nextInt(0, 60));
-redis.opsForValue().set(key, serialize(product), ttl);
+```typescript
+// TTL 지터(jitter)로 stampede 방지 — 만료 시각을 분산시킨다
+const baseTtl = 600; // 10분
+const jitter = Math.floor(Math.random() * 60); // 0~59초 랜덤
+await this.redis.set(key, JSON.stringify(product), 'EX', baseTtl + jitter);
 ```
 
 ### 목록 API의 캐시 키 설계
 
 목록 API는 페이지네이션, 필터, 정렬 파라미터 조합이 다양해서 캐시 키 설계가 까다롭다.
 
-```java
-public String buildCacheKey(ProductSearchRequest request) {
+```typescript
+import { createHash } from 'crypto';
+
+function buildCacheKey(request: ProductSearchRequest): string {
     // 파라미터 정렬 후 해시 → 같은 조건이면 같은 키
-    Map<String, String> sorted = new TreeMap<>();
-    sorted.put("category", String.valueOf(request.getCategoryId()));
-    sorted.put("page", String.valueOf(request.getPage()));
-    sorted.put("size", String.valueOf(request.getSize()));
-    sorted.put("sort", request.getSort());
+    const sorted: Record<string, string> = {
+        category: String(request.categoryId),
+        page: String(request.page),
+        size: String(request.size),
+        sort: request.sort,
+    };
 
-    String params = sorted.entrySet().stream()
-            .map(e -> e.getKey() + "=" + e.getValue())
-            .collect(Collectors.joining("&"));
+    const params = Object.entries(sorted)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('&');
 
-    return "products:list:" + DigestUtils.md5Hex(params);
+    return `products:list:${createHash('md5').update(params).digest('hex')}`;
 }
 ```
 
@@ -568,21 +577,25 @@ public String buildCacheKey(ProductSearchRequest request) {
 
 서버를 새로 배포하면 캐시가 비어있으니 배포 직후에 DB 부하가 치솟을 수 있다. 배포 시 자주 요청되는 데이터를 미리 캐시에 채워두는 예열이 필요하다.
 
-```java
-@Component
-public class CacheWarmer implements ApplicationRunner {
+```typescript
+// NestJS — 애플리케이션 시작 시 캐시 예열
+import { Injectable } from '@nestjs/common';
+import { OnApplicationBootstrap } from '@nestjs/common';
 
-    private final ProductService productService;
-    private final CategoryService categoryService;
+@Injectable()
+export class CacheWarmer implements OnApplicationBootstrap {
+    constructor(
+        private readonly productService: ProductService,
+        private readonly categoryService: CategoryService,
+    ) {}
 
-    @Override
-    public void run(ApplicationArguments args) {
+    async onApplicationBootstrap(): Promise<void> {
         // 인기 상품 Top 100 캐시 예열
-        List<Long> popularIds = productService.getPopularProductIds(100);
-        popularIds.forEach(productService::findById);
+        const popularIds = await this.productService.getPopularProductIds(100);
+        await Promise.all(popularIds.map((id) => this.productService.findById(id)));
 
         // 카테고리 목록은 거의 안 바뀌므로 전체 예열
-        categoryService.findAll();
+        await this.categoryService.findAll();
     }
 }
 ```
@@ -595,36 +608,38 @@ Redis를 공유 캐시로 쓰고 있으면 배포 시 로컬 캐시만 비어있
 
 **Write-Through**: 데이터 수정 시 DB와 캐시를 동시에 갱신한다. 일관성은 보장되지만 쓰기 지연이 생긴다.
 
-```java
-public Product update(Long id, ProductUpdateRequest request) {
-    Product product = productRepository.findById(id).orElseThrow();
-    product.update(request);
-    productRepository.save(product);
+```typescript
+// Write-Through: DB와 캐시를 동시에 갱신
+async update(id: number, request: ProductUpdateRequest): Promise<Product> {
+    const product = await this.productRepository.findOneByOrFail({ id });
+    Object.assign(product, request);
+    await this.productRepository.save(product);
 
     // DB 저장 직후 캐시도 갱신
-    String key = "product:" + id;
-    redis.opsForValue().set(key, serialize(product), Duration.ofMinutes(10));
-
+    const key = `product:${id}`;
+    await this.redis.set(key, JSON.stringify(product), 'EX', 600);
     return product;
 }
 ```
 
 **Write-Behind (Write-Back)**: 캐시만 먼저 갱신하고, DB 반영은 비동기로 처리한다. 쓰기가 빠르지만 캐시가 죽으면 데이터를 잃는다. 조회수, 좋아요 수 같은 유실돼도 치명적이지 않은 데이터에 적합하다.
 
-```java
-@Scheduled(fixedDelay = 5000)
-public void flushViewCounts() {
-    Set<String> keys = redis.keys("view_count:product:*");
-    if (keys == null || keys.isEmpty()) return;
+```typescript
+// Write-Behind: 조회수 Redis에 쌓고 5초마다 DB에 반영
+import { Cron, CronExpression } from '@nestjs/schedule';
 
-    for (String key : keys) {
-        String countStr = redis.opsForValue().getAndDelete(key);
-        if (countStr == null) continue;
+@Cron(CronExpression.EVERY_5_SECONDS)
+async flushViewCounts(): Promise<void> {
+    const keys = await this.redis.keys('view_count:product:*');
+    if (!keys.length) return;
 
-        Long productId = extractProductId(key);
-        int count = Integer.parseInt(countStr);
+    for (const key of keys) {
+        const countStr = await this.redis.getdel(key);
+        if (!countStr) continue;
 
-        productRepository.incrementViewCount(productId, count);
+        const productId = Number(key.split(':').at(-1));
+        const count = Number(countStr);
+        await this.productRepository.increment({ id: productId }, 'viewCount', count);
     }
 }
 ```

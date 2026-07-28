@@ -35,57 +35,133 @@ payload에는 `sub`(사용자 ID), `roles`(역할 배열), `exp`, `iat` 정도�
 
 access token 만료 시간을 짧게 잡으면(15분 이하) 보안은 좋지만, 클라이언트에서 만료 처리를 제대로 안 하면 사용자가 수시로 로그아웃된다.
 
-서버 측 검증 시 주의할 점:
+NestJS에서 passport-jwt로 토큰을 검증할 때 주의할 점:
 
-```java
-try {
-    Claims claims = Jwts.parserBuilder()
-        .setSigningKey(secretKey)
-        .setAllowedClockSkewSeconds(30) // 서버 간 시간 차이 허용
-        .build()
-        .parseClaimsJws(token)
-        .getBody();
-} catch (ExpiredJwtException e) {
-    // 만료된 토큰이라도 claims는 꺼낼 수 있다
-    // refresh 토큰 갱신 시 사용자 식별에 쓸 수 있음
-    Claims claims = e.getClaims();
-    String userId = claims.getSubject();
+```typescript
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+
+interface JwtPayload {
+  sub: string;
+  roles: string[];
+  exp: number;
+  iat: number;
+  ver?: number;
+}
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(private configService: ConfigService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_SECRET'),
+      // clockTolerance: 서버 간 시간 차이 허용 (초 단위)
+      clockTolerance: 30,
+    });
+  }
+
+  async validate(payload: JwtPayload): Promise<JwtPayload> {
+    return payload;
+  }
 }
 ```
 
-`setAllowedClockSkewSeconds`를 안 넣으면 서버 간 시간이 1초만 어긋나도 토큰 검증이 실패한다. 멀티 인스턴스 환경에서 NTP 동기화가 완벽하지 않은 경우 반드시 넣어야 한다.
+`clockTolerance`를 안 넣으면 서버 간 시간이 1초만 어긋나도 토큰 검증이 실패한다. 멀티 인스턴스 환경에서 NTP 동기화가 완벽하지 않은 경우 반드시 넣어야 한다.
+
+만료된 토큰에서 사용자 식별 정보를 꺼내야 하는 경우(refresh token 갱신):
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+
+@Injectable()
+export class TokenService {
+  constructor(private jwtService: JwtService) {}
+
+  extractExpiredPayload(token: string): JwtPayload | null {
+    try {
+      // ignoreExpiration: true로 만료된 토큰도 파싱 가능
+      return this.jwtService.verify(token, { ignoreExpiration: true }) as JwtPayload;
+    } catch {
+      return null;
+    }
+  }
+}
+```
 
 ### Refresh Token Rotation
 
 refresh token은 한 번 사용하면 폐기하고 새 refresh token을 발급한다. 탈취된 refresh token이 재사용되면 즉시 감지할 수 있다.
 
-```java
-@Transactional
-public TokenPair refresh(String refreshToken) {
-    RefreshTokenEntity stored = refreshTokenRepository
-        .findByToken(refreshToken)
-        .orElseThrow(() -> new InvalidTokenException("존재하지 않는 토큰"));
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { RefreshTokenEntity } from './refresh-token.entity';
 
-    // 이미 사용된 토큰이면 토큰 탈취로 판단
-    if (stored.isUsed()) {
+interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    @InjectRepository(RefreshTokenEntity)
+    private refreshTokenRepository: Repository<RefreshTokenEntity>,
+    private dataSource: DataSource,
+  ) {}
+
+  async refresh(refreshToken: string): Promise<TokenPair> {
+    return this.dataSource.transaction(async (manager) => {
+      const stored = await manager.findOne(RefreshTokenEntity, {
+        where: { token: refreshToken },
+      });
+
+      if (!stored) {
+        throw new Error('존재하지 않는 토큰');
+      }
+
+      // 이미 사용된 토큰이면 토큰 탈취로 판단
+      if (stored.isUsed) {
         // 해당 사용자의 모든 refresh token 폐기
-        refreshTokenRepository.revokeAllByUserId(stored.getUserId());
-        throw new TokenTheftException("토큰 재사용 감지");
-    }
+        await manager.update(
+          RefreshTokenEntity,
+          { userId: stored.userId },
+          { isUsed: true },
+        );
+        throw new Error('토큰 재사용 감지');
+      }
 
-    // 현재 토큰을 사용 처리
-    stored.markAsUsed();
-    refreshTokenRepository.save(stored);
+      // 현재 토큰을 사용 처리
+      stored.isUsed = true;
+      await manager.save(stored);
 
-    // 새 토큰 쌍 발급
-    String newAccessToken = generateAccessToken(stored.getUserId());
-    String newRefreshToken = generateRefreshToken(stored.getUserId());
+      // 새 토큰 쌍 발급
+      const newAccessToken = this.generateAccessToken(stored.userId);
+      const newRefreshToken = this.generateRefreshToken(stored.userId);
 
-    refreshTokenRepository.save(
-        new RefreshTokenEntity(newRefreshToken, stored.getUserId())
-    );
+      const newEntity = manager.create(RefreshTokenEntity, {
+        token: newRefreshToken,
+        userId: stored.userId,
+      });
+      await manager.save(newEntity);
 
-    return new TokenPair(newAccessToken, newRefreshToken);
+      return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    });
+  }
+
+  private generateAccessToken(userId: string): string {
+    // JwtService.sign() 호출
+    return '';
+  }
+
+  private generateRefreshToken(userId: string): string {
+    return '';
+  }
 }
 ```
 
@@ -97,58 +173,111 @@ JWT는 stateless가 장점인데, 그게 단점도 된다. 만료 전에는 폐�
 
 표준 방식은 `jti`(JWT ID) 클레임을 넣고, 폐기된 jti를 Redis에 올려놓는 것이다. 모든 access token에 jti를 발급한다.
 
-```java
-public String generateAccessToken(String userId) {
-    String jti = UUID.randomUUID().toString();
-    return Jwts.builder()
-        .setId(jti)
-        .setSubject(userId)
-        .setIssuedAt(new Date())
-        .setExpiration(Date.from(Instant.now().plusSeconds(900)))
-        .signWith(secretKey)
-        .compact();
+```typescript
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { v4 as uuidv4 } from 'uuid';
+
+@Injectable()
+export class TokenService {
+  constructor(private jwtService: JwtService) {}
+
+  generateAccessToken(userId: string): string {
+    const jti = uuidv4();
+    return this.jwtService.sign(
+      { sub: userId, jti },
+      { expiresIn: '15m' },
+    );
+  }
 }
 ```
 
 폐기 시 Redis에 jti를 저장한다. TTL은 토큰 남은 만료 시간으로 잡는다. 만료가 지나면 어차피 토큰이 무효라 blacklist에 둘 필요가 없다.
 
-```java
-public void revokeToken(String jti, long expiresInSeconds) {
-    String key = "jwt:blacklist:" + jti;
-    redis.opsForValue().set(key, "1", Duration.ofSeconds(expiresInSeconds));
-}
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-public void revokeAllUserTokens(String userId) {
+@Injectable()
+export class TokenBlacklistService {
+  constructor(@InjectRedis() private redis: Redis) {}
+
+  async revokeToken(jti: string, expiresInSeconds: number): Promise<void> {
+    const key = `jwt:blacklist:${jti}`;
+    await this.redis.set(key, '1', 'EX', expiresInSeconds);
+  }
+
+  async revokeAllUserTokens(userId: string): Promise<void> {
     // 사용자 전체 토큰 무효화는 jti 단위로는 어렵다
     // 사용자별 token version을 올리는 방식이 실무에서 많이 쓴다
-    String key = "jwt:user_version:" + userId;
-    redis.opsForValue().increment(key);
+    const key = `jwt:user_version:${userId}`;
+    await this.redis.incr(key);
+  }
 }
 ```
 
-검증 필터에서는 jti를 매번 Redis에 조회한다. 모든 요청에서 1번 추가 조회가 발생하지만, Redis 단순 GET은 1ms 미만이라 실측상 큰 부담은 아니다. 캐시 미스를 줄이려면 Caffeine 같은 로컬 캐시를 1~2초짜리로 앞에 두면 된다.
+검증 Guard에서는 jti를 매번 Redis에 조회한다. 모든 요청에서 1번 추가 조회가 발생하지만, Redis 단순 GET은 1ms 미만이라 실측상 큰 부담은 아니다.
 
-```java
-public Authentication authenticate(String token) {
-    Claims claims = parseToken(token);
-    String jti = claims.getId();
+```typescript
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { JwtService } from '@nestjs/jwt';
+
+interface JwtPayload {
+  sub: string;
+  jti: string;
+  ver?: number;
+}
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  constructor(
+    private jwtService: JwtService,
+    @InjectRedis() private redis: Redis,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = this.extractToken(request);
+
+    if (!token) throw new UnauthorizedException();
+
+    let payload: JwtPayload;
+    try {
+      payload = this.jwtService.verify(token) as JwtPayload;
+    } catch {
+      throw new UnauthorizedException();
+    }
+
+    const { jti, sub: userId, ver: tokenVersion } = payload;
 
     // blacklist 조회
-    if (Boolean.TRUE.equals(redis.hasKey("jwt:blacklist:" + jti))) {
-        throw new InvalidTokenException("폐기된 토큰");
+    const isBlacklisted = await this.redis.exists(`jwt:blacklist:${jti}`);
+    if (isBlacklisted) {
+      throw new UnauthorizedException('폐기된 토큰');
     }
 
     // 사용자 단위 무효화 (token version)
-    String userId = claims.getSubject();
-    Long tokenVersion = claims.get("ver", Long.class);
-    String currentVersion = redis.opsForValue()
-        .get("jwt:user_version:" + userId);
-    if (currentVersion != null
-            && Long.parseLong(currentVersion) > tokenVersion) {
-        throw new InvalidTokenException("사용자 토큰 버전 불일치");
+    const currentVersion = await this.redis.get(`jwt:user_version:${userId}`);
+    if (
+      currentVersion !== null &&
+      tokenVersion !== undefined &&
+      Number(currentVersion) > tokenVersion
+    ) {
+      throw new UnauthorizedException('사용자 토큰 버전 불일치');
     }
 
-    return buildAuthentication(claims);
+    request.user = payload;
+    return true;
+  }
+
+  private extractToken(request: Request): string | null {
+    const authHeader = (request as any).headers?.authorization as string;
+    if (!authHeader?.startsWith('Bearer ')) return null;
+    return authHeader.slice(7);
+  }
 }
 ```
 
@@ -174,67 +303,28 @@ public Authentication authenticate(String token) {
 5. 서버가 code_verifier를 해시해서 code_challenge와 비교
 ```
 
-Spring Security로 구현할 때:
+NestJS 환경에서 PKCE를 직접 구현해야 하는 경우:
 
-```java
-@Configuration
-@EnableWebSecurity
-public class OAuth2Config {
+```typescript
+import * as crypto from 'crypto';
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.oauth2Login(oauth2 -> oauth2
-            .authorizationEndpoint(auth -> auth
-                .authorizationRequestResolver(
-                    pkceAuthorizationRequestResolver()
-                )
-            )
-        );
-        return http.build();
-    }
+export class PkceUtil {
+  static generateCodeVerifier(): string {
+    const bytes = crypto.randomBytes(32);
+    return bytes.toString('base64url');
+  }
 
-    private OAuth2AuthorizationRequestResolver pkceAuthorizationRequestResolver() {
-        DefaultOAuth2AuthorizationRequestResolver resolver =
-            new DefaultOAuth2AuthorizationRequestResolver(
-                clientRegistrationRepository,
-                "/oauth2/authorization"
-            );
-
-        // PKCE 파라미터 자동 추가
-        resolver.setAuthorizationRequestCustomizer(
-            OAuth2AuthorizationRequestCustomizers.withPkce()
-        );
-        return resolver;
-    }
+  static generateCodeChallenge(codeVerifier: string): string {
+    const hash = crypto
+      .createHash('sha256')
+      .update(codeVerifier, 'utf8')
+      .digest();
+    return hash.toString('base64url');
+  }
 }
 ```
 
-Spring Security 6.x부터는 `withPkce()`를 호출하면 code_verifier 생성, code_challenge 계산, 세션 저장까지 자동 처리된다. 직접 구현할 필요 없다.
-
-직접 구현해야 하는 경우(비 Spring 환경):
-
-```java
-public class PkceUtil {
-
-    public static String generateCodeVerifier() {
-        byte[] bytes = new byte[32];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    public static String generateCodeChallenge(String codeVerifier) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.UTF_8));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-}
-```
-
-code_verifier는 반드시 `SecureRandom`을 써야 한다. `Math.random()`이나 `UUID.randomUUID()`는 예측 가능성이 있다.
+code_verifier는 반드시 `crypto.randomBytes()`를 써야 한다. `Math.random()`은 예측 가능성이 있다.
 
 ### Resource Server 검증 패턴
 
@@ -242,51 +332,66 @@ OAuth2에서 access token을 받은 Resource Server(API 서버)가 토큰을 검
 
 **JWT 자체 검증 (local validation)**: 토큰 안에 서명이 들어 있어서 서버에서 공개키로 검증만 하면 된다. Authorization Server에 요청을 보낼 필요가 없다. Auth Server의 JWKS 엔드포인트에서 공개키를 받아 캐시한다.
 
-```java
-@Configuration
-@EnableWebSecurity
-public class ResourceServerConfig {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { passportJwtSecret } from 'jwks-rsa';
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.oauth2ResourceServer(oauth2 -> oauth2
-            .jwt(jwt -> jwt
-                .jwkSetUri("https://auth.example.com/.well-known/jwks.json")
-                .jwtAuthenticationConverter(jwtAuthenticationConverter())
-            )
-        );
-        return http.build();
-    }
+@Injectable()
+export class JwksStrategy extends PassportStrategy(Strategy, 'jwks') {
+  constructor() {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKeyProvider: passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: 'https://auth.example.com/.well-known/jwks.json',
+      }),
+    });
+  }
 
-    private JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter converter =
-            new JwtGrantedAuthoritiesConverter();
-        converter.setAuthorityPrefix("SCOPE_");
-        converter.setAuthoritiesClaimName("scope");
-
-        JwtAuthenticationConverter jwtConverter =
-            new JwtAuthenticationConverter();
-        jwtConverter.setJwtGrantedAuthoritiesConverter(converter);
-        return jwtConverter;
-    }
+  async validate(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return payload;
+  }
 }
 ```
 
 **Token Introspection (RFC 7662)**: 토큰을 받을 때마다 Authorization Server에 물어본다. opaque token(서명되지 않은 임의 문자열)을 쓸 때 사용한다.
 
-```java
-@Bean
-public OpaqueTokenIntrospector introspector() {
-    return new SpringOpaqueTokenIntrospector(
-        "https://auth.example.com/oauth2/introspect",
-        "client-id",
-        "client-secret"
-    );
+```typescript
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+
+interface IntrospectionResponse {
+  active: boolean;
+  scope?: string;
+  client_id?: string;
+  username?: string;
+  exp?: number;
+  sub?: string;
 }
 
-http.oauth2ResourceServer(oauth2 -> oauth2
-    .opaqueToken(opaque -> opaque.introspector(introspector()))
-);
+@Injectable()
+export class OpaqueTokenIntrospector {
+  constructor(private httpService: HttpService) {}
+
+  async introspect(token: string): Promise<IntrospectionResponse> {
+    const { data } = await firstValueFrom(
+      this.httpService.post<IntrospectionResponse>(
+        'https://auth.example.com/oauth2/introspect',
+        new URLSearchParams({ token }),
+        {
+          auth: { username: 'client-id', password: 'client-secret' },
+        },
+      ),
+    );
+    return data;
+  }
+}
 ```
 
 introspection 응답은 RFC 7662 표준 형식을 따른다.
@@ -317,38 +422,44 @@ introspection 응답은 RFC 7662 표준 형식을 따른다.
 
 introspection을 쓸 때는 캐시가 필수다. 매 API 요청마다 Auth Server를 때리면 Auth Server가 병목이 된다.
 
-```java
-@Bean
-public OpaqueTokenIntrospector cachedIntrospector(
-        OpaqueTokenIntrospector delegate,
-        CacheManager cacheManager) {
-    return new CachingOpaqueTokenIntrospector(
-        delegate,
-        cacheManager.getCache("introspection"),
-        Duration.ofSeconds(60) // 토큰 유효 기간보다 짧게
-    );
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import * as crypto from 'crypto';
+
+interface IntrospectionResponse {
+  active: boolean;
+  sub?: string;
+  scope?: string;
 }
 
-public class CachingOpaqueTokenIntrospector implements OpaqueTokenIntrospector {
+@Injectable()
+export class CachingOpaqueTokenIntrospector {
+  private readonly ttlSeconds = 60; // 토큰 유효 기간보다 짧게
 
-    private final OpaqueTokenIntrospector delegate;
-    private final Cache cache;
-    private final Duration ttl;
+  constructor(
+    private delegate: OpaqueTokenIntrospector,
+    @InjectRedis() private redis: Redis,
+  ) {}
 
-    public OAuth2AuthenticatedPrincipal introspect(String token) {
-        // 토큰 자체를 캐시 키로 쓰면 토큰이 로그에 남을 수 있다
-        // SHA-256 해시를 키로 쓰는 게 안전하다
-        String cacheKey = sha256(token);
-        OAuth2AuthenticatedPrincipal cached =
-            cache.get(cacheKey, OAuth2AuthenticatedPrincipal.class);
-        if (cached != null) {
-            return cached;
-        }
+  async introspect(token: string): Promise<IntrospectionResponse> {
+    // 토큰 자체를 캐시 키로 쓰면 토큰이 로그에 남을 수 있다
+    // SHA-256 해시를 키로 쓰는 게 안전하다
+    const cacheKey = `introspection:${crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex')}`;
 
-        OAuth2AuthenticatedPrincipal principal = delegate.introspect(token);
-        cache.put(cacheKey, principal);
-        return principal;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as IntrospectionResponse;
     }
+
+    const result = await this.delegate.introspect(token);
+    await this.redis.set(cacheKey, JSON.stringify(result), 'EX', this.ttlSeconds);
+    return result;
+  }
 }
 ```
 
@@ -362,31 +473,52 @@ public class CachingOpaqueTokenIntrospector implements OpaqueTokenIntrospector {
 
 API Key는 충분히 길어야 한다. 최소 32바이트(256비트). 저장할 때는 해시값만 저장하고, 원본은 발급 시점에만 보여준다.
 
-```java
-@Transactional
-public ApiKeyResponse issueApiKey(Long clientId, String description) {
-    // 원본 키 생성
-    byte[] keyBytes = new byte[32];
-    new SecureRandom().nextBytes(keyBytes);
-    String rawKey = "sk_live_" + Base64.getUrlEncoder()
-        .withoutPadding().encodeToString(keyBytes);
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import * as crypto from 'crypto';
+import { ApiKeyEntity } from './api-key.entity';
 
-    // prefix만 저장 (목록 조회용)
-    String prefix = rawKey.substring(0, 12);
+interface ApiKeyResponse {
+  rawKey: string;
+  prefix: string;
+  id: number;
+}
 
-    // SHA-256 해시만 DB에 저장
-    String hashedKey = sha256(rawKey);
+@Injectable()
+export class ApiKeyService {
+  constructor(
+    @InjectRepository(ApiKeyEntity)
+    private apiKeyRepository: Repository<ApiKeyEntity>,
+    private dataSource: DataSource,
+  ) {}
 
-    ApiKeyEntity entity = new ApiKeyEntity();
-    entity.setClientId(clientId);
-    entity.setKeyHash(hashedKey);
-    entity.setKeyPrefix(prefix);
-    entity.setDescription(description);
-    entity.setCreatedAt(Instant.now());
-    apiKeyRepository.save(entity);
+  async issueApiKey(clientId: number, description: string): Promise<ApiKeyResponse> {
+    return this.dataSource.transaction(async (manager) => {
+      // 원본 키 생성
+      const keyBytes = crypto.randomBytes(32);
+      const rawKey = `sk_live_${keyBytes.toString('base64url')}`;
 
-    // 원본은 이 응답에서만 보여줌
-    return new ApiKeyResponse(rawKey, prefix, entity.getId());
+      // prefix만 저장 (목록 조회용)
+      const prefix = rawKey.substring(0, 12);
+
+      // SHA-256 해시만 DB에 저장
+      const hashedKey = crypto.createHash('sha256').update(rawKey).digest('hex');
+
+      const entity = manager.create(ApiKeyEntity, {
+        clientId,
+        keyHash: hashedKey,
+        keyPrefix: prefix,
+        description,
+        createdAt: new Date(),
+      });
+      const saved = await manager.save(entity);
+
+      // 원본은 이 응답에서만 보여줌
+      return { rawKey, prefix, id: saved.id };
+    });
+  }
 }
 ```
 
@@ -396,17 +528,39 @@ prefix(`sk_live_`)를 붙이는 이유: 로그나 코드에서 실수로 노출�
 
 즉시 폐기가 가능해야 한다. API Key 검증 시 캐시를 쓰고 있다면, 폐기 시점에 캐시도 같이 날려야 한다.
 
-```java
-@Transactional
-public void revokeApiKey(Long keyId, Long clientId) {
-    ApiKeyEntity key = apiKeyRepository.findByIdAndClientId(keyId, clientId)
-        .orElseThrow(() -> new NotFoundException("API Key not found"));
+```typescript
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
+import { ApiKeyEntity } from './api-key.entity';
 
-    key.setRevokedAt(Instant.now());
-    apiKeyRepository.save(key);
+@Injectable()
+export class ApiKeyService {
+  constructor(
+    @InjectRepository(ApiKeyEntity)
+    private apiKeyRepository: Repository<ApiKeyEntity>,
+    private dataSource: DataSource,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
-    // 캐시 즉시 무효화
-    apiKeyCache.evict(key.getKeyHash());
+  async revokeApiKey(keyId: number, clientId: number): Promise<void> {
+    return this.dataSource.transaction(async (manager) => {
+      const key = await manager.findOne(ApiKeyEntity, {
+        where: { id: keyId, clientId },
+      });
+
+      if (!key) throw new NotFoundException('API Key not found');
+
+      key.revokedAt = new Date();
+      await manager.save(key);
+
+      // 캐시 즉시 무효화
+      await this.cacheManager.del(key.keyHash);
+    });
+  }
 }
 ```
 
@@ -416,40 +570,49 @@ public void revokeApiKey(Long keyId, Long clientId) {
 
 API Key별로 rate limit을 걸어야 한다. Redis의 sliding window 방식이 실무에서 가장 많이 쓰인다.
 
-```java
-@Component
-public class ApiKeyRateLimiter {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    private final StringRedisTemplate redis;
+interface RateLimitPlan {
+  windowMillis: number;
+  maxRequests: number;
+}
 
-    public boolean isAllowed(String keyHash, RateLimitPlan plan) {
-        String redisKey = "rate:" + keyHash;
-        long now = Instant.now().toEpochMilli();
-        long windowStart = now - plan.getWindowMillis();
+@Injectable()
+export class ApiKeyRateLimiter {
+  constructor(@InjectRedis() private redis: Redis) {}
 
-        // Lua 스크립트로 원자적 처리
-        String luaScript = """
-            redis.call('ZREMRANGEBYSCORE', KEYS[1], '0', ARGV[1])
-            local count = redis.call('ZCARD', KEYS[1])
-            if count < tonumber(ARGV[2]) then
-                redis.call('ZADD', KEYS[1], ARGV[3], ARGV[3])
-                redis.call('EXPIRE', KEYS[1], ARGV[4])
-                return 1
-            end
-            return 0
-            """;
+  async isAllowed(keyHash: string, plan: RateLimitPlan): Promise<boolean> {
+    const redisKey = `rate:${keyHash}`;
+    const now = Date.now();
+    const windowStart = now - plan.windowMillis;
 
-        Long result = redis.execute(
-            new DefaultRedisScript<>(luaScript, Long.class),
-            List.of(redisKey),
-            String.valueOf(windowStart),
-            String.valueOf(plan.getMaxRequests()),
-            String.valueOf(now),
-            String.valueOf(plan.getWindowMillis() / 1000 + 1)
-        );
+    // Lua 스크립트로 원자적 처리
+    const luaScript = `
+      redis.call('ZREMRANGEBYSCORE', KEYS[1], '0', ARGV[1])
+      local count = redis.call('ZCARD', KEYS[1])
+      if count < tonumber(ARGV[2]) then
+        redis.call('ZADD', KEYS[1], ARGV[3], ARGV[3])
+        redis.call('EXPIRE', KEYS[1], ARGV[4])
+        return 1
+      end
+      return 0
+    `;
 
-        return result != null && result == 1;
-    }
+    const result = await this.redis.eval(
+      luaScript,
+      1,
+      redisKey,
+      String(windowStart),
+      String(plan.maxRequests),
+      String(now),
+      String(Math.ceil(plan.windowMillis / 1000) + 1),
+    );
+
+    return result === 1;
+  }
 }
 ```
 
@@ -457,10 +620,19 @@ Lua 스크립트를 쓰는 이유: ZREMRANGEBYSCORE → ZCARD → ZADD를 별도
 
 rate limit 응답 헤더도 내려줘야 한다:
 
-```java
-response.setHeader("X-RateLimit-Limit", String.valueOf(plan.getMaxRequests()));
-response.setHeader("X-RateLimit-Remaining", String.valueOf(remaining));
-response.setHeader("X-RateLimit-Reset", String.valueOf(resetTimestamp));
+```typescript
+import { Response } from 'express';
+
+function setRateLimitHeaders(
+  res: Response,
+  maxRequests: number,
+  remaining: number,
+  resetTimestamp: number,
+): void {
+  res.setHeader('X-RateLimit-Limit', String(maxRequests));
+  res.setHeader('X-RateLimit-Remaining', String(remaining));
+  res.setHeader('X-RateLimit-Reset', String(resetTimestamp));
+}
 ```
 
 ### 키 회전 (rotation)
@@ -490,28 +662,54 @@ CREATE TABLE api_keys (
 2. 클라이언트가 새 키로 교체. `last_used_at`을 보면서 옛 키가 여전히 쓰이는지 모니터링.
 3. 옛 키 사용이 멈추거나 grace period(보통 7~30일)가 지나면 옛 키 폐기.
 
-```java
-@Transactional
-public ApiKeyResponse rotateApiKey(Long oldKeyId, Long clientId, Duration gracePeriod) {
-    ApiKeyEntity oldKey = apiKeyRepository.findByIdAndClientId(oldKeyId, clientId)
-        .orElseThrow(() -> new NotFoundException("API Key not found"));
+```typescript
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { ApiKeyEntity } from './api-key.entity';
 
-    if (oldKey.getRevokedAt() != null) {
-        throw new IllegalStateException("이미 폐기된 키");
-    }
+@Injectable()
+export class ApiKeyService {
+  constructor(
+    @InjectRepository(ApiKeyEntity)
+    private apiKeyRepository: Repository<ApiKeyEntity>,
+    private dataSource: DataSource,
+  ) {}
 
-    // 옛 키에 만료 시각 설정. 즉시 폐기는 아님
-    oldKey.setExpiresAt(Instant.now().plus(gracePeriod));
-    apiKeyRepository.save(oldKey);
+  async rotateApiKey(
+    oldKeyId: number,
+    clientId: number,
+    gracePeriodMs: number,
+  ): Promise<ApiKeyResponse> {
+    return this.dataSource.transaction(async (manager) => {
+      const oldKey = await manager.findOne(ApiKeyEntity, {
+        where: { id: oldKeyId, clientId },
+      });
 
-    // 새 키 발급
-    ApiKeyResponse newKey = issueApiKey(clientId, oldKey.getDescription());
+      if (!oldKey) throw new NotFoundException('API Key not found');
 
-    // 클라이언트에 회전 알림 (이메일, 웹훅)
-    rotationNotifier.notify(clientId, oldKey.getKeyPrefix(),
-        newKey.getPrefix(), oldKey.getExpiresAt());
+      if (oldKey.revokedAt !== null) {
+        throw new Error('이미 폐기된 키');
+      }
 
-    return newKey;
+      // 옛 키에 만료 시각 설정. 즉시 폐기는 아님
+      oldKey.expiresAt = new Date(Date.now() + gracePeriodMs);
+      await manager.save(oldKey);
+
+      // 새 키 발급
+      const newKey = await this.issueApiKey(clientId, oldKey.description);
+
+      // 클라이언트에 회전 알림 (이메일, 웹훅)
+      // rotationNotifier.notify(...)
+
+      return newKey;
+    });
+  }
+
+  private async issueApiKey(clientId: number, description: string): Promise<ApiKeyResponse> {
+    // 위 issueApiKey 구현 참조
+    return {} as ApiKeyResponse;
+  }
 }
 ```
 
@@ -521,11 +719,18 @@ public ApiKeyResponse rotateApiKey(Long oldKeyId, Long clientId, Duration graceP
 
 옛 키 만료가 임박했을 때 클라이언트가 아직 새 키로 교체 못 했으면 차단보다 알림이 먼저다. 이메일 + 응답 헤더로 경고한다.
 
-```java
-if (key.isExpiringSoon(Duration.ofDays(7))) {
-    response.setHeader("X-ApiKey-Deprecation",
-        "key " + key.getKeyPrefix() + " expires at " + key.getExpiresAt());
-    response.setHeader("Sunset", key.getExpiresAt().toString());
+```typescript
+import { Response } from 'express';
+import { ApiKeyEntity } from './api-key.entity';
+
+function setKeyDeprecationHeaders(res: Response, key: ApiKeyEntity): void {
+  if (key.expiresAt && key.expiresAt.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000) {
+    res.setHeader(
+      'X-ApiKey-Deprecation',
+      `key ${key.keyPrefix} expires at ${key.expiresAt.toISOString()}`,
+    );
+    res.setHeader('Sunset', key.expiresAt.toUTCString());
+  }
 }
 ```
 
@@ -541,32 +746,38 @@ API Key + IP allowlist 조합은 자주 쓰이지만, IP만 믿으면 안 된다
 
 **프록시 환경에서 IP 추출이 까다롭다.** ALB, CloudFront, Nginx 뒤에 있는 서버에서 클라이언트 IP를 받으려면 `X-Forwarded-For`를 파싱해야 하는데, 이 헤더는 클라이언트가 임의로 보낼 수 있다. 신뢰 가능한 프록시만 거치는지 확인 안 하고 `X-Forwarded-For`의 첫 IP를 그대로 쓰면 우회된다.
 
-```java
-public String getClientIp(HttpServletRequest request) {
-    // 신뢰할 수 있는 프록시 IP 목록
-    Set<String> trustedProxies = Set.of("10.0.0.0/8", "172.16.0.0/12");
+```typescript
+import { Request } from 'express';
 
-    String xForwardedFor = request.getHeader("X-Forwarded-For");
-    if (xForwardedFor == null) {
-        return request.getRemoteAddr();
-    }
+function getClientIp(request: Request): string {
+  // 신뢰할 수 있는 프록시 IP 목록
+  const trustedProxies = new Set(['10.0.0.0/8', '172.16.0.0/12']);
 
-    // X-Forwarded-For는 "client, proxy1, proxy2" 형태
-    // 오른쪽부터 신뢰 가능한 프록시를 벗기고, 첫 untrusted IP가 실제 클라이언트
-    String[] ips = xForwardedFor.split(",");
-    for (int i = ips.length - 1; i >= 0; i--) {
-        String ip = ips[i].trim();
-        if (!isTrustedProxy(ip, trustedProxies)) {
-            return ip;
-        }
+  const xForwardedFor = request.headers['x-forwarded-for'] as string | undefined;
+  if (!xForwardedFor) {
+    return request.socket.remoteAddress ?? '';
+  }
+
+  // X-Forwarded-For는 "client, proxy1, proxy2" 형태
+  // 오른쪽부터 신뢰 가능한 프록시를 벗기고, 첫 untrusted IP가 실제 클라이언트
+  const ips = xForwardedFor.split(',').map((ip) => ip.trim());
+  for (let i = ips.length - 1; i >= 0; i--) {
+    if (!isTrustedProxy(ips[i], trustedProxies)) {
+      return ips[i];
     }
-    return request.getRemoteAddr();
+  }
+  return request.socket.remoteAddress ?? '';
+}
+
+function isTrustedProxy(ip: string, trustedProxies: Set<string>): boolean {
+  // CIDR 매칭 라이브러리(ip-range-check 등) 사용 권장
+  return false;
 }
 ```
 
-이 작업은 직접 구현하지 말고 Spring의 `ForwardedHeaderFilter`나 `RemoteIpValve`(Tomcat)를 쓰는 게 안전하다. 직접 짜면 십중팔구 한두 곳에서 틀린다.
+이 작업은 직접 구현하기보다 NestJS의 `trust proxy` 설정이나 `express-ip` 미들웨어를 활용하는 게 안전하다. 직접 짜면 십중팔구 한두 곳에서 틀린다.
 
-**IPv6 매칭 실수.** allowlist를 IPv4만 검사하다가 IPv6로 들어오는 요청을 놓치는 경우가 있다. CIDR 매칭 라이브러리(`IPAddress`, `commons-net`)를 쓰는 게 안전하다.
+**IPv6 매칭 실수.** allowlist를 IPv4만 검사하다가 IPv6로 들어오는 요청을 놓치는 경우가 있다. CIDR 매칭 라이브러리를 쓰는 게 안전하다.
 
 결론: IP allowlist는 보조 통제다. 단독으로 쓰지 말고 API Key 또는 mTLS 같은 강한 인증과 같이 써야 의미가 있다. "IP만 맞으면 통과"는 사실상 인증이 없는 상태다.
 
@@ -578,81 +789,49 @@ public String getClientIp(HttpServletRequest request) {
 
 `Access-Control-Allow-Origin: *`와 `Access-Control-Allow-Credentials: true`는 동시에 쓸 수 없다. 브라우저가 거부한다.
 
-```java
-@Configuration
-public class CorsConfig implements WebMvcConfigurer {
+NestJS에서 CORS를 설정할 때:
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-            // 이렇게 하면 credentials 요청이 안 된다
-            // .allowedOrigins("*")
-            // .allowCredentials(true)
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
-            // 명시적으로 origin을 지정해야 한다
-            .allowedOrigins(
-                "https://app.example.com",
-                "https://admin.example.com"
-            )
-            .allowCredentials(true)
-            .allowedMethods("GET", "POST", "PUT", "DELETE")
-            .allowedHeaders("Authorization", "Content-Type")
-            .maxAge(3600);
-    }
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    // 이렇게 하면 credentials 요청이 안 된다
+    // origin: '*',
+    // credentials: true,
+
+    // 명시적으로 origin을 지정해야 한다
+    origin: ['https://app.example.com', 'https://admin.example.com'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+    maxAge: 3600,
+  });
+
+  await app.listen(3000);
 }
+bootstrap();
 ```
 
 ### preflight 캐시
 
-브라우저는 `Content-Type: application/json` 같은 비표준 헤더가 있으면 매번 OPTIONS preflight 요청을 보낸다. `maxAge`를 안 주면 매 API 호출마다 OPTIONS + 실제 요청, 총 2번 요청이 간다. `maxAge(3600)`을 주면 1시간 동안 preflight 결과를 캐시한다.
+브라우저는 `Content-Type: application/json` 같은 비표준 헤더가 있으면 매번 OPTIONS preflight 요청을 보낸다. `maxAge`를 안 주면 매 API 호출마다 OPTIONS + 실제 요청, 총 2번 요청이 간다. `maxAge: 3600`을 주면 1시간 동안 preflight 결과를 캐시한다.
 
 ### allowedHeaders 누락
 
-Spring에서 `allowedHeaders`를 지정하지 않으면 기본적으로 모든 헤더를 허용한다. 문제는 커스텀 헤더를 쓸 때 `exposedHeaders`를 안 넣는 경우다.
+클라이언트가 응답에서 커스텀 헤더를 읽어야 하는 경우:
 
-```java
-// 클라이언트가 응답에서 커스텀 헤더를 읽어야 하는 경우
-registry.addMapping("/api/**")
-    .exposedHeaders("X-Request-Id", "X-RateLimit-Remaining");
+```typescript
+app.enableCors({
+  origin: 'https://app.example.com',
+  exposedHeaders: ['X-Request-Id', 'X-RateLimit-Remaining'],
+});
 ```
 
 `exposedHeaders`를 안 넣으면 브라우저 JavaScript에서 해당 헤더 값을 읽을 수 없다. 네트워크 탭에서는 보이는데 코드에서 접근이 안 되면 이 설정을 확인해야 한다.
-
-### Spring Security와 CORS 충돌
-
-Spring Security를 쓰면 `WebMvcConfigurer`의 CORS 설정이 무시될 수 있다. Security 필터가 먼저 실행되기 때문이다.
-
-```java
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig {
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
-        return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-            "https://app.example.com"
-        ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-        return source;
-    }
-}
-```
-
-Spring Security를 쓰면 `SecurityFilterChain`에서 CORS를 설정하는 게 맞다. `WebMvcConfigurer`에만 넣으면 인증 실패 응답에 CORS 헤더가 안 붙어서, 클라이언트에서 401인지 CORS 에러인지 구분이 안 된다.
 
 ---
 
@@ -662,120 +841,94 @@ Spring Security를 쓰면 `SecurityFilterChain`에서 CORS를 설정하는 게 �
 
 ### 서명 생성
 
-```java
-public class HmacUtil {
+```typescript
+import * as crypto from 'crypto';
 
-    public static String sign(String secret, String payload) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec keySpec = new SecretKeySpec(
-                secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"
-            );
-            mac.init(keySpec);
-            byte[] hash = mac.doFinal(
-                payload.getBytes(StandardCharsets.UTF_8)
-            );
-            return Hex.encodeHexString(hash);
-        } catch (Exception e) {
-            throw new RuntimeException("HMAC 서명 실패", e);
-        }
-    }
+export class HmacUtil {
+  static sign(secret: string, payload: string): string {
+    return crypto
+      .createHmac('sha256', secret)
+      .update(payload, 'utf8')
+      .digest('hex');
+  }
 }
 ```
 
-### 서명 검증 필터
+### 서명 검증 NestJS Interceptor
 
-```java
-@Component
-public class HmacVerificationFilter extends OncePerRequestFilter {
+```typescript
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import * as crypto from 'crypto';
+import { Request, Response } from 'express';
 
-    private final WebhookSecretProvider secretProvider;
+@Injectable()
+export class HmacVerificationInterceptor implements NestInterceptor {
+  private readonly webhookSecret: string;
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain) throws ServletException, IOException {
+  constructor(webhookSecret: string) {
+    this.webhookSecret = webhookSecret;
+  }
 
-        // 서명 헤더 확인
-        String signature = request.getHeader("X-Signature-256");
-        String timestamp = request.getHeader("X-Timestamp");
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<Request & { rawBody?: Buffer }>();
 
-        if (signature == null || timestamp == null) {
-            response.sendError(401, "서명 헤더 누락");
-            return;
-        }
+    // 서명 헤더 확인
+    const signature = request.headers['x-signature-256'] as string | undefined;
+    const timestamp = request.headers['x-timestamp'] as string | undefined;
 
-        // 타임스탬프 검증 (replay attack 방지)
-        long requestTime = Long.parseLong(timestamp);
-        long now = Instant.now().getEpochSecond();
-        if (Math.abs(now - requestTime) > 300) { // 5분 허용
-            response.sendError(401, "요청 시간 초과");
-            return;
-        }
-
-        // body 읽기 (한 번만 읽을 수 있으므로 캐싱 필요)
-        CachedBodyHttpServletRequest cachedRequest =
-            new CachedBodyHttpServletRequest(request);
-        String body = new String(
-            cachedRequest.getInputStream().readAllBytes(),
-            StandardCharsets.UTF_8
-        );
-
-        // 서명 검증
-        String signPayload = timestamp + "." + body;
-        String expected = HmacUtil.sign(
-            secretProvider.getSecret(), signPayload
-        );
-
-        // timing-safe 비교
-        if (!MessageDigest.isEqual(
-                signature.getBytes(StandardCharsets.UTF_8),
-                ("sha256=" + expected).getBytes(StandardCharsets.UTF_8))) {
-            response.sendError(401, "서명 불일치");
-            return;
-        }
-
-        chain.doFilter(cachedRequest, response);
+    if (!signature || !timestamp) {
+      throw new UnauthorizedException('서명 헤더 누락');
     }
+
+    // 타임스탬프 검증 (replay attack 방지)
+    const requestTime = Number(timestamp);
+    const now = Math.floor(Date.now() / 1000);
+    if (Math.abs(now - requestTime) > 300) {
+      // 5분 허용
+      throw new UnauthorizedException('요청 시간 초과');
+    }
+
+    // body는 raw body middleware로 미리 파싱된 값을 사용
+    const body = request.rawBody?.toString('utf8') ?? '';
+
+    // 서명 검증
+    const signPayload = `${timestamp}.${body}`;
+    const expected = HmacUtil.sign(this.webhookSecret, signPayload);
+
+    // timing-safe 비교
+    const expectedBuf = Buffer.from(`sha256=${expected}`, 'utf8');
+    const signatureBuf = Buffer.from(signature, 'utf8');
+
+    if (
+      expectedBuf.length !== signatureBuf.length ||
+      !crypto.timingSafeEqual(expectedBuf, signatureBuf)
+    ) {
+      throw new UnauthorizedException('서명 불일치');
+    }
+
+    return next.handle();
+  }
 }
 ```
 
 중요한 부분 3가지:
 
-**1. timing-safe 비교를 써야 한다.** `String.equals()`는 첫 번째 다른 문자에서 바로 false를 리턴한다. 공격자가 응답 시간을 측정해서 서명을 한 글자씩 맞출 수 있다(timing attack). `MessageDigest.isEqual()`은 항상 전체 바이트를 비교한다.
+**1. timing-safe 비교를 써야 한다.** `===` 연산자는 첫 번째 다른 문자에서 바로 false를 리턴한다. 공격자가 응답 시간을 측정해서 서명을 한 글자씩 맞출 수 있다(timing attack). `crypto.timingSafeEqual()`은 항상 전체 바이트를 비교한다.
 
 **2. timestamp를 서명에 포함해야 한다.** timestamp 없이 body만 서명하면, 과거에 유효했던 요청을 그대로 다시 보내는 replay attack이 가능하다. timestamp를 서명 payload에 넣고, 서버에서 현재 시간과 비교해서 5분 이내 요청만 허용한다.
 
-**3. request body 캐싱이 필요하다.** `HttpServletRequest`의 `InputStream`은 한 번만 읽을 수 있다. 필터에서 서명 검증을 위해 읽으면, 컨트롤러에서 `@RequestBody`로 못 읽는다. `ContentCachingRequestWrapper`나 직접 만든 `CachedBodyHttpServletRequest`를 써서 body를 캐싱해야 한다.
+**3. request body 캐싱이 필요하다.** NestJS에서는 `rawBody` 옵션을 활성화하거나 별도 미들웨어로 raw body를 보존해야 한다.
 
-```java
-public class CachedBodyHttpServletRequest
-        extends HttpServletRequestWrapper {
-
-    private final byte[] cachedBody;
-
-    public CachedBodyHttpServletRequest(HttpServletRequest request)
-            throws IOException {
-        super(request);
-        this.cachedBody = request.getInputStream().readAllBytes();
-    }
-
-    @Override
-    public ServletInputStream getInputStream() {
-        ByteArrayInputStream bais = new ByteArrayInputStream(cachedBody);
-        return new ServletInputStream() {
-            @Override
-            public int read() { return bais.read(); }
-            @Override
-            public boolean isFinished() { return bais.available() == 0; }
-            @Override
-            public boolean isReady() { return true; }
-            @Override
-            public void setReadListener(ReadListener listener) {}
-        };
-    }
-}
+```typescript
+// main.ts에서 raw body 활성화
+const app = await NestFactory.create(AppModule, { rawBody: true });
 ```
 
 ### nonce 기반 replay 방어
@@ -784,41 +937,44 @@ timestamp 5분 윈도우만 두면 그 5분 안에는 같은 요청을 그대로
 
 nonce는 요청마다 유일한 값이다. UUID를 쓰는 게 일반적이다. 서버에서 받은 nonce는 Redis에 timestamp 윈도우와 같은 TTL로 저장한다. 같은 nonce가 다시 오면 replay로 본다.
 
-```java
-@Component
-public class NonceVerifier {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
-    private final StringRedisTemplate redis;
-    private static final Duration NONCE_TTL = Duration.ofMinutes(5);
+@Injectable()
+export class NonceVerifier {
+  private readonly NONCE_TTL_SECONDS = 300; // 5분
 
-    public boolean verifyAndStore(String clientId, String nonce) {
-        String key = "nonce:" + clientId + ":" + nonce;
+  constructor(@InjectRedis() private redis: Redis) {}
 
-        // SETNX: 키가 없을 때만 set, 있으면 false
-        Boolean inserted = redis.opsForValue()
-            .setIfAbsent(key, "1", NONCE_TTL);
+  async verifyAndStore(clientId: string, nonce: string): Promise<boolean> {
+    const key = `nonce:${clientId}:${nonce}`;
 
-        return Boolean.TRUE.equals(inserted);
-    }
+    // SET NX: 키가 없을 때만 set, 있으면 null 반환
+    const inserted = await this.redis.set(key, '1', 'EX', this.NONCE_TTL_SECONDS, 'NX');
+
+    return inserted === 'OK';
+  }
 }
 ```
 
-필터에 nonce 검증을 추가한다.
+Interceptor에 nonce 검증을 추가한다.
 
-```java
-String nonce = request.getHeader("X-Nonce");
-if (nonce == null || nonce.length() < 16) {
-    response.sendError(401, "nonce 누락 또는 길이 부족");
-    return;
+```typescript
+const nonce = request.headers['x-nonce'] as string | undefined;
+if (!nonce || nonce.length < 16) {
+  throw new UnauthorizedException('nonce 누락 또는 길이 부족');
 }
 
-if (!nonceVerifier.verifyAndStore(clientId, nonce)) {
-    response.sendError(401, "nonce 재사용 감지");
-    return;
+const clientId = request.headers['x-client-id'] as string;
+const isValid = await this.nonceVerifier.verifyAndStore(clientId, nonce);
+if (!isValid) {
+  throw new UnauthorizedException('nonce 재사용 감지');
 }
 
 // nonce도 서명 payload에 포함시킨다
-String signPayload = timestamp + "." + nonce + "." + body;
+const signPayload = `${timestamp}.${nonce}.${body}`;
 ```
 
 nonce도 서명 payload에 포함해야 한다. 안 그러면 공격자가 nonce만 바꿔서 서명을 다시 보내면 검증이 통과해버린다(서명은 timestamp + body로만 만든 거라).
@@ -874,30 +1030,40 @@ content-type;host;x-nonce;x-timestamp
 
 자체 구현 시 빠지기 쉬운 부분:
 
-```java
-public class CanonicalRequestBuilder {
+```typescript
+import * as crypto from 'crypto';
+import { Request } from 'express';
 
-    public String build(HttpServletRequest request, String body, List<String> signedHeaders) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(request.getMethod()).append('\n');
+export class CanonicalRequestBuilder {
+  build(request: Request, body: string, signedHeaders: string[]): string {
+    const lines: string[] = [];
 
-        // path는 RFC 3986 방식으로 인코딩 (URI.create로 정규화)
-        sb.append(URI.create(request.getRequestURI()).normalize().getPath()).append('\n');
+    lines.push(request.method);
 
-        // query string은 키 알파벳 순으로 정렬, 같은 키는 값으로 또 정렬
-        sb.append(canonicalQueryString(request.getQueryString())).append('\n');
+    // path는 정규화
+    lines.push(new URL(request.url, 'http://host').pathname);
 
-        // header는 소문자 + trim, 알파벳 순 정렬
-        for (String header : signedHeaders) {
-            String value = request.getHeader(header).trim().replaceAll("\\s+", " ");
-            sb.append(header.toLowerCase()).append(':').append(value).append('\n');
-        }
-        sb.append('\n');
-        sb.append(String.join(";", signedHeaders)).append('\n');
-        sb.append(sha256Hex(body));
+    // query string은 키 알파벳 순으로 정렬, 같은 키는 값으로 또 정렬
+    lines.push(this.canonicalQueryString(request.query as Record<string, string>));
 
-        return sb.toString();
+    // header는 소문자 + trim, 알파벳 순 정렬
+    for (const header of signedHeaders) {
+      const value = (request.headers[header] as string ?? '').trim().replace(/\s+/g, ' ');
+      lines.push(`${header.toLowerCase()}:${value}`);
     }
+    lines.push('');
+    lines.push(signedHeaders.join(';'));
+    lines.push(crypto.createHash('sha256').update(body, 'utf8').digest('hex'));
+
+    return lines.join('\n');
+  }
+
+  private canonicalQueryString(query: Record<string, string>): string {
+    return Object.entries(query)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+  }
 }
 ```
 
@@ -910,11 +1076,13 @@ public class CanonicalRequestBuilder {
 
 derived key 방식:
 
-```java
-public byte[] deriveSigningKey(String secret, String date, String scope) {
-    byte[] kDate = hmacSha256(("AWS4" + secret).getBytes(UTF_8), date);
-    byte[] kScope = hmacSha256(kDate, scope);
-    return hmacSha256(kScope, "aws4_request");
+```typescript
+import * as crypto from 'crypto';
+
+function deriveSigningKey(secret: string, date: string, scope: string): Buffer {
+  const kDate = crypto.createHmac('sha256', `AWS4${secret}`).update(date).digest();
+  const kScope = crypto.createHmac('sha256', kDate).update(scope).digest();
+  return crypto.createHmac('sha256', kScope).update('aws4_request').digest();
 }
 ```
 

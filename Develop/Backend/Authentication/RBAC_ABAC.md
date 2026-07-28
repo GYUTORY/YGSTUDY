@@ -1,6 +1,6 @@
 ---
 title: "RBAC/ABAC 권한 모델 설계와 구현"
-tags: [RBAC, ABAC, 권한, 인가, Spring Security, 접근제어]
+tags: [RBAC, ABAC, 권한, 인가, NestJS, TypeORM, 접근제어]
 updated: 2026-03-26
 ---
 
@@ -67,7 +67,7 @@ CREATE TABLE role_permissions (
 
 테이블이 5개다. `user_roles`와 `role_permissions` 두 개의 매핑 테이블이 핵심이다.
 
-한 가지 주의할 점은 역할 이름에 `ROLE_` 접두사를 붙이는 것이다. Spring Security에서 `hasRole("ADMIN")`을 쓰면 내부적으로 `ROLE_ADMIN`을 찾는다. DB에 `ADMIN`으로 저장하면 `hasRole()`이 동작하지 않아서 삽질하는 경우가 많다. `hasAuthority()`를 쓰면 접두사 없이 동작하지만, 팀 내 컨벤션을 통일하는 게 낫다.
+NestJS에서는 역할 이름에 접두사를 강제하지 않는다. `@Roles('ADMIN')`처럼 직접 문자열로 지정하거나, enum으로 관리한다. Guard에서 `req.user.authorities`에 포함된 역할을 확인하는 방식이므로 DB 저장값과 일치하면 된다. 팀 내 컨벤션을 통일하는 게 낫다.
 
 ### 역할 계층 구조가 필요한 경우
 
@@ -83,153 +83,191 @@ CREATE TABLE role_hierarchy (
 );
 ```
 
-Spring Security에서는 `RoleHierarchy` 빈으로 설정할 수 있다:
+NestJS에서는 `RolesGuard`와 `SetMetadata`로 역할 계층을 직접 구현한다:
 
-```java
-@Bean
-public RoleHierarchy roleHierarchy() {
-    return RoleHierarchyImpl.fromHierarchy(
-        "ROLE_ADMIN > ROLE_MANAGER\nROLE_MANAGER > ROLE_USER"
-    );
+```typescript
+// roles.ts — 역할 계층 정의
+export enum Role {
+    ADMIN = 'ADMIN',
+    MANAGER = 'MANAGER',
+    USER = 'USER',
 }
+
+// 역할 계층: ADMIN > MANAGER > USER
+export const ROLE_HIERARCHY: Record<Role, Role[]> = {
+    [Role.ADMIN]:   [Role.ADMIN, Role.MANAGER, Role.USER],
+    [Role.MANAGER]: [Role.MANAGER, Role.USER],
+    [Role.USER]:    [Role.USER],
+};
 ```
 
 이렇게 하면 ADMIN으로 로그인한 사용자는 MANAGER, USER 권한을 모두 갖는다. `role_permissions` 테이블에 ADMIN에게 모든 권한을 일일이 매핑하지 않아도 된다.
 
 ---
 
-## Spring Security에서 역할-권한 매핑 구현
+## NestJS에서 역할-권한 매핑 구현
 
 ### Entity 설계
 
-```java
-@Entity
-@Table(name = "users")
-public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String username;
-    private String password;
-    private boolean enabled;
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from 'typeorm';
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  username: string;
+
+  @Column()
+  password: string;
+
+  @Column({ default: true })
+  enabled: boolean;
+
+  @ManyToMany(() => Role, { lazy: true })
+  @JoinTable({
+    name: 'user_roles',
+    joinColumn: { name: 'user_id' },
+    inverseJoinColumn: { name: 'role_id' },
+  })
+  roles: Promise<Role[]>;
 }
 
-@Entity
-@Table(name = "roles")
-public class Role {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String name;
+@Entity('roles')
+export class Role {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "role_permissions",
-        joinColumns = @JoinColumn(name = "role_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id")
-    )
-    private Set<Permission> permissions = new HashSet<>();
+  @Column()
+  name: string;
+
+  @ManyToMany(() => Permission, { lazy: true })
+  @JoinTable({
+    name: 'role_permissions',
+    joinColumn: { name: 'role_id' },
+    inverseJoinColumn: { name: 'permission_id' },
+  })
+  permissions: Promise<Permission[]>;
 }
 
-@Entity
-@Table(name = "permissions")
-public class Permission {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String name;
+@Entity('permissions')
+export class Permission {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
 }
 ```
 
-`FetchType.LAZY`로 설정한다. EAGER로 하면 사용자를 조회할 때마다 역할과 권한까지 전부 JOIN해서 가져온다. 인증 시점에만 필요한 데이터를 매 조회마다 끌어오면 성능 문제가 생긴다.
+TypeORM에서 ManyToMany 관계에 `lazy: true`를 설정한다. EAGER로 하면 사용자를 조회할 때마다 역할과 권한까지 전부 JOIN해서 가져온다. 인증 시점에만 필요한 데이터를 매 조회마다 끌어오면 성능 문제가 생긴다.
 
-### UserDetailsService 구현
+### Passport Strategy 구현
 
-```java
-@Service
-@RequiredArgsConstructor
-public class CustomUserDetailsService implements UserDetailsService {
+```typescript
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy } from 'passport-local';
+import * as bcrypt from 'bcrypt';
+import { User } from './user.entity';
 
-    private final UserRepository userRepository;
+@Injectable()
+export class LocalStrategy extends PassportStrategy(Strategy) {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {
+    super({ usernameField: 'username' });
+  }
 
-    @Override
-    @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) {
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("사용자 없음: " + username));
+  async validate(username: string, password: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+      relations: ['roles', 'roles.permissions'],
+    });
 
-        return new org.springframework.security.core.userdetails.User(
-            user.getUsername(),
-            user.getPassword(),
-            user.isEnabled(),
-            true, true, true,
-            getAuthorities(user)
-        );
+    if (!user || !user.enabled) {
+      throw new UnauthorizedException('사용자 없음: ' + username);
     }
 
-    private Collection<? extends GrantedAuthority> getAuthorities(User user) {
-        Set<GrantedAuthority> authorities = new HashSet<>();
-
-        for (Role role : user.getRoles()) {
-            // 역할 자체를 authority로 추가
-            authorities.add(new SimpleGrantedAuthority(role.getName()));
-
-            // 역할에 매핑된 권한도 authority로 추가
-            for (Permission permission : role.getPermissions()) {
-                authorities.add(new SimpleGrantedAuthority(permission.getName()));
-            }
-        }
-        return authorities;
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      throw new UnauthorizedException('비밀번호 불일치');
     }
+
+    return user;
+  }
+}
+
+// 사용자의 역할과 권한 목록 추출 헬퍼
+export async function getAuthorities(user: User): Promise<string[]> {
+  const authorities = new Set<string>();
+
+  const roles = await user.roles;
+  for (const role of roles) {
+    // 역할 자체를 authority로 추가
+    authorities.add(role.name);
+
+    // 역할에 매핑된 권한도 authority로 추가
+    const permissions = await role.permissions;
+    for (const permission of permissions) {
+      authorities.add(permission.name);
+    }
+  }
+
+  return Array.from(authorities);
 }
 ```
 
 `@Transactional(readOnly = true)`이 없으면 `LazyInitializationException`이 발생한다. `roles`와 `permissions`가 LAZY로 설정되어 있어서, 트랜잭션 밖에서 접근하면 프록시가 초기화되지 않는다.
 
-### SecurityConfig에서 사용
+### NestJS Guard 등록
 
-```java
-@Configuration
-@EnableMethodSecurity
-public class SecurityConfig {
+```typescript
+import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/users/**").hasAuthority("USER_READ")
-                .requestMatchers("/api/orders/**").hasAnyAuthority("ORDER_READ", "ORDER_WRITE")
-                .anyRequest().authenticated()
-            );
-        return http.build();
-    }
-}
+// NestJS에서는 Guard를 전역 또는 컨트롤러/메서드 단위로 적용한다.
+// APP_GUARD로 전역 등록하면 모든 라우트에 기본 적용된다.
+@Module({
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },  // JWT 인증 (전역)
+    { provide: APP_GUARD, useClass: RolesGuard },    // 역할 인가 (전역)
+  ],
+})
+export class AuthModule {}
 ```
 
-메서드 레벨에서 세밀하게 제어할 수도 있다:
+메서드 레벨에서 세밀하게 제어할 수도 있다 (`@Roles`, `@Permissions` 커스텀 데코레이터 활용):
 
-```java
-@RestController
-@RequestMapping("/api/orders")
-public class OrderController {
+```typescript
+import { Controller, Get, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Roles } from './decorators/roles.decorator';
+import { Permissions } from './decorators/permissions.decorator';
+import { RolesGuard } from './guards/roles.guard';
+import { Order } from './order.entity';
 
-    @GetMapping
-    @PreAuthorize("hasAuthority('ORDER_READ')")
-    public List<Order> getOrders() { ... }
+@Controller('api/orders')
+@UseGuards(RolesGuard)
+export class OrderController {
 
-    @PostMapping
-    @PreAuthorize("hasAuthority('ORDER_WRITE')")
-    public Order createOrder(@RequestBody OrderRequest request) { ... }
+  @Get()
+  @Permissions('ORDER_READ')
+  getOrders(): Promise<Order[]> { /* ... */ return Promise.resolve([]); }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void deleteOrder(@PathVariable Long id) { ... }
+  @Post()
+  @Permissions('ORDER_WRITE')
+  createOrder(@Body() request: OrderRequest): Promise<Order> { /* ... */ return Promise.resolve({} as Order); }
+
+  @Delete(':id')
+  @Roles('ADMIN')
+  deleteOrder(@Param('id') id: string): Promise<void> { /* ... */ return Promise.resolve(); }
 }
 ```
 
@@ -241,146 +279,195 @@ public class OrderController {
 
 ### 왜 이런 일이 생기나
 
-Spring Security는 인증 시점에 `UserDetailsService.loadUserByUsername()`을 호출해서 권한 정보를 `SecurityContext`에 저장한다. 이후 요청에서는 SecurityContext에 캐싱된 권한을 사용한다. DB가 바뀌어도 SecurityContext는 그대로다.
+NestJS(Passport)는 인증 시점에 JWT Strategy의 `validate()`를 호출해서 권한 정보를 `req.user`에 저장한다. 이후 요청에서는 이 캐싱된 권한을 Guard가 사용한다. DB가 바뀌어도 이미 발급된 토큰·세션의 권한은 그대로다.
 
 JWT를 쓰는 경우 더 심하다. 토큰 안에 권한 정보가 들어가 있으면, 토큰이 만료될 때까지 이전 권한이 유지된다.
 
 ### 해결 방법 1: 매 요청마다 권한 재조회
 
-```java
-@Component
-@RequiredArgsConstructor
-public class DynamicAuthorizationFilter extends OncePerRequestFilter {
+```typescript
+import {
+  Injectable,
+  NestMiddleware,
+} from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { User } from './user.entity';
+import { getAuthorities } from './auth.service';
 
-    private final UserRepository userRepository;
+// NestJS에서는 NestMiddleware 또는 NestInterceptor로 동적 권한 갱신을 구현한다.
+@Injectable()
+export class DynamicAuthorizationMiddleware implements NestMiddleware {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
+  ) {}
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
+  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      const payload = this.jwtService.verify<{ sub: string }>(token);
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated()) {
-            // DB에서 최신 권한 조회
-            User user = userRepository.findByUsername(auth.getName()).orElse(null);
-            if (user != null) {
-                Collection<GrantedAuthority> freshAuthorities = loadAuthorities(user);
+      // DB에서 최신 권한 조회
+      const user = await this.userRepository.findOne({
+        where: { username: payload.sub },
+        relations: ['roles', 'roles.permissions'],
+      });
 
-                // Authentication 객체 교체
-                Authentication newAuth = new UsernamePasswordAuthenticationToken(
-                    auth.getPrincipal(), auth.getCredentials(), freshAuthorities
-                );
-                SecurityContextHolder.getContext().setAuthentication(newAuth);
-            }
-        }
-        filterChain.doFilter(request, response);
+      if (user) {
+        // req.user에 최신 권한 주입 (Guard에서 참조)
+        (req as Request & { user: unknown }).user = {
+          username: user.username,
+          authorities: await getAuthorities(user),
+        };
+      }
     }
+    next();
+  }
 }
 ```
 
-매 요청마다 DB를 조회하므로 부하가 크다. 사용자 수가 많은 서비스에서는 쓰면 안 된다.
+매 요청마다 DB를 조회하므로 부하가 크다. 사용자 수가 많은 서비스에서는 쓰면 안 된다. NestJS에서는 Middleware 또는 Guard에서 구현한다.
 
 ### 해결 방법 2: 캐시 + 이벤트 기반 갱신 (실무에서 많이 씀)
 
-```java
-@Service
-@RequiredArgsConstructor
-public class PermissionCacheService {
+```typescript
+import { Injectable, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { User } from './user.entity';
+import { getAuthorities } from './auth.service';
 
-    private final UserRepository userRepository;
-    private final Cache<String, Collection<GrantedAuthority>> permissionCache;
+const PERMISSION_TTL_MS = 5 * 60 * 1000; // 5분
 
-    public PermissionCacheService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-        this.permissionCache = Caffeine.newBuilder()
-            .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(5))
-            .build();
-    }
+@Injectable()
+export class PermissionCacheService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
 
-    public Collection<GrantedAuthority> getAuthorities(String username) {
-        return permissionCache.get(username, this::loadFromDb);
-    }
+  async getAuthorities(username: string): Promise<string[]> {
+    const cacheKey = `permissions:${username}`;
+    const cached = await this.cache.get<string[]>(cacheKey);
+    if (cached) return cached;
 
-    private Collection<GrantedAuthority> loadFromDb(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow();
-        Set<GrantedAuthority> authorities = new HashSet<>();
-        for (Role role : user.getRoles()) {
-            authorities.add(new SimpleGrantedAuthority(role.getName()));
-            for (Permission perm : role.getPermissions()) {
-                authorities.add(new SimpleGrantedAuthority(perm.getName()));
-            }
-        }
-        return authorities;
-    }
+    return this.loadFromDb(username);
+  }
 
-    // 권한 변경 시 호출
-    public void evictUser(String username) {
-        permissionCache.invalidate(username);
-    }
+  private async loadFromDb(username: string): Promise<string[]> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+      relations: ['roles', 'roles.permissions'],
+    });
+    if (!user) throw new Error(`사용자 없음: ${username}`);
 
-    // 역할의 권한이 변경되면 해당 역할을 가진 모든 사용자의 캐시를 날린다
-    public void evictByRole(String roleName) {
-        List<String> usernames = userRepository.findUsernamesByRoleName(roleName);
-        usernames.forEach(permissionCache::invalidate);
-    }
+    const authorities = await getAuthorities(user);
+    await this.cache.set(`permissions:${username}`, authorities, PERMISSION_TTL_MS);
+    return authorities;
+  }
+
+  // 권한 변경 시 호출
+  async evictUser(username: string): Promise<void> {
+    await this.cache.del(`permissions:${username}`);
+  }
+
+  // 역할의 권한이 변경되면 해당 역할을 가진 모든 사용자의 캐시를 날린다
+  async evictByRole(roleName: string): Promise<void> {
+    const users = await this.userRepository
+      .createQueryBuilder('u')
+      .innerJoin('u.roles', 'r')
+      .where('r.name = :roleName', { roleName })
+      .select('u.username')
+      .getMany();
+
+    await Promise.all(users.map((u) => this.evictUser(u.username)));
+  }
 }
 ```
 
 관리자 API에서 권한을 변경할 때 `evictByRole()`을 호출한다:
 
-```java
-@RestController
-@RequestMapping("/admin/roles")
-@PreAuthorize("hasRole('ADMIN')")
-@RequiredArgsConstructor
-public class RoleManagementController {
+```typescript
+import { Controller, Put, Param, Body, UseGuards } from '@nestjs/common';
+import { Roles } from './decorators/roles.decorator';
+import { RolesGuard } from './guards/roles.guard';
+import { RoleService } from './role.service';
+import { PermissionCacheService } from './permission-cache.service';
 
-    private final RoleService roleService;
-    private final PermissionCacheService permissionCacheService;
+@Controller('admin/roles')
+@UseGuards(RolesGuard)
+@Roles('ADMIN')
+export class RoleManagementController {
+  constructor(
+    private readonly roleService: RoleService,
+    private readonly permissionCacheService: PermissionCacheService,
+  ) {}
 
-    @PutMapping("/{roleId}/permissions")
-    public void updatePermissions(@PathVariable Long roleId,
-                                  @RequestBody List<Long> permissionIds) {
-        Role role = roleService.updatePermissions(roleId, permissionIds);
-        permissionCacheService.evictByRole(role.getName());
-    }
+  @Put(':roleId/permissions')
+  async updatePermissions(
+    @Param('roleId') roleId: string,
+    @Body() permissionIds: number[],
+  ): Promise<void> {
+    const role = await this.roleService.updatePermissions(Number(roleId), permissionIds);
+    await this.permissionCacheService.evictByRole(role.name);
+  }
 }
 ```
 
-캐시 TTL을 5분으로 설정했으므로, 이벤트가 누락되더라도 최대 5분 뒤에는 반영된다. 완전한 실시간은 아니지만 대부분의 서비스에서 충분하다.
+캐시 TTL을 5분으로 설정했으므로, 이벤트가 누락되더라도 최대 5분 뒤에는 반영된다. NestJS `cache-manager`를 사용하며, Caffeine 대신 메모리 캐시(기본) 또는 Redis 스토어를 연결할 수 있다. 완전한 실시간은 아니지만 대부분의 서비스에서 충분하다.
 
 ### 해결 방법 3: JWT + 짧은 만료 시간 + 블랙리스트
 
 JWT를 쓴다면 토큰에 권한을 넣지 않는 방법도 있다. 토큰에는 사용자 식별 정보만 넣고, 권한은 매번 서버에서 조회한다:
 
-```java
-@Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+import { PermissionCacheService } from './permission-cache.service';
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
-        String token = extractToken(request);
-        if (token != null && jwtProvider.validate(token)) {
-            String username = jwtProvider.getUsername(token);
+interface JwtPayload {
+  sub: string;
+  iat: number;
+  exp: number;
+}
 
-            // 토큰에서 권한을 꺼내지 않고, 캐시에서 조회
-            Collection<GrantedAuthority> authorities =
-                permissionCacheService.getAuthorities(username);
+interface AuthenticatedUser {
+  username: string;
+  authorities: string[];
+}
 
-            Authentication auth = new UsernamePasswordAuthenticationToken(
-                username, null, authorities
-            );
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        }
-        filterChain.doFilter(request, response);
-    }
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly permissionCacheService: PermissionCacheService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_SECRET'),
+    });
+  }
+
+  async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
+    // 토큰에서 권한을 꺼내지 않고, 캐시에서 조회
+    const authorities = await this.permissionCacheService.getAuthorities(payload.sub);
+
+    return { username: payload.sub, authorities };
+  }
 }
 ```
 
-토큰에 권한을 넣으면 토큰 크기가 커지는 문제도 해결된다. 권한이 20개만 되어도 JWT 크기가 상당히 커진다.
+토큰에 권한을 넣으면 토큰 크기가 커지는 문제도 해결된다. 권한이 20개만 되어도 JWT 크기가 상당히 커진다. NestJS Passport에서 `validate()`의 반환값이 `req.user`가 되므로, 이 시점에 캐시에서 권한을 조회해 주입하면 된다.
 
 ---
 
@@ -401,181 +488,215 @@ RBAC은 "이 사용자가 어떤 역할인가"로 판단한다. ABAC은 여기�
 
 ### 정책 정의
 
-```java
-public class Policy {
-    private String name;
-    private String description;
-    private PolicyEffect effect;        // PERMIT, DENY
-    private SubjectCondition subject;
-    private ResourceCondition resource;
-    private ActionCondition action;
-    private EnvironmentCondition environment;
+```typescript
+// 정책 효과
+export enum PolicyEffect {
+  PERMIT = 'PERMIT',
+  DENY = 'DENY',
 }
 
-public enum PolicyEffect {
-    PERMIT, DENY
+export interface SubjectCondition {
+  department?: string;       // undefined이면 조건 무시
+  position?: string;
+  minLevel?: number;
 }
 
-@Data
-public class SubjectCondition {
-    private String department;       // null이면 조건 무시
-    private String position;
-    private Integer minLevel;
+export interface ResourceCondition {
+  securityLevel?: string;
+  ownerDepartment?: string;
+  resourceType?: string;
 }
 
-@Data
-public class ResourceCondition {
-    private String securityLevel;
-    private String ownerDepartment;
-    private String resourceType;
+export interface ActionCondition {
+  allowedActions: string[];
 }
 
-@Data
-public class ActionCondition {
-    private Set<String> allowedActions;
+export interface EnvironmentCondition {
+  accessTimeFrom?: string;   // HH:MM 형식
+  accessTimeTo?: string;
+  allowedIpRanges?: string[];
 }
 
-@Data
-public class EnvironmentCondition {
-    private LocalTime accessTimeFrom;
-    private LocalTime accessTimeTo;
-    private Set<String> allowedIpRanges;
+export interface Policy {
+  name: string;
+  description: string;
+  effect: PolicyEffect;        // PERMIT, DENY
+  subject?: SubjectCondition;
+  resource?: ResourceCondition;
+  action?: ActionCondition;
+  environment?: EnvironmentCondition;
 }
 ```
 
 ### 정책 평가 엔진
 
-```java
-@Service
-@RequiredArgsConstructor
-public class PolicyEvaluator {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Policy, PolicyEffect, SubjectCondition, ResourceCondition, ActionCondition, EnvironmentCondition } from './policy.interface';
+import { PolicyEntity } from './policy.entity';
 
-    private final PolicyRepository policyRepository;
+export interface AccessRequest {
+  username: string;
+  userDepartment?: string;
+  userLevel?: number;
+  resourceType?: string;
+  resourceId?: string;
+  resourceSecurityLevel?: string;
+  resourceOwnerDepartment?: string;
+  action: string;
+  requestIp?: string;
+  requestTime?: Date;
+}
 
-    public boolean evaluate(AccessRequest request) {
-        List<Policy> policies = policyRepository.findActivePolicies();
+@Injectable()
+export class PolicyEvaluator {
+  constructor(
+    @InjectRepository(PolicyEntity)
+    private readonly policyRepository: Repository<PolicyEntity>,
+  ) {}
 
-        // 기본 거부 (Deny by default)
-        boolean permitted = false;
+  async evaluate(request: AccessRequest): Promise<boolean> {
+    const policies = await this.policyRepository.find({ where: { active: true } });
 
-        for (Policy policy : policies) {
-            if (!matches(policy, request)) {
-                continue;
-            }
+    // 기본 거부 (Deny by default)
+    let permitted = false;
 
-            // DENY가 하나라도 매칭되면 즉시 거부
-            if (policy.getEffect() == PolicyEffect.DENY) {
-                return false;
-            }
+    for (const policy of policies) {
+      if (!this.matches(policy, request)) {
+        continue;
+      }
 
-            if (policy.getEffect() == PolicyEffect.PERMIT) {
-                permitted = true;
-            }
-        }
+      // DENY가 하나라도 매칭되면 즉시 거부
+      if (policy.effect === PolicyEffect.DENY) {
+        return false;
+      }
 
-        return permitted;
+      if (policy.effect === PolicyEffect.PERMIT) {
+        permitted = true;
+      }
     }
 
-    private boolean matches(Policy policy, AccessRequest request) {
-        return matchesSubject(policy.getSubject(), request)
-            && matchesResource(policy.getResource(), request)
-            && matchesAction(policy.getAction(), request)
-            && matchesEnvironment(policy.getEnvironment(), request);
+    return permitted;
+  }
+
+  private matches(policy: Policy, request: AccessRequest): boolean {
+    return (
+      this.matchesSubject(policy.subject, request) &&
+      this.matchesResource(policy.resource, request) &&
+      this.matchesAction(policy.action, request) &&
+      this.matchesEnvironment(policy.environment, request)
+    );
+  }
+
+  private matchesSubject(condition: SubjectCondition | undefined, request: AccessRequest): boolean {
+    if (!condition) return true;
+
+    if (condition.department != null && condition.department !== request.userDepartment) {
+      return false;
     }
-
-    private boolean matchesSubject(SubjectCondition condition, AccessRequest request) {
-        if (condition == null) return true;
-
-        if (condition.getDepartment() != null
-            && !condition.getDepartment().equals(request.getUserDepartment())) {
-            return false;
-        }
-        if (condition.getMinLevel() != null
-            && request.getUserLevel() < condition.getMinLevel()) {
-            return false;
-        }
-        return true;
+    if (condition.minLevel != null && (request.userLevel ?? 0) < condition.minLevel) {
+      return false;
     }
+    return true;
+  }
 
-    private boolean matchesResource(ResourceCondition condition, AccessRequest request) {
-        if (condition == null) return true;
+  private matchesResource(condition: ResourceCondition | undefined, request: AccessRequest): boolean {
+    if (!condition) return true;
 
-        if (condition.getSecurityLevel() != null
-            && !condition.getSecurityLevel().equals(request.getResourceSecurityLevel())) {
-            return false;
-        }
-        if (condition.getOwnerDepartment() != null
-            && !condition.getOwnerDepartment().equals(request.getResourceOwnerDepartment())) {
-            return false;
-        }
-        return true;
+    if (condition.securityLevel != null && condition.securityLevel !== request.resourceSecurityLevel) {
+      return false;
     }
-
-    private boolean matchesAction(ActionCondition condition, AccessRequest request) {
-        if (condition == null) return true;
-        return condition.getAllowedActions().contains(request.getAction());
+    if (condition.ownerDepartment != null && condition.ownerDepartment !== request.resourceOwnerDepartment) {
+      return false;
     }
+    return true;
+  }
 
-    private boolean matchesEnvironment(EnvironmentCondition condition, AccessRequest request) {
-        if (condition == null) return true;
+  private matchesAction(condition: ActionCondition | undefined, request: AccessRequest): boolean {
+    if (!condition) return true;
+    return condition.allowedActions.includes(request.action);
+  }
 
-        LocalTime now = LocalTime.now();
-        if (condition.getAccessTimeFrom() != null && now.isBefore(condition.getAccessTimeFrom())) {
-            return false;
-        }
-        if (condition.getAccessTimeTo() != null && now.isAfter(condition.getAccessTimeTo())) {
-            return false;
-        }
-        return true;
+  private matchesEnvironment(condition: EnvironmentCondition | undefined, request: AccessRequest): boolean {
+    if (!condition) return true;
+
+    const now = request.requestTime ?? new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    if (condition.accessTimeFrom != null && hhmm < condition.accessTimeFrom) {
+      return false;
     }
+    if (condition.accessTimeTo != null && hhmm > condition.accessTimeTo) {
+      return false;
+    }
+    return true;
+  }
 }
 ```
 
-DENY 우선 방식을 쓴다. PERMIT과 DENY가 동시에 매칭되면 DENY가 이긴다. 보안 정책에서는 거부가 허용보다 우선해야 한다.
+DENY 우선 방식을 쓴다. PERMIT과 DENY가 동시에 매칭되면 DENY가 이긴다. 보안 정책에서는 거부가 허용보다 우선해야 한다. TypeScript에서도 동일한 로직으로 구현한다.
 
-### Spring Security와 연동
+### NestJS Guard와 연동
 
-`@PreAuthorize`에서 커스텀 빈을 호출하는 방식으로 연동한다:
+NestJS에서는 `AbacGuard`에서 `AbacPermissionService.check()`를 직접 호출한다:
 
-```java
-@Component("abac")
-@RequiredArgsConstructor
-public class AbacPermissionEvaluator {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { PolicyEvaluator, AccessRequest } from './policy-evaluator.service';
 
-    private final PolicyEvaluator policyEvaluator;
+interface AuthenticatedUser {
+  username: string;
+  department?: string;
+  level?: number;
+}
 
-    public boolean check(Authentication auth, String resourceType,
-                         String resourceId, String action) {
-        AccessRequest request = AccessRequest.builder()
-            .username(auth.getName())
-            .userDepartment(getUserDepartment(auth))
-            .userLevel(getUserLevel(auth))
-            .resourceType(resourceType)
-            .resourceId(resourceId)
-            .action(action)
-            .build();
+@Injectable()
+export class AbacPermissionService {
+  constructor(private readonly policyEvaluator: PolicyEvaluator) {}
 
-        return policyEvaluator.evaluate(request);
-    }
+  async check(
+    user: AuthenticatedUser,
+    resourceType: string,
+    resourceId: string,
+    action: string,
+  ): Promise<boolean> {
+    const request: AccessRequest = {
+      username: user.username,
+      userDepartment: user.department,
+      userLevel: user.level,
+      resourceType,
+      resourceId,
+      action,
+    };
+
+    return this.policyEvaluator.evaluate(request);
+  }
 }
 ```
 
-```java
-@RestController
-@RequestMapping("/api/documents")
-public class DocumentController {
+```typescript
+import { Controller, Get, Delete, Param, UseGuards } from '@nestjs/common';
+import { AbacGuard } from './guards/abac.guard';
+import { AbacResource } from './decorators/abac-resource.decorator';
+import { Document } from './document.entity';
 
-    @GetMapping("/{id}")
-    @PreAuthorize("@abac.check(authentication, 'DOCUMENT', #id, 'READ')")
-    public Document getDocument(@PathVariable String id) { ... }
+@Controller('api/documents')
+export class DocumentController {
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("@abac.check(authentication, 'DOCUMENT', #id, 'DELETE')")
-    public void deleteDocument(@PathVariable String id) { ... }
+  @Get(':id')
+  @UseGuards(AbacGuard)
+  @AbacResource({ type: 'DOCUMENT', action: 'READ' })
+  getDocument(@Param('id') id: string): Promise<Document> { /* ... */ return Promise.resolve({} as Document); }
+
+  @Delete(':id')
+  @UseGuards(AbacGuard)
+  @AbacResource({ type: 'DOCUMENT', action: 'DELETE' })
+  deleteDocument(@Param('id') id: string): Promise<void> { /* ... */ return Promise.resolve(); }
 }
 ```
 
-`@abac`은 스프링 빈 이름이다. `@Component("abac")`으로 등록한 빈의 `check()` 메서드를 SpEL에서 호출한다.
+NestJS에서는 Guard에서 `AbacPermissionService`를 주입해 `check()` 메서드를 직접 호출한다. `@SetMetadata`로 라우트에 리소스 정보를 붙이고 Guard가 이를 읽어 판단한다.
 
 ---
 
@@ -585,54 +706,73 @@ public class DocumentController {
 
 ### 패턴: 1차 RBAC, 2차 ABAC
 
-```java
-@Component("authz")
-@RequiredArgsConstructor
-public class HybridAuthorizationService {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { PolicyEvaluator, AccessRequest } from './policy-evaluator.service';
 
-    private final PolicyEvaluator abacEvaluator;
+interface AuthenticatedUser {
+  username: string;
+  authorities: string[];
+  department?: string;
+  level?: number;
+}
 
-    /**
-     * RBAC으로 기본 접근 여부를 판단하고,
-     * 추가 조건이 필요한 경우 ABAC 정책을 평가한다.
-     */
-    public boolean check(Authentication auth, String resourceType,
-                         String resourceId, String action) {
-        // 1차: RBAC — ADMIN은 모든 접근 허용
-        if (hasRole(auth, "ROLE_ADMIN")) {
-            return true;
-        }
+@Injectable()
+export class HybridAuthorizationService {
+  constructor(private readonly abacEvaluator: PolicyEvaluator) {}
 
-        // 1차: RBAC — 해당 권한이 없으면 바로 거부
-        String requiredPermission = resourceType + "_" + action;
-        if (!hasAuthority(auth, requiredPermission)) {
-            return false;
-        }
-
-        // 2차: ABAC — 세부 조건 평가
-        AccessRequest request = buildRequest(auth, resourceType, resourceId, action);
-        return abacEvaluator.evaluate(request);
+  /**
+   * RBAC으로 기본 접근 여부를 판단하고,
+   * 추가 조건이 필요한 경우 ABAC 정책을 평가한다.
+   */
+  async check(
+    user: AuthenticatedUser,
+    resourceType: string,
+    resourceId: string,
+    action: string,
+  ): Promise<boolean> {
+    // 1차: RBAC — ADMIN은 모든 접근 허용
+    if (this.hasRole(user, 'ADMIN')) {
+      return true;
     }
 
-    private boolean hasRole(Authentication auth, String role) {
-        return auth.getAuthorities().stream()
-            .anyMatch(a -> a.getAuthority().equals(role));
+    // 1차: RBAC — 해당 권한이 없으면 바로 거부
+    const requiredPermission = `${resourceType}_${action}`;
+    if (!this.hasAuthority(user, requiredPermission)) {
+      return false;
     }
 
-    private boolean hasAuthority(Authentication auth, String authority) {
-        return auth.getAuthorities().stream()
-            .anyMatch(a -> a.getAuthority().equals(authority));
-    }
+    // 2차: ABAC — 세부 조건 평가
+    const request: AccessRequest = {
+      username: user.username,
+      userDepartment: user.department,
+      userLevel: user.level,
+      resourceType,
+      resourceId,
+      action,
+    };
+    return this.abacEvaluator.evaluate(request);
+  }
+
+  private hasRole(user: AuthenticatedUser, role: string): boolean {
+    return user.authorities.includes(role);
+  }
+
+  private hasAuthority(user: AuthenticatedUser, authority: string): boolean {
+    return user.authorities.includes(authority);
+  }
 }
 ```
 
-```java
-@GetMapping("/api/documents/{id}")
-@PreAuthorize("@authz.check(authentication, 'DOCUMENT', #id, 'READ')")
-public Document getDocument(@PathVariable String id) { ... }
+```typescript
+// Guard에서 HybridAuthorizationService를 주입해 check()를 호출한다
+@Get('api/documents/:id')
+@UseGuards(HybridAuthorizationGuard)
+@SetMetadata('resource', { type: 'DOCUMENT', action: 'READ' })
+async getDocument(@Param('id') id: string): Promise<Document> { /* ... */ return {} as Document; }
 ```
 
-이 방식의 장점은 RBAC에서 걸러지면 ABAC 정책 평가를 하지 않는다는 것이다. ABAC 정책이 수십 개라도 RBAC에서 먼저 걸러내면 불필요한 연산을 줄일 수 있다.
+이 방식의 장점은 RBAC에서 걸러지면 ABAC 정책 평가를 하지 않는다는 것이다. ABAC 정책이 수십 개라도 RBAC에서 먼저 걸러내면 불필요한 연산을 줄일 수 있다. NestJS에서는 `HybridAuthorizationGuard`에서 `HybridAuthorizationService.check()`를 호출한다.
 
 ### 실무에서 자주 쓰는 ABAC 조건들
 
@@ -657,41 +797,64 @@ resource.securityLevel <= subject.clearanceLevel
 
 ### 주의할 점
 
-**ABAC 정책을 DB에 저장하면 디버깅이 어렵다.** 왜 접근이 거부됐는지 추적하려면 어떤 정책이 매칭됐는지 로그를 남겨야 한다:
+**ABAC 정책을 DB에 저장하면 디버깅이 어렵다.** 왜 접근이 거부됐는지 추적하려면 어떤 정책이 매칭됐는지 로그를 남겨야 한다. NestJS `Logger`를 사용한다:
 
-```java
-public boolean evaluate(AccessRequest request) {
-    List<Policy> policies = policyRepository.findActivePolicies();
-    boolean permitted = false;
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PolicyEffect } from './policy.interface';
+import { PolicyEntity } from './policy.entity';
+import { AccessRequest } from './policy-evaluator.service';
 
-    for (Policy policy : policies) {
-        if (!matches(policy, request)) {
-            continue;
-        }
+@Injectable()
+export class PolicyEvaluatorWithLogging {
+  private readonly logger = new Logger(PolicyEvaluatorWithLogging.name);
 
-        log.info("정책 매칭: policy={}, effect={}, user={}, resource={}, action={}",
-            policy.getName(), policy.getEffect(),
-            request.getUsername(), request.getResourceId(), request.getAction());
+  constructor(
+    @InjectRepository(PolicyEntity)
+    private readonly policyRepository: Repository<PolicyEntity>,
+  ) {}
 
-        if (policy.getEffect() == PolicyEffect.DENY) {
-            log.warn("접근 거부: policy={}, user={}", policy.getName(), request.getUsername());
-            return false;
-        }
-        permitted = true;
+  async evaluate(request: AccessRequest): Promise<boolean> {
+    const policies = await this.policyRepository.find({ where: { active: true } });
+    let permitted = false;
+
+    for (const policy of policies) {
+      if (!this.matches(policy, request)) {
+        continue;
+      }
+
+      this.logger.log(
+        `정책 매칭: policy=${policy.name}, effect=${policy.effect}, user=${request.username}, resource=${request.resourceId}, action=${request.action}`,
+      );
+
+      if (policy.effect === PolicyEffect.DENY) {
+        this.logger.warn(`접근 거부: policy=${policy.name}, user=${request.username}`);
+        return false;
+      }
+      permitted = true;
     }
 
     if (!permitted) {
-        log.warn("매칭된 PERMIT 정책 없음: user={}, resource={}, action={}",
-            request.getUsername(), request.getResourceId(), request.getAction());
+      this.logger.warn(
+        `매칭된 PERMIT 정책 없음: user=${request.username}, resource=${request.resourceId}, action=${request.action}`,
+      );
     }
 
     return permitted;
+  }
+
+  private matches(_policy: PolicyEntity, _request: AccessRequest): boolean {
+    // 실제 구현은 PolicyEvaluator.matches()와 동일
+    return true;
+  }
 }
 ```
 
-**정책 순서 의존성을 만들지 않는다.** 정책 간에 순서가 중요해지면 관리가 불가능해진다. "DENY 우선" 규칙 하나로 충분하다. 정책 순서에 따라 결과가 달라지는 구조는 시간이 지나면 아무도 이해하지 못한다.
+**정책 순서 의존성을 만들지 않는다.** 정책 간에 순서가 중요해지면 관리가 불가능해진다. "DENY 우선" 규칙 하나로 충분하다. 정책 순서에 따라 결과가 달라지는 구조는 시간이 지나면 아무도 이해하지 못한다. NestJS Logger로 정책 매칭 결과를 남기면 디버깅이 쉬워진다.
 
-**RBAC으로 해결 가능한 건 RBAC으로 한다.** ABAC은 유연하지만 복잡하다. "관리자만 삭제 가능"을 ABAC 정책으로 만들 이유가 없다. `@PreAuthorize("hasRole('ADMIN')")`이면 된다.
+**RBAC으로 해결 가능한 건 RBAC으로 한다.** ABAC은 유연하지만 복잡하다. "관리자만 삭제 가능"을 ABAC 정책으로 만들 이유가 없다. `@Roles('ADMIN')`과 `RolesGuard`이면 된다.
 
 ---
 이 문서는 [인증과 토큰 허브](../../_hub/인증과_토큰.md)의 일부입니다.

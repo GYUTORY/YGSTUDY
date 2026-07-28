@@ -26,8 +26,8 @@ updated: 2026-03-30
 ```
 
 **결과:**
-- 모든 주문 스레드가 30초씩 대기
-- 스레드 풀 고갈
+- 모든 주문 요청이 30초씩 대기
+- 이벤트 루프 포화
 - 새로운 주문 요청 불가
 - 전체 서비스 다운
 
@@ -64,66 +64,73 @@ updated: 2026-03-30
 - 성공하면 CLOSED로
 - 실패하면 다시 OPEN으로
 
-### Resilience4j 설정
+### NestJS Circuit Breaker 구현
 
-**의존성 추가 (Spring Boot):**
-```xml
-<dependency>
-    <groupId>io.github.resilience4j</groupId>
-    <artifactId>resilience4j-spring-boot3</artifactId>
-    <version>2.1.0</version>
-</dependency>
+NestJS에서는 `opossum` 라이브러리를 많이 사용한다.
+
+**패키지 설치:**
+```
+npm install opossum
+npm install --save-dev @types/opossum
 ```
 
-**application.yml:**
-```yaml
-resilience4j:
-  circuitbreaker:
-    instances:
-      paymentService:
-        # 슬라이딩 윈도우 크기 (최근 N개 요청)
-        sliding-window-size: 10
-        # 슬라이딩 윈도우 타입 (COUNT_BASED / TIME_BASED)
-        sliding-window-type: COUNT_BASED
-        # 실패율 임계값 (50%)
-        failure-rate-threshold: 50
-        # 최소 호출 수 (통계 계산 전 필요한 최소 요청 수)
-        minimum-number-of-calls: 5
-        # OPEN 상태 유지 시간
-        wait-duration-in-open-state: 10s
-        # HALF_OPEN에서 허용할 요청 수
-        permitted-number-of-calls-in-half-open-state: 3
-        # 실패로 간주할 예외
-        record-exceptions:
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-        # 무시할 예외 (실패로 카운트하지 않음)
-        ignore-exceptions:
-          - com.example.BusinessException
-```
+**설정:**
+```typescript
+import { Injectable } from '@nestjs/common';
+import CircuitBreaker from 'opossum';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
-**코드:**
-```java
-@Service
-public class PaymentService {
-    
-    private final RestTemplate restTemplate;
-    
-    @CircuitBreaker(name = "paymentService", fallbackMethod = "paymentFallback")
-    public PaymentResponse processPayment(PaymentRequest request) {
-        // 외부 결제 API 호출
-        return restTemplate.postForObject(
-            "https://payment-api.com/process",
-            request,
-            PaymentResponse.class
-        );
-    }
-    
-    // Fallback 메서드
-    private PaymentResponse paymentFallback(PaymentRequest request, Exception e) {
-        log.error("Payment failed, using fallback", e);
-        return new PaymentResponse("PENDING", "결제 처리 중입니다");
-    }
+interface PaymentRequest {
+  orderId: string;
+  amount: number;
+}
+
+interface PaymentResponse {
+  status: string;
+  message: string;
+}
+
+@Injectable()
+export class PaymentService {
+  private readonly breaker: CircuitBreaker;
+
+  constructor(private httpService: HttpService) {
+    this.breaker = new CircuitBreaker(this.callPaymentApi.bind(this), {
+      // 슬라이딩 윈도우 크기 (최근 N개 요청)
+      rollingCountTimeout: 10000,
+      // 실패율 임계값 (50%)
+      errorThresholdPercentage: 50,
+      // 최소 호출 수 (통계 계산 전 필요한 최소 요청 수)
+      volumeThreshold: 5,
+      // OPEN 상태 유지 시간 (ms)
+      resetTimeout: 10000,
+    });
+
+    this.breaker.fallback((request: PaymentRequest) =>
+      this.paymentFallback(request),
+    );
+  }
+
+  private async callPaymentApi(request: PaymentRequest): Promise<PaymentResponse> {
+    const { data } = await firstValueFrom(
+      this.httpService.post<PaymentResponse>(
+        'https://payment-api.com/process',
+        request,
+      ),
+    );
+    return data;
+  }
+
+  async processPayment(request: PaymentRequest): Promise<PaymentResponse> {
+    return this.breaker.fire(request) as Promise<PaymentResponse>;
+  }
+
+  // Fallback 메서드
+  private paymentFallback(request: PaymentRequest): PaymentResponse {
+    console.error('Payment failed, using fallback');
+    return { status: 'PENDING', message: '결제 처리 중입니다' };
+  }
 }
 ```
 
@@ -174,65 +181,88 @@ public class PaymentService {
 - 복구 시간 확보
 - Thundering Herd 방지
 
-### Resilience4j 설정
+### NestJS Retry 구현
 
-**application.yml:**
-```yaml
-resilience4j:
-  retry:
-    instances:
-      paymentService:
-        # 최대 재시도 횟수
-        max-attempts: 3
-        # 대기 시간
-        wait-duration: 1s
-        # Exponential Backoff 활성화
-        enable-exponential-backoff: true
-        # 지수 배율
-        exponential-backoff-multiplier: 2
-        # 최대 대기 시간
-        exponential-max-wait-duration: 10s
-        # 재시도할 예외
-        retry-exceptions:
-          - java.io.IOException
-          - java.net.SocketTimeoutException
-        # 재시도하지 않을 예외
-        ignore-exceptions:
-          - com.example.BusinessException
-```
+```typescript
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom, retry, timer } from 'rxjs';
 
-**코드:**
-```java
-@Service
-public class PaymentService {
-    
-    @Retry(name = "paymentService", fallbackMethod = "paymentFallback")
-    @CircuitBreaker(name = "paymentService")
-    public PaymentResponse processPayment(PaymentRequest request) {
-        log.info("Calling payment API, attempt: {}", 
-            RetryRegistry.of(retryConfig).retry("paymentService").getMetrics().getNumberOfSuccessfulCallsWithRetryAttempt());
-        
-        return restTemplate.postForObject(
-            "https://payment-api.com/process",
-            request,
-            PaymentResponse.class
-        );
-    }
-    
-    private PaymentResponse paymentFallback(PaymentRequest request, Exception e) {
-        return new PaymentResponse("FAILED", "결제 실패");
-    }
+interface PaymentRequest {
+  orderId: string;
+  amount: number;
+}
+
+interface PaymentResponse {
+  status: string;
+  message: string;
+}
+
+@Injectable()
+export class PaymentService {
+  constructor(private httpService: HttpService) {}
+
+  async processPayment(request: PaymentRequest): Promise<PaymentResponse> {
+    const { data } = await firstValueFrom(
+      this.httpService
+        .post<PaymentResponse>('https://payment-api.com/process', request)
+        .pipe(
+          retry({
+            count: 3, // 최대 재시도 횟수
+            delay: (error, retryCount) => {
+              // Exponential Backoff: 1s, 2s, 4s
+              const delayMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+              console.info(`Retry attempt ${retryCount}, waiting ${delayMs}ms`);
+              return timer(delayMs);
+            },
+            resetOnSuccess: true,
+          }),
+        ),
+    );
+    return data;
+  }
 }
 ```
 
-### Retry + Circuit Breaker
+### Retry + Circuit Breaker 조합
 
-**조합 사용:**
-```java
-@Retry(name = "paymentService")
-@CircuitBreaker(name = "paymentService", fallbackMethod = "paymentFallback")
-public PaymentResponse processPayment(PaymentRequest request) {
-    // ...
+```typescript
+import { Injectable } from '@nestjs/common';
+import CircuitBreaker from 'opossum';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom, retry, timer } from 'rxjs';
+
+@Injectable()
+export class PaymentService {
+  private readonly breaker: CircuitBreaker;
+
+  constructor(private httpService: HttpService) {
+    this.breaker = new CircuitBreaker(this.callWithRetry.bind(this), {
+      errorThresholdPercentage: 50,
+      resetTimeout: 30000,
+    });
+
+    this.breaker.fallback((request: PaymentRequest) =>
+      this.paymentFallback(request),
+    );
+  }
+
+  private async callWithRetry(request: PaymentRequest): Promise<PaymentResponse> {
+    const { data } = await firstValueFrom(
+      this.httpService
+        .post<PaymentResponse>('https://payment-api.com/process', request)
+        .pipe(retry({ count: 3, delay: (_, n) => timer(1000 * Math.pow(2, n - 1)) })),
+    );
+    return data;
+  }
+
+  async processPayment(request: PaymentRequest): Promise<PaymentResponse> {
+    return this.breaker.fire(request) as Promise<PaymentResponse>;
+  }
+
+  private paymentFallback(request: PaymentRequest): PaymentResponse {
+    return { status: 'FAILED', message: '결제 실패' };
+  }
 }
 ```
 
@@ -249,18 +279,18 @@ public PaymentResponse processPayment(PaymentRequest request) {
 여러 클라이언트가 동시에 실패하고 동시에 재시도하면 Thundering Herd 발생.
 
 **Jitter 적용:**
-```yaml
-resilience4j:
-  retry:
-    instances:
-      paymentService:
-        wait-duration: 1s
-        enable-randomized-wait: true
-        randomized-wait-factor: 0.5  # 50% ~ 150% 범위
+```typescript
+function exponentialBackoffWithJitter(retryCount: number): number {
+  const base = 1000; // 1초
+  const maxDelay = 10000; // 10초
+  const exponential = Math.min(base * Math.pow(2, retryCount - 1), maxDelay);
+  // Full Jitter: 0 ~ exponential 사이의 랜덤 값
+  return Math.random() * exponential;
+}
 ```
 
 **효과:**
-- 1초 ± 50% → 0.5초 ~ 1.5초
+- 1초 ± 50% → 0초 ~ 1초 사이 랜덤
 - 클라이언트들이 분산되어 재시도
 
 ## Timeout
@@ -274,77 +304,77 @@ resilience4j:
 **Connection Timeout:**
 연결 수립 시간. 보통 짧게 설정 (1-3초).
 
-**Read Timeout:**
-데이터 수신 시간. API 특성에 따라 다름 (3-30초).
+**Response Timeout:**
+응답 수신 시간. API 특성에 따라 다름 (3-30초).
 
-**Write Timeout:**
-데이터 전송 시간. 보통 Read Timeout과 동일.
+**Socket Timeout:**
+데이터 전송 시간. 보통 Response Timeout과 동일.
 
-### RestTemplate 설정
+### Axios Timeout 설정
 
-```java
-@Configuration
-public class RestTemplateConfig {
-    
-    @Bean
-    public RestTemplate restTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        
-        // Connection Timeout: 2초
-        factory.setConnectTimeout(2000);
-        
-        // Read Timeout: 5초
-        factory.setReadTimeout(5000);
-        
-        return new RestTemplate(factory);
-    }
-}
-```
+```typescript
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
-### WebClient 설정
+@Injectable()
+export class PaymentService {
+  constructor(private httpService: HttpService) {}
 
-```java
-@Configuration
-public class WebClientConfig {
-    
-    @Bean
-    public WebClient webClient() {
-        HttpClient httpClient = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
-            .responseTimeout(Duration.ofSeconds(5))
-            .doOnConnected(conn -> 
-                conn.addHandlerLast(new ReadTimeoutHandler(5))
-                    .addHandlerLast(new WriteTimeoutHandler(5)));
-        
-        return WebClient.builder()
-            .clientConnector(new ReactorClientHttpConnector(httpClient))
-            .build();
-    }
-}
-```
-
-### Resilience4j TimeLimiter
-
-```yaml
-resilience4j:
-  timelimiter:
-    instances:
-      paymentService:
-        timeout-duration: 5s
-        cancel-running-future: true
-```
-
-```java
-@TimeLimiter(name = "paymentService")
-@CircuitBreaker(name = "paymentService", fallbackMethod = "paymentFallback")
-public CompletableFuture<PaymentResponse> processPaymentAsync(PaymentRequest request) {
-    return CompletableFuture.supplyAsync(() -> 
-        restTemplate.postForObject(
-            "https://payment-api.com/process",
-            request,
-            PaymentResponse.class
-        )
+  async processPayment(request: PaymentRequest): Promise<PaymentResponse> {
+    const { data } = await firstValueFrom(
+      this.httpService.post<PaymentResponse>(
+        'https://payment-api.com/process',
+        request,
+        {
+          timeout: 5000, // 5초 응답 타임아웃
+          // httpsAgent: new https.Agent({ timeout: 2000 }) // 연결 타임아웃
+        },
+      ),
     );
+    return data;
+  }
+}
+```
+
+### NestJS HttpModule 기본 Timeout 설정
+
+```typescript
+import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
+
+@Module({
+  imports: [
+    HttpModule.register({
+      timeout: 5000,          // 응답 타임아웃: 5초
+      maxRedirects: 5,
+    }),
+  ],
+})
+export class PaymentModule {}
+```
+
+### Promise.race를 이용한 Timeout
+
+```typescript
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class PaymentService {
+  async processPaymentAsync(request: PaymentRequest): Promise<PaymentResponse> {
+    const timeoutMs = 5000;
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs),
+    );
+
+    return Promise.race([this.callPaymentApi(request), timeoutPromise]);
+  }
+
+  private async callPaymentApi(request: PaymentRequest): Promise<PaymentResponse> {
+    // 실제 API 호출
+    return { status: 'OK', message: '' };
+  }
 }
 ```
 
@@ -357,87 +387,130 @@ public CompletableFuture<PaymentResponse> processPaymentAsync(PaymentRequest req
 **Fallback 전략:**
 
 **1. 기본값 반환:**
-```java
-private UserProfile getUserProfileFallback(String userId, Exception e) {
-    log.warn("Failed to fetch user profile, returning default", e);
-    return UserProfile.builder()
-        .userId(userId)
-        .name("Guest")
-        .avatar("/images/default-avatar.png")
-        .build();
+```typescript
+private getUserProfileFallback(userId: string, error: Error): UserProfile {
+  console.warn('Failed to fetch user profile, returning default', error);
+  return {
+    userId,
+    name: 'Guest',
+    avatar: '/images/default-avatar.png',
+  };
 }
 ```
 
 **2. 캐시 사용:**
-```java
-@Cacheable(value = "userProfiles", key = "#userId")
-@CircuitBreaker(name = "userService", fallbackMethod = "getUserProfileFromCache")
-public UserProfile getUserProfile(String userId) {
-    return restTemplate.getForObject(
-        "https://user-api.com/users/" + userId,
-        UserProfile.class
-    );
-}
+```typescript
+import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
+import { Cache } from 'cache-manager';
+import CircuitBreaker from 'opossum';
 
-private UserProfile getUserProfileFromCache(String userId, Exception e) {
-    log.warn("Using cached user profile", e);
-    return cacheManager.getCache("userProfiles").get(userId, UserProfile.class);
+@Injectable()
+export class UserService {
+  private readonly breaker: CircuitBreaker;
+
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {
+    this.breaker = new CircuitBreaker(this.fetchUserProfile.bind(this), {
+      errorThresholdPercentage: 50,
+      resetTimeout: 30000,
+    });
+    this.breaker.fallback((userId: string) => this.getUserProfileFromCache(userId));
+  }
+
+  private async fetchUserProfile(userId: string): Promise<UserProfile> {
+    // 외부 API 호출
+    return {} as UserProfile;
+  }
+
+  private async getUserProfileFromCache(userId: string): Promise<UserProfile | null> {
+    console.warn('Using cached user profile');
+    return this.cacheManager.get<UserProfile>(`userProfiles:${userId}`) ?? null;
+  }
 }
 ```
 
 **3. 다른 서비스 호출:**
-```java
-@CircuitBreaker(name = "primaryPaymentService", fallbackMethod = "useSecondaryPayment")
-public PaymentResponse processPayment(PaymentRequest request) {
-    return primaryPaymentService.process(request);
-}
+```typescript
+@Injectable()
+export class PaymentService {
+  private readonly breaker: CircuitBreaker;
 
-private PaymentResponse useSecondaryPayment(PaymentRequest request, Exception e) {
-    log.warn("Primary payment failed, using secondary", e);
-    return secondaryPaymentService.process(request);
+  constructor(
+    private primaryPaymentService: PrimaryPaymentService,
+    private secondaryPaymentService: SecondaryPaymentService,
+  ) {
+    this.breaker = new CircuitBreaker(
+      (request: PaymentRequest) => this.primaryPaymentService.process(request),
+      { errorThresholdPercentage: 50, resetTimeout: 30000 },
+    );
+    this.breaker.fallback((request: PaymentRequest) =>
+      this.useSecondaryPayment(request),
+    );
+  }
+
+  private async useSecondaryPayment(request: PaymentRequest): Promise<PaymentResponse> {
+    console.warn('Primary payment failed, using secondary');
+    return this.secondaryPaymentService.process(request);
+  }
 }
 ```
 
 **4. 저하된 서비스 제공:**
-```java
-@CircuitBreaker(name = "recommendationService", fallbackMethod = "getPopularItems")
-public List<Product> getRecommendations(String userId) {
-    return recommendationService.getPersonalized(userId);
-}
+```typescript
+@Injectable()
+export class ProductService {
+  private readonly breaker: CircuitBreaker;
 
-private List<Product> getPopularItems(String userId, Exception e) {
-    log.warn("Personalized recommendations failed, returning popular items", e);
+  constructor(
+    private recommendationService: RecommendationService,
+    private popularProductService: PopularProductService,
+  ) {
+    this.breaker = new CircuitBreaker(
+      (userId: string) => this.recommendationService.getPersonalized(userId),
+      { errorThresholdPercentage: 50, resetTimeout: 30000 },
+    );
+    this.breaker.fallback((userId: string) => this.getPopularItems(userId));
+  }
+
+  async getRecommendations(userId: string): Promise<Product[]> {
+    return this.breaker.fire(userId) as Promise<Product[]>;
+  }
+
+  private async getPopularItems(userId: string): Promise<Product[]> {
+    console.warn('Personalized recommendations failed, returning popular items');
     // 개인화 추천 실패 시 인기 상품 반환
-    return productService.getPopularProducts();
+    return this.popularProductService.getPopularProducts();
+  }
 }
 ```
 
 ### Fallback 주의사항
 
 **Fallback도 실패할 수 있다:**
-```java
-private PaymentResponse paymentFallback(PaymentRequest request, Exception e) {
-    try {
-        // 보조 결제 시스템 시도
-        return backupPaymentService.process(request);
-    } catch (Exception ex) {
-        // 보조 시스템도 실패
-        log.error("Both primary and backup payment failed", ex);
-        return new PaymentResponse("FAILED", "결제 불가");
-    }
+```typescript
+private async paymentFallback(request: PaymentRequest): Promise<PaymentResponse> {
+  try {
+    // 보조 결제 시스템 시도
+    return await this.backupPaymentService.process(request);
+  } catch (ex) {
+    // 보조 시스템도 실패
+    console.error('Both primary and backup payment failed', ex);
+    return { status: 'FAILED', message: '결제 불가' };
+  }
 }
 ```
 
 **Fallback이 주 동작보다 느리면 안 된다:**
-```java
+```typescript
 // Bad: Fallback이 DB 조회
-private UserProfile fallback(String userId, Exception e) {
-    return userRepository.findById(userId).orElse(null);  // 느릴 수 있음
+private async fallback(userId: string): Promise<UserProfile | null> {
+  return this.userRepository.findOne({ where: { id: userId } }); // 느릴 수 있음
 }
 
 // Good: Fallback은 빠르게
-private UserProfile fallback(String userId, Exception e) {
-    return UserProfile.DEFAULT;  // 즉시 반환
+private fallback(userId: string): UserProfile {
+  return UserProfile.DEFAULT; // 즉시 반환
 }
 ```
 
@@ -455,89 +528,61 @@ private UserProfile fallback(String userId, Exception e) {
 - 실패 시: 트래픽 차단 (재시작 X)
 - 예: DB 연결 안 됨, 캐시 워밍업 중
 
-### Spring Boot Actuator
+### NestJS 헬스체크 (Terminus)
 
-**의존성:**
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
+**패키지 설치:**
+```
+npm install @nestjs/terminus
 ```
 
-**application.yml:**
-```yaml
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-  health:
-    circuitbreakers:
-      enabled: true
-```
+**설정:**
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { HealthCheckService, HealthCheck, TypeOrmHealthIndicator, HttpHealthIndicator } from '@nestjs/terminus';
 
-**엔드포인트:**
-```
-GET /actuator/health          # 전체 헬스
-GET /actuator/health/liveness  # Liveness
-GET /actuator/health/readiness # Readiness
-```
+@Controller('health')
+export class HealthController {
+  constructor(
+    private health: HealthCheckService,
+    private db: TypeOrmHealthIndicator,
+    private http: HttpHealthIndicator,
+  ) {}
 
-### 커스텀 Health Indicator
+  @Get()
+  @HealthCheck()
+  check() {
+    return this.health.check([
+      () => this.db.pingCheck('database'),
+      () => this.http.pingCheck('payment-api', 'https://payment-api.com/health'),
+    ]);
+  }
 
-```java
-@Component
-public class PaymentServiceHealthIndicator implements HealthIndicator {
-    
-    private final PaymentService paymentService;
-    
-    @Override
-    public Health health() {
-        try {
-            // 결제 서비스 상태 확인
-            boolean isHealthy = paymentService.ping();
-            
-            if (isHealthy) {
-                return Health.up()
-                    .withDetail("service", "payment")
-                    .withDetail("status", "available")
-                    .build();
-            } else {
-                return Health.down()
-                    .withDetail("service", "payment")
-                    .withDetail("status", "unavailable")
-                    .build();
-            }
-        } catch (Exception e) {
-            return Health.down()
-                .withDetail("service", "payment")
-                .withDetail("error", e.getMessage())
-                .build();
-        }
-    }
+  @Get('liveness')
+  @HealthCheck()
+  liveness() {
+    return this.health.check([]);
+  }
+
+  @Get('readiness')
+  @HealthCheck()
+  readiness() {
+    return this.health.check([
+      () => this.db.pingCheck('database'),
+    ]);
+  }
 }
 ```
 
 **응답:**
 ```json
 {
-  "status": "UP",
-  "components": {
-    "paymentService": {
-      "status": "UP",
-      "details": {
-        "service": "payment",
-        "status": "available"
-      }
+  "status": "ok",
+  "info": {
+    "database": {
+      "status": "up"
     },
-    "db": {
-      "status": "UP"
+    "payment-api": {
+      "status": "up"
     }
   }
 }
@@ -558,19 +603,19 @@ spec:
       - name: app
         image: order-service:1.0
         ports:
-        - containerPort: 8080
+        - containerPort: 3000
         livenessProbe:
           httpGet:
-            path: /actuator/health/liveness
-            port: 8080
+            path: /health/liveness
+            port: 3000
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /actuator/health/readiness
-            port: 8080
+            path: /health/readiness
+            port: 3000
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 3
@@ -600,89 +645,76 @@ SIGTERM 수신
   → 프로세스 종료
 ```
 
-### Spring Boot 설정
+### NestJS Graceful Shutdown 설정
 
-Spring Boot 2.3부터 내장 지원한다.
+NestJS에서는 `enableShutdownHooks()`로 SIGTERM을 처리한다.
 
-**application.yml:**
-```yaml
-server:
-  shutdown: graceful
+```typescript
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
-spring:
-  lifecycle:
-    timeout-per-shutdown-phase: 30s
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+
+  // Graceful Shutdown 활성화
+  app.enableShutdownHooks();
+
+  await app.listen(3000);
+  console.log('Application is running on: http://localhost:3000');
+}
+bootstrap();
 ```
-
-`timeout-per-shutdown-phase`는 종료 대기 최대 시간이다. 30초가 지나면 처리 중인 요청이 남아있어도 강제 종료한다. 운영 환경에서는 평균 요청 처리 시간의 2~3배로 설정한다.
 
 ### 커스텀 종료 처리
 
 DB 트랜잭션이나 외부 리소스를 정리해야 하는 경우가 있다.
 
-```java
-@Component
-public class GracefulShutdownHandler {
+```typescript
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 
-    private final ExecutorService taskExecutor;
-    private final KafkaConsumer<String, String> kafkaConsumer;
+@Injectable()
+export class GracefulShutdownService implements OnApplicationShutdown {
+  private pendingTasks = 0;
 
-    @PreDestroy
-    public void onShutdown() {
-        log.info("Shutdown signal received");
+  async onApplicationShutdown(signal?: string): Promise<void> {
+    console.info(`Shutdown signal received: ${signal}`);
 
-        // Kafka 컨슈머 먼저 멈춘다
-        // 새 메시지를 가져오지 않아야 처리 중인 것만 마무리할 수 있다
-        kafkaConsumer.wakeup();
+    // 진행 중인 비동기 작업 완료 대기
+    const timeout = 25000; // 25초
+    const start = Date.now();
 
-        // 진행 중인 비동기 작업 완료 대기
-        taskExecutor.shutdown();
-        try {
-            if (!taskExecutor.awaitTermination(25, TimeUnit.SECONDS)) {
-                log.warn("Tasks did not finish in 25s, forcing shutdown");
-                taskExecutor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            taskExecutor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
-        log.info("Shutdown complete");
+    while (this.pendingTasks > 0) {
+      if (Date.now() - start > timeout) {
+        console.warn('Tasks did not finish in 25s, forcing shutdown');
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
+
+    console.info('Shutdown complete');
+  }
 }
 ```
 
-`@PreDestroy` 실행 순서를 주의해야 한다. 여러 빈에 `@PreDestroy`가 있으면 빈 의존 관계의 역순으로 실행되지만, 순서가 보장되지 않는 경우도 있다. 중요한 정리 작업은 `SmartLifecycle`을 구현해서 `phase` 값으로 순서를 명시한다.
+```typescript
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 
-```java
-@Component
-public class KafkaShutdownHandler implements SmartLifecycle {
+@Injectable()
+export class KafkaShutdownService implements OnApplicationShutdown {
+  private running = true;
 
-    private volatile boolean running = true;
+  async onApplicationShutdown(signal?: string): Promise<void> {
+    console.info('Stopping Kafka consumer');
+    // Kafka 컨슈머를 먼저 멈춘다
+    // 새 메시지를 가져오지 않아야 처리 중인 것만 마무리할 수 있다
+    this.running = false;
+    await this.waitForInFlightMessages();
+  }
 
-    @Override
-    public void stop(Runnable callback) {
-        log.info("Stopping Kafka consumer");
-        kafkaConsumer.wakeup();
-        // 처리 중인 메시지 완료 후 콜백 호출
-        CompletableFuture.runAsync(() -> {
-            waitForInFlightMessages();
-            running = false;
-            callback.run();
-        });
-    }
-
-    @Override
-    public int getPhase() {
-        // 값이 클수록 먼저 종료된다
-        // 기본 웹서버(phase=Integer.MAX_VALUE - 1)보다 먼저 종료
-        return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
-    }
+  private async waitForInFlightMessages(): Promise<void> {
+    // 처리 중인 메시지 완료 대기 로직
+  }
 }
 ```
 
@@ -721,112 +753,147 @@ Producer → 1000 req/s → Buffer(무한 증가) → Consumer(100 req/s) → OO
 Producer → 1000 req/s → Consumer: "100개만 보내" → Producer 속도 조절
 ```
 
-### WebFlux에서의 Backpressure
+### NestJS에서의 Backpressure (RxJS)
 
-Reactor(WebFlux의 기반)는 Reactive Streams 스펙을 구현한다. `Subscriber`가 `request(n)`으로 처리 가능한 개수를 알려준다.
+NestJS는 RxJS를 기반으로 하며, `bufferCount`, `throttleTime` 등으로 Backpressure를 제어한다.
 
-```java
-@RestController
-public class EventController {
+```typescript
+import { Controller, Get, Sse } from '@nestjs/common';
+import { Observable, from, bufferCount } from 'rxjs';
+import { MessageEvent } from '@nestjs/common';
 
-    private final EventRepository eventRepository;
+@Controller('events')
+export class EventController {
+  @Sse('stream')
+  streamEvents(): Observable<MessageEvent> {
+    return from(this.getEventStream()).pipe(
+      // 한 번에 256개씩만 처리
+      bufferCount(256),
+    ) as unknown as Observable<MessageEvent>;
+  }
 
-    @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Event> streamEvents() {
-        return eventRepository.findAllAsStream()
-            // 한 번에 256개씩만 요청
-            .limitRate(256)
-            // 처리가 느리면 최신 데이터만 유지
-            .onBackpressureLatest();
-    }
+  private getEventStream(): AsyncIterable<MessageEvent> {
+    // 이벤트 스트림 구현
+    return {
+      [Symbol.asyncIterator]: async function* () {
+        // yield events...
+      },
+    };
+  }
 }
 ```
 
-**Backpressure 처리 방법 3가지:**
+**Backpressure 처리 방법:**
 
-```java
+```typescript
+import { bufferCount, throttleTime } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+
 // 1. 버퍼에 쌓기 (제한적)
-// 버퍼가 가득 차면 에러 발생
-flux.onBackpressureBuffer(1024);
+// 버퍼가 N개 채워지면 배열로 방출
+const buffered$ = source$.pipe(bufferCount(1024));
 
 // 2. 최신 데이터만 유지 (이전 데이터 버림)
 // 실시간 모니터링 같은 경우에 적합
-flux.onBackpressureLatest();
+const latest$ = source$.pipe(throttleTime(100)); // 100ms마다 최신 값만
 
-// 3. 초과분 버리기
-// 처리 못하는 데이터는 그냥 버림
-flux.onBackpressureDrop(item ->
-    log.warn("Dropped item: {}", item.getId())
-);
+// 3. 초과분 버리기 — 처리 못하는 데이터는 그냥 버림
+const subject = new Subject<Event>();
+// Subject에 backpressure가 쌓이면 구독자가 느린 경우 메시지 유실 가능
 ```
 
-어떤 방식을 쓸지는 데이터 성격에 따라 다르다. 결제 데이터는 버리면 안 되니 버퍼를 쓰고, 실시간 주가 데이터는 최신 값만 중요하니 `onBackpressureLatest()`를 쓴다.
+어떤 방식을 쓸지는 데이터 성격에 따라 다르다. 결제 데이터는 버리면 안 되니 버퍼를 쓰고, 실시간 주가 데이터는 최신 값만 중요하니 throttle을 쓴다.
 
 ### Kafka에서의 Backpressure
 
 Kafka 컨슈머는 `max.poll.records`로 한 번에 가져오는 메시지 수를 조절한다.
 
 ```yaml
-spring:
-  kafka:
-    consumer:
-      max-poll-records: 100
-      # 이 시간 내에 poll()을 호출하지 않으면 리밸런싱 발생
-      max-poll-interval-ms: 300000
-      fetch-max-wait-ms: 500
-      fetch-min-size: 1
+# KafkaJS 설정 예시 (nestjs/microservices)
+kafka:
+  consumer:
+    maxInFlightRequests: 1
+    sessionTimeout: 30000
+    heartbeatInterval: 3000
 ```
 
-처리 속도가 느린데 `max.poll.records`가 크면 `max.poll.interval.ms` 내에 처리를 못 끝내서 컨슈머 그룹에서 쫓겨난다. 이러면 리밸런싱이 발생하고 다른 컨슈머에 파티션이 재할당되면서 일시적으로 전체 소비가 멈춘다.
+처리 속도가 느린데 `maxInFlightRequests`가 크면 메시지를 너무 많이 가져와서 처리를 못 끝낼 수 있다.
 
-```java
-@Component
-public class OrderEventConsumer {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { EventPattern, Payload } from '@nestjs/microservices';
 
-    // 동시 처리량 제어
-    private final Semaphore semaphore = new Semaphore(50);
+@Injectable()
+export class OrderEventConsumer {
+  // 동시 처리량 제어를 위한 세마포어
+  private readonly maxConcurrent = 50;
+  private currentConcurrent = 0;
 
-    @KafkaListener(topics = "orders", concurrency = "3")
-    public void consume(ConsumerRecord<String, OrderEvent> record) {
-        if (!semaphore.tryAcquire(100, TimeUnit.MILLISECONDS)) {
-            // 처리 용량 초과 — 메시지를 다시 큐에 넣거나 에러 토픽으로 보낸다
-            throw new RetriableException("Processing capacity exceeded");
-        }
-
-        try {
-            processOrder(record.value());
-        } finally {
-            semaphore.release();
-        }
+  @EventPattern('orders')
+  async handleOrder(@Payload() data: OrderEvent): Promise<void> {
+    if (this.currentConcurrent >= this.maxConcurrent) {
+      // 처리 용량 초과 — 잠시 대기하거나 에러를 던져 재시도 처리
+      throw new Error('Processing capacity exceeded');
     }
+
+    this.currentConcurrent++;
+    try {
+      await this.processOrder(data);
+    } finally {
+      this.currentConcurrent--;
+    }
+  }
+
+  private async processOrder(event: OrderEvent): Promise<void> {
+    // 주문 처리 로직
+  }
 }
 ```
 
-### 스레드 풀 기반 Backpressure
+### 동시성 제한 기반 Backpressure
 
-MVC 환경에서도 스레드 풀과 큐 크기로 간접적인 Backpressure를 구현할 수 있다.
+NestJS에서 동시 요청 수를 제한하여 간접적인 Backpressure를 구현할 수 있다.
 
-```java
-@Configuration
-public class AsyncConfig {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    @Bean(name = "orderTaskExecutor")
-    public ThreadPoolTaskExecutor orderTaskExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(10);
-        executor.setMaxPoolSize(20);
-        // 큐가 가득 차면 CallerRunsPolicy가 호출 스레드에서 직접 실행
-        // → 호출 스레드가 블록되면서 자연스럽게 요청 속도가 줄어든다
-        executor.setQueueCapacity(100);
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        executor.setThreadNamePrefix("order-");
-        executor.initialize();
-        return executor;
+@Injectable()
+export class ConcurrencyLimitMiddleware implements NestMiddleware {
+  private readonly maxConcurrent: number;
+  private readonly queueLimit: number;
+  private currentConcurrent = 0;
+  private queue: Array<() => void> = [];
+
+  constructor() {
+    this.maxConcurrent = 20; // 최대 동시 처리
+    this.queueLimit = 100;  // 큐 제한 (이 이상이면 503)
+  }
+
+  use(req: Request, res: Response, next: NextFunction): void {
+    if (this.currentConcurrent < this.maxConcurrent) {
+      this.currentConcurrent++;
+      res.on('finish', () => {
+        this.currentConcurrent--;
+        if (this.queue.length > 0) {
+          const resolve = this.queue.shift()!;
+          resolve();
+        }
+      });
+      next();
+    } else if (this.queue.length < this.queueLimit) {
+      this.queue.push(() => {
+        this.currentConcurrent++;
+        next();
+      });
+    } else {
+      res.status(503).send('Service overloaded, try again later');
     }
+  }
 }
 ```
 
-`CallerRunsPolicy`가 핵심이다. 큐가 가득 차면 요청을 처리하는 스레드(톰캣 워커 스레드)가 직접 작업을 수행한다. 그 동안 새 요청을 못 받으니 자연스럽게 유입 속도가 줄어든다.
+큐가 가득 차면 요청을 거부해서 자연스럽게 유입 속도가 줄어든다.
 
 ## Load Shedding (부하 제거)
 
@@ -846,44 +913,43 @@ Rate Limiting과 다른 점이 있다. Rate Limiting은 "초당 N개"처럼 고�
 
 300개를 빠르게 거부하는 게 1000개를 느리게 처리하는 것보다 낫다.
 
-### 응답 시간 기반 Load Shedding
+### 동시 요청 수 기반 Load Shedding
 
-현재 응답 시간이 느려지면 요청을 거부한다.
+현재 동시 요청 수가 한계를 넘으면 요청을 거부한다.
 
-```java
-@Component
-public class LoadSheddingFilter implements Filter {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    private final AtomicInteger activeRequests = new AtomicInteger(0);
-    private final int maxConcurrentRequests;
-    private final MeterRegistry meterRegistry;
+@Injectable()
+export class LoadSheddingMiddleware implements NestMiddleware {
+  private activeRequests = 0;
+  private readonly maxConcurrentRequests: number;
 
-    public LoadSheddingFilter(
-            @Value("${load-shedding.max-concurrent-requests:500}") int maxConcurrentRequests,
-            MeterRegistry meterRegistry) {
-        this.maxConcurrentRequests = maxConcurrentRequests;
-        this.meterRegistry = meterRegistry;
+  constructor() {
+    this.maxConcurrentRequests = parseInt(
+      process.env.MAX_CONCURRENT_REQUESTS ?? '500',
+      10,
+    );
+  }
+
+  use(req: Request, res: Response, next: NextFunction): void {
+    this.activeRequests++;
+
+    res.on('finish', () => {
+      this.activeRequests--;
+    });
+
+    if (this.activeRequests > this.maxConcurrentRequests) {
+      this.activeRequests--;
+      res.status(503).json({
+        message: 'Service overloaded, try again later',
+      });
+      return;
     }
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response,
-                         FilterChain chain) throws IOException, ServletException {
-        int current = activeRequests.incrementAndGet();
-
-        try {
-            if (current > maxConcurrentRequests) {
-                meterRegistry.counter("load_shedding.rejected").increment();
-                HttpServletResponse httpResponse = (HttpServletResponse) response;
-                httpResponse.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-                httpResponse.getWriter().write("Service overloaded, try again later");
-                return;
-            }
-
-            chain.doFilter(request, response);
-        } finally {
-            activeRequests.decrementAndGet();
-        }
-    }
+    next();
+  }
 }
 ```
 
@@ -893,53 +959,58 @@ public class LoadSheddingFilter implements Filter {
 
 모든 요청을 동등하게 취급하면 안 되는 경우가 있다. 결제 요청은 살리고 상품 목록 조회는 거부하는 식이다.
 
-```java
-@Component
-public class PriorityLoadSheddingFilter implements Filter {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    private final AtomicInteger activeRequests = new AtomicInteger(0);
+enum Priority {
+  HIGH = 'HIGH',
+  LOW = 'LOW',
+}
 
-    // 전체 허용 한도
-    private static final int MAX_TOTAL = 500;
-    // 높은 우선순위는 전체 한도까지, 낮은 우선순위는 절반까지
-    private static final int LOW_PRIORITY_LIMIT = 250;
+@Injectable()
+export class PriorityLoadSheddingMiddleware implements NestMiddleware {
+  private activeRequests = 0;
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response,
-                         FilterChain chain) throws IOException, ServletException {
+  // 전체 허용 한도
+  private static readonly MAX_TOTAL = 500;
+  // 높은 우선순위는 전체 한도까지, 낮은 우선순위는 절반까지
+  private static readonly LOW_PRIORITY_LIMIT = 250;
 
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        Priority priority = resolvePriority(httpRequest);
-        int current = activeRequests.incrementAndGet();
+  use(req: Request, res: Response, next: NextFunction): void {
+    const priority = this.resolvePriority(req);
+    this.activeRequests++;
 
-        try {
-            int limit = (priority == Priority.HIGH) ? MAX_TOTAL : LOW_PRIORITY_LIMIT;
+    res.on('finish', () => {
+      this.activeRequests--;
+    });
 
-            if (current > limit) {
-                HttpServletResponse httpResponse = (HttpServletResponse) response;
-                httpResponse.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-                httpResponse.setHeader("Retry-After", "5");
-                return;
-            }
+    const limit =
+      priority === Priority.HIGH
+        ? PriorityLoadSheddingMiddleware.MAX_TOTAL
+        : PriorityLoadSheddingMiddleware.LOW_PRIORITY_LIMIT;
 
-            chain.doFilter(request, response);
-        } finally {
-            activeRequests.decrementAndGet();
-        }
+    if (this.activeRequests > limit) {
+      this.activeRequests--;
+      res.status(503).setHeader('Retry-After', '5').json({
+        message: 'Service overloaded',
+      });
+      return;
     }
 
-    private Priority resolvePriority(HttpServletRequest request) {
-        String path = request.getRequestURI();
+    next();
+  }
 
-        // 결제, 주문 생성은 높은 우선순위
-        if (path.startsWith("/api/payments") || path.startsWith("/api/orders")) {
-            return Priority.HIGH;
-        }
-        // 조회성 API는 낮은 우선순위
-        return Priority.LOW;
+  private resolvePriority(request: Request): Priority {
+    const path = request.path;
+
+    // 결제, 주문 생성은 높은 우선순위
+    if (path.startsWith('/api/payments') || path.startsWith('/api/orders')) {
+      return Priority.HIGH;
     }
-
-    enum Priority { HIGH, LOW }
+    // 조회성 API는 낮은 우선순위
+    return Priority.LOW;
+  }
 }
 ```
 
@@ -947,33 +1018,27 @@ public class PriorityLoadSheddingFilter implements Filter {
 
 ### 시스템 리소스 기반 Load Shedding
 
-CPU나 메모리 사용률을 직접 확인해서 판단하는 방식이다.
+Node.js에서 CPU 사용률을 확인해서 판단하는 방식이다.
 
-```java
-@Component
-public class ResourceAwareLoadShedding {
+```typescript
+import { Injectable } from '@nestjs/common';
+import * as os from 'os';
 
-    private final OperatingSystemMXBean osMxBean;
+@Injectable()
+export class ResourceAwareLoadShedding {
+  shouldShed(): boolean {
+    const cpuUsage = os.loadavg()[0] / os.cpus().length; // 1분 평균 로드
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const memoryUsage = (totalMemory - freeMemory) / totalMemory;
 
-    public ResourceAwareLoadShedding() {
-        this.osMxBean = (OperatingSystemMXBean)
-            ManagementFactory.getOperatingSystemMXBean();
-    }
-
-    public boolean shouldShed() {
-        double cpuLoad = osMxBean.getCpuLoad();
-        Runtime runtime = Runtime.getRuntime();
-        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
-        long maxMemory = runtime.maxMemory();
-        double memoryUsage = (double) usedMemory / maxMemory;
-
-        // CPU 80% 이상이거나 메모리 90% 이상이면 부하 제거
-        return cpuLoad > 0.8 || memoryUsage > 0.9;
-    }
+    // CPU 로드 0.8 이상이거나 메모리 90% 이상이면 부하 제거
+    return cpuUsage > 0.8 || memoryUsage > 0.9;
+  }
 }
 ```
 
-이 방식은 JVM 내부 메트릭만 보는 거라 정확하지 않을 수 있다. GC가 돌면서 CPU가 일시적으로 올라가는 경우도 있다. 실제 운영에서는 이 값을 일정 기간 평균내서 판단하거나, Prometheus 메트릭과 결합해서 사용한다.
+이 방식은 OS 수준 메트릭을 보는 거라 GC나 일시적 스파이크에 민감할 수 있다. 실제 운영에서는 이 값을 일정 기간 평균내서 판단하거나, Prometheus 메트릭과 결합해서 사용한다.
 
 ### 실무 적용 시 주의사항
 
@@ -981,196 +1046,264 @@ public class ResourceAwareLoadShedding {
 
 **클라이언트 쪽 처리도 필요하다.** 서버가 503을 주면 클라이언트는 Exponential Backoff로 재시도해야 한다. 즉시 재시도하면 Load Shedding의 의미가 없다.
 
-**Load Shedding 임계값은 부하 테스트로 정한다.** 서버가 실제로 몇 개의 동시 요청을 처리할 수 있는지 모르면 임계값을 정할 수 없다. k6나 Gatling으로 부하 테스트를 돌려서 응답 시간이 급격히 늘어나는 지점을 찾는다.
+**Load Shedding 임계값은 부하 테스트로 정한다.** 서버가 실제로 몇 개의 동시 요청을 처리할 수 있는지 모르면 임계값을 정할 수 없다. k6나 Artillery로 부하 테스트를 돌려서 응답 시간이 급격히 늘어나는 지점을 찾는다.
 
 ## 실무 패턴
 
 ### 패턴 1: 외부 API 호출
 
-```java
-@Service
-public class PaymentService {
-    
-    @Retry(name = "payment")
-    @TimeLimiter(name = "payment")
-    @CircuitBreaker(name = "payment", fallbackMethod = "paymentFallback")
-    public CompletableFuture<PaymentResponse> processPayment(PaymentRequest request) {
-        return CompletableFuture.supplyAsync(() -> {
-            return restTemplate.postForObject(
-                paymentApiUrl,
-                request,
-                PaymentResponse.class
-            );
-        });
-    }
-    
-    private CompletableFuture<PaymentResponse> paymentFallback(
-            PaymentRequest request, Exception e) {
-        log.error("Payment failed, using fallback", e);
-        
-        // 결제 정보를 큐에 저장 (나중에 재시도)
-        paymentQueue.add(request);
-        
-        return CompletableFuture.completedFuture(
-            new PaymentResponse("PENDING", "결제 처리 중")
-        );
-    }
-}
-```
+```typescript
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom, retry, timer, timeout } from 'rxjs';
+import CircuitBreaker from 'opossum';
 
-**설정:**
-```yaml
-resilience4j:
-  circuitbreaker:
-    instances:
-      payment:
-        sliding-window-size: 20
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 30s
-  retry:
-    instances:
-      payment:
-        max-attempts: 3
-        wait-duration: 1s
-        enable-exponential-backoff: true
-  timelimiter:
-    instances:
-      payment:
-        timeout-duration: 5s
+interface PaymentRequest {
+  orderId: string;
+  amount: number;
+}
+
+interface PaymentResponse {
+  status: string;
+  message: string;
+}
+
+@Injectable()
+export class PaymentService {
+  private readonly breaker: CircuitBreaker;
+  private readonly paymentQueue: PaymentRequest[] = [];
+
+  constructor(private httpService: HttpService) {
+    this.breaker = new CircuitBreaker(this.callPaymentApiWithRetry.bind(this), {
+      errorThresholdPercentage: 50,
+      resetTimeout: 30000,
+      timeout: 5000, // 5초 타임아웃
+    });
+
+    this.breaker.fallback((request: PaymentRequest) =>
+      this.paymentFallback(request),
+    );
+  }
+
+  private async callPaymentApiWithRetry(
+    request: PaymentRequest,
+  ): Promise<PaymentResponse> {
+    const { data } = await firstValueFrom(
+      this.httpService
+        .post<PaymentResponse>(process.env.PAYMENT_API_URL!, request)
+        .pipe(
+          timeout(5000),
+          retry({ count: 3, delay: (_, n) => timer(1000 * Math.pow(2, n - 1)) }),
+        ),
+    );
+    return data;
+  }
+
+  async processPayment(request: PaymentRequest): Promise<PaymentResponse> {
+    return this.breaker.fire(request) as Promise<PaymentResponse>;
+  }
+
+  private paymentFallback(request: PaymentRequest): PaymentResponse {
+    console.error('Payment failed, using fallback');
+    // 결제 정보를 큐에 저장 (나중에 재시도)
+    this.paymentQueue.push(request);
+    return { status: 'PENDING', message: '결제 처리 중' };
+  }
+}
 ```
 
 ### 패턴 2: DB 조회
 
-```java
-@Service
-public class UserService {
-    
-    @Cacheable(value = "users", key = "#userId")
-    @TimeLimiter(name = "database")
-    @CircuitBreaker(name = "database", fallbackMethod = "getUserFromCache")
-    public CompletableFuture<User> getUser(String userId) {
-        return CompletableFuture.supplyAsync(() -> {
-            return userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
-        });
-    }
-    
-    private CompletableFuture<User> getUserFromCache(String userId, Exception e) {
-        log.warn("DB query failed, checking cache", e);
-        
-        User cachedUser = cacheManager.getCache("users").get(userId, User.class);
-        if (cachedUser != null) {
-            return CompletableFuture.completedFuture(cachedUser);
-        }
-        
-        throw new UserNotFoundException(userId);
-    }
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
+import { Cache } from 'cache-manager';
+import CircuitBreaker from 'opossum';
+import { UserEntity } from './user.entity';
+
+@Injectable()
+export class UserService {
+  private readonly breaker: CircuitBreaker;
+
+  constructor(
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {
+    this.breaker = new CircuitBreaker(this.queryUser.bind(this), {
+      errorThresholdPercentage: 50,
+      resetTimeout: 30000,
+      timeout: 5000,
+    });
+
+    this.breaker.fallback((userId: string) => this.getUserFromCache(userId));
+  }
+
+  private async queryUser(userId: string): Promise<UserEntity> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new Error(`User not found: ${userId}`);
+    return user;
+  }
+
+  async getUser(userId: string): Promise<UserEntity> {
+    const cached = await this.cacheManager.get<UserEntity>(`users:${userId}`);
+    if (cached) return cached;
+
+    const user = await (this.breaker.fire(userId) as Promise<UserEntity>);
+    await this.cacheManager.set(`users:${userId}`, user, 300);
+    return user;
+  }
+
+  private async getUserFromCache(userId: string): Promise<UserEntity | null> {
+    console.warn('DB query failed, checking cache');
+    return this.cacheManager.get<UserEntity>(`users:${userId}`) ?? null;
+  }
 }
 ```
 
 ### 패턴 3: 마이크로서비스 간 통신
 
-```java
-@Service
-@Slf4j
-public class OrderService {
-    
-    private final WebClient inventoryClient;
-    private final WebClient paymentClient;
-    
-    @Transactional
-    public OrderResponse createOrder(OrderRequest request) {
-        // 1. 재고 확인 (Circuit Breaker 적용)
-        boolean hasStock = checkInventory(request.getProductId(), request.getQuantity())
-            .block(Duration.ofSeconds(3));
-        
-        if (!hasStock) {
-            throw new OutOfStockException();
-        }
-        
-        // 2. 주문 생성
-        Order order = orderRepository.save(new Order(request));
-        
-        // 3. 결제 처리 (비동기 + Fallback)
-        processPaymentAsync(order.getId(), request.getPaymentInfo())
-            .exceptionally(e -> {
-                log.error("Payment failed for order: {}", order.getId(), e);
-                order.setStatus(OrderStatus.PAYMENT_PENDING);
-                orderRepository.save(order);
-                return null;
-            });
-        
-        return new OrderResponse(order);
-    }
-    
-    @CircuitBreaker(name = "inventory", fallbackMethod = "inventoryFallback")
-    @Retry(name = "inventory")
-    private Mono<Boolean> checkInventory(String productId, int quantity) {
-        return inventoryClient.get()
-            .uri("/inventory/{productId}/check?quantity={quantity}", productId, quantity)
-            .retrieve()
-            .bodyToMono(Boolean.class);
-    }
-    
-    private Mono<Boolean> inventoryFallback(String productId, int quantity, Exception e) {
-        log.warn("Inventory check failed, assuming available", e);
-        // 재고 확인 실패 시 일단 주문 접수 (나중에 확인)
-        return Mono.just(true);
-    }
-    
-    @CircuitBreaker(name = "payment", fallbackMethod = "paymentFallback")
-    @Async
-    private CompletableFuture<PaymentResponse> processPaymentAsync(
-            String orderId, PaymentInfo paymentInfo) {
-        return paymentClient.post()
-            .uri("/payments")
-            .bodyValue(paymentInfo)
-            .retrieve()
-            .bodyToMono(PaymentResponse.class)
-            .toFuture();
-    }
-    
-    private CompletableFuture<PaymentResponse> paymentFallback(
-            String orderId, PaymentInfo paymentInfo, Exception e) {
-        log.error("Payment failed, queuing for retry", e);
-        paymentRetryQueue.add(new PaymentRetryTask(orderId, paymentInfo));
-        return CompletableFuture.completedFuture(
-            new PaymentResponse("PENDING", "결제 처리 중")
-        );
-    }
+```typescript
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { firstValueFrom, timeout } from 'rxjs';
+import CircuitBreaker from 'opossum';
+import { OrderEntity } from './order.entity';
+
+interface OrderRequest {
+  productId: string;
+  quantity: number;
+  paymentInfo: PaymentInfo;
+}
+
+interface PaymentInfo {
+  method: string;
+  amount: number;
+}
+
+interface OrderResponse {
+  orderId: string;
+  status: string;
+}
+
+@Injectable()
+export class OrderService {
+  private readonly inventoryBreaker: CircuitBreaker;
+  private readonly paymentBreaker: CircuitBreaker;
+  private readonly paymentRetryQueue: Array<{ orderId: string; paymentInfo: PaymentInfo }> = [];
+
+  constructor(
+    private httpService: HttpService,
+    @InjectRepository(OrderEntity)
+    private orderRepository: Repository<OrderEntity>,
+    private dataSource: DataSource,
+  ) {
+    this.inventoryBreaker = new CircuitBreaker(
+      this.checkInventoryApi.bind(this),
+      { errorThresholdPercentage: 50, resetTimeout: 10000 },
+    );
+    this.inventoryBreaker.fallback(() => true); // 재고 확인 실패 시 일단 주문 접수
+
+    this.paymentBreaker = new CircuitBreaker(
+      this.processPaymentApi.bind(this),
+      { errorThresholdPercentage: 50, resetTimeout: 30000 },
+    );
+    this.paymentBreaker.fallback(
+      (orderId: string, paymentInfo: PaymentInfo) => {
+        this.paymentRetryQueue.push({ orderId, paymentInfo });
+        return { status: 'PENDING', message: '결제 처리 중' };
+      },
+    );
+  }
+
+  async createOrder(request: OrderRequest): Promise<OrderResponse> {
+    return this.dataSource.transaction(async (manager) => {
+      // 1. 재고 확인 (Circuit Breaker 적용)
+      const hasStock = await this.inventoryBreaker.fire(
+        request.productId,
+        request.quantity,
+      ) as boolean;
+
+      if (!hasStock) throw new Error('재고 부족');
+
+      // 2. 주문 생성
+      const order = manager.create(OrderEntity, {
+        productId: request.productId,
+        quantity: request.quantity,
+        status: 'PENDING',
+      });
+      await manager.save(order);
+
+      // 3. 결제 처리 (비동기 + Fallback)
+      this.paymentBreaker
+        .fire(order.id, request.paymentInfo)
+        .catch((e) => {
+          console.error(`Payment failed for order: ${order.id}`, e);
+          order.status = 'PAYMENT_PENDING';
+          this.orderRepository.save(order);
+        });
+
+      return { orderId: order.id, status: order.status };
+    });
+  }
+
+  private async checkInventoryApi(
+    productId: string,
+    quantity: number,
+  ): Promise<boolean> {
+    const { data } = await firstValueFrom(
+      this.httpService
+        .get<boolean>(
+          `/inventory/${productId}/check?quantity=${quantity}`,
+        )
+        .pipe(timeout(3000)),
+    );
+    return data;
+  }
+
+  private async processPaymentApi(
+    orderId: string,
+    paymentInfo: PaymentInfo,
+  ): Promise<{ status: string }> {
+    const { data } = await firstValueFrom(
+      this.httpService.post<{ status: string }>('/payments', paymentInfo).pipe(
+        timeout(5000),
+      ),
+    );
+    return data;
+  }
 }
 ```
 
 ## 모니터링
 
-### Metrics
+### Prometheus 메트릭
 
-**Resilience4j Actuator:**
-```yaml
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,metrics,circuitbreakers,ratelimiters,retries
-```
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Counter, Gauge } from 'prom-client';
 
-**엔드포인트:**
-```
-GET /actuator/circuitbreakers
-GET /actuator/retries
-GET /actuator/metrics/resilience4j.circuitbreaker.calls
-```
+@Injectable()
+export class ResilienceMetricsService {
+  constructor(
+    @InjectMetric('circuit_breaker_state') private cbStateGauge: Gauge<string>,
+    @InjectMetric('retry_attempts_total') private retryCounter: Counter<string>,
+  ) {}
 
-### Prometheus
+  recordCircuitBreakerState(name: string, state: string): void {
+    const stateValue = state === 'CLOSED' ? 0 : state === 'OPEN' ? 1 : 0.5;
+    this.cbStateGauge.set({ circuit_breaker: name }, stateValue);
+  }
 
-```java
-@Configuration
-public class MetricsConfig {
-    
-    @Bean
-    public MeterRegistry meterRegistry() {
-        return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-    }
+  recordRetryAttempt(serviceName: string): void {
+    this.retryCounter.inc({ service: serviceName });
+  }
 }
 ```
 
@@ -1182,9 +1315,7 @@ public class MetricsConfig {
 
 ## 참고
 
-- Resilience4j 공식 문서: https://resilience4j.readme.io/
-- Spring Cloud Circuit Breaker: https://spring.io/projects/spring-cloud-circuitbreaker
+- opossum (Circuit Breaker): https://nodeshift.dev/opossum/
+- NestJS Terminus (Health Check): https://docs.nestjs.com/recipes/terminus
 - Martin Fowler - Circuit Breaker: https://martinfowler.com/bliki/CircuitBreaker.html
 - AWS Well-Architected Framework: https://aws.amazon.com/architecture/well-architected/
-
-

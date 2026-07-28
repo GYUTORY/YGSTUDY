@@ -109,47 +109,79 @@ GET /api/users/1?version=2
 
 v1을 건드리지 말고 v2를 새로 추가한다. v1은 그대로 동작해야 한다.
 
-```java
+```typescript
 // v2 컨트롤러를 별도로 만든다. v1 코드는 건드리지 않는다.
-@RestController
-@RequestMapping("/api/v2/orders")
-public class OrderV2Controller {
+import { Controller, Get, Param } from '@nestjs/common';
+import { OrderService } from '../order.service';
+import { OrderV2Response } from './dto/order-v2.response';
 
-    private final OrderService orderService;
+@Controller('api/v2/orders')
+export class OrderV2Controller {
+    constructor(private readonly orderService: OrderService) {}
 
-    @GetMapping("/{id}")
-    public ResponseEntity<OrderV2Response> getOrder(@PathVariable Long id) {
-        Order order = orderService.findById(id);
-        return ResponseEntity.ok(OrderV2Response.from(order));
+    @Get(':id')
+    async getOrder(@Param('id') id: string): Promise<OrderV2Response> {
+        const order = await this.orderService.findById(Number(id));
+        return OrderV2Response.from(order);
     }
 }
 ```
 
 v1과 v2가 같은 서비스 레이어를 호출하되, 응답 DTO만 다르게 가져가는 구조가 가장 깔끔하다. 서비스 로직 자체가 달라져야 하면 서비스 메서드를 분리한다.
 
-```java
+```typescript
 // 서비스 레이어는 공유하고, 응답 변환만 버전별로 다르게 한다
-@Service
-public class OrderService {
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Order } from './order.entity';
+
+@Injectable()
+export class OrderService {
+    constructor(
+        @InjectRepository(Order)
+        private readonly orderRepository: Repository<Order>,
+    ) {}
 
     // v1, v2 모두 이 메서드를 호출한다
-    public Order findById(Long id) {
-        return orderRepository.findById(id)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+    async findById(id: number): Promise<Order> {
+        const order = await this.orderRepository.findOne({ where: { id } });
+        if (!order) throw new NotFoundException('ORDER_NOT_FOUND');
+        return order;
     }
 }
 
 // v1 응답: address가 문자열
-public record OrderV1Response(Long id, String address, int totalAmount) {
-    public static OrderV1Response from(Order order) {
-        return new OrderV1Response(order.getId(), order.getFullAddress(), order.getTotalAmount());
+export class OrderV1Response {
+    readonly id: number;
+    readonly address: string;
+    readonly totalAmount: number;
+
+    static from(order: Order): OrderV1Response {
+        const dto = new OrderV1Response();
+        Object.assign(dto, {
+            id: order.id,
+            address: order.fullAddress,
+            totalAmount: order.totalAmount,
+        });
+        return dto;
     }
 }
 
 // v2 응답: address가 구조화된 객체
-public record OrderV2Response(Long id, Address address, int totalAmount) {
-    public static OrderV2Response from(Order order) {
-        return new OrderV2Response(order.getId(), order.getAddress(), order.getTotalAmount());
+export class OrderV2Response {
+    readonly id: number;
+    readonly address: { city: string; street: string; zipCode: string };
+    readonly totalAmount: number;
+
+    static from(order: Order): OrderV2Response {
+        const dto = new OrderV2Response();
+        Object.assign(dto, {
+            id: order.id,
+            address: order.address,
+            totalAmount: order.totalAmount,
+        });
+        return dto;
     }
 }
 ```
@@ -158,32 +190,31 @@ public record OrderV2Response(Long id, Address address, int totalAmount) {
 
 v2 배포가 안정화되면 v1에 deprecation 신호를 보낸다. HTTP 표준 헤더인 `Deprecation`과 `Sunset`을 사용한다.
 
-```java
-@Component
-public class ApiDeprecationFilter extends OncePerRequestFilter {
+```typescript
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    // 버전별 sunset 날짜 관리
-    private static final Map<String, String> SUNSET_DATES = Map.of(
-        "/api/v1/", "Sat, 01 Nov 2026 00:00:00 GMT"
-    );
+// 버전별 sunset 날짜 관리
+const SUNSET_DATES: Record<string, string> = {
+    '/api/v1/': 'Sat, 01 Nov 2026 00:00:00 GMT',
+};
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
+@Injectable()
+export class ApiDeprecationMiddleware implements NestMiddleware {
+    use(req: Request, res: Response, next: NextFunction): void {
+        const uri = req.path;
 
-        String uri = request.getRequestURI();
-
-        SUNSET_DATES.forEach((prefix, sunsetDate) -> {
+        for (const [prefix, sunsetDate] of Object.entries(SUNSET_DATES)) {
             if (uri.startsWith(prefix)) {
-                response.setHeader("Deprecation", "true");
-                response.setHeader("Sunset", sunsetDate);
+                res.setHeader('Deprecation', 'true');
+                res.setHeader('Sunset', sunsetDate);
                 // 대체 버전 URL을 알려준다
-                String v2Uri = uri.replace(prefix, "/api/v2/");
-                response.setHeader("Link", "<" + v2Uri + ">; rel=\"successor-version\"");
+                const v2Uri = uri.replace(prefix, '/api/v2/');
+                res.setHeader('Link', `<${v2Uri}>; rel="successor-version"`);
             }
-        });
+        }
 
-        filterChain.doFilter(request, response);
+        next();
     }
 }
 ```
@@ -196,67 +227,75 @@ public class ApiDeprecationFilter extends OncePerRequestFilter {
 - 슬랙 채널이나 메일로 전환 일정 공유
 - B2B 파트너가 있으면 개별 연락 필수
 
-```java
-// Swagger에서 deprecated 표시
-@Deprecated
-@Operation(summary = "사용자 조회 (deprecated)", deprecated = true,
-           description = "이 API는 2026-11-01에 종료된다. /api/v2/users/{id}를 사용해야 한다.")
-@GetMapping("/{id}")
-public ResponseEntity<UserV1Response> getUser(@PathVariable Long id) { ... }
+```typescript
+// @nestjs/swagger에서 deprecated 표시
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param } from '@nestjs/common';
+
+@ApiTags('users-v1 (deprecated)')
+@Controller('api/v1/users')
+export class UserV1Controller {
+    /** @deprecated 이 API는 2026-11-01에 종료된다. /api/v2/users/:id를 사용해야 한다. */
+    @ApiOperation({
+        summary: '사용자 조회 (deprecated)',
+        deprecated: true,
+        description: '이 API는 2026-11-01에 종료된다. /api/v2/users/{id}를 사용해야 한다.',
+    })
+    @Get(':id')
+    async getUser(@Param('id') id: string): Promise<UserV1Response> { /* ... */ }
+}
 ```
 
 ### 3단계: 클라이언트별 전환 추적
 
 v1을 제거하기 전에 누가 아직 v1을 호출하는지 파악해야 한다. API Key나 클라이언트 식별자가 있으면 클라이언트별로 추적할 수 있다.
 
-```java
-@Component
-@Slf4j
-public class VersionTrackingFilter extends OncePerRequestFilter {
+```typescript
+import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+import { Counter } from 'prom-client';
 
-    private final MeterRegistry meterRegistry;
+const apiRequestCounter = new Counter({
+    name: 'api_request_total',
+    help: 'API request count by version and client',
+    labelNames: ['version', 'client', 'endpoint'],
+});
 
-    public VersionTrackingFilter(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
+@Injectable()
+export class VersionTrackingMiddleware implements NestMiddleware {
+    private readonly logger = new Logger(VersionTrackingMiddleware.name);
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
+    use(req: Request, res: Response, next: NextFunction): void {
+        const uri = req.path;
+        const clientId = (req.headers['x-client-id'] as string | undefined) ?? 'unknown';
+        const version = this.extractVersion(uri);
 
-        String uri = request.getRequestURI();
-        String clientId = request.getHeader("X-Client-Id");
-        if (clientId == null) {
-            clientId = "unknown";
-        }
-        String version = extractVersion(uri);
-
-        if (version != null) {
+        if (version !== null) {
             // Prometheus 메트릭으로 기록
-            meterRegistry.counter("api.request",
-                "version", version,
-                "client", clientId,
-                "endpoint", normalizeUri(uri)
-            ).increment();
+            apiRequestCounter.inc({
+                version,
+                client: clientId,
+                endpoint: this.normalizeUri(uri),
+            });
 
             // v1 호출이면 경고 로그
-            if ("v1".equals(version)) {
-                log.warn("Deprecated API call: client={}, uri={}", clientId, uri);
+            if (version === 'v1') {
+                this.logger.warn(`Deprecated API call: client=${clientId}, uri=${uri}`);
             }
         }
 
-        filterChain.doFilter(request, response);
+        next();
     }
 
-    private String extractVersion(String uri) {
-        if (uri.contains("/v1/")) return "v1";
-        if (uri.contains("/v2/")) return "v2";
+    private extractVersion(uri: string): string | null {
+        if (uri.includes('/v1/')) return 'v1';
+        if (uri.includes('/v2/')) return 'v2';
         return null;
     }
 
-    private String normalizeUri(String uri) {
+    private normalizeUri(uri: string): string {
         // /api/v1/users/123 → /api/v1/users/{id}
-        return uri.replaceAll("/\\d+", "/{id}");
+        return uri.replace(/\/\d+/g, '/{id}');
     }
 }
 ```
@@ -267,20 +306,24 @@ Grafana 대시보드에서 `api.request` 메트릭을 version 라벨로 필터�
 
 v1 트래픽이 0에 가까워지면 v1을 제거한다. 바로 삭제하지 말고 단계를 밟는다.
 
-```java
+```typescript
 // 1) v1 응답에 410 Gone을 반환하는 단계 (2주 정도 유지)
-@RestController
-@RequestMapping("/api/v1/**")
-public class V1GoneController {
+import { All, Controller, HttpStatus, Req } from '@nestjs/common';
+import { Request } from 'express';
 
-    @RequestMapping
-    public ResponseEntity<ErrorResponse> gone(HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.GONE)
-            .body(ErrorResponse.of(
-                "API_VERSION_GONE",
-                "이 API 버전은 종료되었다. /api/v2를 사용해야 한다.",
-                request.getRequestURI()
-            ));
+@Controller('api/v1')
+export class V1GoneController {
+    @All('*')
+    gone(@Req() req: Request): { code: string; message: string; path: string } {
+        // HttpException을 직접 throw하거나 응답을 직접 반환한다
+        throw Object.assign(new Error('API_VERSION_GONE'), {
+            status: HttpStatus.GONE,
+            response: {
+                code: 'API_VERSION_GONE',
+                message: '이 API 버전은 종료되었다. /api/v2를 사용해야 한다.',
+                path: req.path,
+            },
+        });
     }
 }
 ```
@@ -309,7 +352,7 @@ public class V1GoneController {
 
 **응답 필드 삭제 또는 이름 변경:**
 
-```java
+```json
 // Before: v1
 { "userName": "김개발", "age": 30 }
 
@@ -321,7 +364,7 @@ public class V1GoneController {
 
 **응답 필드 타입 변경:**
 
-```java
+```json
 // Before: price가 정수
 { "price": 10000 }
 
@@ -331,7 +374,7 @@ public class V1GoneController {
 
 **필수 파라미터 추가:**
 
-```java
+```
 // Before: name, email만 보내면 됐음
 POST /api/v1/users
 { "name": "김개발", "email": "kim@dev.com" }
@@ -346,7 +389,7 @@ POST /api/v1/users
 
 **응답 구조 변경:**
 
-```java
+```json
 // Before: 배열 직접 반환
 [{ "id": 1 }, { "id": 2 }]
 
@@ -375,16 +418,19 @@ After:  GET /api/v1/orders?userId=1
 
 **Enum 값 추가:**
 
-```java
+```typescript
 // 서버: status에 REFUNDED 추가
-public enum OrderStatus { PENDING, COMPLETED, CANCELLED, REFUNDED }
+enum OrderStatus { PENDING = 'PENDING', COMPLETED = 'COMPLETED', CANCELLED = 'CANCELLED', REFUNDED = 'REFUNDED' }
 
 // 클라이언트: default 케이스가 없으면 문제
 switch (status) {
-    case "PENDING":    // ...
-    case "COMPLETED":  // ...
-    case "CANCELLED":  // ...
-    // REFUNDED가 오면? → 아무 처리도 안 됨
+    case 'PENDING':    // ...
+        break;
+    case 'COMPLETED':  // ...
+        break;
+    case 'CANCELLED':  // ...
+        break;
+    // REFUNDED가 오면? → 아무 처리도 안 됨 (default 없음)
 }
 ```
 
@@ -394,83 +440,69 @@ Enum 값을 추가하는 건 이론적으로 non-breaking이지만, 실제로는
 
 기존에 항상 값이 있던 필드가 null이 될 수 있도록 바뀌면, 클라이언트에서 null 체크 없이 바로 사용하던 코드가 NPE를 만날 수 있다. 이건 필드 타입은 안 바뀌지만 사실상 계약이 바뀐 거다.
 
-## Spring에서의 버전 라우팅 구현
+## NestJS에서의 버전 라우팅 구현
 
-### 커스텀 어노테이션으로 버전 관리
+### 커스텀 데코레이터로 버전 관리
 
-컨트롤러마다 `@RequestMapping("/api/v1/...")`, `@RequestMapping("/api/v2/...")`를 반복하는 건 번거롭다. 커스텀 어노테이션으로 정리할 수 있다.
+NestJS에는 `@nestjs/common`의 `VERSION_NEUTRAL`과 `VersioningType`으로 버전 라우팅을 내장 지원한다. 또는 커스텀 데코레이터로 동일한 효과를 얻을 수 있다.
 
-```java
-@Target({ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-public @interface ApiVersion {
-    int[] value();
+```typescript
+// api-version.decorator.ts — 커스텀 버전 데코레이터
+import { SetMetadata, applyDecorators, Controller } from '@nestjs/common';
+
+export const API_VERSION_KEY = 'apiVersions';
+
+/** 하나의 컨트롤러가 여러 버전 경로를 동시에 처리하도록 설정 */
+export function ApiVersionController(versions: number[], path: string) {
+    // NestJS는 배열 경로를 지원: @Controller(['api/v1/users', 'api/v2/users'])
+    const paths = versions.map((v) => `api/v${v}/${path}`);
+    return applyDecorators(
+        SetMetadata(API_VERSION_KEY, versions),
+        Controller(paths),
+    );
 }
 ```
 
-```java
-public class ApiVersionRequestMappingHandlerMapping extends RequestMappingHandlerMapping {
+```typescript
+// app.module.ts — 버전 라우팅 설정
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { VersionTrackingMiddleware } from './middleware/version-tracking.middleware';
 
-    @Override
-    protected RequestMappingInfo getMappingForMethod(Method method, Class<?> handlerType) {
-        RequestMappingInfo info = super.getMappingForMethod(method, handlerType);
-        if (info == null) return null;
-
-        ApiVersion apiVersion = AnnotationUtils.findAnnotation(handlerType, ApiVersion.class);
-        if (apiVersion != null) {
-            // 지원하는 모든 버전에 대해 매핑 생성
-            RequestMappingInfo.Builder builder = RequestMappingInfo.paths(
-                Arrays.stream(apiVersion.value())
-                    .mapToObj(v -> "/api/v" + v)
-                    .toArray(String[]::new)
-            );
-            info = builder.build().combine(info);
-        }
-        return info;
+@Module({ /* ... */ })
+export class AppModule implements NestModule {
+    configure(consumer: MiddlewareConsumer): void {
+        consumer.apply(VersionTrackingMiddleware).forRoutes('*');
     }
 }
 ```
 
-```java
-@Configuration
-public class WebConfig implements WebMvcConfigurer {
-
-    @Override
-    public void configurePathMatch(PathMatchConfigurer configurer) {
-        // 기본 핸들러 매핑 대신 커스텀 매핑 사용
-    }
-
-    @Bean
-    public ApiVersionRequestMappingHandlerMapping apiVersionHandlerMapping() {
-        return new ApiVersionRequestMappingHandlerMapping();
-    }
-}
-```
-
-```java
+```typescript
 // 사용법: v1과 v2 모두 지원하는 컨트롤러
-@RestController
-@ApiVersion({1, 2})
-@RequestMapping("/users")
-public class UserController {
+import { Get, Param, Req } from '@nestjs/common';
+import { Request } from 'express';
+import { ApiVersionController } from './api-version.decorator';
+import { UserService } from './user.service';
 
-    // GET /api/v1/users/1, GET /api/v2/users/1 모두 이 메서드로 온다
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getUser(@PathVariable Long id, HttpServletRequest request) {
-        int version = extractVersion(request);
-        User user = userService.findById(id);
+@ApiVersionController([1, 2], 'users')
+export class UserController {
+    constructor(private readonly userService: UserService) {}
 
-        if (version == 1) {
-            return ResponseEntity.ok(UserV1Response.from(user));
+    // GET /api/v1/users/:id, GET /api/v2/users/:id 모두 이 메서드로 온다
+    @Get(':id')
+    async getUser(@Param('id') id: string, @Req() req: Request): Promise<UserV1Response | UserV2Response> {
+        const version = this.extractVersion(req.path);
+        const user = await this.userService.findById(Number(id));
+
+        if (version === 1) {
+            return UserV1Response.from(user);
         }
-        return ResponseEntity.ok(UserV2Response.from(user));
+        return UserV2Response.from(user);
     }
 
-    private int extractVersion(HttpServletRequest request) {
-        String uri = request.getRequestURI();
+    private extractVersion(path: string): number {
         // /api/v2/users/1 → 2
-        return Integer.parseInt(uri.split("/api/v")[1].split("/")[0]);
+        const match = path.match(/\/api\/v(\d+)\//);
+        return match ? Number(match[1]) : 1;
     }
 }
 ```
@@ -482,87 +514,106 @@ public class UserController {
 실무에서 가장 많이 쓰는 패턴이다. 컨트롤러는 버전별로 분리하되, 서비스와 도메인은 공유한다.
 
 ```
-src/main/java/com/example/
+src/
 ├── controller/
 │   ├── v1/
-│   │   ├── UserV1Controller.java
-│   │   └── OrderV1Controller.java
+│   │   ├── user-v1.controller.ts
+│   │   └── order-v1.controller.ts
 │   └── v2/
-│       ├── UserV2Controller.java
-│       └── OrderV2Controller.java
+│       ├── user-v2.controller.ts
+│       └── order-v2.controller.ts
 ├── dto/
 │   ├── v1/
-│   │   ├── UserV1Response.java
-│   │   └── OrderV1Response.java
+│   │   ├── user-v1.response.ts
+│   │   └── order-v1.response.ts
 │   └── v2/
-│       ├── UserV2Response.java
-│       └── OrderV2Response.java
+│       ├── user-v2.response.ts
+│       └── order-v2.response.ts
 ├── service/
-│   ├── UserService.java        ← 버전 구분 없음
-│   └── OrderService.java
+│   ├── user.service.ts         ← 버전 구분 없음
+│   └── order.service.ts
 └── domain/
-    ├── User.java               ← 버전 구분 없음
-    └── Order.java
+    ├── user.entity.ts          ← 버전 구분 없음
+    └── order.entity.ts
 ```
 
 서비스 레이어에 버전이 침투하면 안 된다. 서비스는 도메인 객체를 반환하고, 컨트롤러에서 버전에 맞는 DTO로 변환한다.
 
-```java
+```typescript
 // 서비스: 도메인 객체 반환. 버전을 모른다.
-@Service
-public class UserService {
-    public User findById(Long id) {
-        return userRepository.findById(id)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../domain/user.entity';
+
+@Injectable()
+export class UserService {
+    constructor(
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+    ) {}
+
+    async findById(id: number): Promise<User> {
+        const user = await this.userRepository.findOne({ where: { id } });
+        if (!user) throw new NotFoundException('USER_NOT_FOUND');
+        return user;
     }
 }
 
 // v1 컨트롤러: 도메인 → v1 DTO 변환
-@RestController
-@RequestMapping("/api/v1/users")
-public class UserV1Controller {
-    @GetMapping("/{id}")
-    public ResponseEntity<UserV1Response> getUser(@PathVariable Long id) {
-        return ResponseEntity.ok(UserV1Response.from(userService.findById(id)));
+import { Controller, Get, Param } from '@nestjs/common';
+import { UserV1Response } from '../dto/v1/user-v1.response';
+
+@Controller('api/v1/users')
+export class UserV1Controller {
+    constructor(private readonly userService: UserService) {}
+
+    @Get(':id')
+    async getUser(@Param('id') id: string): Promise<UserV1Response> {
+        return UserV1Response.from(await this.userService.findById(Number(id)));
     }
 }
 
 // v2 컨트롤러: 도메인 → v2 DTO 변환
-@RestController
-@RequestMapping("/api/v2/users")
-public class UserV2Controller {
-    @GetMapping("/{id}")
-    public ResponseEntity<UserV2Response> getUser(@PathVariable Long id) {
-        return ResponseEntity.ok(UserV2Response.from(userService.findById(id)));
+import { UserV2Response } from '../dto/v2/user-v2.response';
+
+@Controller('api/v2/users')
+export class UserV2Controller {
+    constructor(private readonly userService: UserService) {}
+
+    @Get(':id')
+    async getUser(@Param('id') id: string): Promise<UserV2Response> {
+        return UserV2Response.from(await this.userService.findById(Number(id)));
     }
 }
 ```
 
-## Express에서의 버전 라우팅 구현
+## NestJS/Express 라우터 분리 방식
 
 ### 라우터 분리 방식
 
-Express에서는 라우터 파일을 버전별로 나누는 게 자연스럽다.
+NestJS에서는 모듈과 컨트롤러를 버전별로 나누는 게 자연스럽다.
 
 ```
 src/
 ├── routes/
 │   ├── v1/
-│   │   ├── index.js
-│   │   └── users.js
+│   │   ├── index.ts
+│   │   └── users.ts
 │   └── v2/
-│       ├── index.js
-│       └── users.js
+│       ├── index.ts
+│       └── users.ts
 ├── services/
-│   └── userService.js      ← 버전 구분 없음
-└── app.js
+│   └── user.service.ts     ← 버전 구분 없음
+└── app.module.ts
 ```
 
-```javascript
-// app.js
-const express = require('express');
-const v1Router = require('./routes/v1');
-const v2Router = require('./routes/v2');
+```typescript
+// app.ts (Express 방식)
+import express from 'express';
+import { v1Router } from './routes/v1';
+import { v2Router } from './routes/v2';
+import { Request, Response, NextFunction } from 'express';
 
 const app = express();
 
@@ -570,7 +621,7 @@ app.use('/api/v1', v1Router);
 app.use('/api/v2', v2Router);
 
 // v1 deprecation 미들웨어
-app.use('/api/v1', (req, res, next) => {
+app.use('/api/v1', (req: Request, res: Response, next: NextFunction) => {
     res.set('Deprecation', 'true');
     res.set('Sunset', 'Sat, 01 Nov 2026 00:00:00 GMT');
     const v2Path = req.originalUrl.replace('/api/v1', '/api/v2');
@@ -579,30 +630,32 @@ app.use('/api/v1', (req, res, next) => {
 });
 ```
 
-```javascript
-// routes/v1/users.js
-const router = require('express').Router();
-const userService = require('../../services/userService');
+```typescript
+// routes/v1/users.ts
+import { Router, Request, Response } from 'express';
+import { userService } from '../../services/userService';
 
-router.get('/:id', async (req, res) => {
+export const usersV1Router = Router();
+
+usersV1Router.get('/:id', async (req: Request, res: Response) => {
     const user = await userService.findById(req.params.id);
     // v1: address가 문자열
     res.json({
         id: user.id,
         name: user.name,
-        address: user.fullAddress
+        address: user.fullAddress,
     });
 });
-
-module.exports = router;
 ```
 
-```javascript
-// routes/v2/users.js
-const router = require('express').Router();
-const userService = require('../../services/userService');
+```typescript
+// routes/v2/users.ts
+import { Router, Request, Response } from 'express';
+import { userService } from '../../services/userService';
 
-router.get('/:id', async (req, res) => {
+export const usersV2Router = Router();
+
+usersV2Router.get('/:id', async (req: Request, res: Response) => {
     const user = await userService.findById(req.params.id);
     // v2: address가 객체
     res.json({
@@ -611,30 +664,37 @@ router.get('/:id', async (req, res) => {
         address: {
             city: user.city,
             street: user.street,
-            zipCode: user.zipCode
-        }
+            zipCode: user.zipCode,
+        },
     });
 });
-
-module.exports = router;
 ```
 
 ### 버전 추적 미들웨어
 
-```javascript
-// middleware/versionTracking.js
-const versionTracking = (req, res, next) => {
+```typescript
+// middleware/versionTracking.ts
+import { Request, Response, NextFunction } from 'express';
+import { Counter } from 'prom-client';
+
+const apiVersionCounter = new Counter({
+    name: 'api_version_total',
+    help: 'API requests by version',
+    labelNames: ['version', 'client', 'method', 'path'],
+});
+
+export function versionTracking(req: Request, res: Response, next: NextFunction): void {
     const match = req.originalUrl.match(/\/api\/v(\d+)\//);
     if (match) {
         const version = match[1];
-        const clientId = req.headers['x-client-id'] || 'unknown';
+        const clientId = (req.headers['x-client-id'] as string | undefined) ?? 'unknown';
 
-        // 메트릭 기록 (prom-client 등)
+        // 메트릭 기록 (prom-client)
         apiVersionCounter.inc({
             version: `v${version}`,
             client: clientId,
             method: req.method,
-            path: req.route ? req.route.path : req.path
+            path: req.route ? (req.route.path as string) : req.path,
         });
 
         if (version === '1') {
@@ -642,9 +702,7 @@ const versionTracking = (req, res, next) => {
         }
     }
     next();
-};
-
-module.exports = versionTracking;
+}
 ```
 
 ## 실무에서 자주 하는 실수
@@ -659,15 +717,16 @@ v2를 배포한 뒤 v1 코드를 계속 남겨두면 의존성 업데이트나 �
 
 **3. 서비스 레이어에 버전 분기를 넣는다**
 
-```java
-// 이렇게 하면 안 된다
-@Service
-public class UserService {
-    public Object getUser(Long id, int version) {
-        User user = findById(id);
-        if (version == 1) return toV1(user);
-        if (version == 2) return toV2(user);
-        return toV3(user);
+```typescript
+// 이렇게 하면 안 된다 — 서비스에 버전 분기가 들어가는 나쁜 패턴
+@Injectable()
+export class UserService {
+    async getUser(id: number, version: number): Promise<UserV1Response | UserV2Response | UserV3Response> {
+        const user = await this.findById(id);
+        if (version === 1) return this.toV1(user);
+        if (version === 2) return this.toV2(user);
+        return this.toV3(user);
+        // 비즈니스 로직과 표현 로직이 섞여 테스트하기 어렵다
     }
 }
 ```

@@ -130,51 +130,62 @@ API Gateway
 
 #### URL 경로 방식 — 마이그레이션 절차
 
-Spring Boot 기준으로 v1과 v2를 동시 운영하는 구조다.
+NestJS 기준으로 v1과 v2를 동시 운영하는 구조다.
 
-```java
+```typescript
 // v1 컨트롤러 — 기존 응답 유지
-@RestController
-@RequestMapping("/api/v1/users")
-public class UserV1Controller {
+import { Controller, Get, Param } from '@nestjs/common';
+import { UserService } from '../user.service';
 
-    @GetMapping("/{id}")
-    public ResponseEntity<UserV1Response> getUser(@PathVariable Long id) {
-        User user = userService.findById(id);
+@Controller('api/v1/users')
+export class UserV1Controller {
+    constructor(private readonly userService: UserService) {}
+
+    @Get(':id')
+    async getUser(@Param('id') id: string): Promise<UserV1Response> {
+        const user = await this.userService.findById(Number(id));
         // v1은 address를 단일 문자열로 반환
-        return ResponseEntity.ok(new UserV1Response(user.getId(), user.getName(), user.getFullAddress()));
+        return { id: user.id, name: user.name, address: user.fullAddress };
     }
 }
 
 // v2 컨트롤러 — address를 구조화된 객체로 변경
-@RestController
-@RequestMapping("/api/v2/users")
-public class UserV2Controller {
+@Controller('api/v2/users')
+export class UserV2Controller {
+    constructor(private readonly userService: UserService) {}
 
-    @GetMapping("/{id}")
-    public ResponseEntity<UserV2Response> getUser(@PathVariable Long id) {
-        User user = userService.findById(id);
+    @Get(':id')
+    async getUser(@Param('id') id: string): Promise<UserV2Response> {
+        const user = await this.userService.findById(Number(id));
         // v2는 address를 city, street, zipCode로 분리
-        return ResponseEntity.ok(new UserV2Response(user.getId(), user.getName(), user.getAddress()));
+        return { id: user.id, name: user.name, address: user.address };
     }
 }
 ```
 
 v1을 폐기할 때는 바로 삭제하지 말고 Deprecation 헤더를 먼저 내려준다. 클라이언트 개발자가 로그에서 감지할 수 있게 하는 게 핵심이다.
 
-```java
-// v1 폐기 예고 — 인터셉터로 일괄 처리
-@Component
-public class DeprecationInterceptor implements HandlerInterceptor {
+```typescript
+// v1 폐기 예고 — NestJS 인터셉터로 일괄 처리
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { Response, Request } from 'express';
 
-    @Override
-    public void postHandle(HttpServletRequest request, HttpServletResponse response,
-                           Object handler, ModelAndView modelAndView) {
-        if (request.getRequestURI().contains("/api/v1/")) {
-            response.setHeader("Deprecation", "true");
-            response.setHeader("Sunset", "Sat, 01 Aug 2026 00:00:00 GMT");
-            response.setHeader("Link", "</api/v2" + request.getRequestURI().substring(7) + ">; rel=\"successor-version\"");
+@Injectable()
+export class DeprecationInterceptor implements NestInterceptor {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+        const req = context.switchToHttp().getRequest<Request>();
+        const res = context.switchToHttp().getResponse<Response>();
+
+        if (req.path.includes('/api/v1/')) {
+            res.setHeader('Deprecation', 'true');
+            res.setHeader('Sunset', 'Sat, 01 Aug 2026 00:00:00 GMT');
+            const v2Path = '/api/v2' + req.path.substring(7);
+            res.setHeader('Link', `<${v2Path}>; rel="successor-version"`);
         }
+
+        return next.handle();
     }
 }
 ```
@@ -190,59 +201,70 @@ public class DeprecationInterceptor implements HandlerInterceptor {
 
 하나의 컨트롤러에서 Accept 헤더로 분기한다.
 
-```java
-@RestController
-@RequestMapping("/api/users")
-public class UserController {
+```typescript
+// Accept 헤더로 버전을 구분 — NestJS 컨트롤러
+import { Controller, Get, Param, Headers } from '@nestjs/common';
+import { UserService } from './user.service';
 
-    // v1: Accept 헤더에 v1 명시
-    @GetMapping(value = "/{id}", produces = "application/vnd.myapp.v1+json")
-    public ResponseEntity<UserV1Response> getUserV1(@PathVariable Long id) {
-        User user = userService.findById(id);
-        return ResponseEntity.ok(new UserV1Response(user));
-    }
+@Controller('api/users')
+export class UserController {
+    constructor(private readonly userService: UserService) {}
 
-    // v2: Accept 헤더에 v2 명시
-    @GetMapping(value = "/{id}", produces = "application/vnd.myapp.v2+json")
-    public ResponseEntity<UserV2Response> getUserV2(@PathVariable Long id) {
-        User user = userService.findById(id);
-        return ResponseEntity.ok(new UserV2Response(user));
+    @Get(':id')
+    async getUser(
+        @Param('id') id: string,
+        @Headers('accept') accept: string,
+    ): Promise<UserV1Response | UserV2Response> {
+        const user = await this.userService.findById(Number(id));
+
+        if (accept?.includes('vnd.myapp.v2+json')) {
+            return new UserV2Response(user);
+        }
+        // 헤더 누락 시 v1을 기본으로 반환
+        return new UserV1Response(user);
     }
 }
 ```
 
 문제는 클라이언트가 `Accept` 헤더 없이 요청하는 경우다. 기본 버전을 어떤 것으로 할지 정해야 하는데, 보통 최신 버전을 기본으로 두면 기존 클라이언트가 깨진다. **헤더 누락 시 v1을 기본으로 반환**하는 게 안전하다.
 
-```java
-// 헤더 없는 요청의 기본 버전 설정
-@Configuration
-public class WebConfig implements WebMvcConfigurer {
+```typescript
+// 헤더 없는 요청의 기본 버전 설정 — NestJS 미들웨어로 처리
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    @Override
-    public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
-        configurer
-            .defaultContentType(MediaType.valueOf("application/vnd.myapp.v1+json"))
-            .mediaType("v1", MediaType.valueOf("application/vnd.myapp.v1+json"))
-            .mediaType("v2", MediaType.valueOf("application/vnd.myapp.v2+json"));
+@Injectable()
+export class ContentNegotiationMiddleware implements NestMiddleware {
+    use(req: Request, res: Response, next: NextFunction): void {
+        if (!req.headers['accept'] || req.headers['accept'] === '*/*') {
+            // Accept 헤더 누락 시 v1을 기본으로 설정
+            req.headers['accept'] = 'application/vnd.myapp.v1+json';
+        }
+        next();
     }
 }
 ```
 
 #### Query Parameter 방식 — 마이그레이션 절차
 
-```java
-@RestController
-@RequestMapping("/api/users")
-public class UserController {
+```typescript
+// 쿼리 파라미터로 버전을 구분 — NestJS 컨트롤러
+import { Controller, Get, Param, Query } from '@nestjs/common';
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getUser(@PathVariable Long id,
-                                     @RequestParam(value = "version", defaultValue = "1") int version) {
-        User user = userService.findById(id);
-        if (version == 2) {
-            return ResponseEntity.ok(new UserV2Response(user));
+@Controller('api/users')
+export class UserController {
+    constructor(private readonly userService: UserService) {}
+
+    @Get(':id')
+    async getUser(
+        @Param('id') id: string,
+        @Query('version') version = '1',
+    ): Promise<UserV1Response | UserV2Response> {
+        const user = await this.userService.findById(Number(id));
+        if (version === '2') {
+            return new UserV2Response(user);
         }
-        return ResponseEntity.ok(new UserV1Response(user));
+        return new UserV1Response(user);
     }
 }
 ```
@@ -267,26 +289,28 @@ if문으로 분기하니까 코드가 쉽게 지저분해진다. 버전이 3, 4�
 
 Enum 값 추가가 "주의 필요"인 이유: 클라이언트가 switch문이나 패턴 매칭으로 Enum을 처리하고 있으면, 알 수 없는 값이 들어올 때 예외가 발생한다. 클라이언트 코드에 `default` 케이스가 없으면 깨진다.
 
-```java
+```typescript
 // 클라이언트가 이렇게 처리하고 있으면
-switch (order.getStatus()) {
-    case "COMPLETED": // ...
-    case "CANCELLED": // ...
-    // default 없음 → REFUNDED가 들어오면 아무 처리도 안 됨 또는 예외
+switch (order.status) {
+    case 'COMPLETED': // ...
+        break;
+    case 'CANCELLED': // ...
+        break;
+    // default 없음 → REFUNDED가 들어오면 아무 처리도 안 됨
 }
 ```
 
 하위 호환성을 유지하면서 변경하는 방법:
 
-```java
+```json
 // Bad: 기존 필드를 삭제하고 새 필드로 대체
 // v1 응답에서 address(String)를 없애고 addressDetail(Object)로 바꿈
 // → 기존 클라이언트 전부 깨짐
 
 // Good: 기존 필드는 유지하고 새 필드를 추가
 {
-    "address": "서울시 강남구 테헤란로 123",        // 기존 필드 유지
-    "addressDetail": {                              // 새 필드 추가
+    "address": "서울시 강남구 테헤란로 123",
+    "addressDetail": {
         "city": "서울시",
         "district": "강남구",
         "street": "테헤란로 123",
@@ -301,108 +325,130 @@ switch (order.getStatus()) {
 
 #### 에러 응답 DTO
 
-```java
-public record ErrorResponse(
-    String code,           // 비즈니스 에러 코드 (VALIDATION_ERROR, USER_NOT_FOUND 등)
-    String message,        // 사람이 읽을 수 있는 메시지
-    List<FieldError> errors, // 필드별 검증 에러 (없으면 빈 리스트)
-    String path,           // 요청 경로
-    LocalDateTime timestamp
-) {
-    public record FieldError(String field, String message, Object rejectedValue) {}
+```typescript
+export interface FieldError {
+    field: string;
+    message: string;
+    rejectedValue: unknown;
+}
 
-    public static ErrorResponse of(String code, String message, String path) {
-        return new ErrorResponse(code, message, List.of(), path, LocalDateTime.now());
+export class ErrorResponse {
+    readonly code: string;           // 비즈니스 에러 코드 (VALIDATION_ERROR, USER_NOT_FOUND 등)
+    readonly message: string;        // 사람이 읽을 수 있는 메시지
+    readonly errors: FieldError[];   // 필드별 검증 에러 (없으면 빈 배열)
+    readonly path: string;           // 요청 경로
+    readonly timestamp: string;
+
+    private constructor(code: string, message: string, errors: FieldError[], path: string) {
+        this.code = code;
+        this.message = message;
+        this.errors = errors;
+        this.path = path;
+        this.timestamp = new Date().toISOString();
     }
 
-    public static ErrorResponse of(String code, String message, List<FieldError> errors, String path) {
-        return new ErrorResponse(code, message, errors, path, LocalDateTime.now());
+    static of(code: string, message: string, path: string): ErrorResponse;
+    static of(code: string, message: string, errors: FieldError[], path: string): ErrorResponse;
+    static of(code: string, message: string, errorsOrPath: FieldError[] | string, path?: string): ErrorResponse {
+        if (typeof errorsOrPath === 'string') {
+            return new ErrorResponse(code, message, [], errorsOrPath);
+        }
+        return new ErrorResponse(code, message, errorsOrPath, path as string);
     }
 }
 ```
 
 #### 비즈니스 예외 정의
 
-```java
-@Getter
-public class BusinessException extends RuntimeException {
+```typescript
+import { HttpStatus } from '@nestjs/common';
 
-    private final ErrorCode errorCode;
-
-    public BusinessException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
-    }
+export interface ErrorCodeDef {
+    code: string;
+    message: string;
+    httpStatus: HttpStatus;
 }
 
-@Getter
-@RequiredArgsConstructor
-public enum ErrorCode {
+// 비즈니스 에러 코드 정의
+export const ErrorCode = {
     // 400
-    INVALID_INPUT("INVALID_INPUT", "잘못된 입력값이다", HttpStatus.BAD_REQUEST),
-    DUPLICATE_EMAIL("DUPLICATE_EMAIL", "이미 등록된 이메일이다", HttpStatus.CONFLICT),
+    INVALID_INPUT:   { code: 'INVALID_INPUT',   message: '잘못된 입력값이다',       httpStatus: HttpStatus.BAD_REQUEST },
+    DUPLICATE_EMAIL: { code: 'DUPLICATE_EMAIL', message: '이미 등록된 이메일이다',  httpStatus: HttpStatus.CONFLICT },
 
     // 404
-    USER_NOT_FOUND("USER_NOT_FOUND", "해당 사용자가 없다", HttpStatus.NOT_FOUND),
-    ORDER_NOT_FOUND("ORDER_NOT_FOUND", "해당 주문이 없다", HttpStatus.NOT_FOUND),
+    USER_NOT_FOUND:  { code: 'USER_NOT_FOUND',  message: '해당 사용자가 없다',      httpStatus: HttpStatus.NOT_FOUND },
+    ORDER_NOT_FOUND: { code: 'ORDER_NOT_FOUND', message: '해당 주문이 없다',        httpStatus: HttpStatus.NOT_FOUND },
 
     // 403
-    ACCESS_DENIED("ACCESS_DENIED", "접근 권한이 없다", HttpStatus.FORBIDDEN),
+    ACCESS_DENIED:   { code: 'ACCESS_DENIED',   message: '접근 권한이 없다',        httpStatus: HttpStatus.FORBIDDEN },
 
     // 500
-    INTERNAL_ERROR("INTERNAL_ERROR", "서버 내부 오류가 발생했다", HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_ERROR:  { code: 'INTERNAL_ERROR',  message: '서버 내부 오류가 발생했다', httpStatus: HttpStatus.INTERNAL_SERVER_ERROR },
+} as const satisfies Record<string, ErrorCodeDef>;
 
-    private final String code;
-    private final String message;
-    private final HttpStatus httpStatus;
+export class BusinessException extends Error {
+    readonly errorCode: ErrorCodeDef;
+
+    constructor(errorCode: ErrorCodeDef) {
+        super(errorCode.message);
+        this.errorCode = errorCode;
+        this.name = 'BusinessException';
+    }
 }
 ```
 
 #### 전역 예외 처리
 
-```java
-@RestControllerAdvice
-@Slf4j
-public class GlobalExceptionHandler {
+```typescript
+import {
+    ExceptionFilter, Catch, ArgumentsHost, HttpException,
+    HttpStatus, Logger, BadRequestException,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { BusinessException, ErrorCode } from './error-code';
+import { ErrorResponse, FieldError } from './error-response';
 
-    // 비즈니스 예외
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e, HttpServletRequest request) {
-        ErrorCode errorCode = e.getErrorCode();
-        log.warn("Business exception: {} at {}", errorCode.getCode(), request.getRequestURI());
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+    private readonly logger = new Logger(GlobalExceptionFilter.name);
 
-        return ResponseEntity
-            .status(errorCode.getHttpStatus())
-            .body(ErrorResponse.of(errorCode.getCode(), errorCode.getMessage(), request.getRequestURI()));
-    }
+    catch(exception: unknown, host: ArgumentsHost): void {
+        const ctx = host.switchToHttp();
+        const req = ctx.getRequest<Request>();
+        const res = ctx.getResponse<Response>();
+        const path = req.path;
 
-    // @Valid 검증 실패
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e,
-                                                           HttpServletRequest request) {
-        List<ErrorResponse.FieldError> fieldErrors = e.getBindingResult()
-            .getFieldErrors()
-            .stream()
-            .map(fe -> new ErrorResponse.FieldError(
-                fe.getField(),
-                fe.getDefaultMessage(),
-                fe.getRejectedValue()
-            ))
-            .toList();
+        // 비즈니스 예외
+        if (exception instanceof BusinessException) {
+            const { code, message, httpStatus } = exception.errorCode;
+            this.logger.warn(`Business exception: ${code} at ${path}`);
+            res.status(httpStatus).json(ErrorResponse.of(code, message, path));
+            return;
+        }
 
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(ErrorResponse.of("VALIDATION_ERROR", "입력값 검증에 실패했다", fieldErrors, request.getRequestURI()));
-    }
+        // NestJS 유효성 검증 실패 (class-validator @IsEmail 등)
+        if (exception instanceof BadRequestException) {
+            const response = (exception as BadRequestException).getResponse() as { message?: string[] };
+            const fieldErrors: FieldError[] = (response.message ?? []).map((msg) => ({
+                field: '',
+                message: msg,
+                rejectedValue: undefined,
+            }));
+            res.status(HttpStatus.BAD_REQUEST).json(
+                ErrorResponse.of('VALIDATION_ERROR', '입력값 검증에 실패했다', fieldErrors, path),
+            );
+            return;
+        }
 
-    // 그 외 모든 예외 — 스택 트레이스를 클라이언트에 절대 노출하지 않는다
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception e, HttpServletRequest request) {
-        log.error("Unhandled exception at {}", request.getRequestURI(), e);
-
-        return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ErrorResponse.of("INTERNAL_ERROR", "서버 내부 오류가 발생했다", request.getRequestURI()));
+        // 그 외 모든 예외 — 스택 트레이스를 클라이언트에 절대 노출하지 않는다
+        this.logger.error(`Unhandled exception at ${path}`, exception);
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(
+            ErrorResponse.of(
+                ErrorCode.INTERNAL_ERROR.code,
+                ErrorCode.INTERNAL_ERROR.message,
+                path,
+            ),
+        );
     }
 }
 ```
@@ -446,23 +492,30 @@ public class GlobalExceptionHandler {
 
 서비스 코드에서 쓸 때:
 
-```java
-@Service
-@RequiredArgsConstructor
-public class UserService {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './user.entity';
+import { BusinessException, ErrorCode } from './error-code';
 
-    private final UserRepository userRepository;
+@Injectable()
+export class UserService {
+    constructor(
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+    ) {}
 
-    public User findById(Long id) {
-        return userRepository.findById(id)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    async findById(id: number): Promise<User> {
+        const user = await this.userRepository.findOne({ where: { id } });
+        if (!user) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        return user;
     }
 
-    public User register(UserCreateRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
-        }
-        return userRepository.save(request.toEntity());
+    async register(request: UserCreateRequest): Promise<User> {
+        const exists = await this.userRepository.existsBy({ email: request.email });
+        if (exists) throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        return this.userRepository.save(this.userRepository.create(request));
     }
 }
 ```
@@ -473,34 +526,49 @@ public class UserService {
 
 API 문서를 자동 생성하고, 프론트엔드 개발자와 소통하는 표준이다.
 
-```java
-// Spring Boot 3.x + springdoc-openapi
-// build.gradle
-implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+```bash
+# NestJS + @nestjs/swagger
+npm install @nestjs/swagger swagger-ui-express
 ```
 
-```yaml
-# application.yml
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
+```typescript
+// main.ts — Swagger 설정
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap(): Promise<void> {
+    const app = await NestFactory.create(AppModule);
+
+    const config = new DocumentBuilder()
+        .setTitle('API 문서')
+        .setVersion('1.0')
+        .addBearerAuth()
+        .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('swagger-ui', app, document, {
+        jsonDocumentUrl: 'api-docs',
+    });
+
+    await app.listen(3000);
+}
+void bootstrap();
 ```
 
-```java
-@RestController
-@RequestMapping("/api/v1/users")
-@Tag(name = "User", description = "사용자 관리 API")
-public class UserController {
+```typescript
+// NestJS + @nestjs/swagger 데코레이터
+import { Controller, Get, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-    @Operation(summary = "사용자 조회", description = "ID로 사용자를 조회합니다")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "조회 성공"),
-        @ApiResponse(responseCode = "404", description = "사용자 없음")
-    })
-    @GetMapping("/{id}")
-    public UserResponse getUser(@PathVariable Long id) { ... }
+@ApiTags('User')
+@Controller('api/v1/users')
+export class UserController {
+    @ApiOperation({ summary: '사용자 조회', description: 'ID로 사용자를 조회합니다' })
+    @ApiResponse({ status: 200, description: '조회 성공' })
+    @ApiResponse({ status: 404, description: '사용자 없음' })
+    @Get(':id')
+    async getUser(@Param('id') id: string): Promise<UserResponse> { /* ... */ }
 }
 ```
 
@@ -526,43 +594,46 @@ HATEOAS(Hypermedia as the Engine of Application State)는 REST의 성숙도 모�
 
 클라이언트가 URL을 하드코딩하지 않아도 응답의 링크를 따라가면서 API를 탐색할 수 있다는 게 이론적인 장점이다.
 
-#### Spring HATEOAS 구현
+#### NestJS HATEOAS 구현
 
-```java
-// build.gradle
-implementation 'org.springframework.boot:spring-boot-starter-hateoas'
-```
+```typescript
+// NestJS에서는 응답 DTO에 _links 필드를 직접 추가하는 방식이 일반적이다
+import { Controller, Get, Param } from '@nestjs/common';
+import { UserService } from './user.service';
 
-```java
-@RestController
-@RequestMapping("/api/v1/users")
-public class UserController {
+interface HalLink { href: string; method?: string }
+interface HalResponse<T> { data: T; _links: Record<string, HalLink> }
 
-    @GetMapping("/{id}")
-    public EntityModel<UserResponse> getUser(@PathVariable Long id) {
-        User user = userService.findById(id);
-        UserResponse response = UserResponse.from(user);
+@Controller('api/v1/users')
+export class UserController {
+    constructor(private readonly userService: UserService) {}
 
-        return EntityModel.of(response,
-            linkTo(methodOn(UserController.class).getUser(id)).withSelfRel(),
-            linkTo(methodOn(OrderController.class).getUserOrders(id)).withRel("orders")
-        );
+    @Get(':id')
+    async getUser(@Param('id') id: string): Promise<HalResponse<UserResponse>> {
+        const user = await this.userService.findById(Number(id));
+        const response = UserResponse.from(user);
+
+        return {
+            data: response,
+            _links: {
+                self:   { href: `/api/v1/users/${id}` },
+                orders: { href: `/api/v1/users/${id}/orders` },
+                update: { href: `/api/v1/users/${id}`, method: 'PUT' },
+                delete: { href: `/api/v1/users/${id}`, method: 'DELETE' },
+            },
+        };
     }
 
-    @GetMapping
-    public CollectionModel<EntityModel<UserResponse>> getUsers(Pageable pageable) {
-        Page<User> users = userService.findAll(pageable);
+    @Get()
+    async getUsers(): Promise<HalResponse<UserResponse[]>> {
+        const users = await this.userService.findAll();
 
-        List<EntityModel<UserResponse>> userModels = users.getContent().stream()
-            .map(user -> EntityModel.of(
-                UserResponse.from(user),
-                linkTo(methodOn(UserController.class).getUser(user.getId())).withSelfRel()
-            ))
-            .toList();
-
-        return CollectionModel.of(userModels,
-            linkTo(methodOn(UserController.class).getUsers(pageable)).withSelfRel()
-        );
+        return {
+            data: users.map((u) => UserResponse.from(u)),
+            _links: {
+                self: { href: '/api/v1/users' },
+            },
+        };
     }
 }
 ```
@@ -610,20 +681,20 @@ const API = {
 
 `linkTo(methodOn(...))` 코드가 비즈니스 로직보다 길어지는 경우가 있다. 조건부 링크(권한에 따라 삭제 링크를 보여주거나 숨기거나)를 넣기 시작하면 코드가 급격히 복잡해진다.
 
-```java
+```typescript
 // 조건부 링크 — 코드가 금방 지저분해진다
-EntityModel<OrderResponse> model = EntityModel.of(response,
-    linkTo(methodOn(OrderController.class).getOrder(id)).withSelfRel()
-);
+const links: Record<string, HalLink> = {
+    self: { href: `/api/v1/orders/${id}` },
+};
 
-if (order.getStatus() == OrderStatus.PENDING) {
-    model.add(linkTo(methodOn(OrderController.class).cancelOrder(id)).withRel("cancel"));
+if (order.status === 'PENDING') {
+    links['cancel'] = { href: `/api/v1/orders/${id}/cancel`, method: 'POST' };
 }
-if (order.getStatus() == OrderStatus.SHIPPED) {
-    model.add(linkTo(methodOn(OrderController.class).confirmDelivery(id)).withRel("confirm"));
+if (order.status === 'SHIPPED') {
+    links['confirm'] = { href: `/api/v1/orders/${id}/confirm`, method: 'POST' };
 }
-if (currentUser.isAdmin()) {
-    model.add(linkTo(methodOn(OrderController.class).deleteOrder(id)).withRel("delete"));
+if (currentUser.isAdmin) {
+    links['delete'] = { href: `/api/v1/orders/${id}`, method: 'DELETE' };
 }
 ```
 
@@ -631,16 +702,20 @@ if (currentUser.isAdmin()) {
 
 응답에 링크가 포함되니까 테스트에서 응답 검증 코드도 길어진다. 링크 URL이 바뀔 때마다 테스트도 수정해야 한다.
 
-```java
-@Test
-void 사용자_조회_응답에_링크가_포함된다() {
-    mockMvc.perform(get("/api/v1/users/1"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.name").value("김개발"))
-        // 링크 검증까지 해야 해서 테스트가 길어짐
-        .andExpect(jsonPath("$._links.self.href").value("http://localhost/api/v1/users/1"))
-        .andExpect(jsonPath("$._links.orders.href").value("http://localhost/api/v1/users/1/orders"));
-}
+```typescript
+// Jest + supertest — 링크 검증까지 해야 해서 테스트가 길어짐
+import * as request from 'supertest';
+
+test('사용자 조회 응답에 링크가 포함된다', async () => {
+    const res = await request(app.getHttpServer())
+        .get('/api/v1/users/1')
+        .expect(200);
+
+    expect(res.body.data.name).toBe('김개발');
+    // 링크 검증까지 해야 해서 테스트가 길어짐
+    expect(res.body._links.self.href).toBe('/api/v1/users/1');
+    expect(res.body._links.orders.href).toBe('/api/v1/users/1/orders');
+});
 ```
 
 #### 도입 판단 기준

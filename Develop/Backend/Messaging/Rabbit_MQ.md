@@ -1,6 +1,6 @@
 ---
 title: RabbitMQ 심화
-tags: [RabbitMQ, AMQP, Messaging, Spring AMQP, Quorum Queue]
+tags: [RabbitMQ, AMQP, Messaging, NestJS AMQP, Quorum Queue]
 updated: 2026-04-02
 ---
 
@@ -12,44 +12,67 @@ RabbitMQ는 AMQP 0-9-1 프로토콜 기반의 메시지 브로커다. Kafka와 �
 
 ## Publisher Confirms
 
-메시지를 publish한 뒤 브로커가 실제로 받았는지 확인하는 메커니즘이다. 기본 설정에서는 `basicPublish()`가 리턴되더라도 브로커에 메시지가 도착했다는 보장이 없다.
+메시지를 publish한 뒤 브로커가 실제로 받았는지 확인하는 메커니즘이다. 기본 설정에서는 `publish()`가 완료되더라도 브로커에 메시지가 도착했다는 보장이 없다.
 
 ### Confirm 모드 활성화
 
-```java
-Channel channel = connection.createChannel();
-channel.confirmSelect(); // confirm 모드 ON
+```typescript
+import * as amqplib from 'amqplib';
+
+const connection = await amqplib.connect('amqp://localhost');
+const channel = await connection.createConfirmChannel(); // confirm 채널 생성
 ```
 
-`confirmSelect()`를 호출하면 해당 Channel에서 발행하는 모든 메시지에 대해 브로커가 ack/nack을 보낸다.
+`createConfirmChannel()`을 사용하면 해당 Channel에서 발행하는 모든 메시지에 대해 브로커가 ack/nack을 보낸다.
 
 ### 3가지 확인 방식
 
-**개별 확인 (동기)**
+**개별 확인 (동기 - Promise)**
 
-```java
-channel.basicPublish("exchange", "routing.key", null, body);
-boolean confirmed = channel.waitForConfirms(5000); // 5초 타임아웃
-if (!confirmed) {
-    // 재발행 또는 로깅
+```typescript
+import * as amqplib from 'amqplib';
+
+async function publishWithConfirm(channel: amqplib.ConfirmChannel, body: Buffer): Promise<void> {
+  return new Promise((resolve, reject) => {
+    channel.publish('exchange', 'routing.key', body, {}, (err) => {
+      if (err) {
+        // 재발행 또는 로깅
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
 }
 ```
 
-메시지 하나마다 블로킹으로 대기한다. 처리량이 떨어지기 때문에 배치 처리에는 부적합하다.
+메시지 하나마다 await로 대기한다. 처리량이 떨어지기 때문에 배치 처리에는 부적합하다.
 
-**배치 확인 (동기)**
+**배치 확인 (waitForConfirms)**
 
-```java
-int batchSize = 100;
-int count = 0;
+```typescript
+import * as amqplib from 'amqplib';
 
-for (Message msg : messages) {
-    channel.basicPublish("exchange", "routing.key", null, msg.getBytes());
+async function publishBatch(
+  channel: amqplib.ConfirmChannel,
+  messages: Buffer[],
+  batchSize = 100,
+): Promise<void> {
+  let count = 0;
+
+  for (const msg of messages) {
+    channel.publish('exchange', 'routing.key', msg);
     count++;
     if (count >= batchSize) {
-        channel.waitForConfirmsOrDie(10000); // 하나라도 nack이면 IOException
-        count = 0;
+      // 배치 내 모든 메시지 confirm 대기 (하나라도 nack이면 throw)
+      await channel.waitForConfirms();
+      count = 0;
     }
+  }
+  // 나머지 flush
+  if (count > 0) {
+    await channel.waitForConfirms();
+  }
 }
 ```
 
@@ -57,39 +80,61 @@ for (Message msg : messages) {
 
 **비동기 확인 (권장)**
 
-```java
-ConcurrentNavigableMap<Long, String> outstanding = new ConcurrentSkipListMap<>();
+```typescript
+import * as amqplib from 'amqplib';
 
-channel.addConfirmListener(new ConfirmListener() {
-    @Override
-    public void handleAck(long deliveryTag, boolean multiple) {
-        if (multiple) {
-            outstanding.headMap(deliveryTag + 1).clear();
-        } else {
-            outstanding.remove(deliveryTag);
-        }
+interface PendingMessage {
+  body: Buffer;
+  seqNo: number;
+}
+
+async function publishAsync(
+  channel: amqplib.ConfirmChannel,
+  messages: Buffer[],
+): Promise<void> {
+  const outstanding = new Map<number, Buffer>();
+
+  // ack 콜백: 처리 성공
+  channel.on('ack', (seqNo: number, multiple: boolean) => {
+    if (multiple) {
+      // seqNo 이하 모든 메시지 제거
+      for (const [key] of outstanding) {
+        if (key <= seqNo) outstanding.delete(key);
+      }
+    } else {
+      outstanding.delete(seqNo);
     }
+  });
 
-    @Override
-    public void handleNack(long deliveryTag, boolean multiple) {
-        // nack된 메시지 재발행 로직
-        if (multiple) {
-            ConcurrentNavigableMap<Long, String> nacked = outstanding.headMap(deliveryTag + 1);
-            nacked.values().forEach(body -> {
-                // 재발행
-            });
-            nacked.clear();
-        } else {
-            String body = outstanding.remove(deliveryTag);
-            // 재발행
+  // nack 콜백: 처리 실패 → 재발행
+  channel.on('nack', (seqNo: number, multiple: boolean) => {
+    const toRepublish: Buffer[] = [];
+    if (multiple) {
+      for (const [key, body] of outstanding) {
+        if (key <= seqNo) {
+          toRepublish.push(body);
+          outstanding.delete(key);
         }
+      }
+    } else {
+      const body = outstanding.get(seqNo);
+      if (body) {
+        toRepublish.push(body);
+        outstanding.delete(seqNo);
+      }
     }
-});
+    // 재발행
+    for (const body of toRepublish) {
+      channel.publish('exchange', 'routing.key', body);
+    }
+  });
 
-for (Message msg : messages) {
-    long seq = channel.getNextPublishSeqNo();
-    outstanding.put(seq, msg.getBody());
-    channel.basicPublish("exchange", "routing.key", null, msg.getBytes());
+  for (const msg of messages) {
+    const seq = (channel as unknown as { _deliveryTagCounter: number })
+      ._deliveryTagCounter + 1;
+    outstanding.set(seq, msg);
+    channel.publish('exchange', 'routing.key', msg);
+  }
 }
 ```
 
@@ -97,50 +142,68 @@ for (Message msg : messages) {
 
 ### Mandatory 플래그
 
-```java
-channel.basicPublish("exchange", "routing.key", true, null, body); // mandatory=true
-channel.addReturnListener(returnMessage -> {
-    // 라우팅 불가 메시지 처리
-});
+```typescript
+import * as amqplib from 'amqplib';
+
+async function setupMandatoryPublish(
+  channel: amqplib.ConfirmChannel,
+  body: Buffer,
+): Promise<void> {
+  // mandatory=true: 라우팅 불가 메시지를 publisher에게 반환
+  channel.publish('exchange', 'routing.key', body, { mandatory: true });
+
+  // 라우팅 불가 메시지 처리
+  channel.on('return', (msg: amqplib.Message) => {
+    console.error('Unroutable message returned:', msg.fields.replyText);
+    // 라우팅 불가 메시지 처리 로직
+  });
+}
 ```
 
-`mandatory=true`로 설정하면, exchange에서 어떤 큐로도 라우팅되지 않는 메시지를 publisher에게 돌려보낸다. 설정하지 않으면 메시지가 조용히 사라진다. 운영에서 꽤 자주 겪는 문제가 exchange-queue 바인딩을 빠뜨리고 메시지가 유실되는 건데, mandatory와 return listener를 같이 설정해두면 잡을 수 있다.
+`mandatory: true`로 설정하면, exchange에서 어떤 큐로도 라우팅되지 않는 메시지를 publisher에게 돌려보낸다. 설정하지 않으면 메시지가 조용히 사라진다. 운영에서 꽤 자주 겪는 문제가 exchange-queue 바인딩을 빠뜨리고 메시지가 유실되는 건데, mandatory와 return 이벤트를 같이 설정해두면 잡을 수 있다.
 
 ---
 
 ## Consumer Acknowledgement
 
-Consumer가 메시지를 받은 뒤 처리 결과를 브로커에 알리는 메커니즘이다. auto-ack(`autoAck=true`)를 쓰면 브로커가 메시지를 보내는 순간 처리 완료로 간주한다. 처리 중 Consumer가 죽으면 메시지가 유실된다.
+Consumer가 메시지를 받은 뒤 처리 결과를 브로커에 알리는 메커니즘이다. `noAck: true`를 쓰면 브로커가 메시지를 보내는 순간 처리 완료로 간주한다. 처리 중 Consumer가 죽으면 메시지가 유실된다.
 
 ### Manual Ack
 
-```java
-channel.basicConsume("queue", false, (consumerTag, delivery) -> {
+```typescript
+import * as amqplib from 'amqplib';
+
+async function startConsumer(channel: amqplib.Channel): Promise<void> {
+  // noAck: false → manual ack 모드
+  await channel.consume('queue', async (msg) => {
+    if (!msg) return;
+
     try {
-        process(delivery.getBody());
-        channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
-    } catch (Exception e) {
-        // 처리 실패
-        channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, true);
+      await process(msg.content);
+      channel.ack(msg); // 처리 완료
+    } catch (err) {
+      // 처리 실패: requeue=true로 큐에 재입력
+      channel.nack(msg, false, true);
     }
-}, consumerTag -> {});
+  }, { noAck: false });
+}
 ```
 
-`autoAck` 파라미터를 `false`로 넘겨야 manual ack가 동작한다.
+`noAck: false`를 넘겨야 manual ack가 동작한다.
 
 ### ack, nack, reject 차이
 
 | 메서드 | 파라미터 | 동작 |
 |--------|----------|------|
-| `basicAck(tag, multiple)` | multiple: 해당 tag 이하 전체 ack | 정상 처리 완료, 큐에서 제거 |
-| `basicNack(tag, multiple, requeue)` | requeue=true: 큐 앞쪽에 재입력 | 처리 실패, 여러 메시지 한번에 거부 가능 |
-| `basicReject(tag, requeue)` | requeue=true: 큐 앞쪽에 재입력 | 처리 실패, 메시지 1개만 거부 |
+| `ack(msg, allUpTo?)` | allUpTo: 해당 태그 이하 전체 ack | 정상 처리 완료, 큐에서 제거 |
+| `nack(msg, allUpTo?, requeue?)` | requeue=true: 큐 앞쪽에 재입력 | 처리 실패, 여러 메시지 한번에 거부 가능 |
+| `reject(msg, requeue?)` | requeue=true: 큐 앞쪽에 재입력 | 처리 실패, 메시지 1개만 거부 |
 
-`basicNack`는 RabbitMQ 확장이고, `basicReject`은 AMQP 표준이다. 차이는 `basicNack`만 `multiple` 파라미터를 지원한다는 점이다.
+`nack`는 RabbitMQ 확장이고, `reject`은 AMQP 표준이다. 차이는 `nack`만 `allUpTo` 파라미터를 지원한다는 점이다.
 
 ### requeue의 함정
 
-`requeue=true`로 nack/reject하면 메시지가 큐 앞쪽에 다시 들어간다. 처리 로직에 버그가 있으면 같은 메시지가 무한 반복된다.
+`requeue: true`로 nack/reject하면 메시지가 큐 앞쪽에 다시 들어간다. 처리 로직에 버그가 있으면 같은 메시지가 무한 반복된다.
 
 ```
 Consumer 받음 → 처리 실패 → nack(requeue=true) → 큐에 재입력 → 다시 받음 → 또 실패 → ...
@@ -149,13 +212,14 @@ Consumer 받음 → 처리 실패 → nack(requeue=true) → 큐에 재입력 �
 이걸 방지하려면:
 
 1. 재시도 횟수를 메시지 헤더(x-death)로 추적하고 임계값 초과 시 DLQ로 보낸다
-2. Spring AMQP의 RetryTemplate을 사용한다 (아래 참조)
-3. `requeue=false`로 설정하고 DLQ에서 별도 처리한다
+2. amqplib 레벨에서 재시도 카운터를 관리한다 (아래 참조)
+3. `requeue: false`로 설정하고 DLQ에서 별도 처리한다
 
 ### Prefetch Count
 
-```java
-channel.basicQos(10); // Consumer가 한 번에 받을 수 있는 미확인 메시지 수
+```typescript
+// Consumer가 한 번에 받을 수 있는 미확인 메시지 수
+await channel.prefetch(10);
 ```
 
 기본값은 0(무제한)인데, 이러면 RabbitMQ가 큐에 있는 메시지를 한꺼번에 Consumer로 밀어넣는다. Consumer가 느리면 메모리가 터진다. 운영에서는 반드시 설정해야 한다.
@@ -180,40 +244,74 @@ Connection은 TCP 소켓이다. 비용이 크기 때문에 하나의 Connection 
 
 ### 주의사항
 
-**Channel은 스레드 세이프하지 않다.** 여러 스레드에서 하나의 Channel을 공유하면 프레임이 섞여서 프로토콜 에러가 발생한다. 스레드마다 Channel을 분리하거나, Channel Pool을 사용해야 한다.
+**Channel은 동시 사용에 안전하지 않다.** 여러 코루틴/Promise에서 하나의 Channel을 동시에 사용하면 프레임이 섞여서 프로토콜 에러가 발생한다. 작업마다 Channel을 분리하거나, Channel Pool을 사용해야 한다.
 
 **Publisher와 Consumer의 Connection을 분리해야 하는 경우가 있다.** TCP backpressure가 걸리면 하나의 Connection에서 publish와 consume이 서로 영향을 준다. 처리량이 높은 시스템에서는 Publisher Connection과 Consumer Connection을 별도로 둔다.
 
-### Channel Pooling (Spring AMQP)
+### NestJS에서 Connection/Channel 관리
 
-```java
-@Bean
-public CachingConnectionFactory connectionFactory() {
-    CachingConnectionFactory factory = new CachingConnectionFactory("localhost");
-    factory.setUsername("guest");
-    factory.setPassword("guest");
-    
-    // Channel 캐싱 (기본값)
-    factory.setCacheMode(CachingConnectionFactory.CacheMode.CHANNEL);
-    factory.setChannelCacheSize(25); // 기본 25
-    
-    // 또는 Connection 캐싱 (Connection도 풀링)
-    // factory.setCacheMode(CachingConnectionFactory.CacheMode.CONNECTION);
-    // factory.setConnectionCacheSize(5);
-    
-    return factory;
+```typescript
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import * as amqplib from 'amqplib';
+
+@Injectable()
+export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
+  private connection: amqplib.Connection | null = null;
+  private publisherChannel: amqplib.ConfirmChannel | null = null;
+  private consumerChannel: amqplib.Channel | null = null;
+
+  async onModuleInit(): Promise<void> {
+    this.connection = await amqplib.connect('amqp://guest:guest@localhost');
+
+    // Publisher용 Channel
+    this.publisherChannel = await this.connection.createConfirmChannel();
+
+    // Consumer용 Channel (별도)
+    this.consumerChannel = await this.connection.createChannel();
+    await this.consumerChannel.prefetch(10); // prefetch 설정 필수
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.publisherChannel?.close();
+    await this.consumerChannel?.close();
+    await this.connection?.close();
+  }
+
+  getPublisherChannel(): amqplib.ConfirmChannel {
+    if (!this.publisherChannel) throw new Error('Publisher channel not initialized');
+    return this.publisherChannel;
+  }
+
+  getConsumerChannel(): amqplib.Channel {
+    if (!this.consumerChannel) throw new Error('Consumer channel not initialized');
+    return this.consumerChannel;
+  }
 }
 ```
 
-`CHANNEL` 모드는 Connection 1개를 공유하고 Channel만 풀링한다. `CONNECTION` 모드는 Connection 자체도 풀링하는데, Publisher/Consumer를 분리하거나 Connection 수준 격리가 필요할 때 쓴다.
+`channelCheckoutTimeout`에 해당하는 패턴으로, Channel Pool이 필요하면 `amqplib-plus` 또는 직접 Pool 구현을 사용한다.
 
-`channelCheckoutTimeout`을 설정하면 풀에서 Channel을 꺼낼 때 타임아웃을 줄 수 있다.
+```typescript
+// Channel Pool 예시 (간단 구현)
+@Injectable()
+export class ChannelPoolService {
+  private readonly pool: amqplib.Channel[] = [];
+  private readonly maxSize = 25;
 
-```java
-factory.setChannelCheckoutTimeout(5000); // 5초 대기 후 AmqpTimeoutException
+  async acquire(connection: amqplib.Connection): Promise<amqplib.Channel> {
+    const ch = this.pool.pop() ?? await connection.createChannel();
+    return ch;
+  }
+
+  release(channel: amqplib.Channel): void {
+    if (this.pool.length < this.maxSize) {
+      this.pool.push(channel);
+    } else {
+      void channel.close();
+    }
+  }
+}
 ```
-
-이걸 설정하지 않으면 풀이 가득 차도 새 Channel을 무한정 만든다. 운영에서는 반드시 설정해야 한다.
 
 ---
 
@@ -234,11 +332,18 @@ RabbitMQ 3.8부터 Quorum Queue가 도입됐고, Classic Mirrored Queue는 3.13�
 
 **Quorum Queue 선언:**
 
-```java
-Map<String, Object> args = new HashMap<>();
-args.put("x-queue-type", "quorum");
-args.put("x-quorum-initial-group-size", 3); // 복제 노드 수
-channel.queueDeclare("my.quorum.queue", true, false, false, args);
+```typescript
+import * as amqplib from 'amqplib';
+
+async function declareQuorumQueue(channel: amqplib.Channel): Promise<void> {
+  await channel.assertQueue('my.quorum.queue', {
+    durable: true,
+    arguments: {
+      'x-queue-type': 'quorum',
+      'x-quorum-initial-group-size': 3, // 복제 노드 수
+    },
+  });
+}
 ```
 
 `x-quorum-initial-group-size`는 클러스터 노드 수 이하로 설정해야 한다. 3노드 클러스터면 3이 적당하다. 5노드 클러스터에서 5로 설정하면 모든 노드에 복제되지만 쓰기 성능이 떨어진다.
@@ -249,18 +354,27 @@ channel.queueDeclare("my.quorum.queue", true, false, false, args);
 - 메시지가 requeue되면 원래 순서가 보장되지 않는다. 순서가 중요한 처리에서 nack+requeue를 쓸 때 주의해야 한다.
 - poison message handling을 위해 `x-delivery-limit`을 설정할 수 있다. 이 횟수를 초과하면 DLQ로 간다.
 
-```java
-args.put("x-delivery-limit", 5); // 5번 재전달 후 DLQ로
+```typescript
+await channel.assertQueue('my.quorum.queue', {
+  durable: true,
+  arguments: {
+    'x-queue-type': 'quorum',
+    'x-delivery-limit': 5, // 5번 재전달 후 DLQ로
+  },
+});
 ```
 
 ### Lazy Queue
 
 Lazy Queue는 메시지를 최대한 디스크에 저장하고 Consumer가 요청할 때만 메모리로 올린다.
 
-```java
-Map<String, Object> args = new HashMap<>();
-args.put("x-queue-mode", "lazy");
-channel.queueDeclare("my.lazy.queue", true, false, false, args);
+```typescript
+await channel.assertQueue('my.lazy.queue', {
+  durable: true,
+  arguments: {
+    'x-queue-mode': 'lazy',
+  },
+});
 ```
 
 일반 큐는 메시지를 메모리에 유지하다가 메모리 pressure가 생기면 디스크로 내린다. Lazy Queue는 처음부터 디스크에 쓴다.
@@ -275,19 +389,21 @@ RabbitMQ 3.12부터 Quorum Queue는 기본적으로 lazy 동작을 한다. Class
 
 ### Priority Queue
 
-```java
-Map<String, Object> args = new HashMap<>();
-args.put("x-max-priority", 10); // 우선순위 범위 0~10
-channel.queueDeclare("my.priority.queue", true, false, false, args);
+```typescript
+await channel.assertQueue('my.priority.queue', {
+  durable: true,
+  arguments: {
+    'x-max-priority': 10, // 우선순위 범위 0~10
+  },
+});
 ```
 
 메시지 발행 시 priority를 지정한다:
 
-```java
-AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
-    .priority(5)
-    .build();
-channel.basicPublish("exchange", "routing.key", props, body);
+```typescript
+channel.publish('exchange', 'routing.key', Buffer.from(body), {
+  priority: 5,
+});
 ```
 
 `x-max-priority` 값이 클수록 내부적으로 우선순위별 서브큐를 많이 만든다. 10 이하로 설정하는 게 좋다. 255까지 가능하지만 메모리와 CPU 오버헤드가 심하다.
@@ -458,170 +574,181 @@ rabbitmq-plugins enable rabbitmq_prometheus
 
 ---
 
-## Spring AMQP 심화
+## NestJS amqplib 심화
 
-### RetryTemplate 설정
+### 재시도 설정 (Exponential Backoff)
 
-Consumer 처리 실패 시 재시도 로직을 Spring 레벨에서 처리한다. RabbitMQ의 requeue와 다르게 메시지를 큐에 돌려보내지 않고 Consumer 프로세스 내에서 재시도한다.
+Consumer 처리 실패 시 재시도 로직을 NestJS 레벨에서 처리한다. RabbitMQ의 requeue와 다르게 메시지를 큐에 돌려보내지 않고 Consumer 프로세스 내에서 재시도한다.
 
-```java
-@Configuration
-public class RabbitConfig {
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import * as amqplib from 'amqplib';
 
-    @Bean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory) {
-        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        factory.setConnectionFactory(connectionFactory);
-        
-        RetryTemplate retryTemplate = new RetryTemplate();
-        
-        // 최대 3번 재시도, 초기 간격 1초, 2배씩 증가, 최대 10초
-        ExponentialBackOffPolicy backOff = new ExponentialBackOffPolicy();
-        backOff.setInitialInterval(1000);
-        backOff.setMultiplier(2.0);
-        backOff.setMaxInterval(10000);
-        retryTemplate.setBackOffPolicy(backOff);
-        
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(3);
-        retryTemplate.setRetryPolicy(retryPolicy);
-        
-        factory.setRetryTemplate(retryTemplate);
-        
-        return factory;
-    }
+interface RetryOptions {
+  maxAttempts: number;
+  initialInterval: number; // ms
+  multiplier: number;
+  maxInterval: number; // ms
+}
+
+@Injectable()
+export class RabbitConsumerService {
+  private readonly logger = new Logger(RabbitConsumerService.name);
+
+  async consumeWithRetry(
+    channel: amqplib.Channel,
+    queueName: string,
+    handler: (msg: amqplib.ConsumeMessage) => Promise<void>,
+    options: RetryOptions = {
+      maxAttempts: 3,
+      initialInterval: 1000,
+      multiplier: 2.0,
+      maxInterval: 10000,
+    },
+  ): Promise<void> {
+    await channel.consume(queueName, async (msg) => {
+      if (!msg) return;
+
+      let attempt = 0;
+      let delay = options.initialInterval;
+
+      while (attempt < options.maxAttempts) {
+        try {
+          await handler(msg);
+          channel.ack(msg);
+          return;
+        } catch (err) {
+          attempt++;
+          this.logger.warn(`처리 실패 (시도 ${attempt}/${options.maxAttempts}): ${err}`);
+
+          if (attempt >= options.maxAttempts) {
+            // 모든 재시도 실패 → DLQ로 (requeue=false)
+            channel.nack(msg, false, false);
+            return;
+          }
+
+          // 지수 백오프 대기
+          await new Promise((r) => setTimeout(r, Math.min(delay, options.maxInterval)));
+          delay *= options.multiplier;
+        }
+      }
+    }, { noAck: false });
+  }
 }
 ```
 
-주의: RetryTemplate은 같은 스레드에서 블로킹으로 재시도한다. 재시도 간격이 길면 해당 Consumer 스레드가 묶인다. prefetch에 포함된 다른 메시지 처리도 지연된다.
+주의: 재시도 간격이 길면 해당 Promise가 묶인다. prefetch에 포함된 다른 메시지 처리도 지연된다.
 
-### MessageRecoverer
+### MessageRecoverer 패턴
 
-RetryTemplate의 재시도가 모두 실패하면 MessageRecoverer가 호출된다. 기본 동작은 `RejectAndDontRequeueRecoverer`(메시지 버림)다.
+재시도가 모두 실패하면 DLQ exchange로 재발행한다.
 
-```java
-@Bean
-public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-        ConnectionFactory connectionFactory, RabbitTemplate rabbitTemplate) {
-    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-    factory.setConnectionFactory(connectionFactory);
-    
-    // ... retryTemplate 설정 ...
-    
-    // 재시도 전부 실패 시 DLQ exchange로 발행
-    factory.setRecoveryCallback(new RepublishMessageRecoverer(
-        rabbitTemplate, "dlx.exchange", "dlx.routing.key"
-    ).recoveryCallback());
-    
-    return factory;
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import * as amqplib from 'amqplib';
+
+@Injectable()
+export class DeadLetterPublisher {
+  private readonly logger = new Logger(DeadLetterPublisher.name);
+
+  async republishToDeadLetter(
+    channel: amqplib.ConfirmChannel,
+    originalMsg: amqplib.ConsumeMessage,
+    error: Error,
+    dlxExchange: string,
+    dlxRoutingKey: string,
+  ): Promise<void> {
+    // 원본 메시지에 예외 정보를 헤더로 추가
+    const headers = {
+      ...originalMsg.properties.headers,
+      'x-exception-message': error.message,
+      'x-exception-stack': error.stack?.substring(0, 500) ?? '',
+      'x-original-queue': originalMsg.fields.routingKey,
+    };
+
+    return new Promise((resolve, reject) => {
+      channel.publish(
+        dlxExchange,
+        dlxRoutingKey,
+        originalMsg.content,
+        { headers, persistent: true },
+        (err) => (err ? reject(err) : resolve()),
+      );
+    });
+  }
 }
 ```
 
-`RepublishMessageRecoverer`는 원본 메시지에 예외 스택트레이스를 헤더로 붙여서 DLQ로 발행한다. 나중에 DLQ에서 메시지를 꺼내 원인을 분석할 때 유용하다.
+`RepublishMessageRecoverer`와 동일한 역할: 원본 메시지에 예외 스택트레이스를 헤더로 붙여서 DLQ로 발행한다. 나중에 DLQ에서 메시지를 꺼내 원인을 분석할 때 유용하다.
 
-다른 Recoverer 옵션:
+### 용도별 Consumer 분리
 
-- `RejectAndDontRequeueRecoverer`: 메시지를 reject(requeue=false). DLX가 설정되어 있으면 DLQ로 간다.
-- `ImmediateRequeueMessageRecoverer`: 메시지를 큐에 다시 넣는다. 무한 루프 위험이 있어서 거의 쓰지 않는다.
+용도별로 Channel을 분리하면 큐마다 다른 설정을 적용할 수 있다.
 
-### @RabbitListener concurrency 설정
+```typescript
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import * as amqplib from 'amqplib';
 
-```java
-@RabbitListener(queues = "my.queue", concurrency = "3-10")
-public void handle(Message message) {
-    // 최소 3개, 최대 10개 Consumer 스레드
-}
-```
+@Injectable()
+export class MultiConsumerService implements OnModuleInit {
+  private connection!: amqplib.Connection;
 
-`concurrency = "3-10"`은 동적 스케일링이다. 큐에 메시지가 쌓이면 스레드를 늘리고, 줄어들면 다시 줄인다.
+  async onModuleInit(): Promise<void> {
+    this.connection = await amqplib.connect('amqp://guest:guest@localhost');
 
-`concurrency = "5"`로 고정하면 항상 5개 스레드가 동작한다.
+    // 일반 처리용 Channel
+    await this.setupDefaultConsumer();
 
-동적 스케일링은 `SimpleMessageListenerContainer`에서만 지원한다. `DirectMessageListenerContainer`는 고정 수만 지원한다.
+    // 고처리량용 Channel
+    await this.setupHighThroughputConsumer();
 
-### Container Factory 커스터마이징
+    // 순서 보장용 Channel
+    await this.setupOrderedConsumer();
+  }
 
-용도별로 Container Factory를 분리하면 큐마다 다른 설정을 적용할 수 있다.
+  private async setupDefaultConsumer(): Promise<void> {
+    const channel = await this.connection.createChannel();
+    await channel.prefetch(10); // 기본 prefetch
+    await channel.consume('default.queue', async (msg) => {
+      if (!msg) return;
+      try {
+        await this.handleDefault(msg);
+        channel.ack(msg);
+      } catch {
+        channel.nack(msg, false, false); // DLX로
+      }
+    }, { noAck: false });
+  }
 
-```java
-@Configuration
-public class RabbitConfig {
+  private async setupHighThroughputConsumer(): Promise<void> {
+    const channel = await this.connection.createChannel();
+    await channel.prefetch(50); // 고처리량: prefetch 높게
+    // 배치 처리를 위해 버퍼 수집
+    const buffer: amqplib.ConsumeMessage[] = [];
+    await channel.consume('high.volume.queue', async (msg) => {
+      if (!msg) return;
+      buffer.push(msg);
+      if (buffer.length >= 10) {
+        const batch = buffer.splice(0, 10);
+        await this.handleBatch(batch);
+        batch.forEach((m) => channel.ack(m));
+      }
+    }, { noAck: false });
+  }
 
-    // 일반 처리용
-    @Bean
-    public SimpleRabbitListenerContainerFactory defaultFactory(
-            ConnectionFactory connectionFactory) {
-        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        factory.setConnectionFactory(connectionFactory);
-        factory.setPrefetchCount(10);
-        factory.setConcurrentConsumers(3);
-        factory.setMaxConcurrentConsumers(10);
-        factory.setDefaultRequeueRejected(false); // 처리 실패 시 requeue 안 함
-        return factory;
-    }
+  private async setupOrderedConsumer(): Promise<void> {
+    const channel = await this.connection.createChannel();
+    await channel.prefetch(1); // 순서 보장: prefetch=1, 하나씩 처리
+    await channel.consume('ordered.queue', async (msg) => {
+      if (!msg) return;
+      await this.handleOrdered(msg);
+      channel.ack(msg);
+    }, { noAck: false });
+  }
 
-    // 고처리량용
-    @Bean
-    public SimpleRabbitListenerContainerFactory highThroughputFactory(
-            ConnectionFactory connectionFactory) {
-        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        factory.setConnectionFactory(connectionFactory);
-        factory.setPrefetchCount(50);
-        factory.setConcurrentConsumers(10);
-        factory.setMaxConcurrentConsumers(20);
-        factory.setBatchSize(10); // 배치 리스너용
-        return factory;
-    }
-
-    // 순서 보장용
-    @Bean
-    public SimpleRabbitListenerContainerFactory orderedFactory(
-            ConnectionFactory connectionFactory) {
-        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        factory.setConnectionFactory(connectionFactory);
-        factory.setPrefetchCount(1);  // 하나씩 처리
-        factory.setConcurrentConsumers(1);  // 단일 Consumer
-        return factory;
-    }
-}
-```
-
-리스너에서 사용:
-
-```java
-@RabbitListener(queues = "high.volume.queue", containerFactory = "highThroughputFactory")
-public void handleHighVolume(List<Message> messages) {
-    // 배치 처리
-}
-
-@RabbitListener(queues = "ordered.queue", containerFactory = "orderedFactory")
-public void handleOrdered(Message message) {
-    // 순서 보장 처리
-}
-```
-
-### SimpleMessageListenerContainer vs DirectMessageListenerContainer
-
-| 항목 | SimpleMLLC | DirectMLLC |
-|------|-----------|-----------|
-| 스레드 모델 | 내부 스레드 풀에서 Consumer 스레드 생성 | RabbitMQ Client 스레드에서 직접 콜백 |
-| 동적 스케일링 | `min-max` concurrency 지원 | 고정 consumers-per-queue만 지원 |
-| 트랜잭션 | 지원 | 지원 |
-| 리소스 | 스레드 풀 오버헤드 있음 | 스레드 풀 없어서 가벼움 |
-| 큐 추가/제거 | 컨테이너 재시작 필요 | 런타임에 큐 추가/제거 가능 |
-
-큐 수가 많고 동적으로 관리해야 하면 `DirectMessageListenerContainer`가 낫다. Consumer 수를 동적으로 조절해야 하면 `SimpleMessageListenerContainer`를 써야 한다.
-
-```java
-@Bean
-public DirectRabbitListenerContainerFactory directFactory(
-        ConnectionFactory connectionFactory) {
-    DirectRabbitListenerContainerFactory factory = new DirectRabbitListenerContainerFactory();
-    factory.setConnectionFactory(connectionFactory);
-    factory.setConsumersPerQueue(5);
-    factory.setPrefetchCount(10);
-    return factory;
+  private async handleDefault(msg: amqplib.ConsumeMessage): Promise<void> { /* ... */ }
+  private async handleBatch(msgs: amqplib.ConsumeMessage[]): Promise<void> { /* ... */ }
+  private async handleOrdered(msg: amqplib.ConsumeMessage): Promise<void> { /* ... */ }
 }
 ```
 
@@ -635,35 +762,59 @@ public DirectRabbitListenerContainerFactory directFactory(
 2. 메시지 TTL 만료
 3. 큐의 max-length 초과
 
-```java
-// DLX와 DLQ 선언
-channel.exchangeDeclare("dlx.exchange", "direct");
-channel.queueDeclare("dlq.queue", true, false, false, null);
-channel.queueBind("dlq.queue", "dlx.exchange", "dlx.routing.key");
+```typescript
+import * as amqplib from 'amqplib';
 
-// 원본 큐에 DLX 설정
-Map<String, Object> args = new HashMap<>();
-args.put("x-dead-letter-exchange", "dlx.exchange");
-args.put("x-dead-letter-routing-key", "dlx.routing.key");
-args.put("x-message-ttl", 60000); // 60초 후 만료 → DLQ로
-channel.queueDeclare("my.queue", true, false, false, args);
+async function setupDlxQueues(channel: amqplib.Channel): Promise<void> {
+  // DLX와 DLQ 선언
+  await channel.assertExchange('dlx.exchange', 'direct', { durable: true });
+  await channel.assertQueue('dlq.queue', { durable: true });
+  await channel.bindQueue('dlq.queue', 'dlx.exchange', 'dlx.routing.key');
+
+  // 원본 큐에 DLX 설정
+  await channel.assertQueue('my.queue', {
+    durable: true,
+    arguments: {
+      'x-dead-letter-exchange': 'dlx.exchange',
+      'x-dead-letter-routing-key': 'dlx.routing.key',
+      'x-message-ttl': 60000, // 60초 후 만료 → DLQ로
+    },
+  });
+}
 ```
 
 DLQ에 들어간 메시지의 `x-death` 헤더를 보면 어디서 왜 dead letter가 됐는지 알 수 있다.
 
-```java
-@RabbitListener(queues = "dlq.queue")
-public void handleDeadLetter(Message message) {
-    List<Map<String, Object>> xDeath = 
-        (List<Map<String, Object>>) message.getMessageProperties().getHeaders().get("x-death");
-    
-    if (xDeath != null) {
-        Map<String, Object> death = xDeath.get(0);
-        String reason = (String) death.get("reason");    // rejected, expired, maxlen
-        String queue = (String) death.get("queue");       // 원본 큐 이름
-        Long count = (Long) death.get("count");           // dead letter된 횟수
-        // 로깅 또는 알림
-    }
+```typescript
+import { Injectable, Logger } from '@nestjs/common';
+import * as amqplib from 'amqplib';
+
+interface XDeath {
+  reason: string;  // 'rejected' | 'expired' | 'maxlen'
+  queue: string;   // 원본 큐 이름
+  count: number;   // dead letter된 횟수
+}
+
+@Injectable()
+export class DeadLetterConsumer {
+  private readonly logger = new Logger(DeadLetterConsumer.name);
+
+  async startDlqConsumer(channel: amqplib.Channel): Promise<void> {
+    await channel.consume('dlq.queue', (msg) => {
+      if (!msg) return;
+
+      const xDeath = msg.properties.headers?.['x-death'] as XDeath[] | undefined;
+      if (xDeath && xDeath.length > 0) {
+        const death = xDeath[0];
+        this.logger.error(
+          `DLQ 메시지 수신 - reason: ${death.reason}, queue: ${death.queue}, count: ${death.count}`,
+        );
+        // 알림 전송 또는 별도 처리
+      }
+
+      channel.ack(msg);
+    }, { noAck: false });
+  }
 }
 ```
 
@@ -675,7 +826,19 @@ public void handleDeadLetter(Message message) {
 
 Connection은 살아있는데 Channel이 계속 늘어나는 경우. 보통 Channel을 열고 닫지 않는 코드 버그다. Management UI에서 Connection당 Channel 수를 확인한다.
 
-Spring AMQP의 `CachingConnectionFactory`를 쓰면 Channel이 풀로 관리되니까 직접 Channel을 열고 닫을 일이 없다. 직접 AMQP Client를 쓰는 경우 try-with-resources로 Channel을 닫아야 한다.
+amqplib에서 직접 Channel을 생성하는 경우 반드시 try-finally로 닫아야 한다.
+
+```typescript
+const channel = await connection.createChannel();
+try {
+  // 작업 수행
+  await channel.publish(/* ... */);
+} finally {
+  await channel.close(); // 반드시 닫기
+}
+```
+
+장기 실행 서비스에서는 onModuleInit에서 생성하고 onModuleDestroy에서 닫는 패턴을 사용한다.
 
 ### Unacked 메시지 증가
 
@@ -685,11 +848,15 @@ Spring AMQP의 `CachingConnectionFactory`를 쓰면 Channel이 풀로 관리되�
 
 Consumer보다 Publisher가 빠르면 메시지가 계속 쌓인다. Memory Alarm이 발생하기 전에 `x-max-length`나 `x-max-length-bytes`로 큐 크기 제한을 걸어두면 overflow 시 DLQ로 보내거나 head 메시지를 버릴 수 있다.
 
-```java
-Map<String, Object> args = new HashMap<>();
-args.put("x-max-length", 100000);
-args.put("x-overflow", "reject-publish"); // 큐 가득 차면 publisher에게 nack
-// 또는 "drop-head": 가장 오래된 메시지 버림
+```typescript
+await channel.assertQueue('my.queue', {
+  durable: true,
+  arguments: {
+    'x-max-length': 100000,
+    'x-overflow': 'reject-publish', // 큐 가득 차면 publisher에게 nack
+    // 또는 'drop-head': 가장 오래된 메시지 버림
+  },
+});
 ```
 
 ---

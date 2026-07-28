@@ -18,11 +18,25 @@ updated: 2026-01-18
 상품 상세 페이지. 초당 1,000개 요청.
 
 **캐시 없이:**
-```java
-@GetMapping("/products/{id}")
-public Product getProduct(@PathVariable Long id) {
-    return productRepository.findById(id)
-        .orElseThrow(() -> new ProductNotFoundException(id));
+```typescript
+import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Product } from './product.entity';
+
+@Controller('products')
+export class ProductController {
+  constructor(
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+  ) {}
+
+  @Get(':id')
+  async getProduct(@Param('id') id: string): Promise<Product> {
+    const product = await this.productRepository.findOneBy({ id: Number(id) });
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
+    return product;
+  }
 }
 ```
 
@@ -33,12 +47,21 @@ public Product getProduct(@PathVariable Long id) {
 - 응답 시간 느림 (평균 50ms)
 
 **캐시 적용:**
-```java
-@Cacheable(value = "products", key = "#id")
-@GetMapping("/products/{id}")
-public Product getProduct(@PathVariable Long id) {
-    return productRepository.findById(id)
-        .orElseThrow(() -> new ProductNotFoundException(id));
+```typescript
+import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
+
+@Controller('products')
+@UseInterceptors(CacheInterceptor)
+export class ProductController {
+  constructor(private readonly productService: ProductService) {}
+
+  @Get(':id')
+  @CacheKey('product')
+  @CacheTTL(600) // 10분 (초 단위)
+  async getProduct(@Param('id') id: string): Promise<Product> {
+    return this.productService.getProduct(Number(id));
+  }
 }
 ```
 
@@ -64,40 +87,68 @@ public Product getProduct(@PathVariable Long id) {
 5. 반환
 
 **코드:**
-```java
-@Service
-public class ProductService {
-    
-    private final ProductRepository productRepository;
-    private final RedisTemplate<String, Product> redisTemplate;
-    
-    public Product getProduct(Long id) {
-        String cacheKey = "product:" + id;
-        
-        // 1. 캐시 확인
-        Product cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            return cached;  // Cache Hit
-        }
-        
-        // 2. DB 조회 (Cache Miss)
-        Product product = productRepository.findById(id)
-            .orElseThrow(() -> new ProductNotFoundException(id));
-        
-        // 3. 캐시 저장
-        redisTemplate.opsForValue().set(cacheKey, product, Duration.ofMinutes(10));
-        
-        return product;
+```typescript
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { Product } from './product.entity';
+
+@Injectable()
+export class ProductService {
+  constructor(
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @InjectRedis() private readonly redis: Redis,
+  ) {}
+
+  async getProduct(id: number): Promise<Product> {
+    const cacheKey = `product:${id}`;
+
+    // 1. 캐시 확인
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as Product; // Cache Hit
     }
+
+    // 2. DB 조회 (Cache Miss)
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
+
+    // 3. 캐시 저장 (10분 = 600초)
+    await this.redis.set(cacheKey, JSON.stringify(product), 'EX', 600);
+
+    return product;
+  }
 }
 ```
 
-**Spring Cache 추상화:**
-```java
-@Cacheable(value = "products", key = "#id")
-public Product getProduct(Long id) {
-    return productRepository.findById(id)
-        .orElseThrow(() -> new ProductNotFoundException(id));
+**NestJS Cache Manager 추상화:**
+```typescript
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+@Injectable()
+export class ProductService {
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+  ) {}
+
+  async getProduct(id: number): Promise<Product> {
+    const cacheKey = `products:${id}`;
+    const cached = await this.cacheManager.get<Product>(cacheKey);
+    if (cached) return cached;
+
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
+
+    await this.cacheManager.set(cacheKey, product, 600_000); // 10분 (ms)
+    return product;
+  }
 }
 ```
 
@@ -120,34 +171,46 @@ public Product getProduct(Long id) {
 3. 성공 응답
 
 **코드:**
-```java
-@Service
-public class ProductService {
-    
-    @CachePut(value = "products", key = "#product.id")
-    @Transactional
-    public Product updateProduct(Product product) {
-        // 1. DB 업데이트
-        Product saved = productRepository.save(product);
-        
-        // 2. 캐시 업데이트 (@CachePut이 자동 처리)
-        return saved;
-    }
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Product } from './product.entity';
+
+@Injectable()
+export class ProductService {
+  constructor(
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
+
+  async updateProduct(product: Product): Promise<Product> {
+    // 1. DB 업데이트
+    const saved = await this.productRepository.save(product);
+
+    // 2. 캐시 업데이트 (Write-Through)
+    await this.cacheManager.set(`products:${saved.id}`, saved, 600_000);
+
+    return saved;
+  }
 }
 ```
 
-**수동 구현:**
-```java
-@Transactional
-public Product updateProduct(Product product) {
-    // 1. DB 저장
-    Product saved = productRepository.save(product);
-    
-    // 2. 캐시 저장
-    String cacheKey = "product:" + product.getId();
-    redisTemplate.opsForValue().set(cacheKey, saved, Duration.ofMinutes(10));
-    
-    return saved;
+**수동 구현 (ioredis):**
+```typescript
+async updateProduct(product: Product): Promise<Product> {
+  // 1. DB 저장
+  const saved = await this.productRepository.save(product);
+
+  // 2. 캐시 저장
+  const cacheKey = `product:${product.id}`;
+  await this.redis.set(cacheKey, JSON.stringify(saved), 'EX', 600);
+
+  return saved;
 }
 ```
 
@@ -169,38 +232,48 @@ public Product updateProduct(Product product) {
 3. 비동기로 DB 업데이트 (배치)
 
 **코드:**
-```java
-@Service
-public class ProductService {
-    
-    private final Queue<Product> writeQueue = new ConcurrentLinkedQueue<>();
-    
-    public Product updateProduct(Product product) {
-        // 1. 캐시 업데이트
-        String cacheKey = "product:" + product.getId();
-        redisTemplate.opsForValue().set(cacheKey, product);
-        
-        // 2. 큐에 추가
-        writeQueue.offer(product);
-        
-        return product;
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { Cron } from '@nestjs/schedule';
+import { Product } from './product.entity';
+
+@Injectable()
+export class ProductService {
+  private readonly writeQueue: Product[] = [];
+
+  constructor(
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @InjectRedis() private readonly redis: Redis,
+  ) {}
+
+  async updateProduct(product: Product): Promise<Product> {
+    // 1. 캐시 업데이트
+    const cacheKey = `product:${product.id}`;
+    await this.redis.set(cacheKey, JSON.stringify(product));
+
+    // 2. 큐에 추가
+    this.writeQueue.push(product);
+
+    return product;
+  }
+
+  @Cron('*/5 * * * * *') // 5초마다 실행
+  async flushToDatabase(): Promise<void> {
+    if (this.writeQueue.length === 0) return;
+
+    // 배치로 꺼내기 (최대 100개)
+    const batch = this.writeQueue.splice(0, 100);
+
+    if (batch.length > 0) {
+      // 배치로 DB 업데이트
+      await this.productRepository.save(batch);
     }
-    
-    @Scheduled(fixedDelay = 5000)
-    public void flushToDatabase() {
-        List<Product> batch = new ArrayList<>();
-        Product product;
-        
-        // 큐에서 가져오기
-        while ((product = writeQueue.poll()) != null && batch.size() < 100) {
-            batch.add(product);
-        }
-        
-        if (!batch.isEmpty()) {
-            // 배치로 DB 업데이트
-            productRepository.saveAll(batch);
-        }
-    }
+  }
 }
 ```
 
@@ -230,38 +303,51 @@ public class ProductService {
 
 **특징:**
 - Cache-Aside와 비슷하지만 캐시가 주도
-- Redis 같은 일반 캐시로는 구현 어려움
-- 전용 솔루션 필요 (Ehcache with JSR-107)
+- NestJS에서는 Cache Manager 커스텀 스토어로 구현 가능
+- 전용 솔루션 필요 시 Redis + 자체 캐시 로더 패턴 사용
 
 ## 로컬 캐시 vs 분산 캐시
 
-### 로컬 캐시 (Caffeine)
+### 로컬 캐시 (In-Memory Cache Manager)
 
 애플리케이션 메모리에 저장.
 
-**Caffeine 설정:**
-```java
-@Configuration
-@EnableCaching
-public class CacheConfig {
-    
-    @Bean
-    public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("products", "users");
-        cacheManager.setCaffeine(Caffeine.newBuilder()
-            .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(10))
-            .recordStats());
-        return cacheManager;
-    }
-}
+**NestJS Cache Manager 설정 (메모리):**
+```typescript
+import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
+
+@Module({
+  imports: [
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 600_000,  // 10분 (ms)
+      max: 10_000,   // 최대 항목 수
+    }),
+  ],
+})
+export class AppModule {}
 ```
 
 **사용:**
-```java
-@Cacheable(value = "products", key = "#id")
-public Product getProduct(Long id) {
-    return productRepository.findById(id).orElseThrow();
+```typescript
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+@Injectable()
+export class ProductService {
+  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+
+  async getProduct(id: number): Promise<Product> {
+    const cached = await this.cacheManager.get<Product>(`products:${id}`);
+    if (cached) return cached;
+
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) throw new NotFoundException();
+    await this.cacheManager.set(`products:${id}`, product, 600_000);
+    return product;
+  }
 }
 ```
 
@@ -284,36 +370,43 @@ public Product getProduct(Long id) {
 
 별도 서버에 저장. 모든 애플리케이션 서버가 공유.
 
-**Redis 설정:**
-```java
-@Configuration
-@EnableCaching
-public class RedisConfig {
-    
-    @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName("localhost");
-        config.setPort(6379);
-        return new LettuceConnectionFactory(config);
-    }
-    
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(10))
-            .serializeKeysWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(
-                    new StringRedisSerializer()))
-            .serializeValuesWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(
-                    new GenericJackson2JsonRedisSerializer()));
-        
-        return RedisCacheManager.builder(connectionFactory)
-            .cacheDefaults(config)
-            .build();
-    }
-}
+**Redis 설정 (NestJS Cache Manager + Redis Store):**
+```typescript
+import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
+
+@Module({
+  imports: [
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => ({
+        store: await redisStore({
+          host: 'localhost',
+          port: 6379,
+        }),
+        ttl: 600_000, // 10분 (ms)
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+**ioredis 직접 사용:**
+```typescript
+import { Module } from '@nestjs/common';
+import { RedisModule } from '@nestjs-modules/ioredis';
+
+@Module({
+  imports: [
+    RedisModule.forRoot({
+      type: 'single',
+      url: 'redis://localhost:6379',
+    }),
+  ],
+})
+export class AppModule {}
 ```
 
 **장점:**
@@ -337,61 +430,70 @@ public class RedisConfig {
 
 **구조:**
 ```
-요청 → L1 (Caffeine) → L2 (Redis) → DB
-       0.01ms            1ms          50ms
+요청 → L1 (메모리) → L2 (Redis) → DB
+       0.01ms          1ms          50ms
 ```
 
 **코드:**
-```java
-@Service
-public class ProductService {
-    
-    private final LoadingCache<Long, Product> l1Cache;  // Caffeine
-    private final RedisTemplate<String, Product> redis;  // Redis
-    private final ProductRepository repository;
-    
-    public ProductService() {
-        this.l1Cache = Caffeine.newBuilder()
-            .maximumSize(1000)
-            .expireAfterWrite(Duration.ofMinutes(1))
-            .build(this::loadFromL2);
+```typescript
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Product } from './product.entity';
+
+@Injectable()
+export class ProductService {
+  constructor(
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @InjectRedis() private readonly redis: Redis,     // L2 (Redis)
+    @Inject(CACHE_MANAGER) private readonly l1Cache: Cache, // L1 (메모리)
+  ) {}
+
+  async getProduct(id: number): Promise<Product> {
+    const l1Key = `products:${id}`;
+    const l2Key = `product:${id}`;
+
+    // L1 캐시 조회
+    const l1Cached = await this.l1Cache.get<Product>(l1Key);
+    if (l1Cached) return l1Cached;
+
+    // L2 캐시 (Redis) 조회
+    const l2Raw = await this.redis.get(l2Key);
+    if (l2Raw) {
+      const product = JSON.parse(l2Raw) as Product;
+      // L1에 저장 (1분)
+      await this.l1Cache.set(l1Key, product, 60_000);
+      return product;
     }
-    
-    public Product getProduct(Long id) {
-        // L1 캐시 조회
-        return l1Cache.get(id);
-    }
-    
-    private Product loadFromL2(Long id) {
-        // L2 캐시 (Redis) 조회
-        String key = "product:" + id;
-        Product product = redis.opsForValue().get(key);
-        
-        if (product != null) {
-            return product;
-        }
-        
-        // DB 조회
-        product = repository.findById(id)
-            .orElseThrow(() -> new ProductNotFoundException(id));
-        
-        // L2 캐시 저장
-        redis.opsForValue().set(key, product, Duration.ofMinutes(10));
-        
-        return product;
-    }
-    
-    public void updateProduct(Product product) {
-        // DB 업데이트
-        repository.save(product);
-        
-        // L2 캐시 업데이트
-        String key = "product:" + product.getId();
-        redis.opsForValue().set(key, product, Duration.ofMinutes(10));
-        
-        // L1 캐시 무효화
-        l1Cache.invalidate(product.getId());
-    }
+
+    // DB 조회
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
+
+    // L2 캐시 저장 (10분)
+    await this.redis.set(l2Key, JSON.stringify(product), 'EX', 600);
+    // L1 캐시 저장 (1분)
+    await this.l1Cache.set(l1Key, product, 60_000);
+
+    return product;
+  }
+
+  async updateProduct(product: Product): Promise<void> {
+    // DB 업데이트
+    await this.productRepository.save(product);
+
+    // L2 캐시 업데이트
+    const l2Key = `product:${product.id}`;
+    await this.redis.set(l2Key, JSON.stringify(product), 'EX', 600);
+
+    // L1 캐시 무효화
+    await this.l1Cache.del(`products:${product.id}`);
+  }
 }
 ```
 
@@ -425,10 +527,29 @@ public class ProductService {
 
 캐시를 삭제한다. 다음 조회 시 DB에서 가져온다.
 
-```java
-@CacheEvict(value = "products", key = "#id")
-public void updateProduct(Long id, Product product) {
-    productRepository.save(product);
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+
+@Injectable()
+export class ProductService {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
+  async updateProduct(id: number, product: Partial<Product>): Promise<void> {
+    await this.productRepository.save({ id, ...product });
+
+    // 캐시 삭제
+    await this.redis.del(`product:${id}`);
+  }
+
+  // 전체 삭제 (패턴 기반)
+  async updateAllProducts(): Promise<void> {
+    const keys = await this.redis.keys('product:*');
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
+    }
+  }
 }
 ```
 
@@ -440,62 +561,54 @@ public void updateProduct(Long id, Product product) {
 업데이트 시 모든 서버에 알림.
 
 **Redis Pub/Sub:**
-```java
-@Service
-public class ProductService {
-    
-    private final RedisTemplate<String, String> redisTemplate;
-    private final LoadingCache<Long, Product> localCache;
-    
-    public void updateProduct(Product product) {
-        // 1. DB 업데이트
-        productRepository.save(product);
-        
-        // 2. Redis 캐시 업데이트
-        redisTemplate.opsForValue().set(
-            "product:" + product.getId(), 
-            product, 
-            Duration.ofMinutes(10)
-        );
-        
-        // 3. 모든 서버에 알림
-        redisTemplate.convertAndSend(
-            "product-updates", 
-            product.getId().toString()
-        );
-    }
-    
-    @RedisMessageListener(topic = "product-updates")
-    public void handleProductUpdate(String productId) {
-        // 로컬 캐시 무효화
-        localCache.invalidate(Long.parseLong(productId));
-    }
-}
-```
+```typescript
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
-**Listener 설정:**
-```java
-@Configuration
-public class RedisConfig {
-    
-    @Bean
-    public RedisMessageListenerContainer container(
-            RedisConnectionFactory connectionFactory,
-            MessageListenerAdapter listenerAdapter) {
-        
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(
-            listenerAdapter, 
-            new PatternTopic("product-updates")
-        );
-        return container;
-    }
-    
-    @Bean
-    public MessageListenerAdapter listenerAdapter(ProductService productService) {
-        return new MessageListenerAdapter(productService, "handleProductUpdate");
-    }
+@Injectable()
+export class ProductService implements OnModuleInit {
+  // Pub/Sub용 별도 Redis 클라이언트 (subscriber는 전용 커넥션 필요)
+  private readonly subscriber: Redis;
+
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    @Inject(CACHE_MANAGER) private readonly localCache: Cache,
+  ) {
+    this.subscriber = new Redis({ host: 'localhost', port: 6379 });
+  }
+
+  async onModuleInit(): Promise<void> {
+    // product-updates 채널 구독
+    await this.subscriber.subscribe('product-updates');
+    this.subscriber.on('message', (_channel: string, productId: string) => {
+      this.handleProductUpdate(productId);
+    });
+  }
+
+  async updateProduct(product: Product): Promise<void> {
+    // 1. DB 업데이트
+    await this.productRepository.save(product);
+
+    // 2. Redis 캐시 업데이트
+    await this.redis.set(
+      `product:${product.id}`,
+      JSON.stringify(product),
+      'EX',
+      600,
+    );
+
+    // 3. 모든 서버에 알림
+    await this.redis.publish('product-updates', String(product.id));
+  }
+
+  private handleProductUpdate(productId: string): void {
+    // 로컬 캐시 무효화
+    void this.localCache.del(`products:${productId}`);
+  }
 }
 ```
 
@@ -503,37 +616,42 @@ public class RedisConfig {
 
 캐시에 버전을 포함한다.
 
-```java
-@Data
-public class CachedProduct {
-    private Long id;
-    private String name;
-    private Integer price;
-    private Long version;  // 버전
-    private LocalDateTime updatedAt;
+```typescript
+interface CachedProduct {
+  id: number;
+  name: string;
+  price: number;
+  version: number;  // 버전
+  updatedAt: string;
 }
 
-@Service
-public class ProductService {
-    
-    public Product getProduct(Long id) {
-        String key = "product:" + id;
-        CachedProduct cached = redis.opsForValue().get(key);
-        
-        if (cached != null) {
-            // DB 버전 확인
-            Long dbVersion = productRepository.getVersion(id);
-            
-            if (cached.getVersion().equals(dbVersion)) {
-                return cached.toProduct();  // 최신
-            }
-            // 버전 불일치, DB 재조회
-        }
-        
-        Product product = productRepository.findById(id).orElseThrow();
-        redis.opsForValue().set(key, CachedProduct.from(product));
-        return product;
+@Injectable()
+export class ProductService {
+  async getProduct(id: number): Promise<Product> {
+    const key = `product:${id}`;
+    const raw = await this.redis.get(key);
+
+    if (raw) {
+      const cached = JSON.parse(raw) as CachedProduct;
+
+      // DB 버전 확인
+      const dbVersion = await this.productRepository
+        .createQueryBuilder('p')
+        .select('p.version')
+        .where('p.id = :id', { id })
+        .getOne();
+
+      if (dbVersion && cached.version === dbVersion.version) {
+        return cached as unknown as Product; // 최신
+      }
+      // 버전 불일치, DB 재조회
     }
+
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) throw new NotFoundException();
+    await this.redis.set(key, JSON.stringify(product), 'EX', 600);
+    return product;
+  }
 }
 ```
 
@@ -543,23 +661,19 @@ public class ProductService {
 
 시간 기반 만료.
 
-```java
-// 10분 후 만료
-redisTemplate.opsForValue().set(key, value, Duration.ofMinutes(10));
+```typescript
+// ioredis: 10분 후 만료
+await this.redis.set(key, JSON.stringify(value), 'EX', 600);
 
-// Spring Cache
-@Cacheable(value = "products", key = "#id")
-public Product getProduct(Long id) {
-    return productRepository.findById(id).orElseThrow();
-}
+// NestJS Cache Manager
+await this.cacheManager.set(key, value, 600_000); // ms 단위
 ```
 
-**application.yml:**
-```yaml
-spring:
-  cache:
-    redis:
-      time-to-live: 600000  # 10분 (ms)
+**환경 변수 / 모듈 설정:**
+```typescript
+CacheModule.register({
+  ttl: 600_000, // 10분 (ms)
+})
 ```
 
 **장점:**
@@ -574,55 +688,57 @@ spring:
 
 업데이트 시 명시적으로 삭제.
 
-```java
-@CacheEvict(value = "products", key = "#id")
-public void updateProduct(Long id, Product product) {
-    productRepository.save(product);
-}
+```typescript
+// 단일 키 삭제
+await this.redis.del(`product:${id}`);
 
-// 전체 삭제
-@CacheEvict(value = "products", allEntries = true)
-public void updateAllProducts() {
-    // ...
-}
-```
+// Cache Manager로 삭제
+await this.cacheManager.del(`products:${id}`);
 
-**수동:**
-```java
-redisTemplate.delete("product:" + id);
+// 패턴으로 전체 삭제
+const keys = await this.redis.keys('product:*');
+if (keys.length > 0) {
+  await this.redis.del(...keys);
+}
 ```
 
 ### 태그 기반 무효화
 
 관련 캐시를 그룹으로 삭제.
 
-```java
-@Service
-public class ProductService {
-    
-    public Product getProduct(Long id) {
-        String key = "product:" + id;
-        Product product = redis.opsForValue().get(key);
-        
-        if (product == null) {
-            product = productRepository.findById(id).orElseThrow();
-            
-            // 캐시 저장 + 태그
-            redis.opsForValue().set(key, product);
-            redis.opsForSet().add("category:" + product.getCategoryId(), key);
-        }
-        
-        return product;
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+
+@Injectable()
+export class ProductService {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
+  async getProduct(id: number): Promise<Product> {
+    const key = `product:${id}`;
+    const raw = await this.redis.get(key);
+
+    if (raw) return JSON.parse(raw) as Product;
+
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) throw new NotFoundException();
+
+    // 캐시 저장 + 태그 (카테고리 → 상품 키 매핑)
+    await this.redis.set(key, JSON.stringify(product), 'EX', 600);
+    await this.redis.sadd(`category:${product.categoryId}`, key);
+
+    return product;
+  }
+
+  async updateCategory(categoryId: number): Promise<void> {
+    // 해당 카테고리의 모든 상품 캐시 삭제
+    const keys = await this.redis.smembers(`category:${categoryId}`);
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
     }
-    
-    public void updateCategory(Long categoryId) {
-        // 해당 카테고리의 모든 상품 캐시 삭제
-        Set<String> keys = redis.opsForSet().members("category:" + categoryId);
-        if (keys != null && !keys.isEmpty()) {
-            redis.delete(keys);
-        }
-        redis.delete("category:" + categoryId);
-    }
+    await this.redis.del(`category:${categoryId}`);
+  }
 }
 ```
 
@@ -643,92 +759,117 @@ public class ProductService {
 DB 과부하
 ```
 
-### 해결 1: Lock
+### 해결 1: 단일 프로세스 Mutex Lock
 
 첫 요청만 DB 조회, 나머지는 대기.
 
-```java
-@Service
-public class ProductService {
-    
-    private final ConcurrentHashMap<String, Lock> locks = new ConcurrentHashMap<>();
-    
-    public Product getProduct(Long id) {
-        String key = "product:" + id;
-        
-        // 캐시 확인
-        Product cached = redis.opsForValue().get(key);
-        if (cached != null) {
-            return cached;
-        }
-        
-        // Lock 획득
-        Lock lock = locks.computeIfAbsent(key, k -> new ReentrantLock());
-        lock.lock();
-        try {
-            // Double-check (다른 스레드가 이미 저장했을 수 있음)
-            cached = redis.opsForValue().get(key);
-            if (cached != null) {
-                return cached;
-            }
-            
-            // DB 조회
-            Product product = productRepository.findById(id).orElseThrow();
-            
-            // 캐시 저장
-            redis.opsForValue().set(key, product, Duration.ofMinutes(10));
-            
-            return product;
-        } finally {
-            lock.unlock();
-        }
-    }
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+
+@Injectable()
+export class ProductService {
+  // 키별 Promise를 보관해 단일 프로세스 내 중복 요청 방지
+  private readonly inflight = new Map<string, Promise<Product>>();
+
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+  ) {}
+
+  async getProduct(id: number): Promise<Product> {
+    const key = `product:${id}`;
+
+    // 캐시 확인
+    const cached = await this.redis.get(key);
+    if (cached) return JSON.parse(cached) as Product;
+
+    // 이미 진행 중인 요청이 있으면 동일 Promise 반환 (Double-check 효과)
+    const existing = this.inflight.get(key);
+    if (existing) return existing;
+
+    const loadPromise = (async (): Promise<Product> => {
+      try {
+        // Double-check after acquiring
+        const rechecked = await this.redis.get(key);
+        if (rechecked) return JSON.parse(rechecked) as Product;
+
+        // DB 조회
+        const product = await this.productRepository.findOneBy({ id });
+        if (!product) throw new NotFoundException(`Product ${id} not found`);
+
+        // 캐시 저장
+        await this.redis.set(key, JSON.stringify(product), 'EX', 600);
+        return product;
+      } finally {
+        this.inflight.delete(key);
+      }
+    })();
+
+    this.inflight.set(key, loadPromise);
+    return loadPromise;
+  }
 }
 ```
 
-### 해결 2: Redis Lock
+### 해결 2: Redis 분산 Lock
 
 분산 환경에서 Lock.
 
-```java
-@Service
-public class ProductService {
-    
-    private final RedissonClient redissonClient;
-    
-    public Product getProduct(Long id) {
-        String key = "product:" + id;
-        Product cached = redis.opsForValue().get(key);
-        
-        if (cached != null) {
-            return cached;
-        }
-        
-        // Redis 분산 Lock
-        RLock lock = redissonClient.getLock("lock:product:" + id);
-        try {
-            // Lock 획득 시도 (최대 10초 대기, 5초 후 자동 해제)
-            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) {
-                // Double-check
-                cached = redis.opsForValue().get(key);
-                if (cached != null) {
-                    return cached;
-                }
-                
-                // DB 조회
-                Product product = productRepository.findById(id).orElseThrow();
-                redis.opsForValue().set(key, product, Duration.ofMinutes(10));
-                return product;
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            lock.unlock();
-        }
-        
-        // Lock 획득 실패 시 DB 직접 조회
-        return productRepository.findById(id).orElseThrow();
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { randomUUID } from 'crypto';
+
+@Injectable()
+export class ProductService {
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+  ) {}
+
+  async getProduct(id: number): Promise<Product> {
+    const key = `product:${id}`;
+    const cached = await this.redis.get(key);
+    if (cached) return JSON.parse(cached) as Product;
+
+    const lockKey = `lock:product:${id}`;
+    const lockValue = randomUUID();
+
+    // Redis 분산 Lock (NX: 없을 때만 설정, EX: 5초 자동 해제)
+    const acquired = await this.redis.set(lockKey, lockValue, 'NX', 'EX', 5);
+
+    if (acquired === 'OK') {
+      try {
+        // Double-check
+        const rechecked = await this.redis.get(key);
+        if (rechecked) return JSON.parse(rechecked) as Product;
+
+        // DB 조회
+        const product = await this.productRepository.findOneBy({ id });
+        if (!product) throw new NotFoundException(`Product ${id} not found`);
+
+        await this.redis.set(key, JSON.stringify(product), 'EX', 600);
+        return product;
+      } finally {
+        // 본인 Lock만 해제 (Lua 스크립트로 원자적 처리)
+        const releaseLua = `
+          if redis.call("get", KEYS[1]) == ARGV[1] then
+            return redis.call("del", KEYS[1])
+          else return 0 end`;
+        await this.redis.eval(releaseLua, 1, lockKey, lockValue);
+      }
     }
+
+    // Lock 획득 실패 시 DB 직접 조회
+    const fallback = await this.productRepository.findOneBy({ id });
+    if (!fallback) throw new NotFoundException(`Product ${id} not found`);
+    return fallback;
+  }
 }
 ```
 
@@ -736,29 +877,30 @@ public class ProductService {
 
 만료 전에 미리 갱신.
 
-```java
-public Product getProduct(Long id) {
-    String key = "product:" + id;
-    Long ttl = redis.getExpire(key, TimeUnit.SECONDS);
-    
-    // 만료까지 1분 미만이고 랜덤으로 선택되면 갱신
-    if (ttl != null && ttl < 60 && Math.random() < 0.1) {
-        // 비동기로 갱신
-        CompletableFuture.runAsync(() -> {
-            Product product = productRepository.findById(id).orElseThrow();
-            redis.opsForValue().set(key, product, Duration.ofMinutes(10));
-        });
-    }
-    
-    Product cached = redis.opsForValue().get(key);
-    if (cached != null) {
-        return cached;
-    }
-    
-    // 캐시 없으면 DB 조회
-    Product product = productRepository.findById(id).orElseThrow();
-    redis.opsForValue().set(key, product, Duration.ofMinutes(10));
-    return product;
+```typescript
+async getProduct(id: number): Promise<Product> {
+  const key = `product:${id}`;
+  const ttl = await this.redis.ttl(key); // 남은 TTL (초)
+
+  // 만료까지 1분 미만이고 랜덤으로 선택되면 비동기 갱신
+  if (ttl !== null && ttl < 60 && Math.random() < 0.1) {
+    // 비동기로 갱신 (현재 요청은 캐시 반환)
+    void (async () => {
+      const product = await this.productRepository.findOneBy({ id });
+      if (product) {
+        await this.redis.set(key, JSON.stringify(product), 'EX', 600);
+      }
+    })();
+  }
+
+  const raw = await this.redis.get(key);
+  if (raw) return JSON.parse(raw) as Product;
+
+  // 캐시 없으면 DB 조회
+  const product = await this.productRepository.findOneBy({ id });
+  if (!product) throw new NotFoundException(`Product ${id} not found`);
+  await this.redis.set(key, JSON.stringify(product), 'EX', 600);
+  return product;
 }
 ```
 
@@ -766,108 +908,117 @@ public Product getProduct(Long id) {
 
 ### 사용자 세션
 
-**Redis:**
-```java
-@Service
-public class SessionService {
-    
-    private final RedisTemplate<String, UserSession> redis;
-    
-    public void saveSession(String token, UserSession session) {
-        redis.opsForValue().set(
-            "session:" + token,
-            session,
-            Duration.ofHours(2)  // 2시간 만료
-        );
-    }
-    
-    public UserSession getSession(String token) {
-        UserSession session = redis.opsForValue().get("session:" + token);
-        
-        if (session != null) {
-            // 활동 시 TTL 갱신 (Sliding Window)
-            redis.expire("session:" + token, Duration.ofHours(2));
-        }
-        
-        return session;
-    }
+**Redis (ioredis):**
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+
+interface UserSession {
+  userId: number;
+  email: string;
+  roles: string[];
+}
+
+@Injectable()
+export class SessionService {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
+  async saveSession(token: string, session: UserSession): Promise<void> {
+    await this.redis.set(
+      `session:${token}`,
+      JSON.stringify(session),
+      'EX',
+      7200, // 2시간 만료
+    );
+  }
+
+  async getSession(token: string): Promise<UserSession | null> {
+    const raw = await this.redis.get(`session:${token}`);
+    if (!raw) return null;
+
+    // 활동 시 TTL 갱신 (Sliding Window)
+    await this.redis.expire(`session:${token}`, 7200);
+
+    return JSON.parse(raw) as UserSession;
+  }
 }
 ```
 
 ### API 응답 캐싱
 
-```java
-@RestController
-public class ProductController {
-    
-    @GetMapping("/api/products/{id}")
-    @Cacheable(value = "api:products", key = "#id")
-    public ResponseEntity<ProductResponse> getProduct(@PathVariable Long id) {
-        Product product = productService.getProduct(id);
-        return ResponseEntity.ok()
-            .cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES))
-            .body(ProductResponse.from(product));
-    }
+```typescript
+import { Controller, Get, Param, UseInterceptors, Header } from '@nestjs/common';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
+
+@Controller('api/products')
+@UseInterceptors(CacheInterceptor)
+export class ProductController {
+  constructor(private readonly productService: ProductService) {}
+
+  @Get(':id')
+  @CacheKey('api:product')
+  @CacheTTL(600_000) // 10분 (ms)
+  @Header('Cache-Control', 'max-age=600, public')
+  async getProduct(@Param('id') id: string): Promise<ProductResponse> {
+    const product = await this.productService.getProduct(Number(id));
+    return ProductResponse.from(product);
+  }
 }
 ```
 
 ### 랭킹/리더보드
 
 **Redis Sorted Set:**
-```java
-@Service
-public class LeaderboardService {
-    
-    private final RedisTemplate<String, String> redis;
-    
-    public void updateScore(String userId, double score) {
-        redis.opsForZSet().add("leaderboard", userId, score);
-    }
-    
-    public List<String> getTopUsers(int count) {
-        Set<String> top = redis.opsForZSet()
-            .reverseRange("leaderboard", 0, count - 1);
-        return new ArrayList<>(top);
-    }
-    
-    public Long getRank(String userId) {
-        return redis.opsForZSet().reverseRank("leaderboard", userId);
-    }
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+
+@Injectable()
+export class LeaderboardService {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
+  async updateScore(userId: string, score: number): Promise<void> {
+    await this.redis.zadd('leaderboard', score, userId);
+  }
+
+  async getTopUsers(count: number): Promise<string[]> {
+    // ZREVRANGE: 높은 점수 순으로 반환
+    return this.redis.zrevrange('leaderboard', 0, count - 1);
+  }
+
+  async getRank(userId: string): Promise<number | null> {
+    const rank = await this.redis.zrevrank('leaderboard', userId);
+    return rank; // null이면 순위 없음
+  }
 }
 ```
 
 ## 모니터링
 
-### Caffeine Stats
+### Cache Manager 통계
 
-```java
-@Configuration
-public class CacheConfig {
-    
-    @Bean
-    public CacheManager cacheManager() {
-        CaffeineCacheManager manager = new CaffeineCacheManager();
-        manager.setCaffeine(Caffeine.newBuilder()
-            .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(10))
-            .recordStats());  // 통계 활성화
-        return manager;
-    }
-    
-    @Scheduled(fixedRate = 60000)
-    public void logCacheStats() {
-        CaffeineCacheManager manager = (CaffeineCacheManager) cacheManager;
-        
-        for (String cacheName : manager.getCacheNames()) {
-            CaffeineCache cache = (CaffeineCache) manager.getCache(cacheName);
-            CacheStats stats = cache.getNativeCache().stats();
-            
-            log.info("Cache: {}, Hit Rate: {}, Evictions: {}", 
-                cacheName,
-                stats.hitRate(),
-                stats.evictionCount());
-        }
-    }
+```typescript
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Cron } from '@nestjs/schedule';
+import { Logger } from '@nestjs/common';
+
+@Injectable()
+export class CacheMonitoringService {
+  private readonly logger = new Logger(CacheMonitoringService.name);
+
+  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+
+  @Cron('0 * * * * *') // 매분 실행
+  async logCacheStats(): Promise<void> {
+    // cache-manager v5는 store 접근으로 통계 확인 가능
+    const store = this.cacheManager.store as Record<string, unknown>;
+    this.logger.log(`Cache store type: ${store?.constructor?.name ?? 'unknown'}`);
+    // Redis store의 경우 INFO 명령으로 통계 확인
+  }
 }
 ```
 
@@ -889,10 +1040,10 @@ redis-cli SLOWLOG GET 10
 
 ## 참고
 
-- Caffeine GitHub: https://github.com/ben-manes/caffeine
-- Spring Cache: https://docs.spring.io/spring-framework/docs/current/reference/html/integration.html#cache
-- Redis 공식 문서: https://redis.io/documentation
-- Redisson: https://github.com/redisson/redisson
+- NestJS Cache Manager: https://docs.nestjs.com/techniques/caching
+- cache-manager: https://github.com/node-cache-manager/node-cache-manager
+- ioredis: https://github.com/luin/ioredis
+- @nestjs-modules/ioredis: https://github.com/nest-modules/ioredis
 
 ---
 이 문서는 [캐싱 허브](../../_hub/캐싱.md)의 일부입니다.
