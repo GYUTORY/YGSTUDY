@@ -275,49 +275,53 @@ server {
 
 `if` 안에서 `add_header`를 쓰는 건 Nginx에서 권장하지 않는 패턴이긴 한데, OPTIONS 처리는 예외적으로 이 방식이 가장 짧다. 운영에서 문제가 생기면 `nginx-extras`의 `more_set_headers`로 바꾸는 방법도 있다.
 
-### Spring Boot에서의 CORS 설정
+### NestJS에서의 CORS 설정
 
-Spring Boot는 `@CrossOrigin` 어노테이션과 글로벌 설정 두 가지 방법이 있다. 운영에서는 글로벌 설정으로 통일하는 게 관리하기 쉽다.
+NestJS는 `enableCors()` 메서드로 글로벌 CORS 설정을 한다. 운영에서는 글로벌 설정으로 통일하는 게 관리하기 쉽다.
 
-```java
-@Configuration
-public class CorsConfig {
+```typescript
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-            "https://app.example.com",
-            "https://admin.example.com"
-        ));
-        // 패턴 매칭이 필요하면 setAllowedOriginPatterns 사용
-        // config.setAllowedOriginPatterns(List.of("https://*.example.com"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Request-Id"));
-        config.setExposedHeaders(List.of("X-Total-Count"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+const ALLOWED_ORIGINS = [
+  'https://app.example.com',
+  'https://admin.example.com',
+];
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-        return source;
-    }
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'X-Request-Id'],
+    exposedHeaders: ['X-Total-Count'],
+    credentials: true,
+    maxAge: 3600,
+  });
+
+  await app.listen(3000);
 }
+bootstrap();
 ```
 
-Spring Security를 같이 쓰는 경우 CORS 필터가 Security 필터보다 먼저 실행되어야 한다. 그래야 OPTIONS 요청이 인증 체크에 걸리지 않는다.
+Express에서 `cors` 미들웨어를 쓸 때는 모든 라우터보다 앞에 등록해야 한다. 그래야 OPTIONS 요청이 인증 체크에 걸리지 않는다.
 
-```java
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.cors(Customizer.withDefaults())  // CorsConfigurationSource Bean을 자동으로 사용
-        .csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
-    return http.build();
-}
+```typescript
+// Express — cors 미들웨어 등록 순서
+import cors from 'cors';
+
+app.use(cors(corsOptions));    // 먼저 (CORS + OPTIONS 처리)
+app.use(express.json());       // 그 다음
+app.use('/api', apiRouter);    // 마지막
 ```
-
-Spring 5.3 미만에서는 `setAllowedOrigins`에 `"*"`를 넣고 `setAllowCredentials(true)`를 같이 쓰면 동작했지만, 그 이후 버전에서는 명시적으로 거부된다. 패턴 매칭이 필요하면 `setAllowedOriginPatterns`를 써야 한다.
 
 ---
 
@@ -391,31 +395,29 @@ Content-Security-Policy: script-src 'nonce-abc123def456'
 </script>
 ```
 
-Spring Boot에서 nonce를 요청마다 생성하는 예시:
+Express/NestJS에서 nonce를 요청마다 생성하는 예시:
 
-```java
-@Component
-public class CspNonceFilter extends OncePerRequestFilter {
+```typescript
+import { randomBytes } from 'crypto';
+import { Request, Response, NextFunction } from 'express';
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
-        String nonce = Base64.getEncoder().encodeToString(
-            SecureRandom.getInstanceStrong().generateSeed(16)
-        );
-        request.setAttribute("cspNonce", nonce);
-        response.setHeader("Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'nonce-" + nonce + "'; style-src 'self' 'nonce-" + nonce + "'");
-        filterChain.doFilter(request, response);
-    }
+function cspNonceMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const nonce = randomBytes(16).toString('base64');
+  res.locals.cspNonce = nonce;
+  res.setHeader(
+    'Content-Security-Policy',
+    `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'`
+  );
+  next();
 }
+
+app.use(cspNonceMiddleware);
 ```
 
-Thymeleaf 템플릿에서:
+템플릿(예: EJS)에서:
 
 ```html
-<script th:attr="nonce=${cspNonce}">
+<script nonce="<%= cspNonce %>">
   console.log("nonce가 자동으로 붙는다");
 </script>
 ```
@@ -445,12 +447,14 @@ Content-Security-Policy: script-src 'sha256-sEaFBswe0TGjKJqu/dEKoE24HxLJdKUzqHLQ
 Content-Security-Policy-Report-Only: default-src 'self'; report-uri /csp-report
 ```
 
-```java
-@PostMapping("/csp-report")
-public ResponseEntity<Void> handleCspReport(@RequestBody String report) {
-    log.warn("CSP violation: {}", report);
-    return ResponseEntity.ok().build();
-}
+```typescript
+import { Router, Request, Response } from 'express';
+const router = Router();
+
+router.post('/csp-report', (req: Request, res: Response) => {
+  console.warn('CSP violation:', JSON.stringify(req.body));
+  res.status(204).end();
+});
 ```
 
 한 달 정도 Report-Only로 돌리면서 위반 로그를 확인한 뒤, 문제없는 것부터 점진적으로 적용하는 게 현실적이다.
@@ -703,85 +707,91 @@ app.use((req, res, next) => {
 });
 ```
 
-### Spring Boot — CORS와 보안 헤더 함께
+### NestJS + Helmet — CORS와 보안 헤더 함께
 
-```java
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig {
+```typescript
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import helmet from 'helmet';
+import cors from 'cors';
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(Customizer.withDefaults())
-            .csrf(csrf -> csrf.disable())
-            .headers(headers -> headers
-                .httpStrictTransportSecurity(hsts -> hsts
-                    .maxAgeInSeconds(31536000)
-                    .includeSubDomains(true)
-                )
-                .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
-                )
-                .contentTypeOptions(Customizer.withDefaults())
-                .frameOptions(frame -> frame.deny())
-                .referrerPolicy(referrer -> referrer
-                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-                )
-                .permissionsPolicy(permissions -> permissions
-                    .policy("camera=(), microphone=(), geolocation=(), payment=()")
-                )
-            )
-            .authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
+const ALLOWED_ORIGINS = [
+  'https://app.example.com',
+  'https://admin.example.com',
+];
 
-        return http.build();
-    }
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-            "https://app.example.com",
-            "https://admin.example.com"
-        ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Request-Id"));
-        config.setExposedHeaders(List.of("X-Total-Count"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+  // 보안 헤더 (helmet이 기본값으로 거의 모든 헤더를 설정)
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      },
+      hsts: { maxAge: 31536000, includeSubDomains: true },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    })
+  );
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-        return source;
-    }
+  // Permissions-Policy (helmet이 기본으로 포함하지 않으므로 별도 추가)
+  app.use((_req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+    next();
+  });
+
+  // CORS
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) callback(null, true);
+      else callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'X-Request-Id'],
+    exposedHeaders: ['X-Total-Count'],
+    maxAge: 3600,
+  });
+
+  await app.listen(3000);
 }
+bootstrap();
 ```
 
-Spring Security 없이 필터로 직접 보안 헤더를 다는 경우:
+미들웨어로 직접 보안 헤더를 다는 경우:
 
-```java
-@Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
-public class SecurityHeaderFilter extends OncePerRequestFilter {
+```typescript
+import { Request, Response, NextFunction } from 'express';
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
-        response.setHeader("X-Content-Type-Options", "nosniff");
-        response.setHeader("X-Frame-Options", "DENY");
-        response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-        response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
-        response.setHeader("Content-Security-Policy",
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'");
+function securityHeaderMiddleware(req: Request, res: Response, next: NextFunction): void {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+  );
 
-        if (request.isSecure()) {
-            response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-        }
+  // HSTS는 HTTPS 요청일 때만
+  if (req.secure) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
 
-        filterChain.doFilter(request, response);
-    }
+  next();
 }
+
+app.use(securityHeaderMiddleware);
 ```
 
 HSTS는 HTTPS 요청일 때만 설정하는 게 맞다. HTTP 응답에 HSTS를 넣으면 공격자가 조작할 수 있으므로 브라우저가 무시한다.

@@ -152,95 +152,110 @@ spring:
           min-idle: 2
 ```
 
-### RedisTemplate 설정
+### ioredis 설정
 
-```java
-@Configuration
-@EnableCaching
-public class RedisConfig {
+```typescript
+import Redis from 'ioredis';
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory cf) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(cf);
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
-        return template;
-    }
+// ioredis 클라이언트 (기본 JSON 직렬화는 수동으로 처리)
+const redis = new Redis({
+    host: 'localhost',
+    port: 6379,
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+});
 
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory cf) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(10))
-            .serializeKeysWith(
-                RedisSerializationContext.SerializationPair
-                    .fromSerializer(new StringRedisSerializer()))
-            .serializeValuesWith(
-                RedisSerializationContext.SerializationPair
-                    .fromSerializer(new GenericJackson2JsonRedisSerializer()));
+// 헬퍼: JSON 직렬화/역직렬화
+export async function cacheGet<T>(redis: Redis, key: string): Promise<T | null> {
+    const raw = await redis.get(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+}
 
-        return RedisCacheManager.builder(cf).cacheDefaults(config).build();
-    }
+export async function cacheSet(redis: Redis, key: string, value: unknown, ttlSeconds: number): Promise<void> {
+    await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
 }
 ```
 
-### @Cacheable / @CacheEvict
+### 캐시 패턴 및 Sorted Set 직접 사용
 
-```java
-@Service
-@RequiredArgsConstructor
-public class ProductService {
-    private final RedisTemplate<String, Object> redisTemplate;
+```typescript
+@Injectable()
+export class ProductService {
+    constructor(
+        private readonly redis: Redis,
+        private readonly productRepository: ProductRepository,
+    ) {}
 
-    @Cacheable(value = "products", key = "#id", unless = "#result == null")
-    public Product getProduct(Long id) {
-        return productRepository.findById(id).orElse(null);
+    async getProduct(id: number): Promise<Product | null> {
+        const key = `products:${id}`;
+        const cached = await this.redis.get(key);
+        if (cached) return JSON.parse(cached) as Product;
+
+        const product = await this.productRepository.findById(id);
+        if (product) {
+            await this.redis.set(key, JSON.stringify(product), 'EX', 600); // 10분 TTL
+        }
+        return product ?? null;
     }
 
-    @CacheEvict(value = "products", key = "#product.id")
-    public Product updateProduct(Product product) {
-        return productRepository.save(product);
+    async updateProduct(product: Product): Promise<Product> {
+        const saved = await this.productRepository.save(product);
+        await this.redis.del(`products:${product.id}`); // 캐시 무효화
+        return saved;
     }
 
     // Sorted Set 직접 사용
-    public void addScore(String userId, double score) {
-        redisTemplate.opsForZSet().add("leaderboard", userId, score);
+    async addScore(userId: string, score: number): Promise<void> {
+        await this.redis.zadd('leaderboard', score, userId);
     }
 
-    public Set<Object> getTopRankers(int count) {
-        return redisTemplate.opsForZSet().reverseRange("leaderboard", 0, count - 1);
+    async getTopRankers(count: number): Promise<string[]> {
+        return this.redis.zrevrange('leaderboard', 0, count - 1);
     }
 }
 ```
 
-### 분산 락 (Redisson)
+### 분산 락 (SET NX EX 패턴)
 
-```java
-// build.gradle: implementation 'org.redisson:redisson-spring-boot-starter:3.25.0'
+```typescript
+// npm install ioredis
+// Redis SET NX EX로 분산 락 구현 (Redlock 라이브러리도 사용 가능)
 
-@Service
-@RequiredArgsConstructor
-public class OrderService {
-    private final RedissonClient redisson;
+@Injectable()
+export class OrderService {
+    constructor(private readonly redis: Redis) {}
 
-    public void processOrder(String orderId) {
-        RLock lock = redisson.getLock("order:lock:" + orderId);
-        try {
-            // 최대 10초 대기, 30초 후 자동 해제
-            if (lock.tryLock(10, 30, TimeUnit.SECONDS)) {
-                try {
-                    doProcessOrder(orderId);
-                } finally {
-                    lock.unlock();
-                }
-            } else {
-                throw new RuntimeException("주문 처리 중");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+    async processOrder(orderId: string): Promise<void> {
+        const lockKey = `order:lock:${orderId}`;
+        const lockValue = crypto.randomUUID();
+
+        // 최대 10초 대기, 30초 후 자동 해제
+        const acquired = await this.acquireLock(lockKey, lockValue, 30, 10_000);
+        if (!acquired) {
+            throw new Error('주문 처리 중');
         }
+
+        try {
+            await this.doProcessOrder(orderId);
+        } finally {
+            await this.releaseLock(lockKey, lockValue);
+        }
+    }
+
+    private async acquireLock(key: string, value: string, ttlSeconds: number, waitMs: number): Promise<boolean> {
+        const deadline = Date.now() + waitMs;
+        while (Date.now() < deadline) {
+            const result = await this.redis.set(key, value, 'EX', ttlSeconds, 'NX');
+            if (result === 'OK') return true;
+            await new Promise((res) => setTimeout(res, 50));
+        }
+        return false;
+    }
+
+    private async releaseLock(key: string, value: string): Promise<void> {
+        // Lua 스크립트로 값 확인 후 원자적 삭제 (다른 요청의 락을 실수로 해제하지 않기 위해)
+        const script = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+        await this.redis.eval(script, 1, key, value);
     }
 }
 ```
@@ -255,40 +270,41 @@ public class OrderService {
 
 캐시가 없으면 락을 잡고, 락을 잡은 하나의 요청만 DB를 조회한다. 나머지 요청은 대기하거나 stale 데이터를 반환한다.
 
-```java
-@Service
-@RequiredArgsConstructor
-public class CacheService {
-    private final RedisTemplate<String, String> redisTemplate;
+```typescript
+@Injectable()
+export class CacheService {
+    constructor(private readonly redis: Redis) {}
 
-    public String getWithMutex(String key, Supplier<String> loader, Duration ttl) {
-        String value = redisTemplate.opsForValue().get(key);
-        if (value != null) return value;
+    async getWithMutex(
+        key: string,
+        loader: () => Promise<string>,
+        ttlSeconds: number,
+        attempt = 0,
+    ): Promise<string> {
+        const value = await this.redis.get(key);
+        if (value !== null) return value;
 
-        String lockKey = "lock:" + key;
+        const lockKey = `lock:${key}`;
         // SET NX EX: 키가 없을 때만 설정 + 만료시간 (락 획득)
-        Boolean locked = redisTemplate.opsForValue()
-            .setIfAbsent(lockKey, "1", Duration.ofSeconds(5));
+        const locked = await this.redis.set(lockKey, '1', 'EX', 5, 'NX');
 
-        if (Boolean.TRUE.equals(locked)) {
+        if (locked === 'OK') {
             try {
-                // 락 획득 후 다시 확인 (다른 스레드가 이미 갱신했을 수 있음)
-                value = redisTemplate.opsForValue().get(key);
-                if (value != null) return value;
+                // 락 획득 후 다시 확인 (다른 인스턴스가 이미 갱신했을 수 있음)
+                const recheck = await this.redis.get(key);
+                if (recheck !== null) return recheck;
 
-                value = loader.get();
-                redisTemplate.opsForValue().set(key, value, ttl);
-                return value;
+                const loaded = await loader();
+                await this.redis.set(key, loaded, 'EX', ttlSeconds);
+                return loaded;
             } finally {
-                redisTemplate.delete(lockKey);
+                await this.redis.del(lockKey);
             }
         }
 
         // 락 획득 실패: 짧게 대기 후 재시도
-        try { Thread.sleep(50); } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        return getWithMutex(key, loader, ttl);
+        await new Promise((res) => setTimeout(res, 50));
+        return this.getWithMutex(key, loader, ttlSeconds, attempt + 1);
     }
 }
 ```
@@ -299,29 +315,33 @@ public class CacheService {
 
 TTL이 완전히 만료되기 전에 확률적으로 미리 갱신한다. "XFetch" 알고리즘이라고도 부른다.
 
-```java
+```typescript
 /**
  * 캐시 값과 함께 실제 만료 시간을 저장한다.
  * 남은 시간이 짧을수록 갱신 확률이 높아진다.
  */
-public String getWithEarlyRefresh(String key, Supplier<String> loader, Duration ttl) {
-    String raw = redisTemplate.opsForValue().get(key);
-    if (raw != null) {
-        CacheEntry entry = deserialize(raw);
-        long remaining = entry.expireAt - System.currentTimeMillis();
+async getWithEarlyRefresh(
+    key: string,
+    loader: () => Promise<string>,
+    ttlSeconds: number,
+): Promise<string> {
+    const raw = await this.redis.get(key);
+    if (raw !== null) {
+        const entry: { value: string; expireAt: number } = JSON.parse(raw);
+        const remaining = entry.expireAt - Date.now();
         // delta: DB 조회에 걸리는 예상 시간(ms)
-        double delta = 200;
-        double beta = 1.0;
+        const delta = 200;
+        const beta = 1.0;
         // remaining이 적을수록 갱신 확률이 높아짐
-        boolean shouldRefresh = remaining > 0
-            && (delta * beta * Math.log(Math.random())) * -1 >= remaining;
+        const shouldRefresh = remaining > 0
+            && (delta * beta * -Math.log(Math.random())) >= remaining;
 
         if (!shouldRefresh) return entry.value;
     }
 
-    String value = loader.get();
-    CacheEntry entry = new CacheEntry(value, System.currentTimeMillis() + ttl.toMillis());
-    redisTemplate.opsForValue().set(key, serialize(entry), ttl.plusSeconds(30));
+    const value = await loader();
+    const entry = { value, expireAt: Date.now() + ttlSeconds * 1000 };
+    await this.redis.set(key, JSON.stringify(entry), 'EX', ttlSeconds + 30);
     return value;
 }
 ```
@@ -343,25 +363,28 @@ Redis TTL보다 논리적 만료 시간을 앞당겨 저장하는 게 핵심이�
 
 Hot Key는 애플리케이션 로컬 캐시에 올려서 Redis 요청 자체를 줄인다.
 
-```java
-@Service
-public class HotKeyService {
-    private final RedisTemplate<String, String> redisTemplate;
-    // Caffeine: JVM 내부 캐시. Redis 앞단에 둔다.
-    private final Cache<String, String> localCache = Caffeine.newBuilder()
-        .maximumSize(1000)
-        .expireAfterWrite(Duration.ofSeconds(5))  // 짧은 TTL
-        .build();
+```typescript
+import LRU from 'lru-cache';
 
-    public String get(String key) {
+@Injectable()
+export class HotKeyService {
+    constructor(private readonly redis: Redis) {}
+
+    // 로컬 LRU 캐시 — Redis 앞단에 둔다
+    private readonly localCache = new LRU<string, string>({
+        max: 1000,
+        ttl: 5_000, // 5초 TTL
+    });
+
+    async get(key: string): Promise<string | null> {
         // 1차: 로컬 캐시
-        String value = localCache.getIfPresent(key);
-        if (value != null) return value;
+        const localValue = this.localCache.get(key);
+        if (localValue !== undefined) return localValue;
 
         // 2차: Redis
-        value = redisTemplate.opsForValue().get(key);
-        if (value != null) {
-            localCache.put(key, value);
+        const value = await this.redis.get(key);
+        if (value !== null) {
+            this.localCache.set(key, value);
         }
         return value;
     }
@@ -374,28 +397,24 @@ public class HotKeyService {
 
 같은 데이터를 여러 키에 복제해서 읽기를 분산한다.
 
-```java
-public String getSharded(String key, int replicaCount) {
+```typescript
+async getSharded(key: string, replicaCount: number): Promise<string | null> {
     // 요청마다 랜덤으로 레플리카 키를 선택
-    int shard = ThreadLocalRandom.current().nextInt(replicaCount);
-    String shardKey = key + ":shard:" + shard;
-    return redisTemplate.opsForValue().get(shardKey);
+    const shard = Math.floor(Math.random() * replicaCount);
+    const shardKey = `${key}:shard:${shard}`;
+    return this.redis.get(shardKey);
 }
 
 /**
  * 원본 키를 갱신할 때 모든 샤드도 같이 갱신한다.
  * Pipeline으로 묶어서 RTT를 줄인다.
  */
-public void setSharded(String key, String value, int replicaCount, Duration ttl) {
-    redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-        byte[] valBytes = value.getBytes();
-        long seconds = ttl.getSeconds();
-        for (int i = 0; i < replicaCount; i++) {
-            byte[] k = (key + ":shard:" + i).getBytes();
-            connection.stringCommands().setEx(k, seconds, valBytes);
-        }
-        return null;
-    });
+async setSharded(key: string, value: string, replicaCount: number, ttlSeconds: number): Promise<void> {
+    const pipeline = this.redis.pipeline();
+    for (let i = 0; i < replicaCount; i++) {
+        pipeline.set(`${key}:shard:${i}`, value, 'EX', ttlSeconds);
+    }
+    await pipeline.exec();
 }
 ```
 
@@ -423,22 +442,26 @@ redis-cli -h replica-host --bigkeys
 
 필드가 많은 Hash는 prefix로 분리한다.
 
-```java
+```typescript
 /**
  * user:profile 하나에 100개 필드가 있으면
  * user:profile:0, user:profile:1, ... 으로 나눈다.
  * 필드 이름의 해시값으로 버킷을 결정한다.
  */
-public void hsetBucketed(String key, String field, String value, int bucketCount) {
-    int bucket = Math.abs(field.hashCode() % bucketCount);
-    String bucketKey = key + ":" + bucket;
-    redisTemplate.opsForHash().put(bucketKey, field, value);
+function fieldHash(field: string): number {
+    let hash = 0;
+    for (const ch of field) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+    return Math.abs(hash);
 }
 
-public Object hgetBucketed(String key, String field, int bucketCount) {
-    int bucket = Math.abs(field.hashCode() % bucketCount);
-    String bucketKey = key + ":" + bucket;
-    return redisTemplate.opsForHash().get(bucketKey, field);
+async hsetBucketed(key: string, field: string, value: string, bucketCount: number): Promise<void> {
+    const bucket = fieldHash(field) % bucketCount;
+    await this.redis.hset(`${key}:${bucket}`, field, value);
+}
+
+async hgetBucketed(key: string, field: string, bucketCount: number): Promise<string | null> {
+    const bucket = fieldHash(field) % bucketCount;
+    return this.redis.hget(`${key}:${bucket}`, field);
 }
 ```
 
@@ -446,16 +469,16 @@ public Object hgetBucketed(String key, String field, int bucketCount) {
 
 시계열 데이터나 로그를 List에 쌓는 경우, 시간 단위로 키를 나눈다.
 
-```java
+```typescript
 /**
  * log:events에 무한정 쌓는 대신
  * log:events:2026-03-27 같이 날짜별로 분리한다.
  */
-public void appendLog(String baseKey, String entry) {
-    String dateKey = baseKey + ":" + LocalDate.now();
-    redisTemplate.opsForList().rightPush(dateKey, entry);
+async appendLog(baseKey: string, entry: string): Promise<void> {
+    const dateKey = `${baseKey}:${new Date().toISOString().slice(0, 10)}`;
+    await this.redis.rpush(dateKey, entry);
     // 7일 후 자동 삭제
-    redisTemplate.expire(dateKey, Duration.ofDays(7));
+    await this.redis.expire(dateKey, 7 * 24 * 3600);
 }
 ```
 
@@ -463,88 +486,43 @@ Big Key를 삭제해야 할 때는 반드시 `UNLINK`를 쓴다. `DEL`은 메인
 
 ---
 
-## 직렬화 문제
+## 직렬화 패턴
 
-Spring에서 Redis를 쓸 때 직렬화 관련 문제를 한 번쯤은 겪게 된다.
+Node.js/ioredis에서는 JSON.stringify/parse를 직접 사용하므로 Spring의 직렬화 이슈가 없다. 단, 타입 안전성과 호환성은 직접 관리해야 한다.
 
-### ClassNotFoundException
+### 타입 안전 캐시 헬퍼
 
-`JdkSerializationRedisSerializer`(기본값)로 저장한 데이터는 Java 클래스의 패키지 경로까지 포함한다. 클래스를 다른 패키지로 옮기거나 이름을 바꾸면 역직렬화가 터진다.
+```typescript
+// JSON.parse는 추가 필드를 자동으로 무시하므로 필드 추가는 안전하다
+// 필드 삭제/타입 변경 시에는 캐시 키 버전을 올린다
 
-```
-org.springframework.data.redis.serializer.SerializationException:
-Cannot deserialize; nested exception is
-java.lang.ClassNotFoundException: com.old.package.ProductDto
-```
+export class SimpleCache {
+    constructor(private readonly redis: Redis) {}
 
-해결: `GenericJackson2JsonRedisSerializer`나 `Jackson2JsonRedisSerializer`를 쓴다. JSON으로 저장하면 클래스 경로에 의존하지 않는다.
-
-```java
-// JDK 직렬화 (문제가 생기는 방식)
-template.setValueSerializer(new JdkSerializationRedisSerializer());
-// 저장 형태: 바이너리 (클래스 메타데이터 포함)
-
-// JSON 직렬화 (권장)
-template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-// 저장 형태: {"@class":"com.example.Product","id":1,"name":"노트북"}
-```
-
-`GenericJackson2JsonRedisSerializer`는 `@class` 필드에 클래스 정보를 넣는다. 이 방식에서도 클래스를 옮기면 문제가 생기지만, JSON이므로 수동으로 마이그레이션할 수 있다는 차이가 있다.
-
-### 클래스 필드 변경 시 버전 호환성
-
-캐시에 저장된 JSON에는 없는 필드가 새로 추가되거나, 있던 필드가 삭제된 경우 역직렬화가 실패할 수 있다.
-
-```java
-// ObjectMapper 설정으로 미지의 필드 무시
-@Bean
-public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory cf) {
-    ObjectMapper om = new ObjectMapper();
-    om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    // null 필드도 허용
-    om.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-    GenericJackson2JsonRedisSerializer serializer =
-        new GenericJackson2JsonRedisSerializer(om);
-
-    RedisTemplate<String, Object> template = new RedisTemplate<>();
-    template.setConnectionFactory(cf);
-    template.setKeySerializer(new StringRedisSerializer());
-    template.setValueSerializer(serializer);
-    return template;
-}
-```
-
-배포할 때 주의해야 하는 순서:
-1. 새 필드를 추가할 때: 역직렬화 측에서 `FAIL_ON_UNKNOWN_PROPERTIES = false`를 먼저 배포한다. 그 다음 새 필드를 포함한 코드를 배포한다.
-2. 기존 필드를 삭제할 때: 직렬화 측에서 필드를 제거한 코드를 먼저 배포한다. 캐시 TTL이 지나 기존 데이터가 만료되면 역직렬화 측도 필드를 제거한다.
-3. 필드 타입을 변경하는 경우(int → String 등): 캐시를 한 번 전체 무효화하는 게 가장 깔끔하다. 변환 로직을 넣으면 복잡도만 올라간다.
-
-### String으로 단순화
-
-캐시 대상이 단일 객체이고 직렬화 이슈를 피하고 싶으면, `StringRedisTemplate` + 수동 JSON 변환이 가장 단순하다.
-
-```java
-@Service
-@RequiredArgsConstructor
-public class SimpleCache {
-    private final StringRedisTemplate stringRedisTemplate;
-    private final ObjectMapper objectMapper;
-
-    public <T> T get(String key, Class<T> type) {
-        String json = stringRedisTemplate.opsForValue().get(key);
-        if (json == null) return null;
-        return objectMapper.readValue(json, type);
+    async get<T>(key: string): Promise<T | null> {
+        const json = await this.redis.get(key);
+        if (json === null) return null;
+        try {
+            return JSON.parse(json) as T;
+        } catch {
+            // 역직렬화 실패 시 캐시 삭제
+            await this.redis.del(key);
+            return null;
+        }
     }
 
-    public void set(String key, Object value, Duration ttl) {
-        String json = objectMapper.writeValueAsString(value);
-        stringRedisTemplate.opsForValue().set(key, json, ttl);
+    async set(key: string, value: unknown, ttlSeconds: number): Promise<void> {
+        await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
     }
 }
 ```
 
-이 방식은 `@class` 필드도 안 들어가고, 디버깅할 때 `redis-cli GET`으로 바로 읽을 수 있다.
+이 방식은 `redis-cli GET`으로 바로 읽을 수 있고, 타입 정보를 JSON에 포함하지 않으므로 구조가 단순하다.
+
+배포 시 주의사항:
+1. 새 필드를 추가할 때: JSON.parse가 추가 필드를 무시하므로 안전하다.
+2. 기존 필드를 삭제할 때: 코드 배포 후 TTL이 지나면 자연 만료된다. 즉시 무효화가 필요하면 키 버전을 올린다.
+3. 필드 타입을 변경하는 경우(number → string 등): 캐시 키 버전을 올리거나 전체 무효화한다.
 
 ---
 

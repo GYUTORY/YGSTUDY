@@ -84,43 +84,38 @@ JPA에서 대리키를 선언할 때 `@GeneratedValue`의 strategy 옵션이 실
 
 ### IDENTITY
 
-```java
-@Entity
-public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+```typescript
+// TypeORM — IDENTITY 전략 (AUTO_INCREMENT / SERIAL)
+@Entity()
+export class Order {
+    @PrimaryGeneratedColumn()
+    id: number;
 }
 ```
 
-INSERT 후 DB가 생성한 값을 `LAST_INSERT_ID()`로 조회한다. MySQL의 `AUTO_INCREMENT`와 1:1 대응한다.
+INSERT 후 DB가 생성한 값을 `LAST_INSERT_ID()` / `RETURNING id`로 조회한다. MySQL의 `AUTO_INCREMENT`와 1:1 대응한다.
 
-핵심 문제가 있다. Hibernate는 기본적으로 INSERT를 배치로 묶는 쓰기 지연(write-behind)을 수행한다. 그런데 IDENTITY 전략에서는 INSERT 전에 PK 값을 알 수 없으므로, Hibernate가 `entityManager.persist()` 시점에 즉시 INSERT를 실행한다. 배치 INSERT가 불가능하다.
+핵심 문제가 있다. TypeORM은 기본적으로 각 `save()` 호출 시 INSERT를 실행하며, IDENTITY 전략에서는 INSERT 전에 PK 값을 알 수 없으므로 배치 INSERT가 불가능하다.
 
 수백 건을 한 번에 저장하는 상황에서 IDENTITY 전략은 SQL을 N번 개별 실행한다.
 
-```java
+```typescript
 // 이 코드는 IDENTITY 전략에서 SQL 100번 실행
-for (Order order : orders) {
-    entityManager.persist(order); // 즉시 INSERT
+for (const order of orders) {
+    await manager.save(Order, order); // 즉시 INSERT
 }
 ```
 
-대용량 배치 처리가 필요한 엔티티라면 SEQUENCE 전략을 고려해야 한다.
+대용량 배치 처리가 필요하다면 TypeORM의 `insert()` 메서드나 raw 쿼리를 직접 사용한다.
 
 ### SEQUENCE
 
-```java
-@Entity
-@SequenceGenerator(
-    name = "order_seq",
-    sequenceName = "order_sequence",
-    allocationSize = 50
-)
-public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_seq")
-    private Long id;
+```typescript
+// TypeORM — SEQUENCE 전략 (PostgreSQL)
+@Entity()
+export class Order {
+    @PrimaryGeneratedColumn('increment')
+    id: number;
 }
 ```
 
@@ -139,35 +134,37 @@ MySQL에서 SEQUENCE 전략을 쓰면 이 에뮬레이션 테이블에 UPDATE �
 
 시퀀스 에뮬레이션 테이블을 명시적으로 정의하는 방식이다. 이식성은 가장 높지만 성능이 가장 낮다. 잠금 경합이 심해 실무에서는 거의 쓰지 않는다.
 
-### UUID 기반 @GeneratedValue
+### UUID 기반 생성
 
-```java
-@Entity
-public class Session {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+```typescript
+// TypeORM — UUID 전략
+@Entity()
+export class Session {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 }
 ```
 
-Hibernate 6.2 이상에서 지원한다. 기본으로 UUID v4를 생성한다. MySQL InnoDB에서 PK로 쓰면 페이지 분할 문제가 발생하므로, UUID를 쓴다면 애플리케이션에서 UUID v7을 직접 생성하고 `@GeneratedValue` 없이 할당하는 방식이 낫다.
+기본으로 UUID v4를 생성한다. MySQL InnoDB에서 PK로 쓰면 페이지 분할 문제가 발생하므로, UUID를 쓴다면 애플리케이션에서 UUID v7을 직접 생성하고 `@PrimaryColumn`으로 할당하는 방식이 낫다.
 
-```java
-@Entity
-public class Session {
-    @Id
-    private UUID id;
+```typescript
+import { v7 as uuidv7 } from 'uuid';
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UuidCreator.getTimeOrderedEpoch(); // UUID v7
+@Entity()
+export class Session {
+    @PrimaryColumn('uuid')
+    id: string;
+
+    @BeforeInsert()
+    generateId(): void {
+        if (!this.id) {
+            this.id = uuidv7(); // UUID v7 — 시간 순 정렬 가능
         }
     }
 }
 ```
 
-`@GeneratedValue`를 쓰면 ID 생성을 Hibernate에 위임하고, 직접 할당하면 생성 시점과 방식을 제어할 수 있다.
+`@PrimaryGeneratedColumn('uuid')`를 쓰면 ID 생성을 TypeORM에 위임하고, `@PrimaryColumn` + `@BeforeInsert()`를 쓰면 생성 시점과 방식을 제어할 수 있다.
 
 ## 브릿지 테이블에 대리키 추가
 
@@ -196,33 +193,32 @@ CREATE TABLE post_tags (
 INDEX idx_tag_id (tag_id)
 ```
 
-### JPA에서 브릿지 테이블 엔티티화
+### TypeORM에서 브릿지 테이블 엔티티화
 
 단순 N:M 관계를 `@ManyToMany`로 매핑하면 브릿지 테이블을 직접 다루기 어렵다. 추가 속성이 생기거나 브릿지 테이블 레코드를 직접 식별해야 할 때 엔티티로 분리한다.
 
-```java
-@Entity
-@Table(name = "post_tags")
-public class PostTag {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+```typescript
+@Entity('post_tags')
+export class PostTag {
+    @PrimaryGeneratedColumn()
+    id: number;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private Post post;
+    @ManyToOne(() => Post, { lazy: true })
+    @JoinColumn({ name: 'post_id' })
+    post: Post;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id")
-    private Tag tag;
+    @ManyToOne(() => Tag, { lazy: true })
+    @JoinColumn({ name: 'tag_id' })
+    tag: Tag;
 
-    private LocalDateTime createdAt;
+    @Column({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    createdAt: Date;
 }
 ```
 
-`@ManyToMany` 대신 `@OneToMany` + `@ManyToOne`으로 풀어낸 구조다. `Post`에서는 `@OneToMany(mappedBy = "post")`로, `Tag`에서는 `@OneToMany(mappedBy = "tag")`로 양방향을 설정할 수 있다.
+`@ManyToMany` 대신 `@OneToMany` + `@ManyToOne`으로 풀어낸 구조다. `Post`에서는 `@OneToMany(() => PostTag, (pt) => pt.post)`로, `Tag`에서는 `@OneToMany(() => PostTag, (pt) => pt.tag)`로 양방향을 설정할 수 있다.
 
-이 방식에서 중복 방지는 DB의 `UNIQUE INDEX`가 담당하고, JPA 레이어에서는 중복 삽입 시 `DataIntegrityViolationException`을 잡아서 처리한다.
+이 방식에서 중복 방지는 DB의 `UNIQUE INDEX`가 담당하고, TypeORM 레이어에서는 중복 삽입 시 unique 제약 위반 예외를 잡아서 처리한다.
 
 ## 자연키 테이블에 대리키 후행 추가 마이그레이션
 
@@ -327,11 +323,14 @@ pt-online-schema-change \
 
 로그에 `user_id=3401, order_id=8821`이 찍혀도 해당 레코드를 조회하기 전까지 무엇인지 알 수 없다. 장애 상황에서 로그만 보고 원인을 파악하기 어렵다.
 
-```java
+```typescript
 // 로그에 의미 있는 식별자를 함께 남기는 방식
-log.error("결제 처리 실패 [userId={}, userEmail={}, orderId={}, orderNo={}]",
-    user.getId(), user.getEmail(),
-    order.getId(), order.getOrderNo());
+logger.error('결제 처리 실패', {
+    userId: user.id,
+    userEmail: user.email,
+    orderId: order.id,
+    orderNo: order.orderNo,
+});
 ```
 
 `orderId`(대리키)와 `orderNo`(인간이 읽을 수 있는 자연 식별자)를 함께 로깅한다. `order_no`는 도메인에서 의미 있는 주문번호(`2024-08-001234` 같은 형태)로, DB PK와 별도로 관리한다.

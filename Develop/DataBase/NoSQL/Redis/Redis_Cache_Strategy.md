@@ -40,58 +40,56 @@ TTL을 결정할 때 고려하는 요소는 세 가지다.
 
 같은 시간에 생성된 캐시가 동시에 만료되면 DB에 요청이 몰린다. 이걸 **Cache Stampede**라고 부르는데, TTL에 랜덤 편차를 주면 만료 시점이 분산된다.
 
-```java
+```typescript
 // TTL 지터 적용
-public Duration ttlWithJitter(Duration baseTtl, double jitterRatio) {
-    long baseSeconds = baseTtl.getSeconds();
-    long jitterRange = (long) (baseSeconds * jitterRatio);
-    long jitter = ThreadLocalRandom.current().nextLong(-jitterRange, jitterRange);
-    return Duration.ofSeconds(baseSeconds + jitter);
+function ttlWithJitter(baseSeconds: number, jitterRatio: number): number {
+    const jitterRange = Math.floor(baseSeconds * jitterRatio);
+    const jitter = Math.floor(Math.random() * (jitterRange * 2 + 1)) - jitterRange;
+    return baseSeconds + jitter;
 }
 
-// 사용 예: 기본 TTL 10분, +-20% 지터 → 8분~12분 사이에서 랜덤
-Duration ttl = ttlWithJitter(Duration.ofMinutes(10), 0.2);
-redisTemplate.opsForValue().set(key, value, ttl);
+// 사용 예: 기본 TTL 10분(600초), +-20% 지터 → 480초~720초 사이에서 랜덤
+const ttl = ttlWithJitter(600, 0.2);
+await redis.set(key, value, 'EX', ttl);
 ```
 
 ### 1.3 조건부 TTL
 
 데이터 상태에 따라 TTL을 다르게 설정하는 패턴이다.
 
-```java
+```typescript
 // 빈 결과 캐싱: DB에 데이터가 없는 경우 짧은 TTL로 캐시
 // → Cache Penetration 방어
-public ProductDto getProduct(Long productId) {
-    String key = "product:" + productId;
-    String cached = redisTemplate.opsForValue().get(key);
+async getProduct(productId: number): Promise<ProductDto | null> {
+    const key = `product:${productId}`;
+    const cached = await this.redis.get(key);
 
-    if (cached != null) {
-        if ("EMPTY".equals(cached)) return null;
-        return deserialize(cached);
+    if (cached !== null) {
+        if (cached === 'EMPTY') return null;
+        return JSON.parse(cached) as ProductDto;
     }
 
-    ProductDto product = productRepository.findById(productId).orElse(null);
+    const product = await this.productRepository.findById(productId);
 
-    if (product == null) {
+    if (product === null) {
         // 존재하지 않는 상품 → 30초만 캐시
-        redisTemplate.opsForValue().set(key, "EMPTY", Duration.ofSeconds(30));
+        await this.redis.set(key, 'EMPTY', 'EX', 30);
         return null;
     }
 
     // 정상 데이터 → 1시간 캐시
-    redisTemplate.opsForValue().set(key, serialize(product), Duration.ofHours(1));
+    await this.redis.set(key, JSON.stringify(product), 'EX', 3600);
     return product;
 }
 ```
 
-```java
+```typescript
 // 완료된 주문은 변경되지 않으므로 TTL을 길게
-public Duration orderTtl(Order order) {
-    if (order.getStatus() == OrderStatus.COMPLETED
-        || order.getStatus() == OrderStatus.CANCELLED) {
-        return Duration.ofHours(24);  // 완료/취소된 주문은 바뀔 일이 없다
+function orderTtl(order: Order): number {
+    if (order.status === 'COMPLETED' || order.status === 'CANCELLED') {
+        return 86400;  // 24시간 — 완료/취소된 주문은 바뀔 일이 없다
     }
-    return Duration.ofMinutes(5);  // 진행 중 주문은 자주 바뀐다
+    return 300;  // 5분 — 진행 중 주문은 자주 바뀐다
 }
 ```
 
@@ -132,21 +130,14 @@ public Duration orderTtl(Order order) {
   3. 설정 파일로 관리: application.yml에서 cache.version 값을 읽는 방식
 ```
 
-```java
+```typescript
 // 버전 접두사를 코드에서 관리하는 예
-@Component
-public class CacheKeyGenerator {
+const CACHE_VERSION = 'v3';
 
-    private static final String VERSION = "v3";
-
-    public String productKey(Long productId) {
-        return VERSION + ":product:" + productId;
-    }
-
-    public String userProfileKey(Long userId) {
-        return VERSION + ":user:profile:" + userId;
-    }
-}
+export const CacheKey = {
+    product: (productId: number) => `${CACHE_VERSION}:product:${productId}`,
+    userProfile: (userId: number) => `${CACHE_VERSION}:user:profile:${userId}`,
+};
 ```
 
 ### 2.3 클러스터 환경에서 해시 태그
@@ -285,11 +276,11 @@ maxmemory 설정 기준:
   - 캐시 키 버전을 올려서 분리하는 수밖에 없다
 ```
 
-```java
-// Jackson에서 모르는 필드를 무시하도록 설정
-// 이 설정이 없으면 필드가 추가될 때마다 역직렬화가 깨진다
-ObjectMapper mapper = new ObjectMapper();
-mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+```typescript
+// JSON.parse는 기본적으로 모르는 필드를 무시한다
+// TypeScript 타입 캐스팅 시 추가 필드는 자동으로 무시됨
+const product = JSON.parse(cached) as ProductDto;
+// ProductDto에 없는 필드가 JSON에 있어도 오류 없이 파싱됨
 ```
 
 ### 4.2 롤백 시 캐시 처리
@@ -312,24 +303,24 @@ mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
      - 현실적으로 가장 좋은 방법이다
 ```
 
-```java
+```typescript
 // 역직렬화 실패 시 캐시 삭제 후 DB 조회하는 패턴
-public ProductDto getProduct(Long id) {
-    String key = "product:" + id;
-    String cached = redisTemplate.opsForValue().get(key);
+async getProduct(id: number): Promise<ProductDto> {
+    const key = `product:${id}`;
+    const cached = await this.redis.get(key);
 
-    if (cached != null) {
+    if (cached !== null) {
         try {
-            return objectMapper.readValue(cached, ProductDto.class);
-        } catch (Exception e) {
+            return JSON.parse(cached) as ProductDto;
+        } catch (e) {
             // 역직렬화 실패 → 캐시 삭제
-            log.warn("캐시 역직렬화 실패, 삭제: key={}", key, e);
-            redisTemplate.delete(key);
+            logger.warn(`캐시 역직렬화 실패, 삭제: key=${key}`, e);
+            await this.redis.del(key);
         }
     }
 
-    ProductDto product = productRepository.findById(id);
-    redisTemplate.opsForValue().set(key, serialize(product), Duration.ofHours(1));
+    const product = await this.productRepository.findById(id);
+    await this.redis.set(key, JSON.stringify(product), 'EX', 3600);
     return product;
 }
 ```
@@ -409,28 +400,25 @@ hit rate 기준:
 
 `INFO stats`의 hit/miss는 Redis 시작 이후 누적값이다. 구간별 hit rate를 보려면 주기적으로 값을 수집해서 차이를 계산해야 한다.
 
-```java
-// Spring Boot Actuator + Micrometer로 hit rate를 Prometheus에 내보내는 방법은
-// RedisTemplate을 감싸서 hit/miss를 카운터로 기록한다
-public class MonitoredCacheService {
+```typescript
+// Prometheus 클라이언트 라이브러리(prom-client)로 hit/miss를 카운터로 기록한다
+import { Counter } from 'prom-client';
 
-    private final StringRedisTemplate redisTemplate;
-    private final Counter hitCounter;
-    private final Counter missCounter;
+export class MonitoredCacheService {
+    private readonly hitCounter: Counter;
+    private readonly missCounter: Counter;
 
-    public MonitoredCacheService(StringRedisTemplate redisTemplate,
-                                 MeterRegistry registry) {
-        this.redisTemplate = redisTemplate;
-        this.hitCounter = registry.counter("cache.hit");
-        this.missCounter = registry.counter("cache.miss");
+    constructor(private readonly redis: Redis) {
+        this.hitCounter = new Counter({ name: 'cache_hit_total', help: 'Cache hits' });
+        this.missCounter = new Counter({ name: 'cache_miss_total', help: 'Cache misses' });
     }
 
-    public String get(String key) {
-        String value = redisTemplate.opsForValue().get(key);
-        if (value != null) {
-            hitCounter.increment();
+    async get(key: string): Promise<string | null> {
+        const value = await this.redis.get(key);
+        if (value !== null) {
+            this.hitCounter.inc();
         } else {
-            missCounter.increment();
+            this.missCounter.inc();
         }
         return value;
     }

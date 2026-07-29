@@ -81,38 +81,45 @@ const query = 'SELECT * FROM users WHERE username = $1 AND email = $2';
 client.query(query, [username, email]);
 ```
 
-**Java — JdbcTemplate:**
+**TypeScript — mysql2 / pg:**
 
-```java
+```typescript
 // 취약한 코드
-String sql = "SELECT * FROM users WHERE username = '" + username + "'";
-jdbcTemplate.queryForList(sql);
+const sql = `SELECT * FROM users WHERE username = '${username}'`;
+await connection.query(sql);
 
-// 안전한 코드 — ? 바인딩
-String sql = "SELECT * FROM users WHERE username = ? AND status = ?";
-jdbcTemplate.queryForList(sql, username, "ACTIVE");
+// 안전한 코드 — ? 바인딩 (mysql2)
+const sql = 'SELECT * FROM users WHERE username = ? AND status = ?';
+await connection.query(sql, [username, 'ACTIVE']);
+
+// 안전한 코드 — $1 바인딩 (pg)
+const sql = 'SELECT * FROM users WHERE username = $1 AND status = $2';
+await client.query(sql, [username, 'ACTIVE']);
 ```
 
-**Java — JPA (JPQL):**
+**TypeScript — TypeORM QueryBuilder:**
 
-```java
+```typescript
 // 취약한 코드 — 문자열 연결
-String jpql = "SELECT u FROM User u WHERE u.username = '" + username + "'";
-em.createQuery(jpql).getResultList();
+const users = await dataSource.query(
+  `SELECT * FROM users WHERE username = '${username}'`
+);
 
-// 안전한 코드 — 파라미터 바인딩
-String jpql = "SELECT u FROM User u WHERE u.username = :username";
-em.createQuery(jpql, User.class)
-  .setParameter("username", username)
-  .getResultList();
+// 안전한 코드 — named parameter 바인딩
+const users = await userRepository
+  .createQueryBuilder('u')
+  .where('u.username = :username', { username })
+  .getMany();
 ```
 
-JPA의 `Criteria API`를 쓰면 쿼리 자체가 코드로 생성되므로 인젝션 가능성이 없다. 하지만 `@Query`에 `nativeQuery = true`로 네이티브 쿼리를 쓸 때는 반드시 파라미터 바인딩을 해야 한다.
+TypeORM의 `QueryBuilder`를 쓰면 쿼리가 코드로 생성되므로 인젝션 가능성이 낮다. 하지만 `.where()` 안에 문자열 연결을 하면 동일하게 취약하다. raw query가 필요할 때는 파라미터 바인딩을 반드시 사용한다.
 
-```java
-// Spring Data JPA — nativeQuery 사용 시
-@Query(value = "SELECT * FROM users WHERE email = :email", nativeQuery = true)
-List<User> findByEmail(@Param("email") String email);
+```typescript
+// TypeORM — raw query 사용 시
+const users = await dataSource.query(
+  'SELECT * FROM users WHERE email = $1',
+  [email]
+);
 ```
 
 **MyBatis:**
@@ -201,26 +208,28 @@ Django의 `extra()`는 deprecated 상태이고 SQL 인젝션 위험이 있으므
 
 **동적 WHERE 조건:**
 
-```java
-// Java — 조건부 WHERE 절 추가
-public List<User> search(String name, String email, String status) {
-    StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE 1=1");
-    List<Object> params = new ArrayList<>();
+```typescript
+// TypeScript — 조건부 WHERE 절 추가 (pg 기준)
+async function search(name?: string, email?: string, status?: string) {
+  const conditions: string[] = ['1=1'];
+  const params: unknown[] = [];
 
-    if (name != null) {
-        sql.append(" AND name = ?");
-        params.add(name);
-    }
-    if (email != null) {
-        sql.append(" AND email = ?");
-        params.add(email);
-    }
-    if (status != null) {
-        sql.append(" AND status = ?");
-        params.add(status);
-    }
+  if (name != null) {
+    params.push(name);
+    conditions.push(`name = $${params.length}`);
+  }
+  if (email != null) {
+    params.push(email);
+    conditions.push(`email = $${params.length}`);
+  }
+  if (status != null) {
+    params.push(status);
+    conditions.push(`status = $${params.length}`);
+  }
 
-    return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+  const sql = `SELECT * FROM users WHERE ${conditions.join(' AND ')}`;
+  const { rows } = await client.query(sql, params);
+  return rows;
 }
 ```
 
@@ -230,31 +239,28 @@ public List<User> search(String name, String email, String status) {
 
 ORDER BY 절에는 파라미터 바인딩을 쓸 수 없다. 컬럼명은 값이 아니라 식별자이기 때문이다.
 
-```java
+```typescript
 // 취약한 코드 — 사용자 입력을 ORDER BY에 직접 넣는다
-String sql = "SELECT * FROM users ORDER BY " + sortColumn + " " + sortDirection;
+const sql = `SELECT * FROM users ORDER BY ${sortColumn} ${sortDirection}`;
 
 // 안전한 코드 — 화이트리스트로 검증
-private static final Map<String, String> ALLOWED_COLUMNS = Map.of(
-    "name", "name",
-    "email", "email",
-    "created", "created_at"  // 클라이언트 키와 실제 컬럼명을 분리
-);
+const ALLOWED_COLUMNS: Record<string, string> = {
+  name: 'name',
+  email: 'email',
+  created: 'created_at',  // 클라이언트 키와 실제 컬럼명을 분리
+};
 
-private static final Set<String> ALLOWED_DIRECTIONS = Set.of("ASC", "DESC");
+const ALLOWED_DIRECTIONS = new Set(['ASC', 'DESC']);
 
-public List<User> findAllSorted(String sortColumn, String sortDirection) {
-    String column = ALLOWED_COLUMNS.get(sortColumn);
-    if (column == null) {
-        column = "created_at"; // 기본값
-    }
+async function findAllSorted(sortColumn: string, sortDirection: string) {
+  const column = ALLOWED_COLUMNS[sortColumn] ?? 'created_at'; // 기본값
+  const direction = ALLOWED_DIRECTIONS.has(sortDirection.toUpperCase())
+    ? sortDirection.toUpperCase()
+    : 'ASC';
 
-    String direction = ALLOWED_DIRECTIONS.contains(sortDirection.toUpperCase())
-        ? sortDirection.toUpperCase()
-        : "ASC";
-
-    String sql = "SELECT * FROM users ORDER BY " + column + " " + direction;
-    return jdbcTemplate.queryForList(sql);
+  const sql = `SELECT * FROM users ORDER BY ${column} ${direction}`;
+  const { rows } = await client.query(sql);
+  return rows;
 }
 ```
 
@@ -262,39 +268,32 @@ public List<User> findAllSorted(String sortColumn, String sortDirection) {
 
 **동적 IN 절:**
 
-```java
+```typescript
 // 취약한 코드 — 문자열 연결로 IN 절 생성
-String ids = String.join(",", userIds); // "1,2,3" 이겠지만 보장할 수 없다
-String sql = "SELECT * FROM users WHERE id IN (" + ids + ")";
+const ids = [1, 2, 3];
+const sql = `SELECT * FROM users WHERE id IN (${ids.join(',')})`; // 입력값이면 위험
 
-// 안전한 코드 — 플레이스홀더 동적 생성
-public List<User> findByIds(List<Long> ids) {
-    String placeholders = ids.stream()
-        .map(id -> "?")
-        .collect(Collectors.joining(","));
-
-    String sql = "SELECT * FROM users WHERE id IN (" + placeholders + ")";
-    return jdbcTemplate.queryForList(sql, ids.toArray());
+// 안전한 코드 — 플레이스홀더 동적 생성 (pg)
+async function findByIds(ids: number[]) {
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+  const sql = `SELECT * FROM users WHERE id IN (${placeholders})`;
+  const { rows } = await client.query(sql, ids);
+  return rows;
 }
 ```
 
-```javascript
-// Node.js — MySQL
-const ids = [1, 2, 3];
-const placeholders = ids.map(() => '?').join(',');
-const sql = `SELECT * FROM users WHERE id IN (${placeholders})`;
-connection.query(sql, ids);
+```typescript
+// MySQL2 — 배열을 자동으로 풀어준다
+const [rows] = await connection.query(
+  'SELECT * FROM users WHERE id IN (?)',
+  [ids]
+);
 
-// MySQL2 라이브러리는 배열을 자동으로 풀어준다
-connection.query('SELECT * FROM users WHERE id IN (?)', [ids]);
-```
-
-Spring의 `NamedParameterJdbcTemplate`을 쓰면 IN 절 처리가 간단하다.
-
-```java
-String sql = "SELECT * FROM users WHERE id IN (:ids)";
-MapSqlParameterSource params = new MapSqlParameterSource("ids", ids);
-namedParameterJdbcTemplate.queryForList(sql, params);
+// TypeORM QueryBuilder — IN 절
+const users = await userRepository
+  .createQueryBuilder('u')
+  .where('u.id IN (:...ids)', { ids })
+  .getMany();
 ```
 
 ### Second-Order SQL Injection
@@ -307,16 +306,17 @@ namedParameterJdbcTemplate.queryForList(sql, params);
 2. 가입 처리 코드는 Prepared Statement를 써서 안전하게 저장한다 — 여기까지는 문제없다
 3. 나중에 비밀번호 변경 기능에서 DB에 저장된 이름을 꺼내 다른 쿼리에 넣는다
 
-```java
-// 1단계: 회원가입 — Prepared Statement로 안전하게 저장
-String insertSql = "INSERT INTO users (username, password) VALUES (?, ?)";
-jdbcTemplate.update(insertSql, "admin'--", hashedPassword);
+```typescript
+// 1단계: 회원가입 — 파라미터 바인딩으로 안전하게 저장
+await client.query(
+  'INSERT INTO users (username, password) VALUES ($1, $2)',
+  ["admin'--", hashedPassword]
+);
 // DB에 username = "admin'--" 이 그대로 저장된다
 
 // 2단계: 비밀번호 변경 — DB에서 꺼낸 값을 신뢰하고 문자열 연결
-String username = getCurrentUserName(); // DB에서 "admin'--" 를 가져온다
-String updateSql = "UPDATE users SET password = '" + newPassword
-    + "' WHERE username = '" + username + "'";
+const username = await getCurrentUserName(); // DB에서 "admin'--" 를 가져온다
+const updateSql = `UPDATE users SET password = '${newPassword}' WHERE username = '${username}'`;
 // 실행되는 쿼리:
 // UPDATE users SET password = 'newpw' WHERE username = 'admin'--'
 // admin 계정의 비밀번호가 변경된다
@@ -324,10 +324,12 @@ String updateSql = "UPDATE users SET password = '" + newPassword
 
 방어 원칙은 간단하다. **DB에서 꺼낸 값이라도 쿼리에 넣을 때는 파라미터 바인딩을 쓴다.** "이 값은 우리 DB에서 나왔으니 안전하다"는 가정 자체가 위험하다.
 
-```java
+```typescript
 // 안전한 코드 — DB에서 꺼낸 값도 바인딩
-String updateSql = "UPDATE users SET password = ? WHERE username = ?";
-jdbcTemplate.update(updateSql, newPassword, username);
+await client.query(
+  'UPDATE users SET password = $1 WHERE username = $2',
+  [newPassword, username]
+);
 ```
 
 2차 인젝션이 발생하기 쉬운 패턴:

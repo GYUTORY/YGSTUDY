@@ -127,24 +127,22 @@ spring:
             period: 30s
 ```
 
-```java
-@Configuration
-public class RedisClusterConfig {
+```typescript
+// npm install ioredis
+import Redis from 'ioredis';
 
-    @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
-        RedisClusterConfiguration config = new RedisClusterConfiguration(
-            List.of("192.168.1.1:7000", "192.168.1.2:7000", "192.168.1.3:7000")
-        );
-        config.setMaxRedirects(3);
-
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-            .readFrom(ReadFrom.REPLICA_PREFERRED)  // 읽기는 Replica 우선
-            .build();
-
-        return new LettuceConnectionFactory(config, clientConfig);
+const client = new Redis.Cluster(
+    ['192.168.1.1:7000', '192.168.1.2:7000', '192.168.1.3:7000'].map((addr) => {
+        const [host, port] = addr.split(':');
+        return { host, port: Number(port) };
+    }),
+    {
+        scaleReads: 'slave',    // 읽기는 Replica 우선
+        redisOptions: {
+            maxRetriesPerRequest: 3,
+        },
     }
-}
+);
 ```
 
 ## 2. Redis Sentinel
@@ -652,66 +650,61 @@ XINFO CONSUMERS orders order-processing
 
 ### 3.4 Spring에서 Streams 사용
 
-```java
+```typescript
+import Redis from 'ioredis';
+
+interface OrderEvent {
+    userId: number;
+    product: string;
+    amount: number;
+}
+
 // 메시지 발행
-@Service
-public class OrderStreamPublisher {
+async function publishOrder(redis: Redis, event: OrderEvent): Promise<string> {
+    const id = await redis.xadd(
+        'orders',
+        '*',
+        'userId', String(event.userId),
+        'product', event.product,
+        'amount', String(event.amount),
+    );
+    return id!;
+}
 
-    private final StringRedisTemplate redisTemplate;
-
-    public String publishOrder(OrderEvent event) {
-        MapRecord<String, String, String> record = StreamRecords
-            .newRecord()
-            .ofMap(Map.of(
-                "userId", event.getUserId().toString(),
-                "product", event.getProduct(),
-                "amount", event.getAmount().toString()
-            ))
-            .withStreamKey("orders");
-
-        return redisTemplate.opsForStream()
-            .add(record)
-            .getValue();
+// Consumer Group 생성 (최초 1회)
+async function setupConsumerGroup(redis: Redis): Promise<void> {
+    try {
+        await redis.xgroup('CREATE', 'orders', 'order-processing', '$', 'MKSTREAM');
+    } catch (err: any) {
+        if (!err.message.includes('BUSYGROUP')) throw err;
     }
 }
 
 // Consumer Group 기반 메시지 소비
-@Configuration
-public class StreamConsumerConfig {
+async function startOrderConsumer(redis: Redis): Promise<void> {
+    await setupConsumerGroup(redis);
 
-    @Bean
-    public Subscription orderStreamSubscription(
-            RedisConnectionFactory connectionFactory) {
+    while (true) {
+        const results = await redis.xreadgroup(
+            'GROUP', 'order-processing', 'consumer-1',
+            'COUNT', '10',
+            'BLOCK', '2000',
+            'STREAMS', 'orders', '>',
+        ) as [string, [string, string[]][]][] | null;
 
-        StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
-            StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
-                .pollTimeout(Duration.ofSeconds(2))
-                .batchSize(10)
-                .build();
+        if (!results) continue;
 
-        StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
-            StreamMessageListenerContainer.create(connectionFactory, options);
-
-        Subscription subscription = container.receiveAutoAck(
-            Consumer.from("order-processing", "consumer-1"),
-            StreamOffset.create("orders", ReadOffset.lastConsumed()),
-            new OrderStreamListener()
-        );
-
-        container.start();
-        return subscription;
-    }
-}
-
-@Component
-public class OrderStreamListener
-        implements StreamListener<String, MapRecord<String, String, String>> {
-
-    @Override
-    public void onMessage(MapRecord<String, String, String> message) {
-        Map<String, String> body = message.getValue();
-        log.info("주문 처리: userId={}, product={}, amount={}",
-            body.get("userId"), body.get("product"), body.get("amount"));
+        for (const [, messages] of results) {
+            for (const [id, fields] of messages) {
+                const body: Record<string, string> = {};
+                for (let i = 0; i < fields.length; i += 2) {
+                    body[fields[i]] = fields[i + 1];
+                }
+                console.log(`주문 처리: userId=${body.userId}, product=${body.product}, amount=${body.amount}`);
+                // 처리 완료 확인
+                await redis.xack('orders', 'order-processing', id);
+            }
+        }
     }
 }
 ```
@@ -783,29 +776,42 @@ else
 end
 ```
 
-```java
-// Spring에서 Lua 스크립트 실행
-@Component
-public class RateLimiter {
+```typescript
+import Redis from 'ioredis';
+import * as fs from 'fs';
+import * as path from 'path';
 
-    private final StringRedisTemplate redisTemplate;
-    private final RedisScript<Long> rateLimitScript;
+// Lua 스크립트 실행 (EVALSHA 캐싱 방식)
+const rateLimiterScript = fs.readFileSync(
+    path.join(__dirname, 'scripts/rate-limiter.lua'), 'utf-8'
+);
 
-    public RateLimiter(StringRedisTemplate redisTemplate) {
-        this.redisTemplate = redisTemplate;
-        this.rateLimitScript = RedisScript.of(
-            new ClassPathResource("scripts/rate-limiter.lua"), Long.class);
+class RateLimiter {
+    private readonly redis: Redis;
+    private scriptSha: string | null = null;
+
+    constructor(redis: Redis) {
+        this.redis = redis;
     }
 
-    public boolean isAllowed(String clientId, int windowSec, int maxRequests) {
-        Long result = redisTemplate.execute(
-            rateLimitScript,
-            List.of("rate:" + clientId),
-            String.valueOf(windowSec),
-            String.valueOf(maxRequests),
-            String.valueOf(System.currentTimeMillis())
-        );
-        return result != null && result == 1L;
+    private async getScriptSha(): Promise<string> {
+        if (!this.scriptSha) {
+            this.scriptSha = await this.redis.script('LOAD', rateLimiterScript) as string;
+        }
+        return this.scriptSha;
+    }
+
+    async isAllowed(clientId: string, windowSec: number, maxRequests: number): Promise<boolean> {
+        const sha = await this.getScriptSha();
+        const result = await this.redis.evalsha(
+            sha,
+            1,
+            `rate:${clientId}`,
+            String(windowSec),
+            String(maxRequests),
+            String(Date.now()),
+        ) as number;
+        return result === 1;
     }
 }
 ```
@@ -881,131 +887,127 @@ Redlock (N=5 인스턴스):
   → 4/5 성공 → 락 획득 (유효 시간 = 원래 만료 - 소요 시간)
 ```
 
-### 5.3 Redisson (Java)
+### 5.3 Node.js ioredis 분산 락
 
-```java
-// build.gradle
-// implementation 'org.redisson:redisson-spring-boot-starter:3.27.0'
+```typescript
+import Redis from 'ioredis';
+import { randomUUID } from 'crypto';
 
-@Configuration
-public class RedissonConfig {
+const redis = new Redis({ host: 'localhost', port: 6379 });
 
-    @Bean
-    public RedissonClient redissonClient() {
-        Config config = new Config();
-        config.useSingleServer()
-            .setAddress("redis://localhost:6379")
-            .setConnectionMinimumIdleSize(5)
-            .setConnectionPoolSize(10);
-        return Redisson.create(config);
+// Lua: 소유자 확인 후 원자적 삭제
+const unlockScript = `
+  if redis.call('GET', KEYS[1]) == ARGV[1] then
+    return redis.call('DEL', KEYS[1])
+  else
+    return 0
+  end
+`;
+
+async function acquireLock(
+    key: string,
+    leaseSec: number,
+    waitSec: number,
+): Promise<string | null> {
+    const token = randomUUID();
+    const deadline = Date.now() + waitSec * 1000;
+
+    while (Date.now() < deadline) {
+        const ok = await redis.set(key, token, 'NX', 'EX', leaseSec);
+        if (ok === 'OK') return token;
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    return null; // 락 획득 실패
+}
+
+async function releaseLock(key: string, token: string): Promise<void> {
+    await redis.eval(unlockScript, 1, key, token);
+}
+
+// 기본 락 - 주문 처리
+async function processOrder(orderId: number): Promise<void> {
+    const lockKey = `lock:order:${orderId}`;
+    const token = await acquireLock(lockKey, 30, 10);
+    if (!token) throw new Error('락 획득 실패');
+
+    try {
+        await doProcess(orderId);
+    } finally {
+        await releaseLock(lockKey, token);
     }
 }
 
-@Service
-public class OrderService {
+// 멀티 락 - 여러 리소스 동시 락
+async function transferStock(fromId: number, toId: number): Promise<void> {
+    // 데드락 방지: 항상 작은 ID 먼저 획득
+    const [first, second] = fromId < toId
+        ? [fromId, toId]
+        : [toId, fromId];
 
-    private final RedissonClient redisson;
-
-    // 기본 락
-    public void processOrder(Long orderId) {
-        RLock lock = redisson.getLock("lock:order:" + orderId);
-
-        try {
-            // 10초 대기, 30초 후 자동 해제
-            boolean acquired = lock.tryLock(10, 30, TimeUnit.SECONDS);
-            if (!acquired) {
-                throw new RuntimeException("락 획득 실패");
-            }
-            // 주문 처리 로직
-            doProcess(orderId);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+    const token1 = await acquireLock(`lock:stock:${first}`, 10, 10);
+    if (!token1) throw new Error('락 획득 실패');
+    const token2 = await acquireLock(`lock:stock:${second}`, 10, 10);
+    if (!token2) {
+        await releaseLock(`lock:stock:${first}`, token1);
+        throw new Error('락 획득 실패');
     }
 
-    // 페어 락 (공정 락 - FIFO 순서 보장)
-    public void fairProcess(Long id) {
-        RLock fairLock = redisson.getFairLock("lock:fair:" + id);
-        // 사용법 동일
-    }
-
-    // 멀티 락 (여러 리소스 동시 락)
-    public void transferStock(Long fromId, Long toId) {
-        RLock lock1 = redisson.getLock("lock:stock:" + fromId);
-        RLock lock2 = redisson.getLock("lock:stock:" + toId);
-        RLock multiLock = redisson.getMultiLock(lock1, lock2);
-
-        try {
-            multiLock.lock(10, TimeUnit.SECONDS);
-            // 재고 이동 로직
-        } finally {
-            multiLock.unlock();
-        }
+    try {
+        // 재고 이동 로직
+    } finally {
+        await releaseLock(`lock:stock:${second}`, token2);
+        await releaseLock(`lock:stock:${first}`, token1);
     }
 }
+
+declare function doProcess(orderId: number): Promise<void>;
 ```
 
 ### 5.4 AOP 기반 분산 락
 
-```java
-// 커스텀 어노테이션
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface DistributedLock {
-    String key();                    // SpEL 지원
-    long waitTime() default 5;      // 대기 시간(초)
-    long leaseTime() default 10;    // 락 유지 시간(초)
-}
+```typescript
+// 데코레이터 기반 분산 락 (TypeScript)
+import { acquireLock, releaseLock } from './distributedLock';
 
-// AOP 처리
-@Aspect
-@Component
-public class DistributedLockAspect {
-
-    private final RedissonClient redisson;
-
-    @Around("@annotation(distributedLock)")
-    public Object around(ProceedingJoinPoint pjp,
-                          DistributedLock distributedLock) throws Throwable {
-        String key = parseKey(distributedLock.key(), pjp);
-        RLock lock = redisson.getLock("lock:" + key);
-
-        try {
-            boolean acquired = lock.tryLock(
-                distributedLock.waitTime(),
-                distributedLock.leaseTime(),
-                TimeUnit.SECONDS
-            );
-            if (!acquired) {
-                throw new RuntimeException("락 획득 실패: " + key);
+// 분산 락 데코레이터
+function DistributedLock(opts: { key: string | ((args: any[]) => string); waitSec?: number; leaseSec?: number }) {
+    return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+        const original = descriptor.value;
+        descriptor.value = async function (...args: any[]) {
+            const lockKey = 'lock:' + (typeof opts.key === 'function' ? opts.key(args) : opts.key);
+            const token = await acquireLock(lockKey, opts.leaseSec ?? 10, opts.waitSec ?? 5);
+            if (!token) throw new Error(`락 획득 실패: ${lockKey}`);
+            try {
+                return await original.apply(this, args);
+            } finally {
+                await releaseLock(lockKey, token);
             }
-            return pjp.proceed();
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
-    }
+        };
+        return descriptor;
+    };
 }
 
 // 사용
-@Service
-public class StockService {
+class StockService {
+    constructor(
+        private readonly stockRepository: StockRepository,
+    ) {}
 
-    @DistributedLock(key = "'stock:' + #productId")
-    public void decrease(Long productId, int quantity) {
-        Stock stock = stockRepository.findByProductId(productId);
+    @DistributedLock({ key: (args) => `stock:${args[0]}`, waitSec: 5, leaseSec: 10 })
+    async decrease(productId: number, quantity: number): Promise<void> {
+        const stock = await this.stockRepository.findByProductId(productId);
         stock.decrease(quantity);
-        stockRepository.save(stock);
+        await this.stockRepository.save(stock);
     }
+}
+
+declare class StockRepository {
+    findByProductId(id: number): Promise<{ decrease(q: number): void }>;
+    save(stock: any): Promise<void>;
 }
 ```
 
-## 6. Spring Data Redis
+## 6. ioredis 설정 및 캐싱 패턴
 
 ### 6.1 기본 설정
 
@@ -1024,163 +1026,169 @@ spring:
           max-wait: 3000ms     # 커넥션 대기 시간
 ```
 
-```java
-@Configuration
-@EnableCaching
-public class RedisConfig {
+```typescript
+// npm install ioredis
+import Redis from 'ioredis';
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(
-            RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
+const redis = new Redis({
+    host: 'localhost',
+    port: 6379,
+    password: 'redis-password',
+    maxRetriesPerRequest: 3,
+});
 
-        // JSON 직렬화
-        ObjectMapper om = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .activateDefaultTyping(
-                om.getPolymorphicTypeValidator(),
-                ObjectMapper.DefaultTyping.NON_FINAL
-            );
+// 캐시별 TTL 설정 (초 단위)
+const cacheTtl: Record<string, number> = {
+    default: 30 * 60,       // 30분
+    users: 60 * 60,         // 1시간
+    products: 10 * 60,      // 10분
+};
 
-        GenericJackson2JsonRedisSerializer serializer =
-            new GenericJackson2JsonRedisSerializer(om);
+// 범용 캐시 헬퍼 (JSON 직렬화/역직렬화)
+async function cacheGet<T>(key: string): Promise<T | null> {
+    const raw = await redis.get(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+}
 
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(serializer);
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(serializer);
+async function cacheSet(key: string, value: unknown, cacheName = 'default'): Promise<void> {
+    const ttl = cacheTtl[cacheName] ?? cacheTtl.default;
+    await redis.set(key, JSON.stringify(value), 'EX', ttl);
+}
 
-        return template;
-    }
-
-    // 캐시 매니저
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory cf) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(30))
-            .serializeKeysWith(
-                RedisSerializationContext.SerializationPair
-                    .fromSerializer(new StringRedisSerializer()))
-            .serializeValuesWith(
-                RedisSerializationContext.SerializationPair
-                    .fromSerializer(new GenericJackson2JsonRedisSerializer()));
-
-        return RedisCacheManager.builder(cf)
-            .cacheDefaults(config)
-            .withCacheConfiguration("users",
-                config.entryTtl(Duration.ofHours(1)))
-            .withCacheConfiguration("products",
-                config.entryTtl(Duration.ofMinutes(10)))
-            .build();
-    }
+async function cacheDel(key: string): Promise<void> {
+    await redis.del(key);
 }
 ```
 
-### 6.2 캐싱 어노테이션
+### 6.2 캐싱 패턴
 
-```java
-@Service
-public class UserService {
+```typescript
+class UserService {
+    constructor(
+        private readonly userRepository: UserRepository,
+        private readonly redis: Redis,
+    ) {}
 
-    // 캐시 저장/조회
-    @Cacheable(value = "users", key = "#id",
-               unless = "#result == null")
-    public UserDto findById(Long id) {
-        return userRepository.findById(id)
-            .map(UserDto::from)
-            .orElse(null);
+    // 캐시 저장/조회 (Cache-Aside)
+    async findById(id: number): Promise<UserDto | null> {
+        const key = `users:${id}`;
+        const cached = await cacheGet<UserDto>(key);
+        if (cached) return cached;
+
+        const user = await this.userRepository.findById(id);
+        if (!user) return null;
+        const dto = UserDto.from(user);
+        await cacheSet(key, dto, 'users');
+        return dto;
     }
 
-    // 캐시 갱신
-    @CachePut(value = "users", key = "#request.id")
-    public UserDto update(UpdateUserRequest request) {
-        User user = userRepository.findById(request.getId())
-            .orElseThrow();
+    // 캐시 갱신 (Write-Through)
+    async update(request: UpdateUserRequest): Promise<UserDto> {
+        const user = await this.userRepository.findById(request.id);
+        if (!user) throw new Error('User not found');
         user.update(request);
-        return UserDto.from(userRepository.save(user));
+        const saved = await this.userRepository.save(user);
+        const dto = UserDto.from(saved);
+        await cacheSet(`users:${request.id}`, dto, 'users');
+        return dto;
     }
 
     // 캐시 삭제
-    @CacheEvict(value = "users", key = "#id")
-    public void delete(Long id) {
-        userRepository.deleteById(id);
+    async delete(id: number): Promise<void> {
+        await this.userRepository.deleteById(id);
+        await cacheDel(`users:${id}`);
     }
 
     // 여러 캐시 동시 삭제
-    @CacheEvict(value = "users", allEntries = true)
-    public void clearCache() { }
-
-    // 복합 조건
-    @Caching(
-        evict = {
-            @CacheEvict(value = "users", key = "#id"),
-            @CacheEvict(value = "userList", allEntries = true)
-        }
-    )
-    public void deleteWithListCache(Long id) {
-        userRepository.deleteById(id);
+    async clearCache(): Promise<void> {
+        const keys = await this.redis.keys('users:*');
+        if (keys.length > 0) await this.redis.del(...keys);
     }
+
+    // 복합 조건 - 단일 항목 + 목록 캐시 동시 삭제
+    async deleteWithListCache(id: number): Promise<void> {
+        await this.userRepository.deleteById(id);
+        const listKeys = await this.redis.keys('userList:*');
+        const allKeys = [`users:${id}`, ...listKeys];
+        if (allKeys.length > 0) await this.redis.del(...allKeys);
+    }
+}
+
+declare class UserRepository {
+    findById(id: number): Promise<any>;
+    save(user: any): Promise<any>;
+    deleteById(id: number): Promise<void>;
+}
+interface UpdateUserRequest { id: number; [key: string]: any; }
+class UserDto {
+    static from(user: any): UserDto { return user as UserDto; }
 }
 ```
 
-### 6.3 RedisTemplate 직접 사용
+### 6.3 ioredis 직접 사용
 
-```java
-@Repository
-public class UserRedisRepository {
+```typescript
+const KEY_PREFIX = 'user:';
 
-    private final RedisTemplate<String, Object> redisTemplate;
-
-    private static final String KEY_PREFIX = "user:";
+class UserRedisRepository {
+    constructor(private readonly redis: Redis) {}
 
     // String 연산
-    public void save(UserDto user) {
-        String key = KEY_PREFIX + user.getId();
-        redisTemplate.opsForValue().set(key, user, Duration.ofHours(1));
+    async save(user: UserDto & { id: number; name: string; email: string; age: number }): Promise<void> {
+        const key = KEY_PREFIX + user.id;
+        await this.redis.set(key, JSON.stringify(user), 'EX', 3600);
     }
 
-    public UserDto findById(Long id) {
-        return (UserDto) redisTemplate.opsForValue().get(KEY_PREFIX + id);
+    async findById(id: number): Promise<UserDto | null> {
+        const raw = await this.redis.get(KEY_PREFIX + id);
+        return raw ? (JSON.parse(raw) as UserDto) : null;
     }
 
     // Hash 연산
-    public void saveAsHash(UserDto user) {
-        String key = KEY_PREFIX + user.getId();
-        redisTemplate.opsForHash().putAll(key, Map.of(
-            "name", user.getName(),
-            "email", user.getEmail(),
-            "age", String.valueOf(user.getAge())
-        ));
-        redisTemplate.expire(key, Duration.ofHours(1));
+    async saveAsHash(user: { id: number; name: string; email: string; age: number }): Promise<void> {
+        const key = KEY_PREFIX + user.id;
+        await this.redis.hset(key, {
+            name: user.name,
+            email: user.email,
+            age: String(user.age),
+        });
+        await this.redis.expire(key, 3600);
     }
 
     // Sorted Set (리더보드)
-    public void updateScore(Long userId, double score) {
-        redisTemplate.opsForZSet().add("leaderboard", userId.toString(), score);
+    async updateScore(userId: number, score: number): Promise<void> {
+        await this.redis.zadd('leaderboard', score, String(userId));
     }
 
-    public Set<ZSetOperations.TypedTuple<Object>> getTopN(int n) {
-        return redisTemplate.opsForZSet()
-            .reverseRangeWithScores("leaderboard", 0, n - 1);
+    async getTopN(n: number): Promise<{ member: string; score: number }[]> {
+        const raw = await this.redis.zrevrangebyscore(
+            'leaderboard', '+inf', '-inf',
+            'WITHSCORES', 'LIMIT', '0', String(n),
+        );
+        const result: { member: string; score: number }[] = [];
+        for (let i = 0; i < raw.length; i += 2) {
+            result.push({ member: raw[i], score: Number(raw[i + 1]) });
+        }
+        return result;
     }
 
     // Set (고유 방문자)
-    public void trackVisitor(String date, String userId) {
-        redisTemplate.opsForSet().add("visitors:" + date, userId);
+    async trackVisitor(date: string, userId: string): Promise<void> {
+        await this.redis.sadd(`visitors:${date}`, userId);
     }
 
-    public Long getUniqueVisitors(String date) {
-        return redisTemplate.opsForSet().size("visitors:" + date);
+    async getUniqueVisitors(date: string): Promise<number> {
+        return this.redis.scard(`visitors:${date}`);
     }
 
     // Pipeline (배치 처리)
-    public List<Object> batchGet(List<Long> ids) {
-        return redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            StringRedisConnection conn = (StringRedisConnection) connection;
-            ids.forEach(id -> conn.get(KEY_PREFIX + id));
-            return null;
-        });
+    async batchGet(ids: number[]): Promise<(UserDto | null)[]> {
+        const pipeline = this.redis.pipeline();
+        ids.forEach((id) => pipeline.get(KEY_PREFIX + id));
+        const results = await pipeline.exec();
+        return (results ?? []).map(([, raw]) =>
+            raw ? (JSON.parse(raw as string) as UserDto) : null
+        );
     }
 }
 ```
@@ -1277,24 +1285,17 @@ Pipeline:
   총 시간: 1 × RTT + N × 명령 실행
 ```
 
-```java
-// Spring에서 Pipeline
-List<Object> results = redisTemplate.executePipelined(
-    (RedisCallback<Object>) connection -> {
-        for (int i = 0; i < 1000; i++) {
-            connection.stringCommands().set(
-                ("key:" + i).getBytes(),
-                ("value:" + i).getBytes()
-            );
-        }
-        return null;  // Pipeline은 null 반환
-    }
-);
+```typescript
+// ioredis Pipeline
+const pipeline = redis.pipeline();
+for (let i = 0; i < 1000; i++) {
+    pipeline.set(`key:${i}`, `value:${i}`);
+}
+const results = await pipeline.exec();
+// results: [null | Error, string | null][]
 
-// Lettuce Reactive Pipeline (WebFlux 환경)
-reactiveRedisTemplate.opsForValue()
-    .multiSet(Map.of("k1", "v1", "k2", "v2", "k3", "v3"))
-    .subscribe();
+// mset으로 한 번에 여러 키 설정
+await redis.mset({ k1: 'v1', k2: 'v2', k3: 'v3' });
 ```
 
 ### 7.5 영속성 최적화

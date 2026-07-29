@@ -437,46 +437,44 @@ try {
 }
 ```
 
-#### Spring Data MongoDB 트랜잭션
+#### Node.js MongoDB 트랜잭션
 
-```java
-@Configuration
-public class MongoConfig {
+```typescript
+import { MongoClient } from 'mongodb';
 
-    @Bean
-    MongoTransactionManager transactionManager(MongoDatabaseFactory dbFactory) {
-        return new MongoTransactionManager(dbFactory);
-    }
-}
+const client = new MongoClient('mongodb://host1:27017,host2:27017/?replicaSet=rs0');
 
-@Service
-@RequiredArgsConstructor
-public class TransferService {
+async function transfer(fromId: string, toId: string, amount: number): Promise<void> {
+    const session = client.startSession();
+    try {
+        await session.withTransaction(async () => {
+            const db = client.db('mydb');
 
-    private final MongoTemplate mongoTemplate;
+            // 출금 계좌 잔액 확인 후 차감
+            const debitResult = await db.collection('accounts').updateOne(
+                { _id: fromId, balance: { $gte: amount } },
+                { $inc: { balance: -amount } },
+                { session }
+            );
+            if (debitResult.modifiedCount === 0) {
+                throw new Error(`잔액 부족: ${fromId}`);
+            }
 
-    @Transactional
-    public void transfer(String fromId, String toId, long amount) {
-        // 출금 계좌 잔액 확인 후 차감
-        UpdateResult debit = mongoTemplate.updateFirst(
-            Query.query(Criteria.where("_id").is(fromId)
-                                .and("balance").gte(amount)),
-            new Update().inc("balance", -amount),
-            Account.class
-        );
-        if (debit.getModifiedCount() == 0) {
-            throw new InsufficientBalanceException(fromId);
-        }
+            // 입금
+            await db.collection('accounts').updateOne(
+                { _id: toId },
+                { $inc: { balance: amount } },
+                { session }
+            );
 
-        // 입금
-        mongoTemplate.updateFirst(
-            Query.query(Criteria.where("_id").is(toId)),
-            new Update().inc("balance", amount),
-            Account.class
-        );
-
-        // 이체 내역
-        mongoTemplate.insert(new Transfer(fromId, toId, amount, Instant.now()));
+            // 이체 내역
+            await db.collection('transfers').insertOne(
+                { fromId, toId, amount, createdAt: new Date() },
+                { session }
+            );
+        });
+    } finally {
+        await session.endSession();
     }
 }
 ```
@@ -536,34 +534,28 @@ changeStream.on("change", (event) => {
 }
 ```
 
-#### Spring Data MongoDB
+#### Node.js MongoDB Change Streams
 
-```java
-@Component
-@RequiredArgsConstructor
-public class OrderChangeListener {
+```typescript
+import { MongoClient, ChangeStreamDocument } from 'mongodb';
 
-    private final MongoTemplate mongoTemplate;
+async function watchOrders(client: MongoClient): Promise<void> {
+    const db = client.db('mydb');
+    const collection = db.collection('orders');
 
-    @PostConstruct
-    public void watchOrders() {
-        // fullDocument: "updateLookup" → update 이벤트에 변경 후 전체 문서 포함
-        ChangeStreamOptions options = ChangeStreamOptions.builder()
-            .filter(Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("operationType").in("insert", "update"))
-            ))
-            .fullDocumentLookup(FullDocument.UPDATE_LOOKUP)
-            .build();
+    // fullDocument: "updateLookup" → update 이벤트에 변경 후 전체 문서 포함
+    const changeStream = collection.watch(
+        [{ $match: { operationType: { $in: ['insert', 'update'] } } }],
+        { fullDocument: 'updateLookup' }
+    );
 
-        Flux<ChangeStreamEvent<Order>> flux = mongoTemplate
-            .changeStream("orders", options, Order.class);
-
-        flux.subscribe(event -> {
-            Order order = event.getBody();
+    changeStream.on('change', (event: ChangeStreamDocument) => {
+        if (event.operationType === 'update' || event.operationType === 'insert') {
+            const order = event.fullDocument;
             // 주문 상태 변경 알림, 캐시 갱신, 외부 시스템 연동 등
-            log.info("Order changed: id={}, status={}", order.getId(), order.getStatus());
-        });
-    }
+            logger.info(`Order changed: id=${order?._id}, status=${order?.status}`);
+        }
+    });
 }
 ```
 
@@ -925,30 +917,19 @@ mongock:
   migration-scan-package: com.example.migration
 ```
 
-```java
-@Configuration
-public class MongoConfig {
+```typescript
+import { MongoClient } from 'mongodb';
 
-    @Bean
-    public MongoClientSettings mongoClientSettings() {
-        return MongoClientSettings.builder()
-            .applyConnectionString(
-                new ConnectionString("mongodb://host1:27017,host2:27017/mydb?replicaSet=rs0"))
-            .applyToConnectionPoolSettings(pool -> pool
-                .maxSize(100)
-                .minSize(10)
-                .maxWaitTime(5, TimeUnit.SECONDS)
-                .maxConnectionIdleTime(60, TimeUnit.SECONDS)
-            )
-            .applyToSocketSettings(socket -> socket
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-            )
-            .readPreference(ReadPreference.secondaryPreferred())   // 읽기는 Secondary 우선
-            .writeConcern(WriteConcern.MAJORITY)                   // 과반수 노드에 쓰기 확인
-            .build();
-    }
-}
+const client = new MongoClient('mongodb://host1:27017,host2:27017/?replicaSet=rs0', {
+    maxPoolSize: 100,
+    minPoolSize: 10,
+    waitQueueTimeoutMS: 5000,
+    maxIdleTimeMS: 60000,
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 15000,
+    readPreference: 'secondaryPreferred',   // 읽기는 Secondary 우선
+    writeConcern: { w: 'majority' },         // 과반수 노드에 쓰기 확인
+});
 ```
 
 커넥션 풀 설정에서 자주 실수하는 부분:
@@ -957,67 +938,65 @@ public class MongoConfig {
 - `minPoolSize`를 0으로 두면 트래픽이 없는 동안 커넥션이 모두 정리되고, 갑자기 트래픽이 들어오면 커넥션 생성 지연이 발생한다.
 - `waitQueueTimeoutMS`가 너무 길면 커넥션 부족 상황에서 요청이 계속 쌓인다. 적절한 값으로 설정하고 타임아웃 발생 시 빠르게 실패하도록 한다.
 
-### 15. Spring Data MongoDB
+### 15. Node.js MongoDB 드라이버 활용
 
-```java
-@Document(collection = "users")
-public class User {
-    @Id
-    private String id;
+```typescript
+import { MongoClient, ObjectId } from 'mongodb';
 
-    @Indexed(unique = true)
-    private String email;
-
-    private String name;
-    private int age;
-
-    @Field("addr")
-    private Address address;        // 내장 문서
-
-    private List<String> tags;
-
-    @CreatedDate
-    private LocalDateTime createdAt;
+interface Address {
+    city: string;
+    street: string;
 }
 
-// Repository
-public interface UserRepository extends MongoRepository<User, String> {
-
-    Optional<User> findByEmail(String email);
-
-    List<User> findByAgeBetween(int min, int max);
-
-    @Query("{ 'address.city': ?0, age: { $gte: ?1 } }")
-    List<User> findByCityAndMinAge(String city, int minAge);
-
-    @Aggregation(pipeline = {
-        "{ $group: { _id: '$address.city', count: { $sum: 1 } } }",
-        "{ $sort: { count: -1 } }"
-    })
-    List<CityCount> countByCity();
+interface User {
+    _id?: ObjectId;
+    email: string;
+    name: string;
+    age: number;
+    addr?: Address;   // 내장 문서
+    tags?: string[];
+    createdAt?: Date;
 }
 
-// MongoTemplate (복잡한 쿼리)
-@Service
-public class UserService {
+// 기본 CRUD
+const db = client.db('mydb');
+const users = db.collection<User>('users');
 
-    private final MongoTemplate mongoTemplate;
+// 이메일로 단건 조회
+const user = await users.findOne({ email: 'test@example.com' });
 
-    public List<User> searchUsers(UserSearchCriteria criteria) {
-        Query query = new Query();
+// 나이 범위 조회
+const ageRange = await users.find({ age: { $gte: 20, $lte: 30 } }).toArray();
 
-        if (criteria.getName() != null) {
-            query.addCriteria(Criteria.where("name").regex(criteria.getName(), "i"));
-        }
-        if (criteria.getMinAge() != null) {
-            query.addCriteria(Criteria.where("age").gte(criteria.getMinAge()));
-        }
+// 도시 + 최소 나이 조건 조회
+const cityAge = await users.find({
+    'addr.city': 'Seoul',
+    age: { $gte: 25 },
+}).toArray();
 
-        query.with(Sort.by(Sort.Direction.DESC, "createdAt"));
-        query.with(PageRequest.of(criteria.getPage(), criteria.getSize()));
+// Aggregation (도시별 사용자 수)
+const cityCounts = await users.aggregate([
+    { $group: { _id: '$addr.city', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+]).toArray();
 
-        return mongoTemplate.find(query, User.class);
+// 복잡한 동적 쿼리 (UserService)
+async function searchUsers(criteria: UserSearchCriteria): Promise<User[]> {
+    const filter: Record<string, unknown> = {};
+
+    if (criteria.name) {
+        filter.name = { $regex: criteria.name, $options: 'i' };
     }
+    if (criteria.minAge !== undefined) {
+        filter.age = { $gte: criteria.minAge };
+    }
+
+    return users
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(criteria.page * criteria.size)
+        .limit(criteria.size)
+        .toArray();
 }
 ```
 

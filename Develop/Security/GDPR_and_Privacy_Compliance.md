@@ -509,24 +509,41 @@ class BreachIncident:
 
 PII가 어느 컬럼·필드·로그에 있는지를 메타데이터로 강제하면 컴플라이언스 대응이 자동화된다. DB 컬럼 코멘트, 코드 어노테이션, 카탈로그 시스템 어디든 좋다.
 
-```java
-// Spring Boot — 필드에 PII 분류를 어노테이션으로 부착
-public class User {
-    @PII(category = "identifier", retention = "until_deletion")
-    private String email;
+```typescript
+// TypeScript — 필드에 PII 분류를 데코레이터로 부착 (reflect-metadata 사용)
+import 'reflect-metadata';
 
-    @PII(category = "identifier", sensitive = true, retention = "until_deletion")
-    private String residentRegNo;
+interface PiiOptions {
+  category: 'identifier' | 'quasi' | 'sensitive';
+  sensitive?: boolean;
+  retention: 'until_deletion' | 'contractual' | string;
+}
 
-    @PII(category = "quasi", retention = "until_deletion")
-    private LocalDate birthDate;
+function PII(options: PiiOptions): PropertyDecorator {
+  return (target, propertyKey) => {
+    const existing: Record<string, PiiOptions> =
+      Reflect.getMetadata('pii:fields', target) ?? {};
+    existing[String(propertyKey)] = options;
+    Reflect.defineMetadata('pii:fields', existing, target);
+  };
+}
 
-    // 비식별 — 어노테이션 없음
-    private String displayName;
+class User {
+  @PII({ category: 'identifier', retention: 'until_deletion' })
+  email: string;
+
+  @PII({ category: 'identifier', sensitive: true, retention: 'until_deletion' })
+  residentRegNo: string;
+
+  @PII({ category: 'quasi', retention: 'until_deletion' })
+  birthDate: Date;
+
+  // 비식별 — 데코레이터 없음
+  displayName: string;
 }
 ```
 
-어노테이션이 붙은 필드는 로그 출력 시 자동 마스킹, 직렬화 시 별도 처리, 감사 로그 기록 등 횡단 관심사를 한꺼번에 처리한다. 새 필드를 추가했는데 분류 어노테이션이 없으면 빌드 단계에서 경고를 띄우는 식으로 강제할 수 있다.
+데코레이터가 붙은 필드는 로그 출력 시 자동 마스킹, 직렬화 시 별도 처리, 감사 로그 기록 등 횡단 관심사를 한꺼번에 처리한다. 새 필드를 추가했는데 분류 데코레이터가 없으면 CI 단계에서 경고를 띄우는 식으로 강제할 수 있다.
 
 ### 삭제 가능성을 처음부터 설계
 

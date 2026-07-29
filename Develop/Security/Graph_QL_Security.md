@@ -67,31 +67,23 @@ const server = new ApolloServer({
 });
 ```
 
-### graphql-java에서 차단
+### graphql validation rule로 차단
 
-graphql-java는 introspection을 끄는 옵션이 별도로 없다. `IntrospectionWhitelist` 같은 게 표준에 없어서 `Instrumentation`으로 introspection 필드를 막거나, 아예 introspection을 비활성화하는 방식을 쓴다. graphql-java 16 이상은 `GraphQL.Builder`에서 introspection을 끄는 옵션을 제공한다.
+`graphql` 패키지의 `NoSchemaIntrospectionCustomRule`을 `validationRules`에 추가하면 introspection 쿼리 자체를 검증 단계에서 거부한다. `introspection: false` 옵션보다 더 엄격하게, `__schema`/`__type` 필드가 포함된 쿼리를 파싱 후 즉시 에러로 반환한다.
 
-```java
-GraphQLSchema schema = GraphQLSchema.newSchema()
-    .query(queryType)
-    // introspection 비활성화
-    .additionalDirective(/* ... */)
-    .build();
+```typescript
+import { NoSchemaIntrospectionCustomRule } from 'graphql';
+import { ApolloServer } from '@apollo/server';
 
-// graphql-java 권장 방식: 별도 Instrumentation으로 __schema/__type 차단
-GraphQL graphQL = GraphQL.newGraphQL(schema)
-    .instrumentation(new IntrospectionDisablingInstrumentation())
-    .build();
-```
-
-Spring for GraphQL을 쓴다면 더 간단하다. `application.yml`에서 끈다.
-
-```yaml
-spring:
-  graphql:
-    schema:
-      introspection:
-        enabled: false
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  introspection: false,
+  validationRules: [
+    // __schema, __type 등 introspection 필드를 검증 단계에서 거부
+    NoSchemaIntrospectionCustomRule,
+  ],
+});
 ```
 
 introspection을 끄면 클라이언트 팀이 스키마를 못 받는다고 불평하는 경우가 있다. 그럴 때는 빌드 타임에 스키마를 SDL 파일로 export해서 별도 채널(내부 위키, 사내 스키마 레지스트리)로 공유한다. 런타임 introspection이랑 스키마 공유는 별개 문제다.
@@ -145,28 +137,28 @@ const server = new ApolloServer({
 
 depth limit은 파싱·검증 단계에서 동작하므로 resolver가 한 번도 안 불린 채로 거부된다. 즉 DB 조회 전에 막힌다. 이게 핵심이다.
 
-### graphql-java에서 깊이 제한
+### Apollo Server에서 깊이 + 복잡도 같이 제한
 
-graphql-java는 `MaxQueryDepthInstrumentation`을 기본 제공한다.
+`graphql-depth-limit`과 `graphql-query-complexity`를 `validationRules` 배열에 같이 넣으면 두 제한을 동시에 적용할 수 있다.
 
-```java
-GraphQL graphQL = GraphQL.newGraphQL(schema)
-    .instrumentation(new MaxQueryDepthInstrumentation(10))
-    .build();
+```typescript
+import depthLimit from 'graphql-depth-limit';
+import { createComplexityRule, simpleEstimator } from 'graphql-query-complexity';
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  validationRules: [
+    depthLimit(10),
+    createComplexityRule({
+      maximumComplexity: 200,
+      estimators: [simpleEstimator({ defaultComplexity: 1 })],
+    }),
+  ],
+});
 ```
 
-깊이를 초과하면 `AbortExecutionException`이 던져지고 쿼리가 실행 전에 중단된다. 여러 Instrumentation을 같이 쓸 때는 `ChainedInstrumentation`으로 묶는다.
-
-```java
-List<Instrumentation> chain = List.of(
-    new MaxQueryDepthInstrumentation(10),
-    new MaxQueryComplexityInstrumentation(200)
-);
-
-GraphQL graphQL = GraphQL.newGraphQL(schema)
-    .instrumentation(new ChainedInstrumentation(chain))
-    .build();
-```
+깊이를 초과하거나 복잡도 한도를 넘으면 resolver가 한 번도 불리지 않은 채 검증 단계에서 거부된다.
 
 ---
 
@@ -214,22 +206,47 @@ type Query {
 
 실무에서는 `onComplete` 콜백을 먼저 붙여서 실제 트래픽의 복잡도 분포를 며칠 모니터링한다. 그 분포를 보고 `maximumComplexity`를 정한다. 처음부터 한도를 걸면 정상 쿼리가 막혀서 장애로 이어진다. 모니터링 → 한도 설정 → 점진적 강화 순서로 가야 한다.
 
-### graphql-java에서 복잡도 제한
+### 필드별 비용을 인자 기반으로 계산하기
 
-graphql-java는 `MaxQueryComplexityInstrumentation`을 제공한다. 필드별 복잡도 계산 함수를 넘긴다.
+`graphql-query-complexity`의 `fieldExtensionsEstimator`를 쓰면 스키마 확장(extension)에서 비용을 읽어온다. `first` 같은 인자를 곱셈 계수로 반영하려면 `fieldExtensionsEstimator`와 `simpleEstimator`를 함께 쓴다.
 
-```java
-FieldComplexityCalculator calculator = (env, childComplexity) -> {
-    // first 인자가 있으면 그 값만큼 곱하고, 없으면 기본 1 + 자식 복잡도
-    Integer first = env.getArguments().containsKey("first")
-        ? (Integer) env.getArguments().get("first")
-        : 1;
-    return first * (1 + childComplexity);
-};
+```typescript
+import {
+  createComplexityRule,
+  fieldExtensionsEstimator,
+  simpleEstimator,
+} from 'graphql-query-complexity';
 
-GraphQL graphQL = GraphQL.newGraphQL(schema)
-    .instrumentation(new MaxQueryComplexityInstrumentation(200, calculator))
-    .build();
+// 스키마 정의에서 extensions.complexity를 읽어 비용 계산
+const complexityRule = createComplexityRule({
+  maximumComplexity: 200,
+  estimators: [
+    // 필드에 extensions.complexity가 정의돼 있으면 그 값 사용
+    fieldExtensionsEstimator(),
+    // fallback: 기본 비용 1
+    simpleEstimator({ defaultComplexity: 1 }),
+  ],
+  onComplete: (complexity) => {
+    // 실제 트래픽 복잡도를 며칠 관찰한 뒤 maximumComplexity를 조정한다
+    console.log('Query complexity:', complexity);
+  },
+});
+```
+
+TypeScript 리졸버에서 `first` 인자를 직접 반영하고 싶다면 커스텀 estimator를 작성한다.
+
+```typescript
+import { createComplexityRule } from 'graphql-query-complexity';
+
+const complexityRule = createComplexityRule({
+  maximumComplexity: 200,
+  estimators: [
+    (options) => {
+      const first = options.args?.first ?? 1;
+      return first * (1 + options.childComplexity);
+    },
+  ],
+});
 ```
 
 복잡도 계산 로직은 스키마마다 직접 짜야 해서 손이 좀 간다. 그래도 리스트 인자를 곱셈으로 반영하는 것만 제대로 해도 대부분의 폭주 쿼리는 잡힌다.
@@ -343,24 +360,7 @@ DataLoader에서 자주 하는 실수가 두 가지 있다. 하나는 반환 배
 
 다른 하나는 DataLoader를 요청 간에 재사용하는 것이다. DataLoader는 내부에 캐시를 들고 있어서 전역으로 만들면 A 사용자가 조회한 데이터를 B 사용자가 그대로 받는다. 반드시 요청마다 새로 만든다.
 
-graphql-java 쪽은 `org.dataloader.DataLoader`를 `DataLoaderRegistry`에 등록해서 쓴다. Spring for GraphQL은 `BatchLoaderRegistry`로 등록하면 `@BatchMapping`이 알아서 배치 처리한다.
-
-```java
-@Controller
-public class PostController {
-
-    // author 필드를 항목별이 아니라 배치로 한 번에 로드
-    @BatchMapping
-    public Map<Post, Author> author(List<Post> posts) {
-        List<Long> authorIds = posts.stream()
-            .map(Post::getAuthorId).toList();
-        Map<Long, Author> authors = authorRepository.findAllById(authorIds)
-            .stream().collect(Collectors.toMap(Author::getId, a -> a));
-        return posts.stream()
-            .collect(Collectors.toMap(p -> p, p -> authors.get(p.getAuthorId())));
-    }
-}
-```
+TypeScript에서는 위 `createLoaders` 예제처럼 DataLoader를 직접 구성하고, 요청 context에 담아서 각 resolver가 그 인스턴스를 통해 조회하는 것이 표준 패턴이다. 요청마다 새 DataLoader 인스턴스를 생성해야 요청 간 캐시 공유가 일어나지 않는다.
 
 ---
 

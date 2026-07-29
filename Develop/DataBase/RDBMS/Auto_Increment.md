@@ -306,97 +306,93 @@ MySQL의 `LAST_INSERT_ID()`와 대응하는 것이 `lastval()`이다.
 
 `@GeneratedValue(strategy = GenerationType.IDENTITY)`는 데이터베이스의 AUTO_INCREMENT에 id 생성을 맡긴다.
 
-```java
-@Entity
-public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+```typescript
+// TypeORM — IDENTITY 전략 (AUTO_INCREMENT)
+@Entity()
+export class Order {
+    @PrimaryGeneratedColumn()  // IDENTITY 전략 (AUTO_INCREMENT)
+    id: number;
 }
 ```
 
-Hibernate는 기본적으로 쓰기 지연(write-behind)을 통해 여러 INSERT를 배치로 묶는다. 이 배치가 동작하려면 INSERT 전에 각 엔티티의 id를 알아야 한다. 영속성 컨텍스트가 엔티티를 id를 키로 관리하기 때문이다.
+TypeORM은 `persist()` 후 INSERT 결과에서 생성된 id를 반환한다. 배치 INSERT 전에 id를 알 수 없으므로, 개별 INSERT가 순차적으로 실행된다.
 
-IDENTITY 전략에서는 실제 INSERT가 완료된 후에야 데이터베이스가 id를 반환한다(`LAST_INSERT_ID()`). INSERT 전에 id를 알 수 없으므로, Hibernate는 `entityManager.persist()` 시점에 즉시 INSERT를 실행한다. 배치로 묶을 수 없다.
-
-```java
-// application.yml
-spring:
-  jpa:
-    properties:
-      hibernate.jdbc.batch_size: 50
-      hibernate.order_inserts: true
-
-// 이 설정이 있어도 IDENTITY 전략이면 배치가 동작하지 않는다
-for (Order order : orders) {
-    entityManager.persist(order); // 즉시 INSERT 실행, 배치 아님
+```typescript
+// TypeORM에서 배치 INSERT가 동작하지 않는 경우
+// 엔티티마다 즉시 INSERT가 실행된다
+for (const order of orders) {
+    await manager.save(Order, order); // 즉시 INSERT 실행, 배치 아님
 }
 ```
 
-SEQUENCE 전략은 이 문제가 없다. INSERT 전에 `nextval()`로 id를 미리 받아올 수 있어 Hibernate가 배치를 구성할 수 있다.
+SEQUENCE 전략(PostgreSQL)은 INSERT 전에 `nextval()`로 id를 미리 받아올 수 있다.
 
-```java
-@Entity
-@SequenceGenerator(
-    name = "order_seq",
-    sequenceName = "order_sequence",
-    allocationSize = 50
-)
-public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_seq")
-    private Long id;
+```typescript
+// TypeORM — SEQUENCE 전략 (PostgreSQL)
+@Entity()
+export class Order {
+    @PrimaryGeneratedColumn('increment')
+    id: number;
 }
 
-// allocationSize = 50이면 50번의 persist()마다 nextval 1번
-for (Order order : orders) {
-    entityManager.persist(order); // INSERT가 묶인다
-}
-// flush 시점에 50개 INSERT를 배치로 실행
+// 배치로 묶으려면 TypeORM의 insert() 사용
+await manager.insert(Order, orders);
+// 내부적으로 단일 INSERT ... VALUES (...), (...) 로 실행
 ```
 
-MySQL에서 SEQUENCE 전략을 쓰면 Hibernate가 `hibernate_sequence` 에뮬레이션 테이블을 만들어 잠금 기반으로 처리한다. 잠금 경합이 발생해서 MySQL에서는 IDENTITY 전략이 현실적이다.
+MySQL에서 대량 INSERT 성능이 중요한 경우 TypeORM의 배치 insert나 pg/mysql2 드라이버의 직접 배치 처리를 쓰는 것이 실용적이다.
 
-MySQL에서 대량 INSERT 성능이 중요한 경우 Hibernate 배치를 포기하고 직접 JDBC 배치를 쓰는 것이 실용적이다.
+```typescript
+import { Pool } from 'pg';
 
-```java
-@Repository
-public class OrderBatchRepository {
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+export class OrderBatchRepository {
+    constructor(private readonly pool: Pool) {}
 
-    public void batchInsert(List<Order> orders) {
-        jdbcTemplate.batchUpdate(
-            "INSERT INTO orders (user_id, total, created_at) VALUES (?, ?, ?)",
-            orders,
-            500,
-            (ps, order) -> {
-                ps.setLong(1, order.getUserId());
-                ps.setBigDecimal(2, order.getTotal());
-                ps.setTimestamp(3, Timestamp.valueOf(order.getCreatedAt()));
-            }
-        );
+    async batchInsert(orders: Order[]): Promise<void> {
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // 배치 INSERT: VALUES 절을 동적으로 조합
+            const values: unknown[] = [];
+            const placeholders = orders.map((order, i) => {
+                const base = i * 3;
+                values.push(order.userId, order.total, order.createdAt);
+                return `($${base + 1}, $${base + 2}, $${base + 3})`;
+            });
+
+            await client.query(
+                `INSERT INTO orders (user_id, total, created_at) VALUES ${placeholders.join(', ')}`,
+                values
+            );
+
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
     }
 }
 ```
 
-`JdbcTemplate.batchUpdate()`는 IDENTITY 전략의 제약을 받지 않는다. INSERT 후 생성된 id가 필요하면 `KeyHolder`를 사용한다.
+INSERT 후 생성된 id가 필요하면 `RETURNING` 절을 사용한다(PostgreSQL) 또는 `insertId`를 활용한다(MySQL).
 
-```java
-KeyHolder keyHolder = new GeneratedKeyHolder();
-jdbcTemplate.update(
-    con -> {
-        PreparedStatement ps = con.prepareStatement(
-            "INSERT INTO orders (user_id, total) VALUES (?, ?)",
-            Statement.RETURN_GENERATED_KEYS
-        );
-        ps.setLong(1, userId);
-        ps.setBigDecimal(2, total);
-        return ps;
-    },
-    keyHolder
+```typescript
+// PostgreSQL — RETURNING으로 생성된 id 조회
+const result = await pool.query(
+    'INSERT INTO orders (user_id, total) VALUES ($1, $2) RETURNING id',
+    [userId, total]
 );
-long generatedId = keyHolder.getKey().longValue();
+const generatedId = result.rows[0].id;
+
+// MySQL (mysql2) — insertId로 AUTO_INCREMENT 값 조회
+const [result] = await pool.execute(
+    'INSERT INTO orders (user_id, total) VALUES (?, ?)',
+    [userId, total]
+) as [mysql.ResultSetHeader, unknown];
+const generatedId = result.insertId;
 ```
 
-Spring Batch를 쓰는 경우라면 `JdbcBatchItemWriter`가 내부적으로 배치 처리를 한다. Hibernate를 통하지 않아 IDENTITY 전략의 영향을 받지 않는다.
+대량 INSERT가 필요한 경우 TypeORM의 `createQueryBuilder().insert()` 또는 raw 쿼리를 직접 쓰면 배치 처리가 가능하다.

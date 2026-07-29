@@ -175,88 +175,80 @@ function sanitize(obj, depth = 0) {
 
 키 이름 매칭만으로는 잡기 어려운 패턴(Bearer 토큰, 카드번호 형식)은 정규식으로 추가 검사한다. depth 제한을 두는 이유는 순환 참조나 깊은 객체에서 무한 루프를 막기 위해서다.
 
-### Java 예제 (Logback + Spring)
+### TypeScript 예제 (Winston 마스킹 포맷)
 
-Logback에는 PatternLayout에서 마스킹할 수 있는 기능이 있는데, 보통 ConverterClass를 직접 만들어서 쓴다.
+Winston에서 로그 메시지에 정규식 마스킹을 적용하려면 커스텀 포맷을 만든다.
 
-```java
-public class MaskingConverter extends ClassicConverter {
-    private static final Pattern CARD_PATTERN =
-        Pattern.compile("\\b(\\d{4})[- ]?(\\d{4})[- ]?(\\d{4})[- ]?(\\d{4})\\b");
-    private static final Pattern RRN_PATTERN =
-        Pattern.compile("\\b(\\d{6})[- ]?([1-4]\\d{6})\\b");
-    private static final Pattern JWT_PATTERN =
-        Pattern.compile("eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+");
+```typescript
+// npm install winston
+import winston, { format } from 'winston';
 
-    @Override
-    public String convert(ILoggingEvent event) {
-        String message = event.getFormattedMessage();
-        message = CARD_PATTERN.matcher(message).replaceAll("$1-****-****-$4");
-        message = RRN_PATTERN.matcher(message).replaceAll("$1-*******");
-        message = JWT_PATTERN.matcher(message).replaceAll("[REDACTED-JWT]");
-        return message;
-    }
+const CARD_PATTERN = /\b(\d{4})[- ]?(\d{4})[- ]?(\d{4})[- ]?(\d{4})\b/g;
+const RRN_PATTERN  = /\b(\d{6})[- ]?([1-4]\d{6})\b/g;
+const JWT_PATTERN  = /eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
+
+function maskMessage(message: string): string {
+  return message
+    .replace(CARD_PATTERN, '$1-****-****-$4')
+    .replace(RRN_PATTERN,  '$1-*******')
+    .replace(JWT_PATTERN,  '[REDACTED-JWT]');
 }
-```
 
-logback.xml에서 등록하고 패턴에 적용한다.
+const maskingFormat = format((info) => {
+  if (typeof info.message === 'string') {
+    info.message = maskMessage(info.message);
+  }
+  return info;
+});
 
-```xml
-<configuration>
-    <conversionRule conversionWord="msg" converterClass="com.example.MaskingConverter"/>
-
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
-        </encoder>
-    </appender>
-</configuration>
+const logger = winston.createLogger({
+  format: format.combine(
+    maskingFormat(),
+    format.timestamp(),
+    format.json(),
+  ),
+  transports: [new winston.transports.Console()],
+});
 ```
 
 이 방식은 어떤 로그에 어떤 형태로 들어와도 전부 검사하는 게 장점이다. 단점은 정규식 비용이 모든 로그에 발생한다는 점이라 트래픽 큰 서비스는 측정해보고 도입해야 한다.
 
-Spring Boot에서 request body를 로깅할 때는 `CommonsRequestLoggingFilter`를 그대로 쓰면 비밀번호가 들어간 폼 데이터까지 다 찍힌다. 커스텀 필터를 만들어서 비밀번호 필드를 걸러야 한다.
+NestJS/Express에서 request body를 로깅할 때는 비밀번호 필드를 걸러내야 한다. 커스텀 미들웨어로 처리한다.
 
-```java
-@Component
-public class AuditLoggingFilter extends OncePerRequestFilter {
-    private static final Logger auditLog = LoggerFactory.getLogger("AUDIT");
-    private static final Set<String> SENSITIVE_FIELDS =
-        Set.of("password", "pwd", "cvc", "rrn", "ssn");
+```typescript
+// NestJS — 감사 로그 미들웨어
+import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain chain) throws IOException, ServletException {
-        ContentCachingRequestWrapper wrapped = new ContentCachingRequestWrapper(request);
-        long start = System.currentTimeMillis();
+const AUDIT_PATHS = ['/api/admin', '/api/users', '/login', '/payment'];
+const SENSITIVE_FIELDS = new Set(['password', 'pwd', 'cvc', 'rrn', 'ssn']);
 
-        try {
-            chain.doFilter(wrapped, response);
-        } finally {
-            if (shouldAudit(request)) {
-                Map<String, Object> entry = Map.of(
-                    "timestamp", Instant.now().toString(),
-                    "userId", getCurrentUserId(),
-                    "method", request.getMethod(),
-                    "path", request.getRequestURI(),
-                    "ip", extractClientIp(request),
-                    "userAgent", request.getHeader("User-Agent"),
-                    "status", response.getStatus(),
-                    "durationMs", System.currentTimeMillis() - start
-                );
-                auditLog.info(toJson(entry));
-            }
-        }
-    }
+@Injectable()
+export class AuditLoggingMiddleware implements NestMiddleware {
+  private readonly auditLog = new Logger('AUDIT');
 
-    private boolean shouldAudit(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path.startsWith("/api/admin") ||
-               path.startsWith("/api/users") ||
-               path.contains("/login") ||
-               path.contains("/payment");
-    }
+  use(req: Request, res: Response, next: NextFunction): void {
+    const start = Date.now();
+    const shouldAudit = AUDIT_PATHS.some((p) => req.path.startsWith(p));
+
+    res.on('finish', () => {
+      if (!shouldAudit) return;
+
+      const entry = {
+        timestamp:  new Date().toISOString(),
+        userId:     (req as any).user?.id ?? 'anonymous',
+        method:     req.method,
+        path:       req.path,
+        ip:         req.ip,
+        userAgent:  req.headers['user-agent'],
+        status:     res.statusCode,
+        durationMs: Date.now() - start,
+      };
+      this.auditLog.log(JSON.stringify(entry));
+    });
+
+    next();
+  }
 }
 ```
 

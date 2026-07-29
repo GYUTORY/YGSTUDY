@@ -127,78 +127,38 @@ AWS 메타데이터 엔드포인트(`169.254.169.254`)를 찌르는 전형적인
 
 방어 원칙은 하나다. 안 쓰는 기능을 끈다. DOCTYPE을 아예 막을 수 있으면 막고, 호환성 때문에 DTD를 살려야 하면 외부 엔티티와 외부 DTD 로딩만이라도 끈다.
 
-### Java — DocumentBuilderFactory / SAXParserFactory
-
-Java의 XML 파서는 기본값이 위험한 쪽으로 맞춰져 있다. 그래서 팩토리를 만들 때마다 명시적으로 꺼줘야 한다. 가장 깔끔한 건 `disallow-doctype-decl`을 켜서 DOCTYPE 자체를 막는 것이다.
-
-```java
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.XMLConstants;
-
-DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-
-// DOCTYPE 선언 자체를 거부 — 이거 하나면 XXE와 빌리언 래프 다 막힌다
-dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-
-// DOCTYPE을 꼭 허용해야 하는 경우엔 최소한 아래 두 개라도
-dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
-dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-
-// 외부 DTD 로딩 차단
-dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-
-// XInclude, 엔티티 확장 방지 보강
-dbf.setXIncludeAware(false);
-dbf.setExpandEntityReferences(false);
-
-// JAXP 1.5 이상이면 외부 접근 프로토콜을 통째로 비움
-dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-```
-
-`SAXParserFactory`, `XMLInputFactory`(StAX), `TransformerFactory`, `SchemaFactory`도 각각 비슷한 설정이 필요하다. 실무에서 자주 빠뜨리는 게 이 부분이다. `DocumentBuilderFactory`만 잠그고 다른 데서 `SAXParser`나 `Transformer`를 그냥 쓰면 거기로 뚫린다. 코드베이스에서 `Factory.newInstance()`를 전부 찾아 점검해야 한다.
-
-StAX의 경우:
-
-```java
-import javax.xml.stream.XMLInputFactory;
-
-XMLInputFactory xif = XMLInputFactory.newFactory();
-xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-xif.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
-```
-
-Spring을 쓰면 `Jaxb2Marshaller`나 SOAP(`spring-ws`) 쪽 파서가 내부적으로 XML을 다룬다. `spring-ws`는 비교적 최신 버전에서 외부 엔티티를 막아두지만, 버전이 오래됐거나 커스텀 `SAXSource`를 직접 만들어 넘기면 위험하다. 라이브러리에 맡기지 말고 실제로 페이로드를 던져 확인하는 게 낫다.
-
-### Node.js — libxmljs / fast-xml-parser
+### TypeScript (Node.js) — libxmljs / fast-xml-parser
 
 Node 진영은 XML 파싱 라이브러리가 여럿이다. 순수 JS 파서(`fast-xml-parser`, `xml2js`)는 대부분 DTD·외부 엔티티를 아예 처리하지 않아서 XXE에 비교적 안전하다. 문제는 libxml2를 바인딩한 `libxmljs`(`libxmljs2`)다. 이쪽은 C 라이브러리 기능을 그대로 노출하기 때문에 옵션을 줘야 한다.
 
-```js
-const libxmljs = require('libxmljs2');
+```typescript
+// npm install libxmljs2
+import * as libxmljs from 'libxmljs2';
 
 // noent를 켜면 엔티티를 치환한다 — 즉 noent: true가 위험하다. 기본값(false) 유지.
 // nonet으로 네트워크 접근을 막고, 외부 DTD 로딩을 끈다.
 const doc = libxmljs.parseXml(xmlString, {
-  noent: false,   // 엔티티 치환 비활성 (기본값이지만 명시)
+  noent: false,    // 엔티티 치환 비활성 (기본값이지만 명시)
   noblanks: false,
-  nonet: true,    // 네트워크를 통한 외부 리소스 로딩 차단
-  dtdload: false, // 외부 DTD 로딩 차단
+  nonet: true,     // 네트워크를 통한 외부 리소스 로딩 차단
+  dtdload: false,  // 외부 DTD 로딩 차단
   dtdvalid: false,
 });
 ```
 
 `noent` 옵션 이름이 헷갈린다. "no entity"처럼 보여서 엔티티를 막는 줄 알고 `true`로 켜는 실수가 잦은데, 실제로는 엔티티를 치환(substitute)하라는 뜻이다. `noent: true`로 두면 XXE가 그대로 동작한다. 반드시 `false`(기본값)여야 한다.
 
-가능하면 DTD가 필요 없는 워크로드에서는 순수 JS 파서로 갈아타는 걸 권한다. `fast-xml-parser`는 기본 설정에서 DTD 엔티티를 확장하지 않는다.
+가능하면 DTD가 필요 없는 워크로드에서는 순수 JS 파서로 갈아타는 걸 권한다.
 
-```js
-const { XMLParser } = require('fast-xml-parser');
+```typescript
+// npm install fast-xml-parser
+import { XMLParser } from 'fast-xml-parser';
 
 const parser = new XMLParser({
   processEntities: true,   // 표준 내장 엔티티(&amp; 등)만 처리
-  // 커스텀 DTD 엔티티는 기본적으로 확장 안 됨
+  // 커스텀 DTD 엔티티는 기본적으로 확장 안 됨 — XXE 안전
 });
+const result = parser.parse(xmlString);
 ```
 
 ### Python — lxml / ElementTree

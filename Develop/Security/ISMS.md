@@ -90,66 +90,54 @@ ISMS 통제 항목에서 비밀번호 관련 요구사항은 꽤 구체적이다
 - 최근 사용한 비밀번호 재사용 제한
 - 초기 비밀번호 발급 시 변경 강제
 
-```java
-@Component
-public class PasswordPolicyValidator {
+```typescript
+// ISMS 기준: 8자 이상 3종류 조합 또는 10자 이상 2종류 조합
+const PATTERN_8CHAR_3TYPE = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=]).{8,}$/;
+const PATTERN_10CHAR_2TYPE = /^((?=.*[a-zA-Z])(?=.*\d)|(?=.*[a-zA-Z])(?=.*[!@#$%^&*()_+\-=])|(?=.*\d)(?=.*[!@#$%^&*()_+\-=])).{10,}$/;
 
-    // ISMS 기준: 8자 이상 3종류 조합 또는 10자 이상 2종류 조합
-    private static final String PATTERN_8CHAR_3TYPE =
-        "^(?=.*[a-zA-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=]).{8,}$";
-    private static final String PATTERN_10CHAR_2TYPE =
-        "^((?=.*[a-zA-Z])(?=.*\\d)|(?=.*[a-zA-Z])(?=.*[!@#$%^&*()_+\\-=])|(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=])).{10,}$";
-
-    public void validate(String password, Long userId) {
-        if (!Pattern.matches(PATTERN_8CHAR_3TYPE, password)
-            && !Pattern.matches(PATTERN_10CHAR_2TYPE, password)) {
-            throw new InvalidPasswordException(
-                "비밀번호는 8자 이상(영문/숫자/특수문자 조합) 또는 10자 이상(2종류 조합)이어야 합니다");
-        }
-
-        // 연속된 문자/숫자 3자리 이상 금지 (abc, 123 같은 패턴)
-        if (hasSequentialChars(password, 3)) {
-            throw new InvalidPasswordException("연속된 문자 또는 숫자를 3자리 이상 사용할 수 없습니다");
-        }
-
-        // 아이디와 동일한 비밀번호 금지
-        if (isSameAsUserId(password, userId)) {
-            throw new InvalidPasswordException("아이디와 동일한 비밀번호는 사용할 수 없습니다");
-        }
+function hasSequentialChars(password: string, length: number): boolean {
+  for (let i = 0; i <= password.length - length; i++) {
+    let sequential = true;
+    for (let j = 1; j < length; j++) {
+      if (password.charCodeAt(i + j) - password.charCodeAt(i + j - 1) !== 1) {
+        sequential = false;
+        break;
+      }
     }
+    if (sequential) return true;
+  }
+  return false;
+}
 
-    private boolean hasSequentialChars(String password, int length) {
-        for (int i = 0; i <= password.length() - length; i++) {
-            boolean sequential = true;
-            for (int j = 1; j < length; j++) {
-                if (password.charAt(i + j) - password.charAt(i + j - 1) != 1) {
-                    sequential = false;
-                    break;
-                }
-            }
-            if (sequential) return true;
-        }
-        return false;
-    }
-
-    private boolean isSameAsUserId(String password, Long userId) {
-        // 실제 구현에서는 사용자 로그인 ID와 비교
-        return false;
-    }
+export function validatePassword(password: string, loginId: string): void {
+  if (!PATTERN_8CHAR_3TYPE.test(password) && !PATTERN_10CHAR_2TYPE.test(password)) {
+    throw new Error('비밀번호는 8자 이상(영문/숫자/특수문자 조합) 또는 10자 이상(2종류 조합)이어야 합니다');
+  }
+  // 연속된 문자/숫자 3자리 이상 금지 (abc, 123 같은 패턴)
+  if (hasSequentialChars(password, 3)) {
+    throw new Error('연속된 문자 또는 숫자를 3자리 이상 사용할 수 없습니다');
+  }
+  // 아이디와 동일한 비밀번호 금지
+  if (password.toLowerCase() === loginId.toLowerCase()) {
+    throw new Error('아이디와 동일한 비밀번호는 사용할 수 없습니다');
+  }
 }
 ```
 
-비밀번호 암호화는 Spring Security의 `BCryptPasswordEncoder`를 쓰면 된다. SHA-256으로 저장하고 있었다면 심사에서 지적받는다. bcrypt는 salt가 내장되어 있고 work factor 조절이 가능해서 ISMS 요건을 충족한다.
+비밀번호 암호화는 `bcrypt` 패키지를 쓰면 된다. SHA-256으로 저장하고 있었다면 심사에서 지적받는다. bcrypt는 salt가 내장되어 있고 work factor(saltRounds) 조절이 가능해서 ISMS 요건을 충족한다.
 
-```java
-@Configuration
-public class SecurityConfig {
+```typescript
+import * as bcrypt from 'bcrypt';
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        // strength 기본값 10, 운영 환경에서는 12 이상 권장
-        return new BCryptPasswordEncoder(12);
-    }
+// saltRounds 기본값 10, 운영 환경에서는 12 이상 권장
+const SALT_ROUNDS = 12;
+
+export async function hashPassword(plainPassword: string): Promise<string> {
+  return bcrypt.hash(plainPassword, SALT_ROUNDS);
+}
+
+export async function verifyPassword(plain: string, hashed: string): Promise<boolean> {
+  return bcrypt.compare(plain, hashed);
 }
 ```
 
@@ -161,78 +149,56 @@ public class SecurityConfig {
 - 동시 세션 제한 (같은 계정으로 여러 곳에서 동시 로그인 차단)
 - 로그인 실패 시 계정 잠금 (5~10회 실패 시)
 
-```java
-@Configuration
-@EnableWebSecurity
-public class SessionSecurityConfig {
+```typescript
+import session from 'express-session';
+import RedisStore from 'connect-redis';
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .invalidSessionUrl("/login?expired")
-                .maximumSessions(1)                          // 동시 세션 1개 제한
-                .maxSessionsPreventsLogin(false)              // 기존 세션 만료 처리
-                .expiredUrl("/login?duplicated")
-            );
-
-        return http.build();
-    }
-}
+// 세션 타임아웃 30분, HttpOnly + Secure 쿠키
+app.use(session({
+  store: new RedisStore({ client: redisClient }),
+  secret: process.env.SESSION_SECRET!,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: true,            // HTTPS 환경 필수
+    sameSite: 'strict',
+    maxAge: 30 * 60 * 1000, // 30분
+  },
+}));
 ```
 
-```yaml
-# application.yml
-server:
-  servlet:
-    session:
-      timeout: 30m    # 세션 타임아웃 30분
-      cookie:
-        http-only: true
-        secure: true   # HTTPS 환경 필수
-```
+동시 세션 1개 제한은 Redis에서 사용자별 활성 세션 목록을 관리하고, 로그인 시 기존 세션을 만료시키는 로직으로 구현한다.
 
 로그인 실패 잠금은 별도로 구현해야 한다. Spring Security의 `AuthenticationFailureHandler`를 구현하거나, DB에 실패 횟수를 기록하는 방식이 일반적이다.
 
-```java
-@Service
-@RequiredArgsConstructor
-public class LoginAttemptService {
+```typescript
+import { createClient } from 'redis';
 
-    private final LoginAttemptRepository attemptRepository;
-    private static final int MAX_ATTEMPTS = 5;
-    private static final Duration LOCK_DURATION = Duration.ofMinutes(30);
+const redis = createClient();
+const MAX_ATTEMPTS = 5;
+const LOCK_DURATION_SEC = 30 * 60; // 30분
 
-    public void loginFailed(String username) {
-        LoginAttempt attempt = attemptRepository.findByUsername(username)
-            .orElse(new LoginAttempt(username));
-
-        attempt.incrementFailCount();
-        attempt.setLastAttempt(LocalDateTime.now());
-
-        if (attempt.getFailCount() >= MAX_ATTEMPTS) {
-            attempt.setLockedUntil(LocalDateTime.now().plus(LOCK_DURATION));
-        }
-
-        attemptRepository.save(attempt);
+export const LoginAttemptService = {
+  async loginFailed(username: string): Promise<void> {
+    const key = `login_fail:${username}`;
+    const attempts = await redis.incr(key);
+    if (attempts === 1) await redis.expire(key, LOCK_DURATION_SEC);
+    if (attempts >= MAX_ATTEMPTS) {
+      await redis.set(`login_locked:${username}`, '1', { EX: LOCK_DURATION_SEC });
     }
+  },
 
-    public void loginSucceeded(String username) {
-        attemptRepository.findByUsername(username)
-            .ifPresent(attempt -> {
-                attempt.resetFailCount();
-                attemptRepository.save(attempt);
-            });
-    }
+  async loginSucceeded(username: string): Promise<void> {
+    await redis.del(`login_fail:${username}`);
+    await redis.del(`login_locked:${username}`);
+  },
 
-    public boolean isLocked(String username) {
-        return attemptRepository.findByUsername(username)
-            .map(attempt -> attempt.getLockedUntil() != null
-                && attempt.getLockedUntil().isAfter(LocalDateTime.now()))
-            .orElse(false);
-    }
-}
+  async isLocked(username: string): Promise<boolean> {
+    const locked = await redis.get(`login_locked:${username}`);
+    return locked === '1';
+  },
+};
 ```
 
 ### 3. 로깅과 감사 추적
@@ -249,115 +215,95 @@ ISMS 심사에서 로그 관련 항목은 까다롭다. "로그를 남기고 있
 
 **보관 기간:** 최소 6개월 (개인정보 관련 로그는 3년 요구하는 경우도 있다)
 
-```java
-@Aspect
-@Component
-@RequiredArgsConstructor
-public class AuditLogAspect {
+```typescript
+// NestJS — 감사 로그 인터셉터
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { Observable, tap, catchError, throwError } from 'rxjs';
+import { Request } from 'express';
 
-    private final AuditLogRepository auditLogRepository;
+@Injectable()
+export class AuditLogInterceptor implements NestInterceptor {
+  constructor(private readonly auditLogRepository: AuditLogRepository) {}
 
-    @Around("@annotation(auditable)")
-    public Object audit(ProceedingJoinPoint joinPoint, Auditable auditable) throws Throwable {
-        HttpServletRequest request =
-            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
-                .getRequest();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const req = context.switchToHttp().getRequest<Request>();
+    const user = req.user as UserPrincipal;
+    const action = Reflect.getMetadata('audit:action', context.getHandler()) ?? 'UNKNOWN';
+    const resource = Reflect.getMetadata('audit:resource', context.getHandler()) ?? 'UNKNOWN';
+    const clientIp = (req.headers['x-forwarded-for'] as string ?? req.ip ?? '').split(',')[0].trim();
 
-        String username = SecurityContextHolder.getContext()
-            .getAuthentication().getName();
+    const baseLog = {
+      username: user?.username ?? 'anonymous',
+      action,
+      resource,
+      clientIp,
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date(),
+    };
 
-        AuditLog log = AuditLog.builder()
-            .username(username)
-            .action(auditable.action())
-            .resource(auditable.resource())
-            .clientIp(getClientIp(request))
-            .userAgent(request.getHeader("User-Agent"))
-            .timestamp(LocalDateTime.now())
-            .build();
-
-        try {
-            Object result = joinPoint.proceed();
-            log.setStatus("SUCCESS");
-            return result;
-        } catch (Exception e) {
-            log.setStatus("FAILURE");
-            log.setErrorMessage(e.getMessage());
-            throw e;
-        } finally {
-            auditLogRepository.save(log);
-        }
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty()) {
-            ip = request.getRemoteAddr();
-        }
-        return ip.split(",")[0].trim();
-    }
+    return next.handle().pipe(
+      tap(async () => {
+        await this.auditLogRepository.save({ ...baseLog, status: 'SUCCESS' });
+      }),
+      catchError(async (err) => {
+        await this.auditLogRepository.save({ ...baseLog, status: 'FAILURE', errorMessage: err.message });
+        return throwError(() => err);
+      }),
+    );
+  }
 }
 ```
 
-```java
-// 사용 예시
-@RestController
-@RequiredArgsConstructor
-public class UserController {
+```typescript
+// 감사 로그 데코레이터 정의
+import 'reflect-metadata';
 
-    private final UserService userService;
-
-    @Auditable(action = "USER_INFO_VIEW", resource = "USER")
-    @GetMapping("/users/{userId}")
-    public UserResponse getUser(@PathVariable Long userId) {
-        return userService.getUser(userId);
-    }
-
-    @Auditable(action = "USER_INFO_UPDATE", resource = "USER")
-    @PutMapping("/users/{userId}")
-    public UserResponse updateUser(@PathVariable Long userId, @RequestBody UserUpdateRequest req) {
-        return userService.updateUser(userId, req);
-    }
+function Audit(action: string, resource: string): MethodDecorator {
+  return (target, propertyKey, descriptor) => {
+    Reflect.defineMetadata('audit:action', action, descriptor.value as object);
+    Reflect.defineMetadata('audit:resource', resource, descriptor.value as object);
+  };
 }
-```
 
-커스텀 어노테이션 정의:
+// NestJS 컨트롤러 사용 예시
+@Controller('users')
+@UseInterceptors(AuditLogInterceptor)
+export class UserController {
+  constructor(private readonly userService: UserService) {}
 
-```java
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Auditable {
-    String action();
-    String resource();
+  @Get(':userId')
+  @Audit('USER_INFO_VIEW', 'USER')
+  @UseGuards(JwtAuthGuard)
+  async getUser(@Param('userId') userId: string) {
+    return this.userService.getUser(userId);
+  }
+
+  @Put(':userId')
+  @Audit('USER_INFO_UPDATE', 'USER')
+  @UseGuards(JwtAuthGuard)
+  async updateUser(@Param('userId') userId: string, @Body() dto: UserUpdateRequest) {
+    return this.userService.updateUser(userId, dto);
+  }
 }
 ```
 
 AWS 환경에서는 CloudWatch Logs나 S3에 로그를 저장하는데, 심사에서는 로그 보관 정책과 삭제 방지 설정을 확인한다. S3에 저장한다면 Object Lock 설정으로 위변조를 방지할 수 있다.
 
-```java
-@Configuration
-public class S3AuditLogConfig {
+```typescript
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-    @Bean
-    public S3Client s3Client() {
-        return S3Client.builder()
-            .region(Region.AP_NORTHEAST_2)
-            .build();
-    }
+const s3 = new S3Client({ region: 'ap-northeast-2' });
 
-    // 감사 로그를 S3에 저장할 때 Object Lock 적용
-    public void uploadAuditLog(S3Client s3Client, String bucket, String key, byte[] logData) {
-        s3Client.putObject(
-            PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .objectLockMode(ObjectLockMode.COMPLIANCE)    // 삭제/수정 불가
-                .objectLockRetainUntilDate(
-                    Instant.now().plus(Duration.ofDays(365))  // 1년 보관
-                )
-                .build(),
-            RequestBody.fromBytes(logData)
-        );
-    }
+// 감사 로그를 S3에 저장할 때 Object Lock 적용
+async function uploadAuditLog(bucket: string, key: string, logData: Buffer): Promise<void> {
+  const retainUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1년 보관
+  await s3.send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: logData,
+    ObjectLockMode: 'COMPLIANCE',     // 삭제/수정 불가
+    ObjectLockRetainUntilDate: retainUntil,
+  }));
 }
 ```
 
@@ -377,111 +323,76 @@ ISMS에서 암호화 관련 요구사항은 명확하다.
 - 비밀번호는 일방향 암호화 (위에서 다룸)
 - 주민등록번호, 카드번호 같은 민감정보는 반드시 암호화
 
-```java
-@Component
-public class PersonalInfoEncryptor {
+```typescript
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
-    // AES-256 사용 — 키는 AWS KMS나 별도 키 관리 시스템에서 관리
-    private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int GCM_TAG_LENGTH = 128;
-    private static final int IV_LENGTH = 12;
+const IV_LENGTH = 12;
+const GCM_TAG_LENGTH = 16;
 
-    private final SecretKey secretKey;
+export class PersonalInfoEncryptor {
+  private readonly key: Buffer;
 
-    public PersonalInfoEncryptor(@Value("${encryption.key}") String base64Key) {
-        byte[] decodedKey = Base64.getDecoder().decode(base64Key);
-        this.secretKey = new SecretKeySpec(decodedKey, "AES");
-    }
+  constructor(base64Key: string) {
+    // 키는 환경변수 또는 AWS KMS에서 관리 — 설정 파일에 하드코딩 금지
+    this.key = Buffer.from(base64Key, 'base64');
+  }
 
-    public String encrypt(String plainText) {
-        try {
-            byte[] iv = new byte[IV_LENGTH];
-            SecureRandom.getInstanceStrong().nextBytes(iv);
+  encrypt(plainText: string): string {
+    const iv = randomBytes(IV_LENGTH);
+    const cipher = createCipheriv('aes-256-gcm', this.key, iv);
+    const encrypted = Buffer.concat([cipher.update(plainText, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    // IV + 암호문 + 인증 태그를 합쳐서 Base64로 반환
+    return Buffer.concat([iv, encrypted, tag]).toString('base64');
+  }
 
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey,
-                new GCMParameterSpec(GCM_TAG_LENGTH, iv));
-
-            byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
-
-            // IV + 암호문을 합쳐서 Base64로 반환
-            byte[] combined = new byte[iv.length + encrypted.length];
-            System.arraycopy(iv, 0, combined, 0, iv.length);
-            System.arraycopy(encrypted, 0, combined, iv.length, encrypted.length);
-
-            return Base64.getEncoder().encodeToString(combined);
-        } catch (Exception e) {
-            throw new EncryptionException("암호화 실패", e);
-        }
-    }
-
-    public String decrypt(String cipherText) {
-        try {
-            byte[] combined = Base64.getDecoder().decode(cipherText);
-
-            byte[] iv = new byte[IV_LENGTH];
-            byte[] encrypted = new byte[combined.length - IV_LENGTH];
-            System.arraycopy(combined, 0, iv, 0, IV_LENGTH);
-            System.arraycopy(combined, IV_LENGTH, encrypted, 0, encrypted.length);
-
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey,
-                new GCMParameterSpec(GCM_TAG_LENGTH, iv));
-
-            return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new EncryptionException("복호화 실패", e);
-        }
-    }
+  decrypt(cipherText: string): string {
+    const combined = Buffer.from(cipherText, 'base64');
+    const iv = combined.slice(0, IV_LENGTH);
+    const tag = combined.slice(-GCM_TAG_LENGTH);
+    const encrypted = combined.slice(IV_LENGTH, -GCM_TAG_LENGTH);
+    const decipher = createDecipheriv('aes-256-gcm', this.key, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  }
 }
 ```
 
-JPA Entity에서 개인정보 필드에 암호화를 적용하는 방식:
+TypeORM Entity에서 개인정보 필드에 암호화를 적용하는 방식:
 
-```java
-@Entity
-@Table(name = "users")
-public class User {
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, ValueTransformer } from 'typeorm';
+import { PersonalInfoEncryptor } from './personal-info-encryptor';
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+const encryptor = new PersonalInfoEncryptor(process.env.ENCRYPTION_KEY!);
 
-    private String loginId;
+// TypeORM ValueTransformer로 개인정보 필드 자동 암호화/복호화
+const encryptTransformer: ValueTransformer = {
+  to: (value: string | null) => (value ? encryptor.encrypt(value) : null),
+  from: (value: string | null) => (value ? encryptor.decrypt(value) : null),
+};
 
-    // 개인정보 필드는 AttributeConverter로 자동 암호화/복호화
-    @Convert(converter = EncryptConverter.class)
-    private String name;
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-    @Convert(converter = EncryptConverter.class)
-    private String phone;
+  @Column()
+  loginId!: string;
 
-    @Convert(converter = EncryptConverter.class)
-    private String email;
+  // 개인정보 필드는 transformer로 자동 암호화/복호화
+  @Column({ transformer: encryptTransformer })
+  name!: string;
 
-    // 비밀번호는 일방향 암호화이므로 별도 처리
-    private String password;
-}
-```
+  @Column({ transformer: encryptTransformer })
+  phone!: string;
 
-```java
-@Converter
-@RequiredArgsConstructor
-public class EncryptConverter implements AttributeConverter<String, String> {
+  @Column({ transformer: encryptTransformer })
+  email!: string;
 
-    private final PersonalInfoEncryptor encryptor;
-
-    @Override
-    public String convertToDatabaseColumn(String attribute) {
-        if (attribute == null) return null;
-        return encryptor.encrypt(attribute);
-    }
-
-    @Override
-    public String convertToEntityAttribute(String dbData) {
-        if (dbData == null) return null;
-        return encryptor.decrypt(dbData);
-    }
+  // 비밀번호는 일방향 암호화이므로 별도 처리
+  @Column()
+  password!: string;
 }
 ```
 
@@ -513,49 +424,49 @@ ISMS-P 인증을 받으려면 개인정보 라이프사이클 전체를 관리�
 - 파기 기록 남기기
 - DB에서 단순 DELETE가 아니라 복구 불가능하게 처리
 
-```java
-@Service
-@RequiredArgsConstructor
-public class PersonalDataDestroyService {
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { randomBytes } from 'crypto';
 
-    private final UserRepository userRepository;
-    private final DestroyLogRepository destroyLogRepository;
+@Injectable()
+export class PersonalDataDestroyService {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly destroyLogRepository: DestroyLogRepository,
+  ) {}
 
-    /**
-     * 보유기간 만료된 개인정보 파기 처리
-     * 스케줄러로 매일 실행
-     */
-    @Scheduled(cron = "0 0 2 * * *")  // 매일 새벽 2시
-    @Transactional
-    public void destroyExpiredPersonalData() {
-        LocalDate cutoffDate = LocalDate.now().minusYears(1);  // 1년 경과
+  /**
+   * 보유기간 만료된 개인정보 파기 처리
+   * 매일 새벽 2시 실행 (@nestjs/schedule의 @Cron)
+   */
+  @Cron('0 2 * * *') // 매일 새벽 2시
+  async destroyExpiredPersonalData(): Promise<void> {
+    const cutoffDate = new Date();
+    cutoffDate.setFullYear(cutoffDate.getFullYear() - 1); // 1년 경과
 
-        List<User> expiredUsers = userRepository
-            .findByLastLoginDateBeforeAndStatus(cutoffDate, UserStatus.INACTIVE);
+    const expiredUsers = await this.userRepository.find({
+      where: { lastLoginDate: { $lt: cutoffDate }, status: 'INACTIVE' },
+    });
 
-        for (User user : expiredUsers) {
-            // 파기 기록 먼저 저장
-            DestroyLog log = DestroyLog.builder()
-                .userId(user.getId())
-                .destroyedFields("name, phone, email")
-                .reason("보유기간 만료 (1년 미로그인)")
-                .destroyedAt(LocalDateTime.now())
-                .build();
-            destroyLogRepository.save(log);
+    for (const user of expiredUsers) {
+      // 파기 기록 먼저 저장
+      await this.destroyLogRepository.save({
+        userId: user.id,
+        destroyedFields: 'name, phone, email',
+        reason: '보유기간 만료 (1년 미로그인)',
+        destroyedAt: new Date(),
+      });
 
-            // 개인정보 필드를 랜덤 값으로 덮어쓰기 (복구 방지)
-            user.setName(generateRandomString(10));
-            user.setPhone(generateRandomString(11));
-            user.setEmail(generateRandomString(20));
-            user.setStatus(UserStatus.DESTROYED);
+      // 개인정보 필드를 랜덤 값으로 덮어쓰기 (복구 방지)
+      user.name = randomBytes(5).toString('hex');
+      user.phone = randomBytes(6).toString('hex');
+      user.email = randomBytes(10).toString('hex');
+      user.status = 'DESTROYED';
 
-            userRepository.save(user);
-        }
+      await this.userRepository.save(user);
     }
-
-    private String generateRandomString(int length) {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, length);
-    }
+  }
 }
 ```
 
@@ -640,20 +551,21 @@ server:
     include-exception: false
 ```
 
-```java
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+```typescript
+// NestJS 전역 예외 필터 — 클라이언트에 내부 정보를 절대 노출하지 않는다
+import { ExceptionFilter, Catch, ArgumentsHost, Logger } from '@nestjs/common';
 
-    // 클라이언트에 내부 정보를 절대 노출하지 않는다
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception e) {
-        // 내부 로그에는 상세 정보 기록
-        log.error("Unhandled exception", e);
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger('GlobalExceptionFilter');
 
-        // 클라이언트에는 일반적인 메시지만 반환
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(new ErrorResponse("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."));
-    }
+  catch(exception: unknown, host: ArgumentsHost) {
+    const res = host.switchToHttp().getResponse();
+    // 내부 로그에는 상세 정보 기록
+    this.logger.error('Unhandled exception', exception instanceof Error ? exception.stack : String(exception));
+    // 클라이언트에는 일반적인 메시지만 반환
+    res.status(500).json({ message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
+  }
 }
 ```
 
@@ -661,23 +573,30 @@ public class GlobalExceptionHandler {
 
 관리자 페이지를 `/admin` 경로에 두고 IP 제한 없이 운영하는 경우가 많다. 심사에서 관리자 페이지 접근 방식을 확인하는데, 최소한 IP 기반 접근 제한은 있어야 한다.
 
-```java
-@Configuration
-public class AdminSecurityConfig {
+```typescript
+// Express 미들웨어 — 관리자 경로에 IP 기반 접근 제한
+import { Request, Response, NextFunction } from 'express';
+import { isIPv4 } from 'net';
 
-    @Bean
-    @Order(1)
-    public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
-        http
-            .securityMatcher("/admin/**")
-            .authorizeHttpRequests(auth -> auth
-                .anyRequest().access(new WebExpressionAuthorizationManager(
-                    "hasRole('ADMIN') and hasIpAddress('10.0.0.0/8')"))
-            );
+const ALLOWED_ADMIN_CIDR = '10.0.0.0/8';
 
-        return http.build();
-    }
+function isInCIDR(ip: string, cidr: string): boolean {
+  const [network, bits] = cidr.split('/');
+  const mask = ~0 << (32 - parseInt(bits, 10));
+  const ipInt = ip.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct, 10), 0);
+  const netInt = network.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct, 10), 0);
+  return (ipInt & mask) === (netInt & mask);
 }
+
+function adminIpGuard(req: Request, res: Response, next: NextFunction) {
+  const clientIp = (req.headers['x-forwarded-for'] as string ?? req.ip ?? '').split(',')[0].trim();
+  if (!isIPv4(clientIp) || !isInCIDR(clientIp, ALLOWED_ADMIN_CIDR)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+}
+
+app.use('/admin', adminIpGuard, adminRouter);
 ```
 
 실제 운영에서는 VPN을 통해서만 관리자 페이지에 접근할 수 있게 하는 경우가 대부분이다.
@@ -708,36 +627,33 @@ aws:
 
 디버깅하려고 로그에 요청 바디를 그대로 찍는 경우가 있다. 개인정보가 포함된 요청이 로그에 평문으로 남으면 심사에서 지적된다.
 
-```java
+```typescript
 // 잘못된 예
-log.info("회원가입 요청: {}", request);  // name, phone, email 등이 평문으로 기록됨
+logger.info('회원가입 요청:', request); // name, phone, email 등이 평문으로 기록됨
 
 // 개인정보 마스킹 처리
-log.info("회원가입 요청: name={}, phone={}", 
-    maskName(request.getName()),       // 김*영
-    maskPhone(request.getPhone()));    // 010-****-5678
+logger.info('회원가입 요청', {
+  name: maskName(request.name),    // 김*영
+  phone: maskPhone(request.phone), // 010-****-5678
+});
 ```
 
-```java
-@Component
-public class PersonalInfoMasker {
+```typescript
+export function maskName(name: string | null | undefined): string {
+  if (!name || name.length < 2) return '**';
+  return name[0] + '*'.repeat(name.length - 2) + name[name.length - 1];
+}
 
-    public String maskName(String name) {
-        if (name == null || name.length() < 2) return "**";
-        return name.charAt(0) + "*".repeat(name.length() - 2) + name.charAt(name.length() - 1);
-    }
+export function maskPhone(phone: string | null | undefined): string {
+  if (!phone) return '***';
+  return phone.replace(/(\d{3})-?(\d{4})-?(\d{4})/, '$1-****-$3');
+}
 
-    public String maskPhone(String phone) {
-        if (phone == null) return "***";
-        return phone.replaceAll("(\\d{3})-?(\\d{4})-?(\\d{4})", "$1-****-$3");
-    }
-
-    public String maskEmail(String email) {
-        if (email == null) return "***";
-        int atIndex = email.indexOf('@');
-        if (atIndex <= 2) return "**" + email.substring(atIndex);
-        return email.substring(0, 2) + "***" + email.substring(atIndex);
-    }
+export function maskEmail(email: string | null | undefined): string {
+  if (!email) return '***';
+  const atIndex = email.indexOf('@');
+  if (atIndex <= 2) return '**' + email.slice(atIndex);
+  return email.slice(0, 2) + '***' + email.slice(atIndex);
 }
 ```
 

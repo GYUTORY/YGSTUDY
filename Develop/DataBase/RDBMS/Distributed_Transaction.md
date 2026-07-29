@@ -53,46 +53,39 @@ Phase 2 (Commit / Abort):
 
 ### 실제 구현 예시 (Spring + JTA)
 
-```java
-// JTA를 사용한 2PC - 여러 DataSource를 하나의 트랜잭션으로 묶음
-@Configuration
-public class XADataSourceConfig {
+```typescript
+// Node.js에서는 XA 트랜잭션을 직접 제어 (pg 드라이버 활용)
+const orderClient = new Pool({ connectionString: 'postgresql://order-db:5432/orders' });
+const paymentClient = new Pool({ connectionString: 'postgresql://payment-db:5432/payments' });
 
-    @Bean
-    public DataSource orderDataSource() {
-        AtomikosDataSourceBean ds = new AtomikosDataSourceBean();
-        ds.setUniqueResourceName("orderDB");
-        ds.setXaDataSourceClassName("com.mysql.cj.jdbc.MysqlXADataSource");
-        ds.setPoolSize(10);
-        Properties props = new Properties();
-        props.put("url", "jdbc:mysql://order-db:3306/orders");
-        ds.setXaProperties(props);
-        return ds;
-    }
+async function createOrder(request: OrderRequest): Promise<void> {
+    const orderConn = await orderClient.connect();
+    const paymentConn = await paymentClient.connect();
 
-    @Bean
-    public DataSource paymentDataSource() {
-        AtomikosDataSourceBean ds = new AtomikosDataSourceBean();
-        ds.setUniqueResourceName("paymentDB");
-        ds.setXaDataSourceClassName("com.mysql.cj.jdbc.MysqlXADataSource");
-        ds.setPoolSize(10);
-        Properties props = new Properties();
-        props.put("url", "jdbc:mysql://payment-db:3306/payments");
-        ds.setXaProperties(props);
-        return ds;
-    }
-}
+    const xid = `xa-${Date.now()}`;
 
-@Service
-public class OrderService {
+    try {
+        // Phase 1: Prepare
+        await orderConn.query(`BEGIN`);
+        await paymentConn.query(`BEGIN`);
 
-    @Transactional  // JtaTransactionManager가 2PC 처리
-    public void createOrder(OrderRequest request) {
-        // 주문 DB에 INSERT
-        orderRepository.save(new Order(request));
-        // 결제 DB에 INSERT - 다른 DataSource지만 같은 트랜잭션
-        paymentRepository.save(new Payment(request));
-        // 둘 중 하나라도 실패하면 양쪽 다 롤백
+        await orderConn.query('INSERT INTO orders (...) VALUES (...)', [...]);
+        await paymentConn.query('INSERT INTO payments (...) VALUES (...)', [...]);
+
+        await orderConn.query(`PREPARE TRANSACTION '${xid}-order'`);
+        await paymentConn.query(`PREPARE TRANSACTION '${xid}-payment'`);
+
+        // Phase 2: Commit
+        await orderConn.query(`COMMIT PREPARED '${xid}-order'`);
+        await paymentConn.query(`COMMIT PREPARED '${xid}-payment'`);
+    } catch (e) {
+        // 롤백
+        await orderConn.query(`ROLLBACK PREPARED '${xid}-order'`).catch(() => {});
+        await paymentConn.query(`ROLLBACK PREPARED '${xid}-payment'`).catch(() => {});
+        throw e;
+    } finally {
+        orderConn.release();
+        paymentConn.release();
     }
 }
 ```
@@ -150,66 +143,83 @@ T3 실패 시:
 주문 서비스 → 이벤트 수신 → 주문 취소
 ```
 
-```java
+```typescript
 // 주문 서비스 - 이벤트 발행
-@Service
-public class OrderService {
+@Injectable()
+export class OrderService {
+    constructor(
+        private readonly orderRepository: OrderRepository,
+        private readonly kafkaProducer: KafkaProducer,
+        private readonly dataSource: DataSource,
+    ) {}
 
-    private final ApplicationEventPublisher eventPublisher;
-    private final OrderRepository orderRepository;
-
-    @Transactional
-    public Order createOrder(OrderRequest request) {
-        Order order = Order.create(request);
-        order.setStatus(OrderStatus.PENDING);
-        orderRepository.save(order);
+    async createOrder(request: OrderRequest): Promise<Order> {
+        const order = await this.dataSource.transaction(async (manager) => {
+            const o = manager.create(Order, { ...request, status: 'PENDING' });
+            return manager.save(o);
+        });
 
         // 로컬 트랜잭션 커밋 후 이벤트 발행
-        eventPublisher.publishEvent(new OrderCreatedEvent(order.getId(), request.getAmount()));
+        await this.kafkaProducer.send('order-created', {
+            orderId: order.id,
+            amount: request.amount,
+        });
         return order;
     }
 
     // 보상 트랜잭션 - 결제 실패 시 주문 취소
-    @TransactionalEventListener
-    public void handlePaymentFailed(PaymentFailedEvent event) {
-        Order order = orderRepository.findById(event.getOrderId())
-            .orElseThrow();
-        order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
+    async handlePaymentFailed(event: PaymentFailedEvent): Promise<void> {
+        await this.dataSource.transaction(async (manager) => {
+            const order = await manager.findOne(Order, { where: { id: event.orderId } });
+            order.status = 'CANCELLED';
+            await manager.save(order);
+        });
     }
 }
 
 // 결제 서비스 - 이벤트 구독 및 처리
-@Service
-public class PaymentService {
+@Injectable()
+export class PaymentService {
+    constructor(
+        private readonly paymentRepository: PaymentRepository,
+        private readonly kafkaProducer: KafkaProducer,
+        private readonly dataSource: DataSource,
+    ) {}
 
-    @KafkaListener(topics = "order-created")
-    @Transactional
-    public void handleOrderCreated(OrderCreatedEvent event) {
+    // Kafka 'order-created' 토픽 구독
+    async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
         try {
-            Payment payment = Payment.process(event.getOrderId(), event.getAmount());
-            paymentRepository.save(payment);
+            const payment = await this.dataSource.transaction(async (manager) => {
+                const p = manager.create(Payment, { orderId: event.orderId, amount: event.amount });
+                return manager.save(p);
+            });
 
-            kafkaTemplate.send("payment-completed",
-                new PaymentCompletedEvent(event.getOrderId(), payment.getId()));
-        } catch (InsufficientBalanceException e) {
-            // 결제 실패 → 보상 이벤트 발행
-            kafkaTemplate.send("payment-failed",
-                new PaymentFailedEvent(event.getOrderId(), e.getMessage()));
+            await this.kafkaProducer.send('payment-completed', {
+                orderId: event.orderId,
+                paymentId: payment.id,
+            });
+        } catch (e) {
+            if (e instanceof InsufficientBalanceError) {
+                // 결제 실패 → 보상 이벤트 발행
+                await this.kafkaProducer.send('payment-failed', {
+                    orderId: event.orderId,
+                    reason: e.message,
+                });
+            } else {
+                throw e;
+            }
         }
     }
 
-    // 재고 차감 실패 시 결제 취소 (보상 트랜잭션)
-    @KafkaListener(topics = "inventory-failed")
-    @Transactional
-    public void handleInventoryFailed(InventoryFailedEvent event) {
-        Payment payment = paymentRepository.findByOrderId(event.getOrderId())
-            .orElseThrow();
-        payment.cancel();  // 환불 처리
-        paymentRepository.save(payment);
+    // 재고 차감 실패 시 결제 취소 (보상 트랜잭션) — 'inventory-failed' 토픽 구독
+    async handleInventoryFailed(event: InventoryFailedEvent): Promise<void> {
+        await this.dataSource.transaction(async (manager) => {
+            const payment = await manager.findOne(Payment, { where: { orderId: event.orderId } });
+            payment.status = 'CANCELLED';  // 환불 처리
+            await manager.save(payment);
+        });
 
-        kafkaTemplate.send("payment-cancelled",
-            new PaymentCancelledEvent(event.getOrderId()));
+        await this.kafkaProducer.send('payment-cancelled', { orderId: event.orderId });
     }
 }
 ```
@@ -232,61 +242,60 @@ Orchestrator → 결제 서비스: "결제 취소해라"  ← 보상
 Orchestrator → 주문 서비스: "주문 취소해라"  ← 보상
 ```
 
-```java
+```typescript
 // Saga Orchestrator - 상태 머신 기반 구현
-@Service
-public class OrderSagaOrchestrator {
+@Injectable()
+export class OrderSagaOrchestrator {
+    constructor(
+        private readonly orderClient: OrderServiceClient,
+        private readonly paymentClient: PaymentServiceClient,
+        private readonly inventoryClient: InventoryServiceClient,
+        private readonly sagaStateRepository: SagaStateRepository,
+    ) {}
 
-    private final OrderServiceClient orderClient;
-    private final PaymentServiceClient paymentClient;
-    private final InventoryServiceClient inventoryClient;
-    private final SagaStateRepository sagaStateRepository;
-
-    public void execute(OrderRequest request) {
-        String sagaId = UUID.randomUUID().toString();
-        SagaState state = new SagaState(sagaId, SagaStep.ORDER_CREATE);
-        sagaStateRepository.save(state);
+    async execute(request: OrderRequest): Promise<void> {
+        const sagaId = crypto.randomUUID();
+        const state = await this.sagaStateRepository.save({
+            sagaId,
+            step: SagaStep.ORDER_CREATE,
+        });
 
         try {
             // Step 1: 주문 생성
-            OrderResult orderResult = orderClient.createOrder(request);
-            state.setOrderId(orderResult.getOrderId());
-            state.setStep(SagaStep.PAYMENT_PROCESS);
-            sagaStateRepository.save(state);
+            const orderResult = await this.orderClient.createOrder(request);
+            state.orderId = orderResult.orderId;
+            state.step = SagaStep.PAYMENT_PROCESS;
+            await this.sagaStateRepository.save(state);
 
             // Step 2: 결제 처리
-            PaymentResult paymentResult = paymentClient.processPayment(
-                orderResult.getOrderId(), request.getAmount());
-            state.setPaymentId(paymentResult.getPaymentId());
-            state.setStep(SagaStep.INVENTORY_DEDUCT);
-            sagaStateRepository.save(state);
+            const paymentResult = await this.paymentClient.processPayment(
+                orderResult.orderId, request.amount);
+            state.paymentId = paymentResult.paymentId;
+            state.step = SagaStep.INVENTORY_DEDUCT;
+            await this.sagaStateRepository.save(state);
 
             // Step 3: 재고 차감
-            inventoryClient.deductStock(request.getProductId(), request.getQuantity());
-            state.setStep(SagaStep.COMPLETED);
-            sagaStateRepository.save(state);
+            await this.inventoryClient.deductStock(request.productId, request.quantity);
+            state.step = SagaStep.COMPLETED;
+            await this.sagaStateRepository.save(state);
 
-        } catch (Exception e) {
-            compensate(state);
+        } catch (e) {
+            await this.compensate(state);
         }
     }
 
-    private void compensate(SagaState state) {
+    private async compensate(state: SagaState): Promise<void> {
         // 현재 단계에서 역순으로 보상 실행
-        switch (state.getStep()) {
-            case INVENTORY_DEDUCT:
-                // 재고 차감 실패 → 결제 취소 필요
-                paymentClient.cancelPayment(state.getPaymentId());
-                // fall through
-            case PAYMENT_PROCESS:
-                // 결제 처리 실패 → 주문 취소 필요
-                orderClient.cancelOrder(state.getOrderId());
-                // fall through
-            case ORDER_CREATE:
-                break;
+        if (state.step === SagaStep.INVENTORY_DEDUCT) {
+            // 재고 차감 실패 → 결제 취소 필요
+            await this.paymentClient.cancelPayment(state.paymentId);
         }
-        state.setStep(SagaStep.COMPENSATED);
-        sagaStateRepository.save(state);
+        if (state.step >= SagaStep.PAYMENT_PROCESS) {
+            // 결제 처리 실패 → 주문 취소 필요
+            await this.orderClient.cancelOrder(state.orderId);
+        }
+        state.step = SagaStep.COMPENSATED;
+        await this.sagaStateRepository.save(state);
     }
 }
 ```
@@ -328,68 +337,81 @@ Cancel 단계: 예약을 취소
   - 좌석: "임시 점유" → 해제
 ```
 
-```java
+```typescript
 // 재고 서비스 - TCC 인터페이스 구현
-@Service
-public class InventoryTccService {
+@Injectable()
+export class InventoryTccService {
+    constructor(
+        private readonly inventoryRepository: InventoryRepository,
+        private readonly reservationRepository: ReservationRepository,
+        private readonly dataSource: DataSource,
+    ) {}
 
     // Try: 재고 예약
-    @Transactional
-    public String tryReserve(String productId, int quantity) {
-        Inventory inventory = inventoryRepository.findByProductIdForUpdate(productId);
+    async tryReserve(productId: string, quantity: number): Promise<string> {
+        return this.dataSource.transaction(async (manager) => {
+            const inventory = await manager.findOne(Inventory, {
+                where: { productId },
+                lock: { mode: 'pessimistic_write' },
+            });
 
-        if (inventory.getAvailable() < quantity) {
-            throw new InsufficientStockException();
-        }
+            if (inventory.available < quantity) {
+                throw new InsufficientStockError();
+            }
 
-        // 가용 재고에서 빼고, 예약 재고에 넣음
-        inventory.setAvailable(inventory.getAvailable() - quantity);
-        inventory.setReserved(inventory.getReserved() + quantity);
-        inventoryRepository.save(inventory);
+            // 가용 재고에서 빼고, 예약 재고에 넣음
+            inventory.available -= quantity;
+            inventory.reserved += quantity;
+            await manager.save(inventory);
 
-        // 예약 ID 반환 (나중에 Confirm/Cancel 할 때 필요)
-        String reservationId = UUID.randomUUID().toString();
-        reservationRepository.save(new Reservation(reservationId, productId, quantity));
-        return reservationId;
+            // 예약 ID 반환 (나중에 Confirm/Cancel 할 때 필요)
+            const reservationId = crypto.randomUUID();
+            await manager.save(Reservation, { id: reservationId, productId, quantity, status: 'PENDING' });
+            return reservationId;
+        });
     }
 
     // Confirm: 예약 확정 → 실제 차감
-    @Transactional
-    public void confirm(String reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-            .orElseThrow();
+    async confirm(reservationId: string): Promise<void> {
+        await this.dataSource.transaction(async (manager) => {
+            const reservation = await manager.findOne(Reservation, { where: { id: reservationId } });
 
-        if (reservation.getStatus() != ReservationStatus.PENDING) {
-            return;  // 멱등성 보장 - 이미 처리된 경우 무시
-        }
+            if (reservation.status !== 'PENDING') {
+                return;  // 멱등성 보장 - 이미 처리된 경우 무시
+            }
 
-        Inventory inventory = inventoryRepository.findByProductIdForUpdate(
-            reservation.getProductId());
-        inventory.setReserved(inventory.getReserved() - reservation.getQuantity());
-        inventoryRepository.save(inventory);
+            const inventory = await manager.findOne(Inventory, {
+                where: { productId: reservation.productId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            inventory.reserved -= reservation.quantity;
+            await manager.save(inventory);
 
-        reservation.setStatus(ReservationStatus.CONFIRMED);
-        reservationRepository.save(reservation);
+            reservation.status = 'CONFIRMED';
+            await manager.save(reservation);
+        });
     }
 
     // Cancel: 예약 취소 → 가용 재고 복원
-    @Transactional
-    public void cancel(String reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-            .orElseThrow();
+    async cancel(reservationId: string): Promise<void> {
+        await this.dataSource.transaction(async (manager) => {
+            const reservation = await manager.findOne(Reservation, { where: { id: reservationId } });
 
-        if (reservation.getStatus() != ReservationStatus.PENDING) {
-            return;  // 멱등성 보장
-        }
+            if (reservation.status !== 'PENDING') {
+                return;  // 멱등성 보장
+            }
 
-        Inventory inventory = inventoryRepository.findByProductIdForUpdate(
-            reservation.getProductId());
-        inventory.setAvailable(inventory.getAvailable() + reservation.getQuantity());
-        inventory.setReserved(inventory.getReserved() - reservation.getQuantity());
-        inventoryRepository.save(inventory);
+            const inventory = await manager.findOne(Inventory, {
+                where: { productId: reservation.productId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            inventory.available += reservation.quantity;
+            inventory.reserved -= reservation.quantity;
+            await manager.save(inventory);
 
-        reservation.setStatus(ReservationStatus.CANCELLED);
-        reservationRepository.save(reservation);
+            reservation.status = 'CANCELLED';
+            await manager.save(reservation);
+        });
     }
 }
 ```
@@ -404,18 +426,19 @@ Confirm이나 Cancel 요청이 네트워크 문제로 중복 전달될 수 있�
 
 Try 후 Confirm도 Cancel도 안 오는 경우가 있다. 이러면 리소스가 "예약" 상태로 영원히 잠긴다. 스케줄러를 돌려서 일정 시간(예: 5분) 이상 PENDING 상태인 예약을 자동 Cancel 해야 한다.
 
-```java
-@Scheduled(fixedRate = 60000)  // 1분마다 실행
-public void cleanupExpiredReservations() {
-    LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
-    List<Reservation> expired = reservationRepository
-        .findByStatusAndCreatedAtBefore(ReservationStatus.PENDING, threshold);
+```typescript
+// setInterval로 1분마다 실행 (또는 cron 라이브러리 사용)
+setInterval(async () => {
+    const threshold = new Date(Date.now() - 5 * 60 * 1000);
+    const expired = await this.reservationRepository.find({
+        where: { status: 'PENDING', createdAt: LessThan(threshold) },
+    });
 
-    for (Reservation reservation : expired) {
-        cancel(reservation.getId());
-        log.warn("Expired reservation auto-cancelled: {}", reservation.getId());
+    for (const reservation of expired) {
+        await this.cancel(reservation.id);
+        logger.warn(`Expired reservation auto-cancelled: ${reservation.id}`);
     }
-}
+}, 60_000);
 ```
 
 **3. Confirm/Cancel 실패 시**
@@ -474,53 +497,64 @@ CREATE TABLE outbox_events (
 CREATE INDEX idx_outbox_unpublished ON outbox_events(published, created_at);
 ```
 
-```java
+```typescript
 // 비즈니스 로직과 이벤트를 같은 트랜잭션으로 저장
-@Service
-public class OrderService {
+@Injectable()
+export class OrderService {
+    constructor(
+        private readonly dataSource: DataSource,
+    ) {}
 
-    @Transactional  // 하나의 트랜잭션
-    public Order createOrder(OrderRequest request) {
-        // 비즈니스 데이터 저장
-        Order order = Order.create(request);
-        orderRepository.save(order);
+    async createOrder(request: OrderRequest): Promise<Order> {
+        return this.dataSource.transaction(async (manager) => {
+            // 비즈니스 데이터 저장
+            const order = await manager.save(Order, Order.create(request));
 
-        // 같은 트랜잭션에서 Outbox에 이벤트 저장
-        OutboxEvent event = OutboxEvent.builder()
-            .aggregateType("Order")
-            .aggregateId(order.getId())
-            .eventType("OrderCreated")
-            .payload(objectMapper.writeValueAsString(
-                new OrderCreatedPayload(order.getId(), request.getAmount())))
-            .build();
-        outboxEventRepository.save(event);
+            // 같은 트랜잭션에서 Outbox에 이벤트 저장
+            await manager.save(OutboxEvent, {
+                aggregateType: 'Order',
+                aggregateId: String(order.id),
+                eventType: 'OrderCreated',
+                payload: JSON.stringify({ orderId: order.id, amount: request.amount }),
+                published: false,
+            });
 
-        return order;
+            return order;
+        });
     }
 }
 
 // Outbox Relay - 폴링 방식
-@Component
-public class OutboxRelay {
+@Injectable()
+export class OutboxRelay {
+    constructor(
+        private readonly outboxEventRepository: OutboxEventRepository,
+        private readonly kafkaProducer: KafkaProducer,
+        private readonly dataSource: DataSource,
+    ) {
+        // 1초마다 폴링
+        setInterval(() => this.publishEvents(), 1000);
+    }
 
-    @Scheduled(fixedDelay = 1000)  // 1초마다 폴링
-    @Transactional
-    public void publishEvents() {
-        List<OutboxEvent> events = outboxEventRepository
-            .findTop100ByPublishedFalseOrderByCreatedAtAsc();
+    async publishEvents(): Promise<void> {
+        const events = await this.outboxEventRepository.find({
+            where: { published: false },
+            order: { createdAt: 'ASC' },
+            take: 100,
+        });
 
-        for (OutboxEvent event : events) {
+        for (const event of events) {
             try {
-                kafkaTemplate.send(
-                    event.getAggregateType() + "." + event.getEventType(),
-                    event.getAggregateId(),
-                    event.getPayload()
-                ).get();  // 동기 방식으로 발행 확인
+                await this.kafkaProducer.send(
+                    `${event.aggregateType}.${event.eventType}`,
+                    event.aggregateId,
+                    event.payload,
+                );
 
-                event.setPublished(true);
-                outboxEventRepository.save(event);
-            } catch (Exception e) {
-                log.error("Failed to publish outbox event: {}", event.getId(), e);
+                event.published = true;
+                await this.outboxEventRepository.save(event);
+            } catch (e) {
+                logger.error(`Failed to publish outbox event: ${event.id}`, e);
                 break;  // 순서 보장을 위해 실패하면 중단
             }
         }
@@ -559,45 +593,60 @@ Debezium 방식:
 
 **대응**: 보상 트랜잭션은 반드시 **재시도 가능한 구조**로 만들어야 한다. 실패한 보상을 별도 테이블에 저장해두고, 스케줄러가 성공할 때까지 재시도한다.
 
-```java
-@Entity
-public class PendingCompensation {
-    @Id
-    private String id;
-    private String sagaId;
-    private String serviceType;      // "PAYMENT", "ORDER"
-    private String compensationData;  // JSON
-    private int retryCount;
-    private LocalDateTime nextRetryAt;
-    private CompensationStatus status; // PENDING, COMPLETED, FAILED_PERMANENTLY
+```typescript
+@Entity()
+export class PendingCompensation {
+    @PrimaryColumn()
+    id: string;
+
+    @Column()
+    sagaId: string;
+
+    @Column()
+    serviceType: string;      // "PAYMENT", "ORDER"
+
+    @Column('text')
+    compensationData: string;  // JSON
+
+    @Column({ default: 0 })
+    retryCount: number;
+
+    @Column({ type: 'timestamp', nullable: true })
+    nextRetryAt: Date | null;
+
+    @Column()
+    status: string; // 'PENDING', 'COMPLETED', 'FAILED_PERMANENTLY'
 }
 
-@Scheduled(fixedRate = 30000)
-public void retryFailedCompensations() {
-    List<PendingCompensation> pending = compensationRepository
-        .findByStatusAndNextRetryAtBefore(
-            CompensationStatus.PENDING, LocalDateTime.now());
+// 30초마다 재시도
+setInterval(async () => {
+    const pending = await compensationRepository.find({
+        where: {
+            status: 'PENDING',
+            nextRetryAt: LessThan(new Date()),
+        },
+    });
 
-    for (PendingCompensation comp : pending) {
+    for (const comp of pending) {
         try {
-            executeCompensation(comp);
-            comp.setStatus(CompensationStatus.COMPLETED);
-        } catch (Exception e) {
-            comp.setRetryCount(comp.getRetryCount() + 1);
+            await executeCompensation(comp);
+            comp.status = 'COMPLETED';
+        } catch (e) {
+            comp.retryCount += 1;
 
-            if (comp.getRetryCount() >= 10) {
+            if (comp.retryCount >= 10) {
                 // 10번 이상 실패 → 사람이 개입해야 함
-                comp.setStatus(CompensationStatus.FAILED_PERMANENTLY);
-                alertService.sendAlert("보상 트랜잭션 영구 실패: " + comp.getId());
+                comp.status = 'FAILED_PERMANENTLY';
+                await alertService.sendAlert(`보상 트랜잭션 영구 실패: ${comp.id}`);
             } else {
                 // 지수 백오프로 재시도 간격 늘리기
-                long delaySeconds = (long) Math.pow(2, comp.getRetryCount()) * 10;
-                comp.setNextRetryAt(LocalDateTime.now().plusSeconds(delaySeconds));
+                const delaySeconds = Math.pow(2, comp.retryCount) * 10;
+                comp.nextRetryAt = new Date(Date.now() + delaySeconds * 1000);
             }
         }
-        compensationRepository.save(comp);
+        await compensationRepository.save(comp);
     }
-}
+}, 30_000);
 ```
 
 ### 2. 이벤트 순서가 꼬이는 경우
@@ -614,9 +663,9 @@ Kafka 수신 순서: 주문 취소 → 주문 생성
 
 **대응**: 같은 aggregate(예: 같은 주문 ID)의 이벤트는 같은 Kafka 파티션으로 보내야 한다. 주문 ID를 파티션 키로 사용하면 해당 주문의 이벤트 순서가 보장된다.
 
-```java
+```typescript
 // 주문 ID를 키로 사용 → 같은 파티션으로 전송
-kafkaTemplate.send("order-events", order.getId(), eventPayload);
+await kafkaProducer.send('order-events', String(order.id), eventPayload);
 ```
 
 ### 3. 중복 이벤트 처리
@@ -631,22 +680,26 @@ kafkaTemplate.send("order-events", order.getId(), eventPayload);
 
 **대응**: 모든 이벤트 처리에 멱등성 키를 적용한다.
 
-```java
-@KafkaListener(topics = "order-created")
-@Transactional
-public void handleOrderCreated(OrderCreatedEvent event) {
-    // 이미 처리한 이벤트인지 확인
-    if (processedEventRepository.existsByEventId(event.getEventId())) {
-        log.info("이미 처리된 이벤트, 무시: {}", event.getEventId());
-        return;
-    }
+```typescript
+// 'order-created' 토픽 구독
+async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        // 이미 처리한 이벤트인지 확인
+        const alreadyProcessed = await manager.findOne(ProcessedEvent, {
+            where: { eventId: event.eventId },
+        });
+        if (alreadyProcessed) {
+            logger.info(`이미 처리된 이벤트, 무시: ${event.eventId}`);
+            return;
+        }
 
-    // 비즈니스 로직 실행
-    Payment payment = Payment.process(event.getOrderId(), event.getAmount());
-    paymentRepository.save(payment);
+        // 비즈니스 로직 실행
+        const payment = manager.create(Payment, { orderId: event.orderId, amount: event.amount });
+        await manager.save(payment);
 
-    // 처리 완료 기록 (같은 트랜잭션)
-    processedEventRepository.save(new ProcessedEvent(event.getEventId()));
+        // 처리 완료 기록 (같은 트랜잭션)
+        await manager.save(ProcessedEvent, { eventId: event.eventId });
+    });
 }
 ```
 

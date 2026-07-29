@@ -171,39 +171,49 @@ ORDER BY는 표현식이 들어갈 수 있어서 서브쿼리도 동작한다. �
 
 JPQL은 엔티티 기반이라 비교적 안전하지만, `createNativeQuery`를 쓰는 순간 다시 문자열 결합 영역으로 들어간다.
 
-```java
-// 위험
-String jpql = "SELECT u FROM User u WHERE u.name LIKE '" + name + "%'";
-em.createQuery(jpql);
+```typescript
+// TypeORM — 위험 (문자열 결합)
+const users = await repo
+  .createQueryBuilder('u')
+  .where(`u.name LIKE '${name}%'`)   // 인젝션 가능
+  .getMany();
 
-// Native Query에서 문자열 결합
-String sql = "SELECT * FROM users WHERE role = '" + role + "'";
-em.createNativeQuery(sql);
+// TypeORM — 위험 (Native Query 문자열 결합)
+const result = await repo.query(
+  `SELECT * FROM users WHERE role = '${role}'`,   // 인젝션 가능
+);
 
-// 안전
-em.createNativeQuery("SELECT * FROM users WHERE role = :role")
-  .setParameter("role", role);
+// TypeORM — 안전 (파라미터 바인딩)
+const result = await repo.query(
+  'SELECT * FROM users WHERE role = $1',
+  [role],
+);
+
+// TypeORM QueryBuilder — 안전
+const users = await repo
+  .createQueryBuilder('u')
+  .where('u.name LIKE :pattern', { pattern: `${name}%` })
+  .getMany();
 ```
 
-`@Query` 어노테이션을 쓰더라도 SpEL 표현식 `?#{...}` 안에 사용자 입력이 들어가면 위험하다. 특히 `LIKE` 패턴을 만들 때 `'%' + :name + '%'`처럼 조립한 다음 `setParameter`로 넘기는 방식이 안전하다. 쿼리 텍스트 안에서 결합하지 말고, 항상 파라미터 단위로 넘겨야 한다.
+특히 `LIKE` 패턴을 만들 때 와일드카드를 변수에 포함해서 `:pattern`으로 넘기는 방식이 안전하다. 쿼리 텍스트 안에서 결합하지 말고, 항상 파라미터 단위로 넘겨야 한다.
 
 ### 동적 컬럼명/테이블명
 
 ORM의 한계가 가장 명확한 영역이다. SQL 문법상 컬럼명과 테이블명은 파라미터 바인딩이 안 된다. 그래서 동적으로 컬럼명을 정해야 하는 화면에서는 무조건 문자열 결합으로 갈 수밖에 없다.
 
-```java
+```typescript
 // 잘못된 방어 — 따옴표 escape는 컬럼명에는 안 통한다
-String safeColumn = column.replace("'", "''");
-String sql = "SELECT " + safeColumn + " FROM users";
+const safeColumn = column.replace(/'/g, "''");
+const sql = `SELECT ${safeColumn} FROM users`;
 
 // 올바른 방어 — 화이트리스트
-private static final Set<String> ALLOWED_COLUMNS =
-    Set.of("id", "name", "email", "created_at");
+const ALLOWED_COLUMNS = new Set(['id', 'name', 'email', 'created_at']);
 
-if (!ALLOWED_COLUMNS.contains(column)) {
-    throw new IllegalArgumentException("invalid column");
+if (!ALLOWED_COLUMNS.has(column)) {
+  throw new Error('invalid column');
 }
-String sql = "SELECT " + column + " FROM users";
+const sql = `SELECT ${column} FROM users`;
 ```
 
 화이트리스트 외에는 답이 없다. 정규식으로 영문/숫자만 허용하는 것도 부족하다. `id; DROP TABLE--` 같은 페이로드는 막히겠지만, `password` 같은 정상 컬럼명을 통해 의도하지 않은 데이터가 노출될 수 있다.
@@ -212,13 +222,28 @@ String sql = "SELECT " + column + " FROM users";
 
 ORDER BY 뒤에 오는 컬럼은 바인딩이 안 되기 때문에, 정렬 기능을 만드는 거의 모든 화면이 잠재적 공격 지점이다.
 
-```java
-// Spring Data JPA의 Sort 객체 사용
-Sort sort = Sort.by(Direction.fromString(direction), column);
-Page<User> users = userRepository.findAll(PageRequest.of(page, size, sort));
+```typescript
+// TypeORM — 동적 ORDER BY (화이트리스트 필수)
+const ALLOWED_SORT_COLUMNS: Record<string, string> = {
+  created_at: 'u.created_at',
+  name:       'u.name',
+};
+const ALLOWED_DIRECTIONS = new Set<'ASC' | 'DESC'>(['ASC', 'DESC']);
+
+const orderCol = ALLOWED_SORT_COLUMNS[column];
+const orderDir = ALLOWED_DIRECTIONS.has(direction as 'ASC' | 'DESC')
+  ? direction as 'ASC' | 'DESC'
+  : 'ASC';
+
+if (!orderCol) throw new Error('invalid sort column');
+
+const users = await repo
+  .createQueryBuilder('u')
+  .orderBy(orderCol, orderDir)
+  .getMany();
 ```
 
-Spring Data JPA의 `Sort.by`도 컬럼명에 사용자 입력을 그대로 넘기면 위험하다. Spring 내부에서는 컬럼명을 검증하지 않는다. 엔티티에 정의된 필드명만 허용하는 추가 검증이 필요하다.
+TypeORM의 `orderBy`도 컬럼명에 사용자 입력을 그대로 넘기면 위험하다. 내부에서 컬럼명을 검증하지 않으므로 화이트리스트 객체로 허용 컬럼을 명시해야 한다.
 
 ---
 
@@ -228,9 +253,12 @@ PreparedStatement를 쓰면 안전하다는 게 일반론이지만, 우회되는
 
 ### LIKE 절의 와일드카드 자체 인젝션
 
-```java
-String sql = "SELECT * FROM users WHERE name LIKE ?";
-ps.setString(1, "%" + searchTerm + "%");
+```typescript
+// mysql2 — LIKE 파라미터 바인딩
+const [rows] = await conn.execute(
+  'SELECT * FROM users WHERE name LIKE ?',
+  [`%${searchTerm}%`],
+);
 ```
 
 문법적으로는 안전하지만, 공격자가 `searchTerm`에 `%` 100개를 넣으면 인덱스 무효화로 DB가 마비된다. 이걸 ReDoS와 비슷한 형태의 DoS로 분류해야 한다. `%`, `_`를 사전에 escape하거나, 검색어 길이/특수문자 비율을 제한해야 한다.
@@ -241,18 +269,23 @@ JDBC URL의 `characterEncoding`과 DB의 캐릭터셋이 다를 때, 멀티바�
 
 ### 동적 IN 절
 
-```java
-// 안전하지 않은 방식
-String inClause = String.join(",", ids);
-String sql = "SELECT * FROM users WHERE id IN (" + inClause + ")";
+```typescript
+// 안전하지 않은 방식 — 문자열 결합
+const inClause = ids.join(',');
+const sql = `SELECT * FROM users WHERE id IN (${inClause})`;
 
-// 안전한 방식 — 물음표를 동적으로 생성
-String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
-String sql = "SELECT * FROM users WHERE id IN (" + placeholders + ")";
-PreparedStatement ps = conn.prepareStatement(sql);
-for (int i = 0; i < ids.size(); i++) {
-    ps.setLong(i + 1, ids.get(i));
-}
+// 안전한 방식 (mysql2) — 물음표를 동적으로 생성
+const placeholders = ids.map(() => '?').join(',');
+const [rows] = await conn.execute(
+  `SELECT * FROM users WHERE id IN (${placeholders})`,
+  ids,
+);
+
+// 안전한 방식 (TypeORM QueryBuilder)
+const users = await repo
+  .createQueryBuilder('u')
+  .where('u.id IN (:...ids)', { ids })
+  .getMany();
 ```
 
 IN 절의 항목 개수가 가변일 때 `?`를 동적으로 만들어야 하는데, 게으름 때문에 그냥 join하는 코드를 자주 본다. `ids`가 다른 PreparedStatement 결과에서 왔다고 안심해도, 어느 시점에 사용자 입력이 섞이는지 추적하기 어려워진다. 무조건 `?` 바인딩으로 가야 한다.
@@ -335,26 +368,33 @@ flowchart LR
 
 ## 방어 코드
 
-### JDBC PreparedStatement
+### Node.js 파라미터 바인딩 (mysql2 / pg)
 
-```java
-// 잘못된 코드
-Statement stmt = conn.createStatement();
-ResultSet rs = stmt.executeQuery(
-    "SELECT * FROM users WHERE id = '" + userId + "'"
+```typescript
+import mysql from 'mysql2/promise';
+
+// 잘못된 코드 — 문자열 결합
+const [rows] = await conn.query(
+  `SELECT * FROM users WHERE id = '${userId}'`,  // 인젝션 가능
 );
 
-// 올바른 코드
-PreparedStatement ps = conn.prepareStatement(
-    "SELECT * FROM users WHERE id = ?"
+// 올바른 코드 (mysql2) — ? 플레이스홀더
+const [rows] = await conn.execute(
+  'SELECT * FROM users WHERE id = ?',
+  [userId],
 );
-ps.setString(1, userId);
-ResultSet rs = ps.executeQuery();
+
+// 올바른 코드 (pg) — $N 플레이스홀더
+import { Pool } from 'pg';
+const { rows } = await pool.query(
+  'SELECT * FROM users WHERE id = $1',
+  [userId],
+);
 ```
 
-PreparedStatement는 쿼리 구조를 먼저 DB에 보내고 파라미터는 별도로 전송한다. DB는 파라미터를 절대 SQL 코드로 해석하지 않는다. 따옴표가 들어와도, 세미콜론이 들어와도, 다 데이터로 처리된다.
+파라미터 바인딩은 쿼리 구조를 먼저 DB에 보내고 파라미터는 별도로 전송한다. DB는 파라미터를 절대 SQL 코드로 해석하지 않는다. 따옴표가 들어와도, 세미콜론이 들어와도, 다 데이터로 처리된다.
 
-이게 단순 escape와 다른 점이다. escape는 따옴표를 `\'`로 바꾸는 식의 문자열 변환인데, escape 우회 페이로드(`\\'`로 escape를 무력화하는 것 등)가 존재한다. PreparedStatement는 아예 다른 채널로 데이터를 보내기 때문에 우회 자체가 불가능하다.
+이게 단순 escape와 다른 점이다. escape는 따옴표를 `\'`로 바꾸는 식의 문자열 변환인데, escape 우회 페이로드(`\\'`로 escape를 무력화하는 것 등)가 존재한다. 파라미터 바인딩은 아예 다른 채널로 데이터를 보내기 때문에 우회 자체가 불가능하다.
 
 ### MyBatis 안전 패턴
 
@@ -374,19 +414,32 @@ PreparedStatement는 쿼리 구조를 먼저 DB에 보내고 파라미터는 별
 
 `<choose>`로 화이트리스트를 강제한다. 사용자가 어떤 값을 보내도 미리 정의된 컬럼만 사용된다.
 
-### JPA Native Query 안전 패턴
+### TypeORM 안전 패턴
 
-```java
+```typescript
+import { Repository } from 'typeorm';
+
 // 명명 파라미터 사용
-@Query(value = "SELECT * FROM users WHERE email = :email", nativeQuery = true)
-User findByEmail(@Param("email") String email);
+const user = await repo
+  .createQueryBuilder('u')
+  .where('u.email = :email', { email })
+  .getOne();
 
-// LIKE 검색 시 와일드카드는 파라미터에 포함
-@Query(value = "SELECT * FROM users WHERE name LIKE :pattern", nativeQuery = true)
-List<User> searchByName(@Param("pattern") String pattern);
+// LIKE 검색 — 와일드카드는 파라미터에 포함, 쿼리 텍스트에서 결합 금지
+function sanitizeLike(term: string): string {
+  return term.replace(/[%_\\]/g, '\\$&');  // MySQL 기준 escape
+}
 
-// 호출 측
-userRepository.searchByName("%" + sanitize(name) + "%");
+const users = await repo
+  .createQueryBuilder('u')
+  .where('u.name LIKE :pattern', { pattern: `%${sanitizeLike(name)}%` })
+  .getMany();
+
+// Native Query도 파라미터 바인딩 사용
+const result = await repo.query(
+  'SELECT * FROM users WHERE email = $1',
+  [email],
+);
 ```
 
 쿼리 텍스트 자체에는 사용자 입력이 들어가지 않는다. 모든 가변 데이터는 파라미터로 분리한다.

@@ -539,23 +539,22 @@ FK 제약을 걸 수 있고, 어떤 대상의 댓글인지 바로 알 수 있다
 
 JPA가 자동 생성하는 DDL과 실제 운영 DDL 사이에는 차이가 많다.
 
-```java
-@Entity
-@Table(name = "products")
-public class Product {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+```typescript
+// TypeORM 엔티티 예시
+@Entity('products')
+export class Product {
+    @PrimaryGeneratedColumn()
+    id: number;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @Column({ nullable: false, length: 100 })
+    name: string;
 
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal price;
+    @Column({ nullable: false, type: 'decimal', precision: 15, scale: 2 })
+    price: string;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
+    @ManyToOne(() => Category, { lazy: true })
+    @JoinColumn({ name: 'category_id' })
+    category: Category;
 }
 ```
 
@@ -602,31 +601,31 @@ CREATE TABLE products (
 
 ### 엔티티 설계 시 주의할 점
 
-```java
+```typescript
 // 양방향 관계를 무분별하게 거는 실수
-@Entity
-public class Order {
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> orderItems = new ArrayList<>();
+@Entity()
+export class Order {
+    @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
+    orderItems: OrderItem[];
 }
 
-@Entity
-public class OrderItem {
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
+@Entity()
+export class OrderItem {
+    @ManyToOne(() => Order, (order) => order.orderItems, { lazy: true })
+    @JoinColumn({ name: 'order_id' })
+    order: Order;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @ManyToOne(() => Product, { lazy: true })
+    @JoinColumn({ name: 'product_id' })
+    product: Product;
 }
 
-@Entity
-public class Product {
+@Entity()
+export class Product {
     // 이건 필요 없는 경우가 많다
     // "이 상품으로 주문된 아이템 전체"를 엔티티에서 탐색할 일이 있는가?
-    @OneToMany(mappedBy = "product")
-    private List<OrderItem> orderItems;  // 불필요한 양방향
+    @OneToMany(() => OrderItem, (item) => item.product)
+    orderItems: OrderItem[];  // 불필요한 양방향
 }
 ```
 

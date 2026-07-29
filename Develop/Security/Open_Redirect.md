@@ -23,17 +23,17 @@ updated: 2026-06-15
 
 ## 가장 흔한 취약 코드
 
-Spring 기준으로 보면 이런 코드가 제일 많다.
+Express 기준으로 보면 이런 코드가 제일 많다.
 
-```java
-@GetMapping("/login/success")
-public String loginSuccess(@RequestParam(defaultValue = "/") String returnUrl) {
-    // returnUrl을 그대로 신뢰
-    return "redirect:" + returnUrl;
-}
+```typescript
+// 취약한 Express 코드
+app.get('/login/success', (req, res) => {
+  const returnUrl = (req.query.returnUrl as string) ?? '/';
+  res.redirect(returnUrl);  // returnUrl을 그대로 신뢰 — 위험
+});
 ```
 
-`returnUrl=https://evil.com`이면 `redirect:https://evil.com`이 되어 외부로 나간다. Node/Express도 똑같다.
+`returnUrl=https://evil.com`이면 외부로 나간다. NestJS도 똑같다.
 
 ```javascript
 app.get('/login/success', (req, res) => {
@@ -156,18 +156,19 @@ https://auth.example.com/authorize
 
 제일 안전한 건 리다이렉트 대상을 외부에서 절대 URL로 받지 않는 것이다. 페이지 키만 받고 서버가 실제 경로를 매핑한다.
 
-```java
-private static final Map<String, String> REDIRECT_TARGETS = Map.of(
-    "mypage", "/user/mypage",
-    "orders", "/user/orders",
-    "home",   "/"
-);
+```typescript
+// Express — 페이지 키로만 리다이렉트 대상 결정
+const REDIRECT_TARGETS: Record<string, string> = {
+  mypage: '/user/mypage',
+  orders: '/user/orders',
+  home:   '/',
+};
 
-@GetMapping("/login/success")
-public String loginSuccess(@RequestParam(defaultValue = "home") String dest) {
-    String path = REDIRECT_TARGETS.getOrDefault(dest, "/");
-    return "redirect:" + path;
-}
+app.get('/login/success', (req, res) => {
+  const dest  = req.query.dest as string ?? 'home';
+  const path  = REDIRECT_TARGETS[dest] ?? '/';
+  res.redirect(path);
+});
 ```
 
 키가 목록에 없으면 기본 경로로 보낸다. 외부 도메인이 끼어들 여지가 아예 없다. 리다이렉트 종류가 많지 않다면 이게 제일 깔끔하다.
@@ -176,28 +177,25 @@ public String loginSuccess(@RequestParam(defaultValue = "home") String dest) {
 
 복귀 경로가 동적이라 1번이 안 되면, 상대 경로만 받고 절대 URL은 전부 거른다.
 
-```java
-public String safeRedirectPath(String returnUrl) {
-    if (returnUrl == null || returnUrl.isBlank()) {
-        return "/";
-    }
-    // 스킴이나 호스트가 들어있으면 거부
-    // '/'로 시작하되 '//' 또는 '/\'로 시작하면 안 됨
-    if (!returnUrl.startsWith("/")
-            || returnUrl.startsWith("//")
-            || returnUrl.startsWith("/\\")) {
-        return "/";
-    }
-    // 백슬래시 자체를 막아 브라우저 정규화 우회 차단
-    if (returnUrl.contains("\\")) {
-        return "/";
-    }
-    // 디코딩 후 재검사 (인코딩 우회 차단)
-    String decoded = URLDecoder.decode(returnUrl, StandardCharsets.UTF_8);
-    if (decoded.startsWith("//") || decoded.startsWith("/\\") || decoded.contains("\\")) {
-        return "/";
-    }
-    return returnUrl;
+```typescript
+function safeRedirectPath(returnUrl: string | undefined): string {
+  if (!returnUrl || returnUrl.trim() === '') return '/';
+
+  // '/'로 시작하되 '//' 또는 '/\' 시작은 프로토콜 상대 URL — 거부
+  if (!returnUrl.startsWith('/') || returnUrl.startsWith('//') || returnUrl.startsWith('/\\')) {
+    return '/';
+  }
+
+  // 백슬래시 자체를 막아 브라우저 정규화 우회 차단
+  if (returnUrl.includes('\\')) return '/';
+
+  // 디코딩 후 재검사 (인코딩 우회 차단)
+  const decoded = decodeURIComponent(returnUrl);
+  if (decoded.startsWith('//') || decoded.startsWith('/\\') || decoded.includes('\\')) {
+    return '/';
+  }
+
+  return returnUrl;
 }
 ```
 
@@ -207,62 +205,56 @@ public String safeRedirectPath(String returnUrl) {
 
 외부 도메인 리다이렉트가 업무상 필요하면(결제사 콜백 등), 호스트를 파싱해서 허용 목록과 정확히 비교한다. 문자열 매칭은 절대 안 된다.
 
-```java
-private static final Set<String> ALLOWED_HOSTS = Set.of(
-    "example.com",
-    "pay.example.com"
-);
+```typescript
+const ALLOWED_HOSTS = new Set([
+  'example.com',
+  'pay.example.com',
+]);
 
-public boolean isAllowedRedirect(String target) {
-    URI uri;
-    try {
-        uri = new URI(target);
-    } catch (URISyntaxException e) {
-        return false; // 파싱 실패 = 거부
-    }
+function isAllowedRedirect(target: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(target);
+  } catch {
+    return false;  // 파싱 실패 = 거부
+  }
 
-    String host = uri.getHost();
-    if (host == null) {
-        return false; // 호스트가 안 잡히면 거부 (//evil.com 등은 여기서 걸림)
-    }
+  // https만 허용
+  if (url.protocol !== 'https:') return false;
 
-    String scheme = uri.getScheme();
-    if (!"https".equalsIgnoreCase(scheme)) {
-        return false; // https만 허용
-    }
+  const host = url.hostname.toLowerCase();
+  if (!host) return false;  // 호스트가 안 잡히면 거부
 
-    // 정확히 일치하는 호스트만 통과
-    return ALLOWED_HOSTS.contains(host.toLowerCase());
+  // 정확히 일치하는 호스트만 통과
+  return ALLOWED_HOSTS.has(host);
 }
 ```
 
-`uri.getHost()`가 `null`을 돌려주는 경우를 반드시 거부 처리해야 한다. `//evil.com`이나 `/path` 같은 입력은 호스트가 안 잡혀 `null`이 나오는데, 이걸 통과시키면 다시 뚫린다.
+`url.hostname`이 빈 문자열인 경우를 반드시 거부 처리해야 한다. `//evil.com`이나 `/path` 같은 입력은 호스트가 안 잡혀 빈 문자열이 나오는데, 이걸 통과시키면 다시 뚫린다.
 
 ## URL 파싱 주의사항
 
 검증 로직에서 가장 많이 실수하는 부분이 파서 동작이다.
 
-`java.net.URI`와 `java.net.URL`은 동작이 다르다. `URL`은 `getHost()`가 더 관대하게 파싱해서 우회 여지가 생긴다. 검증에는 `URI`를 쓰고, 파싱 실패 예외를 거부로 처리한다.
+Node.js의 `URL` 객체가 URL 파싱의 표준이다. 호스트 추출은 정규식 말고 반드시 `URL` 파서를 써야 한다.
 
-```java
-// URI: //evil.com → host=evil.com, scheme=null  (스킴 체크에서 걸림)
-// URL: 생성자에서 스킴 없으면 MalformedURLException
-new URI("//evil.com").getHost();   // "evil.com"
-new URI("/local/path").getHost();  // null
-new URI("https://a.com@evil.com").getHost(); // "evil.com" — @ 뒤가 진짜 호스트
+```typescript
+// URL 파서 동작 — @ 처리에 주의
+new URL('//evil.com', 'https://dummy').hostname;        // "evil.com" (base 붙이면 파싱됨)
+new URL('https://a.com@evil.com').hostname;             // "evil.com" — @ 뒤가 진짜 호스트
+new URL('https://a.com@evil.com').username;             // "a.com" — 이게 userinfo
 ```
 
-마지막 줄이 중요하다. `@`가 있으면 그 뒤가 실제 호스트다. 표준 파서는 이걸 제대로 잡아주는데, 직접 정규식으로 호스트를 뽑으면 `@` 앞을 호스트로 착각하기 쉽다. 호스트 추출은 정규식 말고 표준 URL 파서를 써야 한다.
+`@`가 있으면 그 뒤가 실제 호스트다. 표준 파서는 이걸 제대로 잡아주는데, 직접 정규식으로 호스트를 뽑으면 `@` 앞을 호스트로 착각하기 쉽다.
 
-Node.js는 `URL` 객체를 쓴다. 똑같이 `hostname`을 정확 비교한다.
-
-```javascript
-function isAllowedRedirect(target) {
-  let url;
+```typescript
+// Node.js URL 파서를 이용한 검증
+function isAllowedRedirect(target: string): boolean {
+  let url: URL;
   try {
     url = new URL(target);
   } catch {
-    return false; // 상대 경로는 base 없이 파싱 실패 → 별도 처리
+    return false;  // 상대 경로는 base 없이 파싱 실패 → 별도 처리
   }
   if (url.protocol !== 'https:') return false;
   const allowed = new Set(['example.com', 'pay.example.com']);

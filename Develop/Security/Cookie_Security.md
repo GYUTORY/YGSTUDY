@@ -217,51 +217,44 @@ res.cookie('__Host-widget', token, {
 
 오래된 `cookie` 라이브러리는 `partitioned` 옵션을 모른다. 직접 `Set-Cookie` 헤더에 `Partitioned`를 붙이거나 라이브러리를 올려야 한다.
 
-## Spring Boot 설정
+## Express / NestJS 설정
 
-Spring Session + Redis 기준. `application.yml`에서:
+Express 기준. `res.cookie()` 옵션으로 쿠키를 세팅한다:
 
-```yaml
-server:
-  servlet:
-    session:
-      cookie:
-        name: __Host-SID
-        http-only: true
-        secure: true
-        same-site: lax
-        path: /
-        max-age: 7200
-        # domain은 비워둔다
+```typescript
+import { Response } from 'express';
+
+// 세션 쿠키 — HttpOnly + Secure + SameSite
+res.cookie('__Host-SID', sessionId, {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 2 * 60 * 60 * 1000, // 2시간 (밀리초)
+  // domain은 지정하지 않으면 host-only 쿠키가 된다
+});
+
+// CSRF double-submit 토큰 — JS에서 읽어야 하므로 httpOnly: false
+res.cookie('__Host-csrf', token, {
+  httpOnly: false,
+  secure: true,
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 2 * 60 * 60 * 1000,
+});
 ```
 
-코드로 직접 쿠키를 세팅할 때:
+`Partitioned` 속성이 필요하면 `res.cookie()`가 지원하지 않는 경우 헤더에 직접 추가한다:
 
-```java
-ResponseCookie cookie = ResponseCookie.from("__Host-csrf", token)
-    .httpOnly(false)
-    .secure(true)
-    .sameSite("Lax")
-    .path("/")
-    .maxAge(Duration.ofHours(2))
-    .build();
-
-response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-```
-
-`ResponseCookie`는 Spring 5부터 권장 API다. `Cookie` 클래스 직접 쓰는 옛날 방식은 SameSite를 지원하지 않아 헤더에 직접 박아야 했다.
-
-Partitioned가 필요하면 Spring Boot 3.4 이상 또는 Tomcat 11에서 지원이 추가됐다. 그 이전 버전이라면 헤더에 직접 추가한다.
-
-```java
-String header = String.format(
-    "%s=%s; Path=/; HttpOnly; Secure; SameSite=None; Partitioned",
-    name, value
+```typescript
+// Partitioned 속성이 필요한 경우 (CHIPS 지원)
+res.setHeader(
+  'Set-Cookie',
+  `${name}=${value}; Path=/; HttpOnly; Secure; SameSite=None; Partitioned`,
 );
-response.addHeader("Set-Cookie", header);
 ```
 
-리버스 프록시(Nginx, ALB) 뒤일 때 `server.forward-headers-strategy: native` 또는 `framework`를 켜야 `secure`가 정확히 판정된다. Express의 `trust proxy`와 같은 맥락이다.
+리버스 프록시(Nginx, ALB) 뒤일 때 `app.set('trust proxy', 1)`을 켜야 `req.secure`가 정확히 판정된다.
 
 ## Next.js 설정
 

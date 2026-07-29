@@ -479,27 +479,26 @@ COMMIT (INSERT 1, 2, 4 반영)
 
 배치 처리에서의 활용:
 
-```java
-@Transactional
-public BatchResult processBatch(List<Order> orders) {
-    int success = 0;
-    int failed = 0;
+```typescript
+async processBatch(orders: Order[]): Promise<BatchResult> {
+    let success = 0;
+    let failed = 0;
 
-    for (Order order : orders) {
-        // SAVEPOINT 생성
-        Object savepoint = TransactionAspectSupport
-            .currentTransactionStatus().createSavepoint();
-        try {
-            orderService.processOrder(order);
-            success++;
-        } catch (Exception e) {
-            // 해당 건만 롤백
-            TransactionAspectSupport
-                .currentTransactionStatus().rollbackToSavepoint(savepoint);
-            failed++;
-            log.warn("주문 처리 실패: orderId={}", order.getId(), e);
+    await this.dataSource.transaction(async (manager) => {
+        for (const order of orders) {
+            // SAVEPOINT 생성
+            await manager.query(`SAVEPOINT sp_order_${order.id}`);
+            try {
+                await this.orderService.processOrder(order, manager);
+                success++;
+            } catch (e) {
+                // 해당 건만 롤백
+                await manager.query(`ROLLBACK TO SAVEPOINT sp_order_${order.id}`);
+                failed++;
+                logger.warn('주문 처리 실패', { orderId: order.id, error: e });
+            }
         }
-    }
+    });
     // 성공한 건들은 COMMIT됨
     return new BatchResult(success, failed);
 }
@@ -518,19 +517,26 @@ public BatchResult processBatch(List<Order> orders) {
 
 **충돌이 자주 발생**할 것으로 예상할 때 사용. 데이터를 읽는 시점에 락을 건다.
 
-```java
-// JPA 비관적 잠금
-@Lock(LockModeType.PESSIMISTIC_WRITE)
-@Query("SELECT p FROM Product p WHERE p.id = :id")
-Optional<Product> findByIdWithLock(@Param("id") Long id);
+```typescript
+// TypeORM 비관적 잠금
+async findByIdWithLock(id: number): Promise<Product> {
+    return this.productRepository.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+    });
+}
 
 // 사용
-@Transactional
-public void decreaseStock(Long productId, int quantity) {
-    Product product = productRepository.findByIdWithLock(productId)
-        .orElseThrow();
-    product.decreaseStock(quantity);  // 재고 감소
-    // 트랜잭션 종료 시 락 해제
+async decreaseStock(productId: number, quantity: number): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        const product = await manager.findOne(Product, {
+            where: { id: productId },
+            lock: { mode: 'pessimistic_write' },
+        });
+        product.decreaseStock(quantity);  // 재고 감소
+        await manager.save(product);
+        // 트랜잭션 종료 시 락 해제
+    });
 }
 ```
 
@@ -546,25 +552,30 @@ COMMIT;  -- 락 해제
 
 **충돌이 드물게 발생**할 것으로 예상할 때 사용. 커밋 시점에 충돌을 감지한다.
 
-```java
-@Entity
-public class Product {
-    @Id
-    private Long id;
+```typescript
+@Entity()
+export class Product {
+    @PrimaryGeneratedColumn()
+    id: number;
 
-    @Version  // 낙관적 잠금용 버전 컬럼
-    private Long version;
+    @VersionColumn()  // 낙관적 잠금용 버전 컬럼
+    version: number;
 
-    private int stock;
+    @Column()
+    stock: number;
 }
 
 // 사용
-@Transactional
-public void decreaseStock(Long productId, int quantity) {
-    Product product = productRepository.findById(productId)
-        .orElseThrow();
-    product.decreaseStock(quantity);
-    // 커밋 시 version 체크 → 변경되었으면 OptimisticLockException
+async decreaseStock(productId: number, quantity: number): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        const product = await manager.findOne(Product, {
+            where: { id: productId },
+            lock: { mode: 'optimistic', version: undefined },
+        });
+        product.decreaseStock(quantity);
+        await manager.save(product);
+        // 커밋 시 version 체크 → 변경되었으면 OptimisticLockVersionMismatchError
+    });
 }
 ```
 
@@ -581,16 +592,22 @@ WHERE id = 1 AND version = 3;
 
 #### 재시도 패턴
 
-```java
-@Retryable(
-    value = OptimisticLockException.class,
-    maxAttempts = 3,
-    backoff = @Backoff(delay = 100)
-)
-@Transactional
-public void decreaseStock(Long productId, int quantity) {
-    Product product = productRepository.findById(productId).orElseThrow();
-    product.decreaseStock(quantity);
+```typescript
+async decreaseStock(productId: number, quantity: number, attempt = 0): Promise<void> {
+    const maxAttempts = 3;
+    try {
+        await this.dataSource.transaction(async (manager) => {
+            const product = await manager.findOne(Product, { where: { id: productId } });
+            product.decreaseStock(quantity);
+            await manager.save(product);
+        });
+    } catch (e) {
+        if (e instanceof OptimisticLockVersionMismatchError && attempt < maxAttempts - 1) {
+            await new Promise((res) => setTimeout(res, 100));
+            return this.decreaseStock(productId, quantity, attempt + 1);
+        }
+        throw e;
+    }
 }
 ```
 
@@ -658,186 +675,187 @@ SHOW ENGINE INNODB STATUS;  -- LATEST DETECTED DEADLOCK 섹션 확인
 -- postgresql.conf: log_lock_waits = on
 ```
 
-### 8. Spring @Transactional 실무 주의사항
+### 8. 트랜잭션 실무 주의사항
 
-Spring에서 `@Transactional`을 쓸 때 빈번하게 발생하는 문제들이 있다. 대부분 프록시 동작 방식을 이해하지 못해서 생긴다.
+트랜잭션을 잘못 사용할 때 빈번하게 발생하는 문제들이 있다.
 
-#### 프록시 self-invocation 문제
+#### 내부 호출 시 트랜잭션 미적용 문제
 
-`@Transactional`은 Spring AOP 프록시로 동작한다. 같은 클래스 내부에서 `@Transactional` 메서드를 호출하면 프록시를 거치지 않아서 **트랜잭션이 적용되지 않는다**.
+같은 클래스 내부에서 트랜잭션 메서드를 직접 호출하면 **별도 트랜잭션이 시작되지 않아** 의도한 원자성이 보장되지 않는다.
 
-```java
-@Service
-public class OrderService {
+```typescript
+@Injectable()
+export class OrderService {
 
-    public void createOrder(OrderRequest request) {
-        // 이 호출은 프록시를 거치지 않음 → 트랜잭션 미적용
+    createOrder(request: OrderRequest): void {
+        // 이 호출은 dataSource.transaction 밖에서 실행 → 트랜잭션 미적용
         this.processPayment(request);
     }
 
-    @Transactional
-    public void processPayment(OrderRequest request) {
+    async processPayment(request: OrderRequest): Promise<void> {
         // 트랜잭션이 걸려야 하지만, 내부 호출이라 안 걸림
-        paymentRepository.save(payment);
-        accountRepository.updateBalance(request.getAmount());
+        await this.dataSource.transaction(async (manager) => {
+            await manager.save(Payment, payment);
+            await manager.update(Account, { userId: request.userId }, { balance: () => `balance - ${request.amount}` });
+        });
     }
 }
 ```
 
 ```
-프록시 동작 방식:
+트랜잭션 범위 동작 방식:
 
-외부 호출 (트랜잭션 적용됨):
-  Controller ──→ Proxy(OrderService) ──→ OrderService.processPayment()
+올바른 호출 (트랜잭션 적용됨):
+  Controller ──→ PaymentService.processPayment()
                      │
-                     └── BEGIN / COMMIT 처리
+                     └── dataSource.transaction() → BEGIN / COMMIT 처리
 
 내부 호출 (트랜잭션 미적용):
   OrderService.createOrder() ──→ this.processPayment()
                                    │
-                                   └── 프록시를 안 거침 → 트랜잭션 없음
+                                   └── 별도 트랜잭션 없음 → dataSource.transaction() 미호출
 ```
 
 해결 방법:
 
-```java
+```typescript
 // 방법 1: 별도 서비스로 분리 (권장)
-@Service
-@RequiredArgsConstructor
-public class OrderService {
-    private final PaymentService paymentService;
+@Injectable()
+export class OrderService {
+    constructor(private readonly paymentService: PaymentService) {}
 
-    public void createOrder(OrderRequest request) {
-        paymentService.processPayment(request);  // 프록시를 거침
+    async createOrder(request: OrderRequest): Promise<void> {
+        await this.paymentService.processPayment(request);  // 별도 서비스에서 트랜잭션 처리
     }
 }
 
-@Service
-public class PaymentService {
-    @Transactional
-    public void processPayment(OrderRequest request) {
-        // 트랜잭션 정상 동작
-    }
-}
+@Injectable()
+export class PaymentService {
+    constructor(private readonly dataSource: DataSource) {}
 
-// 방법 2: 자기 자신을 주입 (비권장, 순환 참조 위험)
-@Service
-public class OrderService {
-    @Lazy
-    @Autowired
-    private OrderService self;
-
-    public void createOrder(OrderRequest request) {
-        self.processPayment(request);  // 프록시를 거침
+    async processPayment(request: OrderRequest): Promise<void> {
+        await this.dataSource.transaction(async (manager) => {
+            // 트랜잭션 정상 동작
+        });
     }
 }
 ```
 
-#### readOnly 전파 문제
+#### 읽기 전용 커넥션과 쓰기 혼용 문제
 
-`@Transactional(readOnly = true)`가 걸린 메서드에서 쓰기 트랜잭션 메서드를 호출하면, **기존 readOnly 트랜잭션에 참여**해서 쓰기가 실패하거나 무시되는 경우가 있다.
+읽기 전용 복제본(replica) 커넥션에서 쓰기 메서드를 호출하면, **읽기 전용 커넥션에서 쓰기가 실패**하는 경우가 있다.
 
-```java
-@Service
-public class ReportService {
+```typescript
+@Injectable()
+export class ReportService {
+    constructor(
+        private readonly reportRepository: ReportRepository,
+        private readonly auditService: AuditService,
+    ) {}
 
-    // readOnly 트랜잭션
-    @Transactional(readOnly = true)
-    public Report generateReport(Long userId) {
-        Report report = reportRepository.calculate(userId);
+    // 읽기 전용 연결로 실행
+    async generateReport(userId: number): Promise<Report> {
+        const report = await this.reportRepository.calculate(userId);
 
-        // 문제: 이 호출은 이미 readOnly 트랜잭션 안에서 실행됨
-        // Propagation.REQUIRED (기본값)이므로 기존 트랜잭션에 참여
-        auditService.logReportGeneration(userId);  // 쓰기 동작 → 실패 가능
+        // 문제: auditService는 읽기 전용 연결로 쓰기를 시도하면 실패 가능
+        await this.auditService.logReportGeneration(userId);  // 쓰기 동작 → 실패 가능
 
         return report;
     }
 }
 
-@Service
-public class AuditService {
-    @Transactional  // Propagation.REQUIRED가 기본
-    public void logReportGeneration(Long userId) {
-        // readOnly 트랜잭션 안에서 실행되므로 INSERT가 안 될 수 있음
-        auditRepository.save(new AuditLog(userId, "REPORT_GENERATED"));
+@Injectable()
+export class AuditService {
+    constructor(private readonly dataSource: DataSource) {}
+
+    async logReportGeneration(userId: number): Promise<void> {
+        // 별도 트랜잭션으로 쓰기 처리
+        await this.dataSource.transaction(async (manager) => {
+            await manager.save(AuditLog, { userId, action: 'REPORT_GENERATED' });
+        });
     }
 }
 ```
 
 ```
-readOnly 전파 상황:
+읽기 전용 커넥션 혼용 상황:
 
-generateReport() → @Transactional(readOnly = true)
+generateReport() → 읽기 전용 커넥션 사용
     │
     ├── SELECT (정상)
     │
-    └── logReportGeneration() → @Transactional (REQUIRED)
+    └── logReportGeneration() → 쓰기 시도
             │
-            └── 기존 readOnly 트랜잭션에 참여
-                → INSERT 시도 → 실패 또는 무시됨
+            └── 읽기 전용 커넥션에서 INSERT 시도
+                → 실패 (read-only connection error)
 ```
 
 해결:
 
-```java
-@Service
-public class AuditService {
-    // REQUIRES_NEW로 별도 트랜잭션 생성
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void logReportGeneration(Long userId) {
-        auditRepository.save(new AuditLog(userId, "REPORT_GENERATED"));
+```typescript
+@Injectable()
+export class AuditService {
+    constructor(private readonly dataSource: DataSource) {}
+
+    // 항상 별도 트랜잭션으로 실행
+    async logReportGeneration(userId: number): Promise<void> {
+        await this.dataSource.transaction(async (manager) => {
+            await manager.save(AuditLog, { userId, action: 'REPORT_GENERATED' });
+        });
     }
 }
 ```
 
-#### 체크 예외(Checked Exception) 롤백 미동작
+#### 에러 발생 시 롤백 동작
 
-Spring `@Transactional`은 기본적으로 **RuntimeException과 Error에서만 롤백**한다. 체크 예외(checked exception)를 던지면 **롤백되지 않고 커밋**된다.
+TypeScript/Node.js에서는 `dataSource.transaction()` 내부에서 에러가 throw되면 **항상 자동으로 롤백**된다. Java Spring과 달리 checked/unchecked 예외 구분이 없다.
 
-```java
-// 문제 코드
-@Transactional
-public void transferMoney(Long from, Long to, BigDecimal amount)
-        throws InsufficientBalanceException {  // checked exception
+```typescript
+// 문제 없음: TypeScript/Node.js에는 checked/unchecked 구분이 없음
+// throw된 에러는 항상 트랜잭션 롤백 트리거
+async transferMoney(from: number, to: number, amount: number): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        await this.accountRepository.withdraw(from, amount, manager);
+        await this.accountRepository.deposit(to, amount, manager);
 
-    accountRepository.withdraw(from, amount);
-    accountRepository.deposit(to, amount);
-
-    if (someConditionFails()) {
-        // checked exception → 롤백 안 됨! 출금만 되고 입금이 취소되지 않음
-        throw new InsufficientBalanceException("잔액 부족");
-    }
+        if (someConditionFails()) {
+            // 에러를 throw하면 트랜잭션이 롤백됨
+            throw new InsufficientBalanceError('잔액 부족');
+        }
+    });
 }
 ```
 
 ```
-@Transactional 롤백 규칙:
+dataSource.transaction() 롤백 규칙 (TypeScript/TypeORM):
 
-  RuntimeException (unchecked) → 롤백 O
-  Error                        → 롤백 O
-  Exception (checked)          → 롤백 X (커밋됨!)
+  throw Error (모든 종류) → 롤백 O
+  정상 종료               → 커밋 O
+  → Java의 checked exception 문제 없음
 ```
 
 해결:
 
-```java
-// 방법 1: rollbackFor 지정
-@Transactional(rollbackFor = Exception.class)
-public void transferMoney(Long from, Long to, BigDecimal amount)
-        throws InsufficientBalanceException {
-    // checked exception이 발생해도 롤백됨
+```typescript
+// TypeScript에서는 모든 에러가 throw되면 트랜잭션 롤백됨 — 별도 설정 불필요
+async transferMoney(from: number, to: number, amount: number): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        await this.accountRepository.withdraw(from, amount, manager);
+        await this.accountRepository.deposit(to, amount, manager);
+    });
+    // 에러 발생 시 자동 롤백
 }
 
-// 방법 2: unchecked exception 사용 (권장)
-// checked exception 대신 RuntimeException 하위 클래스를 사용
-public class InsufficientBalanceException extends RuntimeException {
-    public InsufficientBalanceException(String message) {
+// 커스텀 에러 클래스 (TypeScript)
+export class InsufficientBalanceError extends Error {
+    constructor(message: string) {
         super(message);
+        this.name = 'InsufficientBalanceError';
     }
 }
 ```
 
-실무에서는 비즈니스 예외를 RuntimeException으로 정의하는 것이 일반적이다. 체크 예외를 써야 하는 상황이라면 반드시 `rollbackFor`를 명시한다.
+TypeScript/Node.js에서는 모든 에러가 동일하게 처리되므로 `dataSource.transaction()` 내부에서 throw된 에러는 종류에 관계없이 항상 롤백된다.
 
 ### 9. 장기 트랜잭션과 커넥션 풀 고갈
 
@@ -862,60 +880,70 @@ public class InsufficientBalanceException extends RuntimeException {
 
 흔히 발생하는 원인:
 
-```java
+```typescript
 // 문제 1: 트랜잭션 안에서 외부 API 호출
-@Transactional
-public void processOrder(Order order) {
-    orderRepository.save(order);
+async processOrder(order: Order): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        await manager.save(Order, order);
 
-    // 외부 API 호출 — 응답이 3초 걸림
-    // 이 시간 동안 DB 커넥션을 잡고 있음
-    PaymentResult result = paymentGateway.charge(order.getAmount());
+        // 외부 API 호출 — 응답이 3초 걸림
+        // 이 시간 동안 DB 커넥션을 잡고 있음
+        const result = await this.paymentGateway.charge(order.amount);
 
-    order.setPaymentId(result.getId());
+        order.paymentId = result.id;
+        await manager.save(Order, order);
+    });
 }
 
 // 해결: 트랜잭션 밖에서 외부 호출
-public void processOrder(Order order) {
+async processOrder(order: Order): Promise<void> {
     // 1단계: 주문 저장 (짧은 트랜잭션)
-    orderService.saveOrder(order);
+    await this.orderService.saveOrder(order);
 
     // 2단계: 외부 API 호출 (트랜잭션 밖)
-    PaymentResult result = paymentGateway.charge(order.getAmount());
+    const result = await this.paymentGateway.charge(order.amount);
 
     // 3단계: 결과 저장 (짧은 트랜잭션)
-    orderService.updatePaymentResult(order.getId(), result);
+    await this.orderService.updatePaymentResult(order.id, result);
 }
 ```
 
-```java
+```typescript
 // 문제 2: 대량 데이터 처리를 한 트랜잭션으로
-@Transactional
-public void migrateAllUsers() {
-    List<User> users = userRepository.findAll();  // 100만 건
-    for (User user : users) {
-        user.setStatus("MIGRATED");
-        // 100만 건 처리 동안 커넥션 점유
-    }
+async migrateAllUsers(): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        const users = await manager.find(User);  // 100만 건
+        for (const user of users) {
+            user.status = 'MIGRATED';
+            // 100만 건 처리 동안 커넥션 점유
+        }
+        await manager.save(User, users);
+    });
 }
 
 // 해결: 배치 단위로 분할
-public void migrateAllUsers() {
-    int page = 0;
-    int batchSize = 1000;
-    Page<User> batch;
+async migrateAllUsers(): Promise<void> {
+    const batchSize = 1000;
+    let page = 0;
+    let hasMore = true;
 
-    do {
-        batch = userRepository.findAll(PageRequest.of(page, batchSize));
-        migrateService.migrateBatch(batch.getContent());  // 별도 트랜잭션
+    while (hasMore) {
+        const batch = await this.userRepository.find({
+            skip: page * batchSize,
+            take: batchSize,
+        });
+        if (batch.length === 0) { hasMore = false; break; }
+        await this.migrateService.migrateBatch(batch);  // 별도 트랜잭션
         page++;
-    } while (batch.hasNext());
+    }
 }
 
-@Transactional
-public void migrateBatch(List<User> users) {
-    // 1000건씩만 처리 → 커넥션 빨리 반환
-    users.forEach(u -> u.setStatus("MIGRATED"));
+async migrateBatch(users: User[]): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        // 1000건씩만 처리 → 커넥션 빨리 반환
+        users.forEach((u) => { u.status = 'MIGRATED'; });
+        await manager.save(User, users);
+    });
 }
 ```
 
@@ -935,38 +963,56 @@ spring:
 
 #### 재고 차감 (동시성 핵심)
 
-```java
+```typescript
 // 방법 1: 비관적 잠금
-@Transactional
-public void order(Long productId, int qty) {
-    Product p = productRepository.findByIdWithPessimisticLock(productId);
-    p.decreaseStock(qty);
+async order(productId: number, qty: number): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        const p = await manager.findOne(Product, {
+            where: { id: productId },
+            lock: { mode: 'pessimistic_write' },
+        });
+        p.decreaseStock(qty);
+        await manager.save(p);
+    });
 }
 
 // 방법 2: 낙관적 잠금 + 재시도
-@Retryable(value = OptimisticLockException.class, maxAttempts = 3)
-@Transactional
-public void order(Long productId, int qty) {
-    Product p = productRepository.findById(productId).orElseThrow();
-    p.decreaseStock(qty);
+async order(productId: number, qty: number, attempt = 0): Promise<void> {
+    try {
+        await this.dataSource.transaction(async (manager) => {
+            const p = await manager.findOne(Product, { where: { id: productId } });
+            p.decreaseStock(qty);
+            await manager.save(p);
+        });
+    } catch (e) {
+        if (e instanceof OptimisticLockVersionMismatchError && attempt < 2) {
+            return this.order(productId, qty, attempt + 1);
+        }
+        throw e;
+    }
 }
 
 // 방법 3: DB 레벨 원자적 연산 (가장 단순)
-@Modifying
-@Query("UPDATE Product p SET p.stock = p.stock - :qty WHERE p.id = :id AND p.stock >= :qty")
-int decreaseStock(@Param("id") Long id, @Param("qty") int qty);
-// 반환값 0이면 재고 부족 → 예외 처리
+async decreaseStock(id: number, qty: number): Promise<number> {
+    const result = await this.productRepository
+        .createQueryBuilder()
+        .update(Product)
+        .set({ stock: () => `stock - ${qty}` })
+        .where('id = :id AND stock >= :qty', { id, qty })
+        .execute();
+    return result.affected ?? 0;
+    // 반환값 0이면 재고 부족 → 예외 처리
+}
 
 // 방법 4: Redis 분산 락 (MSA 환경)
-public void order(Long productId, int qty) {
-    String lockKey = "lock:product:" + productId;
-    boolean locked = redisTemplate.opsForValue()
-        .setIfAbsent(lockKey, "1", Duration.ofSeconds(5));
-    if (!locked) throw new ConcurrencyException();
+async order(productId: number, qty: number): Promise<void> {
+    const lockKey = `lock:product:${productId}`;
+    const locked = await this.redis.set(lockKey, '1', 'EX', 5, 'NX');
+    if (!locked) throw new ConcurrencyError();
     try {
         // 재고 차감 로직
     } finally {
-        redisTemplate.delete(lockKey);
+        await this.redis.del(lockKey);
     }
 }
 ```

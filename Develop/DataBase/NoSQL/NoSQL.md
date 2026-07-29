@@ -180,32 +180,32 @@ SCARD online:users                            # 현재 접속자 수
 
 **애플리케이션 코드에서 캐시 패턴:**
 
-```java
-@Service
-@RequiredArgsConstructor
-public class ProductCacheService {
-    private final RedisTemplate<String, String> redis;
-    private final ProductRepository productRepo;
+```typescript
+@Injectable()
+export class ProductCacheService {
+    constructor(
+        private readonly redis: Redis,
+        private readonly productRepo: ProductRepository,
+    ) {}
 
-    public Product getProduct(Long id) {
-        String key = "product:" + id;
-        String cached = redis.opsForValue().get(key);
+    async getProduct(id: number): Promise<Product> {
+        const key = `product:${id}`;
+        const cached = await this.redis.get(key);
 
-        if (cached != null) {
-            return objectMapper.readValue(cached, Product.class);
+        if (cached) {
+            return JSON.parse(cached) as Product;
         }
 
         // Cache miss — DB 조회 후 캐시 저장
-        Product product = productRepo.findById(id)
-            .orElseThrow(() -> new NotFoundException("상품 없음: " + id));
-        redis.opsForValue().set(key, objectMapper.writeValueAsString(product),
-            Duration.ofMinutes(10));
+        const product = await this.productRepo.findById(id);
+        if (!product) throw new NotFoundException(`상품 없음: ${id}`);
+        await this.redis.set(key, JSON.stringify(product), 'EX', 600); // 10분
         return product;
     }
 
     // 상품 수정 시 캐시 무효화
-    public void invalidate(Long id) {
-        redis.delete("product:" + id);
+    async invalidate(id: number): Promise<void> {
+        await this.redis.del(`product:${id}`);
     }
 }
 ```

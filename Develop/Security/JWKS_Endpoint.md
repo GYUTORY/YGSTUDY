@@ -180,37 +180,53 @@ Cache-Control: public, max-age=3600
 
 막는 방법은 갱신 자체에 최소 간격을 두는 것이다. 직전 갱신으로부터 N분이 안 지났으면 모르는 `kid`가 와도 갱신하지 않고 그냥 거부한다.
 
-```java
-public class JwksCache {
-    private volatile Map<String, PublicKey> keysByKid = Map.of();
-    private volatile long lastFetched = 0;
-    private static final long MIN_REFETCH_INTERVAL_MS = 5 * 60 * 1000; // 5분
+```typescript
+import { createPublicKey, KeyObject } from 'crypto';
+import axios from 'axios';
 
-    public PublicKey getKey(String kid) {
-        PublicKey key = keysByKid.get(kid);
-        if (key != null) return key;
+class JwksCache {
+  private keysByKid: Map<string, KeyObject> = new Map();
+  private lastFetched = 0;
+  private static readonly MIN_REFETCH_INTERVAL_MS = 5 * 60 * 1000; // 5분
+  private refetchPromise: Promise<void> | null = null;
 
-        // 모르는 kid다. 갱신을 시도하되 폭주는 막는다.
-        long now = System.currentTimeMillis();
-        if (now - lastFetched < MIN_REFETCH_INTERVAL_MS) {
-            // 방금 갱신했는데도 없는 kid = 가짜일 가능성. 거부한다.
-            throw new IllegalStateException("Unknown kid: " + kid);
-        }
+  constructor(private readonly jwksUri: string) {}
 
-        synchronized (this) {
-            if (keysByKid.containsKey(kid)) return keysByKid.get(kid);
-            refetchJwks();
-            lastFetched = System.currentTimeMillis();
-        }
+  async getKey(kid: string): Promise<KeyObject> {
+    const key = this.keysByKid.get(kid);
+    if (key) return key;
 
-        key = keysByKid.get(kid);
-        if (key == null) throw new IllegalStateException("Unknown kid: " + kid);
-        return key;
+    // 모르는 kid다. 갱신을 시도하되 폭주는 막는다.
+    const now = Date.now();
+    if (now - this.lastFetched < JwksCache.MIN_REFETCH_INTERVAL_MS) {
+      // 방금 갱신했는데도 없는 kid = 가짜일 가능성. 거부한다.
+      throw new Error(`Unknown kid: ${kid}`);
     }
 
-    private synchronized void refetchJwks() {
-        // JWKS URL에서 keys 배열을 가져와 keysByKid를 갱신
+    // Node.js는 단일 스레드이므로 Promise로 중복 갱신을 막는다.
+    if (!this.refetchPromise) {
+      this.refetchPromise = this.refetchJwks().finally(() => {
+        this.lastFetched = Date.now();
+        this.refetchPromise = null;
+      });
     }
+    await this.refetchPromise;
+
+    const refreshed = this.keysByKid.get(kid);
+    if (!refreshed) throw new Error(`Unknown kid: ${kid}`);
+    return refreshed;
+  }
+
+  private async refetchJwks(): Promise<void> {
+    // JWKS URL에서 keys 배열을 가져와 keysByKid를 갱신
+    const { data } = await axios.get<{ keys: JsonWebKey[] }>(this.jwksUri, { timeout: 5000 });
+    const newMap = new Map<string, KeyObject>();
+    for (const jwk of data.keys) {
+      if (jwk.use !== 'sig' || !jwk.kid) continue;
+      newMap.set(jwk.kid, createPublicKey({ key: jwk, format: 'jwk' }));
+    }
+    this.keysByKid = newMap;
+  }
 }
 ```
 
@@ -349,22 +365,22 @@ spring:
 
 코드로 직접 만들 때는 `NimbusJwtDecoder`를 빌더로 구성한다.
 
-```java
-@Bean
-JwtDecoder jwtDecoder() {
-    NimbusJwtDecoder decoder = NimbusJwtDecoder
-        .withJwkSetUri("https://auth.example.com/.well-known/jwks.json")
-        .jwsAlgorithm(SignatureAlgorithm.RS256)  // 알고리즘 화이트리스트
-        .build();
+```typescript
+import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 
-    OAuth2TokenValidator<Jwt> validators = new DelegatingOAuth2TokenValidator<>(
-        new JwtTimestampValidator(),                          // exp, nbf
-        new JwtIssuerValidator("https://auth.example.com"),   // iss
-        new JwtClaimValidator<List<String>>("aud",            // aud
-            aud -> aud != null && aud.contains("api.example.com"))
-    );
-    decoder.setJwtValidator(validators);
-    return decoder;
+const JWKS = createRemoteJWKSet(
+  new URL('https://auth.example.com/.well-known/jwks.json'),
+  { cacheMaxAge: 3600_000, cooldownDuration: 300_000, timeoutDuration: 5000 }
+);
+
+async function verifyJwt(token: string): Promise<JWTPayload> {
+  const { payload } = await jwtVerify(token, JWKS, {
+    algorithms: ['RS256'],                         // 알고리즘 화이트리스트
+    issuer: 'https://auth.example.com',            // iss 검증
+    audience: 'api.example.com',                   // aud 검증
+    requiredClaims: ['exp', 'nbf', 'iss', 'aud'],  // exp, nbf 포함 필수 클레임
+  });
+  return payload;
 }
 ```
 

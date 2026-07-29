@@ -60,63 +60,52 @@ HMAC(key, msg) = hash( (key ⊕ opad) || hash( (key ⊕ ipad) || msg ) )
 
 둘째, 짧은 키가 0 패딩된다는 점 때문에 미묘한 충돌이 생길 수 있다. 키를 hex 문자열로 들고 다니다가 어디선 raw 바이트로, 어디선 hex 디코딩해서 쓰면 같은 키인데 다른 HMAC이 나온다. 키는 raw 바이트로 일관되게 다뤄야 한다.
 
-```java
-// 키를 raw 바이트로 일관되게 — 권장 키 길이는 출력과 같은 32바이트 이상
-byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
-SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "HmacSHA256");
+```typescript
+import { createHmac } from 'crypto';
 
-Mac mac = Mac.getInstance("HmacSHA256");
-mac.init(keySpec);
-byte[] result = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
+// 키를 raw 바이트로 일관되게 — 권장 키 길이는 출력과 같은 32바이트 이상
+const keyBytes = Buffer.from(secretKey, 'utf8');
+const result = createHmac('sha256', keyBytes)
+  .update(message, 'utf8')
+  .digest(); // raw Buffer 반환
 ```
 
 키 길이는 해시 출력 크기와 같은 32바이트(256비트) 이상을 쓴다. 16바이트 미만으로 떨어지면 0 패딩 영역이 커져서 키 공간이 줄어든다.
 
 ---
 
-## Java Mac 객체는 상태를 가진다
+## Node.js `createHmac`은 상태를 가진다
 
-`Mac.getInstance`로 만든 객체는 stateful하다. 이걸 모르고 싱글톤으로 캐싱했다가 동시성 버그를 만드는 경우가 흔하다.
+`createHmac()`으로 만든 객체는 stateful하다. 이걸 모르고 인스턴스를 재사용했다가 버그를 만드는 경우가 있다.
 
-`mac.update()`로 데이터를 누적하다가 `mac.doFinal()`을 호출하면 그동안 쌓인 데이터로 MAC을 뽑고 객체가 초기 상태(init 직후)로 리셋된다. 그래서 같은 `Mac` 인스턴스로 다음 메시지를 처리하려면 `doFinal` 이후 별도 `init` 없이 바로 `update`/`doFinal`을 다시 호출할 수 있다. 키는 유지된다. 문제는 이 "상태"가 인스턴스 하나에 묶여 있다는 점이다.
+`hmac.update()`로 데이터를 누적하다가 `hmac.digest()`를 호출하면 그동안 쌓인 데이터로 MAC을 뽑는다. `digest()` 이후 같은 인스턴스에 `update()`를 다시 호출하면 에러가 발생한다. 문제는 의도치 않게 같은 인스턴스에 여러 메시지를 섞는 경우다.
 
-```java
-// 위험: Mac 인스턴스를 필드로 두고 여러 스레드가 공유
-public class SignatureService {
-    private final Mac mac; // 공유하면 안 됨
+```typescript
+// 위험: Hmac 인스턴스를 필드로 두고 재사용
+class BadSignatureService {
+  private readonly hmac = createHmac('sha256', key); // 재사용 금지
 
-    public SignatureService(byte[] key) throws Exception {
-        mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(key, "HmacSHA256"));
-    }
-
-    public byte[] sign(byte[] msg) {
-        return mac.doFinal(msg); // 두 스레드가 동시에 들어오면 update 상태가 섞인다
-    }
+  sign(msg: string): Buffer {
+    this.hmac.update(msg); // 이전 호출 데이터가 누적된다
+    return this.hmac.digest();
+  }
 }
 ```
 
-스레드 A가 `update`로 데이터를 쌓는 중에 스레드 B가 끼어들면 내부 버퍼가 엉켜 둘 다 틀린 MAC을 만든다. `Mac`은 `MessageDigest`와 마찬가지로 thread-safe하지 않다.
+Node.js는 단일 스레드이므로 경쟁 조건은 없지만, 인스턴스 재사용 자체로 누적 버그가 생긴다.
 
-해결은 두 가지다. 매 호출마다 `Mac.getInstance`로 새로 만들거나, `ThreadLocal`로 스레드마다 인스턴스를 분리한다. `getInstance` 비용이 부담되면 후자가 낫다.
+해결은 간단하다. 매 호출마다 `createHmac()`으로 새 인스턴스를 만들면 된다. 함수 하나로 감싸면 자연스럽게 해결된다.
 
-```java
-private static final ThreadLocal<Mac> MAC_HOLDER = ThreadLocal.withInitial(() -> {
-    try {
-        return Mac.getInstance("HmacSHA256");
-    } catch (NoSuchAlgorithmException e) {
-        throw new IllegalStateException(e);
-    }
-});
+```typescript
+import { createHmac } from 'crypto';
 
-public byte[] sign(byte[] key, byte[] msg) throws InvalidKeyException {
-    Mac mac = MAC_HOLDER.get();
-    mac.init(new SecretKeySpec(key, "HmacSHA256")); // init이 내부 상태를 리셋한다
-    return mac.doFinal(msg);
+// 올바른 예 — 매 호출마다 새 인스턴스
+function sign(key: Buffer, msg: string | Buffer): Buffer {
+  return createHmac('sha256', key).update(msg).digest();
 }
 ```
 
-`init`을 매번 호출하면 키 설정과 함께 내부 상태가 리셋되니 이전 호출의 잔여 데이터가 섞이지 않는다. `update`만 쓰고 `doFinal` 없이 객체를 재사용하다가 이전 데이터가 남아 MAC이 틀어지는 경우도 같은 맥락이다. 한 번 서명을 끝냈으면 반드시 `doFinal`로 닫거나 `init`으로 리셋한다.
+`update()`는 체이닝 가능하고 `digest()`로 닫으면 끝난다. 인스턴스를 필드에 보관할 이유가 없다.
 
 ---
 
@@ -124,18 +113,19 @@ public byte[] sign(byte[] key, byte[] msg) throws InvalidKeyException {
 
 서명 검증에서 가장 많이 나오는 사고다. 받은 서명과 계산한 서명을 `equals`나 `==`로 비교하면 타이밍 공격에 노출된다.
 
-```java
-// 위험: 일반 비교는 첫 불일치 바이트에서 즉시 반환된다
-if (receivedSignature.equals(computedSignature)) { ... }
+```typescript
+// 위험: 일반 문자열 비교는 첫 불일치에서 즉시 반환된다
+if (receivedSignature === computedSignature) { /* ... */ }
 ```
 
-`String.equals`나 바이트 배열의 일반 비교는 앞에서부터 비교하다가 다른 바이트를 만나면 바로 false를 반환한다. 즉 앞쪽 바이트가 더 많이 맞을수록 비교에 걸리는 시간이 미세하게 길어진다. 공격자가 서명을 한 바이트씩 바꿔가며 응답 시간을 측정하면, 시간이 길어지는 방향으로 정답 서명을 한 바이트씩 복원할 수 있다. 네트워크 너머라 노이즈가 크지만, 요청을 수만 번 반복해 통계를 내면 신호가 드러난다.
+`===`나 `Buffer.compare`는 앞에서부터 비교하다가 다른 바이트를 만나면 바로 false를 반환한다. 즉 앞쪽 바이트가 더 많이 맞을수록 비교에 걸리는 시간이 미세하게 길어진다. 공격자가 서명을 한 바이트씩 바꿔가며 응답 시간을 측정하면, 시간이 길어지는 방향으로 정답 서명을 한 바이트씩 복원할 수 있다. 네트워크 너머라 노이즈가 크지만, 요청을 수만 번 반복해 통계를 내면 신호가 드러난다.
 
 constant-time 비교는 길이가 같은 두 값을 끝까지 다 비교한 뒤 결과를 낸다. 어느 바이트에서 틀리든 걸리는 시간이 일정하다.
 
-```java
-// Java
-if (MessageDigest.isEqual(receivedBytes, computedBytes)) { ... }
+```typescript
+// Node.js
+import { timingSafeEqual } from 'crypto';
+if (timingSafeEqual(receivedBytes, computedBytes)) { /* ... */ }
 ```
 
 ```python
@@ -153,7 +143,7 @@ if hmac.Equal(receivedMac, computedMac) {
 }
 ```
 
-Java의 `MessageDigest.isEqual`은 이름과 달리 HMAC 바이트 비교에도 그대로 쓴다. 옛날 JDK(6 이하)에선 이 메서드가 길이 다르면 일찍 반환하는 버그가 있었지만 현행 버전은 constant-time이다. 직접 XOR 누적 비교를 짜는 사람도 있는데, 검증된 표준 함수를 쓰는 게 안전하다.
+Node.js의 `timingSafeEqual`은 두 Buffer의 길이가 다르면 즉시 예외를 던진다. 길이가 다른 값을 비교하기 전에 길이를 먼저 확인해야 한다. 검증된 표준 함수를 쓰는 게 안전하다.
 
 한 가지 주의. 두 값의 길이가 다르면 constant-time 함수도 보통 빠르게 false를 낸다. 길이 자체는 비밀이 아니므로 문제는 아니지만, 입력 인코딩이 어긋나 길이가 달라지면 검증이 항상 실패한다. 다음 절의 인코딩 문제와 같이 본다.
 
@@ -179,12 +169,15 @@ base64:     "L6HD..."            (44자, = 패딩 포함)
 
 깔끔한 해법은 문자열을 비교하지 말고 양쪽을 raw 바이트로 디코딩한 뒤 constant-time 비교하는 것이다.
 
-```java
+```typescript
+import { createHmac, timingSafeEqual } from 'crypto';
+
 // 받은 hex 서명을 바이트로 디코딩해서 비교
-byte[] received = hexDecode(header.getSignature()); // 소문자/대문자 모두 처리
-byte[] computed = mac.doFinal(payload);
-if (!MessageDigest.isEqual(received, computed)) {
-    throw new SignatureException("서명 불일치");
+function verifyHmac(payload: Buffer, key: Buffer, receivedHex: string): boolean {
+  const computed = createHmac('sha256', key).update(payload).digest();
+  const received = Buffer.from(receivedHex.toLowerCase(), 'hex'); // 대소문자 정규화
+  if (received.length !== computed.length) return false;
+  return timingSafeEqual(received, computed);
 }
 ```
 
@@ -262,7 +255,7 @@ bcrypt, argon2, scrypt는 일부러 느리고 메모리를 많이 먹도록 설�
 - 단순 `hash(key || msg)`는 SHA-2 길이 확장 공격에 뚫린다. HMAC의 이중 중첩 구조가 이를 막는다.
 - 키는 raw 바이트로 일관되게 다루고 32바이트 이상을 쓴다. 너무 길면 어차피 해시돼 축약된다.
 - Java `Mac`은 stateful하고 thread-safe하지 않다. `ThreadLocal`이나 매번 새 인스턴스로 쓰고, `doFinal` 후 `init`으로 리셋한다.
-- 서명 비교는 `MessageDigest.isEqual` / `hmac.compare_digest` / `hmac.Equal` 같은 constant-time 함수로 한다.
+- 서명 비교는 `timingSafeEqual` (Node.js) / `hmac.compare_digest` (Python) / `hmac.Equal` (Go) 같은 constant-time 함수로 한다.
 - hex/base64 인코딩과 대소문자를 양쪽이 맞춰야 한다. 가능하면 raw 바이트로 디코딩해 비교한다.
 - 키 회전은 두 키를 동시에 허용하는 겹침 기간을 둔다.
 - HMAC을 비밀번호 해싱에 쓰지 않는다. bcrypt/argon2를 쓴다.

@@ -159,25 +159,24 @@ NER은 문맥으로 판단하므로 정규식이 못 잡는 이름·주소를 �
 
 원본 값의 일부를 가리고 나머지를 별 문자로 바꾼다. 되돌릴 수 없다 — 마스킹된 값에서 원본을 복원할 방법이 없다. 화면에 전화번호를 `010-****-5678`로 보여주는 것이 전형적이다.
 
-```java
-public class Masking {
-    public static String maskPhone(String phone) {
-        // 010-1234-5678 -> 010-****-5678
-        return phone.replaceAll("(\\d{3})-?\\d{3,4}-?(\\d{4})", "$1-****-$2");
-    }
-    public static String maskEmail(String email) {
-        // hong@example.com -> h***@example.com
-        int at = email.indexOf('@');
-        if (at <= 1) return "***" + email.substring(at);
-        return email.charAt(0) + "***" + email.substring(at);
-    }
-    public static String maskName(String name) {
-        // 홍길동 -> 홍*동
-        if (name.length() <= 1) return name;
-        if (name.length() == 2) return name.charAt(0) + "*";
-        return name.charAt(0) + "*".repeat(name.length() - 2)
-                + name.charAt(name.length() - 1);
-    }
+```typescript
+export function maskPhone(phone: string): string {
+  // 010-1234-5678 -> 010-****-5678
+  return phone.replace(/(\d{3})-?\d{3,4}-?(\d{4})/, '$1-****-$2');
+}
+
+export function maskEmail(email: string): string {
+  // hong@example.com -> h***@example.com
+  const at = email.indexOf('@');
+  if (at <= 1) return '***' + email.slice(at);
+  return email[0] + '***' + email.slice(at);
+}
+
+export function maskName(name: string): string {
+  // 홍길동 -> 홍*동
+  if (name.length <= 1) return name;
+  if (name.length === 2) return name[0] + '*';
+  return name[0] + '*'.repeat(name.length - 2) + name[name.length - 1];
 }
 ```
 
@@ -290,39 +289,63 @@ graph TD
     DEK -->|PII 복호화| PLAIN
 ```
 
-```java
-// AWS KMS 봉투 암호화 예시
-public class EnvelopeCrypto {
-    private final AWSKMS kms;
-    private final String kekArn; // KMS에 있는 마스터 키 ARN
+```typescript
+import {
+  KMSClient,
+  GenerateDataKeyCommand,
+  DecryptCommand,
+} from '@aws-sdk/client-kms';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
-    public EncryptedField encrypt(byte[] plaintext) {
-        // 1. KMS에 DEK 발급 요청 -> 평문 DEK와 암호화된 DEK를 함께 받음
-        GenerateDataKeyResult dk = kms.generateDataKey(
-            new GenerateDataKeyRequest()
-                .withKeyId(kekArn)
-                .withKeySpec(DataKeySpec.AES_256));
+interface EncryptedField {
+  ciphertext: Buffer;   // AES-GCM 암호문 (IV 포함)
+  encryptedDek: Buffer; // KMS로 암호화된 DEK
+}
 
-        SecretKey dek = new SecretKeySpec(dk.getPlaintext().array(), "AES");
+export class EnvelopeCrypto {
+  private readonly kms: KMSClient;
+  private readonly kekArn: string; // KMS에 있는 마스터 키 ARN
 
-        // 2. 평문 DEK로 PII를 AES-GCM 암호화
-        byte[] cipher = aesGcmEncrypt(dek, plaintext);
+  constructor(kekArn: string) {
+    this.kms = new KMSClient({});
+    this.kekArn = kekArn;
+  }
 
-        // 3. 평문 DEK는 즉시 메모리에서 폐기, 암호화된 DEK만 보관
-        dk.getPlaintext().clear();
+  async encrypt(plaintext: Buffer): Promise<EncryptedField> {
+    // 1. KMS에 DEK 발급 요청 → 평문 DEK와 암호화된 DEK를 함께 받음
+    const { Plaintext, CiphertextBlob } = await this.kms.send(
+      new GenerateDataKeyCommand({ KeyId: this.kekArn, KeySpec: 'AES_256' }),
+    );
+    const dek = Buffer.from(Plaintext!);
 
-        // 암호문과 암호화된 DEK를 함께 저장한다
-        return new EncryptedField(cipher, dk.getCiphertextBlob().array());
-    }
+    // 2. 평문 DEK로 PII를 AES-GCM 암호화
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', dek, iv);
+    const encrypted = Buffer.concat([iv, cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
 
-    public byte[] decrypt(EncryptedField field) {
-        // 1. 암호화된 DEK를 KMS에 보내 평문 DEK를 복원
-        DecryptResult dr = kms.decrypt(new DecryptRequest()
-            .withCiphertextBlob(ByteBuffer.wrap(field.encryptedDek())));
-        SecretKey dek = new SecretKeySpec(dr.getPlaintext().array(), "AES");
-        // 2. 평문 DEK로 PII 복호화
-        return aesGcmDecrypt(dek, field.ciphertext());
-    }
+    // 3. 평문 DEK는 즉시 덮어쓰기 후 폐기, 암호화된 DEK만 보관
+    dek.fill(0);
+
+    return { ciphertext: encrypted, encryptedDek: Buffer.from(CiphertextBlob!) };
+  }
+
+  async decrypt(field: EncryptedField): Promise<Buffer> {
+    // 1. 암호화된 DEK를 KMS에 보내 평문 DEK를 복원
+    const { Plaintext } = await this.kms.send(
+      new DecryptCommand({ CiphertextBlob: field.encryptedDek }),
+    );
+    const dek = Buffer.from(Plaintext!);
+
+    // 2. 평문 DEK로 PII 복호화 (IV 12바이트, 인증 태그 16바이트)
+    const iv = field.ciphertext.slice(0, 12);
+    const tag = field.ciphertext.slice(-16);
+    const body = field.ciphertext.slice(12, -16);
+    const decipher = createDecipheriv('aes-256-gcm', dek, iv);
+    decipher.setAuthTag(tag);
+    const result = Buffer.concat([decipher.update(body), decipher.final()]);
+    dek.fill(0);
+    return result;
+  }
 }
 ```
 
@@ -344,13 +367,21 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email_bidx ON users(email_bidx);
 ```
 
-```java
+```typescript
+import { createHmac } from 'crypto';
+
+function blindIndex(key: Buffer, value: string): Buffer {
+  // 정규화(소문자) 후 HMAC-SHA256으로 인덱스 생성
+  return createHmac('sha256', key).update(value.toLowerCase()).digest();
+}
+
 // 가입 시: 암호문과 블라인드 인덱스를 같이 저장
-byte[] cipher = envelopeCrypto.encrypt(email.getBytes()).ciphertext();
-byte[] bidx   = hmacSha256(blindIndexKey, email.toLowerCase()); // 정규화 후 해시
+const { ciphertext, encryptedDek } = await envelopeCrypto.encrypt(Buffer.from(email));
+const bidx = blindIndex(blindIndexKey, email);
+// INSERT INTO users (email_cipher, email_enc_dek, email_bidx) VALUES (?, ?, ?)
 
 // 로그인 시: 입력 이메일을 같은 방식으로 해시해 조회
-byte[] queryBidx = hmacSha256(blindIndexKey, input.toLowerCase());
+const queryBidx = blindIndex(blindIndexKey, input);
 // SELECT * FROM users WHERE email_bidx = ?  -> queryBidx 바인딩
 ```
 
@@ -364,18 +395,38 @@ PII는 한 군데 모여 있지 않다. 같은 개인정보가 운영 DB, 읽기
 
 **로그**: PII가 가장 많이 새는 곳이다. 구조화 로깅을 쓰고 직렬화 단계에서 PII 필드를 자동 마스킹하는 필터를 건다. 개발자가 매번 신경 쓰는 방식은 반드시 실수가 난다 — 새 필드 추가하면서 마스킹을 빼먹는다. 직렬화 계층에서 강제해야 한다.
 
-```java
-// Jackson 직렬화 시 @Pii 필드를 자동 마스킹
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-@JacksonAnnotationsInside
-@JsonSerialize(using = PiiMaskingSerializer.class)
-public @interface Pii {}
+```typescript
+import 'reflect-metadata';
+import { maskPhone, maskEmail } from './masking';
 
-public class User {
-    private Long id;
-    @Pii private String phone;   // 직렬화하면 자동으로 010-****-5678
-    @Pii private String email;
+// 직렬화 시 PII 필드를 자동 마스킹하는 데코레이터
+function Pii(): PropertyDecorator {
+  return (target, propertyKey) => {
+    Reflect.defineMetadata('pii:mask', true, target, propertyKey);
+  };
+}
+
+// toJSON() 호출 시 @Pii 필드를 마스킹한 사본 반환
+function maskPiiFields<T extends object>(obj: T): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    const isMasked = Reflect.getMetadata('pii:mask', obj, key);
+    const value = (obj as Record<string, unknown>)[key];
+    if (isMasked && typeof value === 'string') {
+      result[key] = key.includes('phone') ? maskPhone(value) : maskEmail(value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+class User {
+  id!: number;
+  @Pii() phone!: string;  // 직렬화하면 자동으로 010-****-5678
+  @Pii() email!: string;
+
+  toJSON() { return maskPiiFields(this); }
 }
 ```
 
@@ -421,14 +472,21 @@ WHERE status = 'withdrawn'
 
 여기서 쓰는 기법이 크립토 셰레딩(crypto-shredding)이다. PII를 레코드별(또는 사용자별) 키로 암호화해두면, 그 키를 폐기하는 것만으로 해당 PII를 복호화 불가능한 상태로 만든다. 백업에 암호문이 남아 있어도 키가 없으니 영원히 못 푼다. 수백 군데 흩어진 사본을 일일이 못 지워도, 키 하나만 지우면 전부 무력화된다.
 
-```java
-// 사용자별 DEK로 PII를 암호화해두고, 파기 시 DEK를 폐기
-public void eraseUser(long userId) {
-    // 운영 DB의 PII 컬럼은 비우거나 그대로 두되 (어차피 암호문)
-    userRepository.scrubPiiColumns(userId);
-    // 핵심: 이 사용자의 DEK를 KMS에서 삭제 -> 모든 사본의 PII가 복호화 불가
-    kms.scheduleKeyDeletion(userKeyArn(userId));
-    auditLog.record("user_erasure", userId);
+```typescript
+import { KMSClient, ScheduleKeyDeletionCommand } from '@aws-sdk/client-kms';
+
+const kms = new KMSClient({});
+
+// 사용자별 DEK로 PII를 암호화해두고, 파기 시 DEK를 폐기 (크립토 셰레딩)
+async function eraseUser(userId: number): Promise<void> {
+  // 운영 DB의 PII 컬럼을 NULL로 비우거나 그대로 두되 (어차피 암호문)
+  await userRepository.scrubPiiColumns(userId);
+  // 핵심: 이 사용자의 DEK를 KMS에서 삭제 → 모든 사본의 PII가 복호화 불가
+  await kms.send(new ScheduleKeyDeletionCommand({
+    KeyId: userKeyArn(userId),
+    PendingWindowInDays: 7, // 최소 7일 대기 후 실제 삭제 (KMS 정책)
+  }));
+  auditLog.record('user_erasure', userId);
 }
 ```
 

@@ -220,82 +220,69 @@ sequenceDiagram
 
 ---
 
-## Spring Security의 CSRF 처리
+## Express / NestJS CSRF 처리
 
-### CsrfTokenRepository
+### csurf 미들웨어 (세션 기반)
 
-Spring Security는 CSRF 토큰의 생성, 저장, 검증을 `CsrfTokenRepository` 인터페이스로 추상화하고 있다.
+Express에서 세션 기반 CSRF 토큰을 관리하려면 `csurf` 패키지를 사용한다. SSR(서버 사이드 렌더링) 기반 애플리케이션에 적합하다.
 
-**HttpSessionCsrfTokenRepository** — 기본값이다. 서버 세션에 토큰을 저장한다. SSR(서버 사이드 렌더링) 기반 애플리케이션에 적합하다.
+```typescript
+import express from 'express';
+import session from 'express-session';
+import csrf from 'csurf';
 
-```java
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf
-        .csrfTokenRepository(new HttpSessionCsrfTokenRepository())
-    );
-    return http.build();
-}
+const app = express();
+
+app.use(session({ secret: process.env.SESSION_SECRET!, resave: false, saveUninitialized: false }));
+app.use(csrf({ cookie: false })); // 세션에 토큰 저장 (HttpSessionCsrfTokenRepository 상당)
+
+// 폼 렌더링 시 토큰을 템플릿에 전달
+app.get('/transfer', (req, res) => {
+  res.render('transfer', { csrfToken: req.csrfToken() });
+});
 ```
 
-Thymeleaf에서는 자동으로 `_csrf` 파라미터가 폼에 추가된다:
+템플릿에서 hidden 필드로 삽입한다.
 
 ```html
-<!-- Thymeleaf 폼 — Spring Security가 자동으로 CSRF 토큰 삽입 -->
-<form th:action="@{/transfer}" method="post">
-    <!-- _csrf hidden input이 자동 생성됨 -->
+<!-- EJS 예시 — CSRF 토큰을 hidden 필드로 삽입 -->
+<form action="/transfer" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <input type="text" name="to" />
     <button type="submit">송금</button>
 </form>
 ```
 
-**CookieCsrfTokenRepository** — SPA에서 사용한다. 토큰을 쿠키에 저장하고, 클라이언트가 요청 시 헤더로 돌려보내는 Double Submit Cookie 패턴이다.
+### csurf 쿠키 모드 (SPA)
 
-```java
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf
-        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-        // withHttpOnlyFalse(): JavaScript에서 쿠키를 읽어야 하므로 HttpOnly를 끈다
-    );
-    return http.build();
-}
+SPA에서는 토큰을 쿠키에 저장하고, 클라이언트가 요청 시 헤더로 돌려보내는 Double Submit Cookie 패턴을 사용한다.
+
+```typescript
+import csrf from 'csurf';
+
+// cookie: true → XSRF-TOKEN 쿠키에 토큰 저장 (CookieCsrfTokenRepository 상당)
+app.use(csrf({
+  cookie: {
+    httpOnly: false, // JavaScript에서 쿠키를 읽어야 하므로 HttpOnly를 끈다
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  },
+}));
 ```
 
-`withHttpOnlyFalse()`가 붙는 이유를 모르면 삽질한다. JavaScript에서 `XSRF-TOKEN` 쿠키를 읽어서 `X-XSRF-TOKEN` 헤더에 넣어야 하는데, HttpOnly가 걸려 있으면 JavaScript에서 쿠키를 읽을 수 없다.
-
-### Spring Security 6의 변화
-
-Spring Security 6부터 CSRF 토큰이 지연 로딩(lazy)된다. 토큰이 실제로 필요한 시점에 생성된다. 이전 버전에서는 모든 요청에 토큰을 생성했다.
-
-```java
-// Spring Security 6에서 SPA와 함께 사용할 때
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf
-        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-        // CsrfTokenRequestAttributeHandler: BREACH 공격 방어를 위한 토큰 인코딩 처리
-    );
-    return http.build();
-}
-```
-
-`CsrfTokenRequestAttributeHandler`와 `XorCsrfTokenRequestAttributeHandler`가 있다. XOR 버전이 기본값이며, BREACH 공격 방어를 위해 매 요청마다 토큰을 XOR 인코딩한다. 쿠키의 원본 토큰과 헤더의 인코딩된 토큰이 겉보기에 다르지만, 서버에서 디코딩하면 일치한다.
+`httpOnly: false`가 필요한 이유는 클라이언트 JavaScript가 `XSRF-TOKEN` 쿠키를 읽어서 `X-XSRF-TOKEN` 헤더에 넣어야 하기 때문이다.
 
 ### CSRF 비활성화가 필요한 경우
 
 REST API만 제공하는 서버에서 인증을 JWT 같은 Bearer 토큰으로 하는 경우, 쿠키를 아예 쓰지 않으면 CSRF가 성립하지 않는다.
 
-```java
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.disable());  // 쿠키 기반 인증을 안 쓰는 경우에만
-    return http.build();
-}
+```typescript
+// NestJS — JWT Bearer 토큰 인증만 사용하는 경우 CSRF 미들웨어를 적용하지 않는다
+// app.module.ts에서 csrf 미들웨어를 configure()에 등록하지 않으면 된다
+// 쿠키 기반 인증을 쓰면서 CSRF를 비활성화하면 공격에 노출된다
 ```
 
-`csrf.disable()`을 하는 이유를 모른 채 "동작이 안 돼서" 끄는 경우가 많다. CSRF를 끄려면 쿠키 기반 인증을 안 쓴다는 전제가 필요하다. 세션 쿠키로 인증하면서 CSRF를 끄면 공격에 노출된다.
+CSRF를 끄려면 쿠키 기반 인증을 안 쓴다는 전제가 필요하다. 세션 쿠키로 인증하면서 CSRF 미들웨어를 빼면 공격에 노출된다.
 
 ---
 
@@ -351,28 +338,21 @@ Spring Security의 `CookieCsrfTokenRepository`와 Axios의 기본 설정이 맞�
 
 **토큰이 없다**: 최초 페이지 로드 시 GET 요청으로 CSRF 토큰을 받아와야 한다. Spring Security 6의 lazy 로딩 때문에 처음 GET 요청을 보내기 전까지 XSRF-TOKEN 쿠키가 생성되지 않는 경우가 있다.
 
-```java
-// 해결: 필터에서 토큰을 강제 로딩한다
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf
-        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-    )
-    .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class);
-    return http.build();
-}
+```typescript
+import csrf from 'csurf';
+import { Request, Response, NextFunction } from 'express';
 
-// CSRF 토큰을 강제로 로딩하는 필터
-public class CsrfCookieFilter extends OncePerRequestFilter {
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
-        CsrfToken csrfToken = (CsrfToken) request.getAttribute("_csrf");
-        csrfToken.getToken();  // 토큰 강제 생성
-        filterChain.doFilter(request, response);
-    }
-}
+const csrfProtection = csrf({ cookie: { httpOnly: false, secure: true, sameSite: 'strict' } });
+
+// 해결: GET 요청에도 csrfProtection을 먼저 거쳐 쿠키를 발급한다
+app.get('*', csrfProtection, (req: Request, res: Response, next: NextFunction) => {
+  // csurf는 req.csrfToken()을 호출하면 쿠키에 토큰이 기록된다
+  res.cookie('XSRF-TOKEN', req.csrfToken());
+  next();
+});
+
+// 상태 변경 요청에 대한 CSRF 검증
+app.use(csrfProtection);
 ```
 
 **403 Forbidden**: CSRF 토큰 불일치로 요청이 거부되는 경우다. 원인 후보:
@@ -422,21 +402,25 @@ form 태그의 POST 요청은 `application/x-www-form-urlencoded`를 쓰므로 S
 
 CORS 자체가 CSRF를 막아주진 않지만, CORS 설정과 CSRF 토큰을 같이 쓰면 방어가 강화된다.
 
-```java
-@Bean
-public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(List.of("https://frontend.example.com"));
-    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-    config.setAllowedHeaders(List.of("Content-Type", "X-XSRF-TOKEN"));
-    // X-XSRF-TOKEN 헤더를 허용 목록에 넣어야 Preflight에서 차단되지 않는다
-    config.setAllowCredentials(true);
-    // credentials: true여야 쿠키가 전송된다
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/api/**", config);
-    return source;
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: 'https://frontend.example.com',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'X-XSRF-TOKEN'],
+    // X-XSRF-TOKEN 헤더를 허용 목록에 넣어야 Preflight에서 차단되지 않는다
+    credentials: true,
+    // credentials: true여야 쿠키가 전송된다
+  });
+
+  await app.listen(3000);
 }
+bootstrap();
 ```
 
 `allowedOrigins`에 `*`를 쓰면서 `allowCredentials`를 `true`로 설정하면 브라우저가 거부한다. 특정 도메인을 명시해야 한다.
@@ -464,48 +448,50 @@ multipart/form-data 요청에서 CSRF 토큰을 전달하는 방법:
 ```html
 <!-- 방법 1: hidden 필드 — 가장 간단하다 -->
 <form action="/upload" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <input type="file" name="file">
     <button type="submit">업로드</button>
 </form>
 
 <!-- 방법 2: URL 파라미터 -->
-<form th:action="@{/upload?_csrf={token}(token=${_csrf.token})}"
+<form action="/upload?_csrf=<%= csrfToken %>"
       method="post" enctype="multipart/form-data">
     <input type="file" name="file">
     <button type="submit">업로드</button>
 </form>
 ```
 
-Spring Security에서 multipart 요청의 CSRF 처리 순서에 주의해야 한다. `MultipartFilter`가 `CsrfFilter`보다 먼저 등록되어야 요청 바디에서 `_csrf` 파라미터를 읽을 수 있다.
+Express에서 multipart 요청의 CSRF 처리는 바디 파서(`multer`, `busboy`) 가 먼저 실행되어야 `req.body._csrf`를 읽을 수 있다. `csurf` 미들웨어를 `multer` 뒤에 배치하거나, URL 파라미터(`?_csrf=`)로 토큰을 전달한다.
 
-```java
-// MultipartFilter를 CsrfFilter보다 먼저 등록
-@Bean
-public FilterRegistrationBean<MultipartFilter> multipartFilter() {
-    FilterRegistrationBean<MultipartFilter> registration = new FilterRegistrationBean<>();
-    registration.setFilter(new MultipartFilter());
-    registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
-    return registration;
-}
+```typescript
+import multer from 'multer';
+import csrf from 'csurf';
+
+const upload = multer({ dest: 'uploads/' });
+const csrfProtection = csrf({ cookie: { httpOnly: false } });
+
+// multer를 먼저 실행하고, 그 다음 csurf가 파싱된 바디에서 토큰을 읽는다
+app.post('/upload', upload.single('file'), csrfProtection, (req, res) => {
+  res.json({ filename: req.file?.filename });
+});
 ```
 
 ### CSRF와 API 설계
 
 REST API에서 흔히 하는 실수는 GET 요청으로 상태를 변경하는 것이다.
 
-```java
+```typescript
 // 잘못된 설계 — GET으로 상태 변경
-@GetMapping("/api/notifications/read-all")
-public void markAllAsRead(Authentication auth) {
-    notificationService.markAllAsRead(auth.getName());
-}
+app.get('/api/notifications/read-all', authenticate, async (req, res) => {
+  await notificationService.markAllAsRead(req.user.id);
+  res.json({ ok: true });
+});
 
-// 올바른 설계 — POST/PUT으로 상태 변경
-@PutMapping("/api/notifications/read-all")
-public void markAllAsRead(Authentication auth) {
-    notificationService.markAllAsRead(auth.getName());
-}
+// 올바른 설계 — PUT으로 상태 변경
+app.put('/api/notifications/read-all', authenticate, async (req, res) => {
+  await notificationService.markAllAsRead(req.user.id);
+  res.json({ ok: true });
+});
 ```
 
-Spring Security는 기본적으로 GET, HEAD, TRACE, OPTIONS 요청에 대해 CSRF 검증을 하지 않는다. GET으로 상태를 변경하면 CSRF 방어 자체가 적용되지 않는다.
+`csurf` 미들웨어는 기본적으로 GET, HEAD, OPTIONS 요청에 대해 CSRF 검증을 하지 않는다. GET으로 상태를 변경하면 CSRF 방어 자체가 적용되지 않는다.

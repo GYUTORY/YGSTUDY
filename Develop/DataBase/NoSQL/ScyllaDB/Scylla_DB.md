@@ -497,27 +497,29 @@ repair는 반드시 `gc_grace_seconds`(기본 10일) 주기 안쪽으로 정기�
 
 ScyllaDB는 자체 샤드 인식 드라이버를 제공하지만, Cassandra의 DataStax 드라이버도 그대로 동작한다. 가능하면 ScyllaDB가 포크한 샤드 인식 버전을 쓴다. 코디네이터를 거치지 않고 데이터가 있는 노드의 shard로 바로 요청을 보낸다.
 
-```java
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.*;
+```typescript
+import cassandra from 'cassandra-driver';
 
-CqlSession session = CqlSession.builder()
-    .addContactPoint(new InetSocketAddress("127.0.0.1", 9042))
-    .withLocalDatacenter("datacenter1")
-    .withKeyspace("shop")
-    .build();
+const client = new cassandra.Client({
+    contactPoints: ['127.0.0.1'],
+    localDataCenter: 'datacenter1',
+    keyspace: 'shop',
+});
+
+await client.connect();
 
 // prepared statement는 한 번만 prepare하고 재사용한다
-PreparedStatement ps = session.prepare(
-    "SELECT * FROM orders_by_user WHERE user_id = ? LIMIT ?"
+const ps = await client.prepare(
+    'SELECT * FROM orders_by_user WHERE user_id = ? LIMIT ?'
 );
 
-BoundStatement bound = ps.bind(userId, 20)
-    .setConsistencyLevel(DefaultConsistencyLevel.QUORUM);
+const result = await client.execute(ps, [userId, 20], {
+    consistency: cassandra.types.consistencies.quorum,
+    prepare: true,
+});
 
-ResultSet rs = session.execute(bound);
-for (Row row : rs) {
-    System.out.println(row.getUuid("order_id"));
+for (const row of result.rows) {
+    console.log(row['order_id']);
 }
 ```
 

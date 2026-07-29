@@ -18,13 +18,14 @@ updated: 2026-04-01
 
 DB 연결을 매번 새로 만든다.
 
-```java
-public User getUser(Long id) {
+```typescript
+async function getUser(id: number): Promise<User> {
     // 매번 새 연결 생성
-    Connection conn = DriverManager.getConnection(url, username, password);
+    const client = new Client({ connectionString: url });
+    await client.connect();
     // 쿼리 실행
     // 연결 닫기
-    conn.close();
+    await client.end();
 }
 ```
 
@@ -39,12 +40,12 @@ public User getUser(Long id) {
 **Connection Pool:**
 미리 연결을 만들어두고 재사용한다.
 
-```java
+```typescript
 // Pool에서 빌려옴 (0.1ms)
-Connection conn = dataSource.getConnection();
+const client = await pool.connect();
 // 쿼리 실행
 // Pool에 반환 (닫지 않음)
-conn.close();  // 실제로는 반환
+client.release();  // 실제로는 반환
 ```
 
 10-50ms → 0.1ms. **100-500배 빠름.**
@@ -121,32 +122,33 @@ maximum-pool-size: 2  # Bad
 ### Connection Leak 방지
 
 **문제:**
-```java
-public void badMethod() {
-    Connection conn = dataSource.getConnection();
+```typescript
+async function badMethod(): Promise<void> {
+    const client = await pool.connect();
     // 쿼리 실행
-    // conn.close() 호출 안 함!
+    // client.release() 호출 안 함!
 }
 ```
 
 연결이 반환되지 않는다. Pool이 고갈된다.
 
-**해결 1: try-with-resources**
-```java
-public void goodMethod() {
-    try (Connection conn = dataSource.getConnection();
-         PreparedStatement ps = conn.prepareStatement(sql)) {
-        // 쿼리 실행
-    }  // 자동으로 close() 호출
+**해결 1: try-finally로 반환 보장**
+```typescript
+async function goodMethod(): Promise<void> {
+    const client = await pool.connect();
+    try {
+        await client.query(sql);
+    } finally {
+        client.release();  // 항상 반환
+    }
 }
 ```
 
-**해결 2: Spring Transaction**
-```java
-@Transactional
-public void goodMethod() {
-    // Spring이 자동으로 연결 관리
-    jdbcTemplate.query(sql, rowMapper);
+**해결 2: pool.query() 사용 (자동 관리)**
+```typescript
+async function goodMethod(): Promise<void> {
+    // pg Pool이 자동으로 연결 대여/반환 관리
+    await pool.query(sql);
 }
 ```
 
@@ -179,62 +181,61 @@ HikariPool-1 - Connection leak detection triggered for connection ...
 ### JPA 구현
 
 **Entity:**
-```java
-@Entity
-public class Product {
-    
-    @Id
-    @GeneratedValue
-    private Long id;
-    
-    private String name;
-    private Integer stock;
-    
-    @Version  // 낙관적 락
-    private Long version;
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
+
+@Entity()
+export class Product {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column()
+    name: string;
+
+    @Column()
+    stock: number;
+
+    @VersionColumn()  // 낙관적 락
+    version: number;
 }
 ```
 
 **Service:**
-```java
-@Service
-public class ProductService {
-    
-    @Transactional
-    public void decreaseStock(Long productId, int quantity) {
-        Product product = productRepository.findById(productId)
-            .orElseThrow();
-        
-        product.setStock(product.getStock() - quantity);
-        
+```typescript
+async function decreaseStock(productId: number, quantity: number): Promise<void> {
+    await dataSource.transaction(async (manager) => {
+        const product = await manager.findOneByOrFail(Product, { id: productId });
+
+        product.stock -= quantity;
+
         // 저장 시 버전 체크
-        // UPDATE product SET stock = ?, version = version + 1 
+        // UPDATE product SET stock = ?, version = version + 1
         // WHERE id = ? AND version = ?
-        productRepository.save(product);
-    }
+        await manager.save(product);
+    });
 }
 ```
 
 **충돌 처리:**
-```java
-@Service
-public class OrderService {
-    
-    public void createOrder(OrderRequest request) {
-        int maxRetries = 3;
-        int attempt = 0;
-        
-        while (attempt < maxRetries) {
-            try {
-                productService.decreaseStock(request.getProductId(), request.getQuantity());
-                break;  // 성공
-            } catch (ObjectOptimisticLockingFailureException e) {
-                attempt++;
-                if (attempt >= maxRetries) {
-                    throw new BusinessException("재고 차감 실패");
+```typescript
+import { OptimisticLockVersionMismatchError } from 'typeorm';
+
+async function createOrder(request: OrderRequest): Promise<void> {
+    const maxRetries = 3;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            await decreaseStock(request.productId, request.quantity);
+            return;  // 성공
+        } catch (e) {
+            if (e instanceof OptimisticLockVersionMismatchError) {
+                if (attempt >= maxRetries - 1) {
+                    throw new Error('재고 차감 실패');
                 }
                 // 재시도
-                Thread.sleep(100);
+                await new Promise((r) => setTimeout(r, 100));
+            } else {
+                throw e;
             }
         }
     }
@@ -267,37 +268,36 @@ SELECT * FROM product WHERE id = 1 FOR UPDATE;
 
 다른 트랜잭션은 대기한다. 첫 트랜잭션이 커밋/롤백하면 진행.
 
-### JPA 구현
+### TypeORM 구현
 
-```java
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT p FROM Product p WHERE p.id = :id")
-    Optional<Product> findByIdWithLock(@Param("id") Long id);
+```typescript
+// 비관적 락 조회 (SELECT FOR UPDATE)
+async function findByIdWithLock(manager: EntityManager, productId: number): Promise<Product> {
+    const product = await manager.findOne(Product, {
+        where: { id: productId },
+        lock: { mode: 'pessimistic_write' },
+    });
+    if (!product) throw new Error('상품 없음');
+    return product;
 }
 ```
 
 **Service:**
-```java
-@Service
-public class ProductService {
-    
-    @Transactional
-    public void decreaseStock(Long productId, int quantity) {
+```typescript
+async function decreaseStock(productId: number, quantity: number): Promise<void> {
+    await dataSource.transaction(async (manager) => {
         // Lock 획득 (다른 트랜잭션은 대기)
-        Product product = productRepository.findByIdWithLock(productId)
-            .orElseThrow();
-        
-        if (product.getStock() < quantity) {
-            throw new OutOfStockException();
+        const product = await findByIdWithLock(manager, productId);
+
+        if (product.stock < quantity) {
+            throw new Error('재고 부족');
         }
-        
-        product.setStock(product.getStock() - quantity);
-        productRepository.save(product);
-        
+
+        product.stock -= quantity;
+        await manager.save(product);
+
         // 트랜잭션 종료 시 Lock 해제
-    }
+    });
 }
 ```
 
@@ -325,16 +325,17 @@ public class ProductService {
 서로 기다린다. 데드락.
 
 **해결 1: 순서 고정**
-```java
+```typescript
 // 항상 ID 오름차순으로 Lock
-public void updateProducts(Long id1, Long id2) {
-    List<Long> ids = List.of(id1, id2);
-    Collections.sort(ids);
-    
-    for (Long id : ids) {
-        Product p = productRepository.findByIdWithLock(id).orElseThrow();
-        // 업데이트
-    }
+async function updateProducts(id1: number, id2: number): Promise<void> {
+    const ids = [id1, id2].sort((a, b) => a - b);
+
+    await dataSource.transaction(async (manager) => {
+        for (const id of ids) {
+            const p = await findByIdWithLock(manager, id);
+            // 업데이트
+        }
+    });
 }
 ```
 
@@ -351,12 +352,17 @@ spring:
 **해결 3: DB 자동 감지**
 MySQL은 데드락을 자동으로 감지하고 하나를 롤백한다.
 
-```java
+```typescript
 try {
-    updateProducts(id1, id2);
-} catch (CannotAcquireLockException e) {
-    log.warn("Deadlock detected, retrying");
-    // 재시도
+    await updateProducts(id1, id2);
+} catch (e: any) {
+    // PostgreSQL deadlock error code: 40P01
+    if (e.code === '40P01') {
+        console.warn('Deadlock detected, retrying');
+        // 재시도
+    } else {
+        throw e;
+    }
 }
 ```
 
@@ -367,27 +373,28 @@ try {
 **시나리오:**
 게시글 목록 + 작성자 이름 표시.
 
-```java
-@Entity
-public class Post {
-    @Id
-    private Long id;
-    private String title;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    private User author;
+```typescript
+@Entity()
+export class Post {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column()
+    title: string;
+
+    @ManyToOne(() => User, { lazy: true })
+    @JoinColumn({ name: 'author_id' })
+    author: Promise<User>;  // lazy → Promise 타입
 }
 
 // Service
-public List<PostResponse> getPosts() {
-    List<Post> posts = postRepository.findAll();  // Query 1
-    
-    return posts.stream()
-        .map(post -> new PostResponse(
-            post.getTitle(),
-            post.getAuthor().getName()  // Query N (각 post마다)
-        ))
-        .collect(Collectors.toList());
+async function getPosts(): Promise<PostResponse[]> {
+    const posts = await postRepository.find();  // Query 1
+
+    return Promise.all(posts.map(async (post) => ({
+        title: post.title,
+        authorName: (await post.author).name,  // Query N (각 post마다)
+    })));
 }
 ```
 
@@ -406,13 +413,12 @@ SELECT * FROM user WHERE id = 100;
 
 **총 101개 쿼리.** 엄청난 성능 저하.
 
-### 해결 1: Fetch Join
+### 해결 1: 관계 Eager 로드 (relations 옵션)
 
-```java
-public interface PostRepository extends JpaRepository<Post, Long> {
-    
-    @Query("SELECT p FROM Post p JOIN FETCH p.author")
-    List<Post> findAllWithAuthor();
+```typescript
+// TypeORM - relations 옵션으로 JOIN
+async function findAllWithAuthor(): Promise<Post[]> {
+    return postRepository.find({ relations: ['author'] });
 }
 ```
 
@@ -425,17 +431,20 @@ INNER JOIN user u ON p.author_id = u.id;
 
 **1개 쿼리로 해결.**
 
-### 해결 2: @EntityGraph
+### 해결 2: createQueryBuilder로 JOIN
 
-```java
-public interface PostRepository extends JpaRepository<Post, Long> {
-    
-    @EntityGraph(attributePaths = {"author"})
-    List<Post> findAll();
+```typescript
+// TypeORM QueryBuilder로 JOIN (Fetch Join과 같은 효과)
+async function findAll(): Promise<Post[]> {
+    return dataSource
+        .getRepository(Post)
+        .createQueryBuilder('post')
+        .leftJoinAndSelect('post.author', 'author')
+        .getMany();
 }
 ```
 
-Fetch Join과 같은 효과. 더 간단.
+관계 엔티티를 SELECT에 포함. 더 유연.
 
 ### 해결 3: Batch Size
 
@@ -453,18 +462,17 @@ SELECT * FROM user WHERE id IN (1, 2, 3, ..., 100);
 
 101개 → 2개 쿼리.
 
-### 해결 4: QueryDSL
+### 해결 4: Raw SQL / 선택 필드 조회
 
-```java
-public List<PostResponse> getPosts() {
-    return queryFactory
-        .select(new QPostResponse(
-            post.title,
-            post.author.name
-        ))
-        .from(post)
-        .join(post.author)
-        .fetch();
+```typescript
+// 필요한 필드만 SELECT (Projection)
+async function getPosts(): Promise<{ title: string; authorName: string }[]> {
+    const rows = await dataSource.query(`
+        SELECT p.title, u.name AS "authorName"
+        FROM post p
+        JOIN "user" u ON p.author_id = u.id
+    `);
+    return rows;
 }
 ```
 
@@ -766,18 +774,20 @@ A가 같은 트랜잭션에서 다른 값을 읽었다.
 - 성능 최악
 - 거의 사용 안 함
 
-### Spring 설정
+### TypeORM 설정
 
-```java
-@Transactional(isolation = Isolation.READ_COMMITTED)
-public void transfer(Long fromId, Long toId, BigDecimal amount) {
-    Account from = accountRepository.findById(fromId).orElseThrow();
-    Account to = accountRepository.findById(toId).orElseThrow();
-    
-    from.setBalance(from.getBalance().subtract(amount));
-    to.setBalance(to.getBalance().add(amount));
-    
-    accountRepository.saveAll(List.of(from, to));
+```typescript
+// TypeORM - isolation level 설정
+async function transfer(fromId: number, toId: number, amount: number): Promise<void> {
+    await dataSource.transaction('READ COMMITTED', async (manager) => {
+        const from = await manager.findOneByOrFail(Account, { id: fromId });
+        const to = await manager.findOneByOrFail(Account, { id: toId });
+
+        from.balance -= amount;
+        to.balance += amount;
+
+        await manager.save([from, to]);
+    });
 }
 ```
 
@@ -788,11 +798,17 @@ public void transfer(Long fromId, Long toId, BigDecimal amount) {
 - Dirty Read만 방지하면 충분
 
 **정확성 중요: REPEATABLE READ + Lock**
-```java
-@Transactional(isolation = Isolation.REPEATABLE_READ)
-public void decreasePoint(Long userId, int point) {
-    User user = userRepository.findByIdWithLock(userId).orElseThrow();
-    user.setPoint(user.getPoint() - point);
+```typescript
+async function decreasePoint(userId: number, point: number): Promise<void> {
+    await dataSource.transaction('REPEATABLE READ', async (manager) => {
+        const user = await manager.findOne(User, {
+            where: { id: userId },
+            lock: { mode: 'pessimistic_write' },
+        });
+        if (!user) throw new Error('User not found');
+        user.point -= point;
+        await manager.save(user);
+    });
 }
 ```
 
@@ -803,35 +819,34 @@ public void decreasePoint(Long userId, int point) {
 
 ### 재고 차감 (Optimistic)
 
-```java
-@Service
-public class OrderService {
-    
-    @Transactional
-    public void createOrder(OrderRequest request) {
-        int maxRetries = 5;
-        
-        for (int i = 0; i < maxRetries; i++) {
-            try {
-                Product product = productRepository.findById(request.getProductId())
-                    .orElseThrow();
-                
-                if (product.getStock() < request.getQuantity()) {
-                    throw new OutOfStockException();
+```typescript
+import { OptimisticLockVersionMismatchError } from 'typeorm';
+
+async function createOrder(request: OrderRequest): Promise<void> {
+    const maxRetries = 5;
+
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            await dataSource.transaction(async (manager) => {
+                const product = await manager.findOneByOrFail(Product, { id: request.productId });
+
+                if (product.stock < request.quantity) {
+                    throw new Error('재고 부족');
                 }
-                
-                product.setStock(product.getStock() - request.getQuantity());
-                productRepository.save(product);
-                
-                Order order = new Order(request);
-                orderRepository.save(order);
-                
-                return;  // 성공
-            } catch (ObjectOptimisticLockingFailureException e) {
-                if (i == maxRetries - 1) {
-                    throw new BusinessException("주문 실패");
-                }
-                Thread.sleep(50 * (i + 1));  // Exponential Backoff
+
+                product.stock -= request.quantity;
+                await manager.save(product);
+
+                const order = manager.create(Order, request);
+                await manager.save(order);
+            });
+            return;  // 성공
+        } catch (e) {
+            if (e instanceof OptimisticLockVersionMismatchError) {
+                if (i === maxRetries - 1) throw new Error('주문 실패');
+                await new Promise((r) => setTimeout(r, 50 * (i + 1)));  // Exponential Backoff
+            } else {
+                throw e;
             }
         }
     }
@@ -840,25 +855,26 @@ public class OrderService {
 
 ### 포인트 차감 (Pessimistic)
 
-```java
-@Service
-public class PointService {
-    
-    @Transactional
-    public void usePoint(Long userId, int point) {
-        User user = userRepository.findByIdWithLock(userId)
-            .orElseThrow();
-        
-        if (user.getPoint() < point) {
-            throw new InsufficientPointException();
+```typescript
+async function usePoint(userId: number, point: number): Promise<void> {
+    await dataSource.transaction(async (manager) => {
+        const user = await manager.findOne(User, {
+            where: { id: userId },
+            lock: { mode: 'pessimistic_write' },
+        });
+        if (!user) throw new Error('User not found');
+
+        if (user.point < point) {
+            throw new Error('포인트 부족');
         }
-        
-        user.setPoint(user.getPoint() - point);
-        userRepository.save(user);
-        
+
+        user.point -= point;
+        await manager.save(user);
+
         // Point 사용 이력 저장
-        pointHistoryRepository.save(new PointHistory(userId, -point));
-    }
+        const history = manager.create(PointHistory, { userId, amount: -point });
+        await manager.save(history);
+    });
 }
 ```
 
@@ -875,24 +891,23 @@ SET GLOBAL slow_query_log_file = '/var/log/mysql/slow.log';
 
 ### Connection Pool Metrics
 
-```java
-@Component
-public class HikariMetrics {
-    
-    @Autowired
-    private HikariDataSource hikariDataSource;
-    
-    @Scheduled(fixedRate = 60000)
-    public void logMetrics() {
-        HikariPoolMXBean pool = hikariDataSource.getHikariPoolMXBean();
-        
-        log.info("Connection Pool - Active: {}, Idle: {}, Total: {}, Waiting: {}",
-            pool.getActiveConnections(),
-            pool.getIdleConnections(),
-            pool.getTotalConnections(),
-            pool.getThreadsAwaitingConnection());
-    }
-}
+```typescript
+import { Pool } from 'pg';
+
+const pool = new Pool({
+    host: 'localhost',
+    database: 'mydb',
+    max: 20,         // 최대 연결 수
+    idleTimeoutMillis: 600000,
+    connectionTimeoutMillis: 30000,
+});
+
+// 1분마다 Pool 상태 로깅
+setInterval(() => {
+    console.info(
+        `Connection Pool - Total: ${pool.totalCount}, Idle: ${pool.idleCount}, Waiting: ${pool.waitingCount}`
+    );
+}, 60_000);
 ```
 
 ### JPA Statistics
@@ -938,57 +953,57 @@ SET lock:order:123 "server-a" NX EX 30
 - `NX`: 키가 없을 때만 SET (이미 있으면 실패)
 - `EX 30`: 30초 후 자동 만료 (장애 시 Lock이 영원히 안 풀리는 걸 방지)
 
-**Redisson 사용 (Spring Boot):**
+**ioredis 분산 락 사용:**
 
-```java
-@Configuration
-public class RedissonConfig {
+```typescript
+// npm install ioredis
+import Redis from 'ioredis';
+import { randomUUID } from 'crypto';
 
-    @Bean
-    public RedissonClient redissonClient() {
-        Config config = new Config();
-        config.useSingleServer()
-            .setAddress("redis://localhost:6379");
-        return Redisson.create(config);
+const redis = new Redis({ host: 'localhost', port: 6379 });
+
+const unlockScript = `
+  if redis.call('GET', KEYS[1]) == ARGV[1] then
+    return redis.call('DEL', KEYS[1])
+  else
+    return 0
+  end
+`;
+
+async function acquireLock(key: string, leaseSec: number, waitSec: number): Promise<string | null> {
+    const token = randomUUID();
+    const deadline = Date.now() + waitSec * 1000;
+    while (Date.now() < deadline) {
+        const ok = await redis.set(key, token, 'NX', 'EX', leaseSec);
+        if (ok === 'OK') return token;
+        await new Promise((r) => setTimeout(r, 100));
     }
+    return null;
 }
-```
 
-```java
-@Service
-public class OrderService {
+async function releaseLock(key: string, token: string): Promise<void> {
+    await redis.eval(unlockScript, 1, key, token);
+}
 
-    private final RedissonClient redissonClient;
+async function createOrder(productId: number, quantity: number): Promise<void> {
+    const lockKey = `lock:product:${productId}`;
+    // 10초 대기, 획득 후 5초 유지
+    const token = await acquireLock(lockKey, 5, 10);
+    if (!token) throw new Error('락 획득 실패');
 
-    @Transactional
-    public void createOrder(Long productId, int quantity) {
-        RLock lock = redissonClient.getLock("lock:product:" + productId);
+    try {
+        await dataSource.transaction(async (manager) => {
+            const product = await manager.findOneByOrFail(Product, { id: productId });
 
-        boolean acquired = false;
-        try {
-            // 10초 대기, 획득 후 5초 유지
-            acquired = lock.tryLock(10, 5, TimeUnit.SECONDS);
-            if (!acquired) {
-                throw new BusinessException("락 획득 실패");
+            if (product.stock < quantity) {
+                throw new Error('재고 부족');
             }
 
-            Product product = productRepository.findById(productId)
-                .orElseThrow();
-
-            if (product.getStock() < quantity) {
-                throw new OutOfStockException();
-            }
-
-            product.setStock(product.getStock() - quantity);
-            productRepository.save(product);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new BusinessException("락 대기 중 인터럽트");
-        } finally {
-            if (acquired && lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+            product.stock -= quantity;
+            await manager.save(product);
+        });
+    } finally {
+        await releaseLock(lockKey, token);
     }
 }
 ```
@@ -1012,10 +1027,11 @@ Redisson은 Lock 소유자를 확인하고 Lua 스크립트로 원자적으로 �
 
 작업이 TTL보다 오래 걸리면 Lock이 풀린다. Redisson은 Watchdog이 자동으로 TTL을 연장한다. 기본 30초마다 갱신.
 
-```java
-// leaseTime을 지정하지 않으면 Watchdog 활성화
-lock.tryLock(10, TimeUnit.SECONDS);  // Watchdog ON
-lock.tryLock(10, 30, TimeUnit.SECONDS);  // Watchdog OFF (30초 후 자동 해제)
+```typescript
+// leaseSec를 지정하면 자동 만료 (EX), 지정 안 하면 직접 갱신 필요
+await acquireLock(lockKey, 30, 10);   // 획득 후 30초 유지 (EX 30)
+// Node.js는 Watchdog 대신 작업 완료 후 releaseLock으로 즉시 해제
+// 장애 시 EX로 설정된 TTL 후 자동 해제
 ```
 
 Watchdog을 쓸 때 주의할 점: 서버가 갑자기 죽으면 Watchdog도 죽는다. 이 경우 기본 TTL(30초) 후에 Lock이 해제된다. 서버 장애 시 30초간 Lock이 유지되는 건 감수해야 한다.
@@ -1026,47 +1042,62 @@ Redis가 단일 노드면 Redis가 죽으면 Lock도 못 건다. Redis Sentinel�
 
 이걸 해결하려면 Redlock 알고리즘이 있다. Redis 노드 5개에 동시에 Lock을 걸고 과반수(3개) 이상 성공하면 Lock 획득으로 본다. Redisson이 이 구현을 제공한다.
 
-```java
-RLock lock1 = redisson1.getLock("lock:order:123");
-RLock lock2 = redisson2.getLock("lock:order:123");
-RLock lock3 = redisson3.getLock("lock:order:123");
+```typescript
+// Redlock: 독립된 Redis 노드 3개에 SET NX 시도, 과반수 성공 시 획득
+const nodes = [redis1, redis2, redis3];
 
-RedissonMultiLock multiLock = new RedissonRedLock(lock1, lock2, lock3);
-multiLock.tryLock(10, 30, TimeUnit.SECONDS);
+async function acquireRedlock(key: string, leaseSec: number, waitSec: number): Promise<string | null> {
+    const token = randomUUID();
+    const deadline = Date.now() + waitSec * 1000;
+
+    while (Date.now() < deadline) {
+        const results = await Promise.allSettled(
+            nodes.map((r) => r.set(key, token, 'NX', 'EX', leaseSec))
+        );
+        const acquired = results.filter((r) => r.status === 'fulfilled' && r.value === 'OK').length;
+        if (acquired >= Math.floor(nodes.length / 2) + 1) return token;
+        // 과반수 실패 시 획득한 락 해제
+        await Promise.allSettled(nodes.map((r) => r.eval(unlockScript, 1, key, token)));
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    return null;
+}
 ```
 
-실무에서 Redlock까지 쓰는 경우는 많지 않다. 대부분 Redis Sentinel + Redisson이면 충분하다.
+실무에서 Redlock까지 쓰는 경우는 많지 않다. 대부분 Redis Sentinel + ioredis이면 충분하다.
 
 ### 분산 락 사용 시 주의사항
 
 **Lock과 트랜잭션 순서:**
 
-```java
-// 잘못된 순서
-@Transactional  // 트랜잭션 시작
-public void process() {
-    lock.tryLock();  // Lock 획득
-    // 작업
-    lock.unlock();  // Lock 해제
-}  // 트랜잭션 커밋
+```typescript
+// 잘못된 순서 - Lock 해제 후 트랜잭션이 아직 커밋되지 않음
+async function processBad(): Promise<void> {
+    const token = await acquireLock(lockKey, 30, 10);
+    if (!token) throw new Error('락 획득 실패');
+
+    // 작업 (트랜잭션 없음, 또는 트랜잭션 시작이 늦음)
+    await releaseLock(lockKey, token);  // Lock 해제
+    // 이후 DB 커밋 → 다른 서버가 커밋 전 데이터를 볼 수 있음
+}
 ```
 
 Lock을 해제한 후 트랜잭션이 아직 커밋되지 않았다. 다른 서버가 Lock을 획득하면 커밋 전 데이터를 볼 수 있다.
 
-```java
-// 올바른 순서
-public void process() {
-    lock.tryLock();  // Lock 먼저
-    try {
-        processWithTransaction();  // 트랜잭션은 안에서
-    } finally {
-        lock.unlock();  // 트랜잭션 커밋 후 Lock 해제
-    }
-}
+```typescript
+// 올바른 순서 - Lock 안에서 트랜잭션 실행
+async function processCorrect(): Promise<void> {
+    const token = await acquireLock(lockKey, 30, 10);  // Lock 먼저
+    if (!token) throw new Error('락 획득 실패');
 
-@Transactional
-public void processWithTransaction() {
-    // 작업
+    try {
+        await dataSource.transaction(async (manager) => {
+            // 트랜잭션은 Lock 안에서
+            await processWithManager(manager);
+        });  // 트랜잭션 커밋
+    } finally {
+        await releaseLock(lockKey, token);  // 트랜잭션 커밋 후 Lock 해제
+    }
 }
 ```
 
@@ -1074,15 +1105,15 @@ Lock 획득 → 트랜잭션 시작 → 작업 → 트랜잭션 커밋 → Lock 
 
 **Lock 키 설계:**
 
-```java
+```typescript
 // 너무 넓은 범위
-"lock:product"  // 모든 상품에 Lock → 병목
+`lock:product`  // 모든 상품에 Lock → 병목
 
 // 적절한 범위
-"lock:product:" + productId  // 상품별 Lock
+`lock:product:${productId}`  // 상품별 Lock
 
 // 더 세밀한 범위
-"lock:product:" + productId + ":stock"  // 재고 변경에만 Lock
+`lock:product:${productId}:stock`  // 재고 변경에만 Lock
 ```
 
 범위가 넓으면 병목이 생기고, 좁으면 Lock 수가 많아진다. 비즈니스 요구사항에 맞게 정하면 된다.
@@ -1100,16 +1131,18 @@ DB 변경 사항을 감지해서 다른 시스템에 전달하는 패턴이다.
 
 이걸 애플리케이션 코드에서 하면 문제가 생긴다.
 
-```java
-@Transactional
-public void createOrder(OrderRequest request) {
-    Order order = orderRepository.save(new Order(request));
+```typescript
+async function createOrder(request: OrderRequest): Promise<void> {
+    await dataSource.transaction(async (manager) => {
+        const order = manager.create(Order, request);
+        await manager.save(order);
 
-    // 검색 인덱싱
-    elasticsearchClient.index(order);  // 실패하면?
+        // 검색 인덱싱
+        await elasticsearchClient.index(order);  // 실패하면?
 
-    // 이벤트 발행
-    kafkaTemplate.send("order-created", order);  // 실패하면?
+        // 이벤트 발행
+        await kafkaProducer.send({ topic: 'order-created', messages: [{ value: JSON.stringify(order) }] });  // 실패하면?
+    });
 }
 ```
 
@@ -1185,30 +1218,35 @@ binlog-row-image=FULL
 
 **Consumer 구현:**
 
-```java
-@Component
-public class OrderCdcConsumer {
+```typescript
+// npm install kafkajs
+import { Kafka } from 'kafkajs';
 
-    @KafkaListener(topics = "myapp.mydb.orders")
-    public void handleOrderChange(ConsumerRecord<String, String> record) {
-        JsonNode value = objectMapper.readTree(record.value());
-        String op = value.get("op").asText();
-        JsonNode after = value.get("after");
+const kafka = new Kafka({ brokers: ['kafka:9092'] });
+const consumer = kafka.consumer({ groupId: 'order-cdc-consumer' });
+
+await consumer.connect();
+await consumer.subscribe({ topic: 'myapp.mydb.orders', fromBeginning: false });
+
+await consumer.run({
+    eachMessage: async ({ message }) => {
+        const value = JSON.parse(message.value!.toString());
+        const op: string = value.op;
+        const after = value.after;
 
         switch (op) {
-            case "c":  // INSERT
-                elasticsearchService.index(toOrderDocument(after));
+            case 'c':  // INSERT
+                await elasticsearchService.index(toOrderDocument(after));
                 break;
-            case "u":  // UPDATE
-                elasticsearchService.update(toOrderDocument(after));
+            case 'u':  // UPDATE
+                await elasticsearchService.update(toOrderDocument(after));
                 break;
-            case "d":  // DELETE
-                JsonNode before = value.get("before");
-                elasticsearchService.delete(before.get("id").asLong());
+            case 'd':  // DELETE
+                await elasticsearchService.delete(value.before.id as number);
                 break;
         }
-    }
-}
+    },
+});
 ```
 
 ### Outbox 패턴
@@ -1219,7 +1257,7 @@ CDC의 변형이다. 이벤트를 별도 테이블(outbox)에 저장하고, CDC�
 
 binlog CDC는 DB의 물리적 변경을 그대로 전달한다. 비즈니스 이벤트와 DB 변경이 1:1로 매핑되지 않는 경우가 있다.
 
-```java
+```typescript
 // 주문 생성 시 orders 테이블 INSERT + order_items 테이블 INSERT
 // CDC는 두 개의 이벤트를 별도로 보낸다
 // Consumer 입장에서는 이게 하나의 주문인지 알기 어렵다
@@ -1240,19 +1278,22 @@ CREATE TABLE outbox (
 
 **애플리케이션 코드:**
 
-```java
-@Transactional
-public void createOrder(OrderRequest request) {
-    Order order = orderRepository.save(new Order(request));
-    orderItemRepository.saveAll(createItems(order, request));
+```typescript
+async function createOrder(request: OrderRequest): Promise<void> {
+    await dataSource.transaction(async (manager) => {
+        const order = manager.create(Order, request);
+        await manager.save(order);
 
-    // 비즈니스 이벤트를 outbox에 저장 (같은 트랜잭션)
-    outboxRepository.save(new Outbox(
-        "Order",
-        order.getId().toString(),
-        "OrderCreated",
-        objectMapper.writeValueAsString(OrderCreatedEvent.from(order))
-    ));
+        const items = createItems(order, request);
+        await manager.save(items);
+
+        // 비즈니스 이벤트를 outbox에 저장 (같은 트랜잭션)
+        await manager.query(
+            `INSERT INTO outbox (aggregate_type, aggregate_id, event_type, payload)
+             VALUES ($1, $2, $3, $4)`,
+            ['Order', String(order.id), 'OrderCreated', JSON.stringify(OrderCreatedEvent.from(order))]
+        );
+    });
 }
 ```
 
@@ -1301,82 +1342,70 @@ ALTER TABLE로 컬럼을 추가/삭제하면 Debezium이 이를 감지하고 스
 회원 관련 → member-db
 ```
 
-### Spring Boot Read/Write 분리
+### Node.js Read/Write 분리
 
-**DataSource 설정:**
+**Pool 설정:**
 
-```java
-@Configuration
-public class DataSourceConfig {
+```typescript
+import { Pool } from 'pg';
 
-    @Bean
-    @ConfigurationProperties("spring.datasource.primary")
-    public DataSource primaryDataSource() {
-        return DataSourceBuilder.create().build();
-    }
+// 쓰기 → Primary
+const primaryPool = new Pool({
+    host: process.env.DB_PRIMARY_HOST,
+    database: 'mydb',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    max: 10,
+});
 
-    @Bean
-    @ConfigurationProperties("spring.datasource.replica")
-    public DataSource replicaDataSource() {
-        return DataSourceBuilder.create().build();
-    }
+// 읽기 → Replica
+const replicaPool = new Pool({
+    host: process.env.DB_REPLICA_HOST,
+    database: 'mydb',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    max: 20,
+});
 
-    @Bean
-    public DataSource routingDataSource(
-            @Qualifier("primaryDataSource") DataSource primary,
-            @Qualifier("replicaDataSource") DataSource replica) {
-
-        ReadWriteRoutingDataSource routing = new ReadWriteRoutingDataSource();
-
-        Map<Object, Object> targetDataSources = new HashMap<>();
-        targetDataSources.put("primary", primary);
-        targetDataSources.put("replica", replica);
-
-        routing.setTargetDataSources(targetDataSources);
-        routing.setDefaultTargetDataSource(primary);
-
-        return routing;
-    }
-
-    @Bean
-    @Primary
-    public DataSource dataSource(@Qualifier("routingDataSource") DataSource routing) {
-        return new LazyConnectionDataSourceProxy(routing);
-    }
+// 라우팅 헬퍼
+function getPool(readOnly: boolean): Pool {
+    return readOnly ? replicaPool : primaryPool;
 }
 ```
 
-`LazyConnectionDataSourceProxy`를 감싸야 한다. 이게 없으면 트랜잭션 시작 시점에 DataSource가 결정되는데, 그때는 아직 `@Transactional(readOnly)` 정보를 모른다. Lazy로 감싸면 실제 쿼리 실행 시점에 DataSource를 결정한다.
+쿼리 실행 시점에 Pool을 선택한다. readOnly 플래그를 명시적으로 넘기거나 AsyncLocalStorage로 컨텍스트에서 결정한다.
 
 **라우팅 구현:**
 
-```java
-public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
+```typescript
+import { AsyncLocalStorage } from 'async_hooks';
 
-    @Override
-    protected Object determineCurrentLookupKey() {
-        boolean readOnly = TransactionSynchronizationManager
-            .isCurrentTransactionReadOnly();
-        return readOnly ? "replica" : "primary";
-    }
+const dbContextStorage = new AsyncLocalStorage<{ readOnly: boolean }>();
+
+function getRoutedPool(): Pool {
+    const ctx = dbContextStorage.getStore();
+    return getPool(ctx?.readOnly ?? false);
 }
 ```
 
 **사용:**
 
-```java
-@Service
-public class OrderService {
+```typescript
+// 쓰기 → Primary
+async function createOrder(request: OrderRequest): Promise<void> {
+    await dbContextStorage.run({ readOnly: false }, async () => {
+        const pool = getRoutedPool();
+        await pool.query('INSERT INTO orders ...', [...]);
+    });
+}
 
-    @Transactional  // readOnly 기본값 false → Primary
-    public void createOrder(OrderRequest request) {
-        orderRepository.save(new Order(request));
-    }
-
-    @Transactional(readOnly = true)  // → Replica
-    public List<Order> getOrders(Long userId) {
-        return orderRepository.findByUserId(userId);
-    }
+// 읽기 → Replica
+async function getOrders(userId: number): Promise<Order[]> {
+    return dbContextStorage.run({ readOnly: true }, async () => {
+        const pool = getRoutedPool();
+        const { rows } = await pool.query('SELECT * FROM orders WHERE user_id = $1', [userId]);
+        return rows;
+    });
 }
 ```
 
@@ -1394,115 +1423,82 @@ Primary에 쓰고 바로 Replica에서 읽으면 데이터가 아직 없을 수 
 
 **해결 1: 쓰기 직후 읽기는 Primary에서**
 
-```java
-@Service
-public class OrderService {
-
-    @Transactional
-    public OrderResponse createAndReturn(OrderRequest request) {
-        Order order = orderRepository.save(new Order(request));
-        // 같은 트랜잭션이라 Primary에서 읽음
-        return OrderResponse.from(order);
-    }
+```typescript
+async function createAndReturn(request: OrderRequest): Promise<OrderResponse> {
+    // primaryPool을 명시적으로 사용 → 같은 Pool에서 읽음
+    const { rows } = await primaryPool.query(
+        'INSERT INTO orders (...) VALUES (...) RETURNING *',
+        [...]
+    );
+    return OrderResponse.from(rows[0]);
 }
 ```
 
 **해결 2: 강제 Primary 라우팅**
 
-```java
-public class DataSourceContext {
-    private static final ThreadLocal<String> CONTEXT = new ThreadLocal<>();
-
-    public static void setForcePrimary() {
-        CONTEXT.set("primary");
-    }
-
-    public static String get() {
-        return CONTEXT.get();
-    }
-
-    public static void clear() {
-        CONTEXT.remove();
-    }
+```typescript
+// AsyncLocalStorage로 강제 Primary 설정
+async function withForcePrimary<T>(fn: () => Promise<T>): Promise<T> {
+    return dbContextStorage.run({ readOnly: false }, fn);
 }
 
-public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
-
-    @Override
-    protected Object determineCurrentLookupKey() {
-        String forced = DataSourceContext.get();
-        if (forced != null) {
-            return forced;
-        }
-        boolean readOnly = TransactionSynchronizationManager
-            .isCurrentTransactionReadOnly();
-        return readOnly ? "replica" : "primary";
-    }
+function getRoutedPool(): Pool {
+    const ctx = dbContextStorage.getStore();
+    return getPool(ctx?.readOnly ?? false);
 }
 ```
 
-```java
+```typescript
 // 주문 생성 직후 조회가 필요한 API
-public OrderResponse getOrder(Long orderId) {
-    DataSourceContext.setForcePrimary();
-    try {
+async function getOrderAfterCreate(orderId: number): Promise<OrderResponse> {
+    return withForcePrimary(async () => {
         return orderQueryService.getOrder(orderId);
-    } finally {
-        DataSourceContext.clear();
-    }
+    });
 }
 ```
 
 ### 여러 DB 접근 (서비스별 분리)
 
-```yaml
-spring:
-  datasource:
-    order:
-      url: jdbc:mysql://order-db:3306/orders
-      username: order_user
-      password: pass
-    member:
-      url: jdbc:mysql://member-db:3306/members
-      username: member_user
-      password: pass
+```typescript
+import { Pool } from 'pg';
+import { DataSource } from 'typeorm';
+
+// 주문 DB
+const orderPool = new Pool({
+    host: 'order-db',
+    database: 'orders',
+    user: 'order_user',
+    password: process.env.ORDER_DB_PASSWORD,
+});
+
+// 회원 DB
+const memberPool = new Pool({
+    host: 'member-db',
+    database: 'members',
+    user: 'member_user',
+    password: process.env.MEMBER_DB_PASSWORD,
+});
+
+// TypeORM DataSource (서비스별)
+const orderDataSource = new DataSource({
+    type: 'postgres',
+    host: 'order-db',
+    database: 'orders',
+    entities: [Order, OrderItem],
+});
+
+const memberDataSource = new DataSource({
+    type: 'postgres',
+    host: 'member-db',
+    database: 'members',
+    entities: [Member],
+});
+
+await orderDataSource.initialize();
+await memberDataSource.initialize();
 ```
 
-```java
-@Configuration
-@EnableJpaRepositories(
-    basePackages = "com.example.order.repository",
-    entityManagerFactoryRef = "orderEntityManagerFactory",
-    transactionManagerRef = "orderTransactionManager"
-)
-public class OrderDataSourceConfig {
-
-    @Bean
-    @ConfigurationProperties("spring.datasource.order")
-    public DataSource orderDataSource() {
-        return DataSourceBuilder.create().build();
-    }
-
-    @Bean
-    public LocalContainerEntityManagerFactoryBean orderEntityManagerFactory(
-            @Qualifier("orderDataSource") DataSource dataSource,
-            EntityManagerFactoryBuilder builder) {
-        return builder
-            .dataSource(dataSource)
-            .packages("com.example.order.entity")
-            .persistenceUnit("order")
-            .build();
-    }
-
-    @Bean
-    public PlatformTransactionManager orderTransactionManager(
-            @Qualifier("orderEntityManagerFactory") EntityManagerFactory emf) {
-        return new JpaTransactionManager(emf);
-    }
-}
-```
-
-Member도 같은 방식으로 설정한다. 패키지를 기준으로 어떤 Repository가 어떤 DataSource를 쓸지 결정된다.
+Member도 같은 방식으로 설정한다. DataSource 인스턴스를 서비스에 주입해서 어떤 DataSource를 쓸지 결정한다.
 
 **주의사항:**
 

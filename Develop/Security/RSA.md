@@ -252,95 +252,77 @@ const decrypted = crypto.privateDecrypt(
 console.log(decrypted.toString()); // 'Hello, RSA!'
 ```
 
-### Java (JCA)
+### TypeScript (Node.js crypto)
 
-```java
-import javax.crypto.Cipher;
-import java.security.*;
-import java.security.spec.*;
-import java.util.Base64;
+```typescript
+import {
+  generateKeyPairSync,
+  publicEncrypt,
+  privateDecrypt,
+  constants,
+  KeyObject,
+} from 'crypto';
 
-public class RsaExample {
+// 키 쌍 생성
+const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  publicKeyEncoding:  { type: 'spki',  format: 'pem' },
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+});
 
-    // 키 쌍 생성
-    public static KeyPair generateKeyPair() throws Exception {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
-        return generator.generateKeyPair();
-    }
-
-    // OAEP 패딩으로 암호화
-    public static byte[] encrypt(PublicKey publicKey, byte[] plaintext) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        return cipher.doFinal(plaintext);
-    }
-
-    // 복호화
-    public static byte[] decrypt(PrivateKey privateKey, byte[] ciphertext) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        return cipher.doFinal(ciphertext);
-    }
-
-    public static void main(String[] args) throws Exception {
-        KeyPair keyPair = generateKeyPair();
-
-        String message = "Hello, RSA!";
-        byte[] encrypted = encrypt(keyPair.getPublic(), message.getBytes());
-        byte[] decrypted = decrypt(keyPair.getPrivate(), encrypted);
-
-        System.out.println("암호문 (Base64): " + Base64.getEncoder().encodeToString(encrypted));
-        System.out.println("복호문: " + new String(decrypted));
-    }
+// OAEP 패딩으로 암호화
+function encrypt(pubKey: string | KeyObject, plaintext: Buffer): Buffer {
+  return publicEncrypt(
+    { key: pubKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+    plaintext,
+  );
 }
+
+// 복호화
+function decrypt(privKey: string | KeyObject, ciphertext: Buffer): Buffer {
+  return privateDecrypt(
+    { key: privKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+    ciphertext,
+  );
+}
+
+// 사용 예시
+const message = 'Hello, RSA!';
+const encrypted = encrypt(publicKey, Buffer.from(message));
+const decrypted = decrypt(privateKey, encrypted);
+
+console.log('암호문 (Base64):', encrypted.toString('base64'));
+console.log('복호문:', decrypted.toString());
 ```
 
-JCA에서 `RSA/ECB/OAEPWithSHA-256AndMGF1Padding`을 지정하면 OAEP 패딩이 적용된다. "ECB"라고 적혀 있지만, RSA는 블록 암호가 아니라서 실제로 ECB 모드가 동작하지는 않는다. JCA의 Cipher 문자열 규칙 때문에 저렇게 적는 것이다.
+`publicEncrypt` / `privateDecrypt`에서 `padding`을 명시적으로 지정한다. 생략하면 기본값이 `RSA_PKCS1_PADDING`(PKCS#1 v1.5)으로 적용될 수 있다. 반드시 `RSA_PKCS1_OAEP_PADDING`을 지정해야 한다.
 
-주의할 점: `Cipher.getInstance("RSA")`만 적으면 프로바이더에 따라 PKCS#1 v1.5 패딩이 적용될 수 있다. 패딩을 명시적으로 지정해야 한다.
+#### PEM 키 파일 로드 (TypeScript)
 
-#### PEM 키 파일 로드 (Java)
+외부에서 생성한 PEM 키를 Node.js에서 로드하는 경우가 많다.
 
-외부에서 생성한 PEM 키를 Java에서 로드하는 경우가 많다.
+```typescript
+import { readFileSync } from 'fs';
+import { createPrivateKey, createPublicKey, KeyObject } from 'crypto';
 
-```java
-import java.nio.file.*;
-import java.security.*;
-import java.security.spec.*;
-import java.util.Base64;
-
-public class PemKeyLoader {
-
-    // PEM 형식의 개인 키 로드 (PKCS#8)
-    public static PrivateKey loadPrivateKey(String pemPath) throws Exception {
-        String pem = Files.readString(Path.of(pemPath));
-        String base64 = pem
-            .replace("-----BEGIN PRIVATE KEY-----", "")
-            .replace("-----END PRIVATE KEY-----", "")
-            .replaceAll("\\s", "");
-
-        byte[] der = Base64.getDecoder().decode(base64);
-        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(der);
-        return KeyFactory.getInstance("RSA").generatePrivate(spec);
-    }
-
-    // PEM 형식의 공개 키 로드
-    public static PublicKey loadPublicKey(String pemPath) throws Exception {
-        String pem = Files.readString(Path.of(pemPath));
-        String base64 = pem
-            .replace("-----BEGIN PUBLIC KEY-----", "")
-            .replace("-----END PUBLIC KEY-----", "")
-            .replaceAll("\\s", "");
-
-        byte[] der = Base64.getDecoder().decode(base64);
-        X509EncodedKeySpec spec = new X509EncodedKeySpec(der);
-        return KeyFactory.getInstance("RSA").generatePublic(spec);
-    }
+// PEM 형식의 개인 키 로드 (PKCS#8 또는 PKCS#1 모두 지원)
+function loadPrivateKey(pemPath: string): KeyObject {
+  const pem = readFileSync(pemPath, 'utf8');
+  return createPrivateKey(pem);  // PEM 헤더를 자동 감지
 }
+
+// PEM 형식의 공개 키 로드
+function loadPublicKey(pemPath: string): KeyObject {
+  const pem = readFileSync(pemPath, 'utf8');
+  return createPublicKey(pem);  // SPKI(BEGIN PUBLIC KEY) 또는 X.509 인증서에서 추출
+}
+
+// 사용 예시
+const privateKey = loadPrivateKey('./private.pem');
+const publicKey  = loadPublicKey('./public.pem');
 ```
 
-`BEGIN RSA PRIVATE KEY` (PKCS#1 형식) PEM을 Java에서 로드하려면 BouncyCastle 같은 추가 라이브러리가 필요하다. OpenSSL로 PKCS#8로 변환하는 게 간단하다:
+Node.js `crypto`는 PKCS#1(`BEGIN RSA PRIVATE KEY`)과 PKCS#8(`BEGIN PRIVATE KEY`) PEM을 모두 `createPrivateKey`로 로드할 수 있다. 별도 라이브러리가 필요 없다. PKCS#1 형식을 PKCS#8로 변환하려면 OpenSSL을 사용한다:
 
 ```bash
 openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt \
@@ -375,68 +357,42 @@ RSA의 또 다른 핵심 용도는 디지털 서명이다. 암호화와 반대 �
 | 보안 증명 | 없음 | 있음 |
 | 호환성 | 대부분의 레거시 시스템 | TLS 1.3에서 필수 |
 
-### Java 서명 구현
+### TypeScript 서명 구현 (PSS)
 
-```java
-import java.security.*;
+```typescript
+import { createSign, createVerify, generateKeyPairSync, KeyObject } from 'crypto';
 
-public class RsaSignature {
+// PSS 패딩 옵션 — salt 길이를 해시 출력 크기와 동일하게(SHA-256 → 32)
+const PSS_OPTIONS = {
+  padding: 'RSA_PKCS1_PSS_PADDING',
+  saltLength: 32,
+} as const;
 
-    // PSS 패딩으로 서명
-    public static byte[] sign(PrivateKey privateKey, byte[] data) throws Exception {
-        Signature signature = Signature.getInstance("RSASSA-PSS");
-        signature.setParameter(new PSSParameterSpec(
-            "SHA-256",           // 해시 알고리즘
-            "MGF1",              // MGF
-            MGF1ParameterSpec.SHA256,  // MGF 해시
-            32,                  // salt 길이 (해시 출력 크기와 동일하게)
-            1                    // trailer field
-        ));
-        signature.initSign(privateKey);
-        signature.update(data);
-        return signature.sign();
-    }
-
-    // 서명 검증
-    public static boolean verify(PublicKey publicKey, byte[] data, byte[] sig)
-            throws Exception {
-        Signature signature = Signature.getInstance("RSASSA-PSS");
-        signature.setParameter(new PSSParameterSpec(
-            "SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1
-        ));
-        signature.initVerify(publicKey);
-        signature.update(data);
-        return signature.verify(sig);
-    }
-
-    public static void main(String[] args) throws Exception {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
-        KeyPair keyPair = generator.generateKeyPair();
-
-        byte[] data = "서명할 데이터".getBytes();
-        byte[] sig = sign(keyPair.getPrivate(), data);
-
-        boolean valid = verify(keyPair.getPublic(), data, sig);
-        System.out.println("서명 검증: " + valid);  // true
-    }
+// 서명 생성 (RSASSA-PSS with SHA-256)
+function sign(privateKey: string | KeyObject, data: string | Buffer): Buffer {
+  const signer = createSign('SHA256');
+  signer.update(data);
+  return signer.sign({ key: privateKey, dsaEncoding: 'ieee-p1363', ...PSS_OPTIONS });
 }
-```
-
-### Node.js 서명 구현
-
-```javascript
-const crypto = require('crypto');
-
-// 서명 생성
-const sign = crypto.createSign('RSA-SHA256');
-sign.update('서명할 데이터');
-const signature = sign.sign(privateKey);
 
 // 서명 검증
-const verify = crypto.createVerify('RSA-SHA256');
-verify.update('서명할 데이터');
-const isValid = verify.verify(publicKey, signature);
+function verify(
+  publicKey: string | KeyObject,
+  data: string | Buffer,
+  signature: Buffer,
+): boolean {
+  const verifier = createVerify('SHA256');
+  verifier.update(data);
+  return verifier.verify({ key: publicKey, dsaEncoding: 'ieee-p1363', ...PSS_OPTIONS }, signature);
+}
+
+// 사용 예시
+const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+
+const data = Buffer.from('서명할 데이터', 'utf8');
+const signature = sign(privateKey, data);
+
+const isValid = verify(publicKey, data, signature);
 console.log('서명 검증:', isValid);  // true
 ```
 
@@ -540,17 +496,34 @@ openssl pkey -in private.pem -aes256 -out private_encrypted.pem
 - AWS KMS, GCP Cloud KMS: 클라우드 관리형 HSM이다. API로 암호화/서명 요청만 하고, 키 자체에는 접근하지 않는다
 - HashiCorp Vault: 키를 중앙에서 관리하고, 접근 로그를 남긴다
 
-**Java KeyStore:**
-```java
-// PKCS12 키스토어에 개인 키와 인증서 저장
-KeyStore ks = KeyStore.getInstance("PKCS12");
-ks.load(null, null);
-ks.setKeyEntry("mykey", privateKey, "password".toCharArray(),
-    new Certificate[]{certificate});
-ks.store(new FileOutputStream("keystore.p12"), "password".toCharArray());
+**Node.js — PEM 파일 + 환경 변수 관리:**
+```typescript
+// Node.js는 자체 KeyStore 포맷이 없다.
+// 대신 PEM 파일 또는 환경 변수로 키를 관리한다.
+import { createPrivateKey, createPublicKey } from 'crypto';
+
+// 환경 변수에서 PEM 로드 (운영 환경)
+const privateKey = createPrivateKey(process.env.RSA_PRIVATE_KEY!);
+const publicKey  = createPublicKey(process.env.RSA_PUBLIC_KEY!);
+
+// 파일 시스템에서 로드 (개발 환경 — 파일 권한 600 설정)
+import { readFileSync } from 'fs';
+const privateKeyFromFile = createPrivateKey(readFileSync('./private.pem'));
 ```
 
-JKS(Java KeyStore) 포맷은 Java 전용이다. PKCS12는 표준 포맷이라 OpenSSL 등 다른 도구와 호환된다. Java 9부터 PKCS12가 기본 키스토어 타입이다.
+```bash
+# PKCS12 (.p12) 파일에서 PEM 추출 — OpenSSL 사용
+# 개인 키 추출
+openssl pkcs12 -in keystore.p12 -nocerts -nodes -out private.pem
+
+# 인증서(공개 키) 추출
+openssl pkcs12 -in keystore.p12 -nokeys -out cert.pem
+
+# PEM → PKCS12 패키징 (다른 도구와 공유할 때)
+openssl pkcs12 -export -in cert.pem -inkey private.pem -out keystore.p12
+```
+
+운영 환경의 키는 파일 시스템 대신 AWS KMS, HashiCorp Vault, Kubernetes Secrets 같은 시크릿 관리 시스템에 보관한다.
 
 ### 기타 보안 위협
 

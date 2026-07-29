@@ -71,29 +71,31 @@ const id2 = monotonicUlid(); // id1 < id2 보장
 
 브라우저에서는 `Math.random()` 폴백이 동작한다. 서버 사이드에서는 `crypto.getRandomValues()`를 사용하므로 암호학적으로 안전하다.
 
-### Java
+### TypeScript (추가 예시)
 
-```java
-// 의존성: com.github.f4b6a3:ulid-creator
-import com.github.f4b6a3.ulid.UlidCreator;
-import com.github.f4b6a3.ulid.Ulid;
+```typescript
+// npm install ulid
+import { ulid, monotonicFactory, decodeTime } from 'ulid';
 
 // 기본 생성
-Ulid ulid = UlidCreator.getUlid();
-String ulidStr = ulid.toString(); // '01HX2Y3Z4A5B6C7D8E9F0G1H2J'
+const id = ulid(); // '01HX2Y3Z4A5B6C7D8E9F0G1H2J'
 
-// Monotonic ULID
-Ulid monotonic = UlidCreator.getMonotonicUlid();
+// Monotonic ULID — UUID로 변환 (저장 시)
+const ulidStr = ulid();
+// ULID 문자열에서 타임스탬프 추출
+const epochMs = decodeTime(ulidStr);
 
-// UUID로 변환 (JPA UUID 타입 컬럼 저장 시)
-UUID uuid = ulid.toUuid();
-
-// byte[]로 변환 (BINARY(16) 저장 시)
-byte[] bytes = ulid.toBytes();
-
-// 역변환
-Ulid fromUuid  = Ulid.from(uuid);
-Ulid fromBytes = Ulid.from(bytes);
+// TypeScript에서 UUID 형식으로 변환이 필요하면 별도 변환 로직 사용
+function ulidToUuidHex(ulidStr: string): string {
+    // ULID Base32 → hex 128비트 → UUID 형식으로 변환
+    const base32Chars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    let n = BigInt(0);
+    for (const c of ulidStr.toUpperCase()) {
+        n = n * 32n + BigInt(base32Chars.indexOf(c));
+    }
+    const hex = n.toString(16).padStart(32, '0');
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+}
 ```
 
 ### Python
@@ -189,14 +191,31 @@ CREATE TABLE events (
 );
 ```
 
-```java
-// 저장
-Ulid ulid  = UlidCreator.getMonotonicUlid();
-byte[] bytes = ulid.toBytes(); // 16바이트
+```typescript
+// 저장: ULID → Buffer(16바이트)
+import { ulid } from 'ulid';
 
-// 조회
-byte[] bytes = resultSet.getBytes("id");
-Ulid ulid = Ulid.from(bytes);
+function ulidToBuffer(ulidStr: string): Buffer {
+    const base32Chars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    let n = BigInt(0);
+    for (const c of ulidStr.toUpperCase()) {
+        n = n * 32n + BigInt(base32Chars.indexOf(c));
+    }
+    const hex = n.toString(16).padStart(32, '0');
+    return Buffer.from(hex, 'hex');
+}
+
+// 조회: Buffer(16바이트) → ULID 문자열
+function bufferToUlid(buf: Buffer): string {
+    const base32Chars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    let n = BigInt('0x' + buf.toString('hex'));
+    let result = '';
+    for (let i = 0; i < 26; i++) {
+        result = base32Chars[Number(n & 31n)] + result;
+        n >>= 5n;
+    }
+    return result;
+}
 ```
 
 16바이트라 PK 인덱스 크기가 CHAR(26)의 약 60%다. 데이터가 수천만 건을 넘어 인덱스가 버퍼 풀을 넘기 시작하면 이 차이가 체감된다. 조회 시 16진수 변환이 필요해서 직접 SQL로 확인하기 불편하다.
@@ -224,10 +243,10 @@ CREATE TABLE events (
 );
 ```
 
-```java
-// Java에서 ULID를 UUID로 변환 후 저장
-Ulid ulid = UlidCreator.getMonotonicUlid();
-UUID uuid = ulid.toUuid();
+```typescript
+// TypeScript에서 ULID를 UUID 형식으로 변환 후 저장
+const ulidStr = ulid();
+const uuidStr = ulidToUuidHex(ulidStr);
 // UUID 형식: 018f7a23-4c9b-7000-8f0a-b2c3d4e5f6a7
 ```
 
@@ -267,108 +286,99 @@ CREATE TABLE events (
 
 실무에서는 PostgreSQL + ULID 조합이면 UUID 타입에 저장하는 패턴이 가장 무난하다.
 
-## Spring/JPA 통합
+## TypeORM 통합
 
 ### CHAR(26) 저장 방식
 
-```java
-@Entity
-@Table(name = "events")
-public class Event {
-    @Id
-    @Column(name = "id", length = 26, columnDefinition = "CHAR(26)")
-    private String id;
+```typescript
+import { ulid, monotonicFactory } from 'ulid';
+import { Entity, PrimaryColumn, Column, BeforeInsert } from 'typeorm';
 
-    @Column(nullable = false)
-    private String payload;
+const monotonicUlid = monotonicFactory();
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UlidCreator.getMonotonicUlid().toString();
+@Entity('events')
+export class Event {
+    @PrimaryColumn({ type: 'char', length: 26 })
+    id: string;
+
+    @Column({ nullable: false })
+    payload: string;
+
+    @BeforeInsert()
+    generateId(): void {
+        if (!this.id) {
+            this.id = monotonicUlid();
         }
     }
 }
 ```
 
-`@GeneratedValue`를 쓰지 않고 `@PrePersist`에서 직접 할당한다. INSERT 전에 id가 결정되므로 Hibernate의 배치 INSERT가 동작한다. IDENTITY 전략에서는 INSERT 후 DB에서 id를 받아와야 해서 배치가 불가능했는데, 직접 할당 방식은 그 제약이 없다.
+`@PrimaryGeneratedColumn`을 쓰지 않고 `@BeforeInsert()`에서 직접 할당한다. INSERT 전에 id가 결정되므로 TypeORM의 배치 INSERT가 동작한다.
 
-```yaml
-# application.yml
-spring:
-  jpa:
-    properties:
-      hibernate.jdbc.batch_size: 50
-      hibernate.order_inserts: true
-# @PrePersist로 id 직접 할당 시 배치 INSERT가 정상 동작한다
+```typescript
+// TypeORM 배치 INSERT — @BeforeInsert()로 id 직접 할당 시 정상 동작
+await manager.insert(Event, events);
+// 내부적으로 INSERT ... VALUES (...), (...), ... 로 실행
 ```
 
-### BINARY(16) 저장 방식 — AttributeConverter
+### BINARY(16) 저장 방식 — ValueTransformer
 
-byte[] 타입을 엔티티에서 직접 다루면 불편하다. AttributeConverter로 ULID 문자열과 바이트 배열 사이 자동 변환을 걸어두는 편이 낫다.
+Buffer 타입을 엔티티에서 직접 다루면 불편하다. TypeORM의 `transformer` 옵션으로 ULID 문자열과 바이트 배열 사이 자동 변환을 걸어두는 편이 낫다.
 
-```java
-@Converter
-public class UlidToBytesConverter implements AttributeConverter<String, byte[]> {
-    @Override
-    public byte[] convertToDatabaseColumn(String ulidString) {
-        if (ulidString == null) return null;
-        return Ulid.from(ulidString).toBytes();
-    }
+```typescript
+import { ValueTransformer } from 'typeorm';
 
-    @Override
-    public String convertToEntityAttribute(byte[] dbData) {
+const ulidToBytesTransformer: ValueTransformer = {
+    to(ulidStr: string | null): Buffer | null {
+        if (ulidStr == null) return null;
+        return ulidToBuffer(ulidStr);
+    },
+    from(dbData: Buffer | null): string | null {
         if (dbData == null) return null;
-        return Ulid.from(dbData).toString();
-    }
-}
+        return bufferToUlid(dbData);
+    },
+};
 
-@Entity
-@Table(name = "events")
-public class Event {
-    @Id
-    @Column(name = "id", columnDefinition = "BINARY(16)")
-    @Convert(converter = UlidToBytesConverter.class)
-    private String id;
+@Entity('events')
+export class Event {
+    @PrimaryColumn({ type: 'binary', length: 16, transformer: ulidToBytesTransformer })
+    id: string;
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UlidCreator.getMonotonicUlid().toString();
+    @BeforeInsert()
+    generateId(): void {
+        if (!this.id) {
+            this.id = monotonicUlid();
         }
     }
 }
 ```
 
-엔티티에서는 String으로 다루고, DB에는 16바이트로 저장된다.
+엔티티에서는 string으로 다루고, DB에는 16바이트로 저장된다.
 
 ### Repository에서 ULID 기반 범위 쿼리
 
 ULID의 타임스탬프를 이용하면 created_at 컬럼 없이도 PK 인덱스로 시각 범위 조회를 할 수 있다.
 
-```java
-public interface EventRepository extends JpaRepository<Event, String> {
-    List<Event> findByIdBetweenOrderByIdAsc(String startUlid, String endUlid);
-    List<Event> findByIdGreaterThanEqualOrderByIdAsc(String fromUlid);
-}
-```
-
-```java
-// 2024-01-01 이후 이벤트 조회
-long epochMs = Instant.parse("2024-01-01T00:00:00Z").toEpochMilli();
-String fromUlid = buildMinUlid(epochMs);
-
-List<Event> events = eventRepository.findByIdGreaterThanEqualOrderByIdAsc(fromUlid);
+```typescript
+// TypeORM Repository에서 ULID 범위 쿼리
+const fromUlid = buildMinUlid(new Date('2024-01-01T00:00:00Z').getTime());
+const events = await eventRepository
+    .createQueryBuilder('e')
+    .where('e.id >= :fromUlid', { fromUlid })
+    .orderBy('e.id', 'ASC')
+    .getMany();
 
 // 특정 밀리초의 최솟값 ULID (랜덤 파트를 0으로 채운 값)
-private static String buildMinUlid(long epochMs) {
-    byte[] bytes = new byte[16];
-    for (int i = 5; i >= 0; i--) {
-        bytes[i] = (byte) (epochMs & 0xFF);
-        epochMs >>= 8;
+function buildMinUlid(epochMs: number): string {
+    const base32Chars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    // 48비트 타임스탬프를 앞에, 80비트 랜덤을 0으로
+    let n = BigInt(epochMs) << 80n;
+    let result = '';
+    for (let i = 0; i < 26; i++) {
+        result = base32Chars[Number(n & 31n)] + result;
+        n >>= 5n;
     }
-    // 하위 10바이트는 0으로 초기화됨 (배열 기본값)
-    return Ulid.from(bytes).toString();
+    return result;
 }
 ```
 
@@ -378,12 +388,13 @@ private static String buildMinUlid(long epochMs) {
 
 ULID에서 생성 시각을 꺼내는 방법은 간단하다.
 
-```java
-// Java
-Ulid ulid = Ulid.from("01HX2Y3Z4A5B6C7D8E9F0G1H2J");
-long epochMs     = ulid.getTime();
-Instant instant  = ulid.getInstant();
-LocalDateTime ldt = LocalDateTime.ofInstant(instant, ZoneId.of("Asia/Seoul"));
+```typescript
+// Node.js (TypeScript)
+import { decodeTime } from 'ulid';
+const epochMs = decodeTime('01HX2Y3Z4A5B6C7D8E9F0G1H2J');
+const date = new Date(epochMs);
+const kstOffset = 9 * 60 * 60 * 1000;
+const kstDate = new Date(epochMs + kstOffset);
 ```
 
 ```python

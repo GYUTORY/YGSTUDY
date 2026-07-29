@@ -288,151 +288,99 @@ Salt는 패스워드 기반 키 유도(PBKDF2 등)에서 사용하는 랜덤 데
 | 공개 여부 | 공개 가능 | 공개 가능 |
 | 재사용 | 금지 | 금지 |
 
-## Java 구현
+## TypeScript 구현
 
 ### AES-GCM (권장)
 
-```java
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.SecureRandom;
-import java.util.Base64;
+```typescript
+import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 
-public class AesGcmCrypto {
+const GCM_NONCE_LENGTH = 12; // 바이트
+const GCM_TAG_LENGTH = 16;   // 바이트 (128비트)
 
-    private static final int GCM_TAG_LENGTH = 128; // 비트
-    private static final int GCM_NONCE_LENGTH = 12; // 바이트
-
-    // 키 생성
-    public static SecretKey generateKey() throws Exception {
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-        keyGen.init(256);
-        return keyGen.generateKey();
-    }
-
-    // 암호화
-    public static byte[] encrypt(byte[] plaintext, SecretKey key) throws Exception {
-        byte[] nonce = new byte[GCM_NONCE_LENGTH];
-        SecureRandom random = new SecureRandom();
-        random.nextBytes(nonce);
-
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, nonce);
-        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
-
-        byte[] ciphertext = cipher.doFinal(plaintext);
-
-        // nonce + ciphertext(암호문 + 인증태그)를 합쳐서 반환
-        byte[] result = new byte[nonce.length + ciphertext.length];
-        System.arraycopy(nonce, 0, result, 0, nonce.length);
-        System.arraycopy(ciphertext, 0, result, nonce.length, ciphertext.length);
-        return result;
-    }
-
-    // 복호화
-    public static byte[] decrypt(byte[] encrypted, SecretKey key) throws Exception {
-        // 앞 12바이트가 nonce
-        byte[] nonce = new byte[GCM_NONCE_LENGTH];
-        System.arraycopy(encrypted, 0, nonce, 0, nonce.length);
-
-        byte[] ciphertext = new byte[encrypted.length - nonce.length];
-        System.arraycopy(encrypted, nonce.length, ciphertext, 0, ciphertext.length);
-
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, nonce);
-        cipher.init(Cipher.DECRYPT_MODE, key, spec);
-
-        return cipher.doFinal(ciphertext); // 인증 실패 시 AEADBadTagException 발생
-    }
-
-    public static void main(String[] args) throws Exception {
-        SecretKey key = generateKey();
-
-        String message = "민감한 개인정보 데이터";
-        byte[] encrypted = encrypt(message.getBytes("UTF-8"), key);
-        byte[] decrypted = decrypt(encrypted, key);
-
-        System.out.println("원문: " + message);
-        System.out.println("암호문: " + Base64.getEncoder().encodeToString(encrypted));
-        System.out.println("복호문: " + new String(decrypted, "UTF-8"));
-    }
+// 키 생성 (256비트 = 32바이트)
+function generateKey(): Buffer {
+  return randomBytes(32);
 }
+
+// 암호화
+function encrypt(plaintext: string, key: Buffer): Buffer {
+  const nonce = randomBytes(GCM_NONCE_LENGTH);
+  const cipher = createCipheriv('aes-256-gcm', key, nonce);
+
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag(); // 16바이트 인증 태그
+
+  // nonce(12) + authTag(16) + 암호문
+  return Buffer.concat([nonce, authTag, encrypted]);
+}
+
+// 복호화
+function decrypt(data: Buffer, key: Buffer): string {
+  const nonce = data.subarray(0, GCM_NONCE_LENGTH);
+  const authTag = data.subarray(GCM_NONCE_LENGTH, GCM_NONCE_LENGTH + GCM_TAG_LENGTH);
+  const ciphertext = data.subarray(GCM_NONCE_LENGTH + GCM_TAG_LENGTH);
+
+  const decipher = createDecipheriv('aes-256-gcm', key, nonce);
+  decipher.setAuthTag(authTag);
+
+  // 인증 태그 검증 실패 시 decipher.final()에서 예외 발생
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+}
+
+// 사용 예
+const key = generateKey();
+const message = '민감한 개인정보 데이터';
+const encrypted = encrypt(message, key);
+console.log('암호문:', encrypted.toString('base64'));
+console.log('복호문:', decrypt(encrypted, key));
 ```
 
-`doFinal()`에서 인증 태그 검증에 실패하면 `AEADBadTagException`이 발생한다. 이 예외를 잡아서 "복호화 실패"로 처리해야 한다. 구체적인 오류 원인을 클라이언트에 노출하면 안 된다 (Padding Oracle Attack 참고).
+`decipher.final()`에서 인증 태그 검증에 실패하면 예외가 발생한다. 이 예외를 잡아서 "복호화 실패"로 처리해야 한다. 구체적인 오류 원인을 클라이언트에 노출하면 안 된다 (Padding Oracle Attack 참고).
 
 ### AES-128로 키 생성
 
-위 예제의 `generateKey()`는 256비트 키를 만든다. 128비트로 바꾸려면 `KeyGenerator.init()`에 넘기는 값만 128로 바꾸면 된다. 암복호화 코드(`AES/GCM/NoPadding` 등)는 그대로 둔다. 블록 크기가 키 길이와 무관하게 128비트라 손댈 데가 없다.
+위 예제의 `generateKey()`는 256비트 키를 만든다. 128비트로 바꾸려면 `randomBytes(16)`과 알고리즘 문자열(`aes-128-gcm`)만 바꾸면 된다.
 
-```java
-public static SecretKey generateKey128() throws Exception {
-    KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-    keyGen.init(128); // 128비트 = 16바이트 키
-    return keyGen.generateKey();
+```typescript
+function generateKey128(): Buffer {
+  return randomBytes(16); // 16바이트 = 128비트
 }
 ```
 
-외부에서 받은 키 바이트로 `SecretKeySpec`을 만들 때는 길이를 미리 검증한다. AES-128은 16바이트여야 한다. JCE는 128/192/256만 허용하므로 16/24/32 중 아무거나 통과한다. 128을 강제하려면 길이 검증을 직접 넣는다.
+외부에서 받은 키 바이트를 사용할 때는 길이를 미리 검증한다.
 
-```java
-public static SecretKeySpec toKey128(byte[] keyBytes) {
-    if (keyBytes.length != 16) {
-        throw new IllegalArgumentException(
-            "AES-128 키는 16바이트여야 한다. 현재: " + keyBytes.length + "바이트"
-        );
-    }
-    return new SecretKeySpec(keyBytes, "AES");
+```typescript
+function toKey128(keyBytes: Buffer): Buffer {
+  if (keyBytes.length !== 16) {
+    throw new Error(
+      `AES-128 키는 16바이트여야 한다. 현재: ${keyBytes.length}바이트`
+    );
+  }
+  return keyBytes;
 }
 ```
 
-길이가 안 맞는 키로 그냥 진행하면 `cipher.init()`에서 `InvalidKeyException`이 난다. 메시지가 "Invalid AES key length" 정도라 어느 키가 문제인지 추적하기 번거롭다. 위처럼 진입 시점에 16바이트를 검증하면 원인이 바로 드러난다.
+길이가 안 맞는 키로 그냥 진행하면 `createCipheriv`에서 `Invalid key length` 에러가 난다. 위처럼 진입 시점에 16바이트를 검증하면 원인이 바로 드러난다.
 
 ### AES-CBC (레거시 시스템 호환)
 
-```java
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.SecureRandom;
+```typescript
+import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 
-public class AesCbcCrypto {
+function encryptCbc(plaintext: Buffer, key: Buffer): Buffer {
+  const iv = randomBytes(16); // 16바이트 IV
+  const cipher = createCipheriv('aes-256-cbc', key, iv);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  // IV + 암호문을 합쳐서 반환
+  return Buffer.concat([iv, ciphertext]);
+}
 
-    public static byte[] encrypt(byte[] plaintext, byte[] keyBytes) throws Exception {
-        SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
-
-        byte[] iv = new byte[16];
-        new SecureRandom().nextBytes(iv);
-        IvParameterSpec ivSpec = new IvParameterSpec(iv);
-
-        // Java에서 PKCS5Padding이라고 써도 내부적으로 PKCS7 동작
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
-        byte[] ciphertext = cipher.doFinal(plaintext);
-
-        // IV + 암호문을 합쳐서 반환
-        byte[] result = new byte[iv.length + ciphertext.length];
-        System.arraycopy(iv, 0, result, 0, iv.length);
-        System.arraycopy(ciphertext, 0, result, iv.length, ciphertext.length);
-        return result;
-    }
-
-    public static byte[] decrypt(byte[] encrypted, byte[] keyBytes) throws Exception {
-        SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
-
-        byte[] iv = new byte[16];
-        System.arraycopy(encrypted, 0, iv, 0, iv.length);
-
-        byte[] ciphertext = new byte[encrypted.length - iv.length];
-        System.arraycopy(encrypted, iv.length, ciphertext, 0, ciphertext.length);
-
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-        return cipher.doFinal(ciphertext);
-    }
+function decryptCbc(encrypted: Buffer, key: Buffer): Buffer {
+  const iv = encrypted.subarray(0, 16);
+  const ciphertext = encrypted.subarray(16);
+  const decipher = createDecipheriv('aes-256-cbc', key, iv);
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 ```
 
@@ -442,132 +390,88 @@ public class AesCbcCrypto {
 
 사용자가 입력한 패스워드에서 AES 키를 만들어야 하는 경우:
 
-```java
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.SecureRandom;
+```typescript
+import { randomBytes, pbkdf2 } from 'crypto';
+import { promisify } from 'util';
 
-public class PasswordBasedKey {
+const pbkdf2Async = promisify(pbkdf2);
 
-    public static SecretKeySpec deriveKey(String password, byte[] salt) throws Exception {
-        PBEKeySpec spec = new PBEKeySpec(
-            password.toCharArray(),
-            salt,
-            310_000,  // 반복 횟수 — OWASP 2023 권장값
-            256       // 키 길이 (비트)
-        );
+async function deriveKey(password: string, salt: Buffer): Promise<Buffer> {
+  // OWASP 2023 권장값: PBKDF2-HMAC-SHA256, 310,000회 반복
+  return pbkdf2Async(
+    password,
+    salt,
+    310_000,  // 반복 횟수
+    32,       // 키 길이 (바이트, 256비트)
+    'sha256'
+  );
+}
 
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        byte[] keyBytes = factory.generateSecret(spec).getEncoded();
-        spec.clearPassword(); // 메모리에서 패스워드 제거
-
-        return new SecretKeySpec(keyBytes, "AES");
-    }
-
-    public static byte[] generateSalt() {
-        byte[] salt = new byte[16];
-        new SecureRandom().nextBytes(salt);
-        return salt;
-    }
+function generateSalt(): Buffer {
+  return randomBytes(16);
 }
 ```
 
-`PBEKeySpec.clearPassword()`를 반드시 호출한다. GC 전까지 메모리에 패스워드가 남아있으면 힙 덤프 공격에 취약하다.
+Node.js는 GC에 의한 메모리 해제가 언어 수준에서 보장되지 않는다. 패스워드 처리 후 참조를 null로 설정하면 GC 대상이 되지만, 타이밍은 보장되지 않는다. 민감한 환경에서는 `Buffer.alloc`으로 덮어쓰는 방식을 검토한다.
 
-## Spring Boot에서 AES 적용
+## NestJS에서 AES 적용
 
 ### 설정 관리
 
-```yaml
-# application.yml
-encryption:
-  aes:
-    key: ${AES_ENCRYPTION_KEY}  # 환경 변수로 주입
-```
+```typescript
+// encryption.service.ts
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { encrypt, decrypt } from './aes-gcm'; // 위의 encrypt/decrypt 함수
 
-```java
-@Configuration
-@ConfigurationProperties(prefix = "encryption.aes")
-public class EncryptionConfig {
+@Injectable()
+export class EncryptionService {
+  private readonly key: Buffer;
 
-    private String key;
-
-    public SecretKeySpec getSecretKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(key);
-        if (keyBytes.length != 32) {
-            throw new IllegalStateException(
-                "AES 키는 32바이트(256비트)여야 한다. 현재: " + keyBytes.length + "바이트"
-            );
-        }
-        return new SecretKeySpec(keyBytes, "AES");
+  constructor(private readonly config: ConfigService) {
+    const keyBase64 = config.getOrThrow<string>('AES_ENCRYPTION_KEY');
+    const keyBytes = Buffer.from(keyBase64, 'base64');
+    if (keyBytes.length !== 32) {
+      throw new Error(
+        `AES 키는 32바이트(256비트)여야 한다. 현재: ${keyBytes.length}바이트`
+      );
     }
+    this.key = keyBytes;
+  }
 
-    // getter, setter
-    public String getKey() { return key; }
-    public void setKey(String key) { this.key = key; }
-}
-```
-
-### 암복호화 서비스
-
-```java
-@Service
-public class EncryptionService {
-
-    private final SecretKeySpec secretKey;
-
-    public EncryptionService(EncryptionConfig config) {
-        this.secretKey = config.getSecretKey();
+  encryptText(plaintext: string): string {
+    try {
+      const encrypted = encrypt(plaintext, this.key);
+      return encrypted.toString('base64');
+    } catch (e) {
+      throw new Error('암호화 실패');
     }
+  }
 
-    public String encrypt(String plaintext) {
-        try {
-            byte[] encrypted = AesGcmCrypto.encrypt(
-                plaintext.getBytes(StandardCharsets.UTF_8), secretKey
-            );
-            return Base64.getEncoder().encodeToString(encrypted);
-        } catch (Exception e) {
-            throw new EncryptionException("암호화 실패", e);
-        }
+  decryptText(encryptedBase64: string): string {
+    try {
+      const data = Buffer.from(encryptedBase64, 'base64');
+      return decrypt(data, this.key);
+    } catch {
+      // 인증 실패 포함 — 원인을 구체적으로 노출하지 않는다
+      throw new Error('복호화 실패');
     }
-
-    public String decrypt(String encryptedBase64) {
-        try {
-            byte[] encrypted = Base64.getDecoder().decode(encryptedBase64);
-            byte[] decrypted = AesGcmCrypto.decrypt(encrypted, secretKey);
-            return new String(decrypted, StandardCharsets.UTF_8);
-        } catch (AEADBadTagException e) {
-            // 인증 실패 — 원인을 구체적으로 노출하지 않는다
-            throw new EncryptionException("복호화 실패");
-        } catch (Exception e) {
-            throw new EncryptionException("복호화 실패", e);
-        }
-    }
+  }
 }
 ```
 
 ### 주의사항
 
-**Cipher 인스턴스 재사용 금지**
+**암호화 함수 재사용 안전성**
 
-`Cipher` 객체는 스레드 안전하지 않다. `@Service`에서 필드로 `Cipher`를 잡아두고 여러 요청에서 재사용하면 데이터가 꼬인다.
+Node.js의 `createCipheriv`/`createDecipheriv`는 호출할 때마다 새 인스턴스를 반환하므로 상태 공유 문제가 없다. 단, 같은 (key, nonce) 쌍을 절대 재사용하면 안 된다.
 
-```java
-// 잘못된 예 — 멀티스레드 환경에서 문제 발생
-@Service
-public class BadEncryptionService {
-    private final Cipher cipher; // 필드로 보관하면 안 됨
-
-    public BadEncryptionService() throws Exception {
-        this.cipher = Cipher.getInstance("AES/GCM/NoPadding");
-    }
-}
-
-// 올바른 예 — 매번 새로 생성
-public byte[] encrypt(byte[] data) throws Exception {
-    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-    // ...
+```typescript
+// 올바른 예 — 매 호출마다 새 nonce 생성
+function encryptSafe(plaintext: string, key: Buffer): Buffer {
+  const nonce = randomBytes(12); // 항상 새 nonce
+  const cipher = createCipheriv('aes-256-gcm', key, nonce);
+  // ...
 }
 ```
 
@@ -575,68 +479,61 @@ public byte[] encrypt(byte[] data) throws Exception {
 
 운영 환경에서 암호화 키를 교체해야 하는 상황이 온다. 키 버전을 암호문 앞에 붙여두면 교체가 수월하다.
 
-```java
-// 암호문 형식: [키버전 1바이트][nonce 12바이트][암호문+태그]
-public byte[] encryptWithVersion(byte[] plaintext, int keyVersion) throws Exception {
-    SecretKey key = getKeyByVersion(keyVersion);
-    byte[] encrypted = AesGcmCrypto.encrypt(plaintext, key);
-
-    byte[] result = new byte[1 + encrypted.length];
-    result[0] = (byte) keyVersion;
-    System.arraycopy(encrypted, 0, result, 1, encrypted.length);
-    return result;
+```typescript
+// 암호문 형식: [키버전 1바이트][nonce 12바이트][authTag 16바이트][암호문]
+function encryptWithVersion(plaintext: string, keyVersion: number, key: Buffer): Buffer {
+  const encrypted = encrypt(plaintext, key);
+  const result = Buffer.alloc(1 + encrypted.length);
+  result[0] = keyVersion;
+  encrypted.copy(result, 1);
+  return result;
 }
 
-public byte[] decryptWithVersion(byte[] data) throws Exception {
-    int keyVersion = data[0] & 0xFF;
-    byte[] encrypted = new byte[data.length - 1];
-    System.arraycopy(data, 1, encrypted, 0, encrypted.length);
-
-    SecretKey key = getKeyByVersion(keyVersion);
-    return AesGcmCrypto.decrypt(encrypted, key);
+function decryptWithVersion(data: Buffer, getKeyByVersion: (v: number) => Buffer): string {
+  const keyVersion = data[0];
+  const encrypted = data.subarray(1);
+  const key = getKeyByVersion(keyVersion);
+  return decrypt(encrypted, key);
 }
 ```
 
-**JPA AttributeConverter 적용**
+**TypeORM Subscriber를 이용한 컬럼 암호화**
 
-DB 컬럼 단위로 암호화할 때 `AttributeConverter`를 쓸 수 있다.
+TypeORM에서 컬럼 단위로 암호화할 때 EntitySubscriber를 활용한다.
 
-```java
-@Converter
-public class EncryptedStringConverter implements AttributeConverter<String, String> {
+```typescript
+import { EntitySubscriberInterface, EventSubscriber, InsertEvent, LoadEvent } from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { EncryptionService } from './encryption.service';
+import { User } from './user.entity';
 
-    // ApplicationContext에서 가져오거나 직접 주입
-    // JPA Converter는 Spring Bean 주입이 까다로움 — 아래 참고
-    private final EncryptionService encryptionService;
+@Injectable()
+@EventSubscriber()
+export class UserSubscriber implements EntitySubscriberInterface<User> {
+  constructor(
+    @InjectDataSource() readonly dataSource: DataSource,
+    private readonly encryptionService: EncryptionService,
+  ) {
+    dataSource.subscribers.push(this);
+  }
 
-    public EncryptedStringConverter() {
-        this.encryptionService = ApplicationContextHolder.getBean(EncryptionService.class);
+  listenTo() { return User; }
+
+  beforeInsert(event: InsertEvent<User>) {
+    if (event.entity.phoneNumber) {
+      event.entity.phoneNumber = this.encryptionService.encryptText(event.entity.phoneNumber);
     }
+  }
 
-    @Override
-    public String convertToDatabaseColumn(String attribute) {
-        if (attribute == null) return null;
-        return encryptionService.encrypt(attribute);
+  afterLoad(entity: User) {
+    if (entity.phoneNumber) {
+      entity.phoneNumber = this.encryptionService.decryptText(entity.phoneNumber);
     }
-
-    @Override
-    public String convertToEntityAttribute(String dbData) {
-        if (dbData == null) return null;
-        return encryptionService.decrypt(dbData);
-    }
+  }
 }
 ```
-
-```java
-@Entity
-public class User {
-    @Convert(converter = EncryptedStringConverter.class)
-    @Column(length = 512) // 암호문은 원문보다 길다 — 컬럼 크기 넉넉히
-    private String phoneNumber;
-}
-```
-
-JPA `@Converter`에는 Spring의 `@Autowired`가 기본적으로 동작하지 않는다. `ApplicationContextAware`를 구현한 유틸 클래스를 만들어서 빈을 가져오거나, Hibernate 5.3+ `@Converter(autoApply = false)`와 Spring의 `SpringBeanContainer`를 설정해야 한다.
 
 암호화된 컬럼은 DB에서 `LIKE` 검색이 안 된다. 검색이 필요한 필드는 별도 해시 컬럼을 만들어 인덱싱하는 방식을 쓴다.
 
@@ -664,23 +561,25 @@ CBC 모드에서 발생하는 공격이다. 서버가 패딩 오류와 다른 �
 1. GCM 모드를 사용한다 — 인증 태그가 먼저 검증되므로 패딩 단계까지 가지 않는다
 2. CBC를 써야 하는 경우, 복호화 실패 시 원인과 무관하게 동일한 오류를 반환한다
 
-```java
-// 잘못된 예 — 패딩 오류를 구분해서 응답
+```typescript
+// 잘못된 예 — 예외 메시지에 따라 다른 응답을 주면 오라클이 생긴다
 try {
-    return cipher.doFinal(ciphertext);
-} catch (BadPaddingException e) {
-    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 패딩");
-} catch (Exception e) {
-    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류");
+  return decrypt(ciphertext, key);
+} catch (e: any) {
+  if (e.message.includes('Unsupported state')) {
+    res.status(400).json({ error: '잘못된 패딩' }); // 차이 노출 → 취약
+  } else {
+    res.status(500).json({ error: '서버 오류' });
+  }
 }
 
 // 올바른 예 — 모든 복호화 실패를 동일하게 처리
 try {
-    return cipher.doFinal(ciphertext);
-} catch (Exception e) {
-    // 로그에만 상세 원인 기록
-    log.warn("복호화 실패: {}", e.getMessage());
-    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "복호화 실패");
+  return decrypt(ciphertext, key);
+} catch (e) {
+  // 로그에만 상세 원인 기록
+  console.warn('복호화 실패:', (e as Error).message);
+  res.status(400).json({ error: '복호화 실패' }); // 단일 메시지
 }
 ```
 
@@ -694,12 +593,12 @@ try {
 
 서버와 클라이언트 간에 Base64 변형이 다른 경우가 있다. 표준 Base64와 URL-safe Base64(`+/` → `-_`)가 섞이면 복호화가 실패한다.
 
-```java
+```typescript
 // 표준 Base64
-Base64.getEncoder().encodeToString(data);
+data.toString('base64');
 
-// URL-safe Base64
-Base64.getUrlEncoder().withoutPadding().encodeToString(data);
+// URL-safe Base64 (+ → -, / → _, 패딩 제거)
+data.toString('base64url');
 
 // 어느 쪽인지 API 문서에 명시하고, 양쪽이 같은 방식을 써야 한다
 ```

@@ -168,39 +168,18 @@ SHA-2와의 차이점:
 
 ### 데이터 무결성 검증
 
-```java
-import java.security.MessageDigest;
-import java.nio.charset.StandardCharsets;
+```typescript
+import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
 
-public class HashUtil {
-
-    public static String sha256(String data) {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
-
-        // 바이트 배열 → 16진수 문자열
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : hash) {
-            hexString.append(String.format("%02x", b));
-        }
-        return hexString.toString();
-    }
-}
-```
-
-```javascript
-// Node.js
-const crypto = require('crypto');
-
-function sha256(data) {
-    return crypto.createHash('sha256').update(data, 'utf8').digest('hex');
+function sha256(data: string): string {
+  return createHash('sha256').update(data, 'utf8').digest('hex');
 }
 
 // 파일 무결성 검증
-const fs = require('fs');
-function fileHash(filePath) {
-    const data = fs.readFileSync(filePath);
-    return crypto.createHash('sha256').update(data).digest('hex');
+function fileHash(filePath: string): string {
+  const data = readFileSync(filePath);
+  return createHash('sha256').update(data).digest('hex');
 }
 ```
 
@@ -245,38 +224,23 @@ HMAC-SHA-256:  hash(key ⊕ opad || hash(key ⊕ ipad || message))  → 무결�
 
 외부 서비스(GitHub, Stripe, Slack 등)에서 Webhook을 보낼 때 HMAC 서명을 함께 전송한다. 수신 측에서 같은 키로 서명을 재계산하여 요청이 위조되지 않았는지 확인한다.
 
-```java
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
+```typescript
+import { createHmac, timingSafeEqual } from 'crypto';
 
-public class WebhookVerifier {
+function hmacSha256(data: string, secret: string): string {
+  return createHmac('sha256', secret).update(data, 'utf8').digest('hex');
+}
 
-    /**
-     * GitHub Webhook 서명 검증 예시
-     * GitHub은 X-Hub-Signature-256 헤더에 sha256=... 형식으로 서명을 보낸다
-     */
-    public static boolean verifyGitHubWebhook(String payload, String signature, String secret) {
-        String computed = "sha256=" + hmacSha256(payload, secret);
-        // 타이밍 공격 방지를 위해 MessageDigest.isEqual 사용
-        return MessageDigest.isEqual(
-            computed.getBytes(StandardCharsets.UTF_8),
-            signature.getBytes(StandardCharsets.UTF_8)
-        );
-    }
-
-    public static String hmacSha256(String data, String secret) {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(
-            secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"
-        ));
-        byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        StringBuilder sb = new StringBuilder();
-        for (byte b : hash) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
+/**
+ * GitHub Webhook 서명 검증 예시
+ * GitHub은 X-Hub-Signature-256 헤더에 sha256=... 형식으로 서명을 보낸다
+ */
+function verifyGitHubWebhook(payload: string, signature: string, secret: string): boolean {
+  const computed = `sha256=${hmacSha256(payload, secret)}`;
+  // 타이밍 공격 방지를 위해 timingSafeEqual 사용
+  const a = Buffer.from(computed, 'utf8');
+  const b = Buffer.from(signature, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 ```
 
@@ -319,15 +283,16 @@ function verifyStripeWebhook(payload, sigHeader, secret) {
 
 ### 원인 1: 문자 인코딩 차이
 
-```java
-// 이렇게 하면 시스템 기본 인코딩을 사용한다 (환경마다 다를 수 있다)
-byte[] bytes = "안녕".getBytes();  // 위험
+```typescript
+// Node.js는 기본 인코딩이 UTF-8이지만, Buffer 변환 시 명시하는 것이 안전하다
+const bytes = Buffer.from('안녕');                // 기본 UTF-8
+const bytes2 = Buffer.from('안녕', 'utf8');       // 명시적 UTF-8 (권장)
 
-// UTF-8을 명시해야 한다
-byte[] bytes = "안녕".getBytes(StandardCharsets.UTF_8);  // 안전
+// 해시 계산 시에도 인코딩 명시
+createHash('sha256').update('안녕', 'utf8').digest('hex');
 ```
 
-로컬 개발 환경은 UTF-8인데, 운영 서버가 EUC-KR이나 ISO-8859-1이면 같은 문자열이라도 바이트 배열이 달라진다. **인코딩은 반드시 명시한다.**
+Node.js는 기본적으로 UTF-8을 사용하지만, 외부 데이터를 다룰 때는 인코딩을 명시하는 습관이 좋다. **인코딩은 반드시 명시한다.**
 
 ### 원인 2: 개행 문자 차이 (CRLF vs LF)
 
@@ -383,15 +348,24 @@ echo -n "test" | xxd
 | **Argon2** | 비밀번호 해싱 | 의도적으로 느림 + 메모리 사용 | 최신 권장 |
 | **PBKDF2** | 비밀번호 해싱 | 반복으로 느리게 | FIPS 호환 필요 시 |
 
-```java
+```typescript
+import { createHash } from 'crypto';
+import bcrypt from 'bcrypt';
+import argon2 from 'argon2';
+
 // SHA로 비밀번호를 저장하면 안 된다
-String hashed = sha256(password);  // brute force에 취약
+const hashed = createHash('sha256').update(password).digest('hex'); // brute force에 취약
 
-// BCrypt 사용 (Spring Security)
-String hashed = new BCryptPasswordEncoder().encode(password);
+// BCrypt 사용 (권장)
+const hashed2 = await bcrypt.hash(password, 12); // saltRounds = 12
 
-// Argon2 사용
-String hashed = new Argon2PasswordEncoder(16, 32, 1, 65536, 3).encode(password);
+// Argon2 사용 (최신 권장)
+const hashed3 = await argon2.hash(password, {
+  type: argon2.argon2id,
+  memoryCost: 65536,
+  timeCost: 3,
+  parallelism: 1,
+});
 ```
 
 ---

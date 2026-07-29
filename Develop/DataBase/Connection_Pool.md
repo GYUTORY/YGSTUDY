@@ -227,16 +227,16 @@ JDBC 드라이버는 `PreparedStatement` 객체를 캐시한다. PostgreSQL JDBC
 
 문제는 동적 쿼리. 다음 코드를 보자.
 
-```java
+```typescript
 // 안 좋은 패턴
-String sql = "SELECT * FROM orders WHERE id = " + orderId;
+const sql = `SELECT * FROM orders WHERE id = ${orderId}`;
 ```
 
 이건 SQL injection이라 누구도 안 쓰지만, 다음은 흔하다.
 
-```java
+```typescript
 // 컬럼 동적 조립
-String sql = "SELECT * FROM orders WHERE " + col + " = ?";
+const sql = `SELECT * FROM orders WHERE ${col} = $1`;
 ```
 
 `col`이 50개 있으면 SQL 50종이 만들어지고, 각각이 prepared statement로 캐시된다. 커넥션 하나가 50개를 들고 있고 풀에 20개 커넥션이 있으면 1000개가 RDBMS 메모리에 산다. 더 큰 문제는 ORM이 자동 생성하는 SQL이다. 동적 WHERE 절이 많은 쿼리(MyBatis dynamic SQL, JPA Criteria)는 SQL 시그니처가 천 단위로 늘어난다.
@@ -347,12 +347,14 @@ App 풀은 인스턴스 안에서 발생하는 동시성에 맞춰 잡고, PgBou
 
 원인: 새로 추가된 외부 결제 API 호출이 트랜잭션 안에 들어가 있었다.
 
-```java
-@Transactional
-public void processOrder(Order order) {
-    orderRepository.save(order);
-    paymentClient.charge(order); // 5~30초 걸림, 트랜잭션 점유
-    notificationService.send(order);
+```typescript
+// TypeORM 트랜잭션 내 외부 API 호출 — 안티패턴
+async processOrder(order: Order): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+        await manager.save(Order, order);
+        await this.paymentClient.charge(order); // 5~30초 걸림, 트랜잭션 점유
+        await this.notificationService.send(order);
+    });
 }
 ```
 
@@ -376,9 +378,10 @@ public void processOrder(Order order) {
 
 해결:
 
-```java
-// 애플리케이션 시작 시
-java.security.Security.setProperty("networkaddress.cache.ttl", "60");
+```typescript
+// Node.js에서는 JVM DNS 캐시 문제가 없으나, 드라이버 수준에서 DNS TTL 제어 가능
+// pg 라이브러리는 OS DNS 캐시를 따름 — /etc/resolv.conf의 options timeout 등 조정
+// 또는 연결 옵션에서 직접 IP 지정하거나 connection string에 TTL이 짧은 DNS를 사용
 ```
 
 또는 JVM 옵션 `-Dsun.net.inetaddr.ttl=60`. AWS SDK는 자체 DNS resolution을 쓰지만 JDBC 드라이버는 JVM DNS 캐시에 의존한다. RDS 사용 시 필수 설정이다. RDS Proxy를 쓰면 이 문제가 사라지는 게 도입 이유 중 하나다.

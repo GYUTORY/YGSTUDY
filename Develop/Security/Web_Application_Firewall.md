@@ -272,11 +272,14 @@ SQL 주석과 공백 변형. `UNION SELECT` 대신 `UNION/**/SELECT`, `UNION%0aS
 
 SQL Injection을 예로 들면, 진짜 방어는 Prepared Statement(파라미터 바인딩)다. 쿼리 구조와 데이터를 분리하면 사용자 입력이 무슨 문자든 SQL 문법으로 해석되지 않는다. WAF가 `' OR 1=1`을 못 잡아도 Prepared Statement를 쓰면 공격이 성립하지 않는다.
 
-```java
-// WAF가 뚫려도 이건 안전하다 - 구조와 데이터 분리
-String sql = "SELECT * FROM users WHERE email = ?";
-PreparedStatement ps = conn.prepareStatement(sql);
-ps.setString(1, userEmail);  // userEmail이 무슨 값이든 데이터로만 취급
+```typescript
+// WAF가 뚫려도 이건 안전하다 - 구조와 데이터 분리 (mysql2 예시)
+import mysql from 'mysql2/promise';
+
+const [rows] = await conn.execute(
+  'SELECT * FROM users WHERE email = ?',
+  [userEmail],  // userEmail이 무슨 값이든 데이터로만 취급
+);
 ```
 
 XSS도 마찬가지다. 출력 시 컨텍스트에 맞는 이스케이프(HTML, JS, URL)와 CSP(Content Security Policy)가 본진 방어다. WAF는 명백한 `<script>` 페이로드를 걸러주지만 그게 전부다.

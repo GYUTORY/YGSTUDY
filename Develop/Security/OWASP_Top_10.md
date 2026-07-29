@@ -22,25 +22,25 @@ OWASP Top 10은 웹 애플리케이션에서 가장 빈번하게 발생하는 �
 
 URL이나 파라미터에 있는 ID 값을 바꿔서 다른 사용자의 리소스에 접근하는 공격이다. 가장 흔하고, 가장 놓치기 쉽다.
 
-```java
-// 취약한 코드 - 주문 조회 API
-@GetMapping("/orders/{orderId}")
-public Order getOrder(@PathVariable Long orderId) {
-    // orderId만 검증하고, 이 주문이 현재 사용자의 것인지 확인하지 않는다
-    return orderRepository.findById(orderId)
-            .orElseThrow(() -> new NotFoundException("Order not found"));
+```typescript
+// 취약한 코드 — 주문 조회 API
+@Get('orders/:orderId')
+@UseGuards(JwtAuthGuard)
+async getOrder(@Param('orderId') orderId: string) {
+  // orderId만 검증하고, 이 주문이 현재 사용자의 것인지 확인하지 않는다
+  const order = await this.orderRepository.findById(orderId);
+  if (!order) throw new NotFoundException('Order not found');
+  return order;
 }
 
 // 수정된 코드
-@GetMapping("/orders/{orderId}")
-public Order getOrder(@PathVariable Long orderId, @AuthenticationPrincipal User user) {
-    Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new NotFoundException("Order not found"));
-
-    if (!order.getUserId().equals(user.getId())) {
-        throw new ForbiddenException("Access denied");
-    }
-    return order;
+@Get('orders/:orderId')
+@UseGuards(JwtAuthGuard)
+async getOrder(@Param('orderId') orderId: string, @CurrentUser() user: UserPrincipal) {
+  const order = await this.orderRepository.findById(orderId);
+  if (!order) throw new NotFoundException('Order not found');
+  if (order.userId !== user.id) throw new ForbiddenException('Access denied');
+  return order;
 }
 ```
 
@@ -50,20 +50,21 @@ public Order getOrder(@PathVariable Long orderId, @AuthenticationPrincipal User 
 
 수평적 권한 상승은 같은 권한 레벨의 다른 사용자 데이터에 접근하는 것이고, 수직적 권한 상승은 관리자 같은 상위 권한을 획득하는 것이다.
 
-```java
-// 수직적 권한 상승 - 취약한 관리자 엔드포인트
-@PostMapping("/admin/users/{userId}/role")
-public void changeRole(@PathVariable Long userId, @RequestBody RoleRequest request) {
-    // @PreAuthorize 같은 권한 검증이 없다
-    // 일반 사용자가 이 URL을 알면 바로 호출 가능
-    userService.changeRole(userId, request.getRole());
+```typescript
+// 수직적 권한 상승 — 취약한 관리자 엔드포인트
+@Post('admin/users/:userId/role')
+@UseGuards(JwtAuthGuard)
+async changeRole(@Param('userId') userId: string, @Body() dto: RoleRequest) {
+  // 권한 검증이 없다. 일반 사용자가 이 URL을 알면 바로 호출 가능
+  await this.userService.changeRole(userId, dto.role);
 }
 
 // 수정된 코드
-@PreAuthorize("hasRole('ADMIN')")
-@PostMapping("/admin/users/{userId}/role")
-public void changeRole(@PathVariable Long userId, @RequestBody RoleRequest request) {
-    userService.changeRole(userId, request.getRole());
+@Post('admin/users/:userId/role')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
+async changeRole(@Param('userId') userId: string, @Body() dto: RoleRequest) {
+  await this.userService.changeRole(userId, dto.role);
 }
 ```
 
@@ -73,30 +74,31 @@ URL 패턴으로 `/admin/**` 전체에 권한을 거는 방식은 새 엔드포�
 
 파일 다운로드 기능에서 경로를 조작해 시스템 파일에 접근하는 공격이다.
 
-```java
+```typescript
+import * as path from 'path';
+import * as fs from 'fs';
+
 // 취약한 파일 다운로드
-@GetMapping("/download")
-public ResponseEntity<Resource> download(@RequestParam String filename) {
-    // ../../../etc/passwd 같은 입력이 들어올 수 있다
-    Path filePath = Paths.get("/uploads/" + filename);
-    Resource resource = new FileSystemResource(filePath.toFile());
-    return ResponseEntity.ok().body(resource);
-}
+app.get('/download', (req, res) => {
+  const filename = req.query.filename as string;
+  // ../../../etc/passwd 같은 입력이 들어올 수 있다
+  const filePath = path.join('/uploads', filename);
+  res.sendFile(filePath);
+});
 
 // 수정된 코드
-@GetMapping("/download")
-public ResponseEntity<Resource> download(@RequestParam String filename) {
-    Path basePath = Paths.get("/uploads").toAbsolutePath().normalize();
-    Path filePath = basePath.resolve(filename).normalize();
+app.get('/download', (req, res) => {
+  const filename = req.query.filename as string;
+  const basePath = path.resolve('/uploads');
+  const filePath = path.resolve(basePath, filename);
 
-    // 기준 디렉토리를 벗어나는지 검증
-    if (!filePath.startsWith(basePath)) {
-        throw new BadRequestException("Invalid file path");
-    }
+  // 기준 디렉토리를 벗어나는지 검증
+  if (!filePath.startsWith(basePath + path.sep)) {
+    return res.status(400).json({ error: 'Invalid file path' });
+  }
 
-    Resource resource = new FileSystemResource(filePath.toFile());
-    return ResponseEntity.ok().body(resource);
-}
+  res.sendFile(filePath);
+});
 ```
 
 `normalize()`를 반드시 호출해야 한다. `../` 같은 상대 경로를 정규화하지 않으면 `startsWith` 검증을 우회할 수 있다.
@@ -116,12 +118,15 @@ public ResponseEntity<Resource> download(@RequestParam String filename) {
 
 ### 흔히 발생하는 실수
 
-```java
-// 1. MD5나 SHA-1으로 비밀번호 해싱 - 절대 하면 안 된다
-String hashedPassword = DigestUtils.md5Hex(password); // 취약
+```typescript
+import { createHash } from 'crypto';
+import * as bcrypt from 'bcrypt';
 
-// bcrypt나 argon2를 사용해야 한다
-String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt(12));
+// 1. MD5나 SHA-1으로 비밀번호 해싱 — 절대 하면 안 된다
+const hashedPassword = createHash('md5').update(password).digest('hex'); // 취약
+
+// bcrypt를 사용해야 한다
+const hashedPassword2 = await bcrypt.hash(password, 12); // saltRounds=12
 ```
 
 ```yaml
@@ -136,10 +141,11 @@ spring:
     password: ${DB_PASSWORD}
 ```
 
-```java
+```typescript
 // 3. HTTP로 민감 데이터 전송
 // 내부 서비스 간 통신이라도 mTLS를 적용하는 것이 맞다
 // 특히 쿠버네티스 클러스터 내부 트래픽도 암호화해야 한다
+// Node.js에서 mTLS: https.createServer({ key, cert, ca, requestCert: true })
 ```
 
 ### 주의할 점
@@ -165,31 +171,35 @@ SQL Injection과 XSS는 별도 문서에서 상세하게 다루고 있으므로 
 
 간과하기 쉬운 영역이다. 파일 변환, 이미지 리사이징 등에서 시스템 명령어를 호출할 때 발생한다.
 
-```java
-// 취약한 코드 - 이미지 리사이징
-@PostMapping("/resize")
-public void resizeImage(@RequestParam String filename, @RequestParam int width) {
-    // filename에 "; rm -rf /" 같은 입력이 들어올 수 있다
-    Runtime.getRuntime().exec("convert " + filename + " -resize " + width + " output.jpg");
-}
+```typescript
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 
-// 수정된 코드 - ProcessBuilder로 인자를 분리
-@PostMapping("/resize")
-public void resizeImage(@RequestParam String filename, @RequestParam int width) {
-    // 파일명 검증
-    if (!filename.matches("[a-zA-Z0-9._-]+")) {
-        throw new BadRequestException("Invalid filename");
-    }
+const execFileAsync = promisify(execFile);
 
-    ProcessBuilder pb = new ProcessBuilder(
-        "convert", filename, "-resize", String.valueOf(width), "output.jpg"
-    );
-    pb.directory(new File("/uploads"));
-    pb.start();
-}
+// 취약한 코드 — 이미지 리사이징
+app.post('/resize', async (req, res) => {
+  const { filename, width } = req.body;
+  // filename에 "; rm -rf /" 같은 입력이 들어올 수 있다
+  const { exec } = require('child_process');
+  exec(`convert ${filename} -resize ${width} output.jpg`); // 위험
+});
+
+// 수정된 코드 — execFile로 인자를 분리 (쉘 인터프리터를 거치지 않는다)
+app.post('/resize', async (req, res) => {
+  const { filename, width } = req.body;
+  // 파일명 검증
+  if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
+    return res.status(400).json({ error: 'Invalid filename' });
+  }
+  await execFileAsync('convert', [filename, '-resize', String(width), 'output.jpg'], {
+    cwd: '/uploads',
+  });
+  res.json({ ok: true });
+});
 ```
 
-가능하면 시스템 명령어를 호출하지 않고 라이브러리를 사용한다. Java의 경우 ImageIO나 Thumbnailator 같은 라이브러리로 대체할 수 있다.
+가능하면 시스템 명령어를 호출하지 않고 라이브러리를 사용한다. Node.js의 경우 `sharp` 라이브러리로 이미지 리사이징을 대체할 수 있다.
 
 ---
 
@@ -199,42 +209,43 @@ public void resizeImage(@RequestParam String filename, @RequestParam int width) 
 
 ### 비즈니스 로직 결함
 
-```java
-// 할인 쿠폰 중복 적용 - 설계 단계에서 막아야 하는 문제
-@PostMapping("/orders")
-public Order createOrder(@RequestBody OrderRequest request) {
-    double totalDiscount = 0;
-    for (String couponCode : request.getCouponCodes()) {
-        Coupon coupon = couponService.validate(couponCode);
-        totalDiscount += coupon.getDiscountRate();
-    }
-    // totalDiscount가 100%를 넘을 수 있다
-    double finalPrice = request.getTotalPrice() * (1 - totalDiscount);
-    // finalPrice가 음수가 될 수 있다 → 환불 공격
-    return orderService.create(request, finalPrice);
-}
+```typescript
+// 할인 쿠폰 중복 적용 — 설계 단계에서 막아야 하는 문제
+app.post('/orders', async (req, res) => {
+  const { couponCodes, totalPrice } = req.body;
+  let totalDiscount = 0;
+  for (const code of couponCodes) {
+    const coupon = await couponService.validate(code);
+    totalDiscount += coupon.discountRate;
+  }
+  // totalDiscount가 100%를 넘을 수 있다
+  const finalPrice = totalPrice * (1 - totalDiscount);
+  // finalPrice가 음수가 될 수 있다 → 환불 공격
+  return orderService.create(req.body, finalPrice);
+});
 
 // 수정된 코드
-@PostMapping("/orders")
-public Order createOrder(@RequestBody OrderRequest request) {
-    double totalDiscount = 0;
-    Set<String> usedCouponTypes = new HashSet<>();
+app.post('/orders', async (req, res) => {
+  const { couponCodes, totalPrice } = req.body;
+  let totalDiscount = 0;
+  const usedCouponTypes = new Set<string>();
 
-    for (String couponCode : request.getCouponCodes()) {
-        Coupon coupon = couponService.validate(couponCode);
+  for (const code of couponCodes) {
+    const coupon = await couponService.validate(code);
 
-        // 같은 타입의 쿠폰 중복 적용 차단
-        if (!usedCouponTypes.add(coupon.getType())) {
-            throw new BadRequestException("Same type coupon already applied");
-        }
-        totalDiscount += coupon.getDiscountRate();
+    // 같은 타입의 쿠폰 중복 적용 차단
+    if (usedCouponTypes.has(coupon.type)) {
+      throw new BadRequestException('Same type coupon already applied');
     }
+    usedCouponTypes.add(coupon.type);
+    totalDiscount += coupon.discountRate;
+  }
 
-    // 최대 할인율 제한
-    totalDiscount = Math.min(totalDiscount, 0.8); // 최대 80%
-    double finalPrice = Math.max(request.getTotalPrice() * (1 - totalDiscount), 0);
-    return orderService.create(request, finalPrice);
-}
+  // 최대 할인율 제한
+  totalDiscount = Math.min(totalDiscount, 0.8); // 최대 80%
+  const finalPrice = Math.max(totalPrice * (1 - totalDiscount), 0);
+  return orderService.create(req.body, finalPrice);
+});
 ```
 
 ### 위협 모델링
@@ -248,26 +259,29 @@ public Order createOrder(@RequestBody OrderRequest request) {
 3. **파라미터를 변조하면?** - 클라이언트가 보내는 가격 정보를 서버에서 그대로 사용하면 안 된다. 서버에서 가격을 다시 조회한다
 4. **동시에 호출하면?** - 포인트 차감, 재고 감소 같은 로직에서 Race Condition이 발생할 수 있다
 
-```java
-// Race Condition 예시 - 포인트 중복 사용
+```typescript
+// Race Condition 예시 — 포인트 중복 사용
 // 동시에 두 요청이 들어오면 잔액 확인 후 차감까지 사이에 다른 요청이 끼어든다
-@Transactional
-public void usePoints(Long userId, int amount) {
-    User user = userRepository.findById(userId).get();
-    if (user.getPoints() >= amount) {
-        user.setPoints(user.getPoints() - amount);  // Lost Update 발생 가능
-        userRepository.save(user);
-    }
+async function usePoints(userId: number, amount: number) {
+  const user = await userRepository.findById(userId);
+  if (user.points >= amount) {
+    user.points -= amount; // Lost Update 발생 가능
+    await userRepository.save(user);
+  }
 }
 
-// 비관적 락 적용
-@Transactional
-public void usePoints(Long userId, int amount) {
-    User user = userRepository.findByIdForUpdate(userId); // SELECT ... FOR UPDATE
-    if (user.getPoints() >= amount) {
-        user.setPoints(user.getPoints() - amount);
-        userRepository.save(user);
-    }
+// 비관적 락 적용 (TypeORM)
+async function usePointsSafe(userId: number, amount: number) {
+  await dataSource.transaction(async (manager) => {
+    // SELECT ... FOR UPDATE로 행 잠금
+    const user = await manager.findOne(User, {
+      where: { id: userId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!user || user.points < amount) throw new BadRequestException('포인트 부족');
+    user.points -= amount;
+    await manager.save(user);
+  });
 }
 ```
 
@@ -309,24 +323,19 @@ autoindex off;
 
 ### 에러 메시지 노출
 
-```java
-// 취약한 에러 처리 - 스택트레이스가 클라이언트에 노출된다
-@ExceptionHandler(Exception.class)
-public ResponseEntity<String> handleError(Exception e) {
-    return ResponseEntity.status(500).body(e.getMessage() + "\n" + 
-        Arrays.toString(e.getStackTrace()));
-}
+```typescript
+// 취약한 에러 처리 — 스택 트레이스가 클라이언트에 노출된다
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  res.status(500).json({ message: err.message, stack: err.stack }); // 위험
+});
 
-// 수정된 코드 - 내부 에러는 로그로만 남기고, 클라이언트에는 일반 메시지만 반환
-@ExceptionHandler(Exception.class)
-public ResponseEntity<ErrorResponse> handleError(Exception e) {
-    String errorId = UUID.randomUUID().toString();
-    log.error("Internal error [{}]", errorId, e);
-
-    return ResponseEntity.status(500)
-            .body(new ErrorResponse("Internal Server Error", errorId));
-    // 클라이언트에게는 에러 ID만 주고, 이 ID로 로그를 추적한다
-}
+// 수정된 코드 — 내부 에러는 로그로만 남기고, 클라이언트에는 일반 메시지만 반환
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  const errorId = randomUUID();
+  logger.error(`Internal error [${errorId}]`, err);
+  // 클라이언트에게는 에러 ID만 주고, 이 ID로 로그를 추적한다
+  res.status(500).json({ code: 'INTERNAL_SERVER_ERROR', errorId });
+});
 ```
 
 ### 불필요한 기능 노출
@@ -336,18 +345,15 @@ public ResponseEntity<ErrorResponse> handleError(Exception e) {
 - 사용하지 않는 HTTP 메서드(TRACE, OPTIONS)가 열려 있으면 XST(Cross-Site Tracing) 공격에 악용될 수 있다
 - 기본 관리자 계정(admin/admin)이 변경되지 않은 채 운영에 배포되는 경우가 있다
 
-```java
-// Spring Security - 불필요한 HTTP 메서드 차단
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers(HttpMethod.TRACE, "/**").denyAll()
-            .requestMatchers(HttpMethod.OPTIONS, "/**").denyAll()
-            // ... 나머지 설정
-        );
-    return http.build();
-}
+```typescript
+// Express — 불필요한 HTTP 메서드 차단
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const blocked = ['TRACE', 'TRACK'];
+  if (blocked.includes(req.method)) {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+  next();
+});
 ```
 
 ---
@@ -425,85 +431,79 @@ dependencyCheck {
 
 ### 세션 관리 실수
 
-```java
-// 세션 고정 공격 방어 - 로그인 성공 시 세션 ID를 재발급한다
-@PostMapping("/login")
-public void login(HttpServletRequest request, @RequestBody LoginRequest loginRequest) {
-    // 인증 처리
-    authService.authenticate(loginRequest);
+```typescript
+import session from 'express-session';
 
-    // 기존 세션을 무효화하고 새 세션을 생성
-    HttpSession oldSession = request.getSession(false);
-    if (oldSession != null) {
-        oldSession.invalidate();
-    }
-    HttpSession newSession = request.getSession(true);
-    newSession.setAttribute("user", loginRequest.getUsername());
-}
+// 세션 고정 공격 방어 — 로그인 성공 시 세션 ID를 재발급한다
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await authService.authenticate(username, password);
+
+  // 기존 세션을 재생성해 세션 ID를 바꾼다 (세션 고정 공격 방어)
+  await new Promise<void>((resolve, reject) => {
+    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+  });
+  req.session.user = user.username;
+  res.json({ ok: true });
+});
 ```
 
-```java
-// Spring Security에서는 세션 고정 방어가 기본으로 켜져 있다
-// 하지만 커스텀 인증 로직을 직접 구현하면 이 보호가 적용되지 않으므로 주의
-http.sessionManagement(session -> session
-    .sessionFixation().changeSessionId()  // 기본값
-    .maximumSessions(1)                   // 동시 세션 수 제한
-    .maxSessionsPreventsLogin(true)       // 초과 시 새 로그인 차단
-);
+```typescript
+// express-session 설정 — 세션 고정 방어는 req.session.regenerate()로 처리한다
+// 동시 세션 수 제한은 Redis store와 조합해 별도 로직으로 구현한다
+import session from 'express-session';
+import RedisStore from 'connect-redis';
+
+app.use(session({
+  store: new RedisStore({ client: redisClient }),
+  secret: process.env.SESSION_SECRET!,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 30 * 60 * 1000 },
+}));
 ```
 
 ### 크리덴셜 스터핑 (Credential Stuffing)
 
 다른 사이트에서 유출된 ID/비밀번호 조합을 대량으로 시도하는 공격이다. 사용자가 여러 사이트에서 같은 비밀번호를 사용하기 때문에 성공률이 높다.
 
-```java
-// 로그인 시도 제한
-@Service
-public class LoginAttemptService {
-    private final LoadingCache<String, Integer> attemptsCache;
+```typescript
+import { createClient } from 'redis';
 
-    public LoginAttemptService() {
-        attemptsCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(30, TimeUnit.MINUTES)
-                .build(new CacheLoader<>() {
-                    @Override
-                    public Integer load(String key) {
-                        return 0;
-                    }
-                });
-    }
+const redis = createClient();
+const MAX_ATTEMPTS = 5;
+const WINDOW_SECONDS = 30 * 60; // 30분
 
-    public void loginFailed(String key) {
-        int attempts = attemptsCache.getUnchecked(key);
-        attemptsCache.put(key, attempts + 1);
-    }
+// Redis 기반 로그인 시도 제한
+async function isBlocked(key: string): Promise<boolean> {
+  const attempts = await redis.get(key);
+  return parseInt(attempts ?? '0', 10) >= MAX_ATTEMPTS;
+}
 
-    public boolean isBlocked(String key) {
-        return attemptsCache.getUnchecked(key) >= 5;
-    }
+async function loginFailed(key: string): Promise<void> {
+  const current = await redis.incr(key);
+  if (current === 1) await redis.expire(key, WINDOW_SECONDS); // 첫 실패 시 TTL 설정
 }
 
 // 로그인 처리에서 사용
-@PostMapping("/login")
-public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-    String clientIp = httpRequest.getRemoteAddr();
-    String key = clientIp + ":" + request.getUsername();
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const clientIp = req.ip;
+  const key = `login_attempt:${clientIp}:${username}`;
 
-    if (loginAttemptService.isBlocked(key)) {
-        return ResponseEntity.status(429)
-                .body("Too many login attempts. Try again later.");
-    }
+  if (await isBlocked(key)) {
+    return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+  }
 
-    try {
-        authService.authenticate(request);
-        return ResponseEntity.ok().build();
-    } catch (AuthenticationException e) {
-        loginAttemptService.loginFailed(key);
-        // 로그인 실패 시 "아이디 또는 비밀번호가 틀렸습니다" 형태로
-        // 어떤 것이 틀렸는지 알려주지 않는다
-        return ResponseEntity.status(401).body("Invalid credentials");
-    }
-}
+  try {
+    await authService.authenticate(username, password);
+    return res.json({ ok: true });
+  } catch {
+    await loginFailed(key);
+    // 어떤 것이 틀렸는지 알려주지 않는다
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
 ```
 
 ### 인증 관련 주의사항
@@ -522,32 +522,30 @@ public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletReq
 
 Java의 `ObjectInputStream`, Python의 `pickle`, PHP의 `unserialize()`로 신뢰할 수 없는 데이터를 역직렬화하면 임의 코드가 실행될 수 있다. 2015년 Apache Commons Collections 취약점이 대표적이다.
 
-```java
-// 취약한 코드 - Java 역직렬화
-@PostMapping("/import")
-public void importData(@RequestBody byte[] data) {
-    ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
-    Object obj = ois.readObject();  // 임의 클래스의 객체가 생성될 수 있다
-    processData(obj);
-}
+```typescript
+// Node.js에서는 이진 직렬화(pickle/ObjectInputStream) 대신
+// JSON 또는 zod로 검증된 구조화된 포맷을 사용한다
+import { z } from 'zod';
 
-// 수정된 코드 - JSON 같은 구조화된 포맷을 사용한다
-@PostMapping("/import")
-public void importData(@RequestBody ImportDataRequest request) {
-    // Jackson이 지정된 타입으로만 역직렬화한다
-    processData(request);
-}
+const ImportDataSchema = z.object({
+  items: z.array(z.object({
+    id: z.string().max(50),
+    value: z.number().min(0),
+  })).max(1000),
+});
+
+// 수정된 코드 — zod 스키마로 타입과 형식을 검증한다
+app.post('/import', async (req, res) => {
+  const result = ImportDataSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.flatten() });
+  }
+  await processData(result.data); // 검증된 타입 데이터만 처리
+  res.json({ ok: true });
+});
 ```
 
-Java 직렬화를 반드시 써야 하는 경우, `ObjectInputFilter`(Java 9+)로 허용할 클래스를 화이트리스트로 제한한다.
-
-```java
-ObjectInputFilter filter = ObjectInputFilter.Config.createFilter(
-    "com.myapp.model.*;!*"  // com.myapp.model 패키지만 허용, 나머지 거부
-);
-ObjectInputStream ois = new ObjectInputStream(inputStream);
-ois.setObjectInputFilter(filter);
-```
+TypeScript/Node.js에서는 이진 역직렬화 취약점 자체가 없다. 외부 입력은 항상 `zod`, `class-validator`, JSON Schema 같은 명시적 검증을 통과시켜야 한다.
 
 ### CI/CD 파이프라인 변조
 
@@ -592,41 +590,44 @@ ois.setObjectInputFilter(filter);
 - 데이터 접근 (민감 데이터 조회, 대량 데이터 다운로드)
 - 설정 변경 (보안 설정, 시스템 설정)
 
-```java
-// 보안 이벤트 로깅 예시
-@Component
-public class SecurityEventLogger {
+```typescript
+import winston from 'winston';
 
-    private static final Logger securityLog = LoggerFactory.getLogger("SECURITY");
+// 보안 이벤트 전용 로거 (Winston)
+const securityLog = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  defaultMeta: { logger: 'SECURITY' },
+  transports: [new winston.transports.File({ filename: 'security.log' })],
+});
 
-    public void logLoginFailure(String username, String ip, String reason) {
-        securityLog.warn("LOGIN_FAILED user={} ip={} reason={}", username, ip, reason);
-    }
-
-    public void logPrivilegeEscalation(String username, String oldRole, String newRole, String changedBy) {
-        securityLog.info("PRIVILEGE_CHANGE user={} from={} to={} by={}", 
-                username, oldRole, newRole, changedBy);
-    }
-
-    public void logSensitiveDataAccess(String username, String resource, int recordCount) {
-        securityLog.info("DATA_ACCESS user={} resource={} records={}", 
-                username, resource, recordCount);
-    }
-}
+export const SecurityEventLogger = {
+  logLoginFailure(username: string, ip: string, reason: string) {
+    securityLog.warn('LOGIN_FAILED', { username, ip, reason });
+  },
+  logPrivilegeEscalation(username: string, oldRole: string, newRole: string, changedBy: string) {
+    securityLog.info('PRIVILEGE_CHANGE', { username, oldRole, newRole, changedBy });
+  },
+  logSensitiveDataAccess(username: string, resource: string, recordCount: number) {
+    securityLog.info('DATA_ACCESS', { username, resource, recordCount });
+  },
+};
 ```
 
 ### 로그 인젝션
 
 로그에 사용자 입력이 그대로 들어가면, 공격자가 가짜 로그 엔트리를 삽입할 수 있다.
 
-```java
-// 취약한 로깅 - 개행 문자로 가짜 로그를 삽입할 수 있다
+```typescript
+// 취약한 로깅 — 개행 문자로 가짜 로그를 삽입할 수 있다
 // 입력값: "admin\n2026-04-07 INFO LOGIN_SUCCESS user=admin"
-log.info("LOGIN_FAILED user=" + username);
+logger.info(`LOGIN_FAILED user=${username}`);
 // 로그에 성공한 것처럼 보이는 가짜 라인이 추가된다
 
-// 수정된 코드 - 파라미터화된 로깅 + 개행 제거
-log.info("LOGIN_FAILED user={}", username.replaceAll("[\\r\\n]", "_"));
+// 수정된 코드 — Winston의 json format + 개행 제거
+const safeUsername = username.replace(/[\r\n]/g, '_');
+logger.info('LOGIN_FAILED', { username: safeUsername });
+// json format은 개행을 자동으로 이스케이프하지만, 명시적으로 처리하는 게 안전하다
 ```
 
 SLF4J의 `{}` 플레이스홀더를 사용하면 로그 인젝션의 일부 형태를 막을 수 있지만, 개행 문자까지 제거하는 것이 확실하다.

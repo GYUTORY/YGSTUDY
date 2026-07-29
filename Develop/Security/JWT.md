@@ -500,84 +500,76 @@ JWS(JSON Web Signature)는 서명만, JWE(JSON Web Encryption)는 암호화까�
 
 OAuth callback에서 fragment(`#`)에 토큰을 받는 경우는 표준이지만, 그 외 상황에서 토큰을 쿼리 파라미터로 보내면 서버 로그, 브라우저 히스토리, Referer 헤더에 남는다. 항상 Authorization 헤더로 보내야 한다.
 
-## Spring Security 검증 예제
+## NestJS 검증 예제
 
-Spring Boot 3 + Spring Security 6 기준이다. JJWT 라이브러리를 사용한다.
+NestJS + `jsonwebtoken` 라이브러리 기준이다.
 
-```kotlin
-@Component
-class JwtAuthFilter(
-    private val tokenService: JwtTokenService
-) : OncePerRequestFilter() {
+```typescript
+import {
+  Injectable, NestMiddleware,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 
-    override fun doFilterInternal(
-        request: HttpServletRequest,
-        response: HttpServletResponse,
-        chain: FilterChain
-    ) {
-        val token = extractToken(request)
-        if (token != null) {
-            try {
-                val claims = tokenService.verify(token)
-                val auth = UsernamePasswordAuthenticationToken(
-                    claims.subject,
-                    null,
-                    claims["roles", List::class.java]
-                        ?.map { SimpleGrantedAuthority("ROLE_$it") }
-                        ?: emptyList()
-                )
-                SecurityContextHolder.getContext().authentication = auth
-            } catch (e: JwtException) {
-                // 검증 실패 - 인증 컨텍스트 비우고 통과
-                // 이후 인증 필요한 엔드포인트에서 401 발생
-                SecurityContextHolder.clearContext()
-            }
-        }
-        chain.doFilter(request, response)
+@Injectable()
+export class JwtAuthMiddleware implements NestMiddleware {
+  constructor(private readonly tokenService: JwtTokenService) {}
+
+  use(req: Request, res: Response, next: NextFunction): void {
+    const token = this.extractToken(req);
+    if (token) {
+      try {
+        const claims = this.tokenService.verify(token);
+        // req.user에 클레임을 붙여 컨트롤러에서 사용
+        (req as any).user = { sub: claims.sub, roles: claims['roles'] ?? [] };
+      } catch {
+        // 검증 실패 - user 없이 통과, 이후 Guard에서 401 발생
+        (req as any).user = null;
+      }
     }
+    next();
+  }
 
-    private fun extractToken(request: HttpServletRequest): String? {
-        val header = request.getHeader("Authorization") ?: return null
-        return if (header.startsWith("Bearer ")) header.substring(7) else null
-    }
+  private extractToken(req: Request): string | null {
+    const header = req.headers.authorization;
+    if (!header?.startsWith('Bearer ')) return null;
+    return header.slice(7);
+  }
 }
 
-@Service
-class JwtTokenService(
-    @Value("\${jwt.secret}") secretBase64: String
-) {
-    private val key: SecretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secretBase64))
+@Injectable()
+export class JwtTokenService {
+  private readonly secret: Secret;
 
-    private val parser: JwtParser = Jwts.parser()
-        .verifyWith(key)
-        .requireIssuer("https://auth.example.com")
-        .requireAudience("api.example.com")
-        .clockSkewSeconds(30)
-        .build()
+  constructor() {
+    const secretBase64 = process.env.JWT_SECRET!;
+    this.secret = Buffer.from(secretBase64, 'base64');
+  }
 
-    fun verify(token: String): Claims {
-        return parser.parseSignedClaims(token).payload
-    }
+  verify(token: string): JwtPayload {
+    return jwt.verify(token, this.secret, {
+      algorithms: ['HS256'],
+      issuer: 'https://auth.example.com',
+      audience: 'api.example.com',
+      clockTolerance: 30,  // 시계 차이 허용 (초)
+    }) as JwtPayload;
+  }
 
-    fun issue(userId: String, roles: List<String>): String {
-        val now = Instant.now()
-        return Jwts.builder()
-            .issuer("https://auth.example.com")
-            .audience().add("api.example.com").and()
-            .subject(userId)
-            .issuedAt(Date.from(now))
-            .expiration(Date.from(now.plus(15, ChronoUnit.MINUTES)))
-            .id(UUID.randomUUID().toString())
-            .claim("roles", roles)
-            .signWith(key, Jwts.SIG.HS256)
-            .compact()
-        }
+  issue(userId: string, roles: string[]): string {
+    return jwt.sign(
+      { sub: userId, roles, iss: 'https://auth.example.com', aud: 'api.example.com', jti: randomUUID() },
+      this.secret,
+      { algorithm: 'HS256', expiresIn: '15m' }
+    );
+  }
 }
 ```
 
-`requireIssuer`, `requireAudience`를 명시한 게 핵심이다. 이걸 안 하면 다른 서비스용 토큰이 통과될 수 있다. `clockSkewSeconds`로 시계 차이를 허용한다.
+`issuer`, `audience`를 명시한 게 핵심이다. 이걸 안 하면 다른 서비스용 토큰이 통과될 수 있다. `clockTolerance`로 시계 차이를 허용한다.
 
-JJWT 0.12 이상은 알고리즘 혼동 공격에 대한 방어가 내장되어 있다. `verifyWith(SecretKey)`는 HMAC만, `verifyWith(PublicKey)`는 RSA/EC만 받는다. 옛날 버전은 직접 알고리즘 화이트리스트를 검증해야 했다.
+`algorithms: ['HS256']`을 명시하면 알고리즘 혼동 공격을 방어한다. `jsonwebtoken` 최신 버전도 `algorithms`를 명시하지 않으면 `alg=none`이나 혼동 공격이 가능하다.
 
 ## Node.js 검증 예제
 

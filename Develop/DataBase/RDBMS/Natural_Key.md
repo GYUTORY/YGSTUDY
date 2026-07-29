@@ -255,11 +255,12 @@ LIMIT 100;
 
 주문번호는 보통 날짜 + 순번 조합이다. 단일 서버라면 메모리 카운터나 DB 시퀀스로 처리할 수 있다. 서버가 두 대 이상이면 동시에 같은 번호를 생성할 수 있다.
 
-```java
+```typescript
 // 충돌 가능성이 있는 주문번호 생성
-public String generateOrderNo(LocalDate date) {
-    long count = orderRepository.countByDate(date);  // SELECT COUNT(*)
-    return String.format("ORDER-%s-%06d", date, count + 1);
+async generateOrderNo(date: Date): Promise<string> {
+    const count = await this.orderRepository.countByDate(date);  // SELECT COUNT(*)
+    const formatted = date.toISOString().slice(0, 10).replace(/-/g, '');
+    return `ORDER-${formatted}-${String(count + 1).padStart(6, '0')}`;
 }
 // SELECT COUNT(*) 시점과 INSERT 사이에 다른 요청이 끼어들 수 있다
 ```
@@ -352,13 +353,20 @@ CREATE TABLE product_promotions (
 
 트래픽이 높아 `pt-online-schema-change` 같은 도구도 쓰기 어렵고, 테이블 재작성이 불가한 상황이다.
 
-```java
-@Transactional
-public void changeCategoryCode(String oldCode, String newCode) {
+```typescript
+async changeCategoryCode(oldCode: string, newCode: string): Promise<void> {
     // ON UPDATE CASCADE 대신 애플리케이션에서 순서를 제어
-    productRepository.updateCategoryCode(oldCode, newCode);
-    // 이력 테이블은 의도적으로 건드리지 않음
-    productCategoryRepository.updateCode(oldCode, newCode);
+    await this.dataSource.transaction(async (manager) => {
+        await manager.query(
+            'UPDATE products SET category_code = $1 WHERE category_code = $2',
+            [newCode, oldCode]
+        );
+        // 이력 테이블은 의도적으로 건드리지 않음
+        await manager.query(
+            'UPDATE product_categories SET code = $1 WHERE code = $2',
+            [newCode, oldCode]
+        );
+    });
 }
 ```
 

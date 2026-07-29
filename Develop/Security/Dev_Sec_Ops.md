@@ -898,9 +898,9 @@ DevSecOps에서 가장 귀찮은 문제가 false positive다. 처리하지 않�
 
 **1. 테스트 코드의 더미 시크릿**
 
-```java
+```typescript
 // 이런 코드를 gitleaks가 잡는다
-private static final String TEST_API_KEY = "sk-test-1234567890abcdef";
+const TEST_API_KEY = 'sk-test-1234567890abcdef';
 ```
 
 해결: `.gitleaks.toml`에서 테스트 경로를 제외하거나, 더미 값에 `test`, `dummy`, `fake` 같은 접두어를 붙이는 규칙을 정한다.

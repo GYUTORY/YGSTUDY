@@ -210,65 +210,71 @@ http://[2001:db8::1]%25eth0  zone ID
 
 IPv4-mapped IPv6 주소(`::ffff:192.168.1.1`)는 IPv4 `192.168.1.1`과 동일하다. IPv4만 막고 IPv6를 빠뜨리면 이 형식으로 우회된다. 일부 파서는 `[` `]`를 벗겨낸 뒤 정규화하지 않아 zone ID(`%25eth0`)도 처리 못한다.
 
-```java
-// Java에서 IPv4-mapped IPv6 정규화
-InetAddress addr = InetAddress.getByName("::ffff:192.168.1.1");
-// addr.getHostAddress() = "192.168.1.1" (Java는 정규화해줌)
-// 하지만 InetAddress.getByName은 DNS 조회를 발생시킬 수 있어
-// 완전히 신뢰하기 전에 isLoopbackAddress/isSiteLocalAddress 체크
+```typescript
+import { isIPv4, isIPv6 } from 'net';
+import * as ipaddr from 'ipaddr.js'; // npm install ipaddr.js
+
+// Node.js에서 IPv4-mapped IPv6 정규화
+const addr = ipaddr.parse('::ffff:192.168.1.1');
+if (addr.kind() === 'ipv6') {
+  const v6 = addr as ipaddr.IPv6;
+  if (v6.isIPv4MappedAddress()) {
+    const v4 = v6.toIPv4Address();
+    console.log(v4.toString()); // "192.168.1.1"
+    // 정규화된 IPv4 주소로 private/loopback 여부 확인
+    console.log(v4.range()); // "private" | "loopback" | "unicast" ...
+  }
+}
 ```
 
 ---
 
 ## 프레임워크별 내부 동작 차이
 
-### Spring Security SavedRequest
+### Express / NestJS 로그인 후 리다이렉트
 
-Spring Security는 인증이 필요한 페이지에 비인증 상태로 접근하면 `HttpSessionRequestCache`에 원래 요청을 저장하고, 로그인 성공 후 `SavedRequestAwareAuthenticationSuccessHandler`가 거기 저장된 URL로 리다이렉트한다.
+Express 기반 앱에서 세션에 원래 요청 URL을 저장하고, 로그인 성공 후 거기로 돌려보내는 패턴이 있다. 이때 저장된 URL을 검증 없이 그대로 쓰면 오픈 리다이렉트가 된다.
 
-```java
-// 기본 동작
-public class SavedRequestAwareAuthenticationSuccessHandler {
-    public void onAuthenticationSuccess(...) {
-        SavedRequest savedRequest = requestCache.getRequest(request, response);
-        if (savedRequest == null) {
-            super.onAuthenticationSuccess(request, response, authentication);
-            return;
-        }
-        String targetUrl = savedRequest.getRedirectUrl();
-        // targetUrl은 원래 요청의 전체 URL — 검증 없이 리다이렉트
-        redirectStrategy.sendRedirect(request, response, targetUrl);
-    }
-}
+```typescript
+// 취약: session에 저장된 returnTo를 검증 없이 사용
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (authenticate(username, password)) {
+    const returnTo = req.session.returnTo ?? '/';
+    delete req.session.returnTo;
+    res.redirect(returnTo);  // returnTo가 외부 URL이면 그대로 나감
+  }
+});
 ```
 
-공격자가 로그인 페이지에 접근하기 전에 피해자 브라우저로 하여금 `https://app.example.com/?redirect=evil.com` 같은 URL에 먼저 접근하게 만들면, 그 URL이 세션에 저장된다. 로그인 성공 후 `evil.com`으로 가는 경우는 SavedRequest가 직접 외부 URL을 저장할 때 생기는데, 기본적으로 Spring Security는 같은 호스트의 요청만 저장한다. 그러나 커스터마이즈를 잘못 하면 외부 URL을 저장하게 만들 수 있다.
+더 자주 나오는 문제는 쿼리 파라미터 `returnUrl`을 직접 읽어 검증 없이 리다이렉트하는 경우다.
 
-더 자주 나오는 문제는 `defaultSuccessUrl`이나 커스텀 `successHandler`에서 `returnUrl` 파라미터를 직접 읽어 검증 없이 리다이렉트할 때다.
-
-```java
-@Override
-public void onAuthenticationSuccess(HttpServletRequest request, ...) {
-    String returnUrl = request.getParameter("returnUrl");
-    if (returnUrl != null) {
-        response.sendRedirect(returnUrl);  // 검증 없음
-    }
-}
+```typescript
+// 취약: returnUrl 파라미터 검증 없음
+app.post('/login', (req, res) => {
+  const returnUrl = req.query.returnUrl as string;
+  if (returnUrl) {
+    res.redirect(returnUrl);  // 절대 URL이면 외부 도메인으로 나감
+  }
+});
 ```
 
-`response.sendRedirect()`는 절대 URL을 그대로 보내므로 외부 도메인으로 나간다.
+Express에서 안전하게 처리하려면 경로 여부를 확인하고, `//`나 `\`로 시작하는 프로토콜 상대 URL도 차단한다.
 
-Spring Security에서 안전하게 쓰려면:
-
-```java
-String returnUrl = request.getParameter("returnUrl");
-if (returnUrl != null && returnUrl.startsWith("/") 
-        && !returnUrl.startsWith("//") 
-        && !returnUrl.contains("\\")) {
-    redirectStrategy.sendRedirect(request, response, returnUrl);
-} else {
-    redirectStrategy.sendRedirect(request, response, "/");
+```typescript
+function safeReturnUrl(returnUrl: string | undefined): string {
+  if (!returnUrl) return '/';
+  // 상대 경로만 허용: /로 시작, //나 \로 시작하지 않아야 함
+  if (returnUrl.startsWith('/') && !returnUrl.startsWith('//') && !returnUrl.includes('\\')) {
+    return returnUrl;
+  }
+  return '/';
 }
+
+app.post('/login', (req, res) => {
+  const returnUrl = safeReturnUrl(req.query.returnUrl as string);
+  res.redirect(returnUrl);
+});
 ```
 
 ### Next.js redirect()

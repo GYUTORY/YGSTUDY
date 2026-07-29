@@ -344,21 +344,45 @@ GET /authorize?
 
 Spring Security OAuth2 Client를 쓰면 Google, GitHub 같은 CommonOAuth2Provider는 자동 설정된다. 하지만 Kakao, Naver 같은 국내 서비스는 provider 설정을 직접 해야 한다.
 
-```java
+```typescript
 // provider별 사용자 정보 파싱이 다르다
-public class OAuth2UserInfoFactory {
-    public static OAuth2UserInfo of(String provider, Map<String, Object> attributes) {
-        return switch (provider) {
-            case "google" -> new GoogleUserInfo(attributes);
-            case "kakao"  -> new KakaoUserInfo(
-                (Map<String, Object>) attributes.get("kakao_account")  // 중첩 구조
-            );
-            case "naver"  -> new NaverUserInfo(
-                (Map<String, Object>) attributes.get("response")  // response 안에 실제 데이터
-            );
-            default -> throw new IllegalArgumentException("지원하지 않는 provider: " + provider);
-        };
+interface OAuth2UserInfo {
+  id: string;
+  email: string;
+  name: string;
+}
+
+function parseOAuth2UserInfo(
+  provider: string,
+  attributes: Record<string, unknown>,
+): OAuth2UserInfo {
+  switch (provider) {
+    case 'google':
+      return {
+        id:    attributes['sub'] as string,
+        email: attributes['email'] as string,
+        name:  attributes['name'] as string,
+      };
+    case 'kakao': {
+      const account = attributes['kakao_account'] as Record<string, unknown>; // 중첩 구조
+      const profile = account['profile'] as Record<string, unknown>;
+      return {
+        id:    String(attributes['id']),
+        email: account['email'] as string,
+        name:  profile['nickname'] as string,
+      };
     }
+    case 'naver': {
+      const response = attributes['response'] as Record<string, unknown>; // response 안에 실제 데이터
+      return {
+        id:    response['id'] as string,
+        email: response['email'] as string,
+        name:  response['name'] as string,
+      };
+    }
+    default:
+      throw new Error(`지원하지 않는 provider: ${provider}`);
+  }
 }
 ```
 
@@ -570,107 +594,130 @@ spring:
             user-name-attribute: id
 ```
 
-```java
-// SecurityConfig.java
-@Configuration
-@EnableWebSecurity
-@RequiredArgsConstructor
-public class SecurityConfig {
-    private final CustomOAuth2UserService oAuth2UserService;
-    private final OAuth2SuccessHandler successHandler;
+```typescript
+// app.module.ts — Passport OAuth2 전략 등록 (passport-google-oauth20)
+import { Module } from '@nestjs/common';
+import { PassportModule } from '@nestjs/passport';
+import { GoogleStrategy } from './auth/google.strategy';
+import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-                .userInfoEndpoint(ui -> ui.userService(oAuth2UserService))
-                .successHandler(successHandler)
-            );
-        return http.build();
-    }
+@Module({
+  imports: [PassportModule],
+  controllers: [AuthController],
+  providers: [AuthService, GoogleStrategy],
+})
+export class AppModule {}
+
+// google.strategy.ts — CustomOAuth2UserService 상당
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { AuthService } from './auth.service';
+
+@Injectable()
+export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  constructor(private readonly authService: AuthService) {
+    super({
+      clientID:     process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL:  'https://myapp.com/auth/google/callback',
+      scope: ['openid', 'profile', 'email'],
+    });
+  }
+
+  async validate(
+    _accessToken: string,
+    _refreshToken: string,
+    profile: any,
+    done: VerifyCallback,
+  ): Promise<void> {
+    const userInfo = {
+      id:    profile.id,
+      email: profile.emails?.[0]?.value,
+      name:  profile.displayName,
+    };
+    const user = await this.authService.findOrCreate(userInfo, 'google');
+    done(null, user);
+  }
 }
 
-// CustomOAuth2UserService.java
-@Service
-@RequiredArgsConstructor
-public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
-    private final UserRepository userRepo;
+// auth.controller.ts — OAuth2SuccessHandler 상당
+import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Response, Request } from 'express';
+import { JwtTokenService } from './jwt-token.service';
 
-    @Override
-    public OAuth2User loadUser(OAuth2UserRequest req) {
-        OAuth2User oAuth2User = new DefaultOAuth2UserService().loadUser(req);
-        String registrationId = req.getClientRegistration().getRegistrationId();
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly jwtService: JwtTokenService) {}
 
-        OAuth2UserInfo userInfo = OAuth2UserInfoFactory.of(registrationId, oAuth2User.getAttributes());
-        User user = userRepo.findByEmail(userInfo.getEmail())
-            .orElseGet(() -> userRepo.save(User.of(userInfo, registrationId)));
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  googleLogin() {
+    // Passport가 Google 로그인 페이지로 리다이렉트
+  }
 
-        return new CustomOAuth2User(user, oAuth2User.getAttributes());
-    }
-}
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const user = req.user as any;
+    const accessToken  = this.jwtService.createAccessToken(user.id, user.role);
+    const refreshToken = this.jwtService.createRefreshToken(user.id);
 
-// OAuth2SuccessHandler.java — 로그인 성공 후 JWT 발급
-@Component
-@RequiredArgsConstructor
-public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    private final JwtTokenProvider jwtTokenProvider;
-
-    @Override
-    public void onAuthenticationSuccess(HttpServletRequest req, HttpServletResponse res,
-                                        Authentication auth) throws IOException {
-        CustomOAuth2User user = (CustomOAuth2User) auth.getPrincipal();
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getRole());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
-
-        // HttpOnly 쿠키에 저장
-        res.addCookie(createCookie("access_token", accessToken, 3600));
-        res.addCookie(createCookie("refresh_token", refreshToken, 604800));
-        getRedirectStrategy().sendRedirect(req, res, "/dashboard");
-    }
+    // HttpOnly 쿠키에 저장
+    res.cookie('access_token',  accessToken,  { httpOnly: true, secure: true, maxAge: 3600_000 });
+    res.cookie('refresh_token', refreshToken, { httpOnly: true, secure: true, maxAge: 7 * 24 * 3600_000 });
+    res.redirect('/dashboard');
+  }
 }
 ```
 
 ### JWT 발급 / 검증
 
-```java
-// JwtTokenProvider.java
-@Component
-public class JwtTokenProvider {
-    @Value("${jwt.secret}") private String secret;
-    private static final long ACCESS_TOKEN_EXPIRE  = 60 * 60 * 1000L;       // 1시간
-    private static final long REFRESH_TOKEN_EXPIRE = 7 * 24 * 60 * 60 * 1000L; // 7일
+```typescript
+// jwt-token.service.ts
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 
-    private Key getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-    }
+const ACCESS_TOKEN_EXPIRE  = '1h';
+const REFRESH_TOKEN_EXPIRE = '7d';
 
-    public String createAccessToken(Long userId, String role) {
-        return Jwts.builder()
-            .setSubject(userId.toString())
-            .claim("role", role)
-            .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRE))
-            .signWith(getKey(), SignatureAlgorithm.HS256)
-            .compact();
-    }
+@Injectable()
+export class JwtTokenService {
+  private readonly secret: string;
 
-    public Claims validateToken(String token) {
-        try {
-            return Jwts.parserBuilder()
-                .setSigningKey(getKey()).build()
-                .parseClaimsJws(token).getBody();
-        } catch (ExpiredJwtException e) {
-            throw new TokenExpiredException("토큰이 만료되었습니다.");
-        } catch (JwtException e) {
-            throw new InvalidTokenException("유효하지 않은 토큰입니다.");
-        }
+  constructor(config: ConfigService) {
+    this.secret = config.getOrThrow<string>('JWT_SECRET');
+  }
+
+  createAccessToken(userId: string | number, role: string): string {
+    return jwt.sign(
+      { sub: String(userId), role },
+      this.secret,
+      { algorithm: 'HS256', expiresIn: ACCESS_TOKEN_EXPIRE },
+    );
+  }
+
+  createRefreshToken(userId: string | number): string {
+    return jwt.sign(
+      { sub: String(userId) },
+      this.secret,
+      { algorithm: 'HS256', expiresIn: REFRESH_TOKEN_EXPIRE },
+    );
+  }
+
+  validateToken(token: string): jwt.JwtPayload {
+    try {
+      return jwt.verify(token, this.secret, { algorithms: ['HS256'] }) as jwt.JwtPayload;
+    } catch (e) {
+      if (e instanceof jwt.TokenExpiredError) {
+        throw new Error('토큰이 만료되었습니다.');
+      }
+      throw new Error('유효하지 않은 토큰입니다.');
     }
+  }
 }
 ```
 

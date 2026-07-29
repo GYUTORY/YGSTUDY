@@ -107,13 +107,12 @@ cursor.execute(
 )
 ```
 
-```java
-// Java JDBC - 올바른 방법
-PreparedStatement ps = conn.prepareStatement(
-    "SELECT * FROM users WHERE id = ? AND password = ?"
+```typescript
+// TypeScript mysql2 - 올바른 방법
+const [rows] = await connection.execute(
+  'SELECT * FROM users WHERE id = ? AND password = ?',
+  [userId, password]
 );
-ps.setString(1, userId);
-ps.setString(2, password);
 ```
 
 Prepared Statement는 쿼리 구조와 파라미터를 분리해서 DB에 보낸다. DB는 이미 쿼리 구조를 파싱해 둔 상태에서 파라미터를 단순 값으로만 취급하기 때문에 입력에 `'` 나 `--` 가 있어도 쿼리 구조에 영향을 주지 못한다.

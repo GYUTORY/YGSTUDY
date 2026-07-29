@@ -94,20 +94,31 @@ subprocess.run(["convert", filename, "output.png"], shell=True)  # 이 경우 fi
 
 마지막 케이스가 특히 함정이다. `shell=True`이면서 인자가 리스트일 때, 파이썬은 첫 번째 요소만 셸에 넘기고 나머지는 셸의 `$0`, `$1` 위치 인자로 들어간다. 의도와 전혀 다른 동작이지만 에러가 나지 않아 발견이 늦다.
 
-### Java
+### TypeScript (Node.js)
 
-```java
-// 위험 — Runtime.exec(String)은 내부적으로 공백으로 토큰을 자른다
-Runtime.getRuntime().exec("convert " + filename + " output.png");
+```typescript
+import { execFile, spawn } from 'child_process';
+import { promisify } from 'util';
 
-// 부분 안전 — 토큰을 직접 분리해서 넘긴다. 셸은 거치지 않음
-Runtime.getRuntime().exec(new String[]{"convert", filename, "output.png"});
+const execFileAsync = promisify(execFile);
 
-// 권장 — ProcessBuilder
-new ProcessBuilder("convert", filename, "output.png").start();
+// 위험 — exec(문자열)는 /bin/sh -c 로 실행된다
+import { exec } from 'child_process';
+exec(`convert ${filename} output.png`, callback);
+
+// 안전 — execFile: 셸 경유 없이 바이너리에 인자 배열을 직접 넘긴다
+execFile('convert', [filename, 'output.png'], callback);
+// 또는 async/await
+const { stdout } = await execFileAsync('convert', [filename, 'output.png']);
+
+// 안전 — spawn도 기본은 셸 미사용
+spawn('convert', [filename, 'output.png']);
+
+// 다시 위험 — shell:true 옵션을 주면 exec와 동일해진다
+spawn('convert', [filename, 'output.png'], { shell: true });
 ```
 
-Java의 `Runtime.exec(String)`은 셸을 직접 호출하지는 않지만 `StringTokenizer`로 공백 기준 분리를 한다. 즉 `filename`에 공백이 들어가면 그 뒤가 별도 인자로 처리되어 인자 인젝션이 가능하다. 셸 메타문자 인젝션은 막혀도 인자 인젝션은 못 막는다는 뜻이다.
+`exec`는 문자열 하나를 셸에 넘기기 때문에 `filename`에 메타문자가 들어가면 인젝션이 발생한다. `execFile`은 바이너리와 인자를 분리해서 넘기므로 셸 해석 자체가 일어나지 않는다. `execFile`과 `spawn`은 `shell: true` 옵션이 없는 한 안전하다.
 
 ### PHP
 
@@ -317,16 +328,14 @@ sequenceDiagram
 
 이게 본질이다. 다른 모든 방어는 보조 수단이다.
 
-```javascript
+```typescript
 // Node.js — execFile, spawn 모두 기본은 셸 미사용
+import { execFile, spawn } from 'child_process';
 execFile('convert', [filename, 'output.png']);
 spawn('convert', [filename, 'output.png']);
 
 // Python — shell=False 가 기본값
-subprocess.run(['convert', filename, 'output.png'])
-
-// Java — ProcessBuilder
-new ProcessBuilder('convert', filename, 'output.png').start();
+// subprocess.run(['convert', filename, 'output.png'])
 ```
 
 ### 2. 외부 명령을 아예 호출하지 않는다

@@ -434,10 +434,10 @@ SELECT * FROM logs WHERE created_at BETWEEN '2026-01-01' AND '2026-03-31';
 
 이 규칙이 현실에서 부서지는 지점은 샤딩이다. 샤딩을 애플리케이션 레이어에서 처리하면, 어느 샤드를 쓸지 결정하는 로직이 코드에 드러난다.
 
-```java
+```typescript
 // 샤드 키 기반 라우팅이 애플리케이션 코드에 노출됨 (Rule 11 위반)
-int shardIndex = userId % SHARD_COUNT;
-DataSource ds = shardDataSources.get(shardIndex);
+const shardIndex = userId % SHARD_COUNT;
+const ds = shardDataSources[shardIndex];
 ```
 
 Vitess(MySQL), Citus(PostgreSQL) 같은 솔루션이 Rule 11을 지키면서 샤딩하려는 시도다. 이 레이어에서 라우팅을 처리해서 애플리케이션은 단일 엔드포인트만 보게 만든다.

@@ -80,14 +80,19 @@ DID Method마다 resolve 방식이 다르다:
 
 백엔드에서 DID Resolver를 직접 구현할 일은 거의 없다. `universal-resolver` 같은 오픈소스를 쓰거나, 각 DID Method 라이브러리를 붙인다.
 
-```java
-// Java - did:web resolver 예시 (uni-resolver 라이브러리 사용)
-DIDResolver resolver = new WebDIDResolver();
-DIDDocument didDoc = resolver.resolve("did:web:example.com:users:alice");
+```typescript
+// TypeScript - did:web resolver 예시 (did-resolver 라이브러리 사용)
+import { Resolver } from 'did-resolver';
+import { getResolver } from 'web-did-resolver';
+
+const webResolver = getResolver();
+const resolver = new Resolver({ ...webResolver });
+
+const didDoc = await resolver.resolve('did:web:example.com:users:alice');
 
 // 공개키 추출
-VerificationMethod vm = didDoc.getVerificationMethod().get(0);
-PublicKey publicKey = vm.getPublicKey();
+const vm = didDoc.didDocument?.verificationMethod?.[0];
+const publicKeyMultibase = vm?.publicKeyMultibase;
 ```
 
 ---
@@ -236,23 +241,22 @@ VC 구조:
 
 DID 인증의 핵심은 비밀키 관리다. 서버 사이드에서 DID를 운영하려면 키를 어디에 보관할지 결정해야 한다.
 
-```java
-// HSM 또는 KMS 연동 예시
-@Configuration
-public class DIDKeyConfig {
+```typescript
+// AWS KMS 연동 예시 (TypeScript / Node.js)
+import { KMSClient, GetPublicKeyCommand } from '@aws-sdk/client-kms';
 
-    @Bean
-    public KeyPair didKeyPair(KmsClient kmsClient) {
-        // AWS KMS에서 비대칭 키 관리
-        // 비밀키는 KMS 밖으로 나오지 않는다
-        String keyId = "arn:aws:kms:ap-northeast-2:123456:key/abc-def";
+const kmsClient = new KMSClient({ region: 'ap-northeast-2' });
 
-        GetPublicKeyResponse response = kmsClient.getPublicKey(
-            GetPublicKeyRequest.builder().keyId(keyId).build()
-        );
+async function getDIDPublicKey(): Promise<Uint8Array> {
+  // AWS KMS에서 비대칭 키 관리
+  // 비밀키는 KMS 밖으로 나오지 않는다
+  const keyId = 'arn:aws:kms:ap-northeast-2:123456:key/abc-def';
 
-        return new KmsBackedKeyPair(keyId, response.publicKey());
-    }
+  const response = await kmsClient.send(
+    new GetPublicKeyCommand({ KeyId: keyId })
+  );
+
+  return response.PublicKey!;
 }
 ```
 
@@ -262,57 +266,79 @@ public class DIDKeyConfig {
 
 ### DID Resolver 연동
 
-```java
-@Service
-public class DIDAuthService {
+```typescript
+import { Resolver } from 'did-resolver';
+import NodeCache from 'node-cache';
 
-    private final DIDResolver resolver;
-    private final Cache<String, DIDDocument> cache;
+interface VerifiablePresentation {
+  holder: string;
+  verifiableCredential: VerifiableCredential[];
+  proof: { challenge: string; verificationMethod: string; [key: string]: unknown };
+}
 
-    public DIDAuthService(DIDResolver resolver) {
-        this.resolver = resolver;
-        // DID Document 캐싱 — did:web은 매번 HTTP 호출이 필요하므로
-        this.cache = Caffeine.newBuilder()
-            .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(5))
-            .build();
+interface VerifiableCredential {
+  issuer: string;
+  proof: { verificationMethod: string; [key: string]: unknown };
+  credentialStatus?: { statusListCredential: string; statusListIndex: number };
+  expirationDate?: string;
+}
+
+class DIDAuthService {
+  private readonly resolver: Resolver;
+  // DID Document 캐싱 — did:web은 매번 HTTP 호출이 필요하므로
+  private readonly cache = new NodeCache({ stdTTL: 300, maxKeys: 10_000 });
+
+  constructor(resolver: Resolver) {
+    this.resolver = resolver;
+  }
+
+  async verifyPresentation(vp: VerifiablePresentation, challenge: string): Promise<boolean> {
+    // 1. challenge 검증
+    if (challenge !== vp.proof.challenge) {
+      return false;
     }
 
-    public boolean verifyPresentation(VerifiablePresentation vp, String challenge) {
-        // 1. challenge 검증
-        if (!challenge.equals(vp.getProof().getChallenge())) {
-            return false;
-        }
+    // 2. Holder DID resolve → VP 서명 검증
+    const holderDoc = await this.resolveDID(vp.holder);
+    const holderKey = this.extractKey(holderDoc, vp.proof.verificationMethod);
 
-        // 2. Holder DID resolve → VP 서명 검증
-        DIDDocument holderDoc = resolveDID(vp.getHolder());
-        PublicKey holderKey = extractKey(holderDoc, vp.getProof().getVerificationMethod());
-
-        if (!verifySignature(vp, holderKey)) {
-            return false;
-        }
-
-        // 3. 각 VC에 대해 Issuer DID resolve → VC 서명 검증
-        for (VerifiableCredential vc : vp.getVerifiableCredentials()) {
-            DIDDocument issuerDoc = resolveDID(vc.getIssuer());
-            PublicKey issuerKey = extractKey(issuerDoc, vc.getProof().getVerificationMethod());
-
-            if (!verifySignature(vc, issuerKey)) {
-                return false;
-            }
-
-            // 4. VC 상태 확인 (만료, 폐기)
-            if (isRevoked(vc) || isExpired(vc)) {
-                return false;
-            }
-        }
-
-        return true;
+    if (!this.verifySignature(vp, holderKey)) {
+      return false;
     }
 
-    private DIDDocument resolveDID(String did) {
-        return cache.get(did, key -> resolver.resolve(key));
+    // 3. 각 VC에 대해 Issuer DID resolve → VC 서명 검증
+    for (const vc of vp.verifiableCredential) {
+      const issuerDoc = await this.resolveDID(vc.issuer);
+      const issuerKey = this.extractKey(issuerDoc, vc.proof.verificationMethod);
+
+      if (!this.verifySignature(vc, issuerKey)) {
+        return false;
+      }
+
+      // 4. VC 상태 확인 (만료, 폐기)
+      if ((await this.isRevoked(vc)) || this.isExpired(vc)) {
+        return false;
+      }
     }
+
+    return true;
+  }
+
+  private async resolveDID(did: string) {
+    const cached = this.cache.get(did);
+    if (cached) return cached;
+    const result = await this.resolver.resolve(did);
+    this.cache.set(did, result.didDocument);
+    return result.didDocument;
+  }
+
+  private extractKey(doc: unknown, verificationMethod: string) { /* ... */ }
+  private verifySignature(credential: unknown, key: unknown): boolean { return true; }
+  private async isRevoked(vc: VerifiableCredential): Promise<boolean> { return false; }
+  private isExpired(vc: VerifiableCredential): boolean {
+    if (!vc.expirationDate) return false;
+    return new Date(vc.expirationDate) < new Date();
+  }
 }
 ```
 
@@ -320,30 +346,32 @@ public class DIDAuthService {
 
 1. **Issuer 신뢰 목록 확인**: VC 서명이 유효해도 Issuer를 신뢰할 수 있는지는 별도 판단이 필요하다. 아무나 VC를 발급할 수 있기 때문이다.
 
-```java
+```typescript
 // Issuer 허용 목록 관리
-private final Set<String> trustedIssuers = Set.of(
-    "did:web:gov.example.com",
-    "did:web:university.example.com"
-);
+const trustedIssuers = new Set([
+  'did:web:gov.example.com',
+  'did:web:university.example.com',
+]);
 
-if (!trustedIssuers.contains(vc.getIssuer())) {
-    throw new UntrustedIssuerException(vc.getIssuer());
+if (!trustedIssuers.has(vc.issuer)) {
+  throw new Error(`UntrustedIssuer: ${vc.issuer}`);
 }
 ```
 
 2. **VC Status List 확인**: VC가 폐기되었는지 확인해야 한다. W3C Bitstring Status List를 주로 쓴다.
 
-```java
+```typescript
 // Status List 확인
-public boolean isRevoked(VerifiableCredential vc) {
-    CredentialStatus status = vc.getCredentialStatus();
-    if (status == null) return false;
+async function isRevoked(vc: VerifiableCredential): Promise<boolean> {
+  const status = vc.credentialStatus;
+  if (!status) return false;
 
-    // Status List는 비트맵이다
-    // 특정 인덱스의 비트가 1이면 폐기된 상태
-    BitString statusList = fetchStatusList(status.getStatusListCredential());
-    return statusList.get(status.getStatusListIndex());
+  // Status List는 비트맵이다
+  // 특정 인덱스의 비트가 1이면 폐기된 상태
+  const statusList = await fetchStatusList(status.statusListCredential);
+  const byteIndex = Math.floor(status.statusListIndex / 8);
+  const bitIndex = 7 - (status.statusListIndex % 8);
+  return Boolean((statusList[byteIndex] >> bitIndex) & 1);
 }
 ```
 

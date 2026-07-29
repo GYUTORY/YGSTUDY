@@ -52,20 +52,26 @@ REST는 URL 패턴이 명확해서 Gateway에서 경로 기반 통제가 쉽다.
 - **OAuth 2.0**: 3rd-party 위임 인가. 토큰 발급 흐름이 표준화돼 있다.
 - **mTLS**: B2B에서 클라이언트 인증서를 검증하는 방식. 키 유출 시에도 인증서 폐기로 막는다.
 
-```java
-@RestController
-@RequestMapping("/api/v1")
-public class OrderController {
+```typescript
+// NestJS
+import { Controller, Get, Param } from '@nestjs/common';
+import { CurrentUser } from './auth/current-user.decorator';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
-    @GetMapping("/orders/{orderId}")
-    public OrderResponse getOrder(
-            @PathVariable String orderId,
-            @AuthenticationPrincipal UserPrincipal user) {
+@Controller('api/v1')
+export class OrderController {
+  constructor(private readonly orderService: OrderService) {}
 
-        // 인증된 사용자만 도달. 그런데 이 사용자가 이 orderId에
-        // 접근할 권한이 있는지는 별도 검증이다 (BOLA 방어 지점)
-        return orderService.findByIdForUser(orderId, user.getUserId());
-    }
+  @Get('orders/:orderId')
+  @UseGuards(JwtAuthGuard)
+  async getOrder(
+    @Param('orderId') orderId: string,
+    @CurrentUser() user: UserPrincipal,
+  ) {
+    // 인증된 사용자만 도달. 그런데 이 사용자가 이 orderId에
+    // 접근할 권한이 있는지는 별도 검증이다 (BOLA 방어 지점)
+    return this.orderService.findByIdForUser(orderId, user.userId);
+  }
 }
 ```
 
@@ -137,36 +143,37 @@ API 키는 정적 자격증명이라 위험도가 가장 높다. 발급 시점�
 
 DB에 평문으로 키를 저장하면 안 된다. 비밀번호처럼 해시해서 저장하고, 비교는 해시 결과로 한다.
 
-```java
-public class ApiKeyService {
+```typescript
+import { randomBytes, createHash } from 'crypto';
 
-    public String issueKey(String clientId) {
-        // 32바이트 랜덤 + Base64URL 인코딩
-        byte[] random = new byte[32];
-        new SecureRandom().nextBytes(random);
-        String rawKey = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+export class ApiKeyService {
+  constructor(private readonly apiKeyRepository: ApiKeyRepository) {}
 
-        // prefix를 붙여서 식별 가능하게 한다 (Stripe 방식)
-        String prefixedKey = "sk_live_" + rawKey;
+  async issueKey(clientId: string): Promise<string> {
+    // 32바이트 랜덤 + Base64URL 인코딩
+    const raw = randomBytes(32).toString('base64url');
 
-        // 저장은 SHA-256 해시
-        String hashedKey = DigestUtils.sha256Hex(prefixedKey);
+    // prefix를 붙여서 식별 가능하게 한다 (Stripe 방식)
+    const prefixedKey = `sk_live_${raw}`;
 
-        apiKeyRepository.save(new ApiKey(
-            clientId,
-            hashedKey,
-            prefixedKey.substring(0, 12), // 앞 12자만 표시용 (sk_live_xxxx)
-            LocalDateTime.now()
-        ));
+    // 저장은 SHA-256 해시
+    const hashedKey = createHash('sha256').update(prefixedKey).digest('hex');
 
-        // 평문은 발급 직후 한 번만 반환. 다시는 못 본다
-        return prefixedKey;
-    }
+    await this.apiKeyRepository.save({
+      clientId,
+      hashedKey,
+      displayHint: prefixedKey.slice(0, 12), // 앞 12자만 표시용 (sk_live_xxxx)
+      createdAt: new Date(),
+    });
 
-    public boolean verify(String rawKey) {
-        String hashed = DigestUtils.sha256Hex(rawKey);
-        return apiKeyRepository.existsByHashedKey(hashed);
-    }
+    // 평문은 발급 직후 한 번만 반환. 다시는 못 본다
+    return prefixedKey;
+  }
+
+  async verify(rawKey: string): Promise<boolean> {
+    const hashed = createHash('sha256').update(rawKey).digest('hex');
+    return this.apiKeyRepository.existsByHashedKey(hashed);
+  }
 }
 ```
 
@@ -176,13 +183,12 @@ prefix를 붙이는 이유는 두 가지다. 첫째, GitHub 같은 곳에 실수
 
 키 로테이션을 못 하면 유출됐을 때 대응이 안 된다. 두 개의 키를 동시에 활성화할 수 있는 구조로 만들어야 무중단 로테이션이 된다.
 
-```java
+```typescript
 // 클라이언트당 최대 2개 키를 둔다. 새 키 발급 → 클라이언트 전환 → 구 키 폐기
-public List<ApiKey> getActiveKeys(String clientId) {
-    return apiKeyRepository.findActiveByClientId(clientId)
-        .stream()
-        .filter(k -> k.getExpiresAt().isAfter(LocalDateTime.now()))
-        .collect(Collectors.toList());
+async getActiveKeys(clientId: string): Promise<ApiKey[]> {
+  const keys = await this.apiKeyRepository.findActiveByClientId(clientId);
+  const now = new Date();
+  return keys.filter(k => k.expiresAt > now);
 }
 ```
 
@@ -196,13 +202,12 @@ OWASP API Top 10에서 1위로 올라온 취약점이다. 인증은 됐는데 �
 
 ### 전형적인 버그
 
-```java
-@GetMapping("/api/v1/users/{userId}/orders")
-public List<Order> getUserOrders(
-        @PathVariable Long userId,
-        @AuthenticationPrincipal UserPrincipal user) {
-    // 인증된 사용자라면 누구든 userId만 바꿔서 남의 주문을 조회한다
-    return orderRepository.findByUserId(userId);
+```typescript
+// NestJS — 취약: 인증된 사용자라면 누구든 userId만 바꿔서 남의 주문을 조회한다
+@Get('api/v1/users/:userId/orders')
+@UseGuards(JwtAuthGuard)
+async getUserOrders(@Param('userId') userId: string) {
+  return this.orderRepository.findByUserId(userId);
 }
 ```
 
@@ -210,41 +215,44 @@ public List<Order> getUserOrders(
 
 ### 방어
 
-```java
-@GetMapping("/api/v1/users/{userId}/orders")
-public List<Order> getUserOrders(
-        @PathVariable Long userId,
-        @AuthenticationPrincipal UserPrincipal user) {
-
-    // 본인 또는 관리자만 허용
-    if (!user.getId().equals(userId) && !user.hasRole("ADMIN")) {
-        throw new AccessDeniedException("자신의 주문만 조회 가능");
-    }
-    return orderRepository.findByUserId(userId);
+```typescript
+// NestJS — 방어: 본인 또는 관리자만 허용
+@Get('api/v1/users/:userId/orders')
+@UseGuards(JwtAuthGuard)
+async getUserOrders(
+  @Param('userId') userId: string,
+  @CurrentUser() user: UserPrincipal,
+) {
+  if (user.id !== userId && !user.roles.includes('ADMIN')) {
+    throw new ForbiddenException('자신의 주문만 조회 가능');
+  }
+  return this.orderRepository.findByUserId(userId);
 }
 ```
 
 더 안전한 패턴은 URL에서 `userId`를 받지 않는 거다. 토큰의 subject에서 직접 꺼내 쓴다.
 
-```java
-@GetMapping("/api/v1/me/orders")
-public List<Order> getMyOrders(@AuthenticationPrincipal UserPrincipal user) {
-    return orderRepository.findByUserId(user.getId());
+```typescript
+// 더 안전한 패턴: URL에서 userId를 받지 않고 토큰의 subject에서 꺼낸다
+@Get('api/v1/me/orders')
+@UseGuards(JwtAuthGuard)
+async getMyOrders(@CurrentUser() user: UserPrincipal) {
+  return this.orderRepository.findByUserId(user.id);
 }
 ```
 
 리소스가 다른 사용자에 속한 경우엔 조회 쿼리에 소유권 조건을 포함시킨다.
 
-```java
+```typescript
 // 나쁜 예: 객체를 먼저 찾고 권한을 검사
-Order order = orderRepository.findById(orderId);
-if (!order.getUserId().equals(user.getId())) {
-    throw new AccessDeniedException();
+const order = await this.orderRepository.findById(orderId);
+if (order.userId !== user.id) {
+  throw new ForbiddenException();
 }
 
-// 좋은 예: 쿼리 자체에 소유권 조건을 포함
-Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
-    .orElseThrow(() -> new ResourceNotFoundException());
+// 좋은 예: 쿼리 자체에 소유권 조건을 포함 (존재 여부를 외부에 노출하지 않음)
+const order = await this.orderRepository.findOne({ where: { id: orderId, userId: user.id } });
+if (!order) throw new NotFoundException();
 ```
 
 후자가 안전한 이유는 두 가지다. 권한 검증 누락이 구조적으로 일어나지 않고, 존재 여부를 외부에 노출하지 않는다(404와 403 응답을 통일).
@@ -255,35 +263,45 @@ Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
 
 기능 단위 인가가 깨진 케이스다. 일반 사용자가 관리자 전용 API에 접근하는 식이다.
 
-```java
+```typescript
 // 잘못된 패턴: URL이 /admin이어야만 막힌다고 착각
-@RestController
-public class UserController {
-
-    @DeleteMapping("/api/v1/users/{id}")  // /admin이 안 붙음
-    public void deleteUser(@PathVariable Long id) {
-        // 권한 검증이 없다. 누구나 사용자를 삭제한다
-        userService.delete(id);
-    }
+@Controller()
+export class UserController {
+  @Delete('api/v1/users/:id')  // /admin이 안 붙음
+  @UseGuards(JwtAuthGuard)
+  async deleteUser(@Param('id') id: string) {
+    // 권한 검증이 없다. 누구나 사용자를 삭제한다
+    await this.userService.delete(id);
+  }
 }
 ```
 
 방어는 메서드 레벨 권한 검증을 강제하는 거다. Spring Security 기준으로 `@PreAuthorize`를 쓰거나 컨트롤러 진입 전 인터셉터에서 메서드별 권한 매핑을 검사한다.
 
-```java
-@DeleteMapping("/api/v1/users/{id}")
-@PreAuthorize("hasRole('ADMIN')")
-public void deleteUser(@PathVariable Long id) {
-    userService.delete(id);
+```typescript
+import { Roles } from './auth/roles.decorator';
+import { RolesGuard } from './auth/roles.guard';
+
+@Delete('api/v1/users/:id')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
+async deleteUser(@Param('id') id: string) {
+  await this.userService.delete(id);
 }
 ```
 
 조직 단위 권한이라면 더 세분화한다.
 
-```java
-@PreAuthorize("hasPermission(#orgId, 'Organization', 'DELETE_MEMBER')")
-public void removeMember(@PathVariable Long orgId, @PathVariable Long memberId) {
-    // ...
+```typescript
+// 조직 단위 권한: CASL 또는 커스텀 가드로 세분화
+@Delete('orgs/:orgId/members/:memberId')
+@UseGuards(JwtAuthGuard, OrgPermissionGuard)
+@RequirePermission('DELETE_MEMBER')
+async removeMember(
+  @Param('orgId') orgId: string,
+  @Param('memberId') memberId: string,
+) {
+  // OrgPermissionGuard가 orgId 컨텍스트에서 DELETE_MEMBER 권한을 확인한다
 }
 ```
 
@@ -521,37 +539,29 @@ OpenAPI 스펙으로 API를 정의했다면 그 스펙을 런타임 검증에도
 
 ### 요청 검증
 
-Spring Boot에서는 `springdoc-openapi-starter-webmvc-api`와 `swagger-request-validator-spring`을 조합한다.
+NestJS에서는 `@nestjs/swagger`로 OpenAPI 스펙을 생성하고, 런타임 검증은 `express-openapi-validator` 미들웨어를 사용한다.
 
-```java
-@Configuration
-public class OpenApiValidationConfig {
+```typescript
+import * as OpenApiValidator from 'express-openapi-validator';
 
-    @Bean
-    public OpenApiInteractionValidator validator() {
-        return OpenApiInteractionValidator
-            .createForSpecificationUrl("classpath:openapi.yaml")
-            .withLevelResolver(LevelResolver.create()
-                .withLevel("validation.response", ValidationReport.Level.IGNORE)
-                .build())
-            .build();
-    }
-
-    @Bean
-    public ValidationInterceptor validationInterceptor(OpenApiInteractionValidator validator) {
-        return new ValidationInterceptor(validator);
-    }
-}
+// main.ts — Express 인스턴스에 OpenAPI Validator를 미들웨어로 추가
+app.use(
+  OpenApiValidator.middleware({
+    apiSpec: './openapi.yaml',
+    validateRequests: true,   // 요청을 스펙으로 검증
+    validateResponses: process.env.NODE_ENV !== 'production', // 스테이징까지만 응답 검증
+  }),
+);
 ```
 
-이 패턴은 컨트롤러 진입 전에 요청 페이로드가 스펙에 맞는지 자동 검증한다. DTO에 어노테이션을 일일이 다는 것보다 일관성이 높다.
+이 패턴은 컨트롤러 진입 전에 요청 페이로드가 스펙에 맞는지 자동 검증한다. DTO에 데코레이터를 일일이 다는 것보다 일관성이 높다.
 
 ### 응답 검증 (개발/스테이징)
 
 운영에서는 부담이라 끄지만, 스테이징까지는 응답도 검증한다. 스펙과 실제 응답이 어긋난 경우를 잡는다.
 
-```java
-.withLevel("validation.response", ValidationReport.Level.ERROR)
+```typescript
+validateResponses: process.env.NODE_ENV !== 'production', // 운영에서는 false
 ```
 
 ### 예시 스키마
@@ -599,18 +609,26 @@ components:
 
 스펙을 정의했으면 Provider/Consumer 양쪽에서 계약 테스트를 돌린다. Pact나 Spring Cloud Contract로 한다.
 
-```java
-@PactProviderTest
-@Provider("order-service")
-@PactFolder("pacts")
-class OrderServicePactTest {
+```typescript
+// Pact JS Provider 테스트 예시
+import { Verifier } from '@pact-foundation/pact';
+import { app } from '../src/app';
+import * as http from 'http';
 
-    @TestTemplate
-    @ExtendWith(PactVerificationInvocationContextProvider.class)
-    void verifyPact(PactVerificationContext context) {
-        context.verifyInteraction();
-    }
-}
+describe('Pact Provider Test', () => {
+  let server: http.Server;
+
+  beforeAll(() => { server = app.listen(3001); });
+  afterAll(() => { server.close(); });
+
+  it('validates the pact with order-service consumer', async () => {
+    await new Verifier({
+      provider: 'order-service',
+      providerBaseUrl: 'http://localhost:3001',
+      pactUrls: ['./pacts/consumer-order-service.json'],
+    }).verifyProvider();
+  });
+});
 ```
 
 스펙이 깨지는 변경을 막으니까 클라이언트가 망가지는 사고가 줄어든다.
@@ -637,19 +655,27 @@ Refresh Token이 6개월짜리인데 무효화 메커니즘이 없으면, 한 �
 
 스택 트레이스, DB 에러 메시지, 내부 IP가 그대로 노출되는 경우가 많다. 운영 환경에선 5xx 응답을 일반화하고, 상세 로그는 서버에만 남긴다.
 
-```java
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+```typescript
+// NestJS 전역 예외 필터
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, Logger } from '@nestjs/common';
+import { Request, Response } from 'express';
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneric(Exception e, HttpServletRequest req) {
-        String traceId = MDC.get("traceId");
-        log.error("[{}] Unhandled exception on {} {}", traceId, req.getMethod(), req.getRequestURI(), e);
-        return ResponseEntity.status(500)
-            .body(new ErrorResponse("INTERNAL_ERROR", "처리 중 오류가 발생했다", traceId));
-    }
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const req = ctx.getRequest<Request>();
+    const res = ctx.getResponse<Response>();
+    const traceId = req.headers['x-trace-id'] as string ?? crypto.randomUUID();
+
+    this.logger.error(`[${traceId}] Unhandled exception on ${req.method} ${req.url}`, exception instanceof Error ? exception.stack : String(exception));
+
+    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+    // traceId만 클라이언트에 노출하고 상세는 서버 로그에만 남긴다
+    res.status(status).json({ code: 'INTERNAL_ERROR', message: '처리 중 오류가 발생했다', traceId });
+  }
 }
 ```
 

@@ -60,10 +60,10 @@ UUID v7은 2022년 RFC 9562에서 표준화됐다. 앞 48비트에 밀리초 단
 └─ 타임스탬프 ─┘└─ 버전/랜덤 ──────────┘
 ```
 
-```java
-// Java 21+: 표준 라이브러리에 UUID v7 없음, 외부 라이브러리 필요
-// com.github.f4b6a3:uuid-creator
-UUID uuid = UuidCreator.getTimeOrderedEpoch(); // UUID v7
+```typescript
+// Node.js 20+: uuid 라이브러리 사용
+import { v7 as uuidv7 } from 'uuid';
+const uuid = uuidv7(); // UUID v7
 ```
 
 ```sql
@@ -102,36 +102,39 @@ Twitter에서 설계한 분산 ID 생성 체계다. 64비트 정수로 구성된
 
 결과가 64비트 정수(BIGINT)다. auto-increment처럼 쓸 수 있고 단조 증가하므로 InnoDB에 최적이다. DB 없이 ID를 생성할 수 있다는 게 핵심이다.
 
-```java
-@Component
-public class SnowflakeIdGenerator {
-    private final long epoch = 1704067200000L; // 2024-01-01 기준
-    private final long workerIdBits = 10L;
-    private final long sequenceBits = 12L;
+```typescript
+export class SnowflakeIdGenerator {
+    private readonly epoch = 1704067200000n; // 2024-01-01 기준 (BigInt)
+    private readonly workerIdBits = 10n;
+    private readonly sequenceBits = 12n;
 
-    private final long workerId;
-    private long sequence = 0L;
-    private long lastTimestamp = -1L;
+    private readonly workerId: bigint;
+    private sequence = 0n;
+    private lastTimestamp = -1n;
 
-    public synchronized long nextId() {
-        long timestamp = System.currentTimeMillis();
+    constructor(workerId: number) {
+        this.workerId = BigInt(workerId);
+    }
 
-        if (timestamp == lastTimestamp) {
-            sequence = (sequence + 1) & 0xFFF;
-            if (sequence == 0) {
+    nextId(): bigint {
+        let timestamp = BigInt(Date.now());
+
+        if (timestamp === this.lastTimestamp) {
+            this.sequence = (this.sequence + 1n) & 0xFFFn;
+            if (this.sequence === 0n) {
                 // 같은 밀리초에 4096개 초과 -> 다음 밀리초 대기
-                while (timestamp <= lastTimestamp) {
-                    timestamp = System.currentTimeMillis();
+                while (timestamp <= this.lastTimestamp) {
+                    timestamp = BigInt(Date.now());
                 }
             }
         } else {
-            sequence = 0;
+            this.sequence = 0n;
         }
 
-        lastTimestamp = timestamp;
-        return ((timestamp - epoch) << (workerIdBits + sequenceBits))
-             | (workerId << sequenceBits)
-             | sequence;
+        this.lastTimestamp = timestamp;
+        return ((timestamp - this.epoch) << (this.workerIdBits + this.sequenceBits))
+             | (this.workerId << this.sequenceBits)
+             | this.sequence;
     }
 }
 ```
@@ -269,31 +272,38 @@ WHERE id = UUID_TO_BIN('f47ac10b-58cc-4372-a567-0e02b2c3d479');
 
 애플리케이션에서 변환하는 방법도 있다.
 
-```java
-public static byte[] uuidToBytes(UUID uuid) {
-    ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-    bb.putLong(uuid.getMostSignificantBits());
-    bb.putLong(uuid.getLeastSignificantBits());
-    return bb.array();
+```typescript
+function uuidToBytes(uuid: string): Buffer {
+    const hex = uuid.replace(/-/g, '');
+    return Buffer.from(hex, 'hex');
 }
 
-public static UUID bytesToUuid(byte[] bytes) {
-    ByteBuffer bb = ByteBuffer.wrap(bytes);
-    long high = bb.getLong();
-    long low = bb.getLong();
-    return new UUID(high, low);
+function bytesToUuid(bytes: Buffer): string {
+    const hex = bytes.toString('hex');
+    return [
+        hex.slice(0, 8),
+        hex.slice(8, 12),
+        hex.slice(12, 16),
+        hex.slice(16, 20),
+        hex.slice(20),
+    ].join('-');
 }
 ```
 
-JPA에서 BINARY(16) UUID를 매핑할 때는 Hibernate 6부터 제공하는 어노테이션으로 처리한다.
+TypeORM에서 BINARY(16) UUID를 매핑할 때는 `@Column({ type: 'binary', length: 16 })`과 변환 로직을 조합한다.
 
-```java
-@Entity
-public class Session {
-    @Id
-    @JdbcTypeCode(SqlTypes.BINARY)
-    @GeneratedValue(generator = "uuid")
-    private UUID id;
+```typescript
+@Entity()
+export class Session {
+    @PrimaryColumn({ type: 'binary', length: 16 })
+    id: Buffer;
+
+    @BeforeInsert()
+    generateId(): void {
+        if (!this.id) {
+            this.id = uuidToBytes(uuidv7());
+        }
+    }
 }
 ```
 
@@ -332,13 +342,12 @@ SELECT current_value FROM id_sequences WHERE name = 'orders';
 
 Kubernetes StatefulSet이라면 Pod 이름의 숫자를 파싱한다.
 
-```java
-@Value("${HOSTNAME:unknown}")
-private String hostname; // order-service-0, order-service-1, ...
+```typescript
+const hostname = process.env.HOSTNAME ?? 'unknown'; // order-service-0, order-service-1, ...
 
-private long extractWorkerId(String hostname) {
-    String[] parts = hostname.split("-");
-    return Long.parseLong(parts[parts.length - 1]);
+function extractWorkerId(hostname: string): number {
+    const parts = hostname.split('-');
+    return parseInt(parts[parts.length - 1], 10);
 }
 ```
 
@@ -380,14 +389,14 @@ CREATE TABLE orders (
 );
 ```
 
-```java
-@PostMapping("/orders")
-public OrderResponse createOrder(@RequestBody OrderRequest req) {
-    Order order = orderService.create(req);
-    return OrderResponse.builder()
-        .id(order.getExternalId()) // ULID 노출
-        // .id(order.getId()) -- 내부 PK 노출 금지
-        .build();
+```typescript
+// POST /orders
+async createOrder(req: OrderRequest): Promise<OrderResponse> {
+    const order = await this.orderService.create(req);
+    return {
+        id: order.externalId, // ULID 노출
+        // id: order.id  -- 내부 PK 노출 금지
+    };
 }
 ```
 

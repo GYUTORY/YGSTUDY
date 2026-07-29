@@ -351,31 +351,26 @@ Wazuh, Falco 같은 호스트 기반 IDS로 IMDS 접근을 감지한다. EKS/ECS
 
 가장 확실한 방법은 허용된 도메인/IP만 요청을 보내는 것이다. Denylist는 우회 기법이 너무 많아서 신뢰하기 어렵다.
 
-```java
-// Spring - 허용 도메인 검증
-public class UrlValidator {
+```typescript
+// TypeScript — 허용 도메인 검증 (allowlist)
+const ALLOWED_HOSTS = new Set([
+  'api.github.com',
+  'hooks.slack.com',
+]);
 
-    private static final Set<String> ALLOWED_HOSTS = Set.of(
-        "api.github.com",
-        "hooks.slack.com"
-    );
+function isAllowedUrl(urlString: string): boolean {
+  try {
+    const parsed = new URL(urlString);
 
-    public boolean isAllowed(String urlString) {
-        try {
-            URI uri = new URI(urlString);
-            String host = uri.getHost();
-            String scheme = uri.getScheme();
-
-            // HTTP/HTTPS만 허용. gopher, file, ftp 등 차단
-            if (!"https".equals(scheme)) {
-                return false;
-            }
-
-            return host != null && ALLOWED_HOSTS.contains(host.toLowerCase());
-        } catch (URISyntaxException e) {
-            return false;
-        }
+    // HTTP/HTTPS만 허용. gopher, file, ftp 등 차단
+    if (parsed.protocol !== 'https:') {
+      return false;
     }
+
+    return ALLOWED_HOSTS.has(parsed.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
 }
 ```
 
@@ -426,54 +421,47 @@ flowchart TD
 
 URL의 호스트를 먼저 DNS resolve하고, resolve된 IP가 내부 대역인지 확인한다. 단, DNS rebinding 공격에 취약하므로 다음 절(DNS Rebinding 대응)과 함께 적용해야 한다.
 
-```java
-// Spring - IP 대역 검증
-import java.net.InetAddress;
+```typescript
+// TypeScript — DNS resolve 후 IP 대역 검증
+import dns from 'dns/promises';
 
-public class SsrfProtection {
+function isPrivateIp(ip: string): boolean {
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4) return true;  // IPv6 등은 일단 차단
 
-    public boolean isInternalIp(String host) throws Exception {
-        InetAddress[] addresses = InetAddress.getAllByName(host);
+  return (
+    parts[0] === 127 ||                                              // loopback
+    parts[0] === 10  ||                                              // 10.0.0.0/8
+    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||       // 172.16.0.0/12
+    (parts[0] === 192 && parts[1] === 168) ||                        // 192.168.0.0/16
+    (parts[0] === 169 && parts[1] === 254) ||                        // link-local/메타데이터
+    parts[0] === 0                                                   // 0.0.0.0
+  );
+}
 
-        for (InetAddress addr : addresses) {
-            if (addr.isLoopbackAddress()
-                || addr.isLinkLocalAddress()
-                || addr.isSiteLocalAddress()
-                || addr.isAnyLocalAddress()) {
-                return true;
-            }
+async function isSafeUrl(urlString: string): Promise<boolean> {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    return false;
+  }
 
-            // 169.254.169.254 (클라우드 메타데이터) 명시적 차단
-            byte[] bytes = addr.getAddress();
-            if (bytes.length == 4
-                && (bytes[0] & 0xFF) == 169
-                && (bytes[1] & 0xFF) == 254) {
-                return true;
-            }
-        }
-        return false;
-    }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    return false;
+  }
 
-    public boolean isSafeUrl(String urlString) throws Exception {
-        URI uri = new URI(urlString);
-        String scheme = uri.getScheme();
+  const { address } = await dns.lookup(parsed.hostname);
+  if (isPrivateIp(address)) {
+    return false;
+  }
 
-        if (!"https".equals(scheme) && !"http".equals(scheme)) {
-            return false;
-        }
+  const port = parsed.port ? Number(parsed.port) : (parsed.protocol === 'https:' ? 443 : 80);
+  if (port !== 80 && port !== 443) {
+    return false;
+  }
 
-        String host = uri.getHost();
-        if (host == null || isInternalIp(host)) {
-            return false;
-        }
-
-        int port = uri.getPort();
-        if (port != -1 && port != 80 && port != 443) {
-            return false;
-        }
-
-        return true;
-    }
+  return true;
 }
 ```
 
@@ -780,51 +768,37 @@ async def safe_fetch(url: str, timeout: float = 5.0) -> str:
 
 ---
 
-## Spring에서 SSRF 방어 적용
+## Node.js에서 SSRF 방어 적용
 
 실제 웹훅 기능에 SSRF 방어를 적용하는 예시다.
 
-```java
-@Service
-public class WebhookService {
+```typescript
+// NestJS — WebhookService
+import { Injectable, BadRequestException } from '@nestjs/common';
+import axios from 'axios';
+import { isSafeUrl } from './ssrf-protection';  // 위에서 정의한 함수
 
-    private final SsrfProtection ssrfProtection;
-    private final RestTemplate restTemplate;
-
-    public WebhookService(SsrfProtection ssrfProtection) {
-        this.ssrfProtection = ssrfProtection;
-
-        // 리다이렉트 비활성화
-        HttpComponentsClientHttpRequestFactory factory =
-            new HttpComponentsClientHttpRequestFactory();
-        CloseableHttpClient httpClient = HttpClients.custom()
-            .disableRedirectHandling()
-            .build();
-        factory.setHttpClient(httpClient);
-        factory.setConnectTimeout(5000);
-        factory.setReadTimeout(5000);
-
-        this.restTemplate = new RestTemplate(factory);
+@Injectable()
+export class WebhookService {
+  async sendWebhook(url: string, payload: unknown): Promise<void> {
+    if (!(await isSafeUrl(url))) {
+      throw new BadRequestException(`허용되지 않는 URL: ${url}`);
     }
 
-    public void sendWebhook(String url, Object payload) {
-        try {
-            if (!ssrfProtection.isSafeUrl(url)) {
-                throw new IllegalArgumentException("허용되지 않는 URL: " + url);
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("URL 검증 실패", e);
-        }
-
-        restTemplate.postForEntity(url, payload, String.class);
-    }
+    await axios.post(url, payload, {
+      timeout: 5000,
+      // axios는 기본으로 리다이렉트를 따라간다 — 최대 횟수 0으로 설정
+      maxRedirects: 0,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
 ```
 
 주의할 점.
 
-- `RestTemplate`의 기본 설정은 리다이렉트를 따라간다. 반드시 비활성화한다.
-- 타임아웃을 설정하지 않으면, 내부 서비스가 응답하지 않을 때 스레드가 묶인다.
+- `axios`의 기본 설정은 리다이렉트를 따라간다. `maxRedirects: 0`으로 반드시 비활성화한다.
+- 타임아웃을 설정하지 않으면, 내부 서비스가 응답하지 않을 때 요청이 영구 대기한다.
 - URL 검증과 실제 요청 사이에 시간 차가 있으면 DNS rebinding에 취약할 수 있다. resolve된 IP로 직접 요청하는 방식이 더 안전하다.
 
 ---

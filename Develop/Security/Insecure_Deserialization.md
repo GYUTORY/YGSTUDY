@@ -57,81 +57,48 @@ flowchart TD
 
 ysoserial이라는 도구가 이런 가젯 체인을 자동으로 만들어준다. 라이브러리 조합별로 페이로드를 생성해주기 때문에, 공격자 입장에서는 직접 체인을 발굴할 필요도 없다. 방어하는 입장에서는 이게 무섭다. "우리는 commons-collections 3.1 쓰는데 ysoserial에 CommonsCollections1 체인이 있네"면 바로 공격 가능하다고 봐야 한다.
 
-## Java: ObjectInputStream
+## Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)
 
-Java의 역직렬화가 가장 악명 높다. RMI, JMX, 일부 메시징, 옛날 세션 클러스터링, 일부 캐시 라이브러리가 내부적으로 Java 직렬화를 쓴다. 본인이 직접 `ObjectInputStream`을 안 써도 프레임워크가 쓰고 있을 수 있다.
+Java의 `ObjectInputStream` 기반 역직렬화가 가장 악명 높은 사례다. RMI, JMX, 일부 메시징, 옛날 세션 클러스터링, 일부 캐시 라이브러리가 내부적으로 Java 직렬화를 쓴다.
 
-### 취약한 코드
+```
+// Java에서의 취약한 코드 (개념 설명)
+ObjectInputStream ois = new ObjectInputStream(inputStream);
+Object obj = ois.readObject(); // 사용자 입력을 바로 역직렬화
 
-```java
-// 신뢰할 수 없는 입력을 그대로 역직렬화 — 위험
-public Object deserialize(byte[] data) throws Exception {
-    ByteArrayInputStream bis = new ByteArrayInputStream(data);
-    ObjectInputStream ois = new ObjectInputStream(bis);
-    return ois.readObject();  // 여기서 가젯 체인이 동작한다
-}
+// readObject() 호출 시 페이로드 안의 객체 그래프가 복원되면서
+// 각 객체의 readObject, readResolve, hashCode 메서드가 자동 호출됨
+// → 가젯 체인의 시작점
 ```
 
 `readObject()`가 호출되는 순간 페이로드 안에 들어있는 객체 그래프가 복원되면서 각 객체의 `readObject`, `readResolve`, `finalize`, `hashCode` 같은 메서드가 자동 호출된다. 이 자동 호출이 가젯 체인의 시작점이다.
 
 실제 사고 사례가 많다. 2015년 Apache Commons Collections 가젯이 공개되면서 WebLogic, WebSphere, JBoss, Jenkins 등 수많은 제품에서 RCE가 터졌다. 2017년 Jenkins, 2021년 여러 제품에서도 같은 패턴이 반복됐다. 공통점은 전부 신뢰할 수 없는 입력을 Java 직렬화로 역직렬화했다는 것이다.
 
-### ObjectInputFilter로 화이트리스트 거는 법
+### 근본적인 방어 — 이진 직렬화 자체를 안 쓴다
 
-Java 9부터 `ObjectInputFilter`가 표준으로 들어왔다 (JEP 290). Java 8에서도 8u121 이상이면 백포트되어 있다. 역직렬화 대상 클래스를 필터링할 수 있다.
+Java 직렬화 자체를 안 쓰는 게 낫다. Node.js에서도 동일한 원칙이 적용된다.
 
-```java
-import java.io.*;
+```typescript
+// 위험 — node-serialize 같은 라이브러리로 임의 함수를 역직렬화
+const data = serialize.unserialize(userInput);  // IIFE 패턴으로 코드 실행 가능
 
-public Object deserializeSafe(byte[] data) throws Exception {
-    ByteArrayInputStream bis = new ByteArrayInputStream(data);
-    ObjectInputStream ois = new ObjectInputStream(bis);
+// 안전 — JSON.parse는 함수를 실행하지 않는다
+const data = JSON.parse(userInput) as ExpectedType;
 
-    // 허용할 클래스만 명시. 나머지는 전부 거부
-    ObjectInputFilter filter = ObjectInputFilter.Config.createFilter(
-        "com.myapp.dto.OrderDto;com.myapp.dto.UserDto;" +  // 허용 클래스
-        "java.lang.*;java.util.*;" +                        // 기본 타입
-        "!*"                                                // 그 외 전부 거부
-    );
-    ois.setObjectInputFilter(filter);
+// 더 안전 — 스키마 검증까지 추가
+import { z } from 'zod';
 
-    return ois.readObject();
-}
+const OrderSchema = z.object({
+  id:     z.string().uuid(),
+  amount: z.number().positive(),
+});
+
+const order = OrderSchema.parse(JSON.parse(userInput));
+// 스키마에 맞지 않으면 ZodError 던짐 — 예상치 못한 필드 차단
 ```
 
-필터 패턴은 왼쪽부터 평가된다. `!*`가 맨 뒤에 있어서 명시적으로 허용되지 않은 모든 클래스를 거부한다. 화이트리스트는 반드시 "기본 거부"로 끝나야 한다. 블랙리스트(`!java.lang.Runtime` 식으로 위험한 것만 막기)는 절대 하면 안 된다. 가젯은 계속 새로 발견되기 때문에 블랙리스트는 항상 뚫린다.
-
-JVM 전역으로 거는 것도 가능하다. 시스템 프로퍼티 `jdk.serialFilter`로 지정하면 모든 `ObjectInputStream`에 적용된다.
-
-```bash
-java -Djdk.serialFilter='com.myapp.**;java.base/*;!*' -jar app.jar
-```
-
-깊이 제한, 배열 크기 제한, 참조 개수 제한도 같이 걸 수 있다. DoS 방어용이다.
-
-```
-maxdepth=20;maxrefs=1000;maxbytes=10000;com.myapp.**;!*
-```
-
-필터를 코드로 직접 짤 수도 있다. 클래스 이름 기준이 아니라 패키지나 로더 기준으로 정교하게 거르고 싶을 때 쓴다.
-
-```java
-ObjectInputFilter filter = info -> {
-    Class<?> clazz = info.serialClass();
-    if (clazz == null) {
-        return ObjectInputFilter.Status.UNDECIDED;  // 클래스 정보 없으면 다음 검사로
-    }
-    String name = clazz.getName();
-    if (name.startsWith("com.myapp.dto.")) {
-        return ObjectInputFilter.Status.ALLOWED;
-    }
-    return ObjectInputFilter.Status.REJECTED;
-};
-```
-
-### 더 근본적인 방어
-
-필터를 거는 것보다 Java 직렬화 자체를 안 쓰는 게 낫다. 외부와 주고받는 데이터는 JSON, Protobuf 같은 데이터 전용 포맷으로 바꾼다. DTO를 Jackson으로 직렬화/역직렬화하면 임의 클래스 인스턴스화 문제가 사라진다. 단 Jackson도 설정을 잘못하면 똑같이 뚫린다(아래 JSON 항목 참고).
+외부와 주고받는 데이터는 JSON, Protobuf 같은 데이터 전용 포맷으로 바꾼다. `zod`, `io-ts`, `class-validator` 같은 라이브러리로 입력 스키마를 명시적으로 검증하면 임의 클래스 인스턴스화 문제가 사라진다.
 
 ## Python: pickle
 
