@@ -24,4 +24,5 @@ nav:
   - ClickHouse.md
   - My_SQL_vs_Postgre_SQL.md
   - Auto_Increment.md
+  - ULID.md
   - Type_ORM_Entity_Relations.md

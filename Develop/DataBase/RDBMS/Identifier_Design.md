@@ -75,7 +75,7 @@ UUID 체계를 유지해야 하는 상황에서 UUID를 PK로 쓴다면 v4 대�
 
 ## ULID
 
-ULID(Universally Unique Lexicographically Sortable Identifier)는 128비트다. 앞 48비트에 밀리초 단위 타임스탬프, 나머지 80비트에 랜덤값을 담는다. Base32 인코딩으로 26자리 문자열로 표현된다.
+ULID(Universally Unique Lexicographically Sortable Identifier)는 128비트다. 앞 48비트에 밀리초 단위 타임스탬프, 나머지 80비트에 랜덤값을 Crockford Base32로 인코딩해 26자리 문자열로 표현된다.
 
 ```
 01ARZ3NDEKTSV4RRFFQ69G5FAV
@@ -83,18 +83,9 @@ ULID(Universally Unique Lexicographically Sortable Identifier)는 128비트다. 
  타임스탬프      랜덤값
 ```
 
-UUID와 같은 128비트지만 하이픈이 없고 대소문자 구분 없는 Base32라 URL에 안전하고 타이핑하기 쉽다. 같은 밀리초 안에서도 랜덤값이 단조 증가하도록 구현한 monotonic ULID 방식도 있어 동일 타임스탬프 내 충돌 가능성을 더 낮출 수 있다.
+타임스탬프가 앞에 있어 InnoDB 페이지 분할이 거의 없다. 하이픈이 없고, Crockford Base32 알파벳은 I·L·O·U를 제외해 숫자 1·0과 혼동이 없다. 문자열 사전 순 비교가 생성 시각 순 정렬과 일치해서 Redis·Cassandra 같은 문자열 비교 기반 저장소에서 인덱스 없이 시각 범위 조회가 가능하다.
 
-```typescript
-// Node.js
-import { ulid, monotonicFactory } from 'ulid';
-
-const monotonic = monotonicFactory();
-const id1 = monotonic(); // 01ARZ3NDEKTSV4RRFFQ69G5FAV
-const id2 = monotonic(); // 01ARZ3NDEKTSV4RRFFQ69G5FAW (같은 밀리초에도 증가)
-```
-
-문자열로 정렬하면 시간순 정렬이 된다. Redis Sorted Set이나 Cassandra처럼 문자열 비교 기반 저장소에서 유용하다. MySQL에 저장할 때는 CHAR(26)보다 BINARY(16)이 공간 효율이 낫다.
+Monotonic ULID, MySQL/PostgreSQL 저장 방식, Spring/JPA 통합, UUID v7과의 비교는 [ULID](ULID.md)에서 다룬다.
 
 ## Snowflake ID
 
