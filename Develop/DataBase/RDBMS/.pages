@@ -17,6 +17,7 @@ nav:
   - 비정규화.md
   - Hierarchical_Data_Modeling.md
   - Data_Type_Selection.md
+  - Identifier_Design.md
   - CDC_Pipeline.md
   - ClickHouse.md
   - My_SQL_vs_Postgre_SQL.md
