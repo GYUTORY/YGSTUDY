@@ -18,6 +18,7 @@ nav:
   - Hierarchical_Data_Modeling.md
   - Data_Type_Selection.md
   - Identifier_Design.md
+  - Surrogate_Key.md
   - CDC_Pipeline.md
   - ClickHouse.md
   - My_SQL_vs_Postgre_SQL.md
