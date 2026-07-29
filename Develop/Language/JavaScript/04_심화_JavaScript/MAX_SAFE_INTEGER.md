@@ -1,6 +1,6 @@
 ---
 title: MAX_SAFE_INTEGER
-tags: [JavaScript, Number, IEEE754, BigInt, 정밀도]
+tags: [JavaScript, Number, IEEE754, BigInt, 정밀도, Prisma, TypeORM]
 updated: 2026-07-29
 ---
 
@@ -43,7 +43,77 @@ console.log(result.rows[0].id); // "9007199254740993" — pg는 BIGINT를 문자
 const id = Number(result.rows[0].id); // 9007199254740992 — 이미 손상됨
 ```
 
-typeorm이나 prisma에서도 같은 문제가 생긴다. prisma는 `BigInt` 타입 컬럼을 JavaScript `bigint`로 매핑하는데, JSON 직렬화에서 걸린다.
+#### Prisma
+
+Prisma schema에서 BigInt 컬럼을 선언하면 JavaScript `bigint` 타입으로 매핑된다.
+
+```prisma
+model User {
+  id   BigInt @id @default(autoincrement())
+  name String
+}
+```
+
+쿼리 결과의 `id`는 `bigint` 타입이다. `res.json(user)`를 바로 호출하면 `TypeError: Do not know how to serialize a BigInt`가 발생한다. Express, Fastify, NestJS 모두 내부적으로 `JSON.stringify`를 쓰기 때문이다.
+
+```typescript
+// 문제 상황
+const user = await prisma.user.findUnique({ where: { id: 1n } });
+res.json(user); // TypeError 발생
+
+// 해결 1: replacer로 일괄 변환
+const serialized = JSON.stringify(user, (_, v) =>
+  typeof v === 'bigint' ? v.toString() : v
+);
+res.setHeader('Content-Type', 'application/json').send(serialized);
+```
+
+매번 replacer를 붙이기 번거롭다면 Prisma Client Extensions(v5+)로 쿼리 결과에서 BigInt를 string으로 변환하는 방법이 있다.
+
+```typescript
+const prisma = new PrismaClient().$extends({
+  result: {
+    user: {
+      id: {
+        needs: { id: true },
+        compute(user) {
+          return user.id.toString();
+        },
+      },
+    },
+  },
+});
+
+// where 절은 여전히 bigint를 받음
+const user = await prisma.user.findUnique({ where: { id: 1n } });
+console.log(typeof user?.id); // "string" — 결과는 string으로 변환됨
+```
+
+v4 이하에서는 `$use` 미들웨어로 처리했지만 v5에서 deprecated됐다. `$extends` result 방식이 현재 권장 방법이다.
+
+NestJS에서는 전역 interceptor나 `FastifyInstance`의 `addContentTypeParser`로 직렬화 처리를 한 곳에 모아두는 편이 낫다. 컨트롤러마다 replacer를 붙이면 누락이 생긴다.
+
+#### TypeORM
+
+TypeORM에서 `@Column('bigint')`은 컬럼 값을 string으로 반환한다. mysql2 드라이버가 BIGINT를 string으로 전달하기 때문이다.
+
+```typescript
+@Entity()
+class User {
+  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  id: string; // bigint 컬럼은 string으로 반환
+
+  @Column({ type: 'bigint' })
+  score: string;
+}
+
+const user = await userRepository.findOne({ where: { id: '9007199254740993' } });
+console.log(typeof user.id); // "string"
+```
+
+흔한 실수는 엔티티 프로퍼티를 `number`로 선언하는 것이다. TypeScript 타입을 `number`로 써도 런타임 값은 string으로 오기 때문에 타입과 실제 값이 어긋난다. BigInt 연산이 필요한 경우 `BigInt(user.id)`로 변환해서 쓴다.
+
+PostgreSQL은 드라이버 동작이 다르다. `pg` 라이브러리는 BIGINT를 string으로 주지만 TypeORM이 엔티티 타입에 맞게 변환을 시도한다. 컬럼 타입을 `bigint`로 선언하면 string이 유지되고, `number`로 선언하면 Number 변환을 시도해서 손실이 생긴다.
 
 ### Snowflake ID
 
@@ -82,6 +152,58 @@ console.log(data.amount === 9007199254740993); // false
 
 응답 스펙을 보면 숫자처럼 생겼는데 실제로는 손실이 생겨 있는 상태다. 겉으로는 드러나지 않기 때문에 데이터 정합성 문제로 한참 지나서 발견된다.
 
+## json-bigint 라이브러리
+
+`JSON.parse`의 정밀도 손실 문제는 파서 자체를 교체해서 해결한다. `json-bigint` 라이브러리는 JavaScript 숫자 범위를 벗어나는 정수를 `bigint` 또는 string으로 파싱한다.
+
+```bash
+npm install json-bigint
+```
+
+```javascript
+const JSONbig = require('json-bigint');
+
+const raw = '{"id": 9007199254740993, "name": "Alice"}';
+
+// 기본 JSON.parse
+const parsed = JSON.parse(raw);
+console.log(parsed.id); // 9007199254740992 — 손실
+
+// json-bigint
+const parsed2 = JSONbig.parse(raw);
+console.log(parsed2.id);        // 9007199254740993n
+console.log(typeof parsed2.id); // "bigint"
+
+// 직렬화도 지원
+const str = JSONbig.stringify(parsed2);
+console.log(str); // '{"id":9007199254740993,"name":"Alice"}'
+```
+
+`storeAsString` 옵션을 주면 BigInt 대신 string으로 저장한다. DB에 저장하거나 API 응답으로 다시 내려줄 때 변환 단계가 줄어서 실무에서 더 자주 쓰는 방식이다.
+
+```javascript
+const JSONbig = require('json-bigint')({ storeAsString: true });
+
+const parsed = JSONbig.parse('{"id": 9007199254740993}');
+console.log(parsed.id);        // "9007199254740993"
+console.log(typeof parsed.id); // "string"
+```
+
+axios로 외부 API를 호출할 때 `transformResponse`에 적용하면 응답 전체에 일괄 적용된다.
+
+```javascript
+const JSONbig = require('json-bigint')({ storeAsString: true });
+
+const instance = axios.create({
+  transformResponse: [data => JSONbig.parse(data)],
+});
+
+const res = await instance.get('/api/payment/123');
+console.log(res.data.transactionId); // 손실 없는 string
+```
+
+fetch API는 `response.json()` 대신 `response.text()`로 raw 문자열을 받아서 `JSONbig.parse()`를 직접 호출한다.
+
 ## 손실 여부 확인과 디버깅
 
 특정 숫자가 안전 범위 안에 있는지 확인한다.
@@ -110,6 +232,70 @@ const text = await res.text(); // 먼저 텍스트로 읽음
 console.log(text);             // 원본 JSON 문자열 확인
 const data = JSON.parse(text);
 ```
+
+## TypeScript에서 bigint 타입
+
+TypeScript는 `bigint` 타입을 기본 지원한다. `tsconfig.json`의 `target`이 `ES2020` 이상이어야 하고, `ES2019` 이하로 설정하면 컴파일 에러가 난다.
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020"
+  }
+}
+```
+
+```typescript
+const id: bigint = 9007199254740993n;
+const doubled: bigint = id * 2n;
+
+// Number와 혼합 연산 불가 — 컴파일 에러
+const wrong = id + 1;  // error: Operator '+' cannot be applied to types 'bigint' and 'number'
+const right = id + 1n; // 정상
+
+// 변환
+const asString: string = id.toString();
+const asNumber: number = Number(id); // MAX_SAFE_INTEGER 초과 시 손실
+const fromString: bigint = BigInt('9007199254740993');
+const fromNumber: bigint = BigInt(42); // 안전 범위 정수에서만 사용
+```
+
+API 경계에서는 `string`, 내부 비즈니스 로직에서는 `bigint`를 쓰는 패턴이 관리하기 편하다.
+
+```typescript
+// HTTP 응답 DTO — string으로 직렬화
+interface UserResponse {
+  id: string;
+  name: string;
+}
+
+// 내부 도메인 모델 — bigint 그대로
+interface UserEntity {
+  id: bigint;
+  name: string;
+}
+
+function toResponse(entity: UserEntity): UserResponse {
+  return {
+    id: entity.id.toString(),
+    name: entity.name,
+  };
+}
+```
+
+NestJS에서 class-transformer와 `bigint`를 함께 쓸 때 주의가 필요하다. HTTP body로 받은 값은 항상 string이기 때문에 `@Transform`으로 명시적 변환을 해야 한다.
+
+```typescript
+import { Transform } from 'class-transformer';
+import { IsString } from 'class-validator';
+
+class CreateItemDto {
+  @Transform(({ value }) => BigInt(value))
+  ownerId: bigint;
+}
+```
+
+`class-validator`의 `@IsString()`, `@IsNumber()` 같은 데코레이터는 `bigint`를 인식하지 못한다. validation 전에 변환하면 검증 자체가 꼬이기 때문에, DTO 레벨에서는 string으로 받고 서비스 레이어에서 `BigInt()`로 변환하는 방식이 더 안전하다.
 
 ## BigInt 전환 시 주의사항
 
