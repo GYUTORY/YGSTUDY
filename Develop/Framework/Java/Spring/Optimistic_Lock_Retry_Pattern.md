@@ -1,12 +1,12 @@
 ---
 title: 낙관적 락 충돌 후 재시도 처리
-tags: [Spring, JPA, 낙관적락, 동시성, 트랜잭션, OptimisticLock]
-updated: 2026-07-28
+tags: [Spring, JPA, 낙관적락, 동시성, 트랜잭션, OptimisticLock, Redis, ExponentialBackoff]
+updated: 2026-07-30
 ---
 
 # 낙관적 락 충돌 후 재시도 처리
 
-낙관적 락은 충돌을 막지 않는다. 충돌이 발생한 후에 감지한다. 그래서 재시도 로직이 반드시 따라와야 하는데, 이 재시도를 잘못 구현하면 충돌이 나도 아무 효과가 없는 코드가 된다.
+낙관적 락은 충돌을 막지 않는다. 충돌을 감지한다. 그래서 재시도 로직이 반드시 따라와야 하는데, 재시도를 잘못 구현하면 충돌이 나도 효과가 없거나, 트래픽이 몰릴 때 재시도 자체가 서비스를 죽이는 상황이 된다.
 
 ## @Version 기반 낙관적 락 동작 방식
 
@@ -35,7 +35,7 @@ UPDATE product SET stock = 9, version = 2 WHERE id = 1 AND version = 1
 
 ## @Retryable + @Transactional 조합의 함정
 
-Spring Retry의 `@Retryable`과 `@Transactional`을 함께 쓰면 직관적으로 "예외 발생 시 트랜잭션을 처음부터 다시 시작하겠지"라고 생각하기 쉽다. 실제로는 그렇지 않다.
+Spring Retry의 `@Retryable`과 `@Transactional`을 같은 메서드에 붙이면 직관적으로 "예외 발생 시 트랜잭션을 처음부터 다시 시작하겠지"라고 생각하기 쉽다. 실제로는 그렇지 않다.
 
 ```java
 // 이렇게 쓰면 안 된다
@@ -44,22 +44,34 @@ Spring Retry의 `@Retryable`과 `@Transactional`을 함께 쓰면 직관적으�
 public void decreaseStock(Long productId, int quantity) {
     Product product = productRepository.findById(productId).orElseThrow();
     product.decreaseStock(quantity);
-    // OptimisticLockException 발생 시 @Retryable이 재시도
-    // 그런데 같은 트랜잭션 컨텍스트 안에서 재시도가 일어난다
 }
 ```
 
 `@Retryable`은 메서드 레벨에서 예외를 잡아 재호출한다. `@Transactional`은 프록시가 트랜잭션을 열고 메서드 본문을 실행한다.
 
-문제는 AOP 프록시 적용 순서다. 바깥쪽 프록시가 먼저 감싸는데, 일반적으로 `@Transactional`이 `@Retryable`보다 안쪽에 위치한다. `OptimisticLockException`이 발생하면 이미 트랜잭션이 롤백 마크(`rollback-only`)가 찍힌 상태고, `@Retryable`이 메서드를 다시 호출해도 새 트랜잭션이 열리지 않는다. 기존에 롤백 마크가 찍힌 트랜잭션 안에서 재시도가 일어나거나 `TransactionSystemException`이 연달아 터진다.
+문제는 AOP 프록시 적용 순서다. 바깥쪽 프록시가 먼저 감싸는데, 일반적으로 `@Transactional`이 `@Retryable`보다 안쪽에 위치한다. `OptimisticLockException`이 발생하면 이미 트랜잭션에 롤백 마크(`rollback-only`)가 찍힌 상태고, `@Retryable`이 메서드를 다시 호출해도 새 트랜잭션이 열리지 않는다. 기존에 롤백 마크가 찍힌 트랜잭션 안에서 재시도가 일어나거나 `TransactionSystemException`이 연달아 터진다.
 
-`@Order`를 명시적으로 지정해서 `@Retryable`이 트랜잭션보다 바깥쪽에 오도록 강제하면 해결되긴 하지만, 이 방식은 설정이 복잡하고 나중에 다른 개발자가 순서를 건드리면 조용히 깨진다.
+`@Order`를 명시적으로 지정해서 `@Retryable`이 트랜잭션보다 바깥쪽에 오도록 강제하면 해결되긴 한다. 하지만 이 설정은 나중에 다른 개발자가 순서를 건드리면 조용히 깨진다. 재시도 범위와 트랜잭션 범위는 코드 구조 자체로 분리하는 편이 안전하다.
+
+---
+
+## 재시도 폭풍 (Retry Storm)
+
+수동 재시도 루프를 쓰더라도, 트래픽이 몰리는 상황에서는 재시도 자체가 문제가 된다.
+
+재고 차감 요청이 100건 동시에 들어왔다고 하면, 100개 스레드가 모두 version=5 상태로 읽는다. 스레드 1이 먼저 커밋해서 version을 6으로 바꾼다. 나머지 99개 스레드는 전부 `OptimisticLockException`을 받는다. 이 99개가 거의 동시에 재시도에 들어간다. 다시 스레드 하나가 성공하고 98개가 실패해서 재시도한다. 충돌 → 재시도 → 충돌 → 재시도가 계단식으로 반복된다.
+
+각 재시도는 SELECT + UPDATE 쿼리를 DB에 날린다. `maxAttempts=3`으로 설정했다면 이론상 최악의 경우 100 × 3 = 300번의 DB 접근이 발생한다. 커넥션 풀이 30개라면 스레드들이 커넥션을 대기하면서 응답 시간이 폭발적으로 늘어난다.
+
+프로덕션에서 이 상황이 처음 발생하면 서비스가 느려지거나 타임아웃이 터지는 것처럼 보인다. 로그를 보면 같은 `productId`에 대한 `OptimisticLockException`이 초당 수십 건씩 찍혀 있다.
+
+해결 방향은 두 가지다. 재시도 간격에 랜덤 지연(jitter)을 넣어서 충돌 타이밍을 분산시키거나, 충돌 빈도 자체가 높은 리소스는 낙관적 락 대신 벌크 UPDATE나 Redis 분산 락으로 전환하는 것이다.
 
 ---
 
 ## 수동 재시도 루프 구현
 
-재시도 범위와 트랜잭션 범위를 명확히 분리하는 게 낫다.
+재시도 범위와 트랜잭션 범위를 별도 클래스로 분리하는 게 명확하다.
 
 ```java
 @Service
@@ -70,25 +82,26 @@ public class StockService {
 
     public void decreaseStockWithRetry(Long productId, int quantity) {
         int maxAttempts = 3;
-        int attempts = 0;
 
-        while (attempts < maxAttempts) {
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 stockTransactionalService.decreaseStock(productId, quantity);
                 return;
             } catch (OptimisticLockException | ObjectOptimisticLockingFailureException e) {
-                attempts++;
-                if (attempts >= maxAttempts) {
-                    throw new StockUpdateFailedException("재고 업데이트 실패: " + attempts + "회 충돌", e);
+                if (attempt == maxAttempts - 1) {
+                    throw new StockUpdateFailedException("재고 업데이트 실패: " + maxAttempts + "회 충돌", e);
                 }
-                // 재시도 전 짧은 대기 (선택 사항)
-                try {
-                    Thread.sleep(50L * attempts);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new StockUpdateFailedException("재시도 중단", ie);
-                }
+                applyBackoff(attempt);
             }
+        }
+    }
+
+    private void applyBackoff(int attempt) {
+        try {
+            Thread.sleep(exponentialBackoffWithJitter(attempt));
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new StockUpdateFailedException("재시도 중단", ie);
         }
     }
 }
@@ -107,35 +120,156 @@ public class StockTransactionalService {
 }
 ```
 
-재시도 로직은 트랜잭션 바깥에, 실제 작업은 `@Transactional` 메서드 안에 분리한다. 매 재시도마다 새 트랜잭션이 열리고, 새 트랜잭션에서 최신 version 값을 다시 읽어온다.
-
-`ObjectOptimisticLockingFailureException`도 같이 처리해야 한다. Spring Data JPA는 JPA의 `OptimisticLockException`을 이 클래스로 변환해서 던지는 경우가 있다.
+매 재시도마다 새 트랜잭션이 열리고, 최신 version 값을 다시 읽어온다. `ObjectOptimisticLockingFailureException`도 같이 처리해야 한다. Spring Data JPA는 JPA의 `OptimisticLockException`을 이 클래스로 변환해서 던지는 경우가 있다.
 
 ---
 
-## 재시도 상한과 대기 시간
+## Exponential Backoff 구현
 
-재시도 횟수를 너무 크게 잡으면 충돌이 잦은 상황에서 스레드가 오래 묶여 있는다. 너무 작게 잡으면 정상 트래픽에서도 실패가 잦다.
-
-경험상 재고 감소처럼 쓰기 충돌이 잦은 케이스는 3회 정도가 적당하다. 충돌 빈도가 낮은 케이스라면 1~2회도 충분하다.
-
-재시도 사이 대기 시간은 없어도 되지만, 충돌 빈도가 높으면 같은 시점에 몰린 요청들이 계속 서로 방해한다. Jitter(무작위 지연)를 섞으면 충돌이 분산된다.
+고정 대기 시간(fixed delay)은 충돌이 분산되지 않는다. 50ms 뒤에 재시도하는 스레드 99개가 여전히 같은 시점에 몰린다. Exponential Backoff에 Jitter를 더해야 충돌 타이밍이 퍼진다.
 
 ```java
-long baseDelay = 50L;
-long jitter = (long) (Math.random() * 50);
-Thread.sleep(baseDelay * attempts + jitter);
+private long exponentialBackoffWithJitter(int attempt) {
+    long baseDelay = 100L;
+    long maxDelay = 1000L;
+
+    // attempt=0 → 100ms, attempt=1 → 200ms, attempt=2 → 400ms 상한
+    long exponential = Math.min(baseDelay * (1L << attempt), maxDelay);
+
+    // Full Jitter: [0, exponential) 범위 무작위
+    return ThreadLocalRandom.current().nextLong(exponential);
+}
 ```
+
+Full Jitter 방식이다. `[0, cap)` 범위 전체를 무작위로 쓰면 Equal Jitter보다 충돌 분산 효과가 크다. attempt=0일 때 0~100ms, attempt=1일 때 0~200ms, attempt=2일 때 0~400ms 범위에서 각 스레드가 서로 다른 시점에 재시도한다.
+
+더 분산이 필요하면 Decorrelated Jitter를 쓴다. 이전 대기 시간을 기준으로 다음 대기 시간을 결정해서 스레드 간 패턴이 겹치지 않는다.
+
+```java
+private long decorrelatedJitter(long prevDelay) {
+    long minDelay = 100L;
+    long maxDelay = 1000L;
+    // prevDelay의 3배를 상한으로 무작위 선택
+    long next = ThreadLocalRandom.current().nextLong(minDelay, prevDelay * 3);
+    return Math.min(next, maxDelay);
+}
+```
+
+실무에서는 Full Jitter로 충분한 경우가 대부분이다. Decorrelated Jitter는 재시도 간격이 매우 촘촘한 상황(초당 수백 건 이상)에서만 차이가 눈에 띈다.
+
+재시도 횟수 결정 기준은 비즈니스 SLA에 따른다. 사용자 요청을 직접 처리하는 API라면 3회 초과는 응답 시간이 허용 범위를 넘기기 쉽다. 백그라운드 작업이라면 5회까지도 무방하다. 충돌이 잦은 케이스에서 재시도 횟수를 늘리는 건 문제 해결이 아니라 증상 가리기다.
+
+---
+
+## JPA 벌크 UPDATE 전환 판단 기준
+
+재시도 폭풍이 발생하는 케이스 중 상당수는 낙관적 락 자체가 과도한 선택인 경우다. 재고를 `quantity = quantity - amount` 형태로 줄이는 것처럼 단순 수치 연산이라면, DB의 원자 연산으로 충분하다.
+
+```java
+@Repository
+public interface StockRepository extends JpaRepository<Stock, Long> {
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Stock s SET s.quantity = s.quantity - :amount " +
+           "WHERE s.id = :id AND s.quantity >= :amount")
+    int decreaseStock(@Param("id") Long id, @Param("amount") int amount);
+}
+
+@Service
+@RequiredArgsConstructor
+public class StockService {
+
+    private final StockRepository stockRepository;
+
+    @Transactional
+    public void decreaseStock(Long stockId, int amount) {
+        int updated = stockRepository.decreaseStock(stockId, amount);
+        if (updated == 0) {
+            throw new InsufficientStockException("재고 부족 또는 동시 충돌");
+        }
+    }
+}
+```
+
+`quantity = quantity - amount`는 DB가 원자적으로 실행한다. `WHERE quantity >= amount` 조건이 동시성 제어 역할을 한다. 먼저 실행된 쿼리가 재고를 줄이면, 나중에 들어온 쿼리는 재고 부족으로 0 rows updated가 된다. version 컬럼도, 재시도 로직도 필요 없다.
+
+**벌크 UPDATE가 맞는 경우**
+
+수치 증감만 하는 단순 케이스다. 재고 차감, 포인트 적립/차감, 카운터 증가가 여기 해당한다. JPA 생명주기 이벤트(`@PreUpdate`, `@PostUpdate`)가 필요 없고, Hibernate Envers로 변경 이력을 추적하지 않는 경우다.
+
+**벌크 UPDATE를 쓰면 안 되는 경우**
+
+엔티티 상태에 따른 비즈니스 로직이 들어가야 하는 경우다. 재고가 0으로 떨어지면 상태를 `SOLD_OUT`으로 바꿔야 한다든지, 변경 시점에 도메인 이벤트를 발행해야 하는 경우가 여기 해당한다. 벌크 UPDATE는 영속성 컨텍스트를 거치지 않아서 `@PreUpdate`가 동작하지 않는다. 감사 로그를 JPA 이벤트 리스너로 남기고 있다면 벌크 UPDATE는 그 이력을 빠뜨린다.
+
+`clearAutomatically = true`는 벌크 UPDATE 후 1차 캐시를 초기화한다. 같은 트랜잭션에서 엔티티를 조회했다가 벌크 UPDATE를 하면, 이 옵션 없이는 1차 캐시에 업데이트 전 값이 남아 있어서 다시 조회해도 이전 값을 반환한다.
+
+---
+
+## Redis 분산 락 vs 낙관적 락 선택 기준
+
+**낙관적 락이 맞는 경우**
+
+충돌 확률이 낮을 때다. 충돌 빈도가 요청의 10% 미만이라면 대부분 락 없이 성공하고, 드물게 충돌 시에만 재시도 비용을 치른다. 사용자 프로필 수정, 게시글 수정처럼 같은 리소스를 동시에 수정할 일이 드문 케이스가 여기 해당한다. 추가 인프라 없이 DB만으로 해결할 수 있다.
+
+**Redis 분산 락이 맞는 경우**
+
+충돌 빈도가 높은 케이스다. 플래시 세일 재고 차감처럼 수백 개의 요청이 같은 행을 동시에 수정하려 하면, 낙관적 락 재시도가 폭발적으로 증가해서 DB 부하가 오히려 커진다. Redis에서 직렬화하면 DB에는 성공하는 쿼리만 들어간다.
+
+스케줄러 중복 실행 방지처럼 락 선점 자체가 목적인 경우에도 Redis 분산 락이 적합하다. 낙관적 락은 충돌 감지 후 롤백이지, 선점이 아니다.
+
+```java
+@Service
+@RequiredArgsConstructor
+public class StockService {
+
+    private final RedissonClient redissonClient;
+    private final StockTransactionalService stockTransactionalService;
+
+    public void decreaseStock(Long productId, int quantity) {
+        RLock lock = redissonClient.getLock("stock:" + productId);
+
+        boolean acquired;
+        try {
+            // waitTime: 락 획득 대기, leaseTime: 락 유지 시간
+            acquired = lock.tryLock(3, 5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LockAcquisitionFailedException("락 획득 중단", e);
+        }
+
+        if (!acquired) {
+            throw new LockAcquisitionFailedException("락 획득 실패: productId=" + productId);
+        }
+
+        try {
+            stockTransactionalService.decreaseStock(productId, quantity);
+        } finally {
+            // leaseTime이 지나서 락이 이미 해제된 경우 예외 방지
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+}
+```
+
+`leaseTime` 안에 작업이 끝나지 않으면 락이 자동 해제된다. 서버가 다운되더라도 `leaseTime` 이후에는 락이 풀린다. `leaseTime`을 너무 짧게 잡으면 정상 처리 중에 락이 풀리고, 너무 길게 잡으면 서버 장애 시 복구가 느려진다. 실제 작업 시간의 3~5배를 기준으로 잡는다.
+
+`lock.isHeldByCurrentThread()` 확인 없이 `lock.unlock()`을 호출하면, `leaseTime`이 지나서 락이 이미 해제된 상태에서 `IllegalMonitorStateException`이 터진다.
+
+**선택 흐름**
+
+단순 수치 증감이고 JPA 이벤트가 필요 없다 → 벌크 UPDATE.
+충돌 확률이 낮고 추가 인프라를 도입하고 싶지 않다 → 낙관적 락.
+충돌 확률이 높거나(동일 리소스에 초당 수십 건 이상) 재시도 폭풍이 관측됐다 → Redis 분산 락.
 
 ---
 
 ## Fallback 설계
 
-재시도를 다 소진한 후 어떻게 처리할지가 중요하다. 단순히 예외를 그대로 던지면 HTTP 500이 클라이언트에게 내려간다.
+재시도를 다 소진한 후 어떻게 처리할지도 중요하다. 예외를 그대로 두면 HTTP 500이 클라이언트에게 내려간다.
 
-상황에 따라 선택지가 달라진다:
-
-**사용자 요청 직접 처리인 경우**: 409 Conflict나 503 등 클라이언트가 재시도 가능하다는 신호를 주고 종료한다.
+사용자 요청 직접 처리인 경우, 409 Conflict나 503으로 클라이언트가 재시도 가능하다는 신호를 준다.
 
 ```java
 catch (StockUpdateFailedException e) {
@@ -143,53 +277,10 @@ catch (StockUpdateFailedException e) {
 }
 ```
 
-**비동기 작업, 배치, 메시지 큐 컨슈머인 경우**: Dead Letter Queue로 보내거나 재처리 테이블에 기록한다. 즉시 실패보다는 나중에 재처리 가능한 형태로 남기는 게 낫다.
+비동기 작업, 배치, 메시지 큐 컨슈머인 경우 Dead Letter Queue로 보내거나 재처리 테이블에 기록한다. 즉시 실패보다 나중에 재처리 가능한 형태로 남기는 게 낫다.
 
-**재고 감소처럼 幂等性(멱등성)이 중요한 경우**: 요청 ID를 함께 받아서 같은 요청이 중복 처리되지 않도록 처리 이력을 남긴다.
-
----
-
-## JPA @Version vs Redis 분산 락 선택
-
-낙관적 락이 적합한 상황과 Redis 분산 락이 적합한 상황은 다르다.
-
-**JPA @Version이 적합한 경우**
-
-단일 서버 혹은 단일 DB 환경에서 충돌 빈도가 낮을 때다. 재고 감소가 초당 수십 건 수준이고, 충돌 시 재시도 비용을 감수할 수 있으면 DB 수준에서 해결하는 게 구조가 단순하다. 별도 인프라가 필요 없고, DB가 version을 관리하므로 일관성 보장이 명확하다.
-
-충돌이 드문 케이스(읽기가 많고 쓰기가 가끔)에서는 락 획득 비용 없이 충돌 시에만 비용을 치른다. 대부분 충돌 없이 지나가면 비관적 락보다 성능이 좋다.
-
-**Redis 분산 락이 필요한 경우**
-
-여러 서버 인스턴스가 동시에 동작하는 환경에서 충돌 빈도가 높다면 Redis 분산 락이 낫다. 플래시 세일처럼 동시 요청이 수백 건 이상 몰리면 낙관적 락 재시도가 폭발적으로 증가한다. 이때는 락을 선점해서 한 번에 하나씩 처리하는 비관적 방식이 DB 부하를 오히려 줄인다.
-
-```java
-// Redisson 기반 분산 락 예시
-RLock lock = redissonClient.getLock("stock:" + productId);
-boolean acquired = lock.tryLock(3, 5, TimeUnit.SECONDS);
-
-if (!acquired) {
-    throw new LockAcquisitionFailedException("락 획득 실패");
-}
-
-try {
-    stockTransactionalService.decreaseStock(productId, quantity);
-} finally {
-    lock.unlock();
-}
-```
-
-Redis 분산 락은 락 타임아웃 설정에 신경 써야 한다. 락을 잡은 서버가 다운되면 타임아웃 시간 동안 다른 요청이 대기한다. 너무 짧으면 정상 처리 중에 락이 풀리고, 너무 길면 장애 시 대기 시간이 길다.
-
-멀티 인스턴스 환경이 아니더라도 여러 서비스가 같은 리소스에 접근하는 구조라면 Redis 분산 락이 명시적으로 의도를 드러낸다.
+멱등성이 중요한 케이스(재고 차감, 결제)는 요청 ID를 함께 받아서 중복 처리가 발생하지 않도록 처리 이력을 남긴다. 재시도 중에 실제로는 첫 번째 시도가 성공했는데 응답만 못 받은 경우, 두 번째 재시도에서 같은 작업이 다시 실행되는 경우가 있다.
 
 ---
 
-## 정리하면
-
-낙관적 락 재시도 구현의 핵심은 재시도 범위와 트랜잭션 범위의 분리다. `@Retryable`과 `@Transactional`을 같은 메서드에 붙이는 방식은 AOP 순서 문제로 의도대로 동작하지 않는 경우가 많다. 재시도 루프는 트랜잭션 바깥에서 돌리고, 실제 DB 작업은 별도 메서드에서 새 트랜잭션으로 처리하는 구조가 명확하다.
-
-재시도 횟수와 fallback은 비즈니스 요구사항에 따라 결정한다. 충돌이 잦아지면 낙관적 락 자체를 재검토하고 Redis 분산 락으로 전환하는 시점을 판단해야 한다.
-
----
 이 문서는 [트랜잭션과 동시성 허브](../../../_hub/트랜잭션과_동시성.md)의 일부입니다.

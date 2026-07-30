@@ -4,6 +4,7 @@ nav:
   - B_Tree_Page_Split.md
   - 인덱스_지역성.md
   - Transaction_and_Lock.md
+  - Isolation_Level_Anomaly_Examples.md
   - My_SQL_Inno_DB_Locking_Deep_Dive.md
   - Distributed_Transaction.md
   - 데이터베이스_성능_튜닝.md
@@ -32,3 +33,4 @@ nav:
   - No_FK_Design.md
   - Orphan_Record.md
   - Cross_Schema.md
+  - Postgre_SQL_Advisory_Lock.md

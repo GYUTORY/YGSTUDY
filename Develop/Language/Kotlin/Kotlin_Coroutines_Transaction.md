@@ -1,7 +1,7 @@
 ---
 title: 코루틴 환경에서의 DB 트랜잭션
-tags: [kotlin, coroutine, transaction, spring, r2dbc, flow, threadlocal, transactional, suspend]
-updated: 2026-07-28
+tags: [kotlin, coroutine, transaction, spring, r2dbc, flow, threadlocal, transactional, suspend, jpa]
+updated: 2026-07-30
 ---
 
 # 코루틴 환경에서의 DB 트랜잭션
@@ -130,7 +130,150 @@ coroutineScope 안에서 여러 쿼리를 하나의 트랜잭션으로 묶어야
 
 ---
 
-## 5. R2DBC + Flow 트랜잭션 범위
+## 5. TransactionTemplate 롤백 누락 사례
+
+`TransactionTemplate`을 코루틴 안에서 쓸 때 가장 자주 마주치는 문제는 예외를 잡아서 처리했는데 트랜잭션이 롤백되지 않고 커밋되는 것이다.
+
+`TransactionTemplate.execute`는 람다 안에서 `RuntimeException`이나 `Error`가 던져졌을 때만 자동으로 롤백한다. 람다가 정상적으로 반환하면 — 예외를 잡아서 `null`을 돌려줬더라도 — 트랜잭션을 커밋한다.
+
+```kotlin
+suspend fun createOrder(userId: Long): Order? {
+    return withContext(Dispatchers.IO) {
+        transactionTemplate.execute { status ->
+            try {
+                val order = orderRepository.save(Order(userId = userId))
+                paymentService.charge(order)  // RuntimeException 발생
+                order
+            } catch (e: RuntimeException) {
+                log.error("결제 실패", e)
+                // null을 반환하면 트랜잭션이 커밋된다
+                // order 레코드가 DB에 남은 채로 커밋됨
+                null
+            }
+        }
+    }
+}
+```
+
+예외를 잡아 처리하면서 롤백도 해야 하는 경우에는 `TransactionStatus.setRollbackOnly()`를 명시적으로 호출해야 한다.
+
+```kotlin
+transactionTemplate.execute { status ->
+    try {
+        val order = orderRepository.save(Order(userId = userId))
+        paymentService.charge(order)
+        order
+    } catch (e: RuntimeException) {
+        log.error("결제 실패", e)
+        status.setRollbackOnly()  // 명시적 롤백 마킹
+        null
+    }
+}
+```
+
+코루틴 취소(`CancellationException`)가 `execute` 블록 안에서 발생하는 경우도 조심해야 한다. `CancellationException`은 `RuntimeException`을 상속하므로 `TransactionTemplate`이 롤백한다. 하지만 `execute` 내부에서 `try-catch`로 `Exception`을 전부 잡으면 `CancellationException`도 같이 삼켜진다. 코루틴이 취소됐는데 트랜잭션이 커밋되고, 취소 처리도 전파되지 않는다.
+
+```kotlin
+// 위험한 패턴
+transactionTemplate.execute { _ ->
+    try {
+        orderRepository.save(Order(userId = userId))
+    } catch (e: Exception) {  // CancellationException도 잡힘
+        log.error("실패", e)
+        null  // 코루틴이 취소됐는데 커밋됨, 취소도 전파 안 됨
+    }
+}
+
+// 올바른 패턴
+transactionTemplate.execute { status ->
+    try {
+        orderRepository.save(Order(userId = userId))
+    } catch (e: CancellationException) {
+        status.setRollbackOnly()
+        throw e  // 코루틴 취소는 반드시 재전파
+    } catch (e: RuntimeException) {
+        log.error("실패", e)
+        status.setRollbackOnly()
+        null
+    }
+}
+```
+
+---
+
+## 6. withContext(Dispatchers.IO) 내 트랜잭션 경계 문제
+
+`withContext(Dispatchers.IO)` 블록과 `transactionTemplate.execute` 블록은 범위가 다르다. `withContext`는 코루틴 디스패처를 바꾸는 장치고, `transactionTemplate.execute`는 그 안에서 실행되는 동기 람다다. `execute`가 반환되는 순간 트랜잭션이 커밋 또는 롤백된다. `withContext` 블록이 끝나지 않았어도 트랜잭션은 이미 닫혔다.
+
+```kotlin
+withContext(Dispatchers.IO) {
+    transactionTemplate.execute {
+        orderRepository.save(Order(userId))
+    }
+    // ← 여기서 트랜잭션이 이미 커밋됨
+
+    // execute 이후에 발생하는 예외는 커밋된 트랜잭션을 롤백하지 않음
+    notificationService.send(orderId)  // 실패해도 order는 DB에 남음
+}
+```
+
+이 구조에서 알림 발송이 실패하면 주문은 남고 알림만 빠진다. 주문과 알림을 원자적으로 처리하려면 알림 발송을 트랜잭션 범위 안에 포함하거나, 아웃박스 패턴으로 분리해야 한다.
+
+`execute` 람다 안에서 비동기 작업이 필요해서 `runBlocking`을 쓰는 경우가 있다. `execute` 람다는 일반 함수라서 `withContext` 같은 suspend 함수를 직접 호출할 수 없기 때문이다.
+
+```kotlin
+// 위험한 패턴
+transactionTemplate.execute {
+    val order = orderRepository.save(Order(userId))
+
+    // 재고 확인이 필요해서 runBlocking으로 suspend 함수 호출
+    val stock = runBlocking {
+        inventoryClient.check(order.itemId)  // 네트워크 호출
+    }
+
+    if (!stock.available) throw RuntimeException("재고 없음")
+    order
+}
+```
+
+`runBlocking`은 현재 Dispatchers.IO 스레드를 블로킹하면서 내부적으로 새 스레드를 만든다. 스레드 풀에 여유가 없으면 `inventoryClient.check`가 실행될 스레드를 기다리는 동안 Dispatchers.IO 스레드 전체가 묶인다. 이 상황이 겹치면 데드락이 된다.
+
+네트워크 호출처럼 I/O가 필요한 작업은 트랜잭션 블록 바깥에서 처리해야 한다.
+
+```kotlin
+suspend fun createOrder(userId: Long, itemId: Long): Order {
+    // 트랜잭션 바깥에서 재고 확인
+    val stock = inventoryClient.check(itemId)
+    if (!stock.available) throw IllegalStateException("재고 없음")
+
+    // 확인 후 DB 쓰기만 트랜잭션으로 처리
+    return withContext(Dispatchers.IO) {
+        transactionTemplate.execute {
+            orderRepository.save(Order(userId = userId, itemId = itemId))
+        }!!
+    }
+}
+```
+
+`withContext` 안에 `transactionTemplate.execute`를 두 번 쓰면 각각 독립 트랜잭션이 된다. 첫 번째 `execute`가 커밋된 뒤 두 번째 `execute`에서 예외가 나면 첫 번째 커밋은 롤백되지 않는다.
+
+```kotlin
+withContext(Dispatchers.IO) {
+    transactionTemplate.execute {
+        orderRepository.save(order)  // 커밋됨
+    }
+
+    transactionTemplate.execute {
+        paymentRepository.save(payment)  // 여기서 실패해도 order는 남음
+    }
+}
+```
+
+두 쓰기를 원자적으로 처리해야 한다면 하나의 `execute` 블록으로 묶어야 한다.
+
+---
+
+## 7. R2DBC + Flow 트랜잭션 범위
 
 R2DBC는 리액티브 드라이버라 ThreadLocal을 쓰지 않는다. Reactor Context로 트랜잭션을 전파하고, 코루틴 컨텍스트와 Reactor Context 사이에 브릿지가 있어서 `@Transactional`이 suspend 함수에서 의도대로 동작한다.
 
@@ -191,7 +334,7 @@ Flow를 반환하는 서비스 메서드에 `@Transactional`을 붙이는 것은
 
 ---
 
-## JPA 지연 로딩과 코루틴
+## 8. JPA 지연 로딩과 코루틴
 
 JPA는 `EntityManager`를 ThreadLocal에 저장하고, 지연 로딩도 같은 ThreadLocal의 `EntityManager`에 의존한다. suspend 지점 이후에 지연 로딩 속성에 접근하면 `LazyInitializationException`이 아니라 `TransactionRequiredException`이 나오는 경우가 있다.
 
@@ -228,6 +371,82 @@ suspend fun processOrder(orderId: Long) {
 ```
 
 블록 밖으로 엔티티를 꺼낸 뒤 다른 suspend 함수를 거치고 나서 지연 로딩을 쓰면 터진다. 필요한 데이터를 미리 다 로딩하거나(Fetch Join), 응답 DTO로 변환해서 반환하는 방식으로 이 문제를 피한다.
+
+### suspend 함수 체인에서의 지연 로딩 오류
+
+단일 함수 안에서는 `withContext(Dispatchers.IO)` + `transactionTemplate`으로 지연 로딩 문제를 피할 수 있다. 하지만 suspend 함수가 여러 레이어를 거치면 트랜잭션 경계 안에서 초기화된 컬렉션이 함수 반환 후에 지연 로딩을 시도하는 상황이 생긴다.
+
+```kotlin
+// UserService
+suspend fun getUser(userId: Long): User {
+    return withContext(Dispatchers.IO) {
+        transactionTemplate.execute {
+            val user = userRepository.findById(userId).orElseThrow()
+            user.orders  // orders는 트랜잭션 안에서 초기화됨 (List<Order>)
+            // 각 Order의 items는 아직 LAZY 상태
+            user
+        }!!
+    }
+}
+
+// OrderService
+suspend fun processUserOrders(userId: Long) {
+    val user = userService.getUser(userId)  // 트랜잭션 종료 후 User 반환
+
+    delay(50)  // 다른 작업
+
+    user.orders.forEach { order ->
+        order.items.forEach { item ->  // LazyInitializationException
+            // order.items는 Hibernate 프록시, 트랜잭션이 없는 스레드에서 접근
+            processItem(item)
+        }
+    }
+}
+```
+
+스택 트레이스는 `order.items`에 접근하는 줄을 가리킨다. `UserService`는 정상적으로 동작했기 때문에 `getUser`가 문제라는 단서가 없다. `user.orders` 컬렉션은 트랜잭션 안에서 초기화됐지만(프록시가 실제 데이터로 교체됨), 각 `Order.items`는 여전히 Hibernate 프록시 상태다. 트랜잭션이 닫힌 후 다른 스레드에서 이 프록시에 접근하면 예외가 발생한다.
+
+해결 방법은 두 가지다.
+
+트랜잭션 안에서 필요한 연관관계를 모두 강제 초기화한다.
+
+```kotlin
+suspend fun getUser(userId: Long): User {
+    return withContext(Dispatchers.IO) {
+        transactionTemplate.execute {
+            val user = userRepository.findById(userId).orElseThrow()
+            user.orders.forEach { order ->
+                order.items.size  // size 접근으로 컬렉션 강제 초기화
+            }
+            user
+        }!!
+    }
+}
+```
+
+또는 엔티티 대신 DTO로 변환해서 반환한다.
+
+```kotlin
+suspend fun getUserDto(userId: Long): UserDto {
+    return withContext(Dispatchers.IO) {
+        transactionTemplate.execute {
+            val user = userRepository.findById(userId).orElseThrow()
+            UserDto(
+                id = user.id,
+                name = user.name,
+                orders = user.orders.map { order ->
+                    OrderDto(
+                        id = order.id,
+                        items = order.items.map { ItemDto(it.id, it.name) }
+                    )
+                }
+            )
+        }!!
+    }
+}
+```
+
+DTO 변환이 트랜잭션 안에서 일어나므로 지연 로딩이 정상적으로 실행된다. 트랜잭션 밖으로는 프록시가 아닌 순수 데이터 객체만 나간다. suspend 함수가 여러 레이어를 거치더라도 지연 로딩 문제가 생기지 않는다.
 
 ---
 이 문서는 [트랜잭션과 동시성 허브](../../_hub/트랜잭션과_동시성.md)의 일부입니다.

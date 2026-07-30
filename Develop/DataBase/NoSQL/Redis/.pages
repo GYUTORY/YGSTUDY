@@ -5,3 +5,4 @@ nav:
   - Redis_Cache_Strategy.md
   - Redis_Advanced.md
   - Redis_Keyspace_Notifications.md
+  - Redisson_Distributed_Lock.md
