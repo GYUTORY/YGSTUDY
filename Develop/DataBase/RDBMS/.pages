@@ -28,3 +28,4 @@ nav:
   - Auto_Increment.md
   - ULID.md
   - Type_ORM_Entity_Relations.md
+  - Referential_Integrity.md
