@@ -1,7 +1,7 @@
 ---
 title: 대리키
-tags: [database, surrogate-key, primary-key, composite-key, jpa, generated-value, bridge-table, migration, natural-key]
-updated: 2026-07-29
+tags: [database, surrogate-key, primary-key, composite-key, jpa, generated-value, bridge-table, migration, natural-key, uuid, ulid, auto-increment, key-space]
+updated: 2026-07-30
 ---
 
 # 대리키
@@ -165,6 +165,121 @@ export class Session {
 ```
 
 `@PrimaryGeneratedColumn('uuid')`를 쓰면 ID 생성을 TypeORM에 위임하고, `@PrimaryColumn` + `@BeforeInsert()`를 쓰면 생성 시점과 방식을 제어할 수 있다.
+
+## 키 공간 설계
+
+대리키 타입을 고를 때 키 공간(전체 발급 가능한 값의 범위)을 먼저 따져야 한다. 단일 DB에서 쓰는 `AUTO_INCREMENT`와 분산 환경에서 독립적으로 발급하는 UUID/ULID는 설계 관점이 다르다.
+
+### AUTO_INCREMENT 상한
+
+MySQL `AUTO_INCREMENT`는 컬럼 타입이 상한을 결정한다.
+
+```sql
+-- INT (부호 있는 4바이트): 상한 2,147,483,647 ≈ 21억
+CREATE TABLE events (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY
+);
+
+-- BIGINT (부호 있는 8바이트): 상한 9,223,372,036,854,775,807 ≈ 922경
+CREATE TABLE events (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY
+);
+```
+
+INT 상한(21억)은 초당 1만 건 삽입 기준으로 약 59시간이면 소진된다. 소비자 서비스 규모에서 실제로 상한에 도달해 장애가 난 사례가 있다. 트래픽이 예측하기 어렵다면 처음부터 BIGINT를 쓴다.
+
+BIGINT 상한(922경, ≈ 9.2 × 10^18)은 초당 100만 건을 삽입해도 약 29만 년이 걸린다. 단일 DB에서 순차 발급하는 한 실질적인 한계는 아니다.
+
+`AUTO_INCREMENT`는 DB 서버가 단일 카운터를 관리하므로 분산 노드에서 독립적으로 발급할 수 없다. 여러 노드에서 중복 없이 발급해야 한다면 UUID나 ULID가 필요하다.
+
+### UUID v4와 UUID v7의 키 공간
+
+UUID는 128비트 고정 길이다. v4와 v7 모두 같은 총 비트 수를 쓰지만 비트 배치가 다르다.
+
+**UUID v4**
+
+```
+xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+(x = random, 4 = version, y = variant(8/9/a/b))
+
+총 128비트
+├─ 버전(4비트) + 배리언트(2비트) = 6비트 고정
+└─ 유효 랜덤 비트: 122비트 → 키 공간 2^122 ≈ 5.3 × 10^36
+```
+
+키 공간 자체는 충분히 넓다. 문제는 완전 랜덤이라는 특성이다. InnoDB는 PK 기준으로 레코드를 물리적으로 정렬한다(클러스터드 인덱스). 새 UUID v4가 기존 레코드 사이의 무작위 위치에 삽입되면서 B-Tree 페이지 분할이 빈번하게 일어나고, 버퍼 풀 캐시 히트율이 낮아진다. 데이터가 수백만 건을 넘으면 INSERT 성능이 눈에 띄게 느려진다.
+
+**UUID v7**
+
+```
+tttttttt-tttt-7xxx-yxxx-xxxxxxxxxxxx
+(t = 48비트 타임스탬프, 7 = version, x = random, y = variant)
+
+총 128비트
+├─ 타임스탬프: 48비트 (Unix epoch 밀리초)
+├─ 버전: 4비트
+├─ 밀리초 내 랜덤/시퀀스: 12비트
+├─ 배리언트: 2비트
+└─ 랜덤: 62비트
+
+밀리초 내 유효 랜덤 비트: 74비트 (12 + 62)
+타임스탬프 범위: 2^48 밀리초 ≈ 8,925년
+```
+
+48비트 타임스탬프가 앞에 오기 때문에 시간이 흐를수록 UUID 값이 단조 증가한다. InnoDB에서 새 레코드가 항상 PK 인덱스 끝에 추가되므로 페이지 분할이 거의 발생하지 않는다.
+
+같은 밀리초 안에서는 74비트 랜덤 공간에서 값을 고른다. 밀리초당 수천만 건이 아닌 이상 충돌 가능성은 없다.
+
+### ULID 키 공간 구조
+
+ULID(Universally Unique Lexicographically Sortable Identifier)는 UUID v7과 유사하게 타임스탬프 + 랜덤 구조를 Crockford Base32로 인코딩한 26자 문자열이다.
+
+```
+01ARZ3NDEKTSV4RRFFQ69G5FAV
+
+128비트 구조:
+┌──────────────────────┬─────────────────────────────────────────┐
+│  타임스탬프 48비트    │              랜덤 80비트                 │
+│  (Unix epoch 밀리초) │                                         │
+└──────────────────────┴─────────────────────────────────────────┘
+
+타임스탬프 범위: 2^48 밀리초 ≈ 8,925년
+밀리초 내 랜덤 공간: 2^80 ≈ 1.2 × 10^24
+```
+
+UUID v7의 74비트 대비 밀리초 내 랜덤 비트가 80비트로 더 넓다. 분산 환경에서 같은 밀리초에 여러 노드가 각자 랜덤 80비트를 독립적으로 초기화하므로 충돌 가능성은 충분히 낮다.
+
+같은 밀리초 내에서 삽입 순서까지 보장해야 할 때는 `monotonicFactory`를 쓴다.
+
+```typescript
+import { monotonicFactory } from 'ulid';
+
+const ulid = monotonicFactory();
+
+const id1 = ulid();
+const id2 = ulid(); // 같은 밀리초여도 id1 < id2 보장
+// 랜덤 80비트의 최하위 비트를 1씩 올리는 방식으로 단조성 유지
+```
+
+단조성 모드에서 같은 밀리초에 2^80개 이상 생성하면 랜덤 부분이 오버플로된다. 밀리초당 수십억 건이 아닌 이상 이론적인 한계에 불과하다.
+
+### 분산 환경에서의 충돌 확률
+
+생일 문제(Birthday Problem) 공식으로 충돌 확률을 근사할 수 있다. k개 ID를 n 크기의 공간에서 생성할 때, 충돌이 하나 이상 발생할 확률은 다음과 같다.
+
+```
+P(충돌) ≈ k² / 2n   (k << √n 일 때)
+```
+
+| 타입 | 유효 랜덤 비트 | 키 공간 (n) | 누적 10억 개 생성 시 충돌 확률 |
+|------|--------------|-------------|-------------------------------|
+| UUID v4 | 122비트 | 2^122 ≈ 5.3 × 10^36 | ≈ 9.4 × 10^-20 (사실상 0) |
+| UUID v7 (밀리초 내) | 74비트 | 2^74 ≈ 1.9 × 10^22 | 밀리초당 10만 건 시 ≈ 3 × 10^-10 |
+| ULID (밀리초 내) | 80비트 | 2^80 ≈ 1.2 × 10^24 | 밀리초당 10만 건 시 ≈ 4 × 10^-12 |
+
+UUID v4는 누적 생성량 기준으로 충돌이 실질적으로 불가능하다. UUID v7과 ULID는 밀리초마다 랜덤이 재초기화되므로 같은 밀리초 내 동시 생성 건수가 충돌 확률을 결정한다.
+
+실제 분산 환경에서 대리키 충돌이 발생한 사례는 UUID가 아니라 `timestamp + 서버 ID + 시퀀스` 형태의 커스텀 ID에서 서버 ID 중복 설정이나 NTP 재동기화로 인한 시계 역행이 원인인 경우가 대부분이었다.
 
 ## 브릿지 테이블에 대리키 추가
 

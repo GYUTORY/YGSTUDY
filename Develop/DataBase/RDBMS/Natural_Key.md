@@ -1,7 +1,7 @@
 ---
 title: 자연키
-tags: [database, natural-key, primary-key, composite-key, foreign-key, on-update-cascade, iso-code, surrogate-key, legacy, business-identifier]
-updated: 2026-07-29
+tags: [database, natural-key, primary-key, composite-key, foreign-key, on-update-cascade, iso-code, surrogate-key, legacy, business-identifier, key-space, postal-code, isbn]
+updated: 2026-07-30
 ---
 
 # 자연키
@@ -9,6 +9,20 @@ updated: 2026-07-29
 자연키(Natural Key)는 도메인 데이터 자체를 PK로 쓰는 방식이다. 이메일, ISO 국가 코드, 상품 바코드처럼 비즈니스 세계에서 이미 유일성이 보장된다고 가정하는 값이다.
 
 자연키를 PK로 쓰는 결정 자체보다, 그 키가 정말로 "변하지 않는다"는 보장을 누가 어떻게 하는지가 핵심이다. 도메인 설계 초반에는 자명해 보이던 유일성이 시스템이 커지면서 흔들리는 경우가 많다.
+
+## 키 공간
+
+자연키의 유일성 보장 범위를 키 공간이라고 부른다. 기술적으로 표현 가능한 값의 집합과, 실제로 유일하다는 보장이 있는 값의 집합이 일치하지 않는 경우가 많다.
+
+ISO 4217 통화 코드 `CHAR(3)`은 알파벳 3자 조합으로 표현 가능한 값이 수만 가지지만, ISO가 실제로 할당하고 관리하는 코드는 180개 안팎이다. ISO가 이 공간의 유일성을 직접 보증하므로 `KRW`가 다른 통화를 가리키는 일은 표준 위원회가 결정하지 않는 한 발생하지 않는다.
+
+이메일 주소는 표현 가능한 값이 사실상 무한하지만 유일성을 보증하는 중앙 기관이 없다. 도메인 소유권이 만료되면 같은 주소를 다른 사람이 취득한다. 시스템 내에서 `UNIQUE` 제약으로 유일성을 관리하더라도 "이 이메일이 항상 같은 사람을 가리킨다"는 보장은 DB 밖에 있다.
+
+키 공간 크기가 사용 범위에 비해 충분한지 확인한다. 4자리 숫자 사번은 최대 9,999명까지 수용한다. 조직이 성장해 자릿수를 늘리면 PK 컬럼 타입이 바뀌고, FK를 참조하는 모든 자식 테이블도 함께 수정해야 한다.
+
+관리 주체가 외부 기관인지 내부인지 구분한다. 외부 기관이 키 공간을 관리하면 내부 정책 변경과 무관하게 유일성이 유지된다. 내부에서 관리하는 키는 정책 변경, 조직 개편, 시스템 통합 시 키 공간 자체가 흔들린다.
+
+키 공간 자체가 재정의될 가능성도 있다. ISBN-10에서 ISBN-13으로의 전환, 한국 우편번호 6자리→5자리 개편이 여기에 해당한다. 외부 기관이 관리하는 키라도 그 기관이 기준을 바꾸면 기존 키 공간이 무효화된다.
 
 ## 자연키가 적합한 경우
 
@@ -195,6 +209,50 @@ GROUP BY pv.id;
 
 복합 자연키가 PK인 경우, 단일 컬럼으로 FK를 선언할 수 없다. 그 구조가 두 단계 이상 전파될 수 있다면 대리키를 PK로 두고 복합 자연키를 UNIQUE 제약으로 내리는 것이 낫다.
 
+## 복합 자연키의 키 공간 교차 문제
+
+복합 자연키는 개별 컬럼이 각자의 범위에서 유일하더라도 조합의 유일성이 자동으로 보장되지 않는다. `(A, B)` 복합 키의 유효 키 공간은 비즈니스 규칙상 그 조합이 실제로 유일하다는 별도의 보장이 필요하다.
+
+공급사 코드와 제품 SKU를 복합 자연키로 관리하는 경우를 보자.
+
+```sql
+CREATE TABLE supplier_products (
+    supplier_code VARCHAR(10) NOT NULL,
+    product_sku   VARCHAR(20) NOT NULL,
+    price         DECIMAL(10, 2) NOT NULL,
+    PRIMARY KEY (supplier_code, product_sku)
+);
+```
+
+`supplier_code`는 공급사별로 유일하고 `product_sku`는 각 공급사가 자체 발급한다. 공급사 A가 공급사 B에 인수되면 두 회사의 SKU를 단일 `supplier_code` 아래로 통합해야 한다. 두 회사가 같은 제품군을 취급했다면 `product_sku`가 겹친다. 기존 `(supplier_code, product_sku)` 복합 키 공간이 충돌하고, PK 중복 오류가 발생한다.
+
+지역 코드와 부서 번호를 복합 PK로 쓰는 경우도 같다.
+
+```sql
+CREATE TABLE departments (
+    region_code VARCHAR(5) NOT NULL,
+    dept_no     INT NOT NULL,
+    dept_name   VARCHAR(100) NOT NULL,
+    PRIMARY KEY (region_code, dept_no)
+);
+```
+
+`dept_no`는 각 지역 내에서 순번이다. 두 지역이 합쳐지면 `region_code`가 하나로 통일된다. 두 지역에 각각 `dept_no = 1`이 있었다면 통합 후 충돌이 발생한다. 개별 컬럼은 각자의 키 공간에서 유일했지만, 조합의 유일성이 조직 개편으로 깨진다.
+
+이 복합 키를 FK로 참조하는 테이블이 있으면 키 공간 변경이 전파된다.
+
+```sql
+CREATE TABLE employees (
+    id          BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    region_code VARCHAR(5) NOT NULL,
+    dept_no     INT NOT NULL,
+    FOREIGN KEY (region_code, dept_no)
+        REFERENCES departments(region_code, dept_no)
+);
+```
+
+`departments`의 복합 PK를 재조합하면 `employees`의 복합 FK 값도 전부 바꿔야 한다. `departments`에 대리키를 PK로 두고 복합 자연키를 UNIQUE 제약으로 관리했다면, 재조합 작업은 `departments` 내부로 격리된다. `employees`에서 `dept_id BIGINT` 하나로 참조하는 구조라면 `dept_id` 값은 바꾸지 않아도 된다.
+
 ## 자연키+대리키 병행 설계
 
 자연키와 대리키를 병행하는 패턴은 "대리키를 PK로, 자연키를 UNIQUE 제약으로" 구성한다.
@@ -298,9 +356,19 @@ CREATE TABLE employees (
 
 ### ISBN
 
-ISBN-10에서 ISBN-13으로 전환이 있었다(2007년). 기존 ISBN-10을 PK로 쓰던 시스템은 마이그레이션이 고통스러웠다. ISBN-10과 ISBN-13을 모두 보관해야 하고, PK를 바꾸면 FK 컬럼이 전부 바뀐다.
+ISBN-10은 10자리 숫자 코드로 도서 키 공간을 구성했다. 출판 산업이 성장하면서 표현 가능한 10억 개의 공간이 부족해졌고, 2007년부터 ISBN-13으로 전환됐다. 키 공간 크기 자체가 10자리에서 13자리로 확장된 케이스다.
+
+ISBN-10을 PK로 쓰던 시스템은 이 전환에서 세 가지 문제를 마주했다. `CHAR(10)` PK를 `CHAR(13)`으로 바꿔야 하고, 그 FK를 참조하는 모든 자식 테이블의 컬럼 타입도 바꿔야 한다. 기존 ISBN-10을 ISBN-13으로 변환하는 로직(앞에 '978' 접두사 추가 + 체크 디짓 재계산)을 작성하고 변환 결과가 기존 데이터와 충돌하지 않는지 검증해야 한다. 2007년 이후 출간된 도서는 ISBN-10 자체가 존재하지 않는 경우도 생겼다.
 
 ```sql
+-- ISBN-10 PK 기반 기존 구조
+CREATE TABLE books_legacy (
+    isbn10 CHAR(10) NOT NULL,
+    title  VARCHAR(500) NOT NULL,
+    PRIMARY KEY (isbn10)
+);
+
+-- 키 공간 전환 후 구조
 CREATE TABLE books (
     id     BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     isbn13 CHAR(13) NOT NULL UNIQUE,
@@ -309,9 +377,55 @@ CREATE TABLE books (
 );
 ```
 
-`isbn10`에 `UNIQUE`를 걸지 않는 이유가 있다. 2007년 이후 출간된 신규 도서는 ISBN-13만 있고 ISBN-10이 없다. NULL은 MySQL에서 UNIQUE 제약에서 중복으로 처리되지 않아 여러 행에 NULL이 들어갈 수 있다. 반면 Oracle은 NULL을 UNIQUE로 처리하지 않는 방식이 다르다. ISBN-10을 UNIQUE로 걸면 DB마다 동작이 달라질 수 있어 NULL을 허용하는 컬럼에는 UNIQUE를 걸지 않는 것이 안전하다.
+`isbn10`에 `UNIQUE`를 걸지 않는다. 2007년 이후 발행 도서는 ISBN-10이 없어 NULL로 들어가는데, MySQL은 NULL을 UNIQUE 제약의 중복 판단에서 제외해 여러 행에 NULL이 허용된다. Oracle은 다르게 처리하므로 NULL 허용 컬럼에 UNIQUE를 거는 방식은 DB마다 동작이 달라진다.
 
-비즈니스 식별자는 값이 바뀌거나, 재사용되거나, 시스템 통합 시 충돌하는 경우가 생각보다 많다. PK로 쓰기 전에 이 세 가지를 명시적으로 점검해야 한다.
+### 한국 우편번호 개편
+
+2015년 8월, 한국의 우편번호 체계가 6자리(구 우편번호, 예: `135-080`)에서 5자리(신 우편번호, 예: `06000`)로 전환됐다. 자릿수만 바뀐 것이 아니라 분류 기준이 지번 주소 기반에서 도로명 주소 기반으로 바뀌었다. 구 우편번호 하나가 신 우편번호 여러 개에 대응하거나, 여러 구 우편번호가 신 우편번호 하나로 통합되는 경우도 있었다. 1:1 변환이 불가능했다.
+
+우편번호를 PK로 쓰던 배송 구역 테이블이 있었다면 이 전환이 PK 전체를 건드린다.
+
+```sql
+-- 구 우편번호 기반 기존 구조
+CREATE TABLE delivery_zones (
+    postal_code  CHAR(7) NOT NULL,   -- '135-080' 형식
+    region_name  VARCHAR(100) NOT NULL,
+    delivery_fee DECIMAL(8, 2) NOT NULL,
+    PRIMARY KEY (postal_code)
+);
+
+CREATE TABLE orders (
+    id          BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    postal_code CHAR(7) NOT NULL,
+    address     VARCHAR(300) NOT NULL,
+    FOREIGN KEY (postal_code) REFERENCES delivery_zones(postal_code)
+);
+```
+
+신 우편번호로 전환하면 `CHAR(7)`이 `CHAR(5)`로 바뀐다. `delivery_zones.postal_code` PK와 `orders.postal_code` FK 컬럼 타입이 모두 바뀌고, 기존 주문 데이터의 구 우편번호를 신 우편번호로 변환하는 로직도 필요하다. 1:1 매핑이 안 되는 케이스는 처리 기준을 별도로 정해야 한다.
+
+대리키를 PK로 분리했다면 우편번호 형식 변환은 `delivery_zones` 내부 문제로 격리된다.
+
+```sql
+CREATE TABLE delivery_zones (
+    id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    postal_code  CHAR(5) NOT NULL UNIQUE,   -- 신 우편번호
+    old_code     CHAR(7),                   -- 구 우편번호, NULL 가능
+    region_name  VARCHAR(100) NOT NULL,
+    delivery_fee DECIMAL(8, 2) NOT NULL
+);
+
+CREATE TABLE orders (
+    id      BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    zone_id BIGINT NOT NULL,
+    address VARCHAR(300) NOT NULL,
+    FOREIGN KEY (zone_id) REFERENCES delivery_zones(id)
+);
+```
+
+`orders.zone_id`는 구 우편번호를 신 우편번호로 바꾸는 작업과 무관하다. `delivery_zones`에 신 우편번호 기반 행을 추가하고, 필요한 경우 기존 주문의 `zone_id`를 새 행으로 업데이트하면 된다. 1:1 매핑이 안 되는 경우에도 `zone_id`가 NULL이 되는 것과 PK 충돌은 전혀 다른 문제다.
+
+비즈니스 식별자는 값이 바뀌거나, 재사용되거나, 시스템 통합 시 충돌하는 경우가 생각보다 많다. 외부 기관이 키 공간을 관리하더라도 그 기관이 기준을 바꾸면 내부 시스템이 영향을 받는다. PK로 채택하기 전에 키 공간의 크기, 관리 주체, 변경 가능성을 명시적으로 확인해야 한다.
 
 ## 레거시 시스템에서 자연키로 굳어진 경우
 

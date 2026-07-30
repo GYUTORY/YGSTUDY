@@ -1,7 +1,7 @@
 ---
 title: Redis — 내부 동작 원리와 아키텍처
 tags: [database, nosql, redis, architecture, internals]
-updated: 2026-03-27
+updated: 2026-07-30
 ---
 
 # Redis (Remote Dictionary Server)
@@ -374,6 +374,160 @@ maxmemory-samples 5
 
 # 10으로 올리면 거의 정확한 LRU에 가까워지지만, 5로도 충분한 경우가 대부분이다
 ```
+
+---
+
+## 키 공간 설계
+
+### 키 네이밍 규칙
+
+키 이름 구분자로 `:`를 쓴다. 공식 규약은 아니지만, Redis CLI와 GUI 도구(RedisInsight, Redis Commander)가 `:`를 기준으로 키를 트리 형태로 표시한다.
+
+```
+user:1000:profile       → 유저 1000의 프로필
+user:1000:session       → 유저 1000의 세션
+product:42:stock        → 상품 42의 재고
+cache:api:v1:search     → API 검색 결과 캐시
+```
+
+```bash
+# 구조 없는 키 — 패턴 검색이 어렵다
+SET userProfile1000 "..."
+SET product_stock_42 "..."
+
+# 계층 구조 키 — SCAN 패턴 매칭이 명확하다
+SET user:1000:profile "..."
+SET product:42:stock "..."
+```
+
+`u:1:p` 같은 식으로 줄이는 경우가 있다. 절약되는 메모리보다 운영 중 디버깅 비용이 더 크다. 의미를 유지하면서 불필요하게 길지 않게 설계하면 된다.
+
+### 키 길이와 메모리 오버헤드
+
+Redis에서 키 하나가 차지하는 메모리는 값만이 아니다. 키 이름 자체와 내부 딕셔너리 구조가 추가로 필요하다.
+
+```
+키 하나의 메모리 구성:
+
+  키 이름 (문자열)
+  + dictEntry 구조체 (~40바이트, 포인터 3개)
+  + redisObject 헤더 (16바이트)
+  + TTL 엔트리 (TTL이 설정된 경우 추가 포인터)
+  + jemalloc 할당 단위 패딩
+```
+
+키 1000만 개 기준으로, 키 이름이 10바이트냐 50바이트냐는 약 400MB 차이다. 값 크기에 비해 키 이름이 지나치게 길면 낭비고, 의미 없이 줄이면 유지보수 비용이 커진다.
+
+```bash
+# 키 하나의 실제 메모리 (키 이름 + 값 + 내부 오버헤드)
+MEMORY USAGE user:1000:profile
+
+# 내부 인코딩 확인
+OBJECT ENCODING user:1000:profile
+```
+
+### 해시 태그와 클러스터 슬롯 고정
+
+Redis 클러스터는 키 이름 전체를 CRC16으로 해시한 뒤 16384개 슬롯에 분산한다.
+
+```
+HASH_SLOT = CRC16(key) % 16384
+```
+
+멀티-키 명령(`MGET`, `MSET`, `SUNIONSTORE`, Lua 스크립트 등)은 같은 슬롯에 있는 키끼리만 동작한다. 키가 다른 슬롯에 걸쳐 있으면 `CROSSSLOT` 에러가 발생한다.
+
+해시 태그(`{}`)를 쓰면 괄호 안의 문자열만 해시 계산에 사용한다. 같은 태그를 가진 키는 항상 같은 슬롯에 배치된다.
+
+```bash
+# 해시 태그 없이 멀티-키 명령 — 다른 슬롯이면 에러
+MGET user:1000:cart user:1000:profile
+# → CROSSSLOT Keys in request don't hash to the same slot
+
+# 해시 태그 사용 — {user:1000}이 같은 슬롯에 고정
+MGET {user:1000}:cart {user:1000}:profile
+# → 정상 동작
+```
+
+```bash
+# 슬롯 번호 확인
+redis-cli CLUSTER KEYSLOT "{user:1000}:cart"
+redis-cli CLUSTER KEYSLOT "{user:1000}:profile"
+# 두 값이 같아야 한다
+```
+
+함정은 해시 태그를 너무 좁게 잡으면 특정 노드에 키가 집중된다는 점이다. `{service}`처럼 전체 서비스를 하나로 묶으면 클러스터 분산 효과가 없다. 유저 ID나 기능 단위로 태그를 설계해야 노드 간 균등 분산이 유지된다.
+
+### DB 선택 vs 키 프리픽스
+
+Redis는 DB 0~15번을 지원하고 `SELECT` 명령으로 전환한다.
+
+```bash
+SELECT 1
+SET key "value"
+SELECT 0
+```
+
+실서비스에서 DB 분리 방식은 쓰지 않는 게 낫다:
+
+- 클러스터 모드는 DB 0만 지원한다. `SELECT`를 쓰는 코드가 있으면 클러스터 전환이 막힌다.
+- DB 간 메모리 격리가 없다. DB 1의 키 증가가 DB 0의 eviction에 영향을 준다.
+- 모니터링 도구 대부분이 DB 단위 구분을 제대로 지원하지 않는다.
+
+키 프리픽스 방식이 현실적이다:
+
+```bash
+# 서비스별 프리픽스
+SET svc_a:user:1000 "..."
+SET svc_b:user:1000 "..."
+
+# 환경별 프리픽스 (로컬에서 여러 서비스가 하나의 인스턴스를 공유할 때)
+SET dev:user:1000 "..."
+SET stg:user:1000 "..."
+```
+
+SCAN 패턴 매칭으로 특정 프리픽스 키만 조회하고, 클러스터 모드에서도 동작한다. DB 선택은 로컬 개발 환경에서 서비스 간 키 충돌을 피할 목적으로만 쓴다.
+
+### SCAN으로 키 공간 순회
+
+`KEYS *`는 프로덕션에서 쓰면 안 된다. 싱글 스레드가 전체 키를 순회하는 동안 다른 명령이 전부 밀린다. 키 100만 개면 수백 ms가 걸린다.
+
+`SCAN`은 커서 기반 반복자다. 호출마다 일부 키를 반환하고 다음 커서를 돌려준다. 커서가 0이 되면 순회가 끝난다.
+
+```bash
+# 기본 사용법
+SCAN 0 MATCH "user:*" COUNT 100
+# 반환: [다음 커서, [키 목록]]
+
+# 순회 예시
+SCAN 0
+# → [1234, ["user:1:profile", "user:2:session"]]
+SCAN 1234
+# → [5678, ["user:3:profile"]]
+SCAN 5678
+# → [0, ["user:4:cart"]]   ← 커서 0이면 완료
+```
+
+`COUNT`는 내부 딕셔너리에서 한 번에 검사할 슬롯 수의 힌트다. 반환되는 키 수를 보장하지 않는다. 키가 밀집된 슬롯이면 COUNT보다 많이 반환될 수 있고, 희박하면 적게 반환될 수 있다.
+
+```bash
+# 셸 스크립트로 전체 순회
+cursor=0
+while true; do
+    result=$(redis-cli SCAN $cursor MATCH "user:*" COUNT 100)
+    cursor=$(echo "$result" | head -1)
+    echo "$result" | tail -n +2
+    [ "$cursor" == "0" ] && break
+done
+```
+
+```bash
+# 자료구조별 SCAN
+HSCAN myhash 0 MATCH "field:*" COUNT 50    # Hash 필드
+SSCAN myset 0 COUNT 100                     # Set 원소
+ZSCAN myzset 0 MATCH "prefix:*" COUNT 50   # Sorted Set
+```
+
+SCAN 순회 중 추가된 키는 반환될 수도 있고 누락될 수도 있다. 삭제된 키가 반환되는 경우도 있다. 완전한 일관성이 필요하면 SCAN 대신 별도 Set 자료구조로 키 목록을 관리하는 방식을 써야 한다.
 
 ---
 

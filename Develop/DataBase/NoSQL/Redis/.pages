@@ -4,3 +4,4 @@ nav:
   - Redis 다루기.md
   - Redis_Cache_Strategy.md
   - Redis_Advanced.md
+  - Redis_Keyspace_Notifications.md

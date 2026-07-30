@@ -1,7 +1,7 @@
 ---
 title: ScyllaDB — 아키텍처·데이터 모델링·운영 실무
-tags: [database, nosql, scylladb, cassandra, wide-column, cql, distributed]
-updated: 2026-06-15
+tags: [database, nosql, scylladb, cassandra, wide-column, cql, distributed, keyspace]
+updated: 2026-07-30
 ---
 
 # ScyllaDB
@@ -192,7 +192,72 @@ WITH replication = {
 
 replication factor(RF)는 같은 데이터를 몇 개 노드에 복제할지다. RF=3이면 데이터 하나가 노드 3개에 들어간다. 노드 하나가 죽어도 나머지 2개에서 읽을 수 있다. RF는 consistency level과 같이 봐야 의미가 생긴다(6장).
 
-### 4.2 TABLE 생성
+### 4.2 KEYSPACE 설계 기준
+
+#### 키스페이스를 몇 개 만들 것인가
+
+키스페이스마다 RF를 따로 정할 수 있다는 게 분리의 유일한 실질적 이유다. 결제 데이터(RF=3, QUORUM 강제)와 이벤트 로그(RF=1, ONE으로 충분)처럼 내구성 요구사항이 다른 데이터가 한 클러스터에 있을 때, 키스페이스를 나누는 게 맞다.
+
+서비스나 팀 단위로 키스페이스를 나누는 건 운영 복잡도만 올린다. 키스페이스가 늘수록 repair, compaction, 스키마 관리 범위가 흩어지고, 운영 자동화 스크립트도 그만큼 범위가 커진다. 클러스터당 키스페이스 2~3개를 넘기면 운영 부담이 눈에 띄게 올라간다. 마이크로서비스 환경에서는 공유 클러스터 하나에 서비스 접두어로 테이블을 구분하는 방식(`payment_orders`, `notification_events`)이 더 현실적이다.
+
+#### 멀티 DC 키스페이스 RF 불일치
+
+NetworkTopologyStrategy를 쓸 때 키스페이스 생성 시점에 모든 DC를 명시해야 한다. DC를 빠뜨리면 그 DC에는 복제본이 없고, 해당 DC 클라이언트의 `LOCAL_QUORUM` 요청이 즉시 실패한다.
+
+```sql
+-- DC2가 클러스터에 있는데 명시하지 않은 경우
+CREATE KEYSPACE orders
+WITH replication = {
+  'class': 'NetworkTopologyStrategy',
+  'DC1': 3
+};
+-- DC2 클라이언트가 LOCAL_QUORUM으로 orders를 조회하면 실패한다
+```
+
+클러스터에 새 DC를 추가할 때도 같다. DC2 노드를 붙인 다음 키스페이스를 ALTER하지 않으면, DC2 노드가 올라와도 orders 데이터는 DC2에 없다.
+
+DC별 RF가 다를 때(DC1=3, DC2=1)도 문제가 생긴다. DC2에서 `LOCAL_QUORUM`은 RF=1이라 노드 하나만 응답하면 충족되지만, 그 노드 하나가 죽으면 DC2에서 그 키스페이스 전체가 불가 상태가 된다. 멀티 DC를 구성하는 이유 중 하나가 DC 장애 대비인데, RF=1인 DC는 노드 하나 장애에도 취약하다.
+
+#### 키스페이스 간 CQL 조인 불가
+
+CQL은 조인을 지원하지 않는다. 같은 클러스터 안이라도 다른 키스페이스의 테이블을 한 쿼리로 합칠 방법은 없다. 물리적으로 같은 노드에 데이터가 있어도 CQL 문법 자체에 없다.
+
+키스페이스를 넘나드는 조회가 필요하면 애플리케이션에서 각각 쿼리하고 코드에서 합쳐야 한다. 네트워크 왕복이 두 번 생기고, 결과를 메모리에서 합치는 연산이 애플리케이션 쪽에 생긴다. 이 패턴이 빈번하다면 처음부터 같은 키스페이스에 두는 게 맞다.
+
+키스페이스 간 테이블 이동 기능도 없다. 분리 후 통합하려면 데이터를 통째로 다시 마이그레이션해야 한다. 분리할 때 나중에 합칠 가능성이 있다면 이 비용을 미리 계산해야 한다.
+
+#### 운영 중 ALTER KEYSPACE 주의사항
+
+RF를 바꾸거나 DC를 추가·제거할 때 `ALTER KEYSPACE`를 쓴다.
+
+```sql
+ALTER KEYSPACE orders
+WITH replication = {
+  'class': 'NetworkTopologyStrategy',
+  'DC1': 3,
+  'DC2': 3
+};
+```
+
+ALTER 실행은 스키마에 RF 정보만 기록한다. 데이터가 즉시 재배치되지 않는다. repair가 실제로 복제본을 만들거나 정리한다.
+
+RF를 늘렸을 때 repair 전까지 새 노드에 데이터가 없다. RF 정보만 바뀐 채로 repair 없이 두면 클러스터가 잘못된 RF 숫자를 기준으로 CL을 계산하는 상황이 생길 수 있다. RF를 줄였을 때는 repair 후 compaction에서 여분의 복제본을 정리한다. ALTER 직후에는 디스크 용량이 줄지 않는다.
+
+RF를 늘리고 repair를 돌리면 데이터 복사 I/O가 폭증한다. 피크 시간에 하면 읽기·쓰기 지연이 같이 뛴다. repair 스트리밍 처리량을 제한하고 트래픽이 낮은 시간에 단계적으로 올리는 게 안전하다.
+
+```bash
+# repair 스트리밍 처리량 제한 (MB/s)
+nodetool setstreamthroughput 100
+
+# keyspace 단위 repair (primary range만)
+nodetool repair -pr orders
+```
+
+`DROP KEYSPACE`는 그 안의 모든 테이블과 데이터를 삭제한다. 롤백 방법이 없다. 운영 클러스터에서는 백업을 확인하고 절차를 거쳐서 실행한다.
+
+---
+
+### 4.3 TABLE 생성
 
 ```sql
 USE shop;
