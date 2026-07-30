@@ -12,3 +12,4 @@ nav:
   - m_TLS_Service_Auth.md
   - HTTP_Error_Response_Design.md
   - HTTP_Conditional_Requests.md
+  - Consistency_Validation_Timing.md

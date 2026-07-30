@@ -1,7 +1,7 @@
 ---
-title: NestJS ValidationPipe와 DTO 검증
-tags: [nestjs, validation, class-validator, class-transformer, dto, pipe, node]
-updated: 2026-06-06
+title: NestJS ValidationPipe와 정합성 검증 시점
+tags: [nestjs, validation, class-validator, class-transformer, dto, pipe, pipe-scope, lifecycle, node]
+updated: 2026-07-30
 ---
 
 # NestJS ValidationPipe와 DTO 검증
@@ -60,6 +60,47 @@ async function bootstrap() {
   await app.listen(3000);
 }
 ```
+
+
+## 변환과 검증 실행 순서
+
+ValidationPipe는 두 단계를 순서대로 밟는다. 먼저 `plainToInstance`로 plain object를 DTO 클래스 인스턴스로 변환하고, 그다음 `validate`로 검증한다.
+
+`@Transform`과 `@Type`은 `plainToInstance` 단계에서 실행된다. `@IsString()`, `@IsEmail()` 같은 데코레이터는 `validate` 단계에서 실행된다. 변환이 끝난 값을 가지고 검증하는 구조라, `@Transform`이 값을 바꿔놓으면 바뀐 값이 검증을 받는다.
+
+`transform: false`(기본값)여도 `plainToInstance`는 내부적으로 실행된다. `@Transform` 콜백은 실행되고 검증도 변환된 값 기준으로 돈다. 달라지는 건 핸들러로 반환되는 값이다. `transform: false`면 핸들러엔 원본 plain object가 도착한다. `transform: true`면 변환된 인스턴스가 도착한다.
+
+```typescript
+// transform: false 상태에서 ?page=2 요청
+// @Transform: "2" → 2 (변환은 실행)
+// validate: 2(숫자)로 @IsInt 통과
+// 핸들러에 도착: "2" (원본 문자열)
+
+@Transform(({ value }) => parseInt(value, 10))
+@IsInt()
+page: number; // 런타임에서 typeof page === 'string'
+```
+
+검증은 통과했는데 핸들러에서 산술 연산이 이상하게 동작한다면 `transform: true`를 켜지 않은 게 원인일 수 있다. TypeScript 타입 선언과 런타임 값이 어긋나는 현상은 `transform: true`를 켜면 해결된다.
+
+`@Transform` 콜백에서 예외를 던지면 ValidationPipe가 400으로 처리하지 않는다. `InternalServerErrorException`으로 500이 나간다. 변환 실패는 예외 없이 `NaN`이나 원본 값을 반환하고, 검증 단계에서 `@IsInt()` 같은 데코레이터가 잡게 두는 편이 낫다.
+
+```typescript
+// 잘못된 방법 — 변환 실패 시 500
+@Transform(({ value }) => {
+  if (!/^\d+$/.test(value)) throw new Error('숫자가 아닙니다');
+  return parseInt(value, 10);
+})
+@IsInt()
+page: number;
+
+// 올바른 방법 — NaN을 반환하고 @IsInt가 400 처리
+@Transform(({ value }) => parseInt(value, 10))
+@IsInt()
+page: number;
+```
+
+`skipMissingProperties: true` 옵션과 함께 쓸 때는 `@Transform`이 `undefined`를 반환하지 않는지 확인해야 한다. 변환 결과가 `undefined`이면 그 프로퍼티는 검증을 건너뛰는데, `@IsOptional()`을 달지 않았는데도 통과되는 원인이 여기 있을 수 있다.
 
 
 ## ValidationPipe 옵션 — 실제 동작 차이
@@ -710,6 +751,61 @@ tags: string[];
 ```
 
 
+## 글로벌 파이프 vs 라우트 파이프 적용 순서
+
+파이프는 글로벌 → 컨트롤러 → 핸들러 → 파라미터 순서로 적용된다. 같은 파라미터에 여러 단계에서 파이프가 붙어 있으면 모두 실행되고, 앞 파이프의 반환값이 다음 파이프의 입력이 된다.
+
+파라미터 레벨 파이프를 추가한다고 글로벌 파이프를 대체하지 않는다. `@Body(new ValidationPipe({ groups: ['update'] }))`처럼 쓰면 글로벌 ValidationPipe와 파라미터 레벨 ValidationPipe가 둘 다 실행된다. 같은 DTO를 두 번 검증하는 셈이라 낭비고, 에러 처리 로직이 두 번 돌 수 있어서 예상 밖 동작이 나올 수 있다. 라우트별로 검증 옵션을 다르게 하고 싶으면 글로벌 파이프를 조정하거나, 서비스 레이어에서 조건을 처리하는 편이 낫다.
+
+글로벌 파이프는 두 가지 방식으로 등록한다.
+
+```typescript
+// bootstrap에서 등록 — DI 주입 불가
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  await app.listen(3000);
+}
+
+// 모듈 프로바이더로 등록 — DI 주입 가능
+import { APP_PIPE } from '@nestjs/core';
+
+@Module({
+  providers: [
+    {
+      provide: APP_PIPE,
+      useClass: ValidationPipe,
+    },
+  ],
+})
+export class AppModule {}
+```
+
+`app.useGlobalPipes()`는 NestJS 컨테이너 밖에서 인스턴스를 직접 생성한다. 파이프 안에서 서비스를 주입받아야 하면 이 방식으로는 안 된다. `APP_PIPE` 토큰으로 모듈에 등록하면 DI 컨테이너 안에서 관리되기 때문에 다른 프로바이더를 주입받을 수 있다. DB를 조회하는 커스텀 파이프를 전역으로 돌릴 때 `APP_PIPE`를 쓰는 이유가 여기 있다.
+
+`@UsePipes()`로 컨트롤러나 핸들러 레벨에서 파이프를 추가할 수 있다.
+
+```typescript
+@Controller('admin')
+@UsePipes(new ValidationPipe({ groups: ['admin'] })) // 컨트롤러 전체에 적용
+export class AdminController {
+  @Post()
+  @UsePipes(TrimPipe) // 이 핸들러에만 추가
+  create(@Body() dto: AdminCreateDto) {}
+}
+```
+
+파라미터에 파이프를 여러 개 나열하면 선언 순서대로 체인된다.
+
+```typescript
+@Get(':id')
+findOne(@Param('id', ParseIntPipe, ValidateRangePipe) id: number) {}
+// ParseIntPipe 먼저 실행 → ValidateRangePipe가 그 결과를 받음
+```
+
+특정 라우트에서 글로벌 파이프만 끄는 방법은 NestJS에 없다. 일부 라우트를 제외하려면 파이프 내부에서 `metadata.metatype`을 보고 처리 여부를 분기하거나, 처음부터 그 라우트를 별도 모듈·컨트롤러로 분리해서 글로벌 파이프가 걸리지 않게 설계해야 한다.
+
+
 ## 커스텀 파이프 구현
 
 ValidationPipe로 안 되는 변환·검증은 직접 파이프를 만든다. 파이프는 `PipeTransform` 인터페이스를 구현하면 된다. 자주 만드는 건 특정 형식 검증이나 도메인 값 변환이다.
@@ -852,6 +948,44 @@ const details = errors.flatMap((err) =>
 ```
 
 이러면 데코레이터에 `message`를 안 써도 `IS_EMAIL`, `MIN_LENGTH` 같은 코드가 자동으로 나간다. 단, class-validator 내부 키 이름이 버전 사이에 바뀌면 코드도 바뀌므로, 응답 스펙으로 굳히기 전에 한 번 점검해야 한다.
+
+
+## 커스텀 파이프에서 DB 조회 기반 정합성 검증
+
+파이프가 실행되는 시점은 가드 이후, 핸들러 이전이다. 인증·인가를 담당하는 가드가 통과된 다음에 파이프가 실행되므로, 파이프 안에서는 해당 요청이 인증된 상태라고 가정할 수 있다.
+
+이 시점을 활용하는 패턴이 엔티티 존재 확인 파이프다. 핸들러에 진입하기 전에 파이프에서 엔티티를 조회하고 없으면 404를 던진다. 파이프의 반환값이 파라미터 값을 대체하기 때문에 핸들러는 같은 DB 조회를 반복하지 않는다.
+
+```typescript
+@Injectable()
+export class ParseUserPipe implements PipeTransform<string, Promise<User>> {
+  constructor(private readonly userRepository: UserRepository) {}
+
+  async transform(value: string): Promise<User> {
+    const user = await this.userRepository.findById(value);
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다');
+    }
+    return user;
+  }
+}
+```
+
+```typescript
+@Delete(':id')
+remove(@Param('id', ParseUserPipe) user: User) {
+  // ID 문자열 대신 User 인스턴스가 직접 들어옴
+  return this.userService.remove(user);
+}
+```
+
+이 파이프는 DI 주입이 필요하므로 `app.useGlobalPipes(new ParseUserPipe())`처럼 직접 인스턴스를 넘기면 안 된다. `APP_PIPE` 토큰으로 모듈에 등록하거나, 파라미터 레벨에서 NestJS가 인스턴스를 관리하도록 클래스를 직접 참조하는 방식을 써야 한다.
+
+파이프에서 확인한 시점과 핸들러가 실행되는 시점 사이에 데이터가 바뀔 수 있다. 파이프에서 `user`가 존재한다고 확인했는데, 핸들러 진입 직전 다른 요청이 그 사용자를 삭제하면 핸들러는 오래된 엔티티로 동작한다. 파이프 자체로 이 경쟁 상태를 막을 방법은 없다. 삭제·수정처럼 정합성이 중요한 연산은 서비스 레이어의 트랜잭션 안에서 재확인하거나 낙관적 잠금으로 처리해야 한다.
+
+비즈니스 정합성 검증을 파이프에 넣을지 서비스에 넣을지 기준이 하나 있다. 형식 확인(ID 패턴 유효성)과 존재 확인(해당 ID가 DB에 있는가)은 파이프가 적합하다. 도메인 규칙, 즉 "주문이 '결제 완료' 상태여야 환불 가능하다" 같은 판단은 서비스가 담당한다. 도메인 규칙을 파이프에 넣으면 비즈니스 로직이 인프라 계층에 흩어지고, 테스트에서 DB 의존성까지 같이 챙겨야 해서 부담이 커진다.
+
+DB 조회 파이프를 여러 파라미터에 붙이면 요청 하나에 쿼리가 파라미터 수만큼 나간다. 검증 파이프의 DB 조회는 해당 파라미터 하나를 확인하는 데 꼭 필요한 최소 쿼리로 제한한다. 파이프에서 존재만 확인하고 `id`를 그대로 반환한 다음 핸들러에서 다시 필요한 데이터를 조회하는 방식도 있는데, 이 경우 존재 확인 역할과 데이터 로딩 역할이 분리되어 각각의 책임이 명확해진다.
 
 
 ## 그룹 검증과 부분 업데이트

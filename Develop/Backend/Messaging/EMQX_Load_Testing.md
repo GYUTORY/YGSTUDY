@@ -1,7 +1,7 @@
 ---
 title: EMQX 부하 테스트 - 수백만 커넥션 검증
 tags: [EMQX, MQTT, Load Testing, emqtt_bench, Benchmark, Performance]
-updated: 2026-06-22
+updated: 2026-07-30
 ---
 
 # EMQX 부하 테스트
@@ -247,6 +247,94 @@ curl http://10.0.0.10:18083/api/v5/prometheus/stats | grep -E 'emqx_connections_
 용량이 나오면 디바이스 총수를 노드당 실용 용량으로 나눈다. 디바이스 300만 대, 노드당 60만이면 커넥션 노드 5대가 최소다. 여기에 노드 하나 죽어도 버티게 +1, 폭주 시 잠깐의 추가 부하를 위해 여유를 더한다. core-replicant 구조에서 이 커넥션 노드들은 replicant로 두고, core는 별도로 3~5대를 둔다([EMQX.md core-replicant 아키텍처](EMQX.md#core-replicant-아키텍처)). 커넥션 용량을 늘릴 땐 replicant만 추가하면 되니까, 위에서 잰 "노드 한 대 용량"이 곧 replicant 한 대 용량이고, 그걸로 replicant 수를 산정한다.
 
 마지막으로 산정한 노드 수로 클러스터를 실제로 띄워서 전체 부하를 다시 건다. 노드 한 대 측정값을 단순히 곱하면 안 되는 이유가 있다. 클러스터는 노드 간 라우팅 테이블 동기화 비용이 추가된다. 구독이 많고 토픽이 노드 간에 흩어져 있으면 메시지가 노드를 건너 라우팅되면서 단일 노드 측정값보다 처리량이 떨어진다. 그래서 산정한 구성 그대로 한 번은 전체 부하 테스트를 돌려서 실제로 목표 커넥션과 처리량이 나오는지 확인하고, 안 나오면 노드를 더하거나 토픽 설계를 손본다.
+
+## 정합성 검증 시점
+
+부하 테스트는 처리량과 커넥션 숫자만 보는 게 아니다. 그 숫자 뒤에서 메시지가 실제로 전달됐는지 확인하는 게 빠져 있으면 "브로커는 초당 10만을 처리했다"는 결론이 맞는지 알 수가 없다.
+
+정합성 검증 시점은 크게 두 가지다. 발행 직후 ACK를 보는 방법, 테스트가 끝난 뒤 발행·수신 총량을 맞추는 방법. 둘은 잡을 수 있는 문제가 다르다.
+
+### 발행 직후 ACK 기반 검증
+
+QoS 1에서 발행자가 PUBLISH를 보내면 브로커는 수신 즉시 PUBACK을 돌려준다. ACK는 "브로커가 받았다"는 보장이지 "구독자가 받았다"는 보장이 아니다. 이 차이를 흐릿하게 두면 나중에 혼난다.
+
+emqtt_bench pub 콘솔에 send rate 외에 in-flight 수가 찍힌다. 이게 계속 오르기만 하고 떨어지지 않으면 PUBACK이 제때 안 오고 있다는 신호다. 브로커 부하 시 PUBACK 지연은 두 곳에서 온다. 브로커 입력 큐가 밀리거나 네트워크 RTT가 늘어서다.
+
+```bash
+./bin/emqtt_bench pub \
+  -h 10.0.0.10 -c 1000 \
+  -t "bench/%i" -q 1 \
+  -I 100 -s 256
+# 콘솔에 찍히는 current in-flight 가 부하 내내 낮게 유지돼야 한다
+```
+
+ACK 기반으로 잡을 수 있는 건 발행 실패와 브로커 측 수신 지연이다. 구독자가 메시지를 못 받는 건 이 단계에서 안 보인다. 발행이 모두 PUBACK을 받았는데 구독자가 절반밖에 못 받았다면, 브로커 내부 라우팅이나 구독자 쪽 소비 속도 문제다.
+
+QoS 0은 PUBACK이 없다. 브로커가 받았는지 발행자는 알 방법이 없다. QoS 0 테스트에서 "초당 10만 발행"은 "발행 시도 10만"이지 "브로커 수신 10만"이 아닐 수 있다.
+
+### 소비 완료 후 집계 검증
+
+부하 테스트가 끝난 뒤 발행 총수와 수신 총수를 맞추는 방식이다. 페이로드에 시퀀스 번호를 심어 두면 테스트 종료 후 갭과 중복을 찾을 수 있다. 갭은 유실이고, 같은 seq가 두 번 이상 오면 중복이다.
+
+```python
+import json, time
+
+def make_payload(seq: int, publisher_id: str) -> bytes:
+    return json.dumps({
+        "seq": seq,
+        "pub_id": publisher_id,
+        "ts": time.time()
+    }).encode()
+```
+
+QoS 0은 유실이 날 수 있고 중복이 없다. QoS 1은 브로커→구독자 구간에서 재전송이 일어나면 중복이 나온다. QoS 2는 정상 운영에서 중복이 없어야 하는데 재접속이 겹치면 in-flight 메시지가 한 번 더 올 수 있다.
+
+이 방식에서 함정이 하나 있다. 부하를 멈춘 직후 바로 수신 총수를 세면 아직 전달 중인 메시지를 놓친다. 발행이 끝났어도 브로커에서 구독자로 가는 중인 메시지가 남아있다. drain time이라고 부르는 대기 구간인데, 부하 종료 후 30초~2분을 기다린 뒤 수신 집계를 마감한다. 이 대기 없이 집계하면 정상 브로커를 유실이 있는 것처럼 잘못 판단한다.
+
+```python
+DRAIN_SECONDS = 60  # 부하 종료 후 1분 대기
+
+received = set()
+duplicates = 0
+
+def on_message(seq: int):
+    global duplicates
+    if seq in received:
+        duplicates += 1
+    received.add(seq)
+
+time.sleep(DRAIN_SECONDS)
+
+published_seqs = set(range(0, total_published))
+lost = published_seqs - received
+print(f"유실: {len(lost)}, 중복: {duplicates}")
+```
+
+drain time을 얼마로 잡을지는 QoS와 구독자 소비 속도에 달려 있다. QoS 1에서 구독자가 느리면 브로커 session queue에 메시지가 쌓이고, 한꺼번에 소비되는 데 시간이 걸린다. drain time 동안에도 수신 총수가 계속 오르고 있으면 아직 끝나지 않은 거다.
+
+### 유실·중복 감지 시점 설계
+
+실시간으로 볼지 배치로 볼지는 목적에 따라 다르다.
+
+실시간 감지는 구독자가 seq를 받을 때마다 직전 seq와 연속인지 체크한다. 부하 중에 유실이 어느 시점에 집중되는지 보려면 실시간 감지가 필요하다. 처리량이 특정 임계점을 넘는 순간 유실이 터지면, 그 임계점이 노드의 실제 한계다.
+
+```python
+expected_seq = {}  # {publisher_id: expected_seq}
+
+def check_realtime(pub_id: str, seq: int):
+    exp = expected_seq.get(pub_id, 0)
+    if seq > exp:
+        print(f"[{pub_id}] 갭: {exp}~{seq-1}, 유실 {seq - exp}건")
+    elif seq < exp:
+        print(f"[{pub_id}] 중복: seq={seq}")
+    expected_seq[pub_id] = max(exp, seq + 1)
+```
+
+실시간 갭 감지는 순서가 뒤바뀐 메시지를 유실로 잘못 잡는 경우가 있다. 여러 발행자가 같은 토픽에 쓰거나 클러스터에서 노드 간 라우팅이 일어나면 순서가 섞인다. 실시간 감지는 "뭔가 이상하다"는 신호로만 쓰고, 정확한 유실 수는 배치 집계로 확인한다.
+
+배치 집계는 drain time 이후 전체 seq 집합을 비교한다. 정확하지만 테스트가 끝나야 결과가 나온다. 보통 실시간으로 유실 발생 시점을 잡고, 배치로 최종 유실율을 계산하는 식으로 함께 쓴다.
+
+구독자 수가 많으면 집계 자체도 고려해야 한다. 구독자 1,000개가 각자 수신 seq를 저장했다가 합치면 데이터 양이 크다. 구독자마다 자기 범위의 seq를 검증하게 하거나, 샘플링해서 전체 정합성을 추정하는 방법이 있다.
 
 ## 테스트를 돌리는 순서
 
