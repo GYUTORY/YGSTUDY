@@ -29,3 +29,4 @@ nav:
   - ULID.md
   - Type_ORM_Entity_Relations.md
   - Referential_Integrity.md
+  - No_FK_Design.md
