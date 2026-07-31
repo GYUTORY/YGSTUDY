@@ -20,6 +20,7 @@ nav:
   - 비정규화.md
   - Hierarchical_Data_Modeling.md
   - Temporal_Data_Modeling.md
+  - Valid_Time.md
   - Data_Type_Selection.md
   - Identifier_Design.md
   - Natural_Key.md
