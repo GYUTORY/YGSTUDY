@@ -4,5 +4,6 @@ nav:
   - Naming_Conventions.md
   - Timezone_Handling.md
   - UTC_Storage.md
+  - Timezone_Testing.md
   - UUI_Dv4.md
   - UUID_v7.md
