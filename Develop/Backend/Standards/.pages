@@ -6,6 +6,7 @@ nav:
   - UTC_Storage.md
   - Instant_vs_Local_Date_Time.md
   - DST.md
+  - Tzdata_Management.md
   - Timezone_Testing.md
   - UUI_Dv4.md
   - UUID_v7.md
