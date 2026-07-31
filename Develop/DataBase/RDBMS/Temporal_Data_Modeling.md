@@ -1,6 +1,6 @@
 ---
 title: 시간 데이터 모델링
-tags: [database, temporal, timestamp, datetime, utc, soft-delete, bitemporal, partitioning, scheduling, sql2011]
+tags: [database, temporal, timestamp, datetime, utc, timestamptz, timezone, migration, soft-delete, bitemporal, partitioning, scheduling, sql2011, index]
 updated: 2026-07-31
 ---
 
@@ -100,6 +100,315 @@ default-time-zone = '+00:00'
 ```
 
 표시는 애플리케이션에서 한다. 사용자의 타임존을 알면 UTC 값을 변환해서 보여주면 된다. DB에 저장된 UTC 값을 직접 수정하면 안 된다.
+
+---
+
+## UTC 기준 DATE 컬럼 설계
+
+`created_at` 같은 컬럼이 UTC로 저장돼 있어도, "오늘 주문" 같은 날짜 경계 쿼리는 어느 타임존을 기준으로 하느냐에 따라 결과가 달라진다.
+
+```sql
+-- MySQL: 서버가 UTC 기준일 때
+SELECT COUNT(*) FROM orders
+WHERE DATE(created_at) = '2024-01-01';
+-- 2024-01-01 00:00:00 UTC ~ 2024-01-01 23:59:59 UTC 구간을 집계한다
+-- KST 기준으로는 2024-01-01 09:00:00 ~ 2024-01-02 08:59:59 구간이 됨
+```
+
+한국 서비스에서 "1월 1일 주문"을 KST 자정부터 다음날 자정까지로 정의한다면, UTC 기준 범위로 변환해서 쿼리해야 한다.
+
+```sql
+-- KST 2024-01-01 00:00:00 ~ 23:59:59 에 해당하는 UTC 범위
+SELECT COUNT(*) FROM orders
+WHERE created_at >= '2023-12-31 15:00:00'  -- UTC
+  AND created_at <  '2024-01-01 15:00:00'; -- UTC
+```
+
+이 변환은 애플리케이션에서 처리하는 게 가장 안전하다. DB에서 함수를 씌워 날짜를 추출하면 인덱스를 못 탄다.
+
+날짜만 저장하는 컬럼(생일, 이벤트 날짜, 약속일 등)은 `DATE` 타입을 쓰되, 이 날짜가 어느 타임존 기준인지 명확히 정해야 한다. 대부분은 사용자 로컬 타임존 기준이고, 글로벌 서비스라면 타임존 컬럼을 함께 두는 방법이 있다.
+
+```sql
+CREATE TABLE events (
+    id              BIGINT      NOT NULL AUTO_INCREMENT,
+    user_id         BIGINT      NOT NULL,
+    event_date      DATE        NOT NULL,   -- 사용자 현지 날짜
+    user_timezone   VARCHAR(50) NOT NULL,   -- 'Asia/Seoul', 'America/New_York' 등
+    created_at      DATETIME    NOT NULL,   -- UTC
+    PRIMARY KEY (id)
+);
+```
+
+`event_date`는 UTC 변환 없이 그대로 쓴다. "2024-01-01에 이벤트가 있다"는 건 사용자가 어디 있든 그 날짜 자체가 의미를 갖는 경우다. 시작 시각이 중요하면 DATETIME으로 바꾸고 UTC로 저장한다.
+
+---
+
+## TIMESTAMP WITH TIME ZONE 주의사항
+
+PostgreSQL의 `TIMESTAMPTZ`는 타임존 정보를 함께 저장하는 게 아니다. UTC로만 저장하고, 조회 시 세션 타임존으로 변환해서 보여준다.
+
+```sql
+SET TIME ZONE 'Asia/Seoul';
+INSERT INTO logs (created_at) VALUES ('2024-01-01 10:00:00+09');
+-- 내부 저장값: 2024-01-01 01:00:00 UTC
+
+SET TIME ZONE 'UTC';
+SELECT created_at FROM logs;
+-- 2024-01-01 01:00:00+00
+
+SET TIME ZONE 'America/New_York';
+SELECT created_at FROM logs;
+-- 2023-12-31 20:00:00-05
+```
+
+저장된 값이 하나인데 어느 타임존으로 조회하느냐에 따라 다르게 보인다. DB 클라이언트로 직접 조회할 때 혼란스러운 이유가 여기에 있다.
+
+### AT TIME ZONE 연산자
+
+`AT TIME ZONE`은 타입에 따라 동작 방향이 반대다.
+
+```sql
+-- TIMESTAMPTZ AT TIME ZONE -> 해당 타임존의 로컬 TIMESTAMP (TZ 없음)
+SELECT NOW() AT TIME ZONE 'Asia/Seoul';
+-- 반환 타입: TIMESTAMP WITHOUT TIME ZONE
+
+-- TIMESTAMP (without TZ) AT TIME ZONE -> TIMESTAMPTZ
+SELECT '2024-01-01 10:00:00'::TIMESTAMP AT TIME ZONE 'Asia/Seoul';
+-- 반환 타입: TIMESTAMPTZ (Asia/Seoul 기준 10시로 해석해서 UTC 변환)
+```
+
+이미 TIMESTAMPTZ인 값에 `AT TIME ZONE`을 붙이면 TZ 없는 TIMESTAMP가 나온다. 이걸 다시 TIMESTAMPTZ 컬럼과 비교하면 암묵적 형변환이 일어난다.
+
+```sql
+-- 의도와 다르게 동작할 수 있다
+SELECT *
+FROM orders
+WHERE created_at AT TIME ZONE 'Asia/Seoul' > '2024-01-01 00:00:00';
+-- created_at AT TIME ZONE 'Asia/Seoul'은 TIMESTAMP (without TZ)를 반환
+-- '2024-01-01 00:00:00'와 비교 시 현재 세션 타임존 기준으로 해석됨
+```
+
+범위 조건은 TIMESTAMPTZ 값끼리 비교하는 방식이 안전하다.
+
+```sql
+-- 권장: 범위 경계를 TIMESTAMPTZ로 명시
+SELECT *
+FROM orders
+WHERE created_at >= '2024-01-01 00:00:00+09:00'
+  AND created_at <  '2024-01-02 00:00:00+09:00';
+```
+
+### DST 전환 구간
+
+한국(Asia/Seoul)은 1988년 이후 DST가 없어서 KST는 항상 UTC+9다. 미국, 유럽 타임존을 다루면 DST 전환 구간에서 문제가 생긴다.
+
+```sql
+-- America/New_York, 2024년 3월 10일 02:00에 시계를 03:00으로 앞당김
+-- 이 구간의 시각은 존재하지 않는다
+SELECT '2024-03-10 02:30:00'::TIMESTAMP AT TIME ZONE 'America/New_York';
+-- PostgreSQL은 이를 03:30 EDT로 처리한다 (비존재 시각 처리)
+
+-- 11월 3일 02:00에 01:00으로 되돌림
+-- 01:00~02:00 구간이 두 번 생긴다 (EDT와 EST 모두 해당)
+SELECT '2024-11-03 01:30:00'::TIMESTAMP AT TIME ZONE 'America/New_York';
+-- 어떤 01:30인지 모호하다 — PostgreSQL은 첫 번째(EDT)로 처리
+```
+
+DST가 있는 타임존의 로컬 시각을 UTC로 저장할 때, 모호한 구간의 처리 방식을 애플리케이션에서 명확히 정해야 한다. JDBC 드라이버와 ORM이 DST 처리를 내부적으로 하는데, 드라이버 버전마다 동작이 다를 수 있다.
+
+---
+
+## 인덱스 설계와 타임존
+
+타임존 변환 함수를 WHERE 조건에 쓰면 인덱스를 못 탄다는 건 알고 있어도, 실제 쿼리 작성 시 놓치는 경우가 많다.
+
+```sql
+-- 인덱스 못 탐 (MySQL)
+SELECT * FROM orders
+WHERE DATE(created_at) = '2024-01-01';
+
+-- 인덱스 못 탐 (PostgreSQL)
+SELECT * FROM orders
+WHERE (created_at AT TIME ZONE 'Asia/Seoul')::DATE = '2024-01-01';
+```
+
+두 쿼리 모두 `created_at` 인덱스를 쓰지 못하고 전체 테이블 스캔을 한다.
+
+### 범위 조건으로 변환
+
+인덱스를 타려면 범위 조건으로 바꿔야 한다.
+
+```sql
+-- KST 2024-01-01 기준으로 UTC 범위를 애플리케이션에서 계산
+-- KST 00:00:00 = UTC 2023-12-31 15:00:00
+-- KST 23:59:59 = UTC 2024-01-01 14:59:59
+
+SELECT * FROM orders
+WHERE created_at >= '2023-12-31 15:00:00'
+  AND created_at <  '2024-01-01 15:00:00';
+-- created_at 인덱스를 정상적으로 탄다
+```
+
+이 범위 계산을 애플리케이션에서 책임진다. 타임존 변환 로직이 여러 곳에 분산되지 않도록 유틸리티 함수나 레이어를 하나 정해서 처리하는 게 낫다.
+
+### MySQL 8.0+ 생성 컬럼 인덱스
+
+매번 범위 계산을 애플리케이션에서 하기 어려운 상황이라면 생성 컬럼(Generated Column)으로 KST 날짜를 저장해두는 방법이 있다.
+
+```sql
+ALTER TABLE orders
+  ADD COLUMN created_date_kst DATE
+    GENERATED ALWAYS AS (DATE(CONVERT_TZ(created_at, '+00:00', '+09:00'))) STORED;
+
+CREATE INDEX idx_orders_created_date_kst ON orders(created_date_kst);
+
+-- 이제 이 쿼리가 인덱스를 탄다
+SELECT * FROM orders WHERE created_date_kst = '2024-01-01';
+```
+
+`STORED`로 지정하면 디스크에 저장되고 인덱스를 만들 수 있다. `VIRTUAL`은 디스크에 저장하지 않아 공간은 아끼지만 인덱스를 못 만든다.
+
+`CONVERT_TZ` 함수는 MySQL의 타임존 테이블이 로드돼 있어야 한다. 설치 후 로드하지 않으면 NULL을 반환한다.
+
+```bash
+# 타임존 테이블 로드
+mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root -p mysql
+```
+
+로드 여부는 `SELECT CONVERT_TZ('2024-01-01 00:00:00', '+00:00', 'Asia/Seoul');`로 확인한다. NULL이 나오면 테이블이 없는 것이다. named timezone 대신 offset('+09:00')을 쓰면 테이블 없이도 동작한다.
+
+### PostgreSQL 함수형 인덱스
+
+```sql
+CREATE INDEX idx_orders_created_date_kst
+  ON orders ((created_at AT TIME ZONE 'Asia/Seoul')::DATE);
+
+-- 이 쿼리가 인덱스를 탄다
+SELECT * FROM orders
+WHERE (created_at AT TIME ZONE 'Asia/Seoul')::DATE = '2024-01-01';
+```
+
+함수형 인덱스는 인덱스 생성 후 `ANALYZE orders;`를 실행해야 플래너가 실행 계획에 반영한다. WHERE 절에서 정확히 같은 표현식을 써야 인덱스를 탄다. `(created_at AT TIME ZONE 'Asia/Seoul')::DATE`와 `date(timezone('Asia/Seoul', created_at))`는 동일한 결과지만 표현식이 달라서 인덱스를 못 타는 경우가 있다.
+
+---
+
+## 레거시 로컬타임 마이그레이션
+
+서버 타임존이 KST였던 시절에 `DATETIME` 컬럼에 KST 시각을 저장했다가, UTC로 바꿔야 하는 상황이 생긴다. 마이그레이션 자체보다 범위를 파악하고 검증하는 과정이 더 어렵다.
+
+### 현황 파악
+
+```sql
+-- MySQL: 현재 서버 타임존 확인
+SELECT @@global.time_zone, @@session.time_zone;
+
+-- 데이터 범위 확인
+SELECT
+    MIN(created_at),
+    MAX(created_at),
+    COUNT(*)
+FROM orders;
+
+-- TIMESTAMP 컬럼은 UTC로 자동 저장됐으므로
+-- DATETIME 컬럼만 마이그레이션 대상이다
+SHOW CREATE TABLE orders\G
+```
+
+어느 시점에 서버 타임존이 바뀌었는지 알면, 그 시점 전후로 데이터를 다르게 처리해야 할 수도 있다. 서버 설정 이력이 없으면 데이터 값의 분포나 서비스 런칭 날짜와 비교해서 추정해야 한다.
+
+### MySQL CONVERT_TZ 마이그레이션
+
+```sql
+-- 마이그레이션 전 백업
+CREATE TABLE orders_backup_20240101 AS SELECT * FROM orders;
+
+-- KST(+09:00)로 저장된 값을 UTC로 변환
+-- CONVERT_TZ(값, 원래_타임존, 변환할_타임존)
+UPDATE orders
+SET created_at = CONVERT_TZ(created_at, '+09:00', '+00:00'),
+    updated_at = CONVERT_TZ(updated_at, '+09:00', '+00:00')
+WHERE created_at IS NOT NULL;
+```
+
+`CONVERT_TZ`에 Named timezone('Asia/Seoul')을 쓰려면 타임존 테이블이 로드돼 있어야 한다. 로드 여부가 불확실하면 offset('+09:00')을 쓰는 게 안전하다. 한국은 DST가 없으므로 +09:00 고정 offset을 쓰면 된다.
+
+행이 많으면 한 번에 전체를 UPDATE하지 않는다. 락이 오래 잡히고 언두 로그가 쌓인다.
+
+```sql
+-- 배치 업데이트 (id 기준으로 범위 분할)
+UPDATE orders
+SET created_at = CONVERT_TZ(created_at, '+09:00', '+00:00'),
+    updated_at = CONVERT_TZ(updated_at, '+09:00', '+00:00')
+WHERE id BETWEEN 1 AND 100000;
+
+UPDATE orders
+SET created_at = CONVERT_TZ(created_at, '+09:00', '+00:00'),
+    updated_at = CONVERT_TZ(updated_at, '+09:00', '+00:00')
+WHERE id BETWEEN 100001 AND 200000;
+-- 반복
+```
+
+### PostgreSQL TIMESTAMP → TIMESTAMPTZ 마이그레이션
+
+```sql
+-- 1단계: 새 컬럼 추가
+ALTER TABLE orders ADD COLUMN created_at_new TIMESTAMPTZ;
+
+-- 2단계: 기존 TIMESTAMP 값을 Asia/Seoul 기준으로 해석해서 UTC 변환
+-- created_at은 TIMESTAMP (without TZ)
+-- AT TIME ZONE 'Asia/Seoul'은 이 시각을 서울 기준 로컬 시각으로 해석
+-- 결과는 TIMESTAMPTZ (UTC 저장)
+UPDATE orders
+SET created_at_new = created_at AT TIME ZONE 'Asia/Seoul';
+
+-- 3단계: NULL 없는지 확인
+SELECT COUNT(*) FROM orders WHERE created_at_new IS NULL AND created_at IS NOT NULL;
+
+-- 4단계: 컬럼 교체
+BEGIN;
+ALTER TABLE orders RENAME COLUMN created_at TO created_at_old;
+ALTER TABLE orders RENAME COLUMN created_at_new TO created_at;
+ALTER TABLE orders ALTER COLUMN created_at SET NOT NULL;
+COMMIT;
+
+-- 5단계: 검증 후 구 컬럼 삭제
+ALTER TABLE orders DROP COLUMN created_at_old;
+```
+
+### 무중단 마이그레이션 순서
+
+서비스 중단 없이 진행할 때는 컬럼을 추가하고 애플리케이션이 두 컬럼에 동시에 쓰는 기간을 둔다.
+
+```
+1. 새 UTC 컬럼 추가 (nullable)
+2. 애플리케이션 배포: 두 컬럼에 동시 쓰기, 읽기는 기존 컬럼에서
+3. 과거 데이터 배치 백필 (범위 분할 UPDATE)
+4. 애플리케이션 배포: 읽기를 새 컬럼으로 전환
+5. 기존 컬럼 쓰기 중단
+6. 기존 컬럼 삭제
+```
+
+백필 중에 신규 데이터가 들어오는 구간이 있다. 신규 데이터는 처음부터 UTC로 들어오니, 백필 범위를 고정(마이그레이션 시작 시점의 최대 id나 시각)해두고 그 범위만 처리한다.
+
+### 검증
+
+```sql
+-- 특정 날짜의 집계 결과를 마이그레이션 전후로 비교
+-- 마이그레이션 전 (KST 기준 DATE로 집계)
+SELECT DATE(created_at) AS day, COUNT(*)
+FROM orders
+WHERE created_at >= '2024-01-01' AND created_at < '2024-01-08'
+GROUP BY day;
+
+-- 마이그레이션 후 (UTC 저장, KST 기준으로 집계)
+SELECT DATE(CONVERT_TZ(created_at, '+00:00', '+09:00')) AS day, COUNT(*)
+FROM orders
+WHERE created_at >= '2023-12-31 15:00:00' AND created_at < '2024-01-07 15:00:00'
+GROUP BY day;
+-- 집계 숫자가 일치해야 한다
+```
+
+레코드 수가 같아도 집계가 다르면 DST 전환 구간 데이터가 있거나, 마이그레이션 도중 신규 데이터가 섞인 경우다.
 
 ---
 
@@ -424,7 +733,7 @@ PK에 `created_at`이 포함되면 단순 `id`로 조회하는 쿼리도 파티�
 
 ## 예약과 반복 스케줄 모델링
 
-예약 시스템과 반복 일정은 시간 데이터에서 가장 모델링이 까다로운 부분이다.
+예약 시스템과 반복 일정은 시간 데이터에서 모델링이 가장 까다로운 부분이다.
 
 ### 단순 예약
 

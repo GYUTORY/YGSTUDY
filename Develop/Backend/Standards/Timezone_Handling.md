@@ -12,11 +12,57 @@ DB에는 UTC만 저장한다. 이 원칙을 어기면 서비스가 여러 지역
 
 KST(UTC+9)로 저장된 `created_at`을 갖는 테이블이 있다고 가정하자. 처음엔 국내 서비스라 아무 문제가 없다. 미국 리전을 추가하는 순간, 기존 데이터는 KST인지 UTC인지 컬럼만 봐서는 알 수 없다. 메타데이터나 코드 히스토리를 뒤져야 한다.
 
-MySQL의 `DATETIME` 타입은 타임존 정보를 저장하지 않는다. 애플리케이션이 KST datetime 객체를 그대로 삽입하면 DB엔 KST 값이 들어가지만, 나중에 읽어서 UTC로 해석하면 9시간 차이가 발생한다. `TIMESTAMP` 타입은 내부적으로 UTC로 변환해서 저장하지만, `@@session.time_zone` 설정에 따라 조회 결과가 달라진다. 이 차이를 모르고 쓰다가 `DATETIME`과 `TIMESTAMP` 컬럼을 혼용하면 시간 계산이 완전히 틀어진다.
+UTC 기준 저장을 지키는 것보다 깨진 데이터를 마이그레이션하는 비용이 훨씬 크다. 수백만 건 이상의 테이블에서 타임존 정보가 잘못된 경우, 어느 시점 이전 데이터가 KST이고 이후가 UTC인지 특정하는 작업 자체가 프로젝트가 된다.
 
-PostgreSQL의 `TIMESTAMPTZ`는 타임존 offset을 함께 저장하지 않고, UTC로 변환해서 저장한다. `TIMESTAMP WITHOUT TIME ZONE`은 그냥 숫자만 저장한다. PostgreSQL을 쓴다면 시간 데이터엔 무조건 `TIMESTAMPTZ`를 쓰는 게 낫다.
+## DB 컬럼 타입 선택
 
-## 변환 시점 설계: DB → 서비스 → 응답
+### MySQL: TIMESTAMP vs DATETIME
+
+| | TIMESTAMP | DATETIME |
+|---|---|---|
+| 저장 범위 | 1970-01-01 ~ 2038-01-19 | 1000-01-01 ~ 9999-12-31 |
+| 타임존 변환 | 저장 시 UTC 변환, 조회 시 세션 타임존 적용 | 입력값 그대로 저장 |
+| 저장 용량 | 4바이트 | 8바이트 |
+
+`TIMESTAMP`는 저장 시 세션 타임존 기준으로 UTC로 변환하고, 조회 시 다시 세션 타임존으로 변환해서 반환한다. 세션 타임존이 바뀌면 조회 결과도 바뀐다. 의도한 동작처럼 보이지만 함정이 있다.
+
+```sql
+-- 세션 타임존이 KST일 때 저장
+SET time_zone = '+09:00';
+INSERT INTO orders (created_at) VALUES ('2024-03-15 18:00:00'); -- KST 18:00 = UTC 09:00
+
+-- 세션 타임존을 UTC로 변경하면 같은 row가 다르게 보임
+SET time_zone = '+00:00';
+SELECT created_at FROM orders; -- 2024-03-15 09:00:00 반환
+```
+
+Hibernate가 `TIMESTAMP` 컬럼을 읽을 때 세션 타임존 기준으로 변환하는데, 애플리케이션 타임존과 DB 세션 타임존이 다르면 저장/조회 시 변환이 두 번 일어난다. `serverTimezone=UTC`와 JVM `-Duser.timezone=UTC`를 함께 맞춰야 한다.
+
+`DATETIME`은 타임존 변환 없이 입력값을 그대로 저장한다. 애플리케이션에서 UTC `Instant`를 `LocalDateTime`으로 변환한 뒤 저장하고, 꺼낼 때도 UTC 기준의 `LocalDateTime`으로 취급하면 된다. 2038년 제한이 없어서 서비스 만료일, 라이선스 기간 같은 먼 미래 날짜는 `DATETIME`으로 저장하는 경우도 있다.
+
+신규 테이블이라면 `DATETIME` + 애플리케이션 레벨 UTC 보장 조합이 더 예측 가능하다. `TIMESTAMP`의 자동 변환은 세션 설정에 의존하기 때문에 환경이 달라질 때 숨겨진 버그가 생길 수 있다.
+
+### PostgreSQL: TIMESTAMPTZ vs TIMESTAMP
+
+PostgreSQL의 `TIMESTAMPTZ`(`TIMESTAMP WITH TIME ZONE`)는 이름과 다르게 타임존 정보를 컬럼에 저장하지 않는다. 입력값을 UTC로 변환해 저장하고, 조회 시 클라이언트 세션의 `TimeZone` 파라미터에 따라 변환해서 반환한다.
+
+`TIMESTAMP WITHOUT TIME ZONE`은 입력값을 변환 없이 숫자로 저장한다. 어느 타임존 기준인지는 애플리케이션이 알아야 한다.
+
+```sql
+-- TIMESTAMPTZ: 세션 타임존 영향 받음
+SET TIME ZONE 'Asia/Seoul';
+SELECT now(); -- 2024-03-15 18:30:00+09
+
+SET TIME ZONE 'UTC';
+SELECT now(); -- 2024-03-15 09:30:00+00
+
+-- TIMESTAMP WITHOUT TIME ZONE: 세션 타임존 무관, 저장된 값 그대로
+SELECT created_at FROM events; -- 세션과 무관하게 항상 같은 값
+```
+
+PostgreSQL에서 시간 데이터는 `TIMESTAMPTZ`를 쓰는 게 낫다. JDBC 드라이버와 JPA가 `TIMESTAMPTZ`를 `Instant`로 올바르게 매핑해서 애플리케이션 레이어에서 별도 변환 없이 UTC 기준으로 다룰 수 있다.
+
+## API 입출력 변환 시점
 
 변환은 한 지점에서만 해야 한다. 여러 레이어에서 각각 변환하면 이중 변환이 생긴다.
 
@@ -24,26 +70,23 @@ PostgreSQL의 `TIMESTAMPTZ`는 타임존 offset을 함께 저장하지 않고, U
 DB 조회 → 서비스 레이어(UTC 상태 유지) → 응답 직전 로컬 타임으로 변환
 ```
 
-서비스 레이어 내부에서는 UTC로만 계산한다. "오늘 오전 9시 이후 주문"을 조회할 때 사용자 로컬 타임을 UTC로 변환해서 쿼리 파라미터로 넘긴다. 반대로 DB에서 가져온 UTC datetime을 서비스 내부에서 바로 KST로 바꿔서 비즈니스 로직에 쓰면 안 된다.
+서비스 레이어 내부에서는 UTC로만 계산한다. "오늘 오전 9시 이후 주문"을 조회할 때 사용자 로컬 타임을 UTC로 변환해서 쿼리 파라미터로 넘긴다. DB에서 가져온 UTC datetime을 서비스 내부에서 바로 KST로 바꿔서 비즈니스 로직에 쓰면 안 된다.
 
 응답 시점에 변환하는 예시:
 
 ```java
-// 사용자 요청에서 타임존 정보 추출
 String userTimezone = request.getHeader("X-Timezone"); // "Asia/Seoul"
 ZoneId zoneId = ZoneId.of(userTimezone);
 
-// DB에서 조회한 UTC 시간
 Instant createdAtUtc = order.getCreatedAt(); // Instant 타입 (UTC)
 
-// 응답 직전에만 변환
 ZonedDateTime localTime = createdAtUtc.atZone(zoneId);
 response.setCreatedAt(localTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 ```
 
 서비스 레이어 내부에서 `ZonedDateTime`이나 `LocalDateTime`으로 변환하지 말고 `Instant`를 그대로 들고 다닌다. 비즈니스 로직에서 "3일 후"를 계산할 때도 `Instant`나 `OffsetDateTime`을 쓴다.
 
-## ISO 8601 형식 강제
+### ISO 8601 형식
 
 API 응답의 날짜·시간 필드는 반드시 ISO 8601 형식을 쓴다.
 
@@ -59,18 +102,46 @@ API 응답의 날짜·시간 필드는 반드시 ISO 8601 형식을 쓴다.
 1710494400                    # 유닉스 타임스탬프 단독 사용
 ```
 
-유닉스 타임스탬프는 사람이 읽기 어렵고, 밀리초인지 초인지 헷갈린다. JavaScript에서 `Date.parse()`는 밀리초 타임스탬프를 받는데, Python에서 유닉스 타임을 생성하면 초 단위라 1000 곱하는 것을 잊는 경우가 있다. ISO 8601 문자열로 통일하면 이런 혼란이 없다.
+유닉스 타임스탬프는 밀리초인지 초인지 헷갈린다. JavaScript `Date.parse()`는 밀리초를 받는데, Python에서 유닉스 타임을 생성하면 초 단위라 1000 곱하는 것을 잊는 경우가 있다.
 
-Jackson (Java)에서 `Instant`를 ISO 8601로 직렬화하는 설정:
+Jackson에서 `Instant`를 ISO 8601로 직렬화하는 설정:
 
 ```java
-@JsonSerialize(using = InstantSerializer.class)
-// 또는 ObjectMapper 전역 설정
 objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 objectMapper.registerModule(new JavaTimeModule());
 ```
 
 기본 설정을 건드리지 않으면 `Instant`가 `[1710494400, 0]` 같은 배열로 직렬화된다. 프론트엔드에서 파싱 못 한다고 버그 리포트 올 때까지 모르는 경우가 많다.
+
+### 날짜 경계 계산
+
+"오늘 주문 내역"을 조회할 때 "오늘"이 누구 기준인지가 핵심이다. UTC 기준 "오늘"은 한국 사용자에게 어제일 수 있다.
+
+```java
+ZoneId userZone = ZoneId.of("America/Los_Angeles");
+LocalDate today = LocalDate.now(userZone);
+
+Instant startOfDay = today.atStartOfDay(userZone).toInstant();
+Instant endOfDay = today.plusDays(1).atStartOfDay(userZone).toInstant();
+
+orderRepository.findByCreatedAtBetween(startOfDay, endOfDay);
+```
+
+이 계산을 서비스 레이어에서 수행하고, 쿼리 파라미터는 항상 UTC `Instant`로 넘긴다. DB에서 가져온 UTC를 조회 레이어에서 바로 로컬 타임으로 바꿔서 서비스에 넘기면 날짜 범위 계산이 꼬인다.
+
+### 타임존 헤더 검증
+
+헤더 값을 그대로 `ZoneId.of()`에 넘기면 클라이언트가 잘못된 타임존 ID를 보냈을 때 `DateTimeException`이 발생한다.
+
+```java
+String tzHeader = request.getHeader("X-Timezone");
+ZoneId userZone;
+try {
+    userZone = ZoneId.of(tzHeader != null ? tzHeader : "UTC");
+} catch (DateTimeException e) {
+    userZone = ZoneId.of("UTC");
+}
+```
 
 ## JVM 프로세스 타임존 설정
 
@@ -79,7 +150,6 @@ JVM 기본 타임존은 OS 설정을 따른다. 서버 OS가 KST로 설정돼 �
 JVM 프로세스 시작 시 타임존을 명시적으로 설정한다:
 
 ```bash
-# JVM 옵션
 -Duser.timezone=UTC
 
 # 또는 환경변수
@@ -98,7 +168,7 @@ public class Application {
 }
 ```
 
-DB 커넥션도 타임존을 맞춰야 한다. MySQL JDBC URL에 `serverTimezone=UTC`를 명시하지 않으면 서버 OS의 타임존을 따른다. Hibernate가 `TIMESTAMP` 컬럼을 읽을 때 세션 타임존 기준으로 변환하는데, 애플리케이션 타임존과 DB 세션 타임존이 다르면 저장/조회 시 변환이 두 번 일어난다.
+MySQL JDBC URL에 `serverTimezone=UTC`를 명시하지 않으면 서버 OS의 타임존을 따른다.
 
 ```
 spring.datasource.url=jdbc:mysql://host:3306/db?serverTimezone=UTC&useLegacyDatetimeCode=false
@@ -122,37 +192,118 @@ ENV TZ=UTC
 ```typescript
 import { formatInTimeZone } from 'date-fns-tz';
 
-// DB에서 가져온 UTC Date 객체
 const utcDate = new Date('2024-03-15T09:30:00Z');
-
-// 사용자 타임존으로 변환해서 응답
 const formatted = formatInTimeZone(utcDate, 'Asia/Seoul', "yyyy-MM-dd'T'HH:mm:ssxxx");
 // "2024-03-15T18:30:00+09:00"
 ```
+
+## 다중 서버 환경에서의 타임존 불일치 트러블슈팅
+
+서버가 여러 대일 때 각 서버의 타임존 설정이 다르면 로그 분석, 배치 결과, 데이터 정합성에서 문제가 생긴다.
+
+### 증상: 로그 타임스탬프가 서버마다 다름
+
+여러 인스턴스에서 로그를 수집할 때 서버 A는 UTC, 서버 B는 KST로 설정된 경우 같은 시각 이벤트가 9시간 차이로 기록된다. Kibana나 Grafana에서 이벤트 순서가 뒤섞인다.
+
+진단:
+
+```bash
+# 각 서버에서 실행해 타임존 설정 확인
+date
+timedatectl
+
+# JVM 프로세스 타임존 확인 (start 인자에서 -Duser.timezone 여부)
+ps aux | grep java
+
+# 환경변수 TZ 확인
+printenv TZ
+```
+
+서버 인스턴스 간 타임존이 다른 경우 보통 AMI 기반 인스턴스를 특정 리전에서 생성했거나, 컨테이너 이미지의 베이스 이미지가 서로 다를 때 발생한다. 인프라 레벨에서 강제로 통일한다.
+
+```bash
+# Amazon Linux 2 / Ubuntu 타임존 설정
+sudo timedatectl set-timezone UTC
+
+# Dockerfile에서 명시적 설정
+RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
+ENV TZ=UTC
+```
+
+Kubernetes 환경이면 Pod spec에 환경변수를 추가한다.
+
+```yaml
+env:
+  - name: TZ
+    value: "UTC"
+  - name: JAVA_OPTS
+    value: "-Duser.timezone=UTC"
+```
+
+### 증상: 배치가 예상 시간에 실행되지 않음
+
+Spring Batch나 Quartz 스케줄러가 특정 서버에서만 다른 시간에 실행될 때, JVM 타임존이 서버마다 다른 경우다. Quartz 크론 표현식 `0 0 2 * * ?`는 JVM 기본 타임존 기준 오전 2시를 의미한다. 서버 A는 UTC 02:00, 서버 B는 KST 02:00(= UTC 17:00)에 실행된다.
+
+```java
+CronTrigger trigger = TriggerBuilder.newTrigger()
+    .withSchedule(CronScheduleBuilder
+        .cronSchedule("0 0 2 * * ?")
+        .inTimeZone(TimeZone.getTimeZone("UTC"))) // 반드시 명시
+    .build();
+```
+
+크론 표현식에 타임존을 명시하지 않으면 JVM 타임존에 따라 실행 시각이 바뀐다.
+
+### 증상: DB 저장 시간과 애플리케이션 로그 시간이 9시간 차이남
+
+MySQL `TIMESTAMP` 컬럼에 저장된 시간이 애플리케이션 로그와 9시간 차이 나는 경우, JDBC 세션 타임존과 JVM 타임존이 불일치하는 상황이다.
+
+```sql
+-- MySQL에서 현재 세션 타임존 확인
+SELECT @@session.time_zone;
+SELECT @@global.time_zone;
+```
+
+세션 타임존이 `SYSTEM`으로 설정돼 있으면 MySQL 서버 OS의 타임존을 따른다. MySQL 서버가 KST로 설정된 서버에 올라가 있으면 `SYSTEM`은 KST다.
+
+JDBC URL에 `serverTimezone=UTC`를 명시해도 해결되지 않는 경우, MySQL 8.x와 Connector/J 버전 조합에 따라 `useLegacyDatetimeCode=false`를 함께 써야 한다.
+
+```
+jdbc:mysql://host:3306/db?serverTimezone=UTC&useLegacyDatetimeCode=false&useUnicode=true&characterEncoding=UTF-8
+```
+
+### 커넥션 풀에서 세션 타임존 강제
+
+HikariCP 같은 커넥션 풀을 쓸 때, 커넥션 획득 시점에 세션 타임존을 강제로 설정할 수 있다.
+
+```yaml
+spring:
+  datasource:
+    hikari:
+      connection-init-sql: "SET time_zone='+00:00'"
+```
+
+이렇게 하면 JDBC URL의 `serverTimezone` 설정과 무관하게 커넥션마다 세션 타임존이 UTC로 초기화된다. MySQL 레플리케이션 환경에서 마스터와 레플리카의 글로벌 타임존이 다를 때 가장 확실한 해결책이다.
 
 ## DST 전환 시 발생하는 버그 패턴
 
 한국은 DST를 쓰지 않아 국내 서비스에선 DST 버그를 경험하기 어렵다. 미국, 유럽 사용자가 있는 서비스에선 반드시 테스트해야 한다.
 
-DST 전환이 일어나는 대표적인 타이밍(미국 동부 기준):
+DST 전환 타이밍(미국 동부 기준):
 - 봄: 2시 → 3시로 점프 (2시~3시 사이 시간이 존재하지 않음)
 - 가을: 2시 → 1시로 되돌아감 (1시~2시 사이 시간이 두 번 존재)
 
 **"매일 오전 2시에 배치 실행" 패턴**
 
-봄에 DST 전환이 되는 날, `America/New_York` 기준으로 "02:00"을 스케줄링하면 그 시간 자체가 존재하지 않는다. 스케줄러 구현에 따라 건너뛰거나, 에러를 내거나, 1시간 늦게 실행된다.
-
-이 문제는 UTC 기준으로 스케줄링하면 해결된다. 로컬 타임이 아니라 UTC 크론 표현식을 쓴다.
+봄에 DST 전환이 되는 날, `America/New_York` 기준으로 "02:00"을 스케줄링하면 그 시간 자체가 존재하지 않는다. 스케줄러 구현에 따라 건너뛰거나, 에러를 내거나, 1시간 늦게 실행된다. UTC 기준으로 스케줄링하면 이 문제가 없다.
 
 **"가을 새벽 1:30분" 중복 처리 문제**
 
-가을 전환 시 1:00~1:59 구간이 두 번 나타난다. EST(UTC-5)와 EDT(UTC-4) 양쪽 모두 1:30 AM이 생긴다. 이 시간대에 들어온 주문의 타임스탬프를 로컬 타임으로만 저장했다면 "2024-11-03T01:30:00"가 두 건이 생긴다. 어느 것이 먼저인지 알 수 없다.
-
-UTC 저장이 이 문제를 해결한다. 두 건의 UTC 타임스탬프는 각각 다른 값이 된다.
+가을 전환 시 1:00~1:59 구간이 두 번 나타난다. EST(UTC-5)와 EDT(UTC-4) 양쪽 모두 1:30 AM이 생긴다. 이 시간대에 들어온 주문의 타임스탬프를 로컬 타임으로만 저장했다면 "2024-11-03T01:30:00"가 두 건이 생기고, 어느 것이 먼저인지 알 수 없다. UTC로 저장하면 두 건의 UTC 타임스탬프는 각각 다른 값이 된다.
 
 **오프셋 vs 타임존 ID**
 
-`+09:00`은 오프셋이고, `Asia/Seoul`은 타임존 ID다. 오프셋은 DST 정보를 담지 않는다. `America/New_York`은 여름엔 `-04:00`, 겨울엔 `-05:00`이다. API 요청에서 사용자 타임존을 받을 때 `+09:00` 같은 오프셋만 받으면 DST 변환을 적용할 수 없다. 타임존 ID를 받아야 DST 전환 시점에 올바른 오프셋을 계산할 수 있다.
+`+09:00`은 오프셋이고, `Asia/Seoul`은 타임존 ID다. 오프셋은 DST 정보를 담지 않는다. `America/New_York`은 여름엔 `-04:00`, 겨울엔 `-05:00`이다. API 요청에서 사용자 타임존을 `+09:00` 같은 오프셋만 받으면 DST 변환을 적용할 수 없다. 타임존 ID를 받아야 DST 전환 시점에 올바른 오프셋을 계산할 수 있다.
 
 ```java
 // 오프셋만 있으면 DST 적용 불가
@@ -161,16 +312,11 @@ ZoneOffset offset = ZoneOffset.of("+04:00"); // 어느 타임존인지 모름
 // 타임존 ID가 있어야 DST 처리 가능
 ZoneId zoneId = ZoneId.of("America/New_York");
 ZonedDateTime zdt = ZonedDateTime.of(localDateTime, zoneId);
-// ZonedDateTime이 자동으로 DST 오프셋을 적용
 ```
 
-## 다국가 서비스에서 로컬 타임 변환 시점 설계
+## 사용자 프로파일에 타임존 저장
 
-사용자 로컬 타임으로의 변환은 응답 레이어에서만 한다. 변환 기준이 되는 타임존 정보는 어디서 가져오는지에 따라 설계가 달라진다.
-
-**사용자 프로파일에 타임존 저장**
-
-가입 시 선택하거나, IP 기반으로 자동 설정한다. DB에 `timezone VARCHAR(64)` 컬럼으로 `Asia/Seoul` 같은 IANA 타임존 ID를 저장한다. 로그인한 사용자 요청이면 프로파일의 타임존을 쓴다.
+가입 시 선택하거나, IP 기반으로 자동 설정한다. DB에 `timezone VARCHAR(64)` 컬럼으로 `Asia/Seoul` 같은 IANA 타임존 ID를 저장한다.
 
 ```java
 // 인증 필터에서 타임존 컨텍스트 설정
@@ -182,36 +328,4 @@ RequestContext.setUserZone(userZone);
 ZonedDateTime localTime = event.getStartTime().atZone(RequestContext.getUserZone());
 ```
 
-**요청 헤더에서 타임존 수신**
-
-모바일 앱이나 SPA에서 클라이언트가 `X-Timezone: America/Chicago` 헤더를 보내는 방식이다. 서버가 사용자 타임존 상태를 관리할 필요가 없다. 헤더가 없을 때 기본값(UTC)으로 처리하거나 400 오류를 반환한다.
-
-헤더 값을 그대로 `ZoneId.of()`에 넘기면 클라이언트가 잘못된 타임존 ID를 보냈을 때 `DateTimeException`이 발생한다. 유효성 검사를 반드시 한다.
-
-```java
-String tzHeader = request.getHeader("X-Timezone");
-ZoneId userZone;
-try {
-    userZone = ZoneId.of(tzHeader != null ? tzHeader : "UTC");
-} catch (DateTimeException e) {
-    userZone = ZoneId.of("UTC");
-}
-```
-
-**날짜 경계 계산 문제**
-
-"오늘 주문 내역"을 조회할 때 "오늘"이 누구 기준인지가 핵심이다. UTC 기준 "오늘"은 한국 사용자에게 어제일 수 있다.
-
-```java
-// 사용자 로컬 기준 오늘의 시작과 끝을 UTC로 변환
-ZoneId userZone = ZoneId.of("America/Los_Angeles");
-LocalDate today = LocalDate.now(userZone);
-
-Instant startOfDay = today.atStartOfDay(userZone).toInstant();
-Instant endOfDay = today.plusDays(1).atStartOfDay(userZone).toInstant();
-
-// DB 쿼리는 UTC Instant 범위로
-orderRepository.findByCreatedAtBetween(startOfDay, endOfDay);
-```
-
-이 계산을 서비스 레이어에서 수행하고, 쿼리 파라미터는 항상 UTC `Instant`로 넘긴다. 반대로 DB에서 가져온 UTC를 조회 레이어에서 바로 로컬 타임으로 바꿔서 서비스에 넘기면 날짜 범위 계산이 꼬인다.
+모바일 앱이나 SPA에서 클라이언트가 `X-Timezone: America/Chicago` 헤더를 보내는 방식도 있다. 서버가 사용자 타임존 상태를 관리할 필요가 없다. 헤더가 없을 때 기본값(UTC)으로 처리하거나 400 오류를 반환한다.
