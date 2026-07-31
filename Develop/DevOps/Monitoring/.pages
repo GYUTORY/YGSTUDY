@@ -5,3 +5,6 @@ nav:
   - Grafana.md
   - Grafana_Prometheus_대시보드.md
   - OpenTelemetry.md
+  - Loki_Log_Aggregation.md
+  - Grafana_Tempo.md
+  - Alerting_Rules.md
