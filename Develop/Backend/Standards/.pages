@@ -2,5 +2,6 @@ title: Standards
 nav:
   - ISO_Standards.md
   - Naming_Conventions.md
+  - Timezone_Handling.md
   - UUI_Dv4.md
   - UUID_v7.md
