@@ -22,6 +22,7 @@ nav:
   - Temporal_Data_Modeling.md
   - Valid_Time.md
   - Transaction_Time.md
+  - Bitemporal.md
   - Data_Type_Selection.md
   - Identifier_Design.md
   - Natural_Key.md
