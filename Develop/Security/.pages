@@ -16,6 +16,7 @@ nav:
   - Session_Management.md
   - Cookie_Security.md
   - Web_Authn_Passkeys.md
+  - Mobile_Token_Storage.md
   - Basic.md
   - Threat_Modeling.md
   - XSS.md

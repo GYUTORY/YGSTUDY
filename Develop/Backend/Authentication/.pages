@@ -10,3 +10,4 @@ nav:
   - RBAC_ABAC.md
   - API_Key_Auth.md
   - Token_Revocation.md
+  - Refresh_Token_Rotation.md
