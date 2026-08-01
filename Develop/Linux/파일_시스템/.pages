@@ -1,1 +1,7 @@
 title: 파일 시스템
+nav:
+  - 개요: 파일_시스템.md
+  - Mount: Mount.md
+  - 디스크 관리: 디스크_관리.md
+  - 파일 권한 및 소유권: 파일_권한_및_소유권.md
+  - 파일 권한 심화: 파일_권한_심화_ACL_Capabilities.md

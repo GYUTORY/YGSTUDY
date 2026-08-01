@@ -1,10 +1,10 @@
 title: Security
 nav:
-  - TLS_HTTPS.md
-  - Mutual_TLS.md
-  - VPN.md
-  - Firewall.md
-  - Network_Firewall_Architecture.md
-  - Zero_Trust_Network.md
-  - Zero_Trust_CICD_Pipeline.md
-  - Network_Segmentation.md
+  - TLS와 HTTPS: TLS_HTTPS.md
+  - mTLS: Mutual_TLS.md
+  - VPN: VPN.md
+  - 호스트 방화벽: Firewall.md
+  - 네트워크 경계 방화벽 아키텍처: Network_Firewall_Architecture.md
+  - Zero Trust 네트워크: Zero_Trust_Network.md
+  - CI/CD 파이프라인 Zero Trust 적용: Zero_Trust_CICD_Pipeline.md
+  - 망분리와 네트워크 세그멘테이션: Network_Segmentation.md

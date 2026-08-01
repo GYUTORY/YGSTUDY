@@ -1,12 +1,12 @@
 title: Standards
 nav:
-  - ISO_Standards.md
-  - Naming_Conventions.md
-  - Timezone_Handling.md
-  - UTC_Storage.md
-  - Instant_vs_Local_Date_Time.md
-  - DST.md
-  - Tzdata_Management.md
-  - Timezone_Testing.md
-  - UUI_Dv4.md
-  - UUID_v7.md
+  - ISO 표준: ISO_Standards.md
+  - 케밥같은 용어들: Naming_Conventions.md
+  - 타임존 처리: Timezone_Handling.md
+  - UTC 저장: UTC_Storage.md
+  - Instant vs LocalDateTime: Instant_vs_Local_Date_Time.md
+  - DST (일광 절약 시간): DST.md
+  - tzdata 버전 관리: Tzdata_Management.md
+  - 타임존 테스트: Timezone_Testing.md
+  - UUIDv4: UUI_Dv4.md
+  - UUIDv7: UUID_v7.md

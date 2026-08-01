@@ -18,7 +18,7 @@ TCP 핸드셰이크, TLS 협상, 인증, 세션 변수 초기화까지 합치면
 
 문제는 풀이 캐시라는 점에서 출발하는 모든 골치 — 만료된 커넥션, 누수된 커넥션, 풀 안에서만 보이는 트랜잭션 상태, RDBMS가 끊었는데 풀은 모르는 상태 — 가 운영 사고의 90%를 차지한다. 풀 자체를 잘 모르고 디폴트만 쓰면 평소엔 문제없다가 트래픽 피크나 RDS failover 같은 한순간에 전부 터진다.
 
-ECS Task의 풀 분배는 [Connection_Limit.md](../Resilience/Connection_Limit.md)에서 다뤘고, Node 진영의 풀 라이브러리(pg, mysql2, knex)는 별도 문서가 있다. 이 문서는 RDBMS 쪽 `max_connections` 관점, prepared statement 캐시, 트랜잭션 풀링 같은 일반론을 정리한다.
+ECS Task의 풀 분배는 [Connection_Limit.md](../Backend/Resilience/Connection_Limit.md)에서 다뤘고, Node 진영의 풀 라이브러리(pg, mysql2, knex)는 별도 문서가 있다. 이 문서는 RDBMS 쪽 `max_connections` 관점, prepared statement 캐시, 트랜잭션 풀링 같은 일반론을 정리한다.
 
 ## 커넥션 라이프사이클
 
@@ -79,7 +79,7 @@ PostgreSQL의 `max_connections` 디폴트는 100, MySQL은 151. 이 한도는 RD
 
 PostgreSQL은 커넥션 하나당 백엔드 프로세스가 하나 뜨고, 프로세스당 메모리(work_mem 등 포함)를 점유한다. RDS db.r6g.large(16GB) 기준으로 max_connections=400을 넘기면 메모리 부족이 보인다. AWS는 `LEAST({DBInstanceClassMemory/9531392}, 5000)` 공식을 쓰니 인스턴스 클래스를 키울 게 아니라면 무작정 올릴 수 없다.
 
-ECS에서 Auto Scaling이 도는 경우엔 더 복잡하다. 평소 N=4, 피크 N=20으로 늘어나는 환경이라면 풀 크기를 인스턴스당 5로 잡아도 피크에 100을 잡아먹는다. 이 부분은 [Connection_Limit.md](../Resilience/Connection_Limit.md)에서 자세히 다룬다.
+ECS에서 Auto Scaling이 도는 경우엔 더 복잡하다. 평소 N=4, 피크 N=20으로 늘어나는 환경이라면 풀 크기를 인스턴스당 5로 잡아도 피크에 100을 잡아먹는다. 이 부분은 [Connection_Limit.md](../Backend/Resilience/Connection_Limit.md)에서 자세히 다룬다.
 
 ### Hikari 저자의 공식
 
@@ -435,6 +435,6 @@ PostgreSQL 9.6+ 기능. MySQL은 `wait_timeout`이 트랜잭션 중에는 안 �
 
 다음 문서에서 각론을 더 다룬다.
 
-- 애플리케이션 인스턴스 분배 관점: [Connection_Limit.md](../Resilience/Connection_Limit.md)
+- 애플리케이션 인스턴스 분배 관점: [Connection_Limit.md](../Backend/Resilience/Connection_Limit.md)
 - Node.js 풀 라이브러리 동작: [Framework/Node](../../Framework/Node/데이터베이스)
 - 데이터베이스 일반: [Database_Deep_Dive.md](Database_Deep_Dive.md)

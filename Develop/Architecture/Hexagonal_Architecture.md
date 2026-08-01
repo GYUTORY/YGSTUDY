@@ -925,4 +925,4 @@ public interface PaymentMethodQueryPort {
 - [백엔드 레이아웃](Backend_Layout.md)
 - [CQRS 패턴](CQRS_Pattern.md)
 - [이벤트 기반 아키텍처](Event_Driven_Architecture.md)
-- [마이크로서비스 아키텍처](Microservices_Architecture.md)
+- [마이크로서비스 아키텍처](MSA/Microservices_Architecture.md)

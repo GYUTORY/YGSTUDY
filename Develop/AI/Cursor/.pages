@@ -1,4 +1,4 @@
 nav:
-  - Cursor.md
-  - Cursor_Rules.md
-  - Cursor_Context_Management.md
+  - 개요: Cursor.md
+  - Rules: Cursor_Rules.md
+  - Context 관리: Cursor_Context_Management.md

@@ -1,1 +1,11 @@
 title: OSI 7계층
+nav:
+  - Application Layer
+  - DHCP: DHCP.md
+  - Data Link Layer
+  - GSLB: GSLB.md
+  - 네트워크 플로우: Network Flow.md
+  - Network Layer
+  - OSI 7 계층 모델: OSI_7_Layer_Model.md
+  - QoS와 트래픽 셰이핑: Qo_S_Traffic_Shaping.md
+  - Transport Layer

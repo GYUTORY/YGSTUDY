@@ -1,1 +1,6 @@
 title: 복사 및 스프레드
+nav:
+  - 얕은 복사/깊은 복사 심화: Copy_Deep_Dive.md
+  - 얕은 복사와 깊은 복사: Copy_개념.md
+  - Spread 연산자 개념과: Spread.md
+  - Spread 연산자 심화: Spread_Deep_Dive.md

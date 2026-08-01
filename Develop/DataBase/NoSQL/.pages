@@ -1,9 +1,9 @@
 title: NoSQL
 nav:
-  - NoSQL.md
-  - MongoDB.md
-  - Couch_DB.md
-  - Graph_DB.md
+  - 개요: NoSQL.md
+  - MongoDB 심화: MongoDB.md
+  - CouchDB: Couch_DB.md
+  - Graph DB 관계 모델: Graph_DB.md
   - Redis
-  - Valkey
-  - ScyllaDB
+  - ScyllaDB: ScyllaDB/Scylla_DB.md
+  - Valkey: Valkey/Valkey.md

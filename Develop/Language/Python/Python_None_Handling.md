@@ -3,7 +3,7 @@ title: Python None 처리
 tags:
   - python
   - none
-  - null
+  - "null"
   - optional
   - type-narrowing
   - typing

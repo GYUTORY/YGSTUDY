@@ -1,1 +1,4 @@
 title: 프로세스 관리
+nav:
+  - Forever 프로세스 관리 도구: forever.md
+  - pm2

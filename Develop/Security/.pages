@@ -1,60 +1,64 @@
 title: Security
 nav:
-  - HTTPS_and_TLS.md
-  - Mutual_TLS.md
-  - PKI_and_Certificate_Management.md
-  - AES.md
-  - RSA.md
-  - SHA.md
-  - HMAC.md
-  - Password_Hashing.md
-  - End_to_End_Encryption.md
-  - OAuth.md
-  - SSO_SAML_OIDC.md
-  - JWT.md
-  - JWKS_Endpoint.md
-  - Session_Management.md
-  - Cookie_Security.md
-  - Web_Authn_Passkeys.md
-  - Mobile_Token_Storage.md
-  - Basic.md
-  - Threat_Modeling.md
-  - XSS.md
-  - CSRF.md
-  - Clickjacking.md
-  - SQL_Injection.md
-  - SQL_Injection_Testing.md
-  - Command_Injection.md
-  - Insecure_Deserialization.md
-  - XML_External_Entity.md
-  - Path_Traversal.md
-  - Open_Redirect.md
-  - Open_Redirect_Deep_Dive.md
-  - Web_Cache_Poisoning.md
-  - OWASP_Top_10.md
-  - API_Input_Validation.md
-  - API_Security.md
-  - API_Gateway_Security.md
-  - Graph_QL_Security.md
-  - Webhook_Security.md
-  - File_Upload_Security.md
-  - ISMS.md
-  - SSH_Key_Management.md
-  - Secrets_Management.md
-  - PII_Data_Protection.md
-  - GDPR_and_Privacy_Compliance.md
-  - Server_Attack_Defense.md
-  - DNS_Security.md
-  - D_Do_S_Defense.md
-  - Rate_Limiting.md
-  - Web_Application_Firewall.md
-  - Zero_Trust_Architecture.md
-  - CORS_and_Security_Headers.md
-  - Container_Security.md
-  - Kubernetes_Security.md
-  - Supply_Chain_Security.md
-  - Security_Logging_and_Auditing.md
-  - Security_Testing_SAST_DAST_IAST.md
-  - AI_for_Security.md
-  - Incident_Response.md
-  - 보안_심화_및_취약점_분석.md
+  - HTTPS & TLS: HTTPS_and_TLS.md
+  - Mutual TLS (mTLS): Mutual_TLS.md
+  - PKI와 인증서 수명주기 관리: PKI_and_Certificate_Management.md
+  - AES Advanced Encryption Standard: AES.md
+  - RSA: RSA.md
+  - SHA 해시 함수: SHA.md
+  - HMAC: HMAC.md
+  - 패스워드 해싱: Password_Hashing.md
+  - E2EE 종단간 암호화: End_to_End_Encryption.md
+  - OAuth 2.0: OAuth.md
+  - SSO: SSO_SAML_OIDC.md
+  - JWT (JSON Web Token): JWT.md
+  - JWKS URL: JWKS_Endpoint.md
+  - Session Management: Session_Management.md
+  - Cookie Security: Cookie_Security.md
+  - WebAuthn / FIDO2 / Passkeys: Web_Authn_Passkeys.md
+  - 모바일 앱 토큰 저장 보안: Mobile_Token_Storage.md
+  - 보안 기초 개념과 OWASP Top 10: Basic.md
+  - 위협 모델링: Threat_Modeling.md
+  - XSS: XSS.md
+  - CSRF: CSRF.md
+  - Clickjacking (클릭재킹): Clickjacking.md
+  - SQL Injection: SQL_Injection.md
+  - SQL Injection 진단과 테스트: SQL_Injection_Testing.md
+  - Command Injection: Command_Injection.md
+  - 안전하지 않은 역직렬화: Insecure_Deserialization.md
+  - XXE 주입: XML_External_Entity.md
+  - Path Traversal: Path_Traversal.md
+  - Open Redirect: Open_Redirect.md
+  - Open Redirect 심화: Open_Redirect_Deep_Dive.md
+  - 웹 캐시 포이즈닝: Web_Cache_Poisoning.md
+  - OWASP Top 10: OWASP_Top_10.md
+  - API Input Validation: API_Input_Validation.md
+  - API Security: API_Security.md
+  - API Gateway Security: API_Gateway_Security.md
+  - GraphQL Security: Graph_QL_Security.md
+  - Webhook Security: Webhook_Security.md
+  - 파일 업로드 보안: File_Upload_Security.md
+  - ISMS / ISMS-P: ISMS.md
+  - SSH 키 라이프사이클 관리: SSH_Key_Management.md
+  - 시크릿 관리: Secrets_Management.md
+  - PII(개인정보) 데이터 보호: PII_Data_Protection.md
+  - GDPR과 개인정보 컴플라이언스: GDPR_and_Privacy_Compliance.md
+  - 서버 취약점 공격 방어: Server_Attack_Defense.md
+  - DNS Security: DNS_Security.md
+  - DDoS 공격 방어: D_Do_S_Defense.md
+  - Rate Limiting: Rate_Limiting.md
+  - 웹 애플리케이션 방화벽 운영: Web_Application_Firewall.md
+  - Zero Trust Architecture: Zero_Trust_Architecture.md
+  - CORS와 브라우저 보안 헤더: CORS_and_Security_Headers.md
+  - Docker 컨테이너 보안: Container_Security.md
+  - 쿠버네티스 보안: Kubernetes_Security.md
+  - 공급망 공격 방어: Supply_Chain_Security.md
+  - 보안 로깅과 감사: Security_Logging_and_Auditing.md
+  - SAST / DAST / IAST 보안 테스팅: Security_Testing_SAST_DAST_IAST.md
+  - AI로 보안 강화하기: AI_for_Security.md
+  - 보안 사고 대응 절차: Incident_Response.md
+  - 보안 심화 및 취약점 분석: 보안_심화_및_취약점_분석.md
+  - DID: DID.md
+  - DevSecOps: Dev_Sec_Ops.md
+  - SQL Injection (SQL 인젝션): SQL_인젝션.md
+  - SSRF: SSRF.md

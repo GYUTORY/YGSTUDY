@@ -1,1 +1,6 @@
 title: 성능 최적화
+nav:
+  - 디바운싱(Debouncing): Debouncing.md
+  - 가비지 컬렉션: Garbage_Collection.md
+  - 메모이제이션(Memoization): Memoization.md
+  - 쓰로틀링(Throttling): Throttling.md

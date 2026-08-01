@@ -1,4 +1,4 @@
 title: Apache
 nav:
-  - Apache_HTTP_Server.md
-  - Apache_Tomcat.md
+  - HTTP Server: Apache_HTTP_Server.md
+  - Tomcat: Apache_Tomcat.md

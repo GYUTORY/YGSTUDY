@@ -20,7 +20,7 @@ Animal animal = new Dog();
 
 `animal.eat()`를 호출하면 컴파일러는 `Animal`에 `eat()`이 선언되어 있는지 확인하고, 실제 실행 시에는 JVM이 `Dog`의 `eat()`를 호출한다. 이 두 단계가 분리되어 있다는 게 다형적 참조의 핵심이다.
 
-업캐스팅 문법 자체는 [Type_Casting.md](../../Java 기본 개념/Type_Casting.md)에서 다루고 있다. 여기서는 "왜 상위 타입 참조를 써야 하는가"와 그 동작 방식에 집중한다.
+업캐스팅 문법 자체는 [Type_Casting.md](../Java 기본 개념/Type_Casting.md)에서 다루고 있다. 여기서는 "왜 상위 타입 참조를 써야 하는가"와 그 동작 방식에 집중한다.
 
 ---
 
@@ -262,7 +262,7 @@ animal.bark();  // 컴파일 에러 — Animal에 bark() 없음
 
 다운캐스팅이나 `instanceof` 분기로 해결하는데, 선택 기준은 실제 타입을 얼마나 확신하느냐다.
 
-다운캐스팅은 실제 타입을 확실히 알 때 쓴다. 잘못된 타입으로 캐스팅하면 `ClassCastException`이 런타임에 발생한다. 다운캐스팅 문법은 [Type_Casting.md](../../Java 기본 개념/Type_Casting.md)를 참고한다.
+다운캐스팅은 실제 타입을 확실히 알 때 쓴다. 잘못된 타입으로 캐스팅하면 `ClassCastException`이 런타임에 발생한다. 다운캐스팅 문법은 [Type_Casting.md](../Java 기본 개념/Type_Casting.md)를 참고한다.
 
 `instanceof` 분기는 실제 타입을 모를 때 쓴다.
 

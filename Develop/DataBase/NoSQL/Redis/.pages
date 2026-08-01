@@ -1,8 +1,8 @@
 title: Redis
 nav:
-  - Redis.md
-  - Redis 다루기.md
-  - Redis_Cache_Strategy.md
-  - Redis_Advanced.md
-  - Redis_Keyspace_Notifications.md
-  - Redisson_Distributed_Lock.md
+  - 개요: Redis.md
+  - 다루기: Redis 다루기.md
+  - 캐시 설계 실무: Redis_Cache_Strategy.md
+  - 심화: Redis_Advanced.md
+  - 키스페이스 알림: Redis_Keyspace_Notifications.md
+  - Redisson 분산 락 심화: Redisson_Distributed_Lock.md

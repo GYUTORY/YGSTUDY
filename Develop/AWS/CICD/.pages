@@ -1,1 +1,7 @@
 title: CI/CD
+nav:
+  - CloudFormation: CloudFormation.md
+  - CodeBuild: CodeBuild.md
+  - CodeCommit: CodeCommit.md
+  - CodeDeploy: CodeDeploy.md
+  - CodePipeline: CodePipeline.md

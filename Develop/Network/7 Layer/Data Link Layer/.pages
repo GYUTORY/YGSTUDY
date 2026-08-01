@@ -1,1 +1,6 @@
 title: 데이터 링크 계층
+nav:
+  - 이더넷 프레임: Ethernet_Frame.md
+  - 링크 애그리게이션과 LACP: Link_Aggregation_LACP.md
+  - STP: Spanning_Tree_Protocol.md
+  - VLAN: VLAN.md

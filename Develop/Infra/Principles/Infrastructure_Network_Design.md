@@ -10,7 +10,7 @@ updated: 2026-07-03
 
 네트워크는 한 번 그으면 나중에 바꾸기가 제일 어려운 계층이다. 서버는 늘리고 줄일 수 있고 코드는 배포로 되돌릴 수 있지만, CIDR을 잘못 잡거나 서브넷 경계를 애매하게 그어놓으면 그 위에 몇 년치 워크로드가 얹힌 뒤라 손을 못 댄다. 그래서 처음 그릴 때 결정의 무게가 다른 계층보다 훨씬 크다.
 
-이 문서는 특정 클라우드에 묶이지 않는 네트워크 설계 원칙을 정리한다. AWS VPC 세부 구현은 [MSA VPC 설계 문서](../Architecture/MSA/MSA_VPC_Network_Design.md)에, 가용성·SPOF·blast radius의 일반 원칙은 [인프라 설계 원칙](./Infrastructure_Design_Principles.md)에 각각 있다. 그 두 문서가 "멀티 AZ 해라", "NAT는 AZ마다 둬라" 정도로만 짚고 넘어간 부분 — 서브넷을 몇 계층으로 나눌지, egress를 어떻게 통제할지, 로드밸런서를 어디에 둘지, 내부망을 어디까지 믿을지 — 를 여기서 다룬다.
+이 문서는 특정 클라우드에 묶이지 않는 네트워크 설계 원칙을 정리한다. AWS VPC 세부 구현은 [MSA VPC 설계 문서](../../Architecture/MSA/MSA_VPC_Network_Design.md)에, 가용성·SPOF·blast radius의 일반 원칙은 [인프라 설계 원칙](./Infrastructure_Design_Principles.md)에 각각 있다. 그 두 문서가 "멀티 AZ 해라", "NAT는 AZ마다 둬라" 정도로만 짚고 넘어간 부분 — 서브넷을 몇 계층으로 나눌지, egress를 어떻게 통제할지, 로드밸런서를 어디에 둘지, 내부망을 어디까지 믿을지 — 를 여기서 다룬다.
 
 용어는 벤더 중립으로 쓴다. 서브넷, 라우팅 테이블, 게이트웨이 같은 개념은 AWS·GCP·Azure·온프레미스 어디든 이름만 다르고 동작은 같다. 특정 제품 얘기가 필요하면 명시한다.
 
@@ -527,4 +527,4 @@ egress를 열어둔 채로 운영하다가, 보안 사고가 났을 때 데이�
 
 헬스체크를 깊게 짜놓고 임계값을 타이트하게 잡아서, DB가 잠깐 느려질 때 LB가 멀쩡한 인스턴스를 전부 빼버리는 것. 자기 보호 장치가 자기를 죽인 경우다.
 
-네트워크는 다시 그리기 어려운 계층이라, 이 후회들은 대부분 처음 설계 때 조금 더 넉넉하게, 조금 더 격리해서, 조금 더 명시적으로 그렸으면 피할 수 있었던 것들이다. 나머지 세부 구현은 [AWS VPC](../Architecture/MSA/MSA_VPC_Network_Design.md)와 [인프라 설계 원칙](./Infrastructure_Design_Principles.md) 문서로 이어진다.
+네트워크는 다시 그리기 어려운 계층이라, 이 후회들은 대부분 처음 설계 때 조금 더 넉넉하게, 조금 더 격리해서, 조금 더 명시적으로 그렸으면 피할 수 있었던 것들이다. 나머지 세부 구현은 [AWS VPC](../../Architecture/MSA/MSA_VPC_Network_Design.md)와 [인프라 설계 원칙](./Infrastructure_Design_Principles.md) 문서로 이어진다.

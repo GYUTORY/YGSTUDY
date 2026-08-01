@@ -1,1 +1,11 @@
 title: Monitoring
+nav:
+  - Config: AWS_Config.md
+  - CloudTrail: CloudTrail.md
+  - CloudWatch 로그 분석 및 실시간 모니터링: CloudWatch.md
+  - CloudWatch Alarms: CloudWatch_Alarms.md
+  - CloudWatch Logs Insights: CloudWatch_Logs_Insights.md
+  - CloudWatch 심화: Cloud_Watch_Deep_Dive.md
+  - Systems Manager SSM: SSM.md
+  - SSM을 활용한 자동화 배포: SSM_Deploy.md
+  - X-Ray: X-Ray.md

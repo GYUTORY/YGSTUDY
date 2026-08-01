@@ -1,14 +1,12 @@
 title: Backend
 nav:
-  - Architecture
   - Authentication
   - API
   - Messaging
   - Caching
-  - Database
   - Logging
   - Performance
   - Resilience
-  - Scheduling
   - Standards
-  - Tools
+  - 미래 예약 저장: Scheduling/Future_Reservation_Storage.md
+  - Semble: Tools/Semble.md

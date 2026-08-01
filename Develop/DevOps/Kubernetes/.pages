@@ -1,9 +1,9 @@
 title: Kubernetes
 nav:
-  - Kubernetes.md
-  - Kubernetes_Networking.md
-  - Kubernetes_Storage_Stateful_Set.md
-  - Kubernetes_Operator_및_CRD.md
-  - Kustomize.md
-  - Helm.md
+  - 개요: Kubernetes.md
+  - 네트워킹 심화: Kubernetes_Networking.md
+  - 스토리지와 StatefulSet: Kubernetes_Storage_Stateful_Set.md
+  - Operator 및 CRD: Kubernetes_Operator_및_CRD.md
+  - Kustomize: Kustomize.md
+  - Helm: Helm.md
   - Docker

@@ -1,18 +1,18 @@
 title: Security
 nav:
-  - Basic.md
-  - IAM.md
-  - IAM_Permission_Management_Deep_Dive.md
-  - KMS.md
-  - Secrets_Manager.md
-  - Secrets_Manager_vs_KMS.md
-  - Cognito.md
-  - Cognito_Deep_Dive.md
-  - ACM.md
-  - WAF.md
-  - WAF_Bot_Control.md
-  - WAF_Advanced_Rules.md
-  - Shield.md
-  - Guard_Duty.md
-  - Inspector.md
-  - Security_Hub.md
+  - 보안 서비스 통합 아키텍처: Basic.md
+  - IAM: IAM.md
+  - IAM 권한 관리 심화: IAM_Permission_Management_Deep_Dive.md
+  - KMS: KMS.md
+  - Secrets Manager: Secrets_Manager.md
+  - Secrets Manager vs KMS: Secrets_Manager_vs_KMS.md
+  - Cognito 사용자 인증 및 권한 관리 심화 가이드: Cognito.md
+  - Cognito Deep Dive: Cognito_Deep_Dive.md
+  - ACM: ACM.md
+  - WAF: WAF.md
+  - WAF Bot Control과 봇 방어: WAF_Bot_Control.md
+  - WAF 고급 규칙 운영: WAF_Advanced_Rules.md
+  - Shield: Shield.md
+  - GuardDuty: Guard_Duty.md
+  - Inspector: Inspector.md
+  - Hub: Security_Hub.md

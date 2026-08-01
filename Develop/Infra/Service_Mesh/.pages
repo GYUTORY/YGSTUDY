@@ -1,4 +1,4 @@
 title: Service Mesh
 nav:
-  - Istio.md
-  - Linkerd.md
+  - Istio와 Service Mesh: Istio.md
+  - Linkerd 서비스 메시 도입: Linkerd.md

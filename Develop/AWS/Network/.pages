@@ -1,1 +1,27 @@
 title: Network
+nav:
+  - ALB → ECS → S3 요청 흐름: ALB_ECS_S3_Request_Flow.md
+  - API Gateway 가이드: API_Gateway.md
+  - 네트워크 구성요소를 건물 비유로: AWS_Network_Components_Analogy.md
+  - CloudFront 캐시 무효화 정책: CDN 캐시 무효화 정책.md
+  - CloudFront: CDN.md
+  - Direct Connect: Direct_Connect.md
+  - ENI: Elastic_Network_Interface.md
+  - Global Accelerator: Global_Accelerator.md
+  - NAT Gateway: Nat_Gateway.md
+  - PrivateLink: PrivateLink.md
+  - Private Subnet vs Public Subnet 심화: Private_Subnet__vs__Public_Subnet.md
+  - Route 53: Route 53.md
+  - 라우팅 테이블: Route_Table.md
+  - S3 정리: S3.md
+  - S3 정적 웹사이트 호스팅: S3_Static_Website_Hosting.md
+  - Security Groups vs NACLs: Security_Groups_vs_NACLs.md
+  - Site-to-Site VPN & Client VPN: Site_to_Site_VPN.md
+  - Transit Gateway: Transit_Gateway.md
+  - VPC: VPC.md
+  - VPC Endpoints: VPC_Endpoints.md
+  - VPC Flow Logs: VPC_Flow_Logs.md
+  - VPC IPAM: VPC_IPAM.md
+  - VPC Peering: VPC_Peering.md
+  - VPC Reachability Analyzer: VPC_Reachability_Analyzer.md
+  - VPC Sharing: VPC_Sharing.md

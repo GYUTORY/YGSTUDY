@@ -1,1 +1,12 @@
 title: OOP
+nav:
+  - Class
+  - Getter와 Setter: Getter_and_Setter.md
+  - Builder Pattern: Java_Builder_Pattern.md
+  - Builder Pattern 심화: Java_Builder_Pattern_Advanced.md
+  - 객체지향 프로그래밍(OOP) 가이드: OOP.md
+  - Override Overriding: Override과 Overriding.md
+  - 다형적 참조: Polymorphic_Reference.md
+  - Static
+  - interface
+  - Method: Method/Native_Method.md

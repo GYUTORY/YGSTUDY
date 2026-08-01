@@ -1,5 +1,5 @@
 title: Service Discovery
 nav:
-  - Consul.md
-  - Core_DNS.md
-  - Node_Local_DNS_Cache.md
+  - Consul: Consul.md
+  - CoreDNS: Core_DNS.md
+  - NodeLocal DNSCache: Node_Local_DNS_Cache.md

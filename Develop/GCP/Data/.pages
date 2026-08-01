@@ -1,11 +1,11 @@
 nav:
-  - Big_Query.md
-  - Cloud_SQL.md
-  - Cloud_SQL_Performance.md
-  - Cloud_SQL_Migration.md
-  - Cloud_Storage.md
-  - GCS_Object_Versioning.md
-  - GCS_Encryption.md
-  - GCS_Notifications.md
-  - GCS_CORS.md
-  - Pub_Sub.md
+  - BigQuery: Big_Query.md
+  - Cloud SQL: Cloud_SQL.md
+  - Cloud SQL 성능 분석: Cloud_SQL_Performance.md
+  - Cloud SQL 마이그레이션: Cloud_SQL_Migration.md
+  - Cloud Storage (GCS): Cloud_Storage.md
+  - GCS 객체 버전 관리: GCS_Object_Versioning.md
+  - GCS 암호화 심화: GCS_Encryption.md
+  - GCS 이벤트 알림: GCS_Notifications.md
+  - GCS CORS 설정: GCS_CORS.md
+  - Cloud Pub/Sub: Pub_Sub.md

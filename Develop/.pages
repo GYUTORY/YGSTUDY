@@ -1,24 +1,23 @@
 nav:
   - index.md
+  - 주제별 허브: _hub
   - Language
   - Algorithm
   - Framework
-  - Architecture
   - Frontend
   - Backend
+  - Architecture
   - DataBase
-  - AWS
-  - GCP
-  - DevOps
-  - DevSecOps
-  - Git
-  - Infra
-  - Infrastructure
-  - AI
+  - DataRepresentation
   - Network
   - Security
   - OS
   - Linux
   - WebServer
-  - DataRepresentation
+  - DevOps
+  - Infra
+  - AWS
+  - GCP
+  - Git
+  - AI
   - tags.md

@@ -1,1 +1,10 @@
 title: Principles
+nav:
+  - 인프라 용량 산정: Infrastructure_Capacity_Planning.md
+  - 클라우드 인프라 비용 최적화: Infrastructure_Cost_Optimization.md
+  - 인프라 설계 원칙: Infrastructure_Design_Principles.md
+  - 재해 복구(DR) 인프라 구성: Infrastructure_Disaster_Recovery.md
+  - 고가용성 인프라 구성: Infrastructure_High_Availability.md
+  - 인프라 네트워크 토폴로지 설계: Infrastructure_Network_Design.md
+  - 인프라 관찰성 설계: Infrastructure_Observability.md
+  - 쿠버네티스 클러스터 재해 복구: Kubernetes_Disaster_Recovery.md

@@ -1,6 +1,6 @@
 nav:
-  - Gemini.md
-  - Google_AI_Studio.md
-  - Gemini_API.md
-  - Gemini_API_Advanced.md
-  - Gemini_Troubleshooting.md
+  - 개요: Gemini.md
+  - Google AI Studio 웹 도구: Google_AI_Studio.md
+  - API 실무: Gemini_API.md
+  - API 심화: Gemini_API_Advanced.md
+  - 트러블슈팅: Gemini_Troubleshooting.md

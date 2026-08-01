@@ -1,4 +1,4 @@
 nav:
-  - IAM.md
-  - GCP_IAM.md
-  - IAM_Deny_Policy.md
+  - IAM: IAM.md
+  - IAM (Identity and Access Management): GCP_IAM.md
+  - IAM Deny Policy: IAM_Deny_Policy.md

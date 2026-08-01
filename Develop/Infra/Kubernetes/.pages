@@ -1,4 +1,4 @@
 title: Kubernetes
 nav:
-  - Kubernetes_Architecture.md
-  - Reconciliation_Loop.md
+  - 클러스터 아키텍처: Kubernetes_Architecture.md
+  - Reconciliation Loop: Reconciliation_Loop.md

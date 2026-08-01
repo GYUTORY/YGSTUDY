@@ -427,4 +427,4 @@ JWT + Passport 조합은 처음 보면 간단해 보이지만, 프로덕션에�
 핵심은 "stateless하지만 필요한 부분만 stateful하게"다. AccessToken은 짧고 stateless, RefreshToken은 DB로 관리, 긴급 폐기 경로는 tokenVersion이나 Redis 블랙리스트로. 이 구조를 잡아두면 어지간한 보안 요구사항에 대응할 수 있다.
 
 ---
-이 문서는 [인증과 토큰 허브](../../_hub/인증과_토큰.md)의 일부입니다.
+이 문서는 [인증과 토큰 허브](../../../_hub/인증과_토큰.md)의 일부입니다.

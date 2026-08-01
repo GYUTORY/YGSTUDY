@@ -1,5 +1,5 @@
 nav:
-  - Compute_Engine.md
-  - Cloud_Run.md
-  - Cloud_Functions.md
-  - GKE.md
+  - GCE: Compute_Engine.md
+  - Cloud Run: Cloud_Run.md
+  - Cloud Functions: Cloud_Functions.md
+  - GKE: GKE.md

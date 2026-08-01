@@ -1,8 +1,8 @@
 title: Load Balancer
 nav:
-  - HA_Proxy.md
-  - Keepalived.md
-  - Envoy.md
-  - Traefik.md
-  - Traefik_Kubernetes.md
-  - Nginx.md
+  - HAProxy: HA_Proxy.md
+  - Keepalived: Keepalived.md
+  - Envoy: Envoy.md
+  - Traefik: Traefik.md
+  - Traefik on Kubernetes: Traefik_Kubernetes.md
+  - Nginx: Nginx.md

@@ -1,6 +1,6 @@
 title: Resilience
 nav:
-  - Fault_Tolerance.md
-  - Rate_Limiting_and_Bulkhead.md
-  - Connection_Limit.md
-  - Chaos_Engineering.md
+  - 장애 대응 패턴: Fault_Tolerance.md
+  - Rate Limiting & Bulkhead 패턴: Rate_Limiting_and_Bulkhead.md
+  - Connection Limit: Connection_Limit.md
+  - 장애 주입 테스트: Chaos_Engineering.md

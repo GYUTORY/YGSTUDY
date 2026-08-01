@@ -1,5 +1,5 @@
 title: Rust
 nav:
-  - Ownership_and_Borrowing.md
-  - Error_Handling.md
-  - Async_and_Tokio.md
+  - 소유권과 빌림, 라이프타임: Ownership_and_Borrowing.md
+  - 에러 처리: Error_Handling.md
+  - async/await와 Tokio: Async_and_Tokio.md

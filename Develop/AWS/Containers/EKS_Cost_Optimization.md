@@ -14,7 +14,7 @@ updated: 2026-07-03
 
 EKS 청구서는 ECS보다 새는 지점이 한 층 더 많다. ECS는 태스크와 인스턴스 두 층만 보면 되지만, EKS는 컨트롤 플레인 고정비, 노드(EC2), 그 위에 뜬 Pod의 requests/limits까지 세 층이 겹친다. 그리고 이 세 층은 서로 어긋난다. Pod가 실제로 500MB를 쓰는데 requests에 2GB를 박아두면, 스케줄러는 2GB 기준으로 노드를 잡는다. 실사용은 낮은데 노드는 계속 늘어나는 상황이 여기서 생긴다.
 
-[ECS 비용 산정과 절감](ECS_Cost_Optimization.md)이 Fargate와 EC2 모드의 태스크 단위 과금을 다뤘다면, 이 문서는 Kubernetes 레이어에서 돈이 새는 지점을 잡는다. 노드 점유율을 어떻게 올리는지, requests/limits 과다 설정을 어떻게 찾는지, Spot 노드풀을 어떻게 구성하는지가 중심이다. EKS 자체 구조는 [EKS](EKS.md)에, 컨테이너 밖의 인프라 비용은 [인프라 비용 최적화](../../Infrastructure/Infrastructure_Cost_Optimization.md)에 있다.
+[ECS 비용 산정과 절감](ECS_Cost_Optimization.md)이 Fargate와 EC2 모드의 태스크 단위 과금을 다뤘다면, 이 문서는 Kubernetes 레이어에서 돈이 새는 지점을 잡는다. 노드 점유율을 어떻게 올리는지, requests/limits 과다 설정을 어떻게 찾는지, Spot 노드풀을 어떻게 구성하는지가 중심이다. EKS 자체 구조는 [EKS](EKS.md)에, 컨테이너 밖의 인프라 비용은 [인프라 비용 최적화](../../Infra/Principles/Infrastructure_Cost_Optimization.md)에 있다.
 
 ## 컨트롤 플레인 고정비와 소규모 클러스터
 
@@ -314,7 +314,7 @@ kubecost를 안 깔면 "노드 비용이 줄었다"까지는 알아도 "어느 �
 
 - [ECS 비용 산정과 절감](ECS_Cost_Optimization.md) — Fargate/EC2 모드 태스크 단위 과금
 - [EKS](EKS.md) — 클러스터 구조와 핵심 개념
-- [인프라 비용 최적화](../../Infrastructure/Infrastructure_Cost_Optimization.md) — 컨테이너 밖 인프라 비용
+- [인프라 비용 최적화](../../Infra/Principles/Infrastructure_Cost_Optimization.md) — 컨테이너 밖 인프라 비용
 - [Karpenter 공식 문서](https://karpenter.sh/)
 - [Vertical Pod Autoscaler](https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler)
 - [kubecost / OpenCost](https://www.opencost.io/)

@@ -1,10 +1,10 @@
 title: Monitoring
 nav:
-  - Prometheus.md
-  - Prometheus_메트릭_수집.md
-  - Grafana.md
-  - Grafana_Prometheus_대시보드.md
-  - OpenTelemetry.md
-  - Loki_Log_Aggregation.md
-  - Grafana_Tempo.md
-  - Alerting_Rules.md
+  - Prometheus: Prometheus.md
+  - Prometheus 메트릭 수집: Prometheus_메트릭_수집.md
+  - Grafana: Grafana.md
+  - Grafana + Prometheus 대시보드: Grafana_Prometheus_대시보드.md
+  - OpenTelemetry: OpenTelemetry.md
+  - Loki 로그 집계: Loki_Log_Aggregation.md
+  - Grafana Tempo: Grafana_Tempo.md
+  - Alerting Rules: Alerting_Rules.md

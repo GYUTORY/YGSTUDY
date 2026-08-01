@@ -718,4 +718,4 @@ export async function getSWR<T>(
 - IETF RFC 5861: HTTP Cache-Control Extensions for Stale Content
 
 ---
-이 문서는 [캐싱 허브](../../_hub/캐싱.md)의 일부입니다.
+이 문서는 [캐싱 허브](../../../_hub/캐싱.md)의 일부입니다.

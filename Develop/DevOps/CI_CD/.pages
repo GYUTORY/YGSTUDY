@@ -1,7 +1,7 @@
 title: CI/CD
 nav:
-  - GitHub_Actions.md
-  - Jenkins.md
-  - Bitbucket_Pipeline.md
-  - Vercel.md
-  - Verdaccio.md
+  - GitHub Actions CI/CD 가이드: GitHub_Actions.md
+  - Jenkins: Jenkins.md
+  - Bitbucket Pipelines 가이드: Bitbucket_Pipeline.md
+  - Vercel: Vercel.md
+  - Verdaccio 사설 npm 레지스트리: Verdaccio.md

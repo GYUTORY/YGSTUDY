@@ -1,0 +1,5 @@
+nav:
+  - 개요: Collection_Framework.md
+  - EnumSet 심화 가이드: EnumSet.md
+  - EnumSet 심화: Enum_Set_Deep_Dive.md
+  - Queue: Queue.md

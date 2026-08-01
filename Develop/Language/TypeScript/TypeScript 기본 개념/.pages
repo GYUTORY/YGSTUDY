@@ -1,1 +1,7 @@
 title: TypeScript 기본
+nav:
+  - export default와 default new: Export_Default와_Default_New.md
+  - TypeScript: TypeScript.md
+  - tsc와 ts-node의 차이: tsc vs ts-node.md
+  - tsc-alias 가이드: tsc-alias.md
+  - 생성자 가이드: 생성자.md

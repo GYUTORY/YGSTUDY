@@ -1,6 +1,6 @@
 title: 컬렉션 & 데이터 처리
 nav:
   - Collection_Framework
-  - Stream_API.md
-  - Optional_Concept.md
-  - Serialization_Deserialization.md
+  - Stream API 심화 가이드: Stream_API.md
+  - Optional 심화: Optional_Concept.md
+  - Serialization & Deserialization: Serialization_Deserialization.md

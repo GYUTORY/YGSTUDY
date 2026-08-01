@@ -1,15 +1,15 @@
 title: API Design
 nav:
-  - API_Design_Patterns.md
-  - REST_Resource_Modeling.md
-  - API_Versioning.md
-  - API_Pagination_Patterns.md
-  - Polling_and_Webhook.md
-  - API_Security_Patterns.md
-  - API_Idempotency.md
-  - API_Caching.md
-  - API_Abuse_Prevention.md
-  - m_TLS_Service_Auth.md
-  - HTTP_Error_Response_Design.md
-  - HTTP_Conditional_Requests.md
-  - Consistency_Validation_Timing.md
+  - 설계 패턴: API_Design_Patterns.md
+  - REST 리소스 모델링 심화: REST_Resource_Modeling.md
+  - 버저닝 실무: API_Versioning.md
+  - 페이지네이션 패턴: API_Pagination_Patterns.md
+  - Polling과 Webhook: Polling_and_Webhook.md
+  - 인증/인가 실무 패턴: API_Security_Patterns.md
+  - 멱등성 (Idempotency): API_Idempotency.md
+  - 캐싱 (HTTP Caching): API_Caching.md
+  - 남용 방지 실무 패턴: API_Abuse_Prevention.md
+  - 서비스 간 API 인증: m_TLS_Service_Auth.md
+  - HTTP 에러 응답 설계: HTTP_Error_Response_Design.md
+  - HTTP 조건부 요청 심화: HTTP_Conditional_Requests.md
+  - 정합성 검증 시점: Consistency_Validation_Timing.md

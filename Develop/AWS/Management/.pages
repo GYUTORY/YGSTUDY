@@ -1,1 +1,6 @@
 title: Management
+nav:
+  - Control Tower: Control_Tower.md
+  - Organizations: Organizations.md
+  - SCP: SCP.md
+  - SSM Parameter Store: SSM_Parameter_Store.md

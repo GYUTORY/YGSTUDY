@@ -1,11 +1,11 @@
 title: Messaging
 nav:
-  - Message_Queue.md
-  - MQ_Delivery_Guarantee_Deep_Dive.md
-  - Rabbit_MQ.md
-  - RabbitMQ_MQTT.md
-  - EMQX.md
-  - EMQX_Load_Testing.md
-  - ISBM.md
-  - FCM.md
-  - APNS.md
+  - 메시지 큐 & 이벤트 기반 아키텍처: Message_Queue.md
+  - Message Queue 심화: MQ_Delivery_Guarantee_Deep_Dive.md
+  - RabbitMQ 심화: Rabbit_MQ.md
+  - RabbitMQ MQTT Plugin: RabbitMQ_MQTT.md
+  - EMQX: EMQX.md
+  - EMQX 부하 테스트: EMQX_Load_Testing.md
+  - ISBM: ISBM.md
+  - FCM: FCM.md
+  - APNs 직접 연동: APNS.md

@@ -4,4 +4,4 @@ nav:
   - Infrastructure_as_Code
   - Kubernetes
   - Monitoring
-  - Testing
+  - Testing: Testing/부하_테스트.md

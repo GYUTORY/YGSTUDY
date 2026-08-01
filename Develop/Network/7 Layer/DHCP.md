@@ -89,7 +89,7 @@ DHCP는 **DORA** 프로세스를 통해 동작합니다:
 - 네트워크 구성 정보 전달
 ```
 
-![DHCP 동작과정](..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FDHCP%20%EB%8F%99%EC%9E%91%EA%B3%BC%EC%A0%95.png)
+![DHCP 동작과정](../../etc/image/Network_image/7Layer/DHCP%20동작과정.png)
 
 ## DHCP 메시지 타입
 

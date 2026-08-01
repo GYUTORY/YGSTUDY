@@ -1,1 +1,5 @@
 title: Encoding
+nav:
+  - Base64 인코딩: Base64.md
+  - 문자 인코딩: Character_Encoding.md
+  - URL 인코딩 심화: URL_Encoding.md

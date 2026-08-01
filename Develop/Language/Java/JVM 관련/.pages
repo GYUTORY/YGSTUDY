@@ -1,4 +1,4 @@
 title: JVM
 nav:
   - JVM
-  - GC_Deep_Dive.md
+  - JVM Garbage Collection Deep Dive: GC_Deep_Dive.md

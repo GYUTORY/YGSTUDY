@@ -1,8 +1,8 @@
 title: Infrastructure as Code
 nav:
-  - Terraform.md
-  - Terraform_기초.md
-  - AWS_Terraform_실전.md
-  - Ansible.md
-  - Terragrunt.md
-  - Pulumi.md
+  - Terraform: Terraform.md
+  - Terraform 기초: Terraform_기초.md
+  - AWS Terraform 실전: AWS_Terraform_실전.md
+  - Ansible: Ansible.md
+  - Terragrunt: Terragrunt.md
+  - Pulumi: Pulumi.md

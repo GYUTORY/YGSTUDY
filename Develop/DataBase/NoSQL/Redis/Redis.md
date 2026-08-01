@@ -14,7 +14,7 @@ Redis는 인메모리 데이터 구조 저장소다. 2009년 Salvatore Sanfilipp
 
 > 데이터 타입별 사용법과 실제 적용 패턴은 [Redis 다루기](Redis%20다루기.md), 클러스터/센티널/분산락 등 심화 내용은 [Redis 심화](Redis_Advanced.md) 참고.
 
-![Redis.png](..%2F..%2F..%2F..%2Fetc%2Fimage%2FDataBase%2FNoSQL%2FRedis%2FRedis.png)
+![Redis.png](../../../etc/image/DataBase/NoSQL/Redis/Redis.png)
 
 ---
 

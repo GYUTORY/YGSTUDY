@@ -1,1 +1,10 @@
 title: Storage
+nav:
+  - Backup: AWS_Backup.md
+  - EBS: EBS.md
+  - EFS: EFS.md
+  - FSx (관리형 파일 시스템): F_Sx.md
+  - S3 Glacier: S3_Glacier.md
+  - S3 라이프사이클: S3_Lifecycle.md
+  - S3 Multipart Upload 심층 정리: S3_Multipart_Upload.md
+  - S3 Presigned URL 심층 정리: S3_Presigned_URL.md
