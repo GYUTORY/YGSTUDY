@@ -2749,11 +2749,11 @@
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/Java/JVM%20%EA%B4%80%EB%A0%A8/JVM/JVM%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EB%A9%94%EB%AA%A8%EB%A6%AC%20%EA%B4%80%EB%A6%AC/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/Java/JVM%20%EA%B4%80%EB%A0%A8/JVM%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EB%A9%94%EB%AA%A8%EB%A6%AC%20%EA%B4%80%EB%A6%AC/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/Java/JVM%20%EA%B4%80%EB%A0%A8/JVM/JVM_Options_and_Memory_Management/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/Java/JVM%20%EA%B4%80%EB%A0%A8/JVM_Options_and_Memory_Management/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
@@ -2865,7 +2865,7 @@
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/Java/%EA%B0%9D%EC%B2%B4%EC%A7%80%ED%96%A5%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D%20%28OOP%29/interface/Makrer_Interface/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/Java/%EA%B0%9D%EC%B2%B4%EC%A7%80%ED%96%A5%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D%20%28OOP%29/interface/Marker_Interface/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
@@ -3161,7 +3161,19 @@
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/ES6%20Class/</loc>
+         <lastmod>2026-08-02</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/ESM%EA%B3%BC%20CommonJS/</loc>
+         <lastmod>2026-08-02</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/Encode_URI_Component_Decode_URI_Component/</loc>
+         <lastmod>2026-08-02</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/Getter%20%26%20Setter/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
@@ -3174,18 +3186,6 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/encodeURI/</loc>
-         <lastmod>2026-08-02</lastmod>
-    </url>
-    <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/ES6/ES6%20Class/</loc>
-         <lastmod>2026-08-02</lastmod>
-    </url>
-    <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/ES6/ESM%EA%B3%BC%20CommonJS/</loc>
-         <lastmod>2026-08-02</lastmod>
-    </url>
-    <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/JavaScript/09_ES6_%EB%B0%8F_%EA%B3%A0%EA%B8%89%EB%AC%B8%EB%B2%95/ES6/Getter%20%26%20Setter/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
@@ -3273,83 +3273,83 @@
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/Arrays/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Arrays/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/Class/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Class/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/Enum/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Enum/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/Interface/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Interface/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/Interface_Deep_Dive/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Interface_Deep_Dive/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/Tuples/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Tuples/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/%EC%A0%91%EA%B7%BC%20%EC%A0%9C%EC%96%B4%EC%9E%90/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/%EC%A0%91%EA%B7%BC%20%EC%A0%9C%EC%96%B4%EC%9E%90/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Object%20Types/%EC%B6%94%EC%83%81%20%ED%81%B4%EB%9E%98%EC%8A%A4/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/%EC%B6%94%EC%83%81%20%ED%81%B4%EB%9E%98%EC%8A%A4/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Other%20Types/Any_Type_Deep_Dive/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Other%20Types/Any_Type_Deep_Dive/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Other%20Types/any/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Other%20Types/any/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Other%20Types/never/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Other%20Types/never/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Other%20Types/object/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Other%20Types/object/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Other%20Types/unknown/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Other%20Types/unknown/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Primitive%20Types/Null_Type_Deep_Dive/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Primitive%20Types/Null_Type_Deep_Dive/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Primitive%20Types/String/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Primitive%20Types/String/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Primitive%20Types/boolean/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Primitive%20Types/boolean/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Primitive%20Types/null/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Primitive%20Types/null/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Primitive%20Types/number/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Primitive%20Types/number/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Primitive%20Types/undefined/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Primitive%20Types/undefined/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/TypeScript%20Types/Primitive%20Types/void/</loc>
+         <loc>https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Primitive%20Types/void/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
@@ -3645,6 +3645,10 @@
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/MacAddress/</loc>
+         <lastmod>2026-08-02</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Spanning_Tree_Protocol/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
@@ -3698,10 +3702,6 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Transport%20Layer/UDP/</loc>
-         <lastmod>2026-08-02</lastmod>
-    </url>
-    <url>
-         <loc>https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Transport%20Layer/TCP/MacAddress/</loc>
          <lastmod>2026-08-02</lastmod>
     </url>
     <url>
