@@ -1,11 +1,10 @@
 ---
-title: Singleton Pattern (싱글톤 패턴) 개념과 예제
+title: Singleton Pattern (싱글톤 패턴)
 tags: [design-pattern, singleton-pattern, creational-pattern, javascript, architecture]
 updated: 2025-11-30
 ---
 
-# Singleton Pattern (싱글톤 패턴) 개념과 예제
-
+# Singleton Pattern (싱글톤 패턴)
 ## 배경
 
 ### 싱글톤 패턴의 정의와 목적

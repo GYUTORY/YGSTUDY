@@ -1,12 +1,12 @@
 title: 기본 JavaScript
 nav:
+  - 호이스팅(Hoisting): Hoisting.md
+  - 스코프와 var/let/const: Scope_var_let_const.md
+  - this 바인딩: This_Binding.md
   - Closure
   - For_Loop
-  - 호이스팅(Hoisting): Hoisting.md
   - Map
   - Object
   - Operator
-  - 스코프와 var/let/const: Scope_var_let_const.md
-  - this 바인딩: This_Binding.md
   - function
   - Constructor: Constructor/Constructor_개념.md

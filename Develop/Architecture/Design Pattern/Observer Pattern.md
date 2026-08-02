@@ -1,11 +1,10 @@
 ---
-title: Observer Pattern (옵저버 패턴) 완전 정복
+title: Observer Pattern (옵저버 패턴)
 tags: [design-pattern, observer-pattern, behavioral-pattern, javascript, architecture]
 updated: 2025-11-30
 ---
 
-# Observer Pattern (옵저버 패턴) 완전 정복
-
+# Observer Pattern (옵저버 패턴)
 ## 옵저버 패턴이란?
 
 옵저버 패턴은 객체지향 프로그래밍에서 가장 널리 사용되는 디자인 패턴 중 하나입니다. 이 패턴의 핵심은 **"한 객체의 상태가 변할 때 그 객체에 의존성을 가진 다른 객체들에게 자동으로 알림을 보내는 것"**입니다.

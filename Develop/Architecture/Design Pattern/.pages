@@ -1,10 +1,10 @@
 title: Design Pattern
 nav:
   - 생성 패턴: Creational_Pattern.md
-  - 행동 디자인 패턴: Behavioral_Pattern.md
+  - 행동 패턴: Behavioral_Pattern.md
   - 행동 패턴 심화: Behavioral_Pattern_Advanced.md
   - Singleton Pattern: Singleton_Pattern.md
-  - Factory Method 패턴: Factory Method.md
+  - Factory Method Pattern: Factory Method.md
   - Abstract Factory Pattern: Abstract_Factory_Pattern.md
   - Prototype Pattern: Prototype_Pattern.md
   - Observer Pattern: Observer Pattern.md

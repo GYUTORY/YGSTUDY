@@ -1,5 +1,5 @@
 ---
-title: 행동 패턴 심화 (Behavioral Pattern Advanced)
+title: 행동 패턴 심화
 tags: [architecture, design-pattern, behavioral, visitor, mediator, memento, iterator, interpreter, observer, double-dispatch, concurrency, saga, kafka-streams, reactive-streams, virtual-thread, coroutine]
 updated: 2026-06-03
 ---

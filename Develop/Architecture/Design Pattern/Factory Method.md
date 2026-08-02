@@ -1,11 +1,10 @@
 ---
-title: Factory Method(팩토리 메서드) 패턴
+title: Factory Method Pattern (팩토리 메서드 패턴)
 tags: [design-pattern, factory-method, creational-pattern, javascript, architecture, oop]
 updated: 2025-11-30
 ---
 
-# Factory Method(팩토리 메서드) 패턴
-
+# Factory Method Pattern (팩토리 메서드 패턴)
 ## Factory Method 패턴이란?
 
 Factory Method 패턴은 **객체를 생성하는 방법을 추상화**하는 디자인 패턴입니다. 쉽게 말해, "어떤 객체를 만들지"는 결정하되, "어떻게 만들지"는 서브클래스에 맡기는 방식입니다.

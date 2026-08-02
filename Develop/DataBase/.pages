@@ -2,7 +2,7 @@ title: Database
 nav:
   - DB Connection Pool 종합: Connection_Pool.md
   - 데이터베이스 심화: Database_Deep_Dive.md
-  - NoSQL
-  - RDBMS
   - 데이터베이스 마이그레이션 전략: 마이그레이션_전략.md
   - 데이터베이스 옵티마이저: 옵티마이저.md
+  - NoSQL
+  - RDBMS

@@ -1,6 +1,6 @@
 title: Web Server
 nav:
+  - Nginx vs Caddy: Nginx_vs_Caddy.md
   - Nginx
   - Apache
   - Caddy
-  - Nginx vs Caddy: Nginx_vs_Caddy.md

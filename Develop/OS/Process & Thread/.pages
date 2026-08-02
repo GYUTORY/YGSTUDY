@@ -6,8 +6,8 @@ nav:
   - 컨텍스트 스위칭: Context_Switching.md
   - Deadlock: Deadlock.md
   - 프로세스 간 통신 (IPC): IPC.md
-  - Process
   - 동기화 프리미티브 심화: Synchronization.md
-  - Thread
   - 프로세스/스레드 관점의 가상 메모리: Virtual_Memory.md
   - 레이스 컨디션: 레이스_컨디션.md
+  - Process
+  - Thread

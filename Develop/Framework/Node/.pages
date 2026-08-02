@@ -2,7 +2,6 @@ title: Node.js
 nav:
   - 함수형 프로그래밍 기초: 함수형 프로그래밍.md
   - 함수형 프로그래밍 실전: Functional_Programming.md
-  - API
   - AbortController로 비동기 작업 취소하기: Abort_Controller.md
   - 애플리케이션 라우팅: Application_Routing.md
   - child_process 모듈 실무 심화: Child_Process.md
@@ -12,29 +11,30 @@ nav:
   - fs 모듈 실무 심화: File_System.md
   - 그레이스풀 셧다운 실무: Graceful_Shutdown.md
   - HTTP / HTTPS 코어 모듈 심화: HTTP_Module.md
-  - NestJS
   - 프레임워크 비교: Nest_Hapi_Express_fastify.md
   - net 모듈 TCP 서버/클라이언트 실무 심화: Net_Module.md
   - node:test 빌트인 테스트 러너 실무: Node_Test_Runner.md
   - 프레임워크 개요: Nodejs_Framework_Overview.md
-  - Nodejs의 구조 및 작동 원리
-  - 성능 최적화 및 프로파일링: Performance/Node.js_성능_최적화_및_프로파일링.md
   - perf_hooks 모듈 심화: Performance_Hooks.md
   - Permission Model 심화: Permission_Model.md
-  - Process Management Tool
   - 프레임워크 문서 인덱스: README.md
+  - API
+  - NestJS
+  - Nodejs의 구조 및 작동 원리
+  - Process Management Tool
   - Testing
+  - 데이터베이스
+  - 모듈 시스템
+  - 아키텍처
+  - 캐싱
+  - 성능 최적화 및 프로파일링: Performance/Node.js_성능_최적화_및_프로파일링.md
   - Handlebars (.hbs): View_Engine/Handlebars.md
   - Stream: 데이터 처리 및 통신/스트림(Stream).md
-  - 데이터베이스
   - 로깅: 로깅/로깅_전략.md
   - Observability 전략: 모니터링/Observability_전략.md
-  - 모듈 시스템
   - 백그라운드 작업: 백그라운드_작업/작업_큐_처리.md
   - 보안: 보안/Node.js_보안_모범사례.md
   - 부하 테스트: 성능/부하_테스트_전략.md
-  - 아키텍처
   - 에러 핸들링: 에러_핸들링/에러_핸들링_전략.md
   - JWT 구현 및 보안: 인증/JWT_구현_및_보안.md
-  - 캐싱
   - 파일 업로드 및 처리: 파일_처리/파일_업로드_및_처리.md

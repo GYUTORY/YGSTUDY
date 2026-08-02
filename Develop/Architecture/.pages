@@ -5,13 +5,13 @@ nav:
   - MVVM: MVVM.md
   - 시스템 설계 및 아키텍처 패턴: 시스템_설계_및_아키텍처_패턴.md
   - 읽기 경로: 읽기_경로.md
-  - Design Pattern
-  - MSA
   - 백엔드 레이아웃: Backend_Layout.md
   - CQRS 패턴: CQRS_Pattern.md
   - 이벤트 기반 아키텍처: Event_Driven_Architecture.md
   - 헥사고날 아키텍처: Hexagonal_Architecture.md
   - 분산 시스템 관측성: 분산_시스템_관측성.md
+  - Design Pattern
+  - MSA
   - OMO
   - DDD:
     - 개요: DDD.md
