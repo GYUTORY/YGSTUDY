@@ -1,11 +1,10 @@
 ---
-title: JavaScript 클로저와 렉시컬 스코프 심화
+title: JavaScript 클로저와 렉시컬 스코프
 tags: [language, javascript, 01기본javascript, closure, lexical-scope, scope, var, let]
 updated: 2026-04-25
 ---
 
-# JavaScript 클로저와 렉시컬 스코프 심화
-
+# JavaScript 클로저와 렉시컬 스코프
 ## 클로저를 이해하려면 렉시컬 스코프부터 봐야 한다
 
 클로저를 "함수가 자신이 선언된 환경의 변수를 기억하는 것"이라고 정의해놓고 끝나는 글이 많은데, 실무에서 클로저 관련 버그를 디버깅하다 보면 그 정의만으로는 부족하다. 진짜로 봐야 하는 건 **자바스크립트 엔진이 함수를 만들 때 어떤 환경 레코드(Environment Record)를 함수 객체의 내부 슬롯 `[[Environment]]`에 박아두느냐**다.
