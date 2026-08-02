@@ -328,4 +328,4 @@ async function listOrders(page: number): Promise<Page<OrderSummary>> {
 ## 참고
 
 - [TypeScript Interface 심화 (선언 병합·모듈 보강·시그니처)](Interface_Deep_Dive.md)
-- [고급 타입 기법](../../고급%20타입%20기법.md)
+- [고급 타입 기법](../고급%20타입%20기법.md)

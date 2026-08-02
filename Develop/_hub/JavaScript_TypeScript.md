@@ -113,14 +113,14 @@ updated: 2026-07-29
 
 | 문서 | 이 문서가 답하는 것 | 깊이 |
 |---|---|---|
-| [Interface](../Language/TypeScript/타입%20및%20타입%20정의/TypeScript%20Types/Object%20Types/Interface.md) | interface 선언, 확장, 구조적 타이핑 | 입문 |
-| [Interface Deep Dive](../Language/TypeScript/타입%20및%20타입%20정의/TypeScript%20Types/Object%20Types/Interface_Deep_Dive.md) | 병합 선언, 함수 오버로드, 인덱스 시그니처 | 심화 |
-| [Abstract Class vs Interface](../Language/TypeScript/타입%20및%20타입%20정의/TypeScript%20Types/Object%20Types/추상%20클래스.md) | 추상 클래스와 인터페이스 선택 기준 | 실무 |
-| [Class](../Language/TypeScript/타입%20및%20타입%20정의/TypeScript%20Types/Object%20Types/Class.md) | TS 클래스 — 접근 제어자·생성자 단축 선언·readonly | 입문 |
-| [접근 제어자](../Language/TypeScript/타입%20및%20타입%20정의/TypeScript%20Types/Object%20Types/접근%20제어자.md) | public · private · protected · readonly 동작 범위 | 입문 |
+| [Interface](../Language/TypeScript/타입%20및%20타입%20정의/Object%20Types/Interface.md) | interface 선언, 확장, 구조적 타이핑 | 입문 |
+| [Interface Deep Dive](../Language/TypeScript/타입%20및%20타입%20정의/Object%20Types/Interface_Deep_Dive.md) | 병합 선언, 함수 오버로드, 인덱스 시그니처 | 심화 |
+| [Abstract Class vs Interface](../Language/TypeScript/타입%20및%20타입%20정의/Object%20Types/추상%20클래스.md) | 추상 클래스와 인터페이스 선택 기준 | 실무 |
+| [Class](../Language/TypeScript/타입%20및%20타입%20정의/Object%20Types/Class.md) | TS 클래스 — 접근 제어자·생성자 단축 선언·readonly | 입문 |
+| [접근 제어자](../Language/TypeScript/타입%20및%20타입%20정의/Object%20Types/접근%20제어자.md) | public · private · protected · readonly 동작 범위 | 입문 |
 | [고급 타입 기법](../Language/TypeScript/타입%20및%20타입%20정의/고급%20타입%20기법.md) | 조건부 타입, 매핑 타입, 템플릿 리터럴 타입 | 심화 |
 | [Type Assertion](../Language/TypeScript/타입%20및%20타입%20정의/Type_Assertion.md) | as 키워드의 올바른 사용법과 남용 방지 | 실무 |
-| [any vs unknown vs never](../Language/TypeScript/타입%20및%20타입%20정의/TypeScript%20Types/Other%20Types/Any_Type_Deep_Dive.md) | 세 타입의 타입 안전성 차이와 실용적 선택 기준 | 실무 |
+| [any vs unknown vs never](../Language/TypeScript/타입%20및%20타입%20정의/Other%20Types/Any_Type_Deep_Dive.md) | 세 타입의 타입 안전성 차이와 실용적 선택 기준 | 실무 |
 | [타입 정의 파일 (.d.ts)](../Language/TypeScript/타입%20및%20타입%20정의/타입%20정의%20파일.md) | @types 패키지와 직접 선언 파일 작성법 | 실무 |
 
 ### TypeScript — 타입 유틸리티 & 제네릭

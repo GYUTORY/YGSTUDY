@@ -1013,5 +1013,5 @@ Connection conn = dataSource.getConnection();
 
 - [JVM Garbage Collectors Documentation](https://docs.oracle.com/en/java/javase/21/gctuning/)
 - [GCEasy — GC 로그 분석 도구](https://gceasy.io)
-- [JVM 구조](JVM/JVM 구조 및 메모리 관리.md) — JVM 기본 구조
+- [JVM 구조](JVM 구조 및 메모리 관리.md) — JVM 기본 구조
 - [자바 메모리 구조](../Java 기본 개념/자바 메모리 구조.md) — 메모리 영역
