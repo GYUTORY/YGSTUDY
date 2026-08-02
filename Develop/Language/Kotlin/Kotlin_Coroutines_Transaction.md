@@ -1,11 +1,10 @@
 ---
-title: 코루틴 환경에서의 DB 트랜잭션
+title: Kotlin 코루틴 DB 트랜잭션
 tags: [kotlin, coroutine, transaction, spring, r2dbc, flow, threadlocal, transactional, suspend, jpa]
 updated: 2026-07-30
 ---
 
-# 코루틴 환경에서의 DB 트랜잭션
-
+# Kotlin 코루틴 DB 트랜잭션
 ## 개요
 
 Spring에서 `@Transactional`을 suspend 함수에 붙이면 컴파일 오류가 없다. 잘 동작하는 줄 알고 쓰다가, 특정 조건에서 트랜잭션이 묶이지 않거나 롤백이 안 되는 상황을 만난다. 문제는 Spring 트랜잭션 매니저가 ThreadLocal에 기반한다는 점에서 시작된다.

@@ -1,11 +1,10 @@
 ---
-title: Node.js 함수형 프로그래밍
+title: Node.js 함수형 프로그래밍 실전
 tags: [framework, node, functional-programming, middleware, stream, rxjs, worker-threads, memoization, fp-ts, effect-ts]
 updated: 2026-05-16
 ---
 
-# Node.js 함수형 프로그래밍
-
+# Node.js 함수형 프로그래밍 실전
 순수 함수, 불변성, 고차 함수, 합성, 모나드 같은 일반 개념은 [[Functional_Programming]]과 [[Functional_Programming_Advanced]]에서 다룬다. 이 문서는 Node.js 런타임 위에서 함수형 스타일이 실제로 어떻게 동작하고 어디서 깨지는지에 집중한다. 이벤트 루프, 스트림, Worker thread, V8 GC, 미들웨어 체인 같은 Node 고유 맥락을 빼면 함수형 패러다임 이야기는 절반밖에 안 된다.
 
 ## 미들웨어를 함수 합성으로 보기

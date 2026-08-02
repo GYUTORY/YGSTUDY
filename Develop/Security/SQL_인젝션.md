@@ -1,11 +1,10 @@
 ---
-title: SQL Injection (SQL 인젝션)
+title: SQL Injection
 tags: [database, security, sql-injection, web-security, owasp]
 updated: 2026-03-28
 ---
 
-# SQL Injection (SQL 인젝션)
-
+# SQL Injection
 ## 정의
 
 SQL 인젝션은 사용자 입력값이 SQL 쿼리의 일부로 해석되면서, 공격자가 의도하지 않은 쿼리를 실행할 수 있는 취약점이다. 2024년 기준 OWASP Top 10에 여전히 포함되어 있고, 실무에서도 자주 발견된다.

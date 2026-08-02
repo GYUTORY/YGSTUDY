@@ -22,10 +22,10 @@ nav:
   - XSS: XSS.md
   - CSRF: CSRF.md
   - Clickjacking (클릭재킹): Clickjacking.md
-  - SQL:
-    - Injection: SQL_Injection.md
-    - Injection 진단과 테스트: SQL_Injection_Testing.md
-    - Injection (SQL 인젝션): SQL_인젝션.md
+  - SQL Injection:
+    - 개요: SQL_인젝션.md
+    - 심화: SQL_Injection.md
+    - 진단과 테스트: SQL_Injection_Testing.md
   - Command Injection: Command_Injection.md
   - 안전하지 않은 역직렬화: Insecure_Deserialization.md
   - XXE 주입: XML_External_Entity.md

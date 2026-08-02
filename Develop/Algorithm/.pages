@@ -4,10 +4,10 @@ nav:
   - 시간복잡도와 공간복잡도: Time_Complexity.md
   - 정렬 알고리즘: Sorting.md
   - Binary Search: Binary_Search.md
-  - Dynamic:
-    - Programming: Dynamic_Programming.md
-    - Programming 심화: Dynamic_Programming_Advanced.md
-    - Programming 유형: Dynamic_Programming_Patterns.md
+  - Dynamic Programming:
+    - 개요: Dynamic_Programming.md
+    - 심화: Dynamic_Programming_Advanced.md
+    - 유형: Dynamic_Programming_Patterns.md
   - Greedy:
     - Algorithm: Greedy.md
     - 알고리즘 심화: Greedy_Deep_Dive.md
