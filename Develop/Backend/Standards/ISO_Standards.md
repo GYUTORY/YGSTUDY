@@ -1,12 +1,6 @@
 ---
 title: ISO 표준 — 백엔드 개발자가 실제로 마주치는 것들
-tags:
-  - ISO
-  - Backend
-  - Standards
-  - DateTime
-  - Security
-updated: 2026-04-06
+tags: [ISO, backend, Standards, datetime, security]
 ---
 
 # ISO 표준 — 백엔드 개발자가 실제로 마주치는 것들

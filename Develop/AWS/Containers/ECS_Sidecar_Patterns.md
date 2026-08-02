@@ -1,14 +1,6 @@
 ---
 title: ECS 다중 컨테이너 Sidecar 패턴
-tags:
-  - AWS
-  - ECS
-  - Sidecar
-  - Fargate
-  - Fluent Bit
-  - Envoy
-  - Task Definition
-updated: 2026-04-21
+tags: [aws, ecs, Sidecar, fargate, fluent-bit, envoy, Task Definition]
 ---
 
 # ECS 다중 컨테이너 Sidecar 패턴

@@ -1,13 +1,6 @@
 ---
 title: NestJS Guards
-tags:
-  - nestjs
-  - guards
-  - authorization
-  - jwt
-  - rbac
-  - reflector
-updated: 2026-06-06
+tags: [nestjs, guards, authorization, jwt, RBAC, reflector]
 ---
 
 # NestJS Guards

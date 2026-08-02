@@ -1,6 +1,6 @@
 ---
 title: Nginx WebSocket 프록시
-tags: [Nginx, WebSocket, Proxy, SSL, Socket.IO, SockJS]
+tags: [nginx, websocket, proxy, ssl, Socket.IO, SockJS]
 updated: 2026-07-26
 ---
 

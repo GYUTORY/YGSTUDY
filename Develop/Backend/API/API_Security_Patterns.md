@@ -1,12 +1,6 @@
 ---
 title: API 인증/인가 실무 패턴
-tags:
-  - API
-  - Security
-  - JWT
-  - OAuth2
-  - HMAC
-updated: 2026-05-06
+tags: [api, security, jwt, oauth2, hmac]
 ---
 
 # API 인증/인가 실무 패턴

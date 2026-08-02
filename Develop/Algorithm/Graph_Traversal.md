@@ -1,6 +1,6 @@
 ---
 title: Graph Traversal (그래프 탐색 - DFS/BFS)
-tags: [algorithm, graph, dfs, bfs, topological-sort, cycle-detection]
+tags: [algorithm, Graph, dfs, bfs, topological-sort, cycle-detection]
 updated: 2026-04-18
 ---
 

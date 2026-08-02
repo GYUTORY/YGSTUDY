@@ -1,11 +1,6 @@
 ---
 title: 인프라 용량 산정
-tags:
-  - Infrastructure
-  - Capacity Planning
-  - Performance
-  - SRE
-updated: 2026-06-04
+tags: [infrastructure, Capacity_Planning, performance, sre]
 ---
 
 # 인프라 용량 산정

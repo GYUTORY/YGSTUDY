@@ -1,6 +1,6 @@
 ---
 title: GCS CORS 설정
-tags: [GCP, Cloud Storage, CORS, 보안, 브라우저 업로드, Terraform, resumable upload]
+tags: [GCP, Cloud Storage, cors, 보안, 브라우저 업로드, terraform, resumable upload]
 updated: 2026-07-28
 ---
 

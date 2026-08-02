@@ -1,6 +1,6 @@
 ---
 title: MQTT (Message Queuing Telemetry Transport)
-tags: [network, 7-layer, transport-layer, tcp, mqtt]
+tags: [network, 7-layer, transport-layer, tcp, MQTT]
 updated: 2025-12-05
 ---
 

@@ -1,11 +1,6 @@
 ---
 title: "GKE (Google Kubernetes Engine)"
-tags:
-  - GCP
-  - GKE
-  - Kubernetes
-  - Container
-updated: 2026-07-03
+tags: [GCP, GKE, kubernetes, container]
 ---
 
 # GKE (Google Kubernetes Engine)

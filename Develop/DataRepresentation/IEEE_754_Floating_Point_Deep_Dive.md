@@ -1,6 +1,6 @@
 ---
 title: IEEE 754 부동소수점 표현 심화
-tags: [datarepresentation, ieee-754, floating-point, nan, rounding, precision, subnormal, kahan-summation]
+tags: [datarepresentation, IEEE754, floating-point, nan, rounding, precision, subnormal, kahan-summation]
 updated: 2026-06-05
 ---
 

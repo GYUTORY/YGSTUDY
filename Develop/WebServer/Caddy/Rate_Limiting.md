@@ -1,6 +1,6 @@
 ---
 title: Caddy Rate Limiting 처리 방식과 Nginx 비교
-tags: [webserver, caddy, nginx, rate-limiting, 429, ddos]
+tags: [webserver, Caddy, nginx, rate-limiting, 429, ddos]
 updated: 2026-04-17
 ---
 

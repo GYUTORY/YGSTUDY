@@ -1,15 +1,6 @@
 ---
 title: AWS App Mesh 다중 컨테이너 서비스 메시
-tags:
-  - AWS
-  - App Mesh
-  - Envoy
-  - Service Mesh
-  - ECS
-  - Sidecar
-  - mTLS
-  - Canary
-updated: 2026-04-21
+tags: [aws, App Mesh, envoy, service-mesh, ecs, Sidecar, mtls, canary]
 ---
 
 # AWS App Mesh 다중 컨테이너 서비스 메시

@@ -1,6 +1,6 @@
 ---
 title: Amazon Neptune
-tags: [AWS, Database, Graph, Neptune, Gremlin, SPARQL, Serverless]
+tags: [aws, database, Graph, Neptune, Gremlin, SPARQL, serverless]
 updated: 2026-07-25
 ---
 

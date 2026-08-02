@@ -1,6 +1,6 @@
 ---
 title: "GCS 객체 버전 관리"
-tags: [GCP, Cloud Storage, GCS, Versioning, Lifecycle, Soft Delete, Terraform, Python SDK, Object Hold, Retention Policy]
+tags: [GCP, Cloud Storage, GCS, versioning, lifecycle, soft-delete, terraform, Python SDK, Object Hold, Retention Policy]
 updated: 2026-07-26
 ---
 

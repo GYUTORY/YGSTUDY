@@ -1,6 +1,6 @@
 ---
 title: 텍스트 임베딩 실무
-tags: [Embedding, OpenAI, Cohere, BGE, E5, Cosine Similarity, Vector Search]
+tags: [Embedding, openai, Cohere, BGE, E5, Cosine Similarity, Vector Search]
 updated: 2026-06-22
 ---
 

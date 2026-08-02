@@ -1,13 +1,6 @@
 ---
 title: LLM Context Window
-tags:
-  - LLM
-  - Context Window
-  - RoPE
-  - YaRN
-  - Long Context
-  - Prompt Caching
-updated: 2026-06-04
+tags: [llm, Context Window, RoPE, YaRN, Long Context, Prompt Caching]
 ---
 
 # LLM 컨텍스트 윈도우

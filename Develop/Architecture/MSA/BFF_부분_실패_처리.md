@@ -1,6 +1,6 @@
 ---
 title: BFF 부분 실패 처리
-tags: [BFF, MSA, 장애처리, Promise.allSettled, Fallback, Circuit Breaker]
+tags: [bff, msa, 장애처리, Promise.allSettled, Fallback, circuit-breaker]
 updated: 2026-07-25
 ---
 

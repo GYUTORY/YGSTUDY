@@ -1,6 +1,6 @@
 ---
 title: "Java 함수형 인터페이스 실무 활용"
-tags: [Java, FunctionalInterface, Spring, JDK, 실무활용]
+tags: [java, FunctionalInterface, spring, JDK, 실무활용]
 updated: 2026-04-09
 ---
 

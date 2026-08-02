@@ -1,6 +1,6 @@
 ---
 title: AWS DMS (Database Migration Service)
-tags: [aws, dms, database, migration, replication, cdc]
+tags: [aws, DMS, database, migration, replication, CDC]
 updated: 2026-01-18
 ---
 

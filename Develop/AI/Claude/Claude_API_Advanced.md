@@ -1,6 +1,6 @@
 ---
 title: Claude API 고급 기능
-tags: [ai, claude, anthropic, api, batch, citations, files, structured-output, prompt-caching]
+tags: [ai, claude, anthropic, api, batch, citations, files, structured-output, Prompt Caching]
 updated: 2026-04-15
 ---
 

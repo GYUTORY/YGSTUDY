@@ -1,12 +1,6 @@
 ---
 title: 프론트엔드에서의 햄버거 메뉴
-tags:
-  - Frontend
-  - CSS
-  - JavaScript
-  - Accessibility
-  - Mobile
-updated: 2026-07-27
+tags: [Frontend, CSS, javascript, Accessibility, Mobile]
 ---
 
 # 프론트엔드에서의 햄버거 메뉴

@@ -1,13 +1,6 @@
 ---
 title: MTU·MSS와 Path MTU Discovery 블랙홀
-tags:
-  - Network
-  - MTU
-  - MSS
-  - PMTUD
-  - VPN
-  - IPsec
-updated: 2026-05-04
+tags: [network, MTU, MSS, PMTUD, vpn, ipsec]
 ---
 
 # MTU·MSS와 Path MTU Discovery 블랙홀

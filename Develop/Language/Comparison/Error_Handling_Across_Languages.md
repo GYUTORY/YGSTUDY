@@ -1,6 +1,6 @@
 ---
 title: 언어별 에러 처리 방식 비교
-tags: [Java, Go, Rust, JavaScript, Python, Error Handling, Exception, Result]
+tags: [java, Go, Rust, javascript, python, error-handling, exception, Result]
 updated: 2026-07-18
 ---
 

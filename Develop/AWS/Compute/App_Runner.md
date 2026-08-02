@@ -1,16 +1,6 @@
 ---
 title: AWS App Runner 심화
-tags:
-  - AWS
-  - App_Runner
-  - Container
-  - ECR
-  - IAM
-  - CloudWatch
-  - X-Ray
-  - Terraform
-  - Compute
-updated: 2026-07-27
+tags: [aws, App_Runner, container, ecr, iam, cloudwatch, X-Ray, terraform, compute]
 ---
 
 # AWS App Runner 심화

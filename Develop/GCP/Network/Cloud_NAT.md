@@ -1,6 +1,6 @@
 ---
 title: Cloud NAT
-tags: [GCP, Cloud NAT, Network, NAT, VPC]
+tags: [GCP, Cloud NAT, network, nat, vpc]
 updated: 2026-04-12
 ---
 

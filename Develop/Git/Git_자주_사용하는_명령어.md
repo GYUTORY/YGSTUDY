@@ -1,10 +1,6 @@
 ---
 title: Git 자주 사용하는 명령어
-tags:
-  - Git
-  - VersionControl
-  - CLI
-updated: 2026-06-30
+tags: [Git, VersionControl, cli]
 ---
 
 # Git 자주 사용하는 명령어

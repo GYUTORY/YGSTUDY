@@ -1,6 +1,6 @@
 ---
 title: NestJS Server-Sent Events (SSE)
-tags: [NestJS, SSE, Server-Sent Events, Observable, RxJS, 실시간]
+tags: [nestjs, sse, server-sent-events, Observable, rxjs, 실시간]
 updated: 2026-07-10
 ---
 

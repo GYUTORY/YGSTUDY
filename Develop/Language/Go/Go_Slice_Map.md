@@ -1,13 +1,6 @@
 ---
 title: Go 슬라이스와 맵 내부 구조
-tags:
-  - Go
-  - Golang
-  - Slice
-  - Map
-  - sync.Map
-  - 동시성
-updated: 2026-07-10
+tags: [Go, Golang, Slice, map, sync.Map, 동시성]
 ---
 
 # Go 슬라이스와 맵 내부 구조

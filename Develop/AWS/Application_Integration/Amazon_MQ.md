@@ -1,6 +1,6 @@
 ---
 title: Amazon MQ 운영 노트
-tags: [aws, amazon-mq, rabbitmq, activemq, messaging, amqp, jms]
+tags: [aws, amazon-mq, rabbitmq, activemq, messaging, AMQP, jms]
 updated: 2026-07-03
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 모바일 앱 토큰 저장 보안
-tags: [mobile, ios, android, keychain, keystore, token, security, authentication, pkce]
+tags: [Mobile, ios, android, keychain, keystore, token, security, authentication, pkce]
 updated: 2026-08-01
 ---
 

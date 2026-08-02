@@ -1,6 +1,6 @@
 ---
 title: Argo CD 운영 실무
-tags: [argocd, gitops, kubernetes, helm, kustomize, cd]
+tags: [argocd, gitops, kubernetes, helm, kustomize, CD]
 updated: 2026-07-25
 ---
 

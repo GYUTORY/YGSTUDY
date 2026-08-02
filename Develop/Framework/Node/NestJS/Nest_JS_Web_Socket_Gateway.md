@@ -1,6 +1,6 @@
 ---
 title: NestJS WebSocket Gateway 운영기
-tags: [nestjs, websocket, socket.io, redis-adapter, realtime, gateway]
+tags: [nestjs, websocket, Socket.IO, redis-adapter, real-time, gateway]
 updated: 2026-05-20
 ---
 

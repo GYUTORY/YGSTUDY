@@ -1,14 +1,6 @@
 ---
 title: ECS Task 컨테이너 의존성 관리
-tags:
-  - AWS
-  - ECS
-  - Task Definition
-  - dependsOn
-  - healthCheck
-  - Fargate
-  - Graceful Shutdown
-updated: 2026-04-21
+tags: [aws, ecs, Task Definition, depends-on, health-check, fargate, graceful-shutdown]
 ---
 
 # ECS Task 컨테이너 의존성 관리

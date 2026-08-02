@@ -1,15 +1,6 @@
 ---
 title: IPv6 — 주소 고갈 너머의 운영 현실
-tags:
-  - Network
-  - IPv6
-  - NDP
-  - SLAAC
-  - DHCPv6
-  - NAT64
-  - DualStack
-  - AWS
-updated: 2026-06-04
+tags: [network, ipv6, NDP, SLAAC, DHCPv6, NAT64, DualStack, aws]
 ---
 
 # IPv6 — 주소 고갈 너머의 운영 현실

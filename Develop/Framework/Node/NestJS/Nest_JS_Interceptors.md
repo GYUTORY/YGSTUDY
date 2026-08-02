@@ -1,6 +1,6 @@
 ---
 title: NestJS Interceptor 동작 원리와 실무 활용
-tags: [nestjs, interceptor, rxjs, aop, observable, node]
+tags: [nestjs, interceptor, rxjs, aop, Observable, node]
 updated: 2026-06-06
 ---
 

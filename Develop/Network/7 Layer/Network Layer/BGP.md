@@ -1,15 +1,6 @@
 ---
 title: BGP — 인터넷을 굴리는 라우팅 프로토콜
-tags:
-  - Network
-  - BGP
-  - Routing
-  - AS
-  - eBGP
-  - iBGP
-  - RPKI
-  - DirectConnect
-updated: 2026-07-25
+tags: [network, BGP, routing, AS, eBGP, iBGP, RPKI, DirectConnect]
 ---
 
 # BGP — 인터넷을 굴리는 라우팅 프로토콜

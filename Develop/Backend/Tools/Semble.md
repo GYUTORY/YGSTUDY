@@ -1,13 +1,6 @@
 ---
 title: Semble - 헬스케어 SaaS GraphQL API 백엔드 통합
-tags:
-  - Backend
-  - Tools
-  - Semble
-  - GraphQL
-  - Healthcare
-  - API
-updated: 2026-04-28
+tags: [backend, Tools, Semble, graphql, Healthcare, api]
 ---
 
 # Semble

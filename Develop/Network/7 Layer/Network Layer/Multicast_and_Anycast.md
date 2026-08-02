@@ -1,15 +1,6 @@
 ---
 title: 멀티캐스트와 애니캐스트 (Multicast & Anycast)
-tags:
-  - Network
-  - Network Layer
-  - Multicast
-  - Anycast
-  - IGMP
-  - BGP
-  - CDN
-  - Anycast DNS
-updated: 2026-06-21
+tags: [network, network-layer, Multicast, Anycast, IGMP, BGP, cdn, Anycast DNS]
 ---
 
 # 멀티캐스트와 애니캐스트 (Multicast & Anycast)

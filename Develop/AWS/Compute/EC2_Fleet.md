@@ -1,12 +1,6 @@
 ---
 title: EC2 Fleet과 Spot Fleet
-tags:
-  - aws
-  - ec2
-  - fleet
-  - spot
-  - karpenter
-updated: 2026-05-20
+tags: [aws, ec2, fleet, spot, Karpenter]
 ---
 
 # EC2 Fleet과 Spot Fleet

@@ -1,6 +1,6 @@
 ---
 title: TypeScript Workspace와 ts-paths
-tags: [language, typescript, 프로젝트-설정-및-컴파일러, workspace, ts-paths, monorepo]
+tags: [language, typescript, 프로젝트-설정-및-컴파일러, Workspace, ts-paths, monorepo]
 updated: 2026-05-02
 ---
 

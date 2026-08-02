@@ -1,15 +1,6 @@
 ---
 title: AWS CloudWatch 심화 (Logs, Metrics, Alarms, Events, Insights, Dashboards)
-tags:
-  - AWS
-  - CloudWatch
-  - Monitoring
-  - Logs
-  - Metrics
-  - Alarms
-  - EventBridge
-  - Observability
-updated: 2026-04-24
+tags: [aws, cloudwatch, monitoring, logs, metrics, Alarms, eventbridge, observability]
 ---
 
 # AWS CloudWatch 심화

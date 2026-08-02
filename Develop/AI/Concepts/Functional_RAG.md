@@ -1,6 +1,6 @@
 ---
 title: Functional RAG
-tags: [RAG, Functional Programming, LangChain, LCEL, Pipeline, Python, Streaming, Testing]
+tags: [RAG, functional-programming, LangChain, LCEL, pipeline, python, streaming, testing]
 updated: 2026-04-12
 ---
 

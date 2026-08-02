@@ -1,12 +1,6 @@
 ---
 title: TCP 혼잡 제어와 커널 파라미터 튜닝
-tags:
-  - Network
-  - TCP
-  - Linux
-  - Performance
-  - Kernel
-updated: 2026-06-03
+tags: [network, tcp, linux, performance, Kernel]
 ---
 
 # TCP 혼잡 제어와 커널 파라미터 튜닝

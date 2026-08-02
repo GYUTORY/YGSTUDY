@@ -1,6 +1,6 @@
 ---
 title: TypeScript tsc-alias와 workspace 통합 사용법
-tags: [language, typescript, 프로젝트-설정-및-컴파일러, tsc-alias, workspace, monorepo]
+tags: [language, typescript, 프로젝트-설정-및-컴파일러, tsc-alias, Workspace, monorepo]
 updated: 2025-08-10
 ---
 

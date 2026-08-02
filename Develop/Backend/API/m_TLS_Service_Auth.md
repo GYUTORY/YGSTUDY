@@ -1,6 +1,6 @@
 ---
 title: "서비스 간 API 인증 — mTLS"
-tags: [API, mTLS, Security, Zero-Trust, Certificate, Service-Mesh]
+tags: [api, mtls, security, zero-trust, certificate, service-mesh]
 updated: 2026-04-07
 ---
 

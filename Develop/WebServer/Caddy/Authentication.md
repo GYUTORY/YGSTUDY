@@ -1,15 +1,6 @@
 ---
 title: Caddy 인증 처리 (basic_auth, forward_auth, JWT)
-tags:
-  - WebServer
-  - Caddy
-  - Authentication
-  - BasicAuth
-  - ForwardAuth
-  - JWT
-  - OAuth2Proxy
-  - Authelia
-updated: 2026-05-03
+tags: [webserver, Caddy, authentication, BasicAuth, ForwardAuth, jwt, OAuth2Proxy, Authelia]
 ---
 
 # Caddy 인증 처리 (basic_auth, forward_auth, JWT)

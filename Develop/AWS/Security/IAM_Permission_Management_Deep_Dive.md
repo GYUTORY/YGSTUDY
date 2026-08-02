@@ -1,6 +1,6 @@
 ---
 title: AWS IAM 권한 관리 심화
-tags: [aws, security, iam, policy, abac, scp]
+tags: [aws, security, iam, policy, ABAC, scp]
 updated: 2026-05-01
 ---
 

@@ -1,13 +1,6 @@
 ---
 title: UUIDv7 — 타임스탬프 기반 UUID로 전환하는 이유와 방법
-tags:
-  - UUID
-  - UUIDv7
-  - RFC9562
-  - Backend
-  - Database
-  - InnoDB
-updated: 2026-07-29
+tags: [uuid, UUIDv7, RFC9562, backend, database, innodb]
 ---
 
 # UUIDv7 — 타임스탬프 기반 UUID로 전환하는 이유와 방법

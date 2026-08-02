@@ -1,6 +1,6 @@
 ---
 title: ALB 5xx 트러블슈팅
-tags: [aws, alb, troubleshooting, http5xx, accesslog, athena, xray]
+tags: [aws, alb, troubleshooting, http5xx, access-log, athena, X-Ray]
 updated: 2026-05-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: RAG 파이프라인
-tags: [RAG, Vector DB, LangChain, LlamaIndex, Embedding, Retrieval, Functional Programming, Pipeline]
+tags: [RAG, Vector DB, LangChain, LlamaIndex, Embedding, Retrieval, functional-programming, pipeline]
 updated: 2026-04-12
 ---
 

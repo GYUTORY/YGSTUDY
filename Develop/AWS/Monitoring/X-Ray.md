@@ -1,6 +1,6 @@
 ---
 title: AWS X-Ray
-tags: [aws, x-ray, tracing, distributed-tracing, monitoring, debugging, performance]
+tags: [aws, X-Ray, tracing, distributed-tracing, monitoring, debugging, performance]
 updated: 2026-01-23
 ---
 

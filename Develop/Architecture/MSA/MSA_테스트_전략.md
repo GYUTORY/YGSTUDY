@@ -1,6 +1,6 @@
 ---
 title: MSA 테스트
-tags: [MSA, Testing, Contract Testing, Pact, Testcontainers, E2E]
+tags: [msa, testing, Contract Testing, Pact, testcontainers, e2e]
 updated: 2026-04-01
 ---
 

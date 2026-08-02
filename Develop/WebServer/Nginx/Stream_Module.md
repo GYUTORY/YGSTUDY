@@ -1,6 +1,6 @@
 ---
 title: Nginx Stream 모듈
-tags: [Nginx, Stream, TCP, UDP, L4, Proxy, Load-Balancing, SSL, TLS]
+tags: [nginx, stream, tcp, udp, l4, proxy, load-balancing, ssl, tls]
 updated: 2026-07-27
 ---
 

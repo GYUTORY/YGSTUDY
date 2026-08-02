@@ -1,6 +1,6 @@
 ---
 title: AWS DB Proxy
-tags: [aws, database, dbproxy, rds, aurora]
+tags: [aws, database, db-proxy, rds, aurora]
 updated: 2026-04-26
 ---
 

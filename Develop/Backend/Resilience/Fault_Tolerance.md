@@ -1,6 +1,6 @@
 ---
 title: 장애 대응 패턴 (Fault Tolerance)
-tags: [backend, resilience, circuit-breaker, retry, timeout, fallback, health-check, resilience4j, graceful-shutdown, backpressure, load-shedding]
+tags: [backend, resilience, circuit-breaker, retry, timeout, Fallback, health-check, resilience4j, graceful-shutdown, backpressure, load-shedding]
 updated: 2026-03-30
 ---
 

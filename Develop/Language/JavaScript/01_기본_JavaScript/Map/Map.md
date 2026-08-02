@@ -1,6 +1,6 @@
 ---
 title: JavaScript Map vs find vs filter 성능 비교
-tags: [language, javascript, 01기본javascript, map, find, filter, performance]
+tags: [language, javascript, 01기본javascript, map, find, Filter, performance]
 updated: 2025-08-10
 ---
 

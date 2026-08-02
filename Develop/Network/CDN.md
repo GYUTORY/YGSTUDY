@@ -1,12 +1,6 @@
 ---
 title: CDN 동작 원리와 실무 운영
-tags:
-  - network
-  - cdn
-  - cache
-  - cloudfront
-  - cloudflare
-updated: 2026-06-04
+tags: [network, cdn, cache, cloudfront, Cloudflare]
 ---
 
 # CDN 동작 원리와 실무 운영

@@ -1,6 +1,6 @@
 ---
 title: Prometheus + Grafana 모니터링 스택
-tags: [infra, monitoring, prometheus, grafana, alertmanager, thanos, cortex, relabeling, recording-rule]
+tags: [infra, monitoring, prometheus, grafana, Alertmanager, thanos, cortex, relabeling, recording-rule]
 updated: 2026-07-25
 ---
 

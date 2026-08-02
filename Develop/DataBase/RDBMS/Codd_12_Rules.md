@@ -1,6 +1,6 @@
 ---
 title: Codd 12 Rules
-tags: [database, codd, relational-model, rdbms, integrity, normalization, sql]
+tags: [database, codd, relational-model, rdbms, integrity, normalization, SQL]
 updated: 2026-07-28
 ---
 

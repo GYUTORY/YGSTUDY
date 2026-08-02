@@ -1,14 +1,6 @@
 ---
 title: Caddy 로깅과 관찰성
-tags:
-  - Caddy
-  - WebServer
-  - Logging
-  - Monitoring
-  - Observability
-  - Prometheus
-  - Loki
-updated: 2026-05-03
+tags: [Caddy, webserver, logging, monitoring, observability, prometheus, loki]
 ---
 
 # Caddy 로깅과 관찰성

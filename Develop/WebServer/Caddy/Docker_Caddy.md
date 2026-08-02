@@ -1,13 +1,6 @@
 ---
 title: Docker 환경에서 Caddy 운영
-tags:
-  - WebServer
-  - Caddy
-  - Docker
-  - DockerCompose
-  - xcaddy
-  - ACME
-updated: 2026-05-03
+tags: [webserver, Caddy, docker, DockerCompose, xcaddy, ACME]
 ---
 
 # Docker 환경에서 Caddy 운영

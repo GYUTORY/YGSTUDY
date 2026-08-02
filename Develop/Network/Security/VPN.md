@@ -1,6 +1,6 @@
 ---
 title: VPN - IPSec, WireGuard, OpenVPN과 실무 운영
-tags: [network, vpn, ipsec, wireguard, openvpn, ikev2, aws-vpn, mtu, split-tunnel]
+tags: [network, vpn, ipsec, wireguard, openvpn, IKEv2, aws-vpn, MTU, split-tunnel]
 updated: 2026-06-04
 ---
 

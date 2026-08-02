@@ -1,6 +1,6 @@
 ---
 title: RDS Parameter Groups
-tags: [AWS, RDS, Parameter Groups, MySQL, PostgreSQL]
+tags: [aws, rds, Parameter Groups, mysql, postgresql]
 updated: 2026-07-25
 ---
 

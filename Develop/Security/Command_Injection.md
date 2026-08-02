@@ -1,6 +1,6 @@
 ---
 title: Command Injection
-tags: [security, command-injection, os-command, imagetragick, shell, rce]
+tags: [security, command-injection, os-command, imagetragick, shell, RCE]
 updated: 2026-04-30
 ---
 

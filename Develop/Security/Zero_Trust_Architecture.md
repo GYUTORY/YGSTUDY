@@ -1,6 +1,6 @@
 ---
 title: "Zero Trust Architecture"
-tags: [Security, Zero-Trust, BeyondCorp, ZTNA, Microsegmentation, OPA, MDM, Cloudflare, Tailscale, Zscaler]
+tags: [security, zero-trust, BeyondCorp, ZTNA, Microsegmentation, OPA, MDM, Cloudflare, Tailscale, Zscaler]
 updated: 2026-07-27
 ---
 

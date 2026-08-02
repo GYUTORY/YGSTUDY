@@ -1,13 +1,6 @@
 ---
 title: TPS와 RPS
-tags:
-  - Backend
-  - Performance
-  - TPS
-  - RPS
-  - Database
-  - Capacity_Planning
-updated: 2026-05-21
+tags: [backend, performance, TPS, RPS, database, Capacity_Planning]
 ---
 
 # TPS (Transactions Per Second)와 RPS의 관계

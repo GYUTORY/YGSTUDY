@@ -1,14 +1,6 @@
 ---
 title: Mutual TLS (mTLS)
-tags:
-  - Security
-  - mTLS
-  - TLS
-  - Service Mesh
-  - SPIFFE
-  - Istio
-  - Linkerd
-updated: 2026-05-03
+tags: [security, mtls, tls, service-mesh, spiffe, istio, linkerd]
 ---
 
 # Mutual TLS (mTLS)

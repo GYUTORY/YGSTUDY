@@ -1,6 +1,6 @@
 ---
 title: Go 메모리 모델 심화
-tags: [Go, Memory Model, Happens-Before, Goroutine, Channel, Mutex, atomic, Concurrency]
+tags: [Go, Memory Model, Happens-Before, goroutine, channel, Mutex, atomic, concurrency]
 updated: 2026-07-27
 ---
 

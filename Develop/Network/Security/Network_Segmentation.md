@@ -1,14 +1,6 @@
 ---
 title: 망분리와 네트워크 세그멘테이션
-tags:
-  - network
-  - security
-  - segmentation
-  - DMZ
-  - VLAN
-  - VPC
-  - micro-segmentation
-updated: 2026-07-25
+tags: [network, security, segmentation, DMZ, VLAN, vpc, Microsegmentation]
 ---
 
 # 망분리와 네트워크 세그멘테이션

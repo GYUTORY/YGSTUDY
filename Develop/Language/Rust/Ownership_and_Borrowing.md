@@ -1,12 +1,6 @@
 ---
 title: Rust 소유권과 빌림, 라이프타임
-tags:
-  - Rust
-  - Ownership
-  - Borrowing
-  - Lifetime
-  - Memory
-updated: 2026-06-12
+tags: [Rust, Ownership, Borrowing, Lifetime, memory]
 ---
 
 # Rust 소유권과 빌림, 라이프타임

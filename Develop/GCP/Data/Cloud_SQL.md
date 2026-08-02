@@ -1,6 +1,6 @@
 ---
 title: "Cloud SQL (MySQL / PostgreSQL)"
-tags: [GCP, Cloud SQL, MySQL, PostgreSQL, HA, Auth Proxy, Read Replica, PITR]
+tags: [GCP, Cloud SQL, mysql, postgresql, HA, Auth Proxy, read-replica, PITR]
 updated: 2026-07-03
 ---
 

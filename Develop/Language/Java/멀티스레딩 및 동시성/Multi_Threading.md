@@ -1,6 +1,6 @@
 ---
 title: Java 멀티스레딩
-tags: [language, java, 멀티스레딩, thread, 동시성, volatile, deadlock]
+tags: [language, java, 멀티스레딩, Thread, 동시성, volatile, deadlock]
 updated: 2026-03-25
 ---
 

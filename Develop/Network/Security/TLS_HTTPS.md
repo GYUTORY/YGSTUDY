@@ -1,6 +1,6 @@
 ---
 title: TLS와 HTTPS - 핸드셰이크 원리와 인증서 운영 실무
-tags: [network, security, tls, https, ssl, certificate, acme, lets-encrypt, hsts]
+tags: [network, security, tls, https, ssl, certificate, ACME, lets-encrypt, hsts]
 updated: 2026-04-30
 ---
 

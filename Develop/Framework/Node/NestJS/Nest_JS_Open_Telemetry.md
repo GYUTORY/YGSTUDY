@@ -1,6 +1,6 @@
 ---
 title: NestJS OpenTelemetry 분산 추적
-tags: [NestJS, OpenTelemetry, 분산추적, Jaeger, Tempo, 마이크로서비스]
+tags: [nestjs, opentelemetry, 분산추적, jaeger, tempo, 마이크로서비스]
 updated: 2026-07-10
 ---
 

@@ -1,13 +1,6 @@
 ---
 title: Rate Limiting
-tags:
-  - Security
-  - Rate-Limiting
-  - Throttling
-  - Redis
-  - Nginx
-  - API-Gateway
-updated: 2026-05-03
+tags: [security, rate-limiting, throttling, redis, nginx, api-gateway]
 ---
 
 # Rate Limiting

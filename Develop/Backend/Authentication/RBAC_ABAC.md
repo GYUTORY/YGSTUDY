@@ -1,6 +1,6 @@
 ---
 title: "RBAC/ABAC 권한 모델 설계와 구현"
-tags: [RBAC, ABAC, 권한, 인가, NestJS, TypeORM, 접근제어]
+tags: [RBAC, ABAC, 권한, 인가, nestjs, typeorm, 접근제어]
 updated: 2026-03-26
 ---
 

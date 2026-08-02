@@ -1,6 +1,6 @@
 ---
 title: "Gemini 트러블슈팅"
-tags: [Gemini, Troubleshooting, API, Google AI]
+tags: [gemini, troubleshooting, api, Google AI]
 updated: 2026-04-15
 ---
 

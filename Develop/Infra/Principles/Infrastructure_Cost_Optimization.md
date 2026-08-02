@@ -1,6 +1,6 @@
 ---
 title: 클라우드 인프라 비용 최적화
-tags: [infrastructure, cost-optimization, finops, aws, reserved-instance, spot, savings-plan, right-sizing, s3, nat-gateway, cost-anomaly]
+tags: [infrastructure, cost-optimization, FinOps, aws, reserved-instance, spot, savings-plan, right-sizing, s3, nat-gateway, cost-anomaly]
 updated: 2026-06-04
 ---
 

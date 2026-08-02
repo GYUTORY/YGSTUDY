@@ -1,6 +1,6 @@
 ---
 title: "GCP IAM Deny Policy"
-tags: [GCP, IAM, Deny Policy, 권한 거부, 조직 정책, 감사 로그, 보안]
+tags: [GCP, iam, Deny Policy, 권한 거부, 조직 정책, 감사 로그, 보안]
 updated: 2026-07-23
 ---
 

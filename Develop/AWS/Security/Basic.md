@@ -1,6 +1,6 @@
 ---
 title: AWS 보안 서비스 통합 아키텍처
-tags: [aws, security, waf, shield, guardduty, securityhub]
+tags: [aws, security, waf, shield, guardduty, security-hub]
 updated: 2025-09-23
 ---
 

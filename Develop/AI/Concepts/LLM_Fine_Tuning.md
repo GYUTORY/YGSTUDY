@@ -1,6 +1,6 @@
 ---
 title: LLM 파인튜닝 실무
-tags: [AI, LLM, FineTuning, LoRA, QLoRA, PEFT]
+tags: [ai, llm, FineTuning, LoRA, QLoRA, PEFT]
 updated: 2026-06-04
 ---
 

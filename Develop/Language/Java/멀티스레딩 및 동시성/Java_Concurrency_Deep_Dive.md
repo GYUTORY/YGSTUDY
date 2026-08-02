@@ -1,6 +1,6 @@
 ---
 title: Java 멀티스레딩과 동시성 제어 심화
-tags: [java, concurrency, jmm, happens-before, lock, atomic, cas, threadpool, forkjoin, completablefuture, threadlocal, virtual-thread, pinning]
+tags: [java, concurrency, jmm, Happens-Before, lock, atomic, cas, thread-pool, forkjoin, completablefuture, threadlocal, virtual-thread, pinning]
 updated: 2026-04-24
 ---
 

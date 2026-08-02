@@ -1,6 +1,6 @@
 ---
 title: ISMS / ISMS-P
-tags: [security, isms, isms-p, certification, compliance, kisa, access-control, logging, encryption]
+tags: [security, isms, isms-p, certification, compliance, KISA, access-control, logging, encryption]
 updated: 2026-04-08
 ---
 

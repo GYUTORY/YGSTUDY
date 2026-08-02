@@ -1,6 +1,6 @@
 ---
 title: Cache Warming
-tags: [cache, redis, cache-warming, cold-start, health-check, cache-stampede, eager-warming, lazy-warming]
+tags: [cache, redis, cache-warming, ColdStart, health-check, cache-stampede, eager-warming, lazy-warming]
 updated: 2026-07-29
 ---
 

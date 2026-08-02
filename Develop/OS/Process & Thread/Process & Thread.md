@@ -1,6 +1,6 @@
 ---
 title: Process & Thread
-tags: [os, process, thread, fork, exec, cow]
+tags: [os, process, Thread, fork, exec, COW]
 updated: 2026-03-24
 ---
 

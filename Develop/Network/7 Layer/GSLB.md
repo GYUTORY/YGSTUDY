@@ -1,6 +1,6 @@
 ---
 title: GSLB (Global Server Load Balancing)
-tags: [network, 7-layer, gslb, dns, load-balancing, anycast, ecs]
+tags: [network, 7-layer, gslb, dns, load-balancing, Anycast, ecs]
 updated: 2026-05-14
 ---
 

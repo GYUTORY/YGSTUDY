@@ -1,13 +1,6 @@
 ---
 title: ARP — IP와 MAC을 잇는 끈
-tags:
-  - Network
-  - ARP
-  - Layer2
-  - NDP
-  - Spoofing
-  - tcpdump
-updated: 2026-05-12
+tags: [network, ARP, Layer2, NDP, Spoofing, tcpdump]
 ---
 
 # ARP — IP와 MAC을 잇는 끈

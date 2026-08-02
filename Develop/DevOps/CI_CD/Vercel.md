@@ -1,6 +1,6 @@
 ---
 title: Vercel
-tags: [devops, vercel, deployment, serverless, edge, ci-cd]
+tags: [devops, vercel, deployment, serverless, edge, cicd]
 updated: 2026-04-13
 ---
 

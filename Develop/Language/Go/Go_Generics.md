@@ -1,12 +1,6 @@
 ---
 title: Go 제네릭
-tags:
-  - Go
-  - Golang
-  - Generics
-  - 타입파라미터
-  - 타입제약
-updated: 2026-07-10
+tags: [Go, Golang, generics, 타입파라미터, 타입제약]
 ---
 
 # Go 제네릭

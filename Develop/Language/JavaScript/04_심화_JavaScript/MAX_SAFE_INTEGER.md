@@ -1,6 +1,6 @@
 ---
 title: MAX_SAFE_INTEGER
-tags: [JavaScript, Number, IEEE754, BigInt, 정밀도, Prisma, TypeORM]
+tags: [javascript, Number, IEEE754, BigInt, 정밀도, prisma, typeorm]
 updated: 2026-07-29
 ---
 

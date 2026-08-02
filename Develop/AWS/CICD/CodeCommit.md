@@ -1,6 +1,6 @@
 ---
 title: AWS CodeCommit
-tags: [aws, codecommit, git, repository, version-control, scm]
+tags: [aws, codecommit, Git, repository, VersionControl, scm]
 updated: 2026-01-18
 ---
 

@@ -1,13 +1,6 @@
 ---
 title: Caddy 헤더 처리와 CORS
-tags:
-  - WebServer
-  - Caddy
-  - Headers
-  - CORS
-  - SecurityHeaders
-  - CSP
-updated: 2026-05-03
+tags: [webserver, Caddy, Headers, cors, SecurityHeaders, csp]
 ---
 
 # Caddy 헤더 처리와 CORS

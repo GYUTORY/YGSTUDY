@@ -1,14 +1,6 @@
 ---
 title: NestJS 표준 계층 아키텍처 - Controller, Service, Repository
-tags:
-  - NestJS
-  - Architecture
-  - Service-Repository
-  - DI
-  - TypeORM
-  - Prisma
-  - Clean Architecture
-updated: 2026-05-11
+tags: [nestjs, architecture, Service-Repository, di, typeorm, prisma, clean-architecture]
 ---
 
 # NestJS 표준 계층 아키텍처

@@ -1,6 +1,6 @@
 ---
 title: MAC 주소 (Media Access Control Address)
-tags: [network, 7-layer, transport-layer, tcp, macaddress]
+tags: [network, 7-layer, transport-layer, tcp, mac-address]
 updated: 2026-04-29
 ---
 

@@ -1,13 +1,6 @@
 ---
 title: Nginx에서 Caddy로 마이그레이션
-tags:
-  - WebServer
-  - Caddy
-  - Nginx
-  - Migration
-  - ReverseProxy
-  - PHP-FPM
-updated: 2026-05-03
+tags: [webserver, Caddy, nginx, migration, reverse-proxy, PHP-FPM]
 ---
 
 # Nginx에서 Caddy로 마이그레이션

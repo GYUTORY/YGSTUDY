@@ -1,13 +1,6 @@
 ---
 title: 웹 애플리케이션 방화벽 (WAF) 운영
-tags:
-  - Security
-  - WAF
-  - ModSecurity
-  - OWASP_CRS
-  - AWS_WAF
-  - Cloudflare
-updated: 2026-06-23
+tags: [security, waf, ModSecurity, OWASP_CRS, AWS_WAF, Cloudflare]
 ---
 
 # 웹 애플리케이션 방화벽 (WAF) 운영

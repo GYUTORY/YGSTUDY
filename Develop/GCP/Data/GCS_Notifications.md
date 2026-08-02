@@ -1,6 +1,6 @@
 ---
 title: "GCS 이벤트 알림"
-tags: [GCP, Cloud Storage, GCS, Pub/Sub, Eventarc, Cloud Run, Cloud Functions, Event-Driven]
+tags: [GCP, Cloud Storage, GCS, Pub/Sub, Eventarc, Cloud Run, Cloud Functions, event-driven]
 updated: 2026-07-26
 ---
 

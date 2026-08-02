@@ -1,6 +1,6 @@
 ---
 title: TypeScript number 타입
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, number]
+tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, Number]
 updated: 2025-08-10
 ---
 

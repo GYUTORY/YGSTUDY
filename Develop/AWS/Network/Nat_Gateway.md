@@ -1,6 +1,6 @@
 ---
 title: AWS NAT Gateway
-tags: [aws, vpc, natgateway, network]
+tags: [aws, vpc, nat-gateway, network]
 updated: 2026-05-20
 ---
 

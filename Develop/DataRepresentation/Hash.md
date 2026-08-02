@@ -1,6 +1,6 @@
 ---
 title: "해시와 체크섬"
-tags: [hash, checksum, md5, sha-256, sha-3, crc32, bcrypt, data-integrity, birthday-paradox]
+tags: [hash, checksum, md5, sha256, sha-3, crc32, bcrypt, data-integrity, birthday-paradox]
 updated: 2026-04-09
 ---
 

@@ -1,14 +1,6 @@
 ---
 title: NestJS 로깅 실무
-tags:
-  - NestJS
-  - Logging
-  - Pino
-  - Winston
-  - AsyncLocalStorage
-  - Correlation ID
-  - Structured Logging
-updated: 2026-06-12
+tags: [nestjs, logging, Pino, Winston, asynclocalstorage, Correlation ID, Structured Logging]
 ---
 
 # NestJS 로깅

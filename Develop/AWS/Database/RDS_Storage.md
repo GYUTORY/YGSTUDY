@@ -1,6 +1,6 @@
 ---
 title: RDS Storage
-tags: [AWS, RDS, Storage, IOPS, gp2, gp3, io1, io2, Throughput, Encryption]
+tags: [aws, rds, storage, IOPS, gp2, gp3, io1, io2, Throughput, encryption]
 updated: 2026-07-25
 ---
 

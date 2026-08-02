@@ -1,13 +1,6 @@
 ---
 title: STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기
-tags:
-  - Network
-  - STP
-  - RSTP
-  - Layer2
-  - 802.1D
-  - BPDU
-updated: 2026-06-23
+tags: [network, STP, RSTP, Layer2, 802.1D, BPDU]
 ---
 
 # STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기

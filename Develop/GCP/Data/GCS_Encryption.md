@@ -1,6 +1,6 @@
 ---
 title: GCS 암호화 심화
-tags: ["GCP", "Cloud Storage", "Encryption", "CMEK", "CSEK", "KMS", "Security", "EKM", "Cloud HSM", "Audit Logs"]
+tags: [GCP, Cloud Storage, encryption, CMEK, CSEK, kms, security, EKM, Cloud HSM, Audit Logs]
 updated: 2026-07-27
 ---
 

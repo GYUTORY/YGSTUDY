@@ -1,6 +1,6 @@
 ---
 title: URL Rewrite and Redirect
-tags: [Nginx, URL Rewrite, Redirect, HTTP]
+tags: [nginx, URL Rewrite, Redirect, http]
 updated: 2026-07-26
 ---
 

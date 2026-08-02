@@ -1,6 +1,6 @@
 ---
 title: AWS Site-to-Site VPN & Client VPN
-tags: [aws, vpn, site-to-site-vpn, client-vpn, ipsec, bgp, networking]
+tags: [aws, vpn, site-to-site-vpn, client-vpn, ipsec, BGP, networking]
 updated: 2026-05-20
 ---
 

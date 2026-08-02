@@ -1,6 +1,6 @@
 ---
 title: 네트워크 스위치 (Network Switch)
-tags: [network, network-switch, data-link-layer, mac-address, vlan, stp]
+tags: [network, network-switch, data-link-layer, mac-address, VLAN, STP]
 updated: 2026-06-04
 ---
 

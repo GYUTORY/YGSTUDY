@@ -1,13 +1,6 @@
 ---
 title: Caddy 정적 파일 서빙
-tags:
-  - WebServer
-  - Caddy
-  - StaticFile
-  - SPA
-  - MIME
-  - Cache
-updated: 2026-05-03
+tags: [webserver, Caddy, StaticFile, spa, MIME, cache]
 ---
 
 # Caddy 정적 파일 서빙

@@ -1,6 +1,6 @@
 ---
 title: NestJS 부트스트랩 및 모듈 시스템
-tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, module-ref, lazy-loading, graceful-shutdown, forwardref, global-module, hmr, node]
+tags: [nestjs, bootstrap, module, lifecycle, dynamic-module, module-ref, lazy-loading, graceful-shutdown, forwardRef, global-module, hmr, node]
 updated: 2026-06-06
 ---
 

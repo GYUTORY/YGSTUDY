@@ -1,6 +1,6 @@
 ---
 title: ECS에서 Task 여러 개 연결하기 — 단일 Task 다중 컨테이너부터 Service 간 통신까지
-tags: [aws, ecs, sidecar, service-connect, cloud-map, internal-alb, microservices, depends-on]
+tags: [aws, ecs, Sidecar, service-connect, cloud-map, internal-alb, microservices, depends-on]
 updated: 2026-07-25
 ---
 

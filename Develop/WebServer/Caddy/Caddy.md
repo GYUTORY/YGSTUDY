@@ -1,6 +1,6 @@
 ---
 title: Caddy
-tags: [webserver, caddy, https, reverse-proxy, lets-encrypt, http3, xcaddy]
+tags: [webserver, Caddy, https, reverse-proxy, lets-encrypt, http3, xcaddy]
 updated: 2026-04-14
 ---
 

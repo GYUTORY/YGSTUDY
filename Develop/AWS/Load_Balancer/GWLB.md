@@ -1,6 +1,6 @@
 ---
 title: Gateway Load Balancer (GWLB) 심화
-tags: [aws, loadbalancer, gwlb, gateway-load-balancer, geneve, security-appliance, ngfw]
+tags: [aws, load-balancer, gwlb, gateway-load-balancer, geneve, security-appliance, ngfw]
 updated: 2026-07-18
 ---
 

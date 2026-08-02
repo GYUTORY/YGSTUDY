@@ -1,12 +1,6 @@
 ---
 title: RPS
-tags:
-  - Backend
-  - Performance
-  - RPS
-  - Load_Testing
-  - Capacity_Planning
-updated: 2026-05-21
+tags: [backend, performance, RPS, Load Testing, Capacity_Planning]
 ---
 
 # RPS (Requests Per Second)

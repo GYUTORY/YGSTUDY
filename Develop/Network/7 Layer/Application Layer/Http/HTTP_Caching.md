@@ -1,12 +1,6 @@
 ---
 title: HTTP 캐싱
-tags:
-  - HTTP
-  - Cache
-  - Network
-  - CDN
-  - Performance
-updated: 2026-04-29
+tags: [http, cache, network, cdn, performance]
 ---
 
 # HTTP 캐싱

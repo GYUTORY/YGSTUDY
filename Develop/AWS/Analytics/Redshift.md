@@ -1,6 +1,6 @@
 ---
 title: AWS Redshift (데이터 웨어하우스)
-tags: [aws, redshift, data-warehouse, ra3, distkey, sortkey, wlm, spectrum, olap]
+tags: [aws, redshift, Data Warehouse, ra3, distkey, sortkey, wlm, spectrum, olap]
 updated: 2026-05-27
 ---
 

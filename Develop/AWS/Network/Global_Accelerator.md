@@ -1,12 +1,6 @@
 ---
 title: AWS Global Accelerator
-tags:
-  - AWS
-  - Network
-  - GlobalAccelerator
-  - Anycast
-  - 멀티리전
-updated: 2026-06-16
+tags: [aws, network, GlobalAccelerator, Anycast, 멀티리전]
 ---
 
 # AWS Global Accelerator

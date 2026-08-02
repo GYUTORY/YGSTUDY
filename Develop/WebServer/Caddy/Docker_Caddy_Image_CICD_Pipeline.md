@@ -1,15 +1,6 @@
 ---
 title: 커스텀 xcaddy 이미지 CI/CD 파이프라인
-tags:
-  - WebServer
-  - Caddy
-  - xcaddy
-  - GitHubActions
-  - CICD
-  - Docker
-  - cosign
-  - trivy
-updated: 2026-06-13
+tags: [webserver, Caddy, xcaddy, github-actions, cicd, docker, cosign, trivy]
 ---
 
 # 커스텀 xcaddy 이미지 CI/CD 파이프라인

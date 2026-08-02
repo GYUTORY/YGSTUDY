@@ -1,12 +1,6 @@
 ---
 title: ECS 태스크가 안 뜨거나 죽을 때 stoppedReason 디버깅
-tags:
-  - AWS
-  - ECS
-  - Fargate
-  - Troubleshooting
-  - stoppedReason
-updated: 2026-06-17
+tags: [aws, ecs, fargate, troubleshooting, stoppedReason]
 ---
 
 # ECS 태스크가 안 뜨거나 죽을 때

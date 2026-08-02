@@ -1,6 +1,6 @@
 ---
 title: Alerting Rules
-tags: [Prometheus, Alertmanager, Alerting, SLO, OnCall]
+tags: [prometheus, Alertmanager, alerting, slo, on-call]
 updated: 2026-07-31
 ---
 

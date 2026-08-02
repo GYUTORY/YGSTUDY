@@ -1,13 +1,6 @@
 ---
 title: NestJS File Upload 심화
-tags:
-  - NestJS
-  - FileUpload
-  - Multer
-  - S3
-  - Streaming
-  - MultipartUpload
-updated: 2026-06-09
+tags: [nestjs, file-upload, Multer, s3, streaming, MultipartUpload]
 ---
 
 # NestJS File Upload

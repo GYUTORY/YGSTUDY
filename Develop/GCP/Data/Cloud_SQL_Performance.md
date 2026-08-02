@@ -1,6 +1,6 @@
 ---
 title: "Cloud SQL 성능 분석"
-tags: [GCP, Cloud SQL, MySQL, PostgreSQL, Query Insights, performance_schema, pg_stat_statements, EXPLAIN, 튜닝]
+tags: [GCP, Cloud SQL, mysql, postgresql, Query Insights, performance_schema, pg_stat_statements, explain, 튜닝]
 updated: 2026-07-26
 ---
 

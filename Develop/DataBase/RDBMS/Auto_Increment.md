@@ -1,6 +1,6 @@
 ---
 title: AUTO_INCREMENT
-tags: [MySQL, AUTO_INCREMENT, InnoDB, innodb_autoinc_lock_mode, PostgreSQL, SEQUENCE, JPA, IDENTITY, bulk-insert, replication]
+tags: [mysql, auto-increment, innodb, innodb_autoinc_lock_mode, postgresql, SEQUENCE, jpa, IDENTITY, bulk-insert, replication]
 updated: 2026-07-29
 ---
 

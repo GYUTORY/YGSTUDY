@@ -1,14 +1,6 @@
 ---
 title: 보안 로깅과 감사
-tags:
-  - Security
-  - Logging
-  - Auditing
-  - SIEM
-  - GDPR
-  - Compliance
-  - Forensics
-updated: 2026-05-04
+tags: [security, logging, Auditing, SIEM, gdpr, compliance, Forensics]
 ---
 
 # 보안 로깅과 감사

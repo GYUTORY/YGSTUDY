@@ -1,6 +1,6 @@
 ---
 title: HTTP 에러 응답 설계 (RFC 7807 Problem Details)
-tags: [REST, HTTP, RFC7807, ProblemDetails, ErrorHandling, Spring, NestJS, MSA]
+tags: [rest, http, RFC7807, ProblemDetails, error-handling, spring, nestjs, msa]
 updated: 2026-07-26
 ---
 

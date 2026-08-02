@@ -1,6 +1,6 @@
 ---
 title: CDC 파이프라인
-tags: [database, cdc, debezium, kafka-connect, binlog, wal, change-data-capture]
+tags: [database, CDC, Debezium, kafka-connect, binlog, wal, change-data-capture]
 updated: 2026-04-01
 ---
 

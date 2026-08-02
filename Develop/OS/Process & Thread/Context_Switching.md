@@ -1,6 +1,6 @@
 ---
 title: "컨텍스트 스위칭 (Context Switching)"
-tags: [OS, Process, Thread, Context Switching, PCB, task_struct, CFS, NUMA, Preemption]
+tags: [os, process, Thread, Context Switching, PCB, task_struct, CFS, numa, Preemption]
 updated: 2026-04-28
 ---
 

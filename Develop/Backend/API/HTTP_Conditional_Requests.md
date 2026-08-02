@@ -1,6 +1,6 @@
 ---
 title: HTTP 조건부 요청 심화
-tags: [HTTP, ETag, Conditional-Requests, Optimistic-Locking, Cache, REST]
+tags: [http, etag, Conditional-Requests, Optimistic-Locking, cache, rest]
 updated: 2026-07-26
 ---
 

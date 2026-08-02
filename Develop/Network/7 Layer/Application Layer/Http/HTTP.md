@@ -1,6 +1,6 @@
 ---
 title: HTTP HyperText Transfer Protocol
-tags: [network, http, http1, http2, http3, headers, methods, status-code, curl, devtools]
+tags: [network, http, http1, http2, http3, Headers, methods, status-code, curl, devtools]
 updated: 2026-06-03
 ---
 # HTTP (HyperText Transfer Protocol)

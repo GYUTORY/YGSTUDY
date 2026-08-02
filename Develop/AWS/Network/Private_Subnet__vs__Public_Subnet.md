@@ -1,6 +1,6 @@
 ---
 title: AWS Private Subnet vs Public Subnet 심화
-tags: [aws, vpc, privatesubnet, publicsubnet, internetgateway, natgateway, routetable, securitygroup, nacl, vpcendpoint, ssm, networkarchitecture]
+tags: [aws, vpc, privatesubnet, publicsubnet, internetgateway, nat-gateway, route-table, security-group, nacl, vpc-endpoint, ssm, networkarchitecture]
 updated: 2026-06-09
 ---
 

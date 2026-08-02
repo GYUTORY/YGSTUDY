@@ -1,6 +1,6 @@
 ---
 title: AWS Compute Optimizer
-tags: [aws, cost, compute-optimizer, ec2, lambda, ecs, ebs, rightsizing, savings-plans]
+tags: [aws, cost, compute-optimizer, ec2, lambda, ecs, ebs, right-sizing, savings-plans]
 updated: 2026-07-25
 ---
 

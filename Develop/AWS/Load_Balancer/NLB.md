@@ -1,6 +1,6 @@
 ---
 title: NLB(Network Load Balancer) 단독 운영
-tags: [aws, loadbalancer, nlb, network-load-balancer, l4]
+tags: [aws, load-balancer, nlb, network-load-balancer, l4]
 updated: 2026-06-17
 ---
 

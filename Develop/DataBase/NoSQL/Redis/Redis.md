@@ -1,6 +1,6 @@
 ---
 title: Redis — 내부 동작 원리와 아키텍처
-tags: [database, nosql, redis, architecture, internals]
+tags: [database, nosql, redis, architecture, Internals]
 updated: 2026-07-30
 ---
 

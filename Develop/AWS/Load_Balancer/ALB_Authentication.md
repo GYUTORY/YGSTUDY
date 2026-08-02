@@ -1,6 +1,6 @@
 ---
 title: ALB 내장 인증 (authenticate-oidc / authenticate-cognito)
-tags: [aws, alb, oidc, cognito, authentication, jwt, loadbalancer]
+tags: [aws, alb, oidc, cognito, authentication, jwt, load-balancer]
 updated: 2026-06-17
 ---
 

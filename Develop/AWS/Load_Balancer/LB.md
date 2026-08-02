@@ -1,6 +1,6 @@
 ---
 title: AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영
-tags: [aws, loadbalancer, lb, alb, nlb, clb, elb]
+tags: [aws, load-balancer, lb, alb, nlb, clb, elb]
 updated: 2026-05-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 캐싱 전략 (Caching Strategies)
-tags: [backend, caching, redis, caffeine, cache-aside, write-through, write-behind, cache-invalidation]
+tags: [backend, caching, redis, caffeine, cache-aside, Write-Through, write-behind, cache-invalidation]
 updated: 2026-01-18
 ---
 

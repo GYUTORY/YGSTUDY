@@ -1,6 +1,6 @@
 ---
 title: ScyllaDB — 아키텍처·데이터 모델링·운영 실무
-tags: [database, nosql, scylladb, cassandra, wide-column, cql, distributed, keyspace]
+tags: [database, nosql, scylladb, cassandra, wide-column, cql, distributed, key-space]
 updated: 2026-07-30
 ---
 

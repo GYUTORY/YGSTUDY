@@ -1,6 +1,6 @@
 ---
 title: UDP 프로토콜 동작 메커니즘
-tags: [network, 7-layer, transport-layer, udp, datagram, dns, quic, game-server, dtls, multicast, troubleshooting]
+tags: [network, 7-layer, transport-layer, udp, datagram, dns, quic, game-server, dtls, Multicast, troubleshooting]
 updated: 2026-06-03
 ---
 

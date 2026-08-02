@@ -1,6 +1,6 @@
 ---
 title: Amazon Bedrock
-tags: [AWS, AI, Bedrock, LLM, GenAI]
+tags: [aws, ai, Bedrock, llm, GenAI]
 updated: 2026-05-03
 ---
 

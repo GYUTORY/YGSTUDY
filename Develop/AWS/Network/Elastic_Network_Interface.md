@@ -1,13 +1,6 @@
 ---
 title: ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다
-tags:
-  - AWS
-  - VPC
-  - ENI
-  - Networking
-  - ECS
-  - Lambda
-updated: 2026-05-20
+tags: [aws, vpc, eni, networking, ecs, lambda]
 ---
 
 # ENI(Elastic Network Interface)

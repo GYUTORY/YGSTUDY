@@ -1,6 +1,6 @@
 ---
 title: tzdata 버전 관리
-tags: [tzdata, timezone, iana, docker, kubernetes, jvm, python, golang, nodejs, cicd, dst, backend]
+tags: [tzdata, timezone, iana, docker, kubernetes, jvm, python, Golang, nodejs, cicd, dst, backend]
 updated: 2026-07-31
 ---
 

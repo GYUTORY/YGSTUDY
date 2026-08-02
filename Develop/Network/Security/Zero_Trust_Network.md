@@ -1,6 +1,6 @@
 ---
 title: Zero Trust 네트워크
-tags: [network, security, zero-trust, mtls, microsegmentation, iam, sso, spiffe, spire, aws-identity-center, policy-drift]
+tags: [network, security, zero-trust, mtls, Microsegmentation, iam, sso, spiffe, spire, aws-identity-center, policy-drift]
 updated: 2026-07-27
 ---
 

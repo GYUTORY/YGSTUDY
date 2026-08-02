@@ -1,6 +1,6 @@
 ---
 title: Nginx 리버스 프록시 & 로드밸런싱
-tags: [webserver, nginx, reverse-proxy, load-balancing, upstream, ssl, tls, https, proxy-buffering, keepalive, 502, 504]
+tags: [webserver, nginx, reverse-proxy, load-balancing, upstream, ssl, tls, https, proxy-buffering, keep-alive, 502, 504]
 updated: 2026-07-19
 ---
 

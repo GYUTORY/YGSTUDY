@@ -1,6 +1,6 @@
 ---
 title: RAG for Code (코드 기반 RAG)
-tags: [ai, rag, retrieval-augmented-generation, code, architecture]
+tags: [ai, RAG, retrieval-augmented-generation, code, architecture]
 updated: 2026-04-12
 ---
 

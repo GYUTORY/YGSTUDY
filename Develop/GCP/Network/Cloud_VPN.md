@@ -1,6 +1,6 @@
 ---
 title: Cloud VPN
-tags: [GCP, Cloud VPN, VPN, HA VPN, IPsec, IKEv2, BGP, Hybrid, Network]
+tags: [GCP, Cloud VPN, vpn, HA VPN, ipsec, IKEv2, BGP, Hybrid, network]
 updated: 2026-04-12
 ---
 

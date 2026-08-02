@@ -1,12 +1,6 @@
 ---
 title: MVVM (Model-View-ViewModel)
-tags:
-  - Architecture
-  - MVVM
-  - Frontend
-  - Backend
-  - DataBinding
-updated: 2026-05-21
+tags: [architecture, MVVM, Frontend, backend, DataBinding]
 ---
 
 # MVVM (Model-View-ViewModel)

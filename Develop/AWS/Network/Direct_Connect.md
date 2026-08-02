@@ -1,6 +1,6 @@
 ---
 title: AWS Direct Connect
-tags: [aws, direct-connect, networking, hybrid-cloud, bgp, vpn]
+tags: [aws, DirectConnect, networking, hybrid-cloud, BGP, vpn]
 updated: 2026-05-06
 ---
 

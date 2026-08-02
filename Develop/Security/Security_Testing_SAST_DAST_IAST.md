@@ -1,6 +1,6 @@
 ---
 title: SAST / DAST / IAST 보안 테스팅
-tags: [security, sast, dast, iast, ci-cd, sonarqube, semgrep, codeql, zap, burp]
+tags: [security, sast, dast, iast, cicd, sonarqube, semgrep, codeql, zap, burp]
 updated: 2026-05-04
 ---
 

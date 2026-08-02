@@ -1,13 +1,6 @@
 ---
 title: VLAN — 스위치 한 대를 논리적으로 쪼개기
-tags:
-  - Network
-  - VLAN
-  - Layer2
-  - 802.1Q
-  - Trunk
-  - VPC
-updated: 2026-06-22
+tags: [network, VLAN, Layer2, 802.1Q, Trunk, vpc]
 ---
 
 # VLAN — 스위치 한 대를 논리적으로 쪼개기

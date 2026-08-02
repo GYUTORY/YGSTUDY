@@ -1,6 +1,6 @@
 ---
 title: DNS over HTTPS (DoH)
-tags: [network, domain, dns, doh, dot, encryption, privacy, security]
+tags: [network, domain, dns, DoH, DoT, encryption, privacy, security]
 updated: 2026-06-17
 ---
 

@@ -1,12 +1,6 @@
 ---
 title: 네트워크 기초 — 백엔드 개발자가 실제로 마주치는 것들
-tags:
-  - Network
-  - Backend
-  - Troubleshooting
-  - TCP
-  - Socket
-updated: 2026-05-06
+tags: [network, backend, troubleshooting, tcp, socket]
 ---
 
 # 네트워크 기초 — 백엔드 개발자가 실제로 마주치는 것들

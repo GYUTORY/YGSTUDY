@@ -1,6 +1,6 @@
 ---
 title: WebSocket 프록싱 (WebSocket Proxy)
-tags: [network, proxy, websocket, nginx, caddy, haproxy, upgrade, sticky-session, timeout, 1006]
+tags: [network, proxy, websocket, nginx, Caddy, haproxy, upgrade, sticky-session, timeout, 1006]
 updated: 2026-07-19
 ---
 

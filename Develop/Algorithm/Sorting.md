@@ -1,6 +1,6 @@
 ---
 title: 정렬 알고리즘 (Sorting Algorithms)
-tags: [Algorithm, Sorting, Quicksort, Mergesort, Heapsort, Timsort, Introsort, Stability]
+tags: [algorithm, Sorting, Quicksort, Mergesort, Heapsort, Timsort, Introsort, Stability]
 updated: 2026-04-18
 ---
 

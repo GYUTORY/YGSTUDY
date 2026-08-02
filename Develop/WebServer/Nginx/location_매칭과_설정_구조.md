@@ -1,6 +1,6 @@
 ---
 title: "Nginx location 매칭과 설정 구조"
-tags: [nginx, location, configuration, web-server]
+tags: [nginx, location, configuration, webserver]
 updated: 2026-03-25
 ---
 

@@ -1,14 +1,6 @@
 ---
 title: AWS Batch 대량 배치 작업 처리
-tags:
-  - AWS
-  - Batch
-  - ECS
-  - Fargate
-  - EC2
-  - Spot
-  - Compute
-updated: 2026-06-16
+tags: [aws, batch, ecs, fargate, ec2, spot, compute]
 ---
 
 # AWS Batch 대량 배치 작업 처리

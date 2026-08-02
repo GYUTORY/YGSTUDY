@@ -1,6 +1,6 @@
 ---
 title: Nginx SSL/TLS 설정
-tags: [webserver, nginx, ssl, tls, https, certbot, letsencrypt, hsts, ocsp, mtls, http3, quic]
+tags: [webserver, nginx, ssl, tls, https, certbot, lets-encrypt, hsts, ocsp, mtls, http3, quic]
 updated: 2026-05-03
 ---
 

@@ -1,13 +1,6 @@
 ---
 title: 이더넷 프레임 — L2가 실제로 주고받는 바이트
-tags:
-  - Network
-  - Ethernet
-  - Layer2
-  - MAC
-  - Switch
-  - MTU
-updated: 2026-06-23
+tags: [network, Ethernet, Layer2, MAC, Switch, MTU]
 ---
 
 # 이더넷 프레임 — L2가 실제로 주고받는 바이트

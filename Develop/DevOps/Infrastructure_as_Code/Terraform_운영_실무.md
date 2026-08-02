@@ -1,6 +1,6 @@
 ---
 title: Terraform 운영 실무
-tags: [Terraform, IaC, Infrastructure, State, Module, Workspace]
+tags: [terraform, iac, infrastructure, State, module, Workspace]
 updated: 2026-07-25
 ---
 

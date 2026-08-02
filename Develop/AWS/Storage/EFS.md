@@ -1,6 +1,6 @@
 ---
 title: AWS EFS (Elastic File System)
-tags: [aws, efs, storage, nfs, shared-storage, file-system]
+tags: [aws, efs, storage, nfs, shared-storage, filesystem]
 updated: 2026-01-18
 ---
 

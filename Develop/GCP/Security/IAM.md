@@ -1,6 +1,6 @@
 ---
 title: "GCP IAM (리소스 계층 · 역할 · 서비스 계정 · Workload Identity)"
-tags: [GCP, IAM, 서비스 계정, Workload Identity Federation, 최소 권한, 권한 디버깅]
+tags: [GCP, iam, 서비스 계정, Workload Identity Federation, 최소 권한, 권한 디버깅]
 updated: 2026-07-03
 ---
 
