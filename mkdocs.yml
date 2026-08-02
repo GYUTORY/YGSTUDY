@@ -63,6 +63,8 @@ plugins:
         'Infra/Kubernetes/Kubernetes_Architecture.md': 'DevOps/Kubernetes/Kubernetes_Architecture.md'
         'Infra/Kubernetes/Reconciliation_Loop.md': 'DevOps/Kubernetes/Reconciliation_Loop.md'
         'Infra/Monitoring/Prometheus_Grafana.md': 'DevOps/Monitoring/Prometheus_Grafana.md'
+        # 파일명 오타 수정 (Makrer -> Marker)
+        'Language/Java/객체지향 프로그래밍 (OOP)/interface/Makrer_Interface.md': 'Language/Java/객체지향 프로그래밍 (OOP)/interface/Marker_Interface.md'
         # OMO는 AI가 아니라 커머스 아키텍처 주제라 Architecture로 이동
         'AI/OMO/OMO.md': 'Architecture/OMO/OMO_운영_실무.md'
   - git-revision-date-localized:

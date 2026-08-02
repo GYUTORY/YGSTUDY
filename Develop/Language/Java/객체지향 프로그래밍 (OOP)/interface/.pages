@@ -1,7 +1,7 @@
 nav:
   - 개요: Interface.md
-  - Abstract Class Interface: Abstract Class__vs__Interface.md
+  - Abstract Class vs Interface: Abstract Class__vs__Interface.md
   - 함수형 인터페이스: Functional_Interface.md
-  - Marker Interface: Makrer_Interface.md
   - Marker Interface 심화: Marker_Interface_Deep_Dive.md
   - 고급 인터페이스: advanced_interface.md
+  - Marker Interface: Marker_Interface.md

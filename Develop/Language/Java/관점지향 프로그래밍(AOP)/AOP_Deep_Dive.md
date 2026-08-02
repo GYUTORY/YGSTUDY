@@ -1,5 +1,5 @@
 ---
-title: Java AOP 깊이 들여다보기 - Spring AOP 동작 원리와 실무 적용
+title: Java AOP 심화
 tags: [Java, Spring, AOP, Proxy, CGLIB, AspectJ]
 updated: 2026-04-28
 ---

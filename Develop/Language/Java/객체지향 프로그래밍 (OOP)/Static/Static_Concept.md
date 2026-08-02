@@ -1,5 +1,5 @@
 ---
-title: Java Static 개념 (Static 변수, 메서드, 블록, 내부 클래스)
+title: Java Static 개념
 tags: [language, java, 객체지향-프로그래밍-oop, static, jvm, metaspace]
 updated: 2026-04-24
 ---
