@@ -1,11 +1,10 @@
 ---
-title: DNS over HTTPS (DoH) / DNS over TLS (DoT)
+title: DNS over HTTPS (DoH)
 tags: [network, domain, dns, doh, dot, encryption, privacy, security]
 updated: 2026-06-17
 ---
 
-# DNS over HTTPS (DoH) / DNS over TLS (DoT)
-
+# DNS over HTTPS (DoH)
 ## 왜 평문 DNS가 문제였나
 
 기존 DNS는 UDP 53번 포트로 평문을 그대로 주고받는다. `dig example.com` 한 번 날리면 중간 경로의 누구든 그 패킷을 읽는다. 카페 와이파이, ISP, 회사 게이트웨이 어디서든 "이 사람이 지금 어떤 도메인을 풀고 있는지"가 다 보인다.

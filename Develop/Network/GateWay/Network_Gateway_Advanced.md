@@ -1,5 +1,5 @@
 ---
-title: Network Gateway 심화 (L3 라우팅·Default Gateway·NAT/PAT·Proxy 구분)
+title: Network Gateway 심화
 tags: [network, gateway, l3-routing, nat, pat, default-gateway, proxy, troubleshooting]
 updated: 2026-06-08
 ---

@@ -91,6 +91,8 @@ plugins:
         'Language/TypeScript/타입 및 타입 정의/TypeScript Types/Primitive Types/number.md': 'Language/TypeScript/타입 및 타입 정의/Primitive Types/number.md'
         'Language/TypeScript/타입 및 타입 정의/TypeScript Types/Primitive Types/undefined.md': 'Language/TypeScript/타입 및 타입 정의/Primitive Types/undefined.md'
         'Language/TypeScript/타입 및 타입 정의/TypeScript Types/Primitive Types/void.md': 'Language/TypeScript/타입 및 타입 정의/Primitive Types/void.md'
+        # MAC 주소는 L2 개념인데 Transport Layer/TCP 아래에 있었다
+        'Network/7 Layer/Transport Layer/TCP/MacAddress.md': 'Network/7 Layer/Data Link Layer/MacAddress.md'
         # OMO는 AI가 아니라 커머스 아키텍처 주제라 Architecture로 이동
         'AI/OMO/OMO.md': 'Architecture/OMO/OMO_운영_실무.md'
   - git-revision-date-localized:
