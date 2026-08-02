@@ -1,5 +1,5 @@
 ---
-title: gRPC Google Remote Procedure Call
+title: gRPC (Google Remote Procedure Call)
 tags: [network, 7-layer, transport-layer, tcp, rpc, grpc, protobuf]
 updated: 2026-03-31
 ---

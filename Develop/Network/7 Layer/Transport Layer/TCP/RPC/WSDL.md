@@ -1,5 +1,5 @@
 ---
-title: WSDL Web Services Description Language
+title: WSDL (Web Services Description Language)
 tags: [network, 7-layer, transport-layer, tcp, rpc, wsdl, soap, web-services]
 updated: 2025-12-22
 ---

@@ -1,5 +1,5 @@
 nav:
   - 개요: RPC.md
-  - NFS Network File System: NFS.md
-  - WSDL Web Services Description Language: WSDL.md
-  - gRPC Google Remote Procedure Call: gRPC.md
+  - NFS: NFS.md
+  - WSDL: WSDL.md
+  - gRPC: gRPC.md
