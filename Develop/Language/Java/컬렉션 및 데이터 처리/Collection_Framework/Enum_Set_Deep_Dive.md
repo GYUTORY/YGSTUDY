@@ -29,10 +29,10 @@ public enum Status {
 
 | 집합 연산 | 비트 연산 |
 |-----------|-----------|
-| `add(e)` | `bits |= (1L << e.ordinal())` |
+| `add(e)` | `bits \|= (1L << e.ordinal())` |
 | `remove(e)` | `bits &= ~(1L << e.ordinal())` |
 | `contains(e)` | `(bits & (1L << e.ordinal())) != 0` |
-| `addAll(other)` | `bits |= other.bits` |
+| `addAll(other)` | `bits \|= other.bits` |
 | `retainAll(other)` | `bits &= other.bits` |
 | `removeAll(other)` | `bits &= ~other.bits` |
 | `complementOf(other)` | `bits = universeMask & ~other.bits` |

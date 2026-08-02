@@ -68,7 +68,7 @@ Nginx에서는 `location /` 가 default fallback 역할을 했다면, Caddy에�
 | `location /api/ { ... }` | `handle /api/* { ... }` | 후행 와일드카드 주의 |
 | `location = /healthz { ... }` | `handle /healthz { ... }` (정확 매칭) | 또는 `@health path /healthz` |
 | `location ~ \.php$ { ... }` | `@php path_regexp \.php$` | 정규식 매처 |
-| `location ~* \.(jpg|png)$` | `@img path_regexp -i \.(jpg|png)$` | `-i` 플래그로 대소문자 무시 |
+| `location ~* \.(jpg\|png)$` | `@img path_regexp -i \.(jpg\|png)$` | `-i` 플래그로 대소문자 무시 |
 | `proxy_pass http://upstream;` | `reverse_proxy upstream` | 헤더 자동 처리 차이 있음 |
 | `try_files $uri $uri/ /index.html;` | `try_files {path} {path}/ /index.html` | 변수 표기만 다름 |
 | `rewrite ^/old/(.*)$ /new/$1 last;` | `@old path /old/* / rewrite @old /new{path}` | 또는 `redir`로 외부 리다이렉트 |
