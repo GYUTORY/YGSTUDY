@@ -4,6 +4,7 @@ tags: [language, java, 객체지향-프로그래밍-oop, class, advancedclass, s
 updated: 2026-04-26
 ---
 
+# Java 고급 클래스 기능 심화
 ## 들어가며
 
 Java 클래스를 어느 정도 다뤄봤다면 `class`, `extends`, `implements` 키워드는 손에 익었을 것이다. 그런데 실무에서 코드를 읽다 보면 중첩 클래스 안에 또 익명 클래스가 있고, sealed로 도메인 모델을 닫아두고, record로 DTO를 선언해두는 코드가 나타난다. 이런 고급 기능들은 단순히 "있으니까 쓴다"가 아니라 각자 해결하려는 문제가 명확하다.

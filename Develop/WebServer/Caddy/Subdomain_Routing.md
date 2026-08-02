@@ -4,6 +4,7 @@ tags: [webserver, caddy, subdomain, wildcard, tls, multi-tenant, on-demand-tls, 
 updated: 2026-05-03
 ---
 
+# Caddy 서브도메인 라우팅과 와일드카드 인증서 실무
 ## 왜 Caddy에서 서브도메인이 까다로운가
 
 Nginx에서 서브도메인은 그냥 `server_name`만 바꿔주면 끝나는 작업이다. Caddy는 HTTPS가 자동이라는 점이 오히려 서브도메인 운영에서 발목을 잡는다. 사이트 블록 하나당 인증서 한 장이 자동으로 붙는데, 와일드카드를 쓰려는 순간 갑자기 DNS 프로바이더 모듈을 직접 빌드해야 하고, 멀티테넌트 SaaS에서 고객이 자기 도메인을 붙여오면 그건 또 다른 메커니즘(On-Demand TLS)을 써야 한다. 이 세 갈래(서브도메인 정적 분기 / 와일드카드 / On-Demand)를 헷갈리면 인증서 발급이 무한 루프를 돌거나 Let's Encrypt rate limit에 걸려서 한참을 기다려야 한다.

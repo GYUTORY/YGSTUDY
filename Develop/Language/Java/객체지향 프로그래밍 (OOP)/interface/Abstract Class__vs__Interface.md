@@ -4,6 +4,7 @@ tags: [language, java, 객체지향-프로그래밍-oop, interface, abstract-cla
 updated: 2026-04-28
 ---
 
+# Abstract Class vs Interface
 ## 추상 클래스와 인터페이스가 갈라진 이유
 
 Java에서 추상화를 표현하는 도구는 두 가지다. 추상 클래스(`abstract class`)와 인터페이스(`interface`)는 비슷해 보이지만 출발점이 다르다. 추상 클래스는 "공통 구현을 일부 갖춘 미완성 부모"이고, 인터페이스는 "구현체가 따라야 하는 계약"이다. 이 차이는 단순히 문법 차이가 아니라 설계 철학에서 비롯된다.

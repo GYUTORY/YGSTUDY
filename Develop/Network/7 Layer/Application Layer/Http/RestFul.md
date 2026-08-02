@@ -4,13 +4,14 @@ tags: [network, 7-layer, application-layer, http, restful, api, web-service]
 updated: 2025-12-26
 ---
 
-# REST (Representational State Transfer)
+# REST와 RESTful API
+## REST (Representational State Transfer)
 
-## REST란?
+### REST란?
 
 REST는 Representational State Transfer의 약자로, 웹의 장점을 최대한 활용할 수 있는 아키텍처 스타일이다.
 
-### REST 구성 요소
+#### REST 구성 요소
 
 - 자원(URI): URI로 식별되는 모든 정보
   - 예: `/users/123`, `/posts/456`
@@ -22,7 +23,7 @@ REST는 Representational State Transfer의 약자로, 웹의 장점을 최대한
 **실무 팁:**
 REST는 HTTP의 특성을 최대한 활용하는 아키텍처 스타일이다.
 
-## REST의 6가지 기본 원칙
+### REST의 6가지 기본 원칙
 
 **1. 자원의 식별 (Identification of Resources):**
 - 모든 자원은 고유한 URI로 식별
@@ -48,13 +49,13 @@ REST는 HTTP의 특성을 최대한 활용하는 아키텍처 스타일이다.
 - 서버 → 실행 가능 코드 → 클라이언트
 - 예: JavaScript, Applet
 
-# RESTful API
+## RESTful API
 
-## RESTful이란?
+### RESTful이란?
 
 REST의 원칙을 따르는 웹 서비스를 RESTful하다고 한다.
 
-### RESTful API 핵심 특징
+#### RESTful API 핵심 특징
 
 - HTTP 프로토콜 기반
 - 표준 데이터 형식 (JSON, XML)
@@ -66,9 +67,9 @@ RESTful API는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표
 
 ---
 
-## HTTP 메서드와 REST
+### HTTP 메서드와 REST
 
-### 주요 HTTP 메서드 체계
+#### 주요 HTTP 메서드 체계
 
 **CRUD와 HTTP 메서드 매핑:**
 
@@ -101,7 +102,7 @@ Content-Type: application/json
 **실무 팁:**
 GET은 멱등성이 보장되지만 POST는 그렇지 않다. PUT은 전체 교체, PATCH는 부분 수정에 사용한다.
 
-### PUT vs PATCH 비교
+#### PUT vs PATCH 비교
 
 <table>
 <tr>
@@ -188,9 +189,9 @@ Content-Type: application/json
 **실무 팁:**
 PUT은 전체 교체, PATCH는 부분 수정에 사용한다. PATCH가 더 효율적이다.
 
-## RESTful API 설계 원칙
+### RESTful API 설계 원칙
 
-### URI 설계 규칙
+#### URI 설계 규칙
 
 **올바른 URI 설계:**
 
@@ -223,7 +224,7 @@ PUT은 전체 교체, PATCH는 부분 수정에 사용한다. PATCH가 더 효�
 **실무 팁:**
 URI는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한다.
 
-### HTTP 상태 코드 활용
+#### HTTP 상태 코드 활용
 
 ```
 **2XX - 성공:**
@@ -250,7 +251,7 @@ URI는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한�
 
 ---
 
-### 응답 형식 표준화
+#### 응답 형식 표준화
 
 <table>
 <tr>
@@ -310,7 +311,7 @@ URI는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한�
 
 ---
 
-## RESTful하지 않은 API의 안티패턴
+### RESTful하지 않은 API의 안티패턴
 
 **안티패턴 #1: 모든 작업을 POST로 처리**
 ```
@@ -347,7 +348,7 @@ RESTful API는 일관된 규칙을 따라야 한다. URI는 명사로, 동작은
 
 ---
 
-## RESTful API의 장점
+### RESTful API의 장점
 
 ```
 ┌───────────────────────────────────────────────────────────┐
@@ -384,7 +385,7 @@ RESTful API는 일관된 규칙을 따라야 한다. URI는 명사로, 동작은
 
 ---
 
-## RESTful API 동작 흐름
+### RESTful API 동작 흐름
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -414,7 +415,7 @@ RESTful API는 일관된 규칙을 따라야 한다. URI는 명사로, 동작은
    - 응답: 204 No Content
 ```
 
-### 각 메서드별 처리 흐름
+#### 각 메서드별 처리 흐름
 
 <table>
 <tr>
@@ -479,9 +480,9 @@ DB 삭제
 
 ---
 
-## RESTful API 실무 사례
+### RESTful API 실무 사례
 
-### 버전 관리
+#### 버전 관리
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -502,7 +503,7 @@ URL 경로에 버전 명시:
 └──────────────────────────────────────────────────────┘
 ```
 
-### 페이지네이션
+#### 페이지네이션
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -534,7 +535,7 @@ URL 경로에 버전 명시:
 - 사용자 경험 개선
 ```
 
-### 필터링 및 정렬
+#### 필터링 및 정렬
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -558,7 +559,7 @@ URL 경로에 버전 명시:
   GET /users?status=active&sort=name&order=asc&page=1&limit=10
 ```
 
-### 에러 처리 표준화
+#### 에러 처리 표준화
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -593,7 +594,7 @@ URL 경로에 버전 명시:
 
 ---
 
-## 요약
+### 요약
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -622,14 +623,14 @@ URL 경로에 버전 명시:
 
 ---
 
-## 요약
+### 요약
 RESTful API는 현대 웹 서비스 개발의 사실상 표준이 되었다.
 
 <table>
 <tr>
 <td width="50%" valign="top">
 
-### RESTful API를 선택해야 하는 이유
+#### RESTful API를 선택해야 하는 이유
 
 ```
 **직관적인 설계:**
@@ -651,7 +652,7 @@ RESTful API는 현대 웹 서비스 개발의 사실상 표준이 되었다.
 </td>
 <td width="50%" valign="top">
 
-### 설계 시 기억할 것
+#### 설계 시 기억할 것
 
 - 자원은 명사로
 - HTTP 메서드 올바르게
@@ -671,7 +672,7 @@ RESTful API는 현대 웹 서비스 개발의 사실상 표준이 되었다.
 
 ---
 
-## 참고 자료
+### 참고 자료
 
 **공식 문서 & 가이드:**
 - AWS RESTful API 가이드: https://aws.amazon.com/ko/what-is/restful-api/

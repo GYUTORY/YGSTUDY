@@ -474,7 +474,7 @@ Mono.deferContextual(ctx -> {
     .contextWrite(Context.of("traceId", UUID.randomUUID().toString()));
 ```
 
-#### MDC 로깅 연동
+### MDC 로깅 연동
 
 WebFlux에서 로그에 traceId를 남기려면 MDC와 Reactor Context를 연결해야 한다.
 
@@ -940,7 +940,7 @@ server:
     enabled: true
 ```
 
-#### WebClient의 커넥션 풀 설정
+### WebClient의 커넥션 풀 설정
 
 WebClient는 내부적으로 Reactor Netty의 커넥션 풀을 사용한다. 외부 API를 많이 호출하면 풀 설정이 중요하다.
 

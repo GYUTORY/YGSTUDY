@@ -4,6 +4,7 @@ tags: [language, java, design-pattern, dependency-injection, spring, ioc]
 updated: 2026-05-02
 ---
 
+# Java - Dependency Injection (의존성 주입)
 ## 의존성 주입이란
 
 의존성 주입(Dependency Injection, DI)은 객체가 협력 객체를 직접 생성하지 않고 외부에서 받아서 사용하는 방식이다. 한 줄로 끝나는 정의지만, 실제로는 객체 그래프를 누가 조립하느냐 하는 책임의 이동에 가깝다. `new`로 직접 만들면 만든 쪽이 조립 책임을 지고, 외부에서 받으면 그 책임이 컨테이너나 호출 측으로 넘어간다.

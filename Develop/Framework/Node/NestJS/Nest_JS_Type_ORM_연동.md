@@ -4,6 +4,7 @@ tags: [nestjs, typeorm, database, orm, repository, migration]
 updated: 2026-04-16
 ---
 
+# NestJS TypeORM 연동
 ## 들어가며
 
 NestJS에서 데이터베이스 연동은 대부분 TypeORM 또는 Prisma 둘 중 하나로 귀결된다. 기존 자바 Spring 진영에서 넘어온 개발자라면 TypeORM이 JPA/Hibernate와 유사한 구조라 친숙하고, `@nestjs/typeorm` 패키지가 공식으로 제공되어 모듈 시스템과 궁합이 좋다. 그런데 막상 실무에서 써보면 공식 문서대로만 작성했다가 Connection Pool이 말라서 서비스가 멈추거나, Eager Loading 설정 하나 잘못해서 N+1이 폭발하는 일이 자주 생긴다.

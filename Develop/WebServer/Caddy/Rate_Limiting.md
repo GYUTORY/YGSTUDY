@@ -4,6 +4,7 @@ tags: [webserver, caddy, nginx, rate-limiting, 429, ddos]
 updated: 2026-04-17
 ---
 
+# Caddy Rate Limiting 처리 방식과 Nginx 비교
 ## Caddy가 자동으로 해주는 것과 안 해주는 것
 
 Caddy를 쓰다 보면 HTTPS가 자동으로 붙는 게 인상적이라 "rate limiting도 알아서 해주겠지" 하고 넘어가는 경우가 많다. 결론부터 말하면 Caddy는 rate limiting을 자동으로 처리해주지 않는다. 기본 바이너리에 포함된 것과 아닌 것을 헷갈리면 운영 환경에서 예상치 못한 트래픽 폭주를 그대로 맞게 된다.

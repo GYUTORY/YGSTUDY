@@ -4,6 +4,7 @@ tags: [os, process, thread, fork, exec, cow]
 updated: 2026-03-24
 ---
 
+# Process & Thread
 ## 프로그램, 프로세스, 스레드 — 뭐가 다른가
 
 서버 운영을 하다 보면 이 세 개념이 자주 섞인다. 간단히 정리하면 이렇다.

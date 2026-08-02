@@ -4,6 +4,7 @@ tags: [framework, node, nestjs, test, jest, supertest]
 updated: 2026-04-16
 ---
 
+# NestJS 테스트 (Jest, Supertest, TestingModule)
 ## NestJS 테스트를 왜 제대로 해야 하는가
 
 처음 NestJS 프로젝트를 맡았을 때, 팀에서 작성한 테스트 코드를 보고 의문이 많이 들었다. 컨트롤러에서 서비스를 `new Service()`로 직접 생성해서 테스트한다거나, 통합 테스트에서 실제 운영 DB를 바라보고 있다거나, 심한 경우에는 `describe` 블록 안에서 모킹만 잔뜩 하고 실제 로직은 검증하지 않는 케이스도 있었다. 그 상태로 배포하다가 프로덕션에서 DI 컨테이너가 뱉는 `Nest can't resolve dependencies` 에러를 몇 번 겪고 나서야, NestJS 테스트는 일반 Node.js 테스트와 다르게 접근해야 한다는 걸 깨달았다.

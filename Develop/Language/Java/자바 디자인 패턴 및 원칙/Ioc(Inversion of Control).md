@@ -4,6 +4,7 @@ tags: [language, java, design-pattern, ioc, spring, container]
 updated: 2026-05-02
 ---
 
+# Java - IoC (Inversion of Control, 제어의 역전)
 ## 제어의 역전이 실제로 뒤집는 것
 
 IoC(Inversion of Control)는 한 단어로는 잘 와닿지 않는 개념이다. "제어가 뒤집힌다"고 하면 추상적이지만, 실제로 IoC가 다루는 건 세 가지 책임의 이전이다. 객체를 누가 만드는가, 객체의 생명주기를 누가 관리하는가, 의존하는 다른 객체를 누가 찾아 주는가. 평범한 자바 코드에서는 이 셋이 모두 객체 자신 또는 그것을 호출하는 코드의 책임이다. IoC를 적용하면 이 책임이 외부의 어떤 주체(보통은 컨테이너)로 옮겨 간다.

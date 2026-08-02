@@ -4,6 +4,7 @@ tags: [network, domain, http, tcp, tls, dns, troubleshooting]
 updated: 2026-07-25
 ---
 
+# 웹 통신의 흐름
 ## 개요
 
 브라우저 주소창에 URL을 치고 엔터를 눌렀을 때 화면이 뜰 때까지, 사실 패킷 레벨에서 보면 꽤 많은 일이 일어난다. URL 파싱, DNS 조회, TCP 3-way handshake, TLS handshake, HTTP 요청/응답, 그리고 브라우저 렌더링. 각 단계마다 ms 단위로 시간이 쌓이고, 어느 한 곳에서 막히면 전체 응답이 느려진다.

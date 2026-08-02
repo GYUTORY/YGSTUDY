@@ -4,6 +4,7 @@ tags: [nestjs, prisma, database, orm, migration, transaction]
 updated: 2026-07-10
 ---
 
+# NestJS Prisma 연동
 ## 들어가며
 
 NestJS에서 데이터 접근 계층을 잡을 때 TypeORM 대신 Prisma를 고르는 경우가 늘었다. Prisma는 `@nestjs/typeorm` 같은 공식 NestJS 패키지가 따로 없다. 그냥 `@prisma/client`를 쓰고, PrismaClient를 NestJS 라이프사이클에 맞춰 감싸는 얇은 서비스 하나만 직접 만들면 된다. 이 단순함이 장점이자 함정이다. 연결을 언제 열고 언제 닫을지, 트랜잭션을 어떻게 넘길지, 테스트에서 DB를 어떻게 격리할지를 프레임워크가 정해주지 않으니 직접 결정해야 한다.

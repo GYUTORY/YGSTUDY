@@ -20,7 +20,7 @@ updated: 2026-04-14
 
 핵심은 브라우저의 쿠키 자동 첨부 동작이다. bank.com에 보내는 요청이면, 어느 사이트에서 보냈든 bank.com의 쿠키가 붙는다. 이 동작 자체가 CSRF의 원인이다.
 
-### CSRF 공격 흐름과 방어 메커니즘
+## CSRF 공격 흐름과 방어 메커니즘
 
 ```mermaid
 sequenceDiagram

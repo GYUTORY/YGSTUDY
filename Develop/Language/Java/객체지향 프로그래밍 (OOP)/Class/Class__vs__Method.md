@@ -4,6 +4,7 @@ tags: [language, java, 객체지향-프로그래밍-oop, class, class-vs-method]
 updated: 2026-05-03
 ---
 
+# Java 클래스(Class)와 메서드(Method)
 ## 클래스와 메서드의 위치
 
 자바를 처음 배우면 클래스와 메서드의 차이를 단순히 "클래스는 설계도, 메서드는 함수"로 외운다. 실무에서는 이 정도로는 부족하다. 메서드 시그니처가 어떻게 구성되는지, 정적 메서드와 인스턴스 메서드가 호출될 때 JVM 내부에서 무슨 일이 벌어지는지, 오버로딩된 메서드 중 컴파일러가 어떤 기준으로 하나를 고르는지를 모르면 NoSuchMethodError나 AmbiguousMethodCallException 같은 예외가 터졌을 때 원인을 찾기 어렵다.

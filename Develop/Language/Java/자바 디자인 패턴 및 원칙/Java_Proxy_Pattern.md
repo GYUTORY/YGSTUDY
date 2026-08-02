@@ -4,6 +4,7 @@ tags: [language, java, design-pattern, proxy, dynamic-proxy, cglib, spring-aop]
 updated: 2026-07-19
 ---
 
+# Java - Proxy Pattern (프록시 패턴)
 ## 프록시 패턴이란
 
 프록시 패턴은 실제 객체 앞에 대리 객체를 두어 호출을 가로채는 구조다. 클라이언트는 프록시를 실제 객체라고 믿고 호출하고, 프록시는 전처리·후처리를 끼워 넣은 뒤 실제 객체에 위임한다.
