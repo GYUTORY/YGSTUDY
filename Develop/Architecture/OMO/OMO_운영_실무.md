@@ -1,11 +1,10 @@
 ---
-title: OMO (Online-Merge-Offline)
+title: OMO 운영 실무
 tags: [omo, online-merge-offline, 채널통합, 재고동기화, 주문라우팅, 고객식별, e-commerce, backend]
 updated: 2026-07-23
 ---
 
-# OMO (Online-Merge-Offline)
-
+# OMO 운영 실무
 ## 1. OMO란
 
 OMO는 온라인과 오프라인 채널을 하나의 구매 흐름으로 합치는 리테일 운영 방식이다. "앱에서 주문하고 매장에서 픽업", "매장에서 재고를 확인하고 앱으로 결제", "온라인 쿠폰을 오프라인 매장에서 사용"이 전형적인 시나리오다.

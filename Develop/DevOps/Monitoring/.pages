@@ -8,3 +8,4 @@ nav:
   - Loki 로그 집계: Loki_Log_Aggregation.md
   - Grafana Tempo: Grafana_Tempo.md
   - Alerting Rules: Alerting_Rules.md
+  - Prometheus + Grafana 모니터링 스택: Prometheus_Grafana.md

@@ -52,6 +52,19 @@ plugins:
       separator: '[\s\-\.]+'
   - awesome-pages
   - tags
+  # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
+  - redirects:
+      redirect_maps:
+        # Infra/DevOps 경계 정리 (2026-08-01): 겹치던 주제를 DevOps로 모음
+        'Infra/CI_CD/CI_CD_Pipeline.md': 'DevOps/CI_CD/CI_CD_Pipeline.md'
+        'Infra/GitOps/Git_Ops_Argo_CD.md': 'DevOps/GitOps/Argo_CD_운영_실무.md'
+        'Infra/Infrastructure_as_Code/Terraform.md': 'DevOps/Infrastructure_as_Code/Terraform_운영_실무.md'
+        'Infra/Image_Build/Packer.md': 'DevOps/Infrastructure_as_Code/Packer.md'
+        'Infra/Kubernetes/Kubernetes_Architecture.md': 'DevOps/Kubernetes/Kubernetes_Architecture.md'
+        'Infra/Kubernetes/Reconciliation_Loop.md': 'DevOps/Kubernetes/Reconciliation_Loop.md'
+        'Infra/Monitoring/Prometheus_Grafana.md': 'DevOps/Monitoring/Prometheus_Grafana.md'
+        # OMO는 AI가 아니라 커머스 아키텍처 주제라 Architecture로 이동
+        'AI/OMO/OMO.md': 'Architecture/OMO/OMO_운영_실무.md'
   - git-revision-date-localized:
       enable_creation_date: true
       type: date

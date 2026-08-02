@@ -6,3 +6,5 @@ nav:
   - Ansible: Ansible.md
   - Terragrunt: Terragrunt.md
   - Pulumi: Pulumi.md
+  - Packer로 이미지 빌드하기: Packer.md
+  - Terraform 운영 실무: Terraform_운영_실무.md

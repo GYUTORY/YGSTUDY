@@ -12,9 +12,9 @@ nav:
   - 이벤트 기반 아키텍처: Event_Driven_Architecture.md
   - 헥사고날 아키텍처: Hexagonal_Architecture.md
   - 분산 시스템 관측성: 분산_시스템_관측성.md
+  - OMO
   - DDD:
     - 개요: DDD.md
     - Bounded Context: DDD/Bounded_Context.md
     - 빌딩 블록 (전술적 설계): DDD/DDD_Building_Blocks.md
     - 도메인 이벤트: DDD/Domain_Event.md
-  - OMO: OMO/Online_Merge_Offline.md

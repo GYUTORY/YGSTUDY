@@ -1,4 +1,4 @@
 title: Java/Spring
 nav:
   - Spring
-  - JUnit 5 + Mockito 단위 테스트: Testing/JUnit_Mockito.md
+  - Testing: Testing/JUnit_Mockito.md

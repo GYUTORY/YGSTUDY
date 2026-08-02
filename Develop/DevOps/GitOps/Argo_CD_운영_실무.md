@@ -1,11 +1,10 @@
 ---
-title: ArgoCD 기반 GitOps
+title: Argo CD 운영 실무
 tags: [argocd, gitops, kubernetes, helm, kustomize, cd]
 updated: 2026-07-25
 ---
 
-# ArgoCD 기반 GitOps
-
+# Argo CD 운영 실무
 GitOps는 Git 저장소를 단일 진실 공급원으로 두고, 클러스터 상태를 거기에 맞추는 방식이다. ArgoCD는 이 방식을 Kubernetes에 적용한 대표적인 도구다. ArgoCD를 몇 년 운영하면서 초기 설계 실수가 나중에 얼마나 큰 문제를 만드는지 직접 겪었다. Application과 AppProject 구조를 처음부터 잘 잡아야 한다.
 
 ## Application과 AppProject 설계

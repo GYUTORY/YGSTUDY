@@ -1,15 +1,9 @@
 title: Infra
 nav:
-  - Kubernetes
   - Service_Mesh
   - Service_Discovery
   - Coordination
   - Load_Balancer
   - Principles
-  - CI/CD 파이프라인 인프라 설계: CI_CD/CI_CD_Pipeline.md
-  - 프라이빗 컨테이너 레지스트리 구축과 운영: Container_Registry/Container_Registry.md
-  - GitOps: GitOps/Git_Ops_Argo_CD.md
-  - Packer로 이미지 빌드하기: Image_Build/Packer.md
-  - Terraform: Infrastructure_as_Code/Terraform.md
-  - Monitoring: Monitoring/Prometheus_Grafana.md
+  - Container Registry: Container_Registry/Container_Registry.md
   - HashiCorp Vault: Secrets/Hashi_Corp_Vault.md

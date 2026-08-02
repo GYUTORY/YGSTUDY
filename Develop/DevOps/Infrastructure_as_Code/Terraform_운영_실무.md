@@ -1,11 +1,10 @@
 ---
-title: Terraform
+title: Terraform 운영 실무
 tags: [Terraform, IaC, Infrastructure, State, Module, Workspace]
 updated: 2026-07-25
 ---
 
-# Terraform
-
+# Terraform 운영 실무
 Terraform은 HashiCorp이 만든 IaC 도구다. HCL(HashiCorp Configuration Language)로 인프라를 선언하고, 실제 클라우드 리소스와 state 파일을 동기화해서 관리한다. 선언적으로 쓰지만, 내부적으로는 DAG를 그려서 리소스 생성 순서를 결정한다.
 
 처음에 로컬에서 `terraform.tfstate`만 쓰다가 팀이 커지면 반드시 remote backend로 이전해야 한다. 로컬 state로 여러 명이 작업하면 충돌이 생기고, 누군가 파일을 덮어쓰면 리소스 추적이 깨진다.

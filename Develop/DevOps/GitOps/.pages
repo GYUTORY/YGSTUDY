@@ -2,3 +2,4 @@ title: GitOps
 nav:
   - Argo CD: Argo_CD.md
   - 전략 가이드: GitOps_전략.md
+  - Argo CD 운영 실무: Argo_CD_운영_실무.md
