@@ -1,10 +1,11 @@
 title: Infrastructure as Code
 nav:
-  - Terraform: Terraform.md
-  - Terraform 기초: Terraform_기초.md
+  - Terraform:
+    - 개요: Terraform.md
+    - 기초: Terraform_기초.md
+    - 운영 실무: Terraform_운영_실무.md
   - AWS Terraform 실전: AWS_Terraform_실전.md
   - Ansible: Ansible.md
   - Terragrunt: Terragrunt.md
   - Pulumi: Pulumi.md
   - Packer로 이미지 빌드하기: Packer.md
-  - Terraform 운영 실무: Terraform_운영_실무.md

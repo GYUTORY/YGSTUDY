@@ -1,4 +1,5 @@
 nav:
-  - forEach 메서드 개념과: forEach_개념.md
-  - forEach 실전 예제와 함정: forEach_예제.md
-  - forEach 메서드 심화: for_Each_Deep_Dive.md
+  - forEach:
+    - 메서드 개념과 사용법: forEach_개념.md
+    - 실전 예제와 함정: forEach_예제.md
+    - 메서드 심화: for_Each_Deep_Dive.md

@@ -1,12 +1,14 @@
 nav:
   - 시작하기와 핵심 문법: How_To_USE.md
-  - vs Express.js: NestJs vs ExpressJs.md
+  - NestJS:
+    - NestJS vs Express.js: NestJs vs ExpressJs.md
+    - NestJS에 Clean Architecture 입히기: Nest_JS_Clean_Architecture.md
+    - NestJS에서 AWS Secrets Manager와 KMS 사용하기: Nest_JS_AWS_Secrets_Manager_KMS.md
   - 부트스트랩 및 모듈 시스템: Nest_JS_부트스트랩_및_모듈_시스템.md
   - Dynamic Module 심화: Nest_JS_Dynamic_Module.md
   - Provider Scope 심화: Nest_JS_Provider_Scope.md
   - 순환 의존성 해결 심화: Nest_JS_Circular_Dependency.md
   - 표준 계층 아키텍처: Nest_JS_Standard_Architecture.md
-  - NestJS에 Clean Architecture 입히기: Nest_JS_Clean_Architecture.md
   - 요청 라이프사이클: Nest_JS_요청_라이프사이클.md
   - 라이프사이클 훅: Nest_JS_Lifecycle_Hooks.md
   - 데코레이터 완전 정리: Nest_JS_Decorator.md
@@ -29,7 +31,6 @@ nav:
   - TypeORM 연동: Nest_JS_Type_ORM_연동.md
   - Prisma 연동: Nest_JS_Prisma.md
   - MongoDB/Mongoose 연동: Nest_JS_Mongo_DB_Mongoose.md
-  - NestJS에서 AWS Secrets Manager와 KMS 사용하기: Nest_JS_AWS_Secrets_Manager_KMS.md
   - GraphQL 모듈 운영기: Nest_JS_Graph_QL.md
   - WebSocket Gateway 운영기: Nest_JS_Web_Socket_Gateway.md
   - Server-Sent Events: Nest_JS_SSE.md

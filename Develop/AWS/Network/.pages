@@ -2,7 +2,7 @@ title: Network
 nav:
   - ALB → ECS → S3 요청 흐름: ALB_ECS_S3_Request_Flow.md
   - API Gateway 가이드: API_Gateway.md
-  - 네트워크 구성요소를 건물 비유로: AWS_Network_Components_Analogy.md
+  - 네트워크 구성요소를 건물 비유로 이해하기: AWS_Network_Components_Analogy.md
   - CloudFront 캐시 무효화 정책: CDN 캐시 무효화 정책.md
   - CloudFront: CDN.md
   - Direct Connect: Direct_Connect.md
@@ -18,10 +18,11 @@ nav:
   - Security Groups vs NACLs: Security_Groups_vs_NACLs.md
   - Site-to-Site VPN & Client VPN: Site_to_Site_VPN.md
   - Transit Gateway: Transit_Gateway.md
-  - VPC: VPC.md
-  - VPC Endpoints: VPC_Endpoints.md
-  - VPC Flow Logs: VPC_Flow_Logs.md
-  - VPC IPAM: VPC_IPAM.md
-  - VPC Peering: VPC_Peering.md
-  - VPC Reachability Analyzer: VPC_Reachability_Analyzer.md
-  - VPC Sharing: VPC_Sharing.md
+  - VPC:
+    - 개요: VPC.md
+    - Endpoints: VPC_Endpoints.md
+    - Flow Logs: VPC_Flow_Logs.md
+    - IPAM: VPC_IPAM.md
+    - Peering: VPC_Peering.md
+    - Reachability Analyzer: VPC_Reachability_Analyzer.md
+    - Sharing: VPC_Sharing.md

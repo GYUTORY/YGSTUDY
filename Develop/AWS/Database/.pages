@@ -1,10 +1,11 @@
 title: Database
 nav:
-  - Aurora MySQL vs RDS for MySQL: Aurora_DB.md
-  - Aurora DB Cluster Failover: Aurora_DB_Cluster.md
-  - Aurora MySQL에서의 JSON 타입 실무: Aurora_My_SQL_JSON.md
-  - Aurora MySQL Serverless v2 운영: Aurora_Serverless_V2.md
-  - Aurora MySQL 메이저 버전 업그레이드: Aurora_Version_Upgrade.md
+  - Aurora:
+    - MySQL vs RDS for MySQL: Aurora_DB.md
+    - DB Cluster Failover: Aurora_DB_Cluster.md
+    - MySQL에서의 JSON 타입 실무: Aurora_My_SQL_JSON.md
+    - MySQL Serverless v2 운영: Aurora_Serverless_V2.md
+    - MySQL 메이저 버전 업그레이드: Aurora_Version_Upgrade.md
   - DAX: DAX.md
   - DB Proxy: DB_Proxy.md
   - DMS: DMS.md
@@ -13,12 +14,13 @@ nav:
   - ElastiCache: ElastiCache.md
   - MemoryDB: Memory_DB.md
   - Neptune: Neptune.md
-  - RDS: RDS.md
-  - RDS Backup & Snapshot: RDS_Backup_Snapshot.md
-  - RDS Blue/Green Deployment: RDS_Blue_Green_Deployment.md
-  - RDS Multi-AZ: RDS_Multi_AZ.md
-  - RDS Parameter Groups: RDS_Parameter_Groups.md
+  - RDS:
+    - 개요: RDS.md
+    - Backup & Snapshot: RDS_Backup_Snapshot.md
+    - Blue/Green Deployment: RDS_Blue_Green_Deployment.md
+    - Multi-AZ: RDS_Multi_AZ.md
+    - Parameter Groups: RDS_Parameter_Groups.md
+    - 보안: RDS_Security.md
+    - Storage: RDS_Storage.md
   - Performance Insights로 RDS 성능 진단하기: RDS_Performance_Insights.md
-  - RDS 보안: RDS_Security.md
-  - RDS Storage: RDS_Storage.md
   - Timestream: Timestream.md

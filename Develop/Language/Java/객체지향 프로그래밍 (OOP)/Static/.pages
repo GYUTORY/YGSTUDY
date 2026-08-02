@@ -1,3 +1,3 @@
 nav:
   - 개요: static.md
-  - 개념 (Static 변수, 메서드, 블록, 내부 클래스): Static_Concept.md
+  - 개념: Static_Concept.md

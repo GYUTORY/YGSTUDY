@@ -1,5 +1,5 @@
 title: Gateway
 nav:
   - Gateway (게이트웨이): Definition.md
-  - 심화 (L3 라우팅·Default Gateway·NAT/PAT·Proxy 구분): Network_Gateway_Advanced.md
+  - 심화: Network_Gateway_Advanced.md
   - API Gateway 심화: API_Gateway.md

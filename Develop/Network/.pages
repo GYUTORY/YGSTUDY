@@ -14,7 +14,7 @@ nav:
   - 배스천 호스트: Bastion_Host.md
   - Private DNS: Private_DNS.md
   - 터널링: Tunneling.md
-  - URL과 URI의 차이: URL_and_URI.md
+  - URL과 URI의 차이 - 구조, 인코딩, 실무 활용: URL_and_URI.md
   - CORS: CORS.md
   - CDN 동작 원리와 실무 운영: CDN.md
   - 네트워크 스위치: Network Switch.md

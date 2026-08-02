@@ -1,10 +1,11 @@
 title: Domain
 nav:
   - CNAME: CNAME.md
-  - DNS Lookup: DNS Lookup.md
-  - DNS: DNS.md
+  - DNS:
+    - 개요: DNS.md
+    - Lookup: DNS Lookup.md
+    - over HTTPS: DNS_over_HTTPS_Do_H.md
   - DNSSEC: DNSSEC.md
-  - DNS over HTTPS: DNS_over_HTTPS_Do_H.md
   - 도메인 등록과 라이프사이클: Domain_Registration_Lifecycle.md
   - DuckDNS 동적 DNS 서비스: Duck_DNS.md
   - 서브도메인 (Subdomain): Subdomain.md

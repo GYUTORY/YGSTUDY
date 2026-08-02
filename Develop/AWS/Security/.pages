@@ -9,9 +9,10 @@ nav:
   - Cognito 사용자 인증 및 권한 관리 심화 가이드: Cognito.md
   - Cognito Deep Dive: Cognito_Deep_Dive.md
   - ACM: ACM.md
-  - WAF: WAF.md
-  - WAF Bot Control과 봇 방어: WAF_Bot_Control.md
-  - WAF 고급 규칙 운영: WAF_Advanced_Rules.md
+  - WAF:
+    - 개요: WAF.md
+    - Bot Control과 봇 방어: WAF_Bot_Control.md
+    - 고급 규칙 운영: WAF_Advanced_Rules.md
   - Shield: Shield.md
   - GuardDuty: Guard_Duty.md
   - Inspector: Inspector.md

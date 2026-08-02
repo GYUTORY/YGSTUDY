@@ -4,9 +4,10 @@ nav:
   - 모놀리스 to MSA 마이그레이션: 모놀리스_to_MSA_마이그레이션.md
   - 서버 간 통신 방식 정리: 서버 간 통신 방식 정리.md
   - 서비스 디스커버리와 API Gateway: 서비스_디스커버리_및_API_Gateway.md
-  - BFF 패턴: BFF_패턴.md
-  - BFF 패턴 — NestJS 구현: BFF_Nest_JS_구현.md
-  - BFF 부분 실패 처리: BFF_부분_실패_처리.md
+  - BFF:
+    - 패턴: BFF_패턴.md
+    - 패턴 — NestJS 구현: BFF_Nest_JS_구현.md
+    - 부분 실패 처리: BFF_부분_실패_처리.md
   - 서비스 메시와 사이드카 패턴: 서비스_메시_및_사이드카_패턴.md
   - AWS VPC MSA 네트워크 설계: MSA_VPC_Network_Design.md
   - 모노레포 vs 멀티레포: 멀티 레포.md

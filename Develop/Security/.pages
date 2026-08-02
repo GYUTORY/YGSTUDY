@@ -22,8 +22,10 @@ nav:
   - XSS: XSS.md
   - CSRF: CSRF.md
   - Clickjacking (클릭재킹): Clickjacking.md
-  - SQL Injection: SQL_Injection.md
-  - SQL Injection 진단과 테스트: SQL_Injection_Testing.md
+  - SQL:
+    - Injection: SQL_Injection.md
+    - Injection 진단과 테스트: SQL_Injection_Testing.md
+    - Injection (SQL 인젝션): SQL_인젝션.md
   - Command Injection: Command_Injection.md
   - 안전하지 않은 역직렬화: Insecure_Deserialization.md
   - XXE 주입: XML_External_Entity.md
@@ -32,9 +34,10 @@ nav:
   - Open Redirect 심화: Open_Redirect_Deep_Dive.md
   - 웹 캐시 포이즈닝: Web_Cache_Poisoning.md
   - OWASP Top 10: OWASP_Top_10.md
-  - API Input Validation: API_Input_Validation.md
-  - API Security: API_Security.md
-  - API Gateway Security: API_Gateway_Security.md
+  - API:
+    - Input Validation: API_Input_Validation.md
+    - Security: API_Security.md
+    - Gateway Security: API_Gateway_Security.md
   - GraphQL Security: Graph_QL_Security.md
   - Webhook Security: Webhook_Security.md
   - 파일 업로드 보안: File_Upload_Security.md
@@ -60,5 +63,4 @@ nav:
   - 보안 심화 및 취약점 분석: 보안_심화_및_취약점_분석.md
   - DID: DID.md
   - DevSecOps: Dev_Sec_Ops.md
-  - SQL Injection (SQL 인젝션): SQL_인젝션.md
   - SSRF: SSRF.md
