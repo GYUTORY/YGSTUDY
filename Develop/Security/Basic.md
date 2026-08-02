@@ -1,11 +1,10 @@
 ---
-title: 보안 기초 개념과 OWASP Top 10
+title: 보안 기초 개념
 tags: [security, owasp, injection, xss, csrf, ssrf, idor, authentication, authorization, input-validation, output-encoding, security-headers]
 updated: 2026-05-03
 ---
 
-# 보안 기초 개념과 OWASP Top 10
-
+# 보안 기초 개념
 ## 시작하기 전에
 
 보안을 별도 팀의 일이라고 생각하는 백엔드 개발자가 많은데, 실제로는 매일 짜는 코드 한 줄 한 줄이 보안에 직결된다. SQL 한 번 잘못 짜서 회사가 1년 매출만큼의 과징금을 맞는 일이 한국에서도 매년 발생한다. 보안 팀이 잡아주길 기다리지 말고 코드를 짤 때 직접 막아야 한다.

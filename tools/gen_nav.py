@@ -103,16 +103,535 @@ ORDER_OVERRIDE = {
     ],
 }
 
+# 손으로 짠 묶음.
+# 자동 규칙은 crypto와 fs가 '코어 모듈'이라는 걸 알 수 없다. 낱장 문서가
+# 20개 넘게 평평하게 늘어서는 곳만 여기서 직접 묶는다.
+# 형식:  경로 -> [(묶음 이름, [(라벨, 상대경로), ...]), ...]
+MANUAL_GROUPS = {
+    'Develop/Language/Go': [
+        ('동시성', [
+            ('동시성 (고루틴·채널)', 'Go_Concurrency.md'),
+            ('고급 동시성 패턴', 'Go_Concurrency_Patterns.md'),
+            ('sync 패키지 심화', 'Go_Sync_Primitives.md'),
+            ('context 패키지', 'Go_Context.md'),
+            ('Context 심화', 'Go_Context_Advanced.md'),
+        ]),
+        ('타입 시스템', [
+            ('인터페이스와 타입 시스템', 'Go_Interface.md'),
+            ('제네릭', 'Go_Generics.md'),
+            ('에러 처리', 'Go_Error_Handling.md'),
+        ]),
+        ('런타임 내부', [
+            ('메모리 모델 심화', 'Go_Memory_Model.md'),
+            ('런타임 스케줄러 내부 구조', 'Go_Scheduler_Internals.md'),
+            ('슬라이스와 맵 내부 구조', 'Go_Slice_Map.md'),
+        ]),
+    ],
+    'Develop/AWS/Security': [
+        ('자격 증명과 권한', [
+            ('IAM', 'IAM.md'),
+            ('IAM 권한 관리 심화', 'IAM_Permission_Management_Deep_Dive.md'),
+            ('Cognito', 'Cognito.md'),
+            ('Cognito 심화', 'Cognito_Deep_Dive.md'),
+        ]),
+        ('키와 시크릿', [
+            ('KMS', 'KMS.md'),
+            ('Secrets Manager', 'Secrets_Manager.md'),
+            ('Secrets Manager vs KMS', 'Secrets_Manager_vs_KMS.md'),
+            ('ACM', 'ACM.md'),
+        ]),
+        ('위협 탐지와 방어', [
+            ('Shield', 'Shield.md'),
+            ('GuardDuty', 'Guard_Duty.md'),
+            ('Inspector', 'Inspector.md'),
+            ('Security Hub', 'Security_Hub.md'),
+        ]),
+    ],
+    'Develop/WebServer/Caddy': [
+        ('설정', [
+            ('Caddyfile 문법 심화', 'Caddyfile_Syntax.md'),
+            ('Admin API와 JSON 설정', 'Admin_API.md'),
+            ('정적 파일 서빙', 'Static_File_Serving.md'),
+        ]),
+        ('프록시와 라우팅', [
+            ('reverse_proxy 디렉티브 심화', 'Reverse_Proxy.md'),
+            ('서브도메인 라우팅과 와일드카드 인증서', 'Subdomain_Routing.md'),
+            ('헤더 처리와 CORS', 'Headers_CORS.md'),
+        ]),
+        ('보안', [
+            ('SSL/TLS 심화', 'SSL_TLS.md'),
+            ('인증 처리', 'Authentication.md'),
+            ('Rate Limiting (Nginx 비교)', 'Rate_Limiting.md'),
+        ]),
+        ('운영', [
+            ('로깅과 관찰성', 'Logging_Monitoring.md'),
+            ('커스텀 xcaddy 이미지 CI/CD',
+             'Docker_Caddy_Image_CICD_Pipeline.md'),
+            ('Nginx에서 Caddy로 마이그레이션', 'Nginx_To_Caddy_Migration.md'),
+        ]),
+    ],
+    'Develop/AI/Claude_Code': [
+        ('기능', [
+            ('모델 선택', 'Claude_Code_Model.md'),
+            ('Agent 시스템', 'Claude_Code_Agent.md'),
+            ('Memory 시스템', 'Claude_Code_Memory.md'),
+            ('스킬과 룰 시스템', 'Claude_Code_Skill_Rule.md'),
+            ('플랜모드', 'Claude_Code_Plan_Mode.md'),
+            ('Auto Mode', 'Claude_Code_Auto_Mode.md'),
+        ]),
+        ('병렬 작업', [
+            ('오케스트레이션', 'Claude_Code_Orchestration.md'),
+            ('OMC (Orchestrated Multi-Claude)', 'Claude_Code_OMC.md'),
+            ('Worktree', 'Claude_Code_Worktree.md'),
+            ('Worktree 병렬 스크립트', 'Claude_Code_Worktree_Script.md'),
+            ('롱잡 운영', 'Claude_Code_Long_Job.md'),
+        ]),
+        ('실무', [
+            ('개발 루틴', 'Claude_Code_Routine.md'),
+            ('실전 팁', 'Claude_Code_Tips.md'),
+            ('웹취약점 대응', 'Claude_Code_Web_Vulnerability.md'),
+            ('Ultra Review', 'Claude_Code_Ultra.md'),
+            ('트러블슈팅', 'Claude_Code_Troubleshooting.md'),
+        ]),
+        ('내부 동작', [
+            ('하네스', 'Claude_Code_Harness.md'),
+            ('Fable 5 릴리스 정리', 'Claude_Code_Fable_5.md'),
+        ]),
+    ],
+    'Develop/WebServer/Nginx': [
+        ('설정 구조', [
+            ('Virtual Host 설정', 'Virtual_Host_설정.md'),
+            ('location 매칭과 설정 구조', 'location_매칭과_설정_구조.md'),
+            ('location 매칭 우선순위 심화', 'Location_Matching_Deep_Dive.md'),
+            ('map 지시어 심화', 'Nginx_Map_Directive.md'),
+            ('URL Rewrite와 Redirect', 'URL_Rewrite_and_Redirect.md'),
+        ]),
+        ('프록시', [
+            ('리버스 프록시 & 로드밸런싱',
+             'Reverse_Proxy_and_Load_Balancing.md'),
+            ('WebSocket 프록시', 'Web_Socket_Proxy.md'),
+            ('Stream 모듈 (TCP/UDP)', 'Stream_Module.md'),
+            ('FastCGI & PHP-FPM', 'Fast_CGI_PHP_FPM.md'),
+        ]),
+        ('보안', [
+            ('SSL/TLS 설정', 'SSL_TLS_설정.md'),
+            ('보안 설정', '보안_설정.md'),
+            ('CORS', 'CORS.md'),
+            ('Rate Limiting', 'Rate_Limiting.md'),
+        ]),
+        ('운영', [
+            ('성능 튜닝', '성능_튜닝.md'),
+            ('로그 설정과 모니터링', '로그_설정과_모니터링.md'),
+            ('트러블슈팅', '트러블슈팅.md'),
+        ]),
+    ],
+    'Develop/AWS/Network': [
+        ('VPC 네트워킹', [
+            ('Private Subnet vs Public Subnet 심화',
+             'Private_Subnet__vs__Public_Subnet.md'),
+            ('라우팅 테이블', 'Route_Table.md'),
+            ('ENI', 'Elastic_Network_Interface.md'),
+            ('NAT Gateway', 'Nat_Gateway.md'),
+            ('Security Groups vs NACLs', 'Security_Groups_vs_NACLs.md'),
+            ('네트워크 구성요소 비유로 이해하기',
+             'AWS_Network_Components_Analogy.md'),
+        ]),
+        ('연결', [
+            ('Transit Gateway', 'Transit_Gateway.md'),
+            ('PrivateLink', 'PrivateLink.md'),
+            ('Direct Connect', 'Direct_Connect.md'),
+            ('Site-to-Site VPN & Client VPN', 'Site_to_Site_VPN.md'),
+        ]),
+        ('엣지와 배포', [
+            ('CloudFront', 'CDN.md'),
+            ('CloudFront 캐시 무효화 정책', 'CDN 캐시 무효화 정책.md'),
+            ('Global Accelerator', 'Global_Accelerator.md'),
+            ('Route 53', 'Route 53.md'),
+            ('API Gateway', 'API_Gateway.md'),
+        ]),
+        ('S3와 요청 흐름', [
+            ('S3', 'S3.md'),
+            ('S3 정적 웹사이트 호스팅', 'S3_Static_Website_Hosting.md'),
+            ('ALB → ECS → S3 요청 흐름', 'ALB_ECS_S3_Request_Flow.md'),
+        ]),
+    ],
+    'Develop/Framework/Java/Spring': [
+        ('DI와 Bean', [
+            ('Bean 개념과 사용법', 'Bean.md'),
+            ('Bean 심화', 'Spring_Bean_심화.md'),
+            ('AOP & 트랜잭션 심화', 'AOP_트랜잭션.md'),
+            ('Profiles 심화', 'Spring Boot Profiles.md'),
+        ]),
+        ('웹 계층', [
+            ('MVC와 REST API 설계', 'Spring_MVC_REST_API.md'),
+            ('WebFlux', 'Spring_WebFlux.md'),
+            ('SSE', 'Spring_SSE.md'),
+            ('Security', 'Spring_Security.md'),
+            ('Rate Limiting 구현', 'Rate_Limiting.md'),
+        ]),
+        ('데이터 접근', [
+            ('Data JPA', 'Spring_Data_JPA.md'),
+            ('Data JPA 심화', 'Spring_Data_JPA_Advanced.md'),
+            ('JPA @Lock 어노테이션 비교', 'JPA_Lock_Annotations.md'),
+            ('낙관적 락 재시도 처리', 'Optimistic_Lock_Retry_Pattern.md'),
+            ('Cache', 'Spring_Cache.md'),
+        ]),
+        ('배치와 분산', [
+            ('Batch', 'Spring_Batch.md'),
+            ('Cloud MSA', 'Spring_Cloud.md'),
+        ]),
+        ('로깅', [
+            ('Spring 로깅', 'Spring_Logging.md'),
+            ('SLF4J', 'SLF4J.md'),
+        ]),
+        ('Lombok', [
+            ('Project Lombok', 'Lombok.md'),
+            ('Lombok 심화', 'Lombok_Deep_Dive.md'),
+            ('보조 어노테이션', 'Lombok_Minor_Annotations.md'),
+        ]),
+        ('빌드와 마이그레이션', [
+            ('Gradle vs Maven', 'Gradle__vs__Maven.md'),
+            ('Boot 2.x vs 3.x 의사결정', 'Boot2.0__vs__Boot3.0.md'),
+            ('Boot 2.x → 3.x 마이그레이션 심화',
+             'Spring_Boot_Migration_2_to_3.md'),
+        ]),
+    ],
+    'Develop/Architecture/MSA': [
+        ('설계와 전환', [
+            ('서비스 분해 및 도메인 설계', '서비스_분해_및_도메인_설계.md'),
+            ('모놀리스 → MSA 마이그레이션', '모놀리스_to_MSA_마이그레이션.md'),
+            ('모노레포 vs 멀티레포', '멀티 레포.md'),
+            ('Oracle에서의 MSA', 'Oracle_MSA.md'),
+            ('클라우드 선택 전략', 'MSA_클라우드_선택_전략.md'),
+        ]),
+        ('통신', [
+            ('서버 간 통신 방식', '서버 간 통신 방식 정리.md'),
+            ('서비스 디스커버리와 API Gateway',
+             '서비스_디스커버리_및_API_Gateway.md'),
+            ('서비스 메시와 사이드카 패턴', '서비스_메시_및_사이드카_패턴.md'),
+            ('메시지 큐 및 분산 락', '메시지_큐_및_분산_락.md'),
+            ('API 버전 관리', 'API_버전_관리.md'),
+            ('AWS VPC 네트워크 설계', 'MSA_VPC_Network_Design.md'),
+        ]),
+        ('데이터 일관성', [
+            ('데이터 관리 패턴', '데이터_관리_패턴.md'),
+            ('Saga 패턴 및 분산 트랜잭션', 'Saga_패턴_및_분산_트랜잭션.md'),
+            ('Transactional Outbox 패턴', '트랜잭셔널_아웃박스_패턴.md'),
+            ('이벤트 소싱과 CQRS', '이벤트_소싱_및_CQRS.md'),
+            ('분산 캐싱 패턴', '분산_캐싱_패턴.md'),
+        ]),
+        ('배포와 운영', [
+            ('배포 패턴', '배포_패턴.md'),
+            ('설정 관리 및 Secret 관리', '설정_관리_및_Secret_관리.md'),
+            ('테스트 전략', 'MSA_테스트_전략.md'),
+            ('분산 추적 및 Observability', '분산_추적_및_Observability.md'),
+            ('장애 격리 패턴', '장애_격리_패턴.md'),
+            ('운영 및 장애 대응', '마이크로서비스_운영_및_장애_대응.md'),
+            ('운영 및 장애 대응 심화',
+             'MSA_Operations_Incident_Response_Deep_Dive.md'),
+        ]),
+    ],
+    'Develop/AI/Concepts': [
+        ('에이전트', [
+            ('Agent Harness', 'Agent_Harness.md'),
+            ('멀티 에이전트 시스템', 'Multi_Agent_Systems.md'),
+            ('Function Calling / Tool Use', 'Tool_Use.md'),
+            ('Structured Output', 'Structured_Output.md'),
+            ('effort mode와 reasoning effort', 'Effort_Mode.md'),
+            ('UltraReview', 'Ultra_Review.md'),
+        ]),
+        ('RAG와 검색', [
+            ('텍스트 임베딩 실무', 'Embeddings.md'),
+            ('벡터 DB 실무 비교와 운영', 'Vector_Database.md'),
+            ('RAG 파이프라인', 'RAG_Pipeline.md'),
+            ('RAG for Code', 'RAG_for_Code.md'),
+            ('Functional RAG', 'Functional_RAG.md'),
+            ('온톨로지', 'Ontology.md'),
+        ]),
+        ('실무 활용', [
+            ('코딩을 위한 프롬프트 엔지니어링', 'Prompt_Engineering.md'),
+            ('할루시네이션', 'AI_Hallucination.md'),
+            ('바이브 코딩 보안 대처법', 'Vibe_Coding_Security.md'),
+            ('Obsidian 실무', 'Obsidian.md'),
+            ('Karpathy의 LLM + Obsidian 워크플로우',
+             'Karpathy_LLM_Obsidian.md'),
+            ('팔란티어가 AI로 일하는 방식', 'Palantir_AI_Workflow.md'),
+            ('로컬 구동 (unsloth/Qwen3)', 'Unsloth_Qwen3_GGUF.md'),
+        ]),
+    ],
+    'Develop/DataBase/RDBMS': [
+        ('인덱스', [
+            ('RDBMS에서의 Index', 'RDBMS에서의 index.md'),
+            ('B-Tree 페이지 분할', 'B_Tree_Page_Split.md'),
+            ('인덱스 지역성', '인덱스_지역성.md'),
+            ('쿼리 옵티마이저와 실행 계획', '쿼리_옵티마이저.md'),
+        ]),
+        ('트랜잭션과 동시성', [
+            ('트랜잭션과 Lock', 'Transaction_and_Lock.md'),
+            ('격리 수준별 이상 현상 재현', 'Isolation_Level_Anomaly_Examples.md'),
+            ('MySQL InnoDB 락 심화', 'My_SQL_Inno_DB_Locking_Deep_Dive.md'),
+            ('PostgreSQL Advisory Lock', 'Postgre_SQL_Advisory_Lock.md'),
+            ('분산 트랜잭션', 'Distributed_Transaction.md'),
+        ]),
+        ('모델링과 정규화', [
+            ('DB 모델링', 'DB_Modeling.md'),
+            ('Codd 12 Rules', 'Codd_12_Rules.md'),
+            ('함수 종속', '함수_종속.md'),
+            ('정규화', '정규화.md'),
+            ('BCNF', 'BCNF.md'),
+            ('갱신 이상', '갱신_이상.md'),
+            ('비정규화', '비정규화.md'),
+            ('계층형 데이터 모델링', 'Hierarchical_Data_Modeling.md'),
+        ]),
+        ('시간 데이터', [
+            ('시간 데이터 모델링', 'Temporal_Data_Modeling.md'),
+            ('Valid Time', 'Valid_Time.md'),
+            ('Transaction Time', 'Transaction_Time.md'),
+            ('Bitemporal', 'Bitemporal.md'),
+        ]),
+        ('키와 타입 설계', [
+            ('식별자 설계', 'Identifier_Design.md'),
+            ('자연키', 'Natural_Key.md'),
+            ('대리키', 'Surrogate_Key.md'),
+            ('AUTO_INCREMENT', 'Auto_Increment.md'),
+            ('ULID', 'ULID.md'),
+            ('데이터 타입 선택', 'Data_Type_Selection.md'),
+        ]),
+        ('무결성과 관계', [
+            ('참조 무결성', 'Referential_Integrity.md'),
+            ('외래키 없는 설계', 'No_FK_Design.md'),
+            ('고아 레코드', 'Orphan_Record.md'),
+            ('Cross-Schema 쿼리', 'Cross_Schema.md'),
+            ('TypeORM 엔티티 관계 매핑 심화', 'Type_ORM_Entity_Relations.md'),
+        ]),
+        ('확장과 운영', [
+            ('데이터베이스 성능 튜닝', '데이터베이스_성능_튜닝.md'),
+            ('데이터베이스 샤딩', '데이터베이스_샤딩.md'),
+            ('읽기 전용 복제본', '읽기_전용_복제본.md'),
+            ('CDC 파이프라인', 'CDC_Pipeline.md'),
+            ('MySQL vs PostgreSQL 실무 비교', 'My_SQL_vs_Postgre_SQL.md'),
+            ('ClickHouse', 'ClickHouse.md'),
+        ]),
+    ],
+    'Develop/Network': [
+        ('기초', [
+            ('네트워크 기초', 'Networking_Fundamentals.md'),
+            ('라우팅', '라우팅.md'),
+            ('네트워크 스위치', 'Network Switch.md'),
+            ('리피터', 'Repeater.md'),
+            ('URL과 URI의 차이', 'URL_and_URI.md'),
+        ]),
+        ('주소 변환과 연결', [
+            ('NAT', 'NAT.md'),
+            ('NAT 트래버설 (STUN·TURN·ICE)', 'NAT_Traversal_STUN_TURN_ICE.md'),
+            ('터널링', 'Tunneling.md'),
+            ('배스천 호스트', 'Bastion_Host.md'),
+            ('Private DNS', 'Private_DNS.md'),
+        ]),
+        ('웹 전송', [
+            ('CORS', 'CORS.md'),
+            ('CDN 동작 원리와 실무 운영', 'CDN.md'),
+        ]),
+        ('분산 네트워크', [
+            ('P2P 네트워크', 'P2P.md'),
+            ('IPFS', 'IPFS.md'),
+        ]),
+        ('관측', [
+            ('tcpdump 패킷 캡처와 분석',
+             'Observability/Packet_Capture_tcpdump.md'),
+            ('소켓 I/O 멀티플렉싱', 'IO/Socket_IO_Multiplexing.md'),
+        ]),
+    ],
+    'Develop/Security': [
+        ('API 보안', [
+            ('API Security', 'API_Security.md'),
+            ('Input Validation', 'API_Input_Validation.md'),
+            ('Gateway Security', 'API_Gateway_Security.md'),
+            ('GraphQL Security', 'Graph_QL_Security.md'),
+            ('Webhook Security', 'Webhook_Security.md'),
+        ]),
+        ('암호화', [
+            ('AES', 'AES.md'),
+            ('RSA', 'RSA.md'),
+            ('SHA 해시 함수', 'SHA.md'),
+            ('HMAC', 'HMAC.md'),
+            ('패스워드 해싱', 'Password_Hashing.md'),
+            ('E2EE 종단간 암호화', 'End_to_End_Encryption.md'),
+        ]),
+        ('전송 구간 보안', [
+            ('HTTPS & TLS', 'HTTPS_and_TLS.md'),
+            ('mTLS', 'Mutual_TLS.md'),
+            ('PKI와 인증서 수명주기', 'PKI_and_Certificate_Management.md'),
+        ]),
+        ('인증과 세션', [
+            ('OAuth 2.0', 'OAuth.md'),
+            ('SSO (SAML · OIDC)', 'SSO_SAML_OIDC.md'),
+            ('JWT', 'JWT.md'),
+            ('JWKS URL', 'JWKS_Endpoint.md'),
+            ('Session Management', 'Session_Management.md'),
+            ('Cookie Security', 'Cookie_Security.md'),
+            ('WebAuthn / FIDO2 / Passkeys', 'Web_Authn_Passkeys.md'),
+            ('모바일 앱 토큰 저장', 'Mobile_Token_Storage.md'),
+        ]),
+        ('웹 취약점', [
+            ('XSS', 'XSS.md'),
+            ('CSRF', 'CSRF.md'),
+            ('SSRF', 'SSRF.md'),
+            ('Clickjacking', 'Clickjacking.md'),
+            ('Command Injection', 'Command_Injection.md'),
+            ('안전하지 않은 역직렬화', 'Insecure_Deserialization.md'),
+            ('XXE 주입', 'XML_External_Entity.md'),
+            ('Path Traversal', 'Path_Traversal.md'),
+            ('Open Redirect', 'Open_Redirect.md'),
+            ('Open Redirect 심화', 'Open_Redirect_Deep_Dive.md'),
+            ('웹 캐시 포이즈닝', 'Web_Cache_Poisoning.md'),
+            ('CORS와 브라우저 보안 헤더', 'CORS_and_Security_Headers.md'),
+            ('파일 업로드 보안', 'File_Upload_Security.md'),
+        ]),
+        ('공격 방어', [
+            ('DDoS 공격 방어', 'D_Do_S_Defense.md'),
+            ('Rate Limiting', 'Rate_Limiting.md'),
+            ('웹 애플리케이션 방화벽', 'Web_Application_Firewall.md'),
+            ('서버 취약점 공격 방어', 'Server_Attack_Defense.md'),
+            ('DNS Security', 'DNS_Security.md'),
+            ('공급망 공격 방어', 'Supply_Chain_Security.md'),
+        ]),
+        ('인프라 보안', [
+            ('Zero Trust Architecture', 'Zero_Trust_Architecture.md'),
+            ('Docker 컨테이너 보안', 'Container_Security.md'),
+            ('쿠버네티스 보안', 'Kubernetes_Security.md'),
+            ('시크릿 관리', 'Secrets_Management.md'),
+            ('SSH 키 라이프사이클 관리', 'SSH_Key_Management.md'),
+        ]),
+        ('운영과 컴플라이언스', [
+            ('DevSecOps', 'Dev_Sec_Ops.md'),
+            ('SAST / DAST / IAST', 'Security_Testing_SAST_DAST_IAST.md'),
+            ('보안 로깅과 감사', 'Security_Logging_and_Auditing.md'),
+            ('보안 사고 대응 절차', 'Incident_Response.md'),
+            ('PII 데이터 보호', 'PII_Data_Protection.md'),
+            ('GDPR 컴플라이언스', 'GDPR_and_Privacy_Compliance.md'),
+            ('ISMS / ISMS-P', 'ISMS.md'),
+            ('AI로 보안 강화하기', 'AI_for_Security.md'),
+            ('DID', 'DID.md'),
+        ]),
+    ],
+    'Develop/Framework/Node/NestJS': [
+        ('핵심 구조', [
+            ('부트스트랩과 모듈 시스템', 'Nest_JS_부트스트랩_및_모듈_시스템.md'),
+            ('표준 계층 아키텍처', 'Nest_JS_Standard_Architecture.md'),
+            ('Clean Architecture 적용', 'Nest_JS_Clean_Architecture.md'),
+            ('데코레이터', 'Nest_JS_Decorator.md'),
+            ('Dynamic Module 심화', 'Nest_JS_Dynamic_Module.md'),
+            ('Provider Scope 심화', 'Nest_JS_Provider_Scope.md'),
+            ('순환 의존성 해결', 'Nest_JS_Circular_Dependency.md'),
+            ('라이프사이클 훅', 'Nest_JS_Lifecycle_Hooks.md'),
+        ]),
+        ('요청 처리', [
+            ('요청 라이프사이클', 'Nest_JS_요청_라이프사이클.md'),
+            ('Middleware', 'Nest_JS_Middleware.md'),
+            ('Guards', 'Nest_JS_Guards.md'),
+            ('Interceptor', 'Nest_JS_Interceptors.md'),
+            ('Pipes', 'Nest_JS_Pipes.md'),
+            ('ValidationPipe와 검증 시점', 'Nest_JS_Validation_Pipe.md'),
+            ('Exception Filters', 'Nest_JS_Exception_Filters.md'),
+        ]),
+        ('API', [
+            ('Swagger 문서 자동화', 'Nest_JS_Swagger.md'),
+            ('API 버저닝', 'Nest_JS_API_Versioning.md'),
+            ('GraphQL 모듈 운영기', 'Nest_JS_Graph_QL.md'),
+            ('GraphQL·마이크로서비스 버전 관리',
+             'Nest_JS_Graph_QL_Microservice_Versioning.md'),
+            ('Server-Sent Events', 'Nest_JS_SSE.md'),
+            ('WebSocket Gateway 운영기', 'Nest_JS_Web_Socket_Gateway.md'),
+            ('File Upload 심화', 'Nest_JS_File_Upload.md'),
+        ]),
+        ('데이터', [
+            ('TypeORM 연동', 'Nest_JS_Type_ORM_연동.md'),
+            ('Prisma 연동', 'Nest_JS_Prisma.md'),
+            ('MongoDB / Mongoose 연동', 'Nest_JS_Mongo_DB_Mongoose.md'),
+            ('CacheModule 운영기', 'Nest_JS_Cache_Module.md'),
+        ]),
+        ('분산 처리', [
+            ('마이크로서비스', 'Nest_JS_마이크로서비스.md'),
+            ('gRPC 트랜스포트 심화', 'Nest_JS_g_RPC.md'),
+            ('Event Emitter / CQRS 심화', 'Nest_JS_Event_Emitter_CQRS.md'),
+            ('작업 큐 (BullMQ) 운영기', 'Nest_JS_작업_큐_Bull_MQ.md'),
+            ('Schedule Module 심화', 'Nest_JS_Schedule_Module.md'),
+        ]),
+        ('운영', [
+            ('설정 관리', 'Nest_JS_설정_관리.md'),
+            ('Type-safe ConfigService', 'Type_Safe_Config_Service.md'),
+            ('AWS Secrets Manager와 KMS', 'Nest_JS_AWS_Secrets_Manager_KMS.md'),
+            ('인증 (JWT · Passport)', 'Nest_JS_인증_JWT_Passport.md'),
+            ('Throttler 심화', 'Nest_JS_Throttler.md'),
+            ('로깅 실무', 'Nest_JS_Logging.md'),
+            ('OpenTelemetry 분산 추적', 'Nest_JS_Open_Telemetry.md'),
+            ('Health Check 심화', 'Nest_JS_Health_Check.md'),
+            ('테스트', 'Nest_JS_테스트.md'),
+        ]),
+    ],
+    'Develop/Framework/Node': [
+        ('프레임워크', [
+            ('개요', 'Nodejs_Framework_Overview.md'),
+            ('비교 (Express·Fastify·NestJS·Hapi)', 'Nest_Hapi_Express_fastify.md'),
+            ('애플리케이션 라우팅', 'Application_Routing.md'),
+            ('뷰 엔진 (Handlebars)', 'View_Engine/Handlebars.md'),
+        ]),
+        ('코어 모듈', [
+            ('HTTP / HTTPS', 'HTTP_Module.md'),
+            ('fs', 'File_System.md'),
+            ('net (TCP)', 'Net_Module.md'),
+            ('Stream', '데이터 처리 및 통신/스트림(Stream).md'),
+            ('crypto', 'Crypto_Module.md'),
+            ('child_process', 'Child_Process.md'),
+            ('AbortController', 'Abort_Controller.md'),
+            ('perf_hooks', 'Performance_Hooks.md'),
+            ('diagnostics_channel', 'Diagnostics_Channel.md'),
+            ('Permission Model', 'Permission_Model.md'),
+            ('node:test 러너', 'Node_Test_Runner.md'),
+        ]),
+        ('함수형 프로그래밍', [
+            ('기초', '함수형 프로그래밍.md'),
+            ('실전', 'Functional_Programming.md'),
+        ]),
+        ('운영', [
+            ('에러 처리', 'Error_Handling.md'),
+            ('에러 처리 심화', '에러_핸들링/에러_핸들링_전략.md'),
+            ('그레이스풀 셧다운', 'Graceful_Shutdown.md'),
+            ('로깅 전략', '로깅/로깅_전략.md'),
+            ('Observability 전략', '모니터링/Observability_전략.md'),
+            ('성능 최적화와 프로파일링',
+             'Performance/Node.js_성능_최적화_및_프로파일링.md'),
+            ('부하 테스트 전략', '성능/부하_테스트_전략.md'),
+            ('보안 모범사례', '보안/Node.js_보안_모범사례.md'),
+            ('JWT 구현과 보안', '인증/JWT_구현_및_보안.md'),
+            ('작업 큐 처리', '백그라운드_작업/작업_큐_처리.md'),
+            ('파일 업로드와 처리', '파일_처리/파일_업로드_및_처리.md'),
+        ]),
+    ],
+}
+
 # 파일명이 디렉터리명과 같아도 '개요'가 아닌 문서
 # (Static/static.md 는 개요가 아니라 실무 패턴 문서다)
 NO_OVERVIEW = {
     'Develop/Language/Java/객체지향 프로그래밍 (OOP)/Static/static.md',
 }
 
+# 디렉터리 .pages의 title 을 강제로 바꾼다
+# (자식의 title 이 부모 nav 라벨보다 우선하므로 여기서 지정해야 한다)
+TITLE_OVERRIDE = {
+    'Develop/Framework/Node/Nodejs의 구조 및 작동 원리': '런타임 구조',
+    'Develop/Framework/Node/Testing': '테스트',
+}
+
 # 디렉터리 자체의 표시 이름
 DIR_LABEL = {
     'Develop/AI/Concepts': '개념',
     'Develop/_hub': '주제별 허브',
+    'Develop/Framework/Node/Nodejs의 구조 및 작동 원리': '런타임 구조',
+    'Develop/Framework/Node/Process Management Tool': '프로세스 관리',
+    'Develop/Framework/Node/Testing': '테스트',
+    'Develop/Framework/Node/데이터베이스': '데이터베이스',
 }
 
 DASHES = [' — ', ' – ', ' - ']
@@ -378,6 +897,16 @@ def build(dirpath, ancestors):
 
     entries = []
 
+    # 0) 손으로 짠 묶음이 있으면 거기 들어간 문서는 따로 배치하지 않는다
+    manual = MANUAL_GROUPS.get(key, [])
+    taken = {rel for _, members in manual for _, rel in members}
+    taken_top = {rel.split('/', 1)[0] for rel in taken}
+    files = [f for f in files if f not in taken]
+    dirs = [d for d in dirs
+            if d not in taken_top or any(
+                m for m in children(os.path.join(dirpath, d))[0]
+                if f'{d}/{m}' not in taken)]
+
     # 1) 디렉터리 대표 문서를 맨 앞에
     overview = None
     for f in files:
@@ -432,7 +961,19 @@ def build(dirpath, ancestors):
                                 name))
 
     entries = dedupe(entries, dirpath, ancestors + [dirname])
-    return group_siblings(entries)
+    entries = group_siblings(entries, dirname)
+
+    # 손으로 짠 묶음은 낱장 문서 뒤, 하위 섹션 앞에 놓는다
+    if manual:
+        groups = [(gl, [(ml, rel) for ml, rel in members
+                        if os.path.exists(os.path.join(dirpath, rel))])
+                  for gl, members in manual]
+        groups = [(gl, ms) for gl, ms in groups if ms]
+        head = [e for e in entries if not isinstance(e[1], list)
+                and str(e[1]).endswith('.md')]
+        tail = [e for e in entries if e not in head]
+        entries = head + groups + tail
+    return entries
 
 
 def build_top():
@@ -457,7 +998,7 @@ def build_top():
     return entries
 
 
-def group_siblings(entries):
+def group_siblings(entries, dirname=''):
     """같은 이름으로 시작하는 형제들을 접기 가능한 그룹으로 묶는다.
 
     'ECS', 'ECS Exec', 'ECS Task Placement', ... 30여 개가 평평하게 늘어서 있으면
@@ -497,6 +1038,10 @@ def group_siblings(entries):
             if any(len(x) == k + 1 for x in toks):
                 break      # 한 항목을 통째로 삼켰다 -> 그게 그룹의 개요다
         return ' '.join(pre) if pre else name
+
+    # 부모 섹션과 같은 이름으로는 묶지 않는다.
+    # NestJS 디렉터리 안에 다시 'NestJS' 묶음이 생기면 계층만 늘어난다.
+    cands = {c for c in cands if norm(c) != norm(dirname)}
 
     plan = {}
     for name in sorted(cands, key=len, reverse=True):
@@ -592,8 +1137,9 @@ def walk_and_generate():
         if dirpath == ROOT:
             generated[dirpath] = write_pages(ROOT, build_top())[1]
             continue
-        # 문서 1개짜리 디렉터리는 부모가 흡수했으므로 .pages 불필요
-        if only_md(dirpath):
+        # 문서 1개짜리 디렉터리는 부모가 흡수했으므로 .pages 불필요.
+        # 단 최상위 섹션은 흡수 대상이 아니므로 그대로 둔다.
+        if only_md(dirpath) and os.path.dirname(dirpath) != ROOT:
             p = os.path.join(dirpath, '.pages')
             if os.path.exists(p) and WRITE:
                 os.remove(p)
@@ -601,7 +1147,8 @@ def walk_and_generate():
             continue
         ancestors = parts[1:-1]
         entries = build(dirpath, ancestors)
-        title = existing_title(dirpath)
+        key = dirpath.replace(os.sep, '/')
+        title = TITLE_OVERRIDE.get(key, existing_title(dirpath))
         generated[dirpath] = write_pages(dirpath, entries, title)[1]
     return generated
 

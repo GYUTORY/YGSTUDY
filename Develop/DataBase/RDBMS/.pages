@@ -1,40 +1,47 @@
 title: RDBMS
 nav:
-  - RDBMS에서의 Index: RDBMS에서의 index.md
-  - B-Tree 페이지 분할: B_Tree_Page_Split.md
-  - 인덱스 지역성: 인덱스_지역성.md
-  - 트랜잭션과 Lock: Transaction_and_Lock.md
-  - 격리 수준별 이상 현상 재현: Isolation_Level_Anomaly_Examples.md
-  - MySQL InnoDB 락 심화: My_SQL_Inno_DB_Locking_Deep_Dive.md
-  - 분산 트랜잭션: Distributed_Transaction.md
-  - 데이터베이스 성능 튜닝: 데이터베이스_성능_튜닝.md
-  - 데이터베이스 샤딩: 데이터베이스_샤딩.md
-  - 읽기 전용 복제본: 읽기_전용_복제본.md
-  - 쿼리 옵티마이저와 실행 계획: 쿼리_옵티마이저.md
-  - DB 모델링: DB_Modeling.md
-  - Codd 12 Rules: Codd_12_Rules.md
-  - 함수 종속: 함수_종속.md
-  - 정규화: 정규화.md
-  - 갱신 이상: 갱신_이상.md
-  - BCNF: BCNF.md
-  - 비정규화: 비정규화.md
-  - 계층형 데이터 모델링: Hierarchical_Data_Modeling.md
-  - 시간 데이터 모델링: Temporal_Data_Modeling.md
-  - Valid Time: Valid_Time.md
-  - Transaction Time: Transaction_Time.md
-  - Bitemporal: Bitemporal.md
-  - 데이터 타입 선택: Data_Type_Selection.md
-  - 식별자 설계: Identifier_Design.md
-  - 자연키: Natural_Key.md
-  - 대리키: Surrogate_Key.md
-  - CDC 파이프라인: CDC_Pipeline.md
-  - ClickHouse: ClickHouse.md
-  - MySQL vs PostgreSQL 실무 비교: My_SQL_vs_Postgre_SQL.md
-  - AUTO_INCREMENT: Auto_Increment.md
-  - ULID: ULID.md
-  - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
-  - 참조 무결성: Referential_Integrity.md
-  - 외래키 없는 설계: No_FK_Design.md
-  - 고아 레코드: Orphan_Record.md
-  - Cross-Schema 쿼리: Cross_Schema.md
-  - PostgreSQL Advisory Lock: Postgre_SQL_Advisory_Lock.md
+  - 인덱스:
+    - RDBMS에서의 Index: RDBMS에서의 index.md
+    - B-Tree 페이지 분할: B_Tree_Page_Split.md
+    - 인덱스 지역성: 인덱스_지역성.md
+    - 쿼리 옵티마이저와 실행 계획: 쿼리_옵티마이저.md
+  - 트랜잭션과 동시성:
+    - 트랜잭션과 Lock: Transaction_and_Lock.md
+    - 격리 수준별 이상 현상 재현: Isolation_Level_Anomaly_Examples.md
+    - MySQL InnoDB 락 심화: My_SQL_Inno_DB_Locking_Deep_Dive.md
+    - PostgreSQL Advisory Lock: Postgre_SQL_Advisory_Lock.md
+    - 분산 트랜잭션: Distributed_Transaction.md
+  - 모델링과 정규화:
+    - DB 모델링: DB_Modeling.md
+    - Codd 12 Rules: Codd_12_Rules.md
+    - 함수 종속: 함수_종속.md
+    - 정규화: 정규화.md
+    - BCNF: BCNF.md
+    - 갱신 이상: 갱신_이상.md
+    - 비정규화: 비정규화.md
+    - 계층형 데이터 모델링: Hierarchical_Data_Modeling.md
+  - 시간 데이터:
+    - 시간 데이터 모델링: Temporal_Data_Modeling.md
+    - Valid Time: Valid_Time.md
+    - Transaction Time: Transaction_Time.md
+    - Bitemporal: Bitemporal.md
+  - 키와 타입 설계:
+    - 식별자 설계: Identifier_Design.md
+    - 자연키: Natural_Key.md
+    - 대리키: Surrogate_Key.md
+    - AUTO_INCREMENT: Auto_Increment.md
+    - ULID: ULID.md
+    - 데이터 타입 선택: Data_Type_Selection.md
+  - 무결성과 관계:
+    - 참조 무결성: Referential_Integrity.md
+    - 외래키 없는 설계: No_FK_Design.md
+    - 고아 레코드: Orphan_Record.md
+    - Cross-Schema 쿼리: Cross_Schema.md
+    - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
+  - 확장과 운영:
+    - 데이터베이스 성능 튜닝: 데이터베이스_성능_튜닝.md
+    - 데이터베이스 샤딩: 데이터베이스_샤딩.md
+    - 읽기 전용 복제본: 읽기_전용_복제본.md
+    - CDC 파이프라인: CDC_Pipeline.md
+    - MySQL vs PostgreSQL 실무 비교: My_SQL_vs_Postgre_SQL.md
+    - ClickHouse: ClickHouse.md

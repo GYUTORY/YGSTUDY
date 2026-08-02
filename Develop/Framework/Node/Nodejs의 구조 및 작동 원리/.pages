@@ -1,4 +1,4 @@
-title: Node.js 구조
+title: 런타임 구조
 nav:
   - AsyncLocalStorage: Async_Local_Storage.md
   - Cluster (클러스터): Cluster.md

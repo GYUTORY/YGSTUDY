@@ -1,4 +1,26 @@
 nav:
+  - 에이전트:
+    - Agent Harness: Agent_Harness.md
+    - 멀티 에이전트 시스템: Multi_Agent_Systems.md
+    - Function Calling / Tool Use: Tool_Use.md
+    - Structured Output: Structured_Output.md
+    - effort mode와 reasoning effort: Effort_Mode.md
+    - UltraReview: Ultra_Review.md
+  - RAG와 검색:
+    - 텍스트 임베딩 실무: Embeddings.md
+    - 벡터 DB 실무 비교와 운영: Vector_Database.md
+    - RAG 파이프라인: RAG_Pipeline.md
+    - RAG for Code: RAG_for_Code.md
+    - Functional RAG: Functional_RAG.md
+    - 온톨로지: Ontology.md
+  - 실무 활용:
+    - 코딩을 위한 프롬프트 엔지니어링: Prompt_Engineering.md
+    - 할루시네이션: AI_Hallucination.md
+    - 바이브 코딩 보안 대처법: Vibe_Coding_Security.md
+    - Obsidian 실무: Obsidian.md
+    - Karpathy의 LLM + Obsidian 워크플로우: Karpathy_LLM_Obsidian.md
+    - 팔란티어가 AI로 일하는 방식: Palantir_AI_Workflow.md
+    - 로컬 구동 (unsloth/Qwen3): Unsloth_Qwen3_GGUF.md
   - LLM:
     - 동작 원리와 프로덕션 통합: LLM.md
     - 사전학습 파이프라인: LLM_Pretraining.md
@@ -11,22 +33,3 @@ nav:
     - 에이전트 (Claude 관점): LLM_Agent.md
     - 보안 위협과 대응: LLM_Security.md
     - 스케일링 법칙: LLM_Scaling_Laws.md
-  - Agent Harness: Agent_Harness.md
-  - 멀티 에이전트 시스템: Multi_Agent_Systems.md
-  - Function Calling / Tool Use: Tool_Use.md
-  - Structured Output: Structured_Output.md
-  - 할루시네이션: AI_Hallucination.md
-  - 바이브 코딩 보안 대처법: Vibe_Coding_Security.md
-  - 코딩을 위한 프롬프트 엔지니어링: Prompt_Engineering.md
-  - effort mode와 reasoning effort: Effort_Mode.md
-  - UltraReview: Ultra_Review.md
-  - 텍스트 임베딩 실무: Embeddings.md
-  - 벡터 DB 실무 비교와 운영: Vector_Database.md
-  - RAG for Code: RAG_for_Code.md
-  - RAG 파이프라인: RAG_Pipeline.md
-  - Functional RAG: Functional_RAG.md
-  - 온톨로지 (Ontology): Ontology.md
-  - Obsidian 실무: Obsidian.md
-  - Karpathy의 LLM + Obsidian 워크플로우: Karpathy_LLM_Obsidian.md
-  - 팔란티어가 AI로 일하는 방식: Palantir_AI_Workflow.md
-  - unsloth/Qwen3.6-27B-GGUF 로컬 구동: Unsloth_Qwen3_GGUF.md

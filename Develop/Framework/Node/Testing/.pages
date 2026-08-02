@@ -1,3 +1,4 @@
+title: 테스트
 nav:
   - API E2E 테스트 패턴: API_E2E_테스트_패턴.md
   - 데이터베이스 통합 테스트: Database_Integration_Testing.md

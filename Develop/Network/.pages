@@ -1,23 +1,28 @@
 nav:
-  - 네트워크 기초: Networking_Fundamentals.md
-  - 리피터 (Repeater): Repeater.md
-  - P2P 네트워크: P2P.md
-  - IPFS: IPFS.md
-  - NAT: NAT.md
-  - NAT 트래버설: NAT_Traversal_STUN_TURN_ICE.md
-  - 배스천 호스트: Bastion_Host.md
-  - Private DNS: Private_DNS.md
-  - 터널링: Tunneling.md
-  - URL과 URI의 차이 - 구조, 인코딩, 실무 활용: URL_and_URI.md
-  - CORS: CORS.md
-  - CDN 동작 원리와 실무 운영: CDN.md
-  - 네트워크 스위치: Network Switch.md
-  - 라우팅(Routing): 라우팅.md
+  - 기초:
+    - 네트워크 기초: Networking_Fundamentals.md
+    - 라우팅: 라우팅.md
+    - 네트워크 스위치: Network Switch.md
+    - 리피터: Repeater.md
+    - URL과 URI의 차이: URL_and_URI.md
+  - 주소 변환과 연결:
+    - NAT: NAT.md
+    - NAT 트래버설 (STUN·TURN·ICE): NAT_Traversal_STUN_TURN_ICE.md
+    - 터널링: Tunneling.md
+    - 배스천 호스트: Bastion_Host.md
+    - Private DNS: Private_DNS.md
+  - 웹 전송:
+    - CORS: CORS.md
+    - CDN 동작 원리와 실무 운영: CDN.md
+  - 분산 네트워크:
+    - P2P 네트워크: P2P.md
+    - IPFS: IPFS.md
+  - 관측:
+    - tcpdump 패킷 캡처와 분석: Observability/Packet_Capture_tcpdump.md
+    - 소켓 I/O 멀티플렉싱: IO/Socket_IO_Multiplexing.md
   - 7 Layer
   - Protocol
   - Domain
   - GateWay
   - Proxy
   - Security
-  - IO: IO/Socket_IO_Multiplexing.md
-  - tcpdump 패킷 캡처와 분석: Observability/Packet_Capture_tcpdump.md
