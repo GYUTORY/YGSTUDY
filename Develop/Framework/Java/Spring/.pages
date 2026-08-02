@@ -13,7 +13,7 @@ nav:
   - 테스트: Spring_Test.md
   - Rate Limiting 구현: Rate_Limiting.md
   - Profiles 심화: Spring Boot Profiles.md
-  - 2.x vs 3.x: Boot2.0__vs__Boot3.0.md
+  - 2.x vs 3.x 마이그레이션 의사결정: Boot2.0__vs__Boot3.0.md
   - 2.x → 3.x 마이그레이션 심화: Spring_Boot_Migration_2_to_3.md
   - Gradle vs Maven: Gradle__vs__Maven.md
   - 로깅: Spring_Logging.md

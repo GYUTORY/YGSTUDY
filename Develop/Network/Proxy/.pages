@@ -4,4 +4,4 @@ nav:
   - 포워드 프록시: Forward_Proxy.md
   - 리버스 프록시: Reverse_Proxy.md
   - WebSocket 프록싱: Web_Socket_Proxy.md
-  - 로드 밸런싱 심화 가이드: Load_Balancing.md
+  - 로드 밸런싱 심화: Load_Balancing.md

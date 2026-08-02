@@ -1,11 +1,10 @@
 ---
-title: TypeScript boolean 타입 가이드
+title: TypeScript boolean 타입
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, boolean]
 updated: 2025-12-31
 ---
 
-# TypeScript boolean 타입 가이드
-
+# TypeScript boolean 타입
 ## 배경
 
 TypeScript에서 `boolean` 타입은 논리적인 참(true) 또는 거짓(false) 값을 나타내는 기본 데이터 타입입니다.

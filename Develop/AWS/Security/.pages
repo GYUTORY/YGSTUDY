@@ -6,8 +6,8 @@ nav:
   - KMS: KMS.md
   - Secrets Manager: Secrets_Manager.md
   - Secrets Manager vs KMS: Secrets_Manager_vs_KMS.md
-  - Cognito 사용자 인증 및 권한 관리 심화 가이드: Cognito.md
-  - Cognito Deep Dive: Cognito_Deep_Dive.md
+  - Cognito: Cognito.md
+  - Cognito 심화: Cognito_Deep_Dive.md
   - ACM: ACM.md
   - WAF:
     - 개요: WAF.md

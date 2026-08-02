@@ -1,11 +1,10 @@
 ---
-title: JVM Garbage Collection Deep Dive
+title: JVM Garbage Collection 심화
 tags: [java, jvm, gc, garbage-collection, g1gc, zgc, cms, heap, memory, tuning, container]
 updated: 2026-04-09
 ---
 
-# JVM Garbage Collection Deep Dive
-
+# JVM Garbage Collection 심화
 ## 개요
 
 GC(Garbage Collection)는 JVM이 사용하지 않는 객체를 자동으로 해제하는 메모리 관리 메커니즘이다. 개발자가 직접 메모리를 해제하지 않아도 되지만, GC 동작을 이해해야 성능 문제를 진단하고 튜닝할 수 있다.

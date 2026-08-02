@@ -1,5 +1,5 @@
 ---
-title: AWS API Gateway 가이드
+title: AWS API Gateway
 tags: [aws, api-gateway, rest-api, http-api, websocket, lambda, throttling, cognito]
 updated: 2026-04-26
 ---

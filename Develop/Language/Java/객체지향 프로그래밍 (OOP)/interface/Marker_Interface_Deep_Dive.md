@@ -1,11 +1,10 @@
 ---
-title: Java Marker Interface 심화 가이드
+title: Java Marker Interface 심화
 tags: [language, java, 객체지향-프로그래밍-oop, interface, marker-interface, serializable, cloneable, jvm]
 updated: 2026-04-26
 ---
 
-# Java Marker Interface 심화 가이드
-
+# Java Marker Interface 심화
 마커 인터페이스를 처음 배울 때는 "그냥 빈 인터페이스 아닌가?" 정도로 넘어가기 쉽다. 그런데 실무에서 `Serializable`로 객체를 Redis에 넣다가 `InvalidClassException`을 만나거나, `ArrayList`와 `LinkedList`를 같은 코드로 순회했더니 한쪽은 1초, 다른 쪽은 10분이 걸리는 상황을 겪고 나면 마커 인터페이스가 단순한 빈 껍데기가 아니라는 걸 알게 된다. 이 문서는 5년 차쯤 되어 "빈 인터페이스가 왜 필요한가, 왜 애노테이션으로 안 가나"라는 질문을 진지하게 던지는 사람을 위한 자료다.
 
 ## 마커 인터페이스란 정확히 무엇인가

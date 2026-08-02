@@ -1,7 +1,7 @@
 title: Network
 nav:
   - ALB → ECS → S3 요청 흐름: ALB_ECS_S3_Request_Flow.md
-  - API Gateway 가이드: API_Gateway.md
+  - API Gateway: API_Gateway.md
   - 네트워크 구성요소를 건물 비유로 이해하기: AWS_Network_Components_Analogy.md
   - CloudFront 캐시 무효화 정책: CDN 캐시 무효화 정책.md
   - CloudFront: CDN.md

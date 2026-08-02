@@ -1,11 +1,10 @@
 ---
-title: Java 객체지향 프로그래밍(OOP) 가이드
+title: Java 객체지향 프로그래밍(OOP)
 tags: [language, java, 객체지향-프로그래밍-oop, oop, encapsulation, inheritance, polymorphism, abstraction]
 updated: 2026-01-07
 ---
 
-# Java 객체지향 프로그래밍(OOP) 가이드
-
+# Java 객체지향 프로그래밍(OOP)
 ## 배경
 
 객체지향 프로그래밍(Object-Oriented Programming, OOP)은 객체(Object)를 기반으로 프로그램을 구성하는 프로그래밍 패러다임입니다. Java는 대표적인 객체지향 언어로, 클래스와 객체를 활용하여 코드의 재사용성을 높이고 유지보수를 용이하게 만듭니다.

@@ -1,6 +1,6 @@
 title: 시스템 관리
 nav:
-  - 시스템 서비스 관리 심화 가이드: Systemd_Deep_Dive.md
+  - 시스템 서비스 관리 심화: Systemd_Deep_Dive.md
   - 로그 관리: 로그_관리.md
   - 시스템 모니터링: 시스템_모니터링.md
   - 시스템 서비스 관리: 시스템_서비스_관리.md

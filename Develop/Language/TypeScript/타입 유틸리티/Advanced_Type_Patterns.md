@@ -1,5 +1,5 @@
 ---
-title: TypeScript 고급 타입 패턴 가이드
+title: TypeScript 고급 타입 패턴
 tags: [typescript, conditional-types, mapped-types, template-literal, type-guard, discriminated-union, infer]
 updated: 2026-03-01
 ---

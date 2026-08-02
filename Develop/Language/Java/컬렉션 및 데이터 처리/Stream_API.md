@@ -1,5 +1,5 @@
 ---
-title: Java Stream API 심화 가이드
+title: Java Stream API 심화
 tags: [java, stream, lambda, functional-programming, collectors, parallel-stream]
 updated: 2026-03-01
 ---

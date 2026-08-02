@@ -1,11 +1,10 @@
 ---
-title: TypeScript 제네릭 (Generics) 가이드
+title: TypeScript 제네릭 (Generics)
 tags: [language, typescript, generics, type-utility, constraints]
 updated: 2025-12-16
 ---
 
-# TypeScript 제네릭 (Generics) 가이드
-
+# TypeScript 제네릭 (Generics)
 ## 배경
 
 ### 제네릭이란?

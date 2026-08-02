@@ -1,11 +1,10 @@
 ---
-title: JSDoc 가이드
+title: JSDoc
 tags: [language, javascript, 08oop및디자인패턴, jsdoc, documentation]
 updated: 2026-01-12
 ---
 
-# JSDoc 가이드
-
+# JSDoc
 ## 배경
 
 JSDoc은 JavaScript 코드에 특별한 형태의 주석을 추가하여 코드의 구조와 기능을 문서화하는 표준 방식입니다.

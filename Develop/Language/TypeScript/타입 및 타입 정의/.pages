@@ -1,6 +1,6 @@
 title: 타입 정의
 nav:
   - TypeScript Types
-  - 타입 단언 가이드: Type_Assertion.md
+  - 타입 단언: Type_Assertion.md
   - 고급 타입 기법: 고급 타입 기법.md
   - 타입 정의 파일: 타입 정의 파일.md

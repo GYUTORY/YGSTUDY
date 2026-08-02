@@ -1,11 +1,10 @@
 ---
-title: TypeScript object 타입 가이드
+title: TypeScript object 타입
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, other-types, object]
 updated: 2025-08-10
 ---
 
-# TypeScript object 타입 가이드
-
+# TypeScript object 타입
 ## 배경
 
 TypeScript에서 `object` 타입은 모든 객체 유형을 포함하는 일반적인 객체 타입입니다.

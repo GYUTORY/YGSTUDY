@@ -1,5 +1,5 @@
 ---
-title: Java 고급 클래스 기능 심화 가이드
+title: Java 고급 클래스 기능 심화
 tags: [language, java, 객체지향-프로그래밍-oop, class, advancedclass, sealed-class, record, inner-class, anonymous-class]
 updated: 2026-04-26
 ---

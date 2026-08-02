@@ -1,11 +1,10 @@
 ---
-title: Linux 시스템 서비스 관리 (systemd) 심화 가이드
+title: Linux 시스템 서비스 관리 (systemd) 심화
 tags: [linux, systemd, systemctl, cgroup, journald, service, unit]
 updated: 2026-04-25
 ---
 
-# Linux 시스템 서비스 관리 (systemd) 심화 가이드
-
+# Linux 시스템 서비스 관리 (systemd) 심화
 ## 들어가며
 
 기본 `systemctl start/stop/enable` 명령만 알아도 일상적인 운영은 가능하지만, 운영 환경에서 사고가 터지는 순간은 거의 항상 unit 파일의 디테일에서 나온다. 재시작이 무한 루프로 들어가서 부팅이 안 되거나, `systemctl stop`을 했는데 프로세스가 안 죽거나, 패키지 업데이트가 커스텀 설정을 덮어쓰거나, journal이 디스크를 가득 채우거나 하는 일이 그렇다.

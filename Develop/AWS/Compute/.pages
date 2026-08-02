@@ -19,4 +19,4 @@ nav:
     - 배포와 패키징 심화: Lambda_배포_패키징.md
   - Elastic Beanstalk: Elastic_Beanstalk.md
   - Batch 대량 배치 작업 처리: AWS_Batch.md
-  - App Runner 심층 가이드: App_Runner.md
+  - App Runner 심화: App_Runner.md

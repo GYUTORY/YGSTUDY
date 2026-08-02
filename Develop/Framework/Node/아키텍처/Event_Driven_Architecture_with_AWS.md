@@ -1,11 +1,10 @@
 ---
-title: NestJS Event Driven Architecture with AWS 실전 가이드
+title: NestJS Event Driven Architecture with AWS
 tags: [nestjs, event-driven, aws, sns, sqs, lambda, microservices, architecture]
 updated: 2025-12-15
 ---
 
-# NestJS Event Driven Architecture with AWS 실전 가이드
-
+# NestJS Event Driven Architecture with AWS
 ## 목차
 
 1. [개요](#개요)

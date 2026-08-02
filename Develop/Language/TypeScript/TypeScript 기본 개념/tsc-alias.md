@@ -1,11 +1,10 @@
 ---
-title: TypeScript tsc-alias 가이드
+title: TypeScript tsc-alias
 tags: [language, typescript, typescript-기본-개념, tsc-alias, path-alias]
 updated: 2025-12-16
 ---
 
-# TypeScript tsc-alias 가이드
-
+# TypeScript tsc-alias
 ## 배경
 
 `tsc-alias`는 TypeScript의 `paths`와 `baseUrl`을 사용하는 프로젝트에서 경로 별칭(Path Alias)을 컴파일 후에 자동으로 변환해주는 도구입니다.

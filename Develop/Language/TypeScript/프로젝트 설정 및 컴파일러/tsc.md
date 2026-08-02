@@ -1,11 +1,10 @@
 ---
-title: TypeScript 컴파일러(tsc) 완벽 가이드
+title: TypeScript 컴파일러 (tsc)
 tags: [language, typescript, 프로젝트-설정-및-컴파일러, tsc, compiler, tsconfig, build]
 updated: 2026-04-28
 ---
 
-# TypeScript 컴파일러(tsc) 완벽 가이드
-
+# TypeScript 컴파일러 (tsc)
 ## tsc가 실제로 하는 일
 
 `tsc`는 단순히 `.ts`를 `.js`로 바꾸는 도구가 아니다. 내부적으로는 다섯 단계를 거치는 풀 컴파일러다. 이 단계를 이해하고 있어야 빌드가 느려지거나 타입 에러가 이상하게 잡힐 때 원인을 찾을 수 있다.

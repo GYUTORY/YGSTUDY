@@ -1,5 +1,5 @@
 ---
-title: 로드 밸런싱 심화 가이드
+title: 로드 밸런싱 심화
 tags: [network, load-balancing, nginx, haproxy, alb, health-check, session-persistence, l4, l7]
 updated: 2026-03-01
 ---

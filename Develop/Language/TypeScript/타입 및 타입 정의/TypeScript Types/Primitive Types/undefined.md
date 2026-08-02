@@ -1,11 +1,10 @@
 ---
-title: TypeScript undefined 타입 가이드
+title: TypeScript undefined 타입
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, undefined]
 updated: 2025-08-10
 ---
 
-# TypeScript undefined 타입 가이드
-
+# TypeScript undefined 타입
 ## 배경
 
 TypeScript에서 `undefined` 타입은 값이 할당되지 않은 변수의 상태를 나타내는 특별한 타입입니다.

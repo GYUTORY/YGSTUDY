@@ -1,5 +1,5 @@
 ---
-title: AWS Cognito 사용자 인증 및 권한 관리 심화 가이드
+title: AWS Cognito
 tags: [aws, security, cognito, authentication, user-pool, identity-pool, jwt, oauth2, refresh-token, lambda-trigger]
 updated: 2026-04-25
 ---

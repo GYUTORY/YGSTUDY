@@ -5,5 +5,5 @@ nav:
   - Interface: Interface.md
   - Interface 심화: Interface_Deep_Dive.md
   - Tuple 타입 심화: Tuples.md
-  - 접근 제어자 가이드: 접근 제어자.md
-  - 추상 클래스 가이드: 추상 클래스.md
+  - 접근 제어자: 접근 제어자.md
+  - 추상 클래스: 추상 클래스.md

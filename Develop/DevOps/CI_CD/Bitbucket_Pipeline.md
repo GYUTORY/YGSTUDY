@@ -1,5 +1,5 @@
 ---
-title: Bitbucket Pipelines 가이드
+title: Bitbucket Pipelines
 tags: [devops, cicd, bitbucket, pipeline, automation, deployment]
 updated: 2025-12-05
 ---

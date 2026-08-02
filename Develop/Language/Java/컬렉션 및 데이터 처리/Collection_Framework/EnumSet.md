@@ -1,5 +1,5 @@
 ---
-title: Java EnumSet 심화 가이드
+title: Java EnumSet
 tags: [language, java, 컬렉션-및-데이터-처리, collectionframework, enumset, enummap]
 updated: 2026-04-25
 ---

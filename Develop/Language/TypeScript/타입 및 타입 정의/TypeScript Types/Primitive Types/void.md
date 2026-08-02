@@ -1,11 +1,10 @@
 ---
-title: TypeScript void 타입 가이드
+title: TypeScript void 타입
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, void]
 updated: 2025-08-10
 ---
 
-# TypeScript void 타입 가이드
-
+# TypeScript void 타입
 ## 배경
 
 TypeScript에서 `void` 타입은 함수가 값을 반환하지 않는 경우의 반환 타입을 나타냅니다.

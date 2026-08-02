@@ -1,5 +1,5 @@
 ---
-title: GPT-5.5 모델 종합 가이드
+title: GPT-5.5
 tags: [ai, openai, gpt, gpt-5-5, llm, api]
 updated: 2026-04-24
 ---

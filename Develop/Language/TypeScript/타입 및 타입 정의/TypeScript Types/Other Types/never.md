@@ -1,11 +1,10 @@
 ---
-title: TypeScript never 타입 가이드
+title: TypeScript never 타입
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, other-types, never]
 updated: 2025-08-10
 ---
 
-# TypeScript never 타입 가이드
-
+# TypeScript never 타입
 ## 배경
 
 TypeScript에서 `never` 타입은 절대로 발생하지 않는 값의 타입을 나타냅니다.

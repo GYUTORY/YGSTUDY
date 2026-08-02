@@ -1,5 +1,5 @@
 ---
-title: Java EnumSet 심화 (비트 벡터 구현, RegularEnumSet/JumboEnumSet, EnumMap 비교)
+title: Java EnumSet 심화
 tags: [language, java, 컬렉션-및-데이터-처리, collectionframework, enumset, enummap]
 updated: 2026-04-17
 ---

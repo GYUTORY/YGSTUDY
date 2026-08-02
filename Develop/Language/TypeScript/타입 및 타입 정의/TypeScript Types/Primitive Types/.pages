@@ -1,8 +1,8 @@
 nav:
   - null 타입 심화: Null_Type_Deep_Dive.md
   - String 타입: String.md
-  - boolean 타입 가이드: boolean.md
+  - boolean 타입: boolean.md
   - null 타입: null.md
-  - number 타입 가이드: number.md
-  - undefined 타입 가이드: undefined.md
-  - void 타입 가이드: void.md
+  - number 타입: number.md
+  - undefined 타입: undefined.md
+  - void 타입: void.md

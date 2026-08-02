@@ -1,11 +1,10 @@
 ---
-title: TypeScript unknown 타입 가이드
+title: TypeScript unknown 타입
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, other-types, unknown]
 updated: 2025-08-10
 ---
 
-# TypeScript unknown 타입 가이드
-
+# TypeScript unknown 타입
 ## 배경
 
 TypeScript에서 `unknown` 타입은 모든 타입의 슈퍼 타입으로, 타입 안전성을 유지하면서도 유연한 타입 처리를 제공합니다.

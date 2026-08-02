@@ -1,11 +1,10 @@
 ---
-title: 외부 API 모킹 가이드
+title: 외부 API 모킹
 tags: [framework, node, testing, mocking, nock, axios-mock-adapter, external-api, integration-testing]
 updated: 2025-09-17
 ---
 
-# 외부 API 모킹 가이드
-
+# 외부 API 모킹
 ## 배경
 
 ### 외부 API 모킹이란?

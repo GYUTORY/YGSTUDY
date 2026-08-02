@@ -1,11 +1,10 @@
 ---
-title: Java this와 super 키워드 가이드
+title: Java this와 super 키워드
 tags: [language, java, java-기본-개념, this, super, inheritance]
 updated: 2025-12-28
 ---
 
-# Java this와 super 키워드 가이드
-
+# Java this와 super 키워드
 ## 배경
 
 Java에서 `this`와 `super`는 객체지향 프로그래밍의 핵심 키워드입니다. `this`는 현재 객체를 참조하고, `super`는 부모 클래스를 참조하는 데 사용됩니다. 이 두 키워드를 올바르게 이해하고 사용하면 더 명확하고 유지보수하기 쉬운 코드를 작성할 수 있습니다.

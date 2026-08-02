@@ -1,11 +1,10 @@
 ---
-title: TypeScript 타입 단언 가이드
+title: TypeScript 타입 단언
 tags: [language, typescript, 타입-및-타입-정의, type-assertion]
 updated: 2025-12-18
 ---
 
-# TypeScript 타입 단언 가이드
-
+# TypeScript 타입 단언
 ## 배경
 
 TypeScript에서 타입 단언(Type Assertion)은 개발자가 특정 값의 타입을 컴파일러에게 "알려주는" 방식으로 사용됩니다.

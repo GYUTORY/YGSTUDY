@@ -1,5 +1,5 @@
 ---
-title: GitHub Actions CI/CD 가이드
+title: GitHub Actions CI/CD
 tags: [devops, cicd, github-actions, workflow, automation, deployment]
 updated: 2026-03-01
 ---

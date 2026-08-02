@@ -1,4 +1,4 @@
 title: 이벤트 루프 & 비동기
 nav:
   - 실행 순서 이해: 실행 순서 이해.md
-  - Async/Await & Promise 심화 가이드: Async_Await_and_Promise.md
+  - Async/Await & Promise 심화: Async_Await_and_Promise.md

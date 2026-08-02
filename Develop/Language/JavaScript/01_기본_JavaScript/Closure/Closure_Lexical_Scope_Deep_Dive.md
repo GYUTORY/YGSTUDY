@@ -1,11 +1,10 @@
 ---
-title: JavaScript 클로저와 렉시컬 스코프 심화 가이드
+title: JavaScript 클로저와 렉시컬 스코프 심화
 tags: [language, javascript, closure, lexical-scope, v8, memory-leak, react-hooks]
 updated: 2026-04-25
 ---
 
-# JavaScript 클로저와 렉시컬 스코프 심화 가이드
-
+# JavaScript 클로저와 렉시컬 스코프 심화
 클로저는 입문서에서 "함수가 외부 변수를 기억한다"로 끝나지만, 실제로 프로덕션에서 메모리 누수를 추적하거나 React에서 stale closure로 4시간씩 헤매고 나면 그 한 줄 설명이 얼마나 부족한지 깨닫게 된다. 이 문서는 ECMAScript 명세 수준의 정의에서 시작해 V8 엔진의 실제 구현, 그리고 5년차 백엔드 개발자가 Node.js 서비스와 React Admin을 다루면서 실제로 겪었던 문제들을 다룬다.
 
 ## 실행 컨텍스트와 렉시컬 환경의 실체

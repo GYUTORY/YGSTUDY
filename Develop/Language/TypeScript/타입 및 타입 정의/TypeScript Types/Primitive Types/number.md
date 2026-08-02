@@ -1,11 +1,10 @@
 ---
-title: TypeScript number 타입 가이드
+title: TypeScript number 타입
 tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, number]
 updated: 2025-08-10
 ---
 
-# TypeScript number 타입 가이드
-
+# TypeScript number 타입
 ## 배경
 
 TypeScript에서 `number` 타입은 숫자 값을 나타내는 기본 데이터 타입입니다.

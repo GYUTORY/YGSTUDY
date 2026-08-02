@@ -1,11 +1,10 @@
 ---
-title: Spring Boot 2.x vs 3.x - 마이그레이션 의사결정 가이드
+title: Spring Boot 2.x vs 3.x 마이그레이션 의사결정
 tags: [framework, java, spring, spring-boot, migration, jakarta-ee, graalvm, observability]
 updated: 2026-04-28
 ---
 
-# Spring Boot 2.x vs 3.x - 마이그레이션 의사결정 가이드
-
+# Spring Boot 2.x vs 3.x 마이그레이션 의사결정
 이 문서는 Spring Boot 2.x와 3.x를 어떤 기준으로 비교하고, 마이그레이션을 언제 어떤 방식으로 결정해야 하는지를 다룬다. 실제 마이그레이션 실행 절차는 별도 문서(Spring_Boot_Migration_2_to_3.md)에서 다루므로, 여기서는 차이의 본질과 의사결정에 집중한다.
 
 ## 왜 이 비교가 필요한가
