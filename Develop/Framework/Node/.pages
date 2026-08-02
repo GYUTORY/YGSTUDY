@@ -1,5 +1,6 @@
 title: Node.js
 nav:
+  - 프레임워크 문서 인덱스: README.md
   - 함수형 프로그래밍 기초: 함수형 프로그래밍.md
   - 함수형 프로그래밍 실전: Functional_Programming.md
   - AbortController로 비동기 작업 취소하기: Abort_Controller.md
@@ -17,7 +18,6 @@ nav:
   - 프레임워크 개요: Nodejs_Framework_Overview.md
   - perf_hooks 모듈 심화: Performance_Hooks.md
   - Permission Model 심화: Permission_Model.md
-  - 프레임워크 문서 인덱스: README.md
   - API
   - NestJS
   - Nodejs의 구조 및 작동 원리

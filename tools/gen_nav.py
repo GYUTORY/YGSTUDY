@@ -90,7 +90,9 @@ TOP_ORDER = [
 # 특정 디렉터리의 자식 순서 지정 (여기 없는 항목은 뒤에 알파벳순)
 ORDER_OVERRIDE = {
     # 기초를 실전보다 앞에
-    'Develop/Framework/Node': ['함수형 프로그래밍.md', 'Functional_Programming.md'],
+    # README.md는 MkDocs가 섹션 index로 매핑하므로 맨 앞에 와야 한다
+    'Develop/Framework/Node': ['README.md', '함수형 프로그래밍.md',
+                               'Functional_Programming.md'],
     # 개요격 문서를 맨 앞으로
     'Develop/Architecture/MSA': ['Microservices_Architecture.md'],
     'Develop/Architecture/OMO': ['Online_Merge_Offline.md', 'OMO_운영_실무.md'],
