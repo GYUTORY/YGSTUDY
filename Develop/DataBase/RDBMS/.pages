@@ -36,6 +36,7 @@ nav:
     - 참조 무결성: Referential_Integrity.md
     - 외래키 없는 설계: No_FK_Design.md
     - 고아 레코드: Orphan_Record.md
+    - 소프트 삭제: Soft_Delete.md
     - Cross-Schema 쿼리: Cross_Schema.md
     - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
   - 확장과 운영:
