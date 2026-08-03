@@ -1,6 +1,7 @@
 ---
 title: Go 제네릭
 tags: [Go, Golang, generics, 타입파라미터, 타입제약]
+updated: 2026-08-03
 ---
 
 # Go 제네릭
@@ -420,3 +421,115 @@ timeout := GetOrDefault(config, "timeout", 30)  // int로 바로 쓸 수 있다
 ```
 
 Go 1.21부터 표준 라이브러리의 `maps` 패키지에 이런 유틸리티들이 포함됐다. 직접 만들기 전에 표준 라이브러리에 있는지 먼저 확인하는 것이 좋다.
+
+## DB 유니크 제약 에러 처리
+
+PostgreSQL 드라이버를 `lib/pq`에서 `pgx/v5`로 교체하거나, 같은 서비스에서 두 드라이버를 혼용하면 에러 처리 코드를 각각 따로 작성해야 한다. 두 라이브러리가 에러를 서로 다른 타입으로 감싸기 때문이다.
+
+- `lib/pq`: `*pq.Error` — 유니크 위반 코드 `23505`, 제약 이름은 `.Constraint` 필드
+- `jackc/pgx/v5`: `*pgconn.PgError` — 같은 코드, 제약 이름은 `.ConstraintName` 필드
+
+기본 판별은 `errors.As`로 한다.
+
+```go
+import (
+    "errors"
+    "github.com/lib/pq"
+    "github.com/jackc/pgx/v5/pgconn"
+)
+
+// pq 드라이버
+func isPQUniqueViolation(err error) (bool, string) {
+    var pgErr *pq.Error
+    if !errors.As(err, &pgErr) {
+        return false, ""
+    }
+    if pgErr.Code != "23505" {
+        return false, ""
+    }
+    return true, pgErr.Constraint
+}
+
+// pgx/v5 드라이버
+func isPGXUniqueViolation(err error) (bool, string) {
+    var pgErr *pgconn.PgError
+    if !errors.As(err, &pgErr) {
+        return false, ""
+    }
+    if pgErr.Code != "23505" {
+        return false, ""
+    }
+    return true, pgErr.ConstraintName
+}
+```
+
+로직은 동일한데 타입이 달라서 함수가 두 개다. 드라이버를 교체하거나 추가할 때마다 에러 처리 코드를 찾아서 수정해야 한다.
+
+### 제네릭으로 드라이버 추상화
+
+두 에러 타입의 구조적 차이(`.Constraint` vs `.ConstraintName`)는 제네릭 union 제약만으로는 처리하기 어렵다. Go의 union 제약에서는 필드 이름이 같아야만 접근이 가능하다. 추출 방법 자체를 함수로 파라미터화하는 것이 실용적이다.
+
+```go
+type PgDriver[E any] struct {
+    Code       func(E) string
+    Constraint func(E) string
+}
+
+func (d PgDriver[E]) IsUniqueViolation(err error) (bool, string) {
+    var pgErr E
+    if !errors.As(err, &pgErr) {
+        return false, ""
+    }
+    if d.Code(pgErr) != "23505" {
+        return false, ""
+    }
+    return true, d.Constraint(pgErr)
+}
+```
+
+드라이버별 인스턴스를 패키지 레벨에 선언해두면 호출 측은 드라이버 타입을 신경 쓰지 않아도 된다.
+
+```go
+var PQDriver = PgDriver[*pq.Error]{
+    Code:       func(e *pq.Error) string { return string(e.Code) },
+    Constraint: func(e *pq.Error) string { return e.Constraint },
+}
+
+var PGXDriver = PgDriver[*pgconn.PgError]{
+    Code:       func(e *pgconn.PgError) string { return e.Code },
+    Constraint: func(e *pgconn.PgError) string { return e.ConstraintName },
+}
+```
+
+`ConstraintName` 필드로 충돌한 제약을 특정한 뒤 도메인 에러로 변환한다.
+
+```go
+func (r *UserRepository) Create(ctx context.Context, user *User) error {
+    _, err := r.db.ExecContext(ctx, `INSERT INTO users (email, phone) VALUES ($1, $2)`, user.Email, user.Phone)
+    if err == nil {
+        return nil
+    }
+
+    ok, constraint := PQDriver.IsUniqueViolation(err)
+    if !ok {
+        return err
+    }
+
+    switch constraint {
+    case "users_email_key":
+        return ErrEmailDuplicate
+    case "users_phone_key":
+        return ErrPhoneDuplicate
+    default:
+        return err
+    }
+}
+```
+
+`pgx/v5`로 드라이버를 교체할 때 `PQDriver`를 `PGXDriver`로 바꾸는 것으로 끝난다. `IsUniqueViolation` 호출부나 `switch` 분기는 손댈 필요가 없다.
+
+### 주의사항
+
+`errors.As`는 에러 체인을 따라간다. `fmt.Errorf("...: %w", err)`로 감싼 에러에서도 올바르게 작동한다. 단, 커스텀 에러 타입으로 교체하거나 `errors.New`로 새 에러를 만들면 체인이 끊기므로 주의한다.
+
+유니크 위반 코드 `23505`는 PostgreSQL 고유 코드다. MySQL은 `1062`, SQLite는 `SQLITE_CONSTRAINT_UNIQUE`를 쓴다. DB 교체 가능성이 있으면 에러 코드도 `PgDriver` 구조체에서 관리해야 한다. `Code` 필드를 하드코딩하지 않고 주입받는 형태로 바꾸면 MySQL 드라이버에도 같은 구조를 재사용할 수 있다.

@@ -1,7 +1,7 @@
 ---
 title: 낙관적 락 충돌 후 재시도 처리
-tags: [spring, jpa, 낙관적락, 동시성, 트랜잭션, OptimisticLock, redis, ExponentialBackoff]
-updated: 2026-07-30
+tags: [spring, jpa, 낙관적락, 동시성, 트랜잭션, OptimisticLock, redis, ExponentialBackoff, DataIntegrityViolationException, 유니크제약]
+updated: 2026-08-03
 ---
 
 # 낙관적 락 충돌 후 재시도 처리
@@ -158,6 +158,115 @@ private long decorrelatedJitter(long prevDelay) {
 실무에서는 Full Jitter로 충분한 경우가 대부분이다. Decorrelated Jitter는 재시도 간격이 매우 촘촘한 상황(초당 수백 건 이상)에서만 차이가 눈에 띈다.
 
 재시도 횟수 결정 기준은 비즈니스 SLA에 따른다. 사용자 요청을 직접 처리하는 API라면 3회 초과는 응답 시간이 허용 범위를 넘기기 쉽다. 백그라운드 작업이라면 5회까지도 무방하다. 충돌이 잦은 케이스에서 재시도 횟수를 늘리는 건 문제 해결이 아니라 증상 가리기다.
+
+---
+
+## 유니크 제약 충돌 처리
+
+낙관적 락 재시도 루프를 구현할 때, `DataIntegrityViolationException`을 `ObjectOptimisticLockingFailureException`과 같은 catch 블록에 묶으면 재시도로 해소되지 않는 케이스까지 재시도하게 된다.
+
+두 예외는 발생 원인이 다르다. `ObjectOptimisticLockingFailureException`은 타이밍 문제다. 두 트랜잭션이 같은 행을 동시에 읽어서 나중에 커밋한 쪽이 version 불일치로 받는다. 재시도하면 최신 version을 다시 읽어 성공할 수 있다. `DataIntegrityViolationException`은 데이터 제약 위반이다. UNIQUE, NOT NULL, FK 위반이 여기 해당한다. 재시도해도 같은 예외가 반복된다.
+
+```java
+public void registerWithRetry(UserRegisterCommand command) {
+    int maxAttempts = 3;
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            userTransactionalService.register(command);
+            return;
+        } catch (DataIntegrityViolationException e) {
+            // 제약 위반은 재시도로 해소되지 않는다
+            handleConstraintViolation(e);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            if (attempt == maxAttempts - 1) {
+                throw new RegistrationFailedException("등록 실패", e);
+            }
+            applyBackoff(attempt);
+        }
+    }
+}
+```
+
+### 제약 이름으로 충돌 컬럼 특정
+
+`DataIntegrityViolationException`의 원인 예외 체인을 따라가면 `org.hibernate.exception.ConstraintViolationException`이 나온다. `jakarta.validation.ConstraintViolationException`이 아니다. 둘을 혼동해서 잘못된 타입으로 캐스팅하면 분기 자체가 동작하지 않는다.
+
+`ConstraintViolationException.getConstraintName()`으로 어떤 제약이 위반됐는지 알 수 있다.
+
+```java
+private void handleConstraintViolation(DataIntegrityViolationException e) {
+    Throwable cause = e.getCause();
+    if (!(cause instanceof org.hibernate.exception.ConstraintViolationException cve)) {
+        throw new DataConflictException("데이터 제약 위반", e);
+    }
+
+    String constraintName = cve.getConstraintName();
+    if (constraintName == null) {
+        // 일부 JDBC 드라이버는 제약 이름을 null로 반환한다
+        throw new DataConflictException("제약 이름 불명", e);
+    }
+
+    // DB에 따라 대소문자가 다를 수 있어 소문자로 정규화
+    String normalized = constraintName.toLowerCase();
+
+    if (normalized.equals("uk_user_email")) {
+        throw new DuplicateEmailException();
+    }
+    if (normalized.equals("uk_user_phone")) {
+        throw new DuplicatePhoneException();
+    }
+
+    throw new DataConflictException("알 수 없는 제약 위반: " + constraintName, e);
+}
+```
+
+제약 이름을 직접 지정하지 않으면 DB마다 자동 생성 규칙이 달라서 문제가 된다. PostgreSQL은 `tablename_columnname_key`, MySQL은 컬럼명을 그대로 제약 이름으로 쓰는 경우가 많다. 테스트 환경에서 H2를 쓰고 프로덕션에서 PostgreSQL을 쓰는 환경이라면, 같은 코드에서 제약 이름이 달라져 분기가 동작하지 않는다.
+
+엔티티에 `@UniqueConstraint`의 `name`을 명시하면 이 문제를 피할 수 있다.
+
+```java
+@Entity
+@Table(
+    name = "users",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_email", columnNames = "email"),
+        @UniqueConstraint(name = "uk_user_phone", columnNames = "phone")
+    }
+)
+public class User {
+    @Id
+    private Long id;
+
+    private String email;
+    private String phone;
+}
+```
+
+`name`을 지정하면 H2, MySQL, PostgreSQL 모두 동일한 이름으로 제약이 생성된다. Flyway나 Liquibase를 쓴다면 `CONSTRAINT uk_user_email UNIQUE (email)` 형태로 명시해도 같다.
+
+### 재시도 대상 여부 판단 기준
+
+`ObjectOptimisticLockingFailureException`은 재시도 대상이다. 최신 데이터를 다시 읽으면 충돌이 해소될 수 있다.
+
+`DataIntegrityViolationException` 중 UNIQUE 위반은 재시도 대상이 아니다. 같은 값이 이미 DB에 존재한다. 재시도를 소진하기 전에 상위 레이어에서 사전 검사하거나 클라이언트에 409를 돌려줘야 한다.
+
+NOT NULL, FK 위반도 재시도 대상이 아니다. 요청 데이터나 애플리케이션 코드에 문제가 있는 것이라 재시도로 해결되지 않는다.
+
+`DeadlockLoserDataAccessException`은 재시도 대상이다. DB 데드락 감지로 롤백된 것이라 동일 작업을 재시도하면 성공하는 경우가 많다. `DataAccessException` 하위 클래스지만 `DataIntegrityViolationException`과는 다른 계층이라 별도로 catch해야 한다.
+
+```java
+} catch (DataIntegrityViolationException e) {
+    // 재시도 없음. 제약 위반은 데이터 문제다
+    handleConstraintViolation(e);
+} catch (DeadlockLoserDataAccessException | ObjectOptimisticLockingFailureException e) {
+    // 재시도 가능. 타이밍 문제다
+    if (attempt == maxAttempts - 1) {
+        throw new ProcessFailedException("처리 실패", e);
+    }
+    applyBackoff(attempt);
+}
+```
 
 ---
 
