@@ -10,3 +10,4 @@ nav:
   - Observer Pattern: Observer Pattern.md
   - Proxy Pattern: Proxy_Pattern.md
   - 모듈 패턴: Module_Pattern.md
+  - 상태 머신: State_Machine.md
