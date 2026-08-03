@@ -38,6 +38,7 @@ nav:
     - 외래키 없는 설계: No_FK_Design.md
     - 고아 레코드: Orphan_Record.md
     - 소프트 삭제: Soft_Delete.md
+    - 아카이브 테이블: Archive_Table.md
     - Cross-Schema 쿼리: Cross_Schema.md
     - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
     - 술어 누락: 술어_누락.md
