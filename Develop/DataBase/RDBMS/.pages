@@ -39,6 +39,7 @@ nav:
     - 소프트 삭제: Soft_Delete.md
     - Cross-Schema 쿼리: Cross_Schema.md
     - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
+    - 술어 누락: 술어_누락.md
   - 확장과 운영:
     - 데이터베이스 성능 튜닝: 데이터베이스_성능_튜닝.md
     - 데이터베이스 샤딩: 데이터베이스_샤딩.md
