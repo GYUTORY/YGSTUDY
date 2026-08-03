@@ -17,6 +17,7 @@ nav:
     - Data JPA 심화: Spring_Data_JPA_Advanced.md
     - JPA @Lock 어노테이션 비교: JPA_Lock_Annotations.md
     - 낙관적 락 재시도 처리: Optimistic_Lock_Retry_Pattern.md
+    - JPA 소프트 삭제 (deleted_at): JPA_Soft_Delete.md
     - Cache: Spring_Cache.md
   - 배치와 분산:
     - Batch: Spring_Batch.md
