@@ -1,7 +1,7 @@
 ---
 title: JavaScript & TypeScript 허브
 tags: [hub, javascript, typescript, java, async, closure, generics, event-loop, prototype, this-binding, scope, functional-programming, type-system, oop]
-updated: 2026-07-29
+updated: 2026-08-03
 ---
 
 # JavaScript & TypeScript 허브
@@ -38,6 +38,42 @@ updated: 2026-07-29
 | [Prototype](../Language/JavaScript/01_기본_JavaScript/Object/Prototype.md) | 프로토타입 체인, 상속 구현 원리 | 실무 |
 | [Constructor 개념](../Language/JavaScript/01_기본_JavaScript/Constructor/Constructor_개념.md) | new 연산자와 생성자 함수 동작 원리 | 입문 |
 
+#### this 바인딩 케이스 비교
+
+`this`는 함수가 정의된 위치가 아니라 호출되는 방식으로 결정된다. 화살표 함수만 예외다.
+
+```javascript
+const obj = {
+  name: 'target',
+  regular() { return this.name; },    // 메서드 호출: this === obj
+  arrow: () => this?.name,            // 선언 시점 상위 스코프 캡처 (모듈 레벨이면 undefined)
+};
+
+obj.regular();          // 'target'
+obj.arrow();            // undefined
+
+// 메서드를 변수에 담으면 this가 사라진다 — 흔한 실수
+const fn = obj.regular;
+fn();                   // undefined (strict mode) / window.name (non-strict)
+
+// call / apply / bind — 명시적으로 this를 지정
+function greet() { return this.name; }
+greet.call({ name: 'bar' });          // 'bar'
+greet.apply({ name: 'baz' }, []);    // 'baz'
+const bound = greet.bind({ name: 'qux' });
+bound();                              // 'qux'
+
+// new — 새 인스턴스가 this
+function Person(name) { this.name = name; }
+const p = new Person('alice');        // p.name === 'alice'
+
+// 이벤트 핸들러: 일반 함수는 이벤트 대상 요소, 화살표 함수는 상위 this
+btn.addEventListener('click', function() { console.log(this); }); // btn 요소
+btn.addEventListener('click', () => { console.log(this); });      // 상위 스코프 this
+```
+
+---
+
 ### JavaScript — 함수형 프로그래밍
 
 | 문서 | 이 문서가 답하는 것 | 깊이 |
@@ -47,6 +83,8 @@ updated: 2026-07-29
 | [forEach 개념](../Language/JavaScript/01_기본_JavaScript/For_Loop/forEach_개념.md) | forEach와 for-of·map·filter 비교 | 입문 |
 | [forEach Deep Dive](../Language/JavaScript/01_기본_JavaScript/For_Loop/for_Each_Deep_Dive.md) | forEach의 동작 방식, 비동기와의 함정 | 실무 |
 
+---
+
 ### JavaScript — 비동기 & 이벤트 루프
 
 | 문서 | 이 문서가 답하는 것 | 깊이 |
@@ -54,6 +92,38 @@ updated: 2026-07-29
 | [Async/Await & Promise](../Language/JavaScript/05_이벤트_루프_비동기/Async_Await_and_Promise.md) | async-await와 Promise의 내부 실행 흐름, 에러 핸들링 | 실무 |
 | [Promise 내부 동작 과정](../Language/JavaScript/04_심화_JavaScript/Promise%20내부%20동작%20과정.md) | Microtask Queue, Promise 상태 전이, chaining 원리 | 심화 |
 | [실행 순서 이해](../Language/JavaScript/05_이벤트_루프_비동기/실행%20순서%20이해.md) | 콜 스택·Macrotask·Microtask 실행 순서를 예제로 추적 | 실무 |
+
+#### Promise / async-await 실행 순서
+
+콜 스택이 비워진 직후 Microtask Queue(Promise 콜백)를 전부 소진하고, 그 다음에 Macrotask(setTimeout 등) 하나를 꺼낸다.
+
+```javascript
+console.log('1');                                  // 동기: 즉시
+setTimeout(() => console.log('4'), 0);             // Macrotask: 마지막
+Promise.resolve()
+  .then(() => console.log('2'))                    // Microtask: 콜 스택 비운 직후
+  .then(() => console.log('3'));                   // 바로 이어서
+console.log('1.5');                                // 동기: 즉시
+// 출력: 1 → 1.5 → 2 → 3 → 4
+```
+
+`async/await`는 `await` 지점에서 실행을 중단하고 Microtask Queue에 재개를 등록한다.
+
+```javascript
+async function run() {
+  console.log('A');
+  await Promise.resolve();  // 여기서 현재 실행 중단, Microtask로 등록
+  console.log('C');         // 콜 스택이 비워진 뒤 재개
+}
+
+run();
+console.log('B');
+// 출력: A → B → C
+```
+
+중첩 Promise에서 `.then` 체인이 길수록 Microtask가 쌓인다. CPU를 오래 점유하는 연산이 Microtask 안에 있으면 렌더링 블록이 발생한다.
+
+---
 
 ### JavaScript — 복사 & 스프레드
 
@@ -65,6 +135,8 @@ updated: 2026-07-29
 | [Spread Deep Dive](../Language/JavaScript/02_복사_및_스프레드/Spread_Deep_Dive.md) | 스프레드의 얕은 복사 함정, Rest와의 차이 | 실무 |
 | [Destructuring & Template Literals](../Language/JavaScript/04_심화_JavaScript/Destructuring_and_Template_Literals.md) | 구조 분해 할당과 템플릿 리터럴 패턴 | 입문 |
 
+---
+
 ### JavaScript — 성능 최적화
 
 | 문서 | 이 문서가 답하는 것 | 깊이 |
@@ -73,6 +145,8 @@ updated: 2026-07-29
 | [Debouncing](../Language/JavaScript/03_성능_최적화/Debouncing.md) | 입력 이벤트 디바운스 구현과 적용 시점 | 실무 |
 | [Throttling](../Language/JavaScript/03_성능_최적화/Throttling.md) | 스크롤·리사이즈 이벤트 스로틀링 | 실무 |
 | [Garbage Collection](../Language/JavaScript/03_성능_최적화/Garbage_Collection.md) | V8 GC 알고리즘, 메모리 누수 패턴 진단 | 심화 |
+
+---
 
 ### JavaScript — 심화 & 제너레이터
 
@@ -85,6 +159,9 @@ updated: 2026-07-29
 | [Map 개념](../Language/JavaScript/01_기본_JavaScript/Map/Map_개념.md) | Map vs Object, 키 타입·순서 보장·성능 차이 | 입문 |
 | [Stack](../Language/JavaScript/04_심화_JavaScript/Stack.md) | 콜 스택과 메모리 스택 자료구조 | 입문 |
 | [Child Process Spawn](../Language/JavaScript/04_심화_JavaScript/Child_Process_Spawn.md) | Node.js에서 자식 프로세스 생성·통신 | 실무 |
+| [모듈 시스템](../Language/JavaScript/04_심화_JavaScript/Module_System.md) | CommonJS vs ESM 차이, .cjs/.mjs 확장자 문제, 동적 import(), Top-level await | 실무 |
+
+---
 
 ### JavaScript — 웹 & 보안
 
@@ -105,9 +182,12 @@ updated: 2026-07-29
 | [tsconfig](../Language/TypeScript/프로젝트%20설정%20및%20컴파일러/tsconfig/tsconfig.md) | compilerOptions 주요 항목 해설, strict 모드 | 실무 |
 | [tsc](../Language/TypeScript/프로젝트%20설정%20및%20컴파일러/tsc.md) | tsc CLI 플래그, 증분 컴파일, watch 모드 | 실무 |
 | [tsc-alias](../Language/TypeScript/TypeScript%20기본%20개념/tsc-alias.md) | 경로 별칭(alias)을 컴파일 후에도 유지하는 방법 | 실무 |
+| [데코레이터](../Language/TypeScript/TypeScript%20기본%20개념/Decorator.md) | experimentalDecorators vs TC39 Stage 3, NestJS @Controller/@Injectable/@Guard 내부 동작 | 실무 |
 | [tsc-alias와 workspace 함께 사용하기](../Language/TypeScript/프로젝트%20설정%20및%20컴파일러/tsc-alias와%20workspace%20함께%20사용하기.md) | 모노레포 환경에서 tsc-alias 적용 시 주의점 | 심화 |
 | [Workspace와 ts_paths](../Language/TypeScript/타입%20유틸리티/module과%20moduleResolution.md) | module / moduleResolution 옵션 선택 기준 | 실무 |
 | [ESLint와 Prettier](../Language/TypeScript/프로젝트%20설정%20및%20컴파일러/ESLint와%20Prettier.md) | TS 프로젝트에서 린터·포매터 설정 통합 | 실무 |
+
+---
 
 ### TypeScript — 타입 시스템
 
@@ -123,6 +203,8 @@ updated: 2026-07-29
 | [any vs unknown vs never](../Language/TypeScript/타입%20및%20타입%20정의/Other%20Types/Any_Type_Deep_Dive.md) | 세 타입의 타입 안전성 차이와 실용적 선택 기준 | 실무 |
 | [타입 정의 파일 (.d.ts)](../Language/TypeScript/타입%20및%20타입%20정의/타입%20정의%20파일.md) | @types 패키지와 직접 선언 파일 작성법 | 실무 |
 
+---
+
 ### TypeScript — 타입 유틸리티 & 제네릭
 
 | 문서 | 이 문서가 답하는 것 | 깊이 |
@@ -130,6 +212,41 @@ updated: 2026-07-29
 | [Generics](../Language/TypeScript/타입%20유틸리티/Generics.md) | 제네릭 기본 문법, 타입 파라미터 제약(extends) | 입문 |
 | [유틸리티 타입](../Language/TypeScript/타입%20유틸리티/유틸리티%20타입.md) | Partial · Required · Pick · Omit · Record · Readonly 실용 예시 | 실무 |
 | [Advanced Type Patterns](../Language/TypeScript/타입%20유틸리티/Advanced_Type_Patterns.md) | infer, 재귀 타입, 브랜딩, 빌더 패턴 타입화 | 심화 |
+
+#### 제네릭 제약 패턴
+
+타입 파라미터를 제약 없이 쓰면 속성 접근 시 컴파일 에러가 난다. `extends`로 필요한 구조를 명시한다.
+
+```typescript
+// extends: T는 length를 가진 타입만 허용
+function getLength<T extends { length: number }>(arg: T): number {
+  return arg.length;
+}
+getLength('hello');    // 5 — string은 length를 가진다
+getLength([1, 2, 3]);  // 3
+getLength(42);         // Error: number는 length가 없다
+
+// keyof 조합: K는 T에 실제로 존재하는 키여야 한다
+function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
+  return obj[key];
+}
+const user = { id: 1, name: 'alice' };
+getProperty(user, 'name');   // 'alice'
+getProperty(user, 'email');  // Error: 'email'은 keyof typeof user가 아니다
+
+// 여러 제약 조합: & 인터섹션으로 묶는다
+function merge<T extends object, U extends object>(a: T, b: U): T & U {
+  return { ...a, ...b };
+}
+
+// 조건부 타입 + infer: 배열 요소 타입 추출
+type ElementOf<T> = T extends Array<infer U> ? U : never;
+type A = ElementOf<string[]>;   // string
+type B = ElementOf<number[][]>; // number[]
+type C = ElementOf<number>;     // never
+```
+
+유틸리티 타입은 내부적으로 이 패턴들의 조합이다. `Partial<T>`는 `{ [K in keyof T]?: T[K] }`, `ReturnType<T>`는 `T extends (...args: any[]) => infer R ? R : never`로 구현된다.
 
 ---
 
@@ -197,11 +314,10 @@ updated: 2026-07-29
 
 ## 아직 없는 것
 
-- **이벤트 루프 전용 문서** — Task Queue·Microtask Queue·rAF 큐의 처리 순서를 다이어그램과 함께 정리한 단독 문서
-- **Symbol·WeakRef·FinalizationRegistry** — ES2021+ 메모리 관리 API 문서
-- **JavaScript 모듈 시스템** — CommonJS vs ESM, 동적 import(), Top-level await 비교
-- **TypeScript 데코레이터** — experimentalDecorators vs TC39 Stage 3 데코레이터 차이와 NestJS 적용
-- **TS 프로젝트 레퍼런스(Project References)** — 모노레포에서 tsc --build로 증분 빌드 구성
-- **JSDoc 심화** — `@template`, `@overload`, `@satisfies` 등 TS 호환 JSDoc 전용 문서
-- **Proxy 심화** — Proxy로 반응형(Reactive) 시스템 구현하는 패턴 (Vue Reactivity 원리 등)
-- **Web Worker / SharedArrayBuffer** — 멀티스레드 JS 활용 패턴
+- **이벤트 루프 전용 문서** (`../Language/JavaScript/05_이벤트_루프_비동기/Event_Loop.md`) — Task Queue·Microtask Queue·rAF 큐의 처리 순서를 다이어그램과 함께 정리한 단독 문서
+- **Symbol·WeakRef·FinalizationRegistry** (`../Language/JavaScript/04_심화_JavaScript/Symbol_WeakRef.md`) — ES2021+ 메모리 관리 API 문서
+- **JavaScript 모듈 시스템** (`../Language/JavaScript/04_심화_JavaScript/Module_System.md`) — CommonJS vs ESM, 동적 import(), Top-level await 비교
+- **TS 프로젝트 레퍼런스(Project References)** (`../Language/TypeScript/프로젝트%20설정%20및%20컴파일러/Project_References.md`) — 모노레포에서 tsc --build로 증분 빌드 구성
+- **JSDoc 심화** (`../Language/TypeScript/TypeScript%20기본%20개념/JSDoc.md`) — `@template`, `@overload`, `@satisfies` 등 TS 호환 JSDoc 전용 문서
+- **Proxy 심화** (`../Language/JavaScript/07_프록시_리플렉션/Proxy_Reactive.md`) — Proxy로 반응형(Reactive) 시스템 구현하는 패턴 (Vue Reactivity 원리 등)
+- **Web Worker / SharedArrayBuffer** (`../Language/JavaScript/08_모듈_시스템/Web_Worker.md`) — 멀티스레드 JS 활용 패턴

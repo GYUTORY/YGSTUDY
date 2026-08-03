@@ -5,3 +5,4 @@ nav:
   - tsc와 ts-node의 차이: tsc vs ts-node.md
   - tsc-alias: tsc-alias.md
   - 생성자: 생성자.md
+  - 데코레이터: Decorator.md
