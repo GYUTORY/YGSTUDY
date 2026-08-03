@@ -1,6 +1,7 @@
 ---
 title: MySQL vs PostgreSQL 실무 비교
-tags: [rdbms, mysql, postgresql, innodb, mvcc, 트랜잭션, 인덱스, 복제]
+tags: [rdbms, mysql, postgresql, innodb, mvcc, 트랜잭션, 인덱스, 복제, 부분-인덱스]
+updated: 2026-08-03
 ---
 
 # MySQL vs PostgreSQL 실무 비교
@@ -175,6 +176,52 @@ MySQL InnoDB는 명시적인 hash 인덱스가 없다. 대신 adaptive hash inde
 ```sql
 CREATE INDEX idx_logs_created_brin ON logs USING BRIN (created_at) WITH (pages_per_range = 32);
 ```
+
+### 부분 인덱스
+
+PostgreSQL은 인덱스에 WHERE 조건을 붙일 수 있다.
+
+```sql
+CREATE INDEX idx_orders_pending ON orders (created_at)
+WHERE status = 'pending';
+
+-- 이 쿼리가 위 인덱스를 탄다
+SELECT * FROM orders WHERE status = 'pending' AND created_at < NOW() - INTERVAL '1 hour';
+```
+
+인덱스 크기가 핵심이다. 전체 주문 중 pending 상태가 1%라면 인덱스도 전체의 1% 크기다. 자주 읽히는 row만 인덱싱하므로 캐시 효율이 올라가고 쓰기 때 인덱스 갱신 비용도 줄어든다.
+
+실무에서 가장 자주 쓰는 패턴은 소프트 삭제다. `deleted_at IS NULL`인 활성 row가 전체의 1%밖에 없는데, 99%가 죽은 row인 B-Tree 인덱스를 통째로 유지하는 건 낭비다.
+
+```sql
+-- 활성 row에만 유니크 제약 적용
+CREATE UNIQUE INDEX idx_users_email_active ON users (email)
+WHERE deleted_at IS NULL;
+```
+
+이 인덱스는 deleted_at이 NULL인 row의 email만 유니크 검사한다. 소프트 삭제된 row가 남아 있어도 같은 이메일로 재가입이 가능하다.
+
+처리 대기 큐 테이블에도 쓴다. status가 'queued'인 row만 폴링하는 워커가 있다면, 전체 상태가 아닌 'queued'만 인덱싱하는 게 맞다.
+
+```sql
+CREATE INDEX idx_jobs_queued ON jobs (created_at)
+WHERE status = 'queued';
+```
+
+MySQL은 부분 인덱스를 지원하지 않는다. 8.0에서 표현식 인덱스(함수형 인덱스)가 추가됐지만 WHERE를 붙이는 건 여전히 안 된다.
+
+MySQL에서 유사한 효과를 내려면 generated column을 써야 한다.
+
+```sql
+-- MySQL 우회: 삭제되지 않은 row만 이메일 유니크
+ALTER TABLE users
+    ADD COLUMN email_active VARCHAR(255) AS (
+        CASE WHEN deleted_at IS NULL THEN email ELSE NULL END
+    ) STORED,
+    ADD UNIQUE INDEX idx_email_active (email_active);
+```
+
+NULL은 UNIQUE 인덱스에서 중복을 허용하므로, 소프트 삭제된 row의 email_active는 NULL이 되어 유니크 검사를 피한다. 하지만 쓰지도 않는 컬럼이 테이블에 남고, 저장 공간도 늘어난다. 인덱스를 타려면 조회 쿼리에서 email 컬럼이 아닌 email_active 컬럼을 조건에 써야 하거나 옵티마이저가 알아서 활용하도록 유도해야 한다. PostgreSQL의 부분 인덱스처럼 투명하게 동작하지 않는다.
 
 ---
 
@@ -662,7 +709,7 @@ ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name;
 - FILTER 절, LATERAL JOIN 일부 동작이 다르거나 안 됨
 - 윈도우 함수의 RANGE 프레임 동작 차이
 - EXCLUDE 제약 → 없음. 트리거로 대체
-- 부분 인덱스(WHERE 절 인덱스) → 8.0에 함수형 인덱스로 부분 대체
+- 부분 인덱스(WHERE 절 인덱스) → MySQL은 미지원. generated column + UNIQUE 인덱스로 부분 우회 가능하지만 컬럼이 추가되고 쿼리도 바뀐다. 3장 부분 인덱스 항목 참조
 
 대규모 마이그레이션이라면 pgloader 같은 도구를 쓰되, 마이그레이션 전후로 양쪽에서 같은 쿼리를 돌려서 결과를 비교하는 검증 단계가 반드시 필요하다.
 
