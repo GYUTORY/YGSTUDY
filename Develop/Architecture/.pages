@@ -10,6 +10,7 @@ nav:
   - 이벤트 기반 아키텍처: Event_Driven_Architecture.md
   - 헥사고날 아키텍처: Hexagonal_Architecture.md
   - 분산 시스템 관측성: 분산_시스템_관측성.md
+  - 멀티테넌시: Multi_Tenancy.md
   - Design Pattern
   - MSA
   - OMO
