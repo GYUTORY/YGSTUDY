@@ -42,6 +42,7 @@ nav:
     - Cross-Schema 쿼리: Cross_Schema.md
     - Schema-Per-Tenant: Schema_Per_Tenant.md
     - Shared Table: Shared_Table.md
+    - 테넌트 컬럼 JPA: Tenant_Column_JPA.md
     - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
     - 술어 누락: 술어_누락.md
     - 유니크 제약 충돌: Unique_Constraint_Conflict.md
