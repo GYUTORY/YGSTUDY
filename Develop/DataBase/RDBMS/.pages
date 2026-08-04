@@ -41,6 +41,7 @@ nav:
     - 아카이브 테이블: Archive_Table.md
     - Cross-Schema 쿼리: Cross_Schema.md
     - Schema-Per-Tenant: Schema_Per_Tenant.md
+    - Shared Table: Shared_Table.md
     - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
     - 술어 누락: 술어_누락.md
     - 유니크 제약 충돌: Unique_Constraint_Conflict.md

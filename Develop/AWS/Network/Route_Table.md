@@ -1,7 +1,7 @@
 ---
 title: AWS 라우팅 테이블
 tags: [aws, vpc, route-table, routing, networking, terraform, troubleshooting]
-updated: 2026-05-14
+updated: 2026-08-04
 ---
 
 # AWS 라우팅 테이블

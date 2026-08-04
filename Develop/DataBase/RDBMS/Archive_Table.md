@@ -1,12 +1,12 @@
 ---
 title: 아카이브 테이블
 tags: [database, archive, retention-policy, batch, partitioning, index, union-all, deadlock, replication-lag, mysql, postgresql]
-updated: 2026-08-03
+updated: 2026-08-04
 ---
 
 # 아카이브 테이블
 
-운영 테이블에서 오래된 데이터를 분리해서 별도 테이블에 보관하는 패턴이다. 목적은 하나다. 운영 테이블을 작게 유지해서 쿼리 성능을 일정하게 가져가는 것이다.
+운영 테이블에서 오래된 데이터를 분리해서 별도 테이블에 보관하는 패턴이다. 목적은 하나다. 운영 테이블을 작게 유지해서 쿼리 성능을 일정하게 가져간다.
 
 소프트 삭제와 혼동하는 경우가 있는데, 두 패턴은 해결하는 문제가 다르다. 소프트 삭제는 "행을 지우지 않고 삭제 표시만 남기는 것"이고, 아카이브 테이블은 "데이터를 물리적으로 다른 테이블로 옮기는 것"이다. 소프트 삭제와 아카이브를 함께 쓰는 경우도 많다. `deleted_at`이 일정 기간 지난 행을 아카이브 테이블로 이동하고, 운영 테이블에서는 물리 삭제하는 식이다. [소프트 삭제](Soft_Delete.md)에서 다룬 내용과 중복되는 부분은 생략한다.
 
@@ -53,7 +53,7 @@ CREATE TABLE orders_archive (
 
 `archived_at`을 추가하는 건 필수에 가깝다. 언제 아카이브됐는지 기록해야 데이터 수명 주기 추적이 가능하다.
 
-컬럼 축소 방식은 테이블 크기를 줄일 수 있지만, 운영 테이블 스키마가 변경될 때마다 아카이브 테이블도 같이 관리해야 한다. 마이그레이션이 두 배로 늘어나는 셈이다. 실무에서는 동일 스키마로 시작하고, 스토리지나 성능 문제가 생겼을 때 컬럼 축소를 검토하는 게 현실적이다.
+컬럼 축소 방식은 테이블 크기가 작아지지만, 운영 테이블 스키마가 변경될 때마다 아카이브 테이블도 같이 관리해야 한다. 마이그레이션이 두 배로 늘어나는 셈이다. 실무에서는 동일 스키마로 시작하고, 스토리지나 성능 문제가 생겼을 때 컬럼 축소를 검토하는 게 현실적이다.
 
 ---
 
@@ -343,7 +343,9 @@ ROW 포맷 바이너리 로그를 쓰는 경우 STATEMENT 포맷보다 로그 �
 
 배치 이관 중 자주 나타나는 슬로우 쿼리 패턴이 있다.
 
-**`INSERT INTO ... SELECT *`에서 풀스캔이 발생하는 경우**: WHERE 조건에 인덱스가 없으면 매 청크마다 운영 테이블 풀스캔이 발생한다. `created_at` 범위 조건이라면 `created_at` 인덱스가 있어야 한다.
+### INSERT INTO ... SELECT에서 풀스캔
+
+WHERE 조건에 인덱스가 없으면 매 청크마다 운영 테이블 풀스캔이 발생한다. `created_at` 범위 조건이라면 `created_at` 인덱스가 있어야 한다.
 
 ```sql
 -- 인덱스 없으면 매번 풀스캔
@@ -355,7 +357,9 @@ LIMIT 1000;
 -- (status, created_at) 복합 인덱스가 있을 때 범위 스캔으로 처리
 ```
 
-**DELETE에서 서브쿼리가 느린 경우**: `DELETE ... WHERE id IN (SELECT id FROM ...)`에서 서브쿼리가 매번 실행되면 느리다. 이관된 ID를 임시 테이블에 저장하고 조인으로 삭제하는 방법이 빠르다.
+### DELETE 서브쿼리 성능 문제
+
+`DELETE ... WHERE id IN (SELECT id FROM ...)`에서 서브쿼리가 매번 실행되면 느리다. 이관된 ID를 임시 테이블에 저장하고 조인으로 삭제하는 방법이 빠르다.
 
 ```sql
 -- 임시 테이블로 이관 대상 ID 관리
@@ -372,10 +376,21 @@ DELETE o FROM orders o JOIN tmp_archived_ids t ON o.id = t.id;
 DROP TEMPORARY TABLE tmp_archived_ids;
 ```
 
-**이관 진행 상황 확인 시 COUNT 풀스캔**: 배치 배포 전후 row count를 확인할 때 `SELECT COUNT(*) FROM orders`를 쓰면 InnoDB에서 풀스캔이 발생한다. 정확도가 낮아도 괜찮으면 `INFORMATION_SCHEMA.TABLES`의 `TABLE_ROWS`를 쓰는 게 빠르다. 이관 진행 상황 모니터링 용도라면 충분하다.
+### 이관 진행 상황 확인 시 COUNT 풀스캔
+
+배치 배포 전후 row count를 확인할 때 `SELECT COUNT(*) FROM orders`를 쓰면 InnoDB에서 풀스캔이 발생한다. 정확도가 낮아도 괜찮으면 `INFORMATION_SCHEMA.TABLES`의 `TABLE_ROWS`를 쓰는 게 빠르다. 이관 진행 상황 모니터링 용도라면 충분하다.
 
 ```sql
 SELECT TABLE_ROWS
 FROM INFORMATION_SCHEMA.TABLES
 WHERE TABLE_SCHEMA = 'mydb' AND TABLE_NAME = 'orders';
 ```
+
+---
+
+## 관련 문서
+
+- Soft_Delete.md — 소프트 삭제 패턴, 아카이브와의 조합
+- 데이터베이스_샤딩.md — 대용량 테이블 수평 분산
+- 읽기_전용_복제본.md — 복제 지연 관리
+- CDC_Pipeline.md — 변경 데이터 캡처로 아카이브 대체하는 경우
