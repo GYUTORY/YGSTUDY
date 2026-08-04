@@ -1109,6 +1109,10 @@
          <lastmod>2026-08-04</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Architecture/Noisy_Neighbor/</loc>
+         <lastmod>2026-08-04</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Architecture/Tenant_Network_Isolation/</loc>
          <lastmod>2026-08-04</lastmod>
     </url>
@@ -1690,6 +1694,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/Referential_Integrity/</loc>
+         <lastmod>2026-08-04</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/Row_Level_Security/</loc>
          <lastmod>2026-08-04</lastmod>
     </url>
     <url>
