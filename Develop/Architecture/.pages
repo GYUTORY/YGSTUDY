@@ -12,6 +12,7 @@ nav:
   - 분산 시스템 관측성: 분산_시스템_관측성.md
   - 멀티테넌시: Multi_Tenancy.md
   - 테넌트 네트워크 격리: Tenant_Network_Isolation.md
+  - Noisy Neighbor: Noisy_Neighbor.md
   - Design Pattern
   - MSA
   - OMO
