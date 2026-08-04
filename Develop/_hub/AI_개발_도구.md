@@ -1,7 +1,7 @@
 ---
 title: AI 개발 도구 허브
 tags: [hub, ai, claude, llm, copilot, prompt-engineering, RAG, agent, mcp, gemini, cursor]
-updated: 2026-07-29
+updated: 2026-08-04
 ---
 
 # AI 개발 도구 허브
@@ -68,6 +68,8 @@ updated: 2026-07-29
 | [LLM Reasoning 패턴과 모델](../AI/Concepts/LLM_Reasoning.md) | CoT·ReAct·Tree-of-Thoughts·o1·Extended Thinking 비교 | 심화 |
 | [Effort Mode](../AI/Concepts/Effort_Mode.md) | reasoning effort 다이얼이 생긴 배경과 모델별 설정법 | 실무 |
 | [LLM Context Window](../AI/Concepts/LLM_Context_Window.md) | RoPE·YaRN·Long Context·Prompt Caching 동작 원리 | 심화 |
+| [Prompt Caching](../AI/Concepts/Prompt_Caching.md) | Anthropic·Gemini 캐시 동작, TTL별 비용 계산식, 무효화 케이스 | 실무 |
+| [LangChain / LlamaIndex vs 순수 SDK](../AI/Concepts/Lang_Chain_vs_SDK.md) | 프레임워크 도입 비용·버전 의존성 문제, SDK 직접 구현과의 트레이드오프 | 실무 |
 | [LLM 보안 위협과 대응](../AI/Concepts/LLM_Security.md) | Prompt Injection·PII 유출·Jailbreak·Guardrails | 실무 |
 | [바이브 코딩 보안 대처법](../AI/Concepts/Vibe_Coding_Security.md) | Slopsquatting·Prompt Injection·SAST 연동으로 위험 줄이기 | 실무 |
 | [AI 할루시네이션](../AI/Concepts/AI_Hallucination.md) | 코드 생성에서 할루시네이션이 발생하는 이유와 검증 전략 | 실무 |
@@ -85,6 +87,7 @@ updated: 2026-07-29
 | [RAG 파이프라인](../AI/Concepts/RAG_Pipeline.md) | 문서 파싱·청킹·검색·생성 전 과정 설계와 비용 | 실무 |
 | [Functional RAG](../AI/Concepts/Functional_RAG.md) | 함수형 파이프라인으로 RAG 복잡도 관리 (LCEL 활용) | 실무 |
 | [RAG for Code](../AI/Concepts/RAG_for_Code.md) | 코드베이스를 대상으로 한 RAG 아키텍처 | 심화 |
+| [RAG 품질 평가](../AI/Concepts/RAG_Evaluation.md) | RAGAS·TruLens 지표 해석, 품질 저하 원인 진단, 지표 함정 사례 | 실무 |
 | [텍스트 임베딩 실무](../AI/Concepts/Embeddings.md) | OpenAI·Cohere·BGE·E5 비교, 코사인 유사도 검색 설계 | 실무 |
 | [벡터 DB 실무 비교](../AI/Concepts/Vector_Database.md) | pgvector·Qdrant·Pinecone·Milvus 선택 기준과 운영 | 실무 |
 | [온톨로지](../AI/Concepts/Ontology.md) | 지식 그래프·RDF·OWL·SPARQL — RAG 품질 향상을 위한 구조화 지식 | 심화 |
@@ -95,6 +98,7 @@ updated: 2026-07-29
 |---|---|---|
 | [MCP 핵심 개념](../AI/MCP/MCP.md) | MCP 프로토콜 구조, 서버/클라이언트 역할, 도구 등록 | 입문 |
 | [MCP 전송 방식](../AI/MCP/SSE_and_Stdio.md) | stdio vs SSE vs Streamable HTTP 전송 선택 기준 | 실무 |
+| [MCP 서버 직접 구현](../AI/MCP/MCP_Server_Implementation.md) | TypeScript·Python SDK로 서버 구현, 응답 형식·에러 처리, Claude Code 로컬 연동 테스트 | 실무 |
 
 ### AI 코딩 도구 비교
 
@@ -139,6 +143,110 @@ updated: 2026-07-29
 | [Obsidian 실무 사용법](../AI/Concepts/Obsidian.md) | vault 구조·플러그인·동기화, AI와 함께 쓸 때 주의사항 | 실무 |
 | [GBrain](../AI/GBrain/G_Brain.md) | 국내 엔터프라이즈 AI 지식 관리 도구 GBrain | 입문 |
 
+## 핵심 코드 패턴
+
+### Tool Use 기본 호출 (Anthropic Python SDK)
+
+도구 호출은 두 번 왕복한다. 첫 번째 응답에서 `stop_reason == "tool_use"`가 오면 도구를 실행하고, 결과를 `tool_result`로 담아 다시 보내야 한다.
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+
+tools = [{
+    "name": "get_order_status",
+    "description": "주문 번호로 배송 상태를 조회한다",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "order_id": {"type": "string", "description": "ORD- 접두사 포함 전체 문자열"}
+        },
+        "required": ["order_id"]
+    }
+}]
+
+messages = [{"role": "user", "content": "ORD-12345 배송 어디까지 왔어?"}]
+
+response = client.messages.create(
+    model="claude-opus-4-7",
+    max_tokens=1024,
+    tools=tools,
+    messages=messages,
+)
+
+if response.stop_reason == "tool_use":
+    tool_block = next(b for b in response.content if b.type == "tool_use")
+    # 실제 함수 실행
+    result = get_order_status(**tool_block.input)
+
+    # 대화에 tool_use + tool_result를 쌍으로 붙여야 한다
+    messages.append({"role": "assistant", "content": response.content})
+    messages.append({
+        "role": "user",
+        "content": [{
+            "type": "tool_result",
+            "tool_use_id": tool_block.id,
+            "content": str(result),
+        }]
+    })
+
+    final = client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=1024,
+        tools=tools,
+        messages=messages,
+    )
+    print(final.content[0].text)
+```
+
+tool_use 블록 없이 tool_result만 보내면 API 에러가 난다. 짝이 반드시 맞아야 한다.
+
+### MCP 서버 등록 (Python FastMCP + Claude Code)
+
+로컬에서 stdio 방식으로 MCP 서버를 만들고 Claude Code에 붙이는 최소 패턴이다.
+
+```python
+# server.py
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("my-dev-tools")
+
+@mcp.tool()
+def get_user(user_id: int) -> dict:
+    """user_id로 사용자 단건 조회. 없으면 None 반환."""
+    row = db.query_one("SELECT * FROM users WHERE id = %s", [user_id])
+    return row or {}
+
+@mcp.tool()
+def run_query(sql: str) -> list[dict]:
+    """읽기 전용 SELECT만 허용. UPDATE/DELETE는 거부."""
+    if not sql.strip().upper().startswith("SELECT"):
+        raise ValueError("SELECT만 허용")
+    return db.query(sql)
+
+if __name__ == "__main__":
+    mcp.run()  # stdin/stdout으로 JSON-RPC 처리
+```
+
+Claude Code `.claude/settings.json`에 서버를 등록한다.
+
+```json
+{
+  "mcpServers": {
+    "my-dev-tools": {
+      "command": "python",
+      "args": ["server.py"],
+      "env": {
+        "DATABASE_URL": "postgresql://localhost/mydb"
+      }
+    }
+  }
+}
+```
+
+등록 후 Claude Code에서 `/mcp` 명령으로 서버 상태와 사용 가능한 도구 목록을 확인할 수 있다. `command`에는 절대 경로 또는 가상환경 내 `python` 경로를 써야 한다. 상대 경로는 Claude Code 실행 위치에 따라 달라진다.
+
 ## 읽는 순서
 
 ### Claude Code를 처음 도입하는 경우
@@ -176,13 +284,21 @@ updated: 2026-07-29
 
 ## 아직 없는 것
 
-- Claude Code SDK를 이용한 자체 하네스 구현 실전 튜토리얼
-- LangChain / LlamaIndex vs 순수 SDK 선택 가이드
-- RAG 품질 평가 지표(RAGAS, TRULENS) 실무 적용
-- Prompt Caching 비용 최적화 상세 가이드 (Anthropic·Gemini 비교)
-- AI 코드 리뷰 CI/CD 파이프라인 구축 가이드 (Semgrep + LLM 연동)
+**부분 커버됨 — 관련 문서로 대신 참고**
+
+| 주제 | 관련 문서 | 부족한 부분 |
+|---|---|---|
+| MCP 서버 구현 (TypeScript·Python) | [MCP 서버 직접 구현](../AI/MCP/MCP_Server_Implementation.md) | OAuth 2.1 인증 흐름 세부 없음 |
+| Prompt Caching 비용 최적화 | [Prompt Caching](../AI/Concepts/Prompt_Caching.md) | Anthropic·Gemini 동작 원리, TTL별 비용 계산, 무효화 케이스 |
+| AI 코드 리뷰 CI/CD 연동 | [UltraReview](../AI/Concepts/Ultra_Review.md) | Semgrep + LLM 파이프라인 구성 세부 없음 |
+| Tool Use 루프·병렬 호출 | [Tool Use / Function Calling](../AI/Concepts/Tool_Use.md) | 위의 기본 패턴으로 먼저 돌려볼 수 있음 |
+
+**문서 없음 — 필요하면 작성**
+
+- Claude Code SDK를 이용한 자체 하네스 구현 실전 튜토리얼 (현재 [Claude Code 하네스](../AI/Claude_Code/Claude_Code_Harness.md)는 내부 동작 설명 위주)
+- ~~LangChain / LlamaIndex vs 순수 SDK 선택 기준~~ → [LangChain / LlamaIndex vs 순수 SDK](../AI/Concepts/Lang_Chain_vs_SDK.md)
+- ~~RAG 품질 평가 지표(RAGAS, TruLens) 실무 적용~~ → [RAG 품질 평가](../AI/Concepts/RAG_Evaluation.md)
 - A/B 테스트로 프롬프트 버전을 관리하는 실무 패턴
-- 멀티모달 (이미지·PDF·음성) 입력 파이프라인 설계
+- 멀티모달(이미지·PDF·음성) 입력 파이프라인 설계
 - OpenAI Assistants API vs Claude Agent SDK 상세 비교
 - 온프레미스 GPU 클러스터에서 vLLM 운영 실전 가이드
-- MCP 서버 직접 구현 — TypeScript·Python SDK 예시

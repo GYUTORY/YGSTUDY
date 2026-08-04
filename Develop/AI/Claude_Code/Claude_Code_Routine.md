@@ -1,7 +1,7 @@
 ---
 title: Claude Code 개발 루틴
 tags: [ai, claude-code, anthropic, routine, workflow, automation]
-updated: 2026-04-17
+updated: 2026-08-04
 ---
 
 # Claude Code 개발 루틴
@@ -96,7 +96,7 @@ Claude에게 커밋 메시지 생성까지 맡기면 편하긴 한데, **팀 컨
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git commit'; then npm run lint && npm run test; fi"
+            "command": "case \"$CLAUDE_TOOL_INPUT\" in *\"git commit\"*) npm run lint && npm run test:unit || exit 2 ;; esac"
           }
         ]
       }
@@ -105,7 +105,7 @@ Claude에게 커밋 메시지 생성까지 맡기면 편하긴 한데, **팀 컨
 }
 ```
 
-Claude가 `git commit`을 실행하려 할 때 린트와 테스트가 먼저 돈다. 실패하면 커밋이 막힌다. **루틴을 기억으로 유지하려 하지 말고, 훅으로 못 박는 편이 안전하다**는 게 핵심이다. 기억은 피곤한 날 새는데, 훅은 새지 않는다.
+Claude가 `git commit`을 실행하려 할 때 린트와 테스트가 먼저 돈다. `exit 2`로 종료하면 Claude가 실패 이유를 전달받고 수정을 시도한다. `exit 1`은 그냥 막기만 하는데, `exit 2`는 피드백 루프가 생겨서 훨씬 낫다. 루틴을 기억으로 유지하려 하지 말고, 훅으로 못 박는 편이 안전하다. 기억은 피곤한 날 새는데, 훅은 새지 않는다.
 
 ### 3.3 커밋 전에 메모리 갱신 여부 체크
 
@@ -339,7 +339,7 @@ Hook을 쓸 때는 **종료 조건을 명시적으로 넣어야 한다**. 재귀
 
 루틴을 구체적인 설정으로 내려받은 예시. 이걸 그대로 쓰기보다는, 본인 상황에 맞게 변형하는 기준으로 삼으면 된다.
 
-### 10.1 settings.json — 커밋 전 훅
+### 10.1 settings.json — 커밋 전 훅 + 완료 알림
 
 `~/.claude/settings.json`.
 
@@ -356,34 +356,55 @@ Hook을 쓸 때는 **종료 조건을 명시적으로 넣어야 한다**. 재귀
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send 'Claude Code' '응답 완료' 2>/dev/null || osascript -e 'display notification \"응답 완료\" with title \"Claude Code\"' 2>/dev/null || true"
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
-`exit 2`는 Claude에게 피드백을 주면서 명령 실행을 막는다. 린트나 테스트가 실패하면 Claude가 이유를 알고 수정을 시도한다.
+`PreToolUse`는 Claude가 Bash 도구를 쓰기 직전에 끼어든다. `git commit` 명령이 감지되면 린트와 단위 테스트를 먼저 돌리고, 실패하면 `exit 2`로 Claude에게 실패 이유를 전달한다. Claude가 원인을 파악하고 수정을 시도하는 루프가 만들어진다.
+
+`Stop`은 Claude가 응답을 마쳤을 때 돈다. 오래 걸리는 작업을 맡겨놓고 다른 일을 할 때 유용하다. Linux는 `notify-send`, macOS는 `osascript`를 시도하고 둘 다 없으면 그냥 넘어간다.
 
 ### 10.2 CLAUDE.md — 루틴 컨텍스트
 
 프로젝트 루트 `CLAUDE.md`에 루틴 관련 규칙을 넣어둔 예시.
 
 ```markdown
-# 개발 루틴 관련
+# 프로젝트: payment-service
+
+## 기술 스택
+- Java 21, Spring Boot 3.x, PostgreSQL 15
+- 테스트는 실제 DB 사용. Testcontainers로 띄운다. 모킹 금지
+- 커밋 메시지: Conventional Commits + 이슈 번호 필수
+  예: fix(order): calculateTotal 음수 처리 (#1234)
 
 ## 세션 시작 시
-- 사용자가 "어제 작업 이어서"라고 하면 메모리에서
-  프로젝트 진행 상황 먼저 조회
+사용자가 "어제 작업 이어서"라고 하면 메모리에서 프로젝트 진행 상황 먼저 조회한 뒤 요약해라.
 
 ## 커밋 전
-- /simplify와 /review를 순서대로 실행
-- 커밋 메시지는 Conventional Commits, 이슈 번호 필수
-  예: `fix(order): calculateTotal 음수 처리 (#1234)`
+/simplify와 /review를 순서대로 실행해라.
+scope는 반드시 포함해야 한다: fix(결제), feat(주문) 형식.
 
 ## 세션 종료 시
-- "세션 종료" 키워드가 나오면 다음을 수행:
-  1. 오늘 작업 요약
-  2. 메모리에 추가할 만한 내용 후보 제시
-  3. 기존 메모리 중 낡은 것 정리 제안
+사용자가 "세션 종료"라고 하면:
+1. 오늘 작업 요약 (3줄 이내)
+2. 다음 세션에서 이어야 할 작업 한 줄
+3. 메모리에 추가할 만한 내용 후보 (진행 상황, 비자명한 결정, 외부 참조)
+4. 기존 메모리 중 낡아 보이는 것 정리 제안
+
+## 금지 사항
+- 테스트에서 mock DB 사용 금지
+- git push는 사용자 확인 없이 실행 금지
 ```
 
 ### 10.3 커스텀 스킬 — /pr-babysit

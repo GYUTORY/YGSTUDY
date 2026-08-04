@@ -1,7 +1,7 @@
 ---
 title: Function Calling / Tool Use (도구 호출 메커니즘)
 tags: [ai, llm, tool-use, function-calling, json-schema, agent]
-updated: 2026-06-22
+updated: 2026-08-04
 ---
 
 # Function Calling / Tool Use
@@ -10,7 +10,7 @@ LLM은 텍스트만 출력한다. 날씨를 조회하거나 DB를 읽거나 결�
 
 이 문서는 에이전트 전반(`LLM_Agent.md`, `Agent_Harness.md`)이 아니라 도구 호출이라는 메커니즘 하나에만 집중한다. 스키마를 어떻게 정의하고, 모델이 인자를 틀리게 만들 때 뭘 해야 하고, 병렬 호출과 실행 루프를 어떻게 돌리고, 무한 호출을 어떻게 막는지를 다룬다.
 
-코드 예제는 Anthropic 메시지 API(`claude-opus-4-8`)를 기준으로 한다. OpenAI든 Gemini든 필드 이름만 다르지 구조는 같다. 모델이 "호출 의도"를 구조화된 블록으로 내보내고, 클라이언트가 실행하고, 결과를 되돌려주는 핵심 루프는 어디서나 동일하다.
+코드 예제는 Anthropic 메시지 API(`claude-opus-4-7`)를 기준으로 한다. OpenAI든 Gemini든 필드 이름만 다르지 구조는 같다. 모델이 "호출 의도"를 구조화된 블록으로 내보내고, 클라이언트가 실행하고, 결과를 되돌려주는 핵심 루프는 어디서나 동일하다.
 
 ## 1. 전체 흐름
 
@@ -66,6 +66,37 @@ tools = [
         }
     }
 ]
+```
+
+JS SDK도 구조가 같다. 필드 이름과 타입 표기만 언어에 맞게 쓴다.
+
+```javascript
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+
+const tools = [
+  {
+    name: "get_order_status",
+    description:
+      "주문 번호로 배송 상태를 조회한다. 사용자가 '내 주문', '배송', " +
+      "'언제 와' 같은 질문을 하면 이 도구를 쓴다.",
+    input_schema: {
+      type: "object",
+      properties: {
+        order_id: {
+          type: "string",
+          description: "주문 번호. 'ORD-' 접두사를 포함한 전체 문자열.",
+        },
+        include_history: {
+          type: "boolean",
+          description: "배송 이력 전체를 함께 반환할지 여부. 기본 false.",
+        },
+      },
+      required: ["order_id"],
+    },
+  },
+];
 ```
 
 실무에서 도구가 제대로 안 불리는 문제의 8할은 스키마가 부실해서다. 몇 가지 짚을 점.
@@ -133,6 +164,30 @@ def execute_tool(name, tool_input):
         return {"content": str(order.status), "is_error": False}
 ```
 
+JS로 동일한 로직을 짜면 이렇다.
+
+```javascript
+function executeTool(name, toolInput) {
+  if (name === "get_order_status") {
+    const orderId = toolInput.order_id ?? "";
+    if (!orderId.startsWith("ORD-")) {
+      return {
+        content: `잘못된 주문 번호 형식: '${orderId}'. 'ORD-'로 시작하는 번호가 필요하다.`,
+        isError: true,
+      };
+    }
+    const order = db.findOrder(orderId);
+    if (!order) {
+      return {
+        content: `주문 '${orderId}'을(를) 찾을 수 없다. 번호를 다시 확인하도록 사용자에게 요청해라.`,
+        isError: true,
+      };
+    }
+    return { content: String(order.status), isError: false };
+  }
+}
+```
+
 `is_error: True`로 돌려주면 모델은 그걸 읽고 스스로 보정한다. 사용자에게 번호를 다시 묻거나, 다른 도구를 시도하거나 한다. 여기서 에러 메시지를 친절하게 쓸수록 모델이 복구를 잘한다. "Invalid input"보다 "ORD-로 시작해야 한다, 사용자에게 다시 물어봐라"가 훨씬 낫다. 에러 메시지가 곧 모델에게 주는 다음 지시문이라고 생각하면 된다.
 
 예외를 그냥 던져서 API 호출 자체를 죽이면 안 된다. 모델은 복구할 기회를 잃고, 사용자는 "오류가 발생했습니다"만 본다. 도구 안에서 실패는 정상 흐름의 일부로 다뤄야 한다.
@@ -184,7 +239,7 @@ def run_agent(user_input, tools, max_turns=10):
 
     for turn in range(max_turns):
         response = client.messages.create(
-            model="claude-opus-4-8",
+            model="claude-opus-4-7",
             max_tokens=4096,
             tools=tools,
             messages=messages,
@@ -215,6 +270,49 @@ def run_agent(user_input, tools, max_turns=10):
     raise RuntimeError(f"{max_turns}턴 안에 종료하지 못했다")
 ```
 
+JS SDK(async/await 기반)로 같은 루프를 짜면 이렇다.
+
+```javascript
+async function runAgent(userInput, tools, maxTurns = 10) {
+  const messages = [{ role: "user", content: userInput }];
+
+  for (let turn = 0; turn < maxTurns; turn++) {
+    const response = await client.messages.create({
+      model: "claude-opus-4-7",
+      max_tokens: 4096,
+      tools,
+      messages,
+    });
+
+    // 모델이 도구를 더 안 부르면 종료
+    if (response.stop_reason === "end_turn") {
+      messages.push({ role: "assistant", content: response.content });
+      return response.content.find((b) => b.type === "text")?.text;
+    }
+
+    // 모델 응답(tool_use 블록 포함)을 대화에 먼저 붙인다
+    messages.push({ role: "assistant", content: response.content });
+
+    // 도구 실행 후 결과를 한 user 메시지로 붙인다
+    const toolResults = [];
+    for (const block of response.content) {
+      if (block.type === "tool_use") {
+        const result = executeTool(block.name, block.input);
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: block.id,
+          content: result.content,
+          is_error: result.isError,
+        });
+      }
+    }
+    messages.push({ role: "user", content: toolResults });
+  }
+
+  throw new Error(`${maxTurns}턴 안에 종료하지 못했다`);
+}
+```
+
 루프에서 가장 자주 틀리는 부분은 **assistant 응답을 대화에 안 붙이고 tool_result만 붙이는 것**이다. 모델의 tool_use 블록과 우리의 tool_result는 짝이다. tool_use가 대화에 없는데 tool_result만 있으면 API가 "이 결과가 누구 거냐"며 거부한다. 항상 `response.content` 전체를 assistant 메시지로 붙인 다음, tool_result를 user 메시지로 붙인다.
 
 종료 조건은 `stop_reason`으로 판단한다. `end_turn`이면 모델이 할 말을 다 했다는 뜻이니 루프를 빠져나온다. `tool_use`면 도구를 더 부르겠다는 뜻이니 계속 돈다.
@@ -232,7 +330,7 @@ SDK에 따라서는 이 루프를 대신 돌려주는 tool runner 헬퍼가 있�
 ```python
 # max_turns에 닿았을 때: 도구 없이 한 번 더 호출해 마무리시킨다
 final = client.messages.create(
-    model="claude-opus-4-8",
+    model="claude-opus-4-7",
     max_tokens=4096,
     tool_choice={"type": "none"},   # 더는 도구를 못 부르게 막는다
     messages=messages,

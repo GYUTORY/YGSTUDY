@@ -1,7 +1,7 @@
 ---
 title: Google AI Studio 웹 도구
 tags: [ai, gemini, google, ai-studio, prototyping]
-updated: 2026-05-30
+updated: 2026-08-04
 ---
 
 # Google AI Studio 웹 도구
@@ -30,8 +30,15 @@ aistudio.google.com에 일반 Google 계정으로 로그인하면 바로 들어�
 
 좌측 상단의 "Get API key" 메뉴에서 키를 발급받는다. 키는 Google Cloud 프로젝트에 묶이는데, 이 부분이 처음 쓰는 사람들이 가장 헷갈리는 지점이다.
 
-- "Create API key in new project"를 누르면 AI Studio가 임의의 GCP 프로젝트를 하나 만들고 거기에 키를 발급한다. 프로젝트 이름이 "Generative Language Client" 같은 식으로 자동 생성되어서 나중에 GCP 콘솔에서 찾을 때 헷갈린다.
-- 기존 GCP 프로젝트에 키를 만들고 싶다면 "Create API key in existing project"를 골라 프로젝트를 직접 지정해라. 결제 계정이 붙어있는 프로젝트를 골라야 무료 티어 한도를 넘긴 다음에도 끊기지 않는다.
+### 발급 흐름
+
+1. aistudio.google.com 좌측 상단 "Get API key" 클릭
+2. "Create API key" 버튼 클릭
+3. 프로젝트 선택 화면에서 두 갈래가 나온다
+   - "Create API key in new project": AI Studio가 GCP 프로젝트를 자동 생성하고 키를 발급. 프로젝트 이름이 "Generative Language Client" 같은 식으로 자동 생성되어서 나중에 GCP 콘솔에서 찾을 때 헷갈린다.
+   - "Create API key in existing project": 기존 GCP 프로젝트를 직접 지정. 결제 계정이 붙어있는 프로젝트를 골라야 무료 티어 한도를 넘긴 다음에도 끊기지 않는다.
+4. 키 문자열이 화면에 표시되면 복사. 이후에도 AI Studio에서 다시 확인 가능하다.
+5. 사내 사용이라면 이 시점에서 GCP 콘솔 → 해당 프로젝트 → 결제 연결까지 마쳐야 유료 티어로 전환된다. 결제 연결 전은 입력 데이터가 학습에 쓰이는 무료 티어 상태다 (14절 참조).
 
 발급된 키는 한 번만 풀로 보여주는 게 아니라 언제든 다시 볼 수 있어서, 키 자체를 잃어버리는 문제는 잘 없다. 대신 키 권한 범위가 GCP 콘솔에서 보는 일반 API Key와는 살짝 다르다. AI Studio에서 만든 키는 기본적으로 generativelanguage.googleapis.com에만 통한다. 같은 키로 Vertex AI(aiplatform.googleapis.com)는 호출되지 않는다. Vertex AI 쪽은 OAuth나 서비스 계정 키가 필요하다.
 
@@ -311,3 +318,145 @@ AI Studio에서 모델을 비교하다 보면 한국어 응답 품질이 영어�
 - **토큰 효율.** 한국어는 1글자가 평균 2~3 토큰을 차지한다. 영어 문서를 한국어로 번역해서 처리하면 토큰 비용이 2~3배 늘어난다. 비용에 민감한 워크로드라면 system instruction이나 few-shot 예시는 영어로 두고 사용자 입력만 한국어로 받는 식으로 절약할 수 있다.
 
 이런 부분은 모델 버전이 바뀌면 또 달라진다. AI Studio Compare 모드로 분기마다 한 번씩 새 모델과 기존 모델을 비교해두면 회귀를 빨리 잡을 수 있다.
+
+---
+
+## 17. Python SDK 기본 호출
+
+AI Studio에서 코드를 export 받으면 `google-genai` 패키지 기준으로 나온다. 구 패키지(`google-generativeai`)가 아니라 신규 통합 SDK다. 먼저 설치한다.
+
+```bash
+pip install google-genai
+```
+
+기본 텍스트 생성 호출은 이렇다.
+
+```python
+import os
+from google import genai
+
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="파이썬으로 피보나치 수열 10개를 출력하는 코드 짜줘"
+)
+print(response.text)
+```
+
+환경변수로 키를 넘기는 쪽이 코드에 하드코딩하는 것보다 안전하다. `client = genai.Client()`처럼 `api_key`를 생략하면 SDK가 자동으로 `GEMINI_API_KEY` 환경변수를 읽는다. 별도로 설정하기 싫을 때 편하다.
+
+스트리밍 응답이 필요한 경우는 `generate_content_stream`을 쓴다. 응답이 길면 첫 토큰까지 대기 시간이 생기기 때문에, 사용자에게 실시간으로 출력을 보여주는 서비스라면 거의 필수다.
+
+```python
+for chunk in client.models.generate_content_stream(
+    model="gemini-2.5-flash",
+    contents="장문의 기술 문서를 요약해줘: ..."
+):
+    print(chunk.text, end="", flush=True)
+```
+
+`generate_content`는 응답 전체가 완성될 때까지 블록된다. 30초짜리 응답을 기다리다 타임아웃이 나는 경우가 있어서, 긴 컨텍스트 작업은 스트리밍 쪽이 안전하다.
+
+---
+
+## 18. 멀티모달 입력
+
+Gemini는 텍스트만 받는 게 아니라 이미지, PDF, 오디오, 동영상도 같은 API로 처리한다. `contents` 파라미터에 파트 리스트로 넘기면 된다.
+
+### 이미지 + 텍스트
+
+```python
+import base64
+import pathlib
+from google import genai
+
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+image_bytes = pathlib.Path("error_screenshot.png").read_bytes()
+
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=[
+        {
+            "inline_data": {
+                "mime_type": "image/png",
+                "data": base64.b64encode(image_bytes).decode()
+            }
+        },
+        "이 스크린샷에서 에러 메시지가 뭔지 알려줘"
+    ]
+)
+print(response.text)
+```
+
+이미지 크기 제한은 20MB 이하다. PNG, JPEG, WEBP, HEIC, HEIF를 지원한다. GIF 파일은 정적 이미지로 처리된다.
+
+### PDF 입력
+
+PDF는 이미지보다 실무에서 더 자주 쓰인다. 카탈로그나 API 명세서를 그대로 넣고 질문하는 패턴이다.
+
+```python
+pdf_bytes = pathlib.Path("api_spec.pdf").read_bytes()
+
+response = client.models.generate_content(
+    model="gemini-2.5-pro",
+    contents=[
+        {
+            "inline_data": {
+                "mime_type": "application/pdf",
+                "data": base64.b64encode(pdf_bytes).decode()
+            }
+        },
+        "이 API 명세서에서 인증 방법 부분만 요약해줘"
+    ]
+)
+```
+
+PDF 1페이지당 약 258토큰으로 계산된다. 100페이지 PDF면 25,800토큰이 컨텍스트에 잡히는 셈이다. 토큰 비용을 계산할 때 PDF를 들고 들어간다는 사실을 놓치면 청구서 보고 당황한다.
+
+### URL로 이미지 참조
+
+파일을 직접 올리는 대신 공개 URL로 이미지를 넘길 수도 있다.
+
+```python
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=[
+        {
+            "file_data": {
+                "mime_type": "image/jpeg",
+                "file_uri": "https://example.com/diagram.jpg"
+            }
+        },
+        "이 다이어그램이 나타내는 아키텍처를 설명해줘"
+    ]
+)
+```
+
+단, 이 방식은 Gemini가 직접 URL을 fetch한다. 인트라넷 URL이나 인증이 필요한 URL은 쓸 수 없다. 퍼블릭 URL이어야 한다.
+
+### 여러 이미지 동시 입력
+
+`contents` 리스트에 파트를 계속 붙이면 된다.
+
+```python
+images = ["before.png", "after.png"]
+parts = []
+for img_path in images:
+    img_bytes = pathlib.Path(img_path).read_bytes()
+    parts.append({
+        "inline_data": {
+            "mime_type": "image/png",
+            "data": base64.b64encode(img_bytes).decode()
+        }
+    })
+parts.append("두 이미지의 차이점을 구체적으로 설명해줘")
+
+response = client.models.generate_content(
+    model="gemini-2.5-pro",
+    contents=parts
+)
+```
+
+Gemini 2.5 Pro 기준 한 요청에 이미지 최대 3,000장까지 받는다. 실제로 그렇게 쓰는 케이스는 거의 없고, 이미지 10~20장 정도가 실무 한도다. 이미지가 많아질수록 응답 시간이 늘고 비용이 올라간다.
