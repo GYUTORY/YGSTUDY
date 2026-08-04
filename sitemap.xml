@@ -1109,6 +1109,10 @@
          <lastmod>2026-08-04</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Architecture/Tenant_Network_Isolation/</loc>
+         <lastmod>2026-08-04</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Architecture/%EB%B6%84%EC%82%B0_%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EC%B8%A1%EC%84%B1/</loc>
          <lastmod>2026-08-04</lastmod>
     </url>
@@ -4226,6 +4230,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Security/Supply_Chain_Security/</loc>
+         <lastmod>2026-08-04</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Security/Tenant_Key_Management/</loc>
          <lastmod>2026-08-04</lastmod>
     </url>
     <url>
