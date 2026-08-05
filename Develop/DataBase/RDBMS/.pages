@@ -55,3 +55,4 @@ nav:
     - CDC 파이프라인: CDC_Pipeline.md
     - MySQL vs PostgreSQL 실무 비교: My_SQL_vs_Postgre_SQL.md
     - ClickHouse: ClickHouse.md
+    - MySQL utf8mb4: utf8mb4.md
