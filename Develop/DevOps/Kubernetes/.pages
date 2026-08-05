@@ -1,11 +1,12 @@
 title: Kubernetes
 nav:
-  - 개요: Kubernetes.md
-  - 네트워킹 심화: Kubernetes_Networking.md
-  - 스토리지와 StatefulSet: Kubernetes_Storage_Stateful_Set.md
-  - Operator 및 CRD: Kubernetes_Operator_및_CRD.md
-  - Kustomize: Kustomize.md
-  - Helm: Helm.md
-  - 클러스터 아키텍처: Kubernetes_Architecture.md
-  - Reconciliation Loop: Reconciliation_Loop.md
+  - Kubernetes.md
+  - Kubernetes_Architecture.md
+  - Reconciliation_Loop.md
+  - Kubernetes_Networking.md
+  - Kubernetes_Storage_Stateful_Set.md
+  - Kubernetes_Operator_및_CRD.md
+  - Kustomize.md
+  - Helm.md
+  - Kubernetes_Disaster_Recovery.md
   - Docker

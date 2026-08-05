@@ -1,9 +1,0 @@
-title: Infra
-nav:
-  - Service_Mesh
-  - Service_Discovery
-  - Coordination
-  - Load_Balancer
-  - Principles
-  - Container Registry: Container_Registry/Container_Registry.md
-  - HashiCorp Vault: Secrets/Hashi_Corp_Vault.md

@@ -1,7 +1,18 @@
+title: DevOps
 nav:
   - CI_CD
   - GitOps
   - Infrastructure_as_Code
   - Kubernetes
   - Monitoring
-  - Testing: Testing/부하_테스트.md
+  - Service_Mesh
+  - Service_Discovery
+  - Coordination
+  - Load_Balancer
+  - Secrets
+  - Image_Build
+  - Container_Registry
+  - Principles
+  - Testing
+  - Git
+  - Linux
