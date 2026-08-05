@@ -621,6 +621,7 @@ NO_OVERVIEW = {
 # 디렉터리 .pages의 title 을 강제로 바꾼다
 # (자식의 title 이 부모 nav 라벨보다 우선하므로 여기서 지정해야 한다)
 TITLE_OVERRIDE = {
+    'Develop/_hub': '주제별 가이드',
     'Develop/Framework/Node/Nodejs의 구조 및 작동 원리': '런타임 구조',
     'Develop/Framework/Node/Testing': '테스트',
 }

@@ -237,7 +237,7 @@ hide:
   <div class="yg-section-head">
     <div>
       <span class="yg-section-kicker">HUBS</span>
-      <h2 class="yg-section-title">주제별 허브</h2>
+      <h2 class="yg-section-title">주제별 가이드</h2>
     </div>
   </div>
   <div class="yg-series-grid">
