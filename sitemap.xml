@@ -1765,6 +1765,10 @@
          <lastmod>2026-08-05</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/utf8mb4/</loc>
+         <lastmod>2026-08-05</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/%EA%B0%B1%EC%8B%A0_%EC%9D%B4%EC%83%81/</loc>
          <lastmod>2026-08-05</lastmod>
     </url>
@@ -1862,6 +1866,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/DataRepresentation/Encoding/Code_Point/</loc>
+         <lastmod>2026-08-05</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DataRepresentation/Encoding/Collation/</loc>
          <lastmod>2026-08-05</lastmod>
     </url>
     <url>
