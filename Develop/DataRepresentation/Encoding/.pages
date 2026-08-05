@@ -7,3 +7,4 @@ nav:
   - 코드 포인트: Code_Point.md
   - UTF-8 심화: UTF-8.md
   - 유니코드 정규화: Unicode_Normalization.md
+  - 한글 자모 분리: Hangul_Jamo.md
