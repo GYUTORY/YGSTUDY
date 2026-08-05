@@ -3,8 +3,8 @@ nav:
   - Base64 인코딩: Base64.md
   - 문자 인코딩: Character_Encoding.md
   - URL 인코딩 심화: URL_Encoding.md
-  - 유니코드: Unicode.md
-  - 코드 포인트: Code_Point.md
+  - 유니코드 (Unicode): Unicode.md
+  - 코드 포인트 (Code Point): Code_Point.md
   - UTF-8 심화: UTF-8.md
   - 유니코드 정규화: Unicode_Normalization.md
   - 한글 자모 분리: Hangul_Jamo.md

@@ -7,5 +7,5 @@ nav:
   - PWA: PWA.md
   - Promise 내부 동작 과정: Promise 내부 동작 과정.md
   - Stack (스택) 자료구조: Stack.md
-  - 모듈 시스템 (CommonJS vs ESM): Module_System.md
-  - Symbol·WeakRef·FinalizationRegistry: Symbol_Weak_Ref.md
+  - 모듈 시스템: Module_System.md
+  - Symbol, WeakRef, FinalizationRegistry: Symbol_Weak_Ref.md

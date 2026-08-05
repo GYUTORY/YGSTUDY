@@ -4,6 +4,8 @@ nav:
   - 위협 모델링: Threat_Modeling.md
   - OWASP Top 10: OWASP_Top_10.md
   - 보안 심화 및 취약점 분석: 보안_심화_및_취약점_분석.md
+  - 테넌트별 암호화 키 격리: Tenant_Key_Management.md
+  - 크로스 테넌트 유출: Cross_Tenant_Leak.md
   - API 보안:
     - API Security: API_Security.md
     - Input Validation: API_Input_Validation.md
@@ -57,8 +59,6 @@ nav:
     - 쿠버네티스 보안: Kubernetes_Security.md
     - 시크릿 관리: Secrets_Management.md
     - SSH 키 라이프사이클 관리: SSH_Key_Management.md
-    - 테넌트별 암호화 키 격리: Tenant_Key_Management.md
-    - 크로스 테넌트 유출: Cross_Tenant_Leak.md
   - 운영과 컴플라이언스:
     - DevSecOps: Dev_Sec_Ops.md
     - SAST / DAST / IAST: Security_Testing_SAST_DAST_IAST.md

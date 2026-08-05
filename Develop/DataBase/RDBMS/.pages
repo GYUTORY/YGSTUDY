@@ -1,13 +1,22 @@
 title: RDBMS
 nav:
+  - 부분 인덱스: 부분_인덱스.md
+  - 복합 인덱스 선두 컬럼: 복합_인덱스_선두.md
+  - 인덱스 무력화: 인덱스_무력화.md
+  - 소프트 삭제: Soft_Delete.md
+  - 아카이브 테이블: Archive_Table.md
+  - Schema-Per-Tenant: Schema_Per_Tenant.md
+  - Shared Table: Shared_Table.md
+  - Row Level Security: Row_Level_Security.md
+  - 테넌트 컬럼 JPA: Tenant_Column_JPA.md
+  - 술어 누락: 술어_누락.md
+  - 유니크 제약 충돌: Unique_Constraint_Conflict.md
+  - MySQL utf8mb4: utf8mb4.md
   - 인덱스:
     - RDBMS에서의 Index: RDBMS에서의 index.md
     - B-Tree 페이지 분할: B_Tree_Page_Split.md
     - 인덱스 지역성: 인덱스_지역성.md
     - 쿼리 옵티마이저와 실행 계획: 쿼리_옵티마이저.md
-    - 부분 인덱스: 부분_인덱스.md
-    - 복합 인덱스 선두 컬럼: 복합_인덱스_선두.md
-    - 인덱스 무력화: 인덱스_무력화.md
   - 트랜잭션과 동시성:
     - 트랜잭션과 Lock: Transaction_and_Lock.md
     - 격리 수준별 이상 현상 재현: Isolation_Level_Anomaly_Examples.md
@@ -39,16 +48,8 @@ nav:
     - 참조 무결성: Referential_Integrity.md
     - 외래키 없는 설계: No_FK_Design.md
     - 고아 레코드: Orphan_Record.md
-    - 소프트 삭제: Soft_Delete.md
-    - 아카이브 테이블: Archive_Table.md
     - Cross-Schema 쿼리: Cross_Schema.md
-    - Schema-Per-Tenant: Schema_Per_Tenant.md
-    - Shared Table: Shared_Table.md
-    - Row Level Security: Row_Level_Security.md
-    - 테넌트 컬럼 JPA: Tenant_Column_JPA.md
     - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
-    - 술어 누락: 술어_누락.md
-    - 유니크 제약 충돌: Unique_Constraint_Conflict.md
   - 확장과 운영:
     - 데이터베이스 성능 튜닝: 데이터베이스_성능_튜닝.md
     - 데이터베이스 샤딩: 데이터베이스_샤딩.md
@@ -56,4 +57,3 @@ nav:
     - CDC 파이프라인: CDC_Pipeline.md
     - MySQL vs PostgreSQL 실무 비교: My_SQL_vs_Postgre_SQL.md
     - ClickHouse: ClickHouse.md
-    - MySQL utf8mb4: utf8mb4.md

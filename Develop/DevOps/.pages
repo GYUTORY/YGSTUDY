@@ -9,10 +9,9 @@ nav:
   - Service_Discovery
   - Coordination
   - Load_Balancer
-  - Secrets
-  - Image_Build
-  - Container_Registry
   - Principles
-  - Testing
   - Git
   - Linux
+  - Container Registry: Container_Registry/Container_Registry.md
+  - HashiCorp Vault: Secrets/Hashi_Corp_Vault.md
+  - Testing: Testing/부하_테스트.md

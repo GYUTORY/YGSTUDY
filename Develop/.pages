@@ -1,4 +1,6 @@
 nav:
+  - index.md
+  - 주제별 가이드: _hub
   - Language
   - Framework
   - AI
@@ -9,3 +11,9 @@ nav:
   - Network
   - DataBase
   - Algorithm
+  - Security
+  - WebServer
+  - OS
+  - Frontend
+  - tags.md
+  - ...

@@ -77,13 +77,14 @@ BAD_HEAD = re.compile(
 GROUP_NAME_OK = re.compile(r'^[A-Za-z][A-Za-z0-9.+#/-]*$')
 
 # 최상위 섹션 순서 — 언어/프레임워크 → 백엔드 → 데이터 → 인프라 → 클라우드 → 기타
+# 2026-08-05 재편성: AWS·GCP -> Cloud, Linux·Git·Infra -> DevOps, DataRepresentation -> DataBase
 TOP_ORDER = [
     'index.md', '_hub',
-    'Language', 'Algorithm', 'Framework', 'Frontend',
-    'Backend', 'Architecture', 'DataBase', 'DataRepresentation',
-    'Network', 'Security', 'OS', 'Linux', 'WebServer',
-    'DevOps', 'Infra', 'AWS', 'GCP',
-    'Git', 'AI',
+    'Language', 'Framework', 'AI',
+    'Backend', 'Architecture',
+    'Cloud', 'DevOps',
+    'Network', 'DataBase', 'Algorithm',
+    'Security', 'WebServer', 'OS', 'Frontend',
     'tags.md',
 ]
 
@@ -127,7 +128,7 @@ MANUAL_GROUPS = {
             ('슬라이스와 맵 내부 구조', 'Go_Slice_Map.md'),
         ]),
     ],
-    'Develop/AWS/Security': [
+    'Develop/Cloud/AWS/Security': [
         ('자격 증명과 권한', [
             ('IAM', 'IAM.md'),
             ('IAM 권한 관리 심화', 'IAM_Permission_Management_Deep_Dive.md'),
@@ -225,7 +226,7 @@ MANUAL_GROUPS = {
             ('트러블슈팅', '트러블슈팅.md'),
         ]),
     ],
-    'Develop/AWS/Network': [
+    'Develop/Cloud/AWS/Network': [
         ('VPC 네트워킹', [
             ('Private Subnet vs Public Subnet 심화',
              'Private_Subnet__vs__Public_Subnet.md'),
@@ -627,7 +628,7 @@ TITLE_OVERRIDE = {
 # 디렉터리 자체의 표시 이름
 DIR_LABEL = {
     'Develop/AI/Concepts': '개념',
-    'Develop/_hub': '주제별 허브',
+    'Develop/_hub': '주제별 가이드',
     'Develop/Framework/Node/Nodejs의 구조 및 작동 원리': '런타임 구조',
     'Develop/Framework/Node/Process Management Tool': '프로세스 관리',
     'Develop/Framework/Node/Testing': '테스트',
@@ -646,11 +647,19 @@ def split_subtitle(label):
     return label, None
 
 
+# 조상 이름 자체가 실제 제품명 접두사인 경우 후보에서 제외한다.
+# 'Cloud'를 조상으로 두면 'Cloud Run' → 'Run', 'Cloud SQL' → 'SQL' 처럼
+# GCP 제품명 앞부분이 통째로 깎인다. CloudFormation/CloudTrail/CloudWatch 는
+# 구분자(' '등)가 없어서 원래 매칭이 안 되므로 여기 넣을 필요 없다.
+NEVER_STRIP = {'Cloud'}
+
+
 def strip_prefix(title, ancestors, report=False):
     cands = []
     for a in ancestors:
         cands.extend(EXTRA_PREFIXES.get(a, []))
-        cands.append(a.replace('_', ' '))
+        if a not in NEVER_STRIP:
+            cands.append(a.replace('_', ' '))
     cands = sorted({c for c in cands if c}, key=len, reverse=True)
     out = title
     # 접두사는 한 번만 뗀다. 두 번 떼면 'Network Gateway 심화'가
@@ -1102,7 +1111,7 @@ def dedupe(entries, dirpath, ancestors):
     return entries
 
 
-def write_pages(dirpath, entries, title=None):
+def write_pages(dirpath, entries, title=None, root=False):
     lines = []
     if title:
         lines.append(f'title: {title}')
@@ -1118,6 +1127,8 @@ def write_pages(dirpath, entries, title=None):
             lines.append(f'  - {target}')
         else:
             lines.append(f'  - {label}: {target}')
+    if root:
+        lines.append('  - ...')
     content = '\n'.join(lines) + '\n'
     path = os.path.join(dirpath, '.pages')
     if WRITE:
@@ -1135,7 +1146,7 @@ def walk_and_generate():
         dirnames[:] = [d for d in dirnames
                        if d not in SKIP_DIRS and not d.startswith('.')]
         if dirpath == ROOT:
-            generated[dirpath] = write_pages(ROOT, build_top())[1]
+            generated[dirpath] = write_pages(ROOT, build_top(), root=True)[1]
             continue
         # 문서 1개짜리 디렉터리는 부모가 흡수했으므로 .pages 불필요.
         # 단 최상위 섹션은 흡수 대상이 아니므로 그대로 둔다.
