@@ -7,6 +7,7 @@ nav:
     - 쿼리 옵티마이저와 실행 계획: 쿼리_옵티마이저.md
     - 부분 인덱스: 부분_인덱스.md
     - 복합 인덱스 선두 컬럼: 복합_인덱스_선두.md
+    - 인덱스 무력화: 인덱스_무력화.md
   - 트랜잭션과 동시성:
     - 트랜잭션과 Lock: Transaction_and_Lock.md
     - 격리 수준별 이상 현상 재현: Isolation_Level_Anomaly_Examples.md
