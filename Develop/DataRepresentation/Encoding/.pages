@@ -8,3 +8,4 @@ nav:
   - UTF-8 심화: UTF-8.md
   - 유니코드 정규화: Unicode_Normalization.md
   - 한글 자모 분리: Hangul_Jamo.md
+  - Collation: Collation.md
