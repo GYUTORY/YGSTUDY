@@ -56,4 +56,5 @@ nav:
     - 읽기 전용 복제본: 읽기_전용_복제본.md
     - CDC 파이프라인: CDC_Pipeline.md
     - MySQL vs PostgreSQL 실무 비교: My_SQL_vs_Postgre_SQL.md
+    - PostgreSQL 스키마 마이그레이션: Postgre_SQL_Schema_Migration.md
     - ClickHouse: ClickHouse.md
