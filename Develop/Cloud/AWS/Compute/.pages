@@ -17,6 +17,7 @@ nav:
     - 콜드 스타트 심화: Lambda_Cold_Start_심화.md
     - VPC 연동 심화: Lambda_VPC_연동.md
     - 배포와 패키징 심화: Lambda_배포_패키징.md
+    - 무중단 배포 Traffic Shifting: Lambda_Traffic_Shifting.md
   - Elastic Beanstalk: Elastic_Beanstalk.md
   - Batch 대량 배치 작업 처리: AWS_Batch.md
   - App Runner 심화: App_Runner.md

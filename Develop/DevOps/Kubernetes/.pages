@@ -8,4 +8,5 @@ nav:
   - Operator 및 CRD: Kubernetes_Operator_및_CRD.md
   - Kustomize: Kustomize.md
   - Helm: Helm.md
+  - Argo Rollouts: Argo_Rollouts.md
   - Docker
