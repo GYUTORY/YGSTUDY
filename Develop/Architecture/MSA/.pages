@@ -21,6 +21,7 @@ nav:
     - Expand-Migrate-Contract 패턴: Expand_Migrate_Contract.md
     - 이벤트 소싱과 CQRS: 이벤트_소싱_및_CQRS.md
     - 분산 캐싱 패턴: 분산_캐싱_패턴.md
+    - 서비스 체인 멱등성: MSA_Idempotency_Chain.md
   - 배포와 운영:
     - 배포 패턴: 배포_패턴.md
     - 설정 관리 및 Secret 관리: 설정_관리_및_Secret_관리.md
