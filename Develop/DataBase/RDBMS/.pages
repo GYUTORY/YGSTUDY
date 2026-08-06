@@ -57,4 +57,5 @@ nav:
     - CDC 파이프라인: CDC_Pipeline.md
     - MySQL vs PostgreSQL 실무 비교: My_SQL_vs_Postgre_SQL.md
     - PostgreSQL 스키마 마이그레이션: Postgre_SQL_Schema_Migration.md
+    - MySQL Online DDL: My_SQL_Online_DDL.md
     - ClickHouse: ClickHouse.md
