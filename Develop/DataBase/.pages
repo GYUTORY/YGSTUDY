@@ -5,6 +5,7 @@ nav:
   - 데이터베이스 마이그레이션 전략: 마이그레이션_전략.md
   - 백필: 백필.md
   - 데이터베이스 옵티마이저: 옵티마이저.md
+  - 롤백 불가 변경: 롤백_불가_변경.md
   - DataRepresentation
   - NoSQL
   - RDBMS
