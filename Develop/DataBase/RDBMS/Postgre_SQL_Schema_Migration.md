@@ -1,6 +1,6 @@
 ---
 title: PostgreSQL 스키마 마이그레이션
-tags: [postgresql, schema-migration, ddl-lock, concurrently, pg-repack, flyway, expand-contract, pg-dump]
+tags: [postgresql, schema-migration, ddl-lock, concurrently, pg-repack, flyway, expand-migrate-contract, pg-dump]
 updated: 2026-08-06
 ---
 
@@ -149,8 +149,6 @@ ALTER TABLE users DROP COLUMN phone;
 ALTER TABLE users RENAME COLUMN phone_new TO phone;
 ```
 
-이 절차가 PostgreSQL에서의 Expand/Contract 구현이다.
-
 ## 컬럼 삭제
 
 `DROP COLUMN`은 내부적으로 컬럼을 실제로 제거하지 않는다. 시스템 카탈로그에서 해당 컬럼을 "삭제됨"으로 표시만 하므로 빠르다. 삭제된 컬럼의 공간은 테이블에 그대로 남고, `VACUUM FULL`이나 `pg_repack`을 실행해야 회수된다.
@@ -197,46 +195,287 @@ dead_ratio가 20% 이상이거나 테이블 크기가 예상보다 크게 크면
 - 실행 중 테이블 크기만큼 디스크 공간을 추가로 사용한다. 100GB 테이블이면 100GB 여유 공간이 필요하다.
 - `pg_repack` 버전과 PostgreSQL 버전을 맞춰야 한다. 버전 불일치 시 실패한다.
 
-## PostgreSQL-native Expand/Contract
+## Expand-Migrate-Contract 단계별 실행
 
-MySQL 중심으로 설명된 Expand/Contract 패턴을 PostgreSQL에서 구현하면 다른 점이 있다.
+`name → first_name + last_name` 컬럼 분리 시나리오로 각 단계를 설명한다. 단계 사이에는 서비스 배포가 완료된 상태여야 하고, 각 단계 끝은 독립적으로 stable한 상태다.
 
-### 컬럼 분리 예시 (name → first_name + last_name)
+### Phase 1: Expand
 
-**Phase 1: Expand**
+기존 컬럼을 건드리지 않고 새 컬럼을 추가한다.
 
 ```sql
 -- V10__expand_name_columns.sql
+SET lock_timeout = '2s';
 ALTER TABLE users ADD COLUMN first_name VARCHAR(100) NULL;
-ALTER TABLE users ADD COLUMN last_name VARCHAR(100) NULL;
+ALTER TABLE users ADD COLUMN last_name  VARCHAR(100) NULL;
 ```
 
-기존 데이터 마이그레이션은 별도 스크립트로 처리한다. Flyway 파일에 수백만 행의 `UPDATE`를 넣으면 트랜잭션이 길어지고 락 유지 시간이 늘어난다.
+`NOT NULL`을 걸지 않는다. 구 버전 서비스는 `first_name`/`last_name`을 채우지 않는다. Expand 직후에는 새 컬럼이 전부 NULL이고, 구 코드가 INSERT/UPDATE를 해도 오류가 나지 않아야 한다.
+
+Expand 완료 후 컬럼이 추가됐는지 확인:
 
 ```sql
--- 배치 스크립트: 운영 중 백그라운드로 실행
+SELECT column_name, is_nullable, data_type
+FROM information_schema.columns
+WHERE table_name = 'users'
+  AND column_name IN ('name', 'first_name', 'last_name')
+ORDER BY ordinal_position;
+```
+
+이 단계에서 서비스 배포가 없다면 언제든 롤백 가능하다:
+
+```sql
+-- Expand 롤백 (서비스 배포 전에만 무조건 안전)
+SET lock_timeout = '2s';
+ALTER TABLE users DROP COLUMN IF EXISTS first_name;
+ALTER TABLE users DROP COLUMN IF EXISTS last_name;
+```
+
+### Phase 2: Migrate
+
+두 가지를 동시에 진행한다. 신규 쓰기가 새 컬럼을 채우도록 트리거를 걸고, 기존 데이터를 배치로 마이그레이션한다.
+
+**이중 쓰기 트리거:**
+
+```sql
+CREATE OR REPLACE FUNCTION sync_name_split()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.name IS NOT NULL THEN
+        NEW.first_name := split_part(TRIM(NEW.name), ' ', 1);
+        NEW.last_name  := NULLIF(TRIM(split_part(TRIM(NEW.name), ' ', 2)), '');
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_name_split
+BEFORE INSERT OR UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION sync_name_split();
+```
+
+트리거가 걸리면 서비스가 `name`을 업데이트할 때마다 `first_name`/`last_name`도 자동으로 채워진다. 서비스 코드를 바꾸지 않아도 새 컬럼이 채워지는 장점이 있다.
+
+트리거를 쓰지 않는다면 서비스 코드에서 이중 쓰기를 구현해야 한다. 그 경우 모든 서비스 인스턴스가 이중 쓰기 버전으로 배포될 때까지 새 컬럼이 NULL인 레코드가 계속 생긴다.
+
+**배치 마이그레이션:**
+
+```sql
+-- 배치 단위로 반복 실행. start_id와 end_id는 외부에서 주입
 UPDATE users
 SET
-    first_name = split_part(name, ' ', 1),
-    last_name  = NULLIF(split_part(name, ' ', 2), '')
+    first_name = split_part(TRIM(name), ' ', 1),
+    last_name  = NULLIF(TRIM(split_part(TRIM(name), ' ', 2)), '')
 WHERE first_name IS NULL
   AND id BETWEEN :start_id AND :end_id;
 ```
 
-배치는 `id` 범위를 나눠 실행해야 한다. 한 트랜잭션에서 수백만 행을 업데이트하면 죽은 투플이 대량 생성되고 autovacuum이 따라가지 못한다.
+`id` 범위를 1000~5000건 단위로 나눠 반복한다. 한 트랜잭션에 수십만 건을 처리하면 dead tuple이 대량 생성되고 autovacuum이 따라가지 못한다. 중간에 멈춰도 `WHERE first_name IS NULL` 조건으로 재시작할 수 있다.
 
-**Phase 2: Contract**
+잠긴 레코드로 인한 배치 실패를 막으려면 `SKIP LOCKED`를 쓴다:
 
-구버전 앱이 완전히 내려간 후 실행한다.
+```sql
+-- 잠긴 레코드는 건너뛰고 나중에 재처리
+WITH batch AS (
+    SELECT id FROM users
+    WHERE first_name IS NULL
+      AND id BETWEEN :start_id AND :end_id
+    ORDER BY id
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE users u
+SET
+    first_name = split_part(TRIM(u.name), ' ', 1),
+    last_name  = NULLIF(TRIM(split_part(TRIM(u.name), ' ', 2)), '')
+FROM batch
+WHERE u.id = batch.id;
+```
+
+**진행률 모니터링:**
+
+```sql
+SELECT
+    COUNT(*)                                                              AS total,
+    COUNT(*) FILTER (WHERE first_name IS NOT NULL)                       AS migrated,
+    COUNT(*) FILTER (WHERE first_name IS NULL)                           AS remaining,
+    ROUND(COUNT(*) FILTER (WHERE first_name IS NOT NULL) * 100.0 / NULLIF(COUNT(*), 0), 2) AS pct
+FROM users;
+```
+
+`pct`가 100%이고 `remaining`이 0건이면 Phase 3으로 넘어갈 수 있다.
+
+### Phase 3: Contract
+
+구 버전 서비스가 완전히 내려간 후 실행한다.
+
+`NOT NULL`을 바로 걸면 전체 테이블 스캔 동안 `ACCESS EXCLUSIVE`가 유지된다. `NOT VALID`로 분리하면 락 노출 시간을 줄인다:
 
 ```sql
 -- V15__contract_name_column.sql
+
+-- 1. 신규 행만 검사하는 CHECK 제약 추가 (즉시 완료)
+ALTER TABLE users ADD CONSTRAINT users_first_name_not_null
+    CHECK (first_name IS NOT NULL) NOT VALID;
+
+ALTER TABLE users ADD CONSTRAINT users_last_name_not_null
+    CHECK (last_name IS NOT NULL) NOT VALID;
+
+-- 2. 기존 행 검증 (ShareUpdateExclusiveLock, DML 허용)
+ALTER TABLE users VALIDATE CONSTRAINT users_first_name_not_null;
+ALTER TABLE users VALIDATE CONSTRAINT users_last_name_not_null;
+
+-- 3. NOT NULL 제약 전환 (CHECK 제약이 있으므로 테이블 스캔 생략, 즉시 완료)
 ALTER TABLE users ALTER COLUMN first_name SET NOT NULL;
 ALTER TABLE users ALTER COLUMN last_name SET NOT NULL;
+ALTER TABLE users DROP CONSTRAINT users_first_name_not_null;
+ALTER TABLE users DROP CONSTRAINT users_last_name_not_null;
+
+-- 4. 트리거 정리
+DROP TRIGGER IF EXISTS trg_sync_name_split ON users;
+DROP FUNCTION IF EXISTS sync_name_split();
+
+-- 5. 구 컬럼 제거
 ALTER TABLE users DROP COLUMN name;
 ```
 
-PostgreSQL은 DDL이 트랜잭션 안에서 실행된다. Flyway가 이 파일을 하나의 트랜잭션으로 감싸므로 중간에 실패해도 전체가 롤백된다.
+PostgreSQL은 DDL이 트랜잭션 안에서 실행된다. Flyway가 이 파일을 하나의 트랜잭션으로 감싸므로 중간에 실패해도 전체가 롤백된다. 단, `VALIDATE CONSTRAINT`는 각각 별도 트랜잭션에서 실행하는 것이 안전하다 - 검증 도중 실패하면 제약 자체가 롤백되기 때문이다.
+
+### 컬럼 분리 데이터 정합성
+
+Phase 3 진입 전에 분리 결과를 점검한다.
+
+**NULL 잔존 확인:**
+
+```sql
+-- 반드시 0건이어야 함
+SELECT COUNT(*) FROM users WHERE first_name IS NULL OR last_name IS NULL;
+```
+
+**분리 결과 불일치 확인:**
+
+```sql
+-- 분리 후 원본과 재조합한 결과가 다른 레코드
+SELECT id, name, first_name, last_name
+FROM users
+WHERE name IS NOT NULL
+  AND TRIM(name) != CONCAT(
+      first_name,
+      CASE WHEN last_name IS NOT NULL THEN ' ' || last_name ELSE '' END
+  )
+LIMIT 100;
+```
+
+레코드가 나오면 이름에 공백이 두 개 이상이거나 앞뒤 공백이 있는 케이스다. `split_part`는 두 번째 공백 이후를 버리기 때문에 "Mary Jane Watson" 같은 이름은 last_name이 "Jane"이 된다. 비즈니스 요구사항에 맞게 split 로직을 조정해야 한다.
+
+**이중 쓰기 도중 누락된 레코드 확인:**
+
+트리거 없이 서비스 코드로 이중 쓰기를 했다면, 이중 쓰기 배포 전에 업데이트된 레코드는 새 컬럼이 NULL일 수 있다. 배치가 `WHERE first_name IS NULL` 조건만 보기 때문에, `first_name`이 채워졌지만 `name`과 불일치하는 레코드가 생길 수 있다:
+
+```sql
+-- 이중 쓰기 불일치 감지
+SELECT COUNT(*)
+FROM users
+WHERE first_name IS NOT NULL
+  AND name IS NOT NULL
+  AND TRIM(name) != CONCAT(
+      first_name,
+      CASE WHEN last_name IS NOT NULL THEN ' ' || last_name ELSE '' END
+  );
+```
+
+불일치가 있으면 배치를 다시 돌려서 보정한다:
+
+```sql
+UPDATE users
+SET
+    first_name = split_part(TRIM(name), ' ', 1),
+    last_name  = NULLIF(TRIM(split_part(TRIM(name), ' ', 2)), '')
+WHERE name IS NOT NULL
+  AND TRIM(name) != CONCAT(
+      first_name,
+      CASE WHEN last_name IS NOT NULL THEN ' ' || last_name ELSE '' END
+  );
+```
+
+### 컬럼 통합 정합성
+
+`first_name + last_name → full_name`처럼 여러 컬럼을 하나로 합치는 경우도 방향만 반대고 절차는 같다.
+
+**Phase 1 Expand:**
+
+```sql
+SET lock_timeout = '2s';
+ALTER TABLE users ADD COLUMN full_name VARCHAR(200) NULL;
+```
+
+**Phase 2 Migrate — 배치:**
+
+```sql
+UPDATE users
+SET full_name = TRIM(
+    CONCAT(
+        COALESCE(first_name, ''),
+        CASE WHEN last_name IS NOT NULL AND last_name != '' THEN ' ' || last_name ELSE '' END
+    )
+)
+WHERE full_name IS NULL
+  AND id BETWEEN :start_id AND :end_id;
+```
+
+**Phase 2 Migrate — 이중 쓰기 트리거:**
+
+```sql
+CREATE OR REPLACE FUNCTION sync_full_name()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.full_name := TRIM(
+        CONCAT(
+            COALESCE(NEW.first_name, ''),
+            CASE WHEN NEW.last_name IS NOT NULL AND NEW.last_name != ''
+                 THEN ' ' || NEW.last_name
+                 ELSE ''
+            END
+        )
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_full_name
+BEFORE INSERT OR UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION sync_full_name();
+```
+
+**정합성 확인:**
+
+```sql
+-- 통합 결과 불일치 확인
+SELECT id, first_name, last_name, full_name,
+       TRIM(CONCAT(first_name, CASE WHEN last_name IS NOT NULL AND last_name != '' THEN ' ' || last_name ELSE '' END)) AS expected
+FROM users
+WHERE full_name IS NOT NULL
+  AND full_name != TRIM(CONCAT(
+      COALESCE(first_name, ''),
+      CASE WHEN last_name IS NOT NULL AND last_name != '' THEN ' ' || last_name ELSE '' END
+  ))
+LIMIT 50;
+```
+
+**Phase 3 Contract:**
+
+```sql
+DROP TRIGGER IF EXISTS trg_sync_full_name ON users;
+DROP FUNCTION IF EXISTS sync_full_name();
+
+ALTER TABLE users ADD CONSTRAINT users_full_name_not_null
+    CHECK (full_name IS NOT NULL) NOT VALID;
+ALTER TABLE users VALIDATE CONSTRAINT users_full_name_not_null;
+ALTER TABLE users ALTER COLUMN full_name SET NOT NULL;
+ALTER TABLE users DROP CONSTRAINT users_full_name_not_null;
+
+ALTER TABLE users DROP COLUMN first_name;
+ALTER TABLE users DROP COLUMN last_name;
+```
 
 ### 외래키 추가
 
@@ -252,6 +491,187 @@ ALTER TABLE orders VALIDATE CONSTRAINT fk_orders_users;
 ```
 
 `VALIDATE CONSTRAINT`는 `ShareUpdateExclusiveLock`을 잡는다. 전체 테이블 스캔이 필요하지만 서비스를 멈추지 않는다.
+
+## 락 충돌 처리
+
+### lock_timeout 재시도 패턴
+
+`lock_timeout`이 만료되면 에러가 발생한다:
+
+```
+ERROR:  canceling statement due to lock timeout
+```
+
+이 에러가 발생하면 대기 중이던 DDL이 취소되고, 뒤에 줄 서 있던 쿼리들이 풀린다. 배포 스크립트에서 재시도 루프를 넣어 처리한다:
+
+```sql
+DO $$
+DECLARE
+    attempt     INTEGER := 0;
+    max_retries INTEGER := 10;
+BEGIN
+    LOOP
+        BEGIN
+            SET LOCAL lock_timeout = '2s';
+            ALTER TABLE orders ADD COLUMN discount_amount NUMERIC(10,2) NULL;
+            EXIT;
+        EXCEPTION WHEN lock_not_available THEN
+            attempt := attempt + 1;
+            IF attempt >= max_retries THEN
+                RAISE EXCEPTION 'lock 획득 실패: % 회 시도 후 포기', max_retries;
+            END IF;
+            PERFORM pg_sleep(1);
+        END;
+    END LOOP;
+END;
+$$;
+```
+
+재시도 간격은 트래픽 패턴에 따라 조정한다. 피크 시간대라면 늘리고, 새벽 배포라면 줄여도 된다.
+
+### 블로킹 쿼리 식별과 종료
+
+`lock_timeout` 실패가 반복되면 블로킹 쿼리를 찾아야 한다.
+
+```sql
+-- 현재 블로킹 관계 확인
+SELECT
+    blocking.pid                         AS blocking_pid,
+    LEFT(blocking.query, 100)            AS blocking_query,
+    now() - blocking.query_start         AS blocking_duration,
+    blocking.state                       AS blocking_state,
+    blocked.pid                          AS blocked_pid,
+    LEFT(blocked.query, 100)             AS blocked_query
+FROM pg_stat_activity blocking
+JOIN pg_stat_activity blocked
+    ON blocking.pid = ANY(pg_blocking_pids(blocked.pid))
+ORDER BY blocking_duration DESC;
+```
+
+블로커를 찾았을 때 종료 방법:
+
+```sql
+-- 쿼리만 취소 (연결 유지, 앱이 재시도 가능)
+SELECT pg_cancel_backend(:blocking_pid);
+
+-- 연결까지 강제 종료 (롤백 발생, 앱이 connection reset 수신)
+SELECT pg_terminate_backend(:blocking_pid);
+```
+
+`pg_cancel_backend`는 현재 실행 중인 쿼리에 취소 신호를 보낸다. 쿼리가 응답 가능한 상태면 에러로 종료되고 트랜잭션이 롤백된다. 연결은 살아있으므로 앱이 재시도한다. `pg_terminate_backend`는 연결 자체를 끊는다.
+
+배치 쿼리나 리포트 쿼리가 블로커면 `pg_cancel_backend`를 먼저 시도한다. 쿼리가 이미 롤백 중이거나 cancel에 응답하지 않으면 `pg_terminate_backend`를 쓴다.
+
+### 락 대기열 누적 방지
+
+DDL 실행 전에 장기 실행 쿼리가 없는지 확인한다:
+
+```sql
+-- 5분 이상 실행 중인 쿼리 확인
+SELECT pid, LEFT(query, 100) AS query, now() - query_start AS duration, state
+FROM pg_stat_activity
+WHERE state != 'idle'
+  AND now() - query_start > interval '5 minutes'
+  AND pid != pg_backend_pid()
+ORDER BY duration DESC;
+```
+
+장기 실행 쿼리가 있으면 DDL 실행을 미룬다. 배치 쿼리라면 재시작 가능한지, 서비스 쿼리라면 롤백해도 괜찮은지 확인 후 종료 여부를 판단한다.
+
+## 롤백 트리거 조건
+
+### Expand 단계
+
+컬럼 추가 후 서비스 배포 전이면 데이터 손실 없이 롤백 가능하다.
+
+```sql
+-- Expand 롤백: 언제든 실행 가능
+SET lock_timeout = '2s';
+ALTER TABLE users DROP COLUMN IF EXISTS first_name;
+ALTER TABLE users DROP COLUMN IF EXISTS last_name;
+```
+
+서비스 배포가 이미 된 상태에서 롤백하려면 서비스 코드부터 이전 버전으로 내리고 컬럼을 삭제해야 한다.
+
+### Migrate 단계
+
+이중 쓰기 중에 문제가 생기면 서비스를 이전 버전으로 롤백하고 트리거를 제거한다. DB는 Expand 상태 그대로 두면 된다.
+
+**롤백이 필요한 신호 — 이중 쓰기 실패:**
+
+```sql
+-- remaining이 줄지 않거나 늘고 있으면 이중 쓰기 실패 의심
+SELECT
+    COUNT(*) FILTER (WHERE first_name IS NULL)  AS remaining_null,
+    COUNT(*) FILTER (WHERE first_name IS NOT NULL) AS filled
+FROM users;
+```
+
+배치가 실행 중인데 `remaining_null`이 줄지 않거나 늘고 있다면, 트리거가 동작하지 않거나 서비스 일부 인스턴스가 이중 쓰기를 하지 않는 것이다.
+
+**롤백이 필요한 신호 — 불일치 급증:**
+
+```sql
+-- 불일치 건수가 늘고 있으면 이중 쓰기 로직에 버그 의심
+SELECT COUNT(*)
+FROM users
+WHERE first_name IS NOT NULL
+  AND name IS NOT NULL
+  AND TRIM(name) != CONCAT(
+      first_name,
+      CASE WHEN last_name IS NOT NULL THEN ' ' || last_name ELSE '' END
+  );
+```
+
+**롤백이 필요한 신호 — 복제 지연 급증:**
+
+```sql
+-- 배치 부하로 인한 복제 지연 확인
+SELECT client_addr, state, write_lag, flush_lag, replay_lag
+FROM pg_stat_replication;
+```
+
+`replay_lag`이 수 분 이상 벌어지면 배치 사이즈를 줄이거나 실행을 일시 중단한다. 복제 지연이 계속 커지면 배치를 멈추고 지연이 해소된 후 재시작한다.
+
+**Migrate 롤백 실행:**
+
+```sql
+-- 트리거 제거
+DROP TRIGGER IF EXISTS trg_sync_name_split ON users;
+DROP FUNCTION IF EXISTS sync_name_split();
+```
+
+서비스를 이전 버전으로 롤백하면 구 버전이 `name`만 쓰기 때문에 `first_name`/`last_name`은 NULL이 돼도 괜찮다. DB는 Expand 상태로 남겨두고 나중에 Migrate를 재시도할 수 있다.
+
+### Contract 전 게이트 조건
+
+Contract는 되돌릴 수 없다. `DROP COLUMN` 실행 후에는 DB 백업 복원 외에 방법이 없다. 진입 전에 반드시 확인한다:
+
+```sql
+-- 1. 새 컬럼에 NULL이 없는지
+SELECT COUNT(*) FROM users WHERE first_name IS NULL OR last_name IS NULL;
+-- 반드시 0건
+
+-- 2. 분리 결과 불일치 레코드 없는지
+SELECT COUNT(*)
+FROM users
+WHERE name IS NOT NULL
+  AND TRIM(name) != CONCAT(
+      first_name,
+      CASE WHEN last_name IS NOT NULL THEN ' ' || last_name ELSE '' END
+  );
+-- 반드시 0건
+
+-- 3. 구 컬럼 name을 참조하는 뷰나 함수가 없는지
+SELECT viewname, definition
+FROM pg_views
+WHERE schemaname = 'public'
+  AND definition ILIKE '%users.name%';
+```
+
+코드 레벨에서도 확인해야 한다. APM 또는 slow query log에서 `SELECT name`, `UPDATE ... SET name` 같은 패턴이 최근 1주일 이상 보이지 않아야 한다. 배포 로그로 구 버전 인스턴스가 없는지도 확인한다.
+
+이 조건이 모두 충족된 후에만 Contract를 실행한다.
 
 ## pg_dump/pg_restore로 스키마 버전 관리
 
@@ -413,7 +833,7 @@ SELECT
 FROM pg_stat_activity blocked
 JOIN pg_stat_activity blocking
     ON blocking.pid = ANY(pg_blocking_pids(blocked.pid))
-WHERE blocked.cardinality(pg_blocking_pids(blocked.pid)) > 0;
+WHERE cardinality(pg_blocking_pids(blocked.pid)) > 0;
 ```
 
 ```sql

@@ -1,7 +1,7 @@
 ---
 title: MSA 테스트
-tags: [msa, testing, Contract Testing, Pact, testcontainers, e2e]
-updated: 2026-04-01
+tags: [msa, testing, contract-testing, pact, testcontainers, e2e, expand-migrate-contract]
+updated: 2026-08-06
 ---
 
 # MSA 테스트
@@ -133,6 +133,304 @@ body.stringType("name", "노트북");
 **2. Provider 상태 관리를 대충 한다**
 
 `@State` 메서드에서 테스트 데이터를 제대로 세팅하지 않으면, Provider 검증이 실패한다. 특히 여러 Consumer가 같은 Provider를 테스트할 때, State 이름이 충돌하거나 데이터가 겹치는 경우가 있다. State 이름을 구체적으로 짓는 게 중요하다.
+
+
+## Expand/Contract 단계별 Contract Testing
+
+Expand-Migrate-Contract 패턴으로 스키마를 변경할 때 각 단계마다 Contract 테스트가 통과해야 한다는 조건을 CI에 걸어두면 단계를 실수로 건너뛰는 걸 막을 수 있다.
+
+시나리오: `product-service`가 `price` 필드를 `discountPrice`로 교체한다. 두 필드가 의미적으로 달라서 단순 이름 변경이 아닌 교체다.
+
+### Expand 단계 검증
+
+기존 `price`를 유지하면서 `discountPrice`를 추가한다. 이 시점에서 기존 Consumer Contract는 변경 없이 통과해야 한다. Pact의 `numberType`, `stringType` 매처는 응답에 추가 필드가 있어도 실패하지 않기 때문에 기존 Consumer는 별도 수정 없이 통과한다.
+
+Provider 쪽 상태 세팅:
+
+```java
+@State("상품 123이 존재한다")
+void setupProductExpanded() {
+    // price와 discountPrice를 모두 포함
+    productRepository.save(Product.builder()
+        .id(123L)
+        .name("노트북")
+        .price(1500000)
+        .discountPrice(1350000)
+        .build());
+}
+```
+
+Expand 배포 후 Pact Broker에서 기존 Consumer 전부가 통과하는지 확인한다:
+
+```bash
+pact-broker can-i-deploy \
+  --pacticipant product-service \
+  --version 2.1.0 \
+  --to-environment staging
+```
+
+이 명령이 실패하면 Expand 자체가 기존 계약을 위반했다는 의미다. 기존 필드를 실수로 제거하거나 타입을 바꾼 경우가 대부분이다.
+
+### Migrate 단계 검증
+
+Consumer들이 하나씩 `discountPrice`를 사용하도록 Contract를 업데이트한다. 각 Consumer 팀이 PR을 올릴 때 Pact 파일이 Broker에 게시되고, Provider가 그 시점에서 검증 결과를 Broker에 기록한다.
+
+`order-service`가 Migrate를 완료한 Contract:
+
+```java
+@Pact(consumer = "order-service")
+public V4Pact migratedPact(PactDslWithProvider builder) {
+    return builder
+        .given("상품 123이 존재한다")
+        .uponReceiving("상품 조회 - discountPrice 사용")
+            .path("/api/products/123")
+            .method("GET")
+        .willRespondWith()
+            .status(200)
+            .body(newJsonBody(body -> {
+                body.numberType("id", 123);
+                body.stringType("name", "노트북");
+                body.numberType("price", 1500000);         // 과도기 - 아직 존재
+                body.numberType("discountPrice", 1350000); // 새 필드로 전환
+            }).build())
+        .toPact(V4Pact.class);
+}
+
+@Test
+@PactTestFor(pactMethod = "migratedPact")
+void Migrate_완료_후_discountPrice로_계산한다(MockServer mockServer) {
+    ProductResponse response = productClient.getProduct(
+        mockServer.getUrl(), 123L
+    );
+
+    // discountPrice를 사용하는 비즈니스 로직 검증
+    int orderTotal = orderCalculator.calculate(response.getDiscountPrice(), 2);
+    assertThat(orderTotal).isEqualTo(2700000);
+}
+```
+
+모든 Consumer가 Migrate를 완료했는지는 Pact Broker의 Pact Matrix 화면에서 확인한다. Consumer별 최신 Pact 파일에 `price` 필드가 남아있으면 아직 Migrate 중인 팀이 있는 것이다.
+
+### Contract 단계 검증
+
+모든 Consumer가 `price`를 기대하지 않는다고 Broker에서 확인된 뒤, `price` 필드를 제거한다. 이 단계에서 Provider Verification을 돌리면 `price`를 아직 기대하는 Consumer가 남아있을 경우 실패한다.
+
+```java
+@State("상품 123이 존재한다 - Contract 완료")
+void setupProductContracted() {
+    // discountPrice만 반환, price 필드 없음
+    productRepository.save(Product.builder()
+        .id(123L)
+        .name("노트북")
+        .discountPrice(1350000)
+        .build());
+}
+```
+
+배포 전 최종 확인:
+
+```bash
+pact-broker can-i-deploy \
+  --pacticipant product-service \
+  --version 2.2.0 \
+  --to-environment production \
+  --verbose
+```
+
+실패하면 `price`를 참조하는 Consumer가 남아있다. Broker의 Pact Matrix에서 어떤 Consumer, 어떤 인터랙션이 실패했는지 확인한 뒤 해당 팀에 Migrate를 요청한다.
+
+
+## 스키마 변경 단계별 호환성 테스트
+
+각 단계를 별도 테스트로 고정해두면, 단계가 잘못 전환됐을 때 바로 잡힌다.
+
+### Expand 단계: 두 필드 동시 존재 확인
+
+```java
+@SpringBootTest
+@Testcontainers
+class ProductApiSchemaExpandTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+        .withDatabaseName("testdb");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+    }
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    @BeforeEach
+    void setup() {
+        // 두 필드를 모두 가진 상품 데이터 세팅
+        jdbcTemplate.update(
+            "INSERT INTO products (id, name, price, discount_price) VALUES (123, '노트북', 1500000, 1350000)"
+        );
+    }
+
+    @Test
+    void expand_단계_구_필드와_새_필드_동시_응답() {
+        ResponseEntity<Map> response = restTemplate.getForEntity(
+            "/api/products/123", Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsKey("price");         // 구 필드
+        assertThat(response.getBody()).containsKey("discountPrice"); // 신 필드
+    }
+}
+```
+
+### Migrate 단계: Consumer의 새 필드 사용 확인
+
+Consumer 코드가 실제로 `discountPrice`를 읽는지 확인한다. Contract만 업데이트하고 비즈니스 로직은 아직 `price`를 쓰는 경우가 있어서, 클라이언트 코드까지 검증해야 한다.
+
+```java
+@Test
+@PactTestFor(pactMethod = "migratedPact")
+void migrate_단계_discountPrice를_주문_금액_계산에_사용한다(MockServer mockServer) {
+    ProductResponse product = productClient.getProduct(mockServer.getUrl(), 123L);
+
+    // getPrice()가 아닌 getDiscountPrice()를 쓰는지 확인
+    OrderAmount amount = orderCalculator.calculate(product, 2);
+    assertThat(amount.getTotal()).isEqualTo(2_700_000); // discountPrice * 2
+}
+```
+
+### Contract 단계: 구 필드 제거 후 응답 확인
+
+```java
+@SpringBootTest
+@Testcontainers
+class ProductApiSchemaContractTest {
+
+    @Test
+    void contract_단계_구_필드_없고_새_필드만_응답() {
+        ResponseEntity<Map> response = restTemplate.getForEntity(
+            "/api/products/123", Map.class
+        );
+
+        assertThat(response.getBody()).doesNotContainKey("price");   // 구 필드 제거됨
+        assertThat(response.getBody()).containsKey("discountPrice"); // 신 필드만
+    }
+}
+```
+
+Expand 단계 테스트와 Contract 단계 테스트를 동시에 CI에 두면 충돌한다. 단계가 전환될 때 이전 단계의 테스트를 제거해야 한다. Git 이력으로 "어느 단계까지 완료됐는지" 추적하는 게 팀 간 소통에 도움이 된다.
+
+
+## CI 파이프라인에서의 계약 위반 처리
+
+### 계약 위반이 발생하는 두 시점
+
+Consumer 쪽 PR에서 Pact 파일을 게시할 때, Broker가 기존 Provider 버전과 호환성을 즉시 체크한다. Provider 쪽 PR에서 Provider Verification을 실행할 때, 현재 등록된 모든 Consumer Contract를 가져와 실제 API와 비교한다.
+
+### GitHub Actions 파이프라인
+
+```yaml
+# .github/workflows/contract-test.yml
+name: Contract Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  consumer-pact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Consumer Contract Tests
+        run: ./gradlew test --tests "*ContractTest"
+
+      - name: Publish Pacts to Broker
+        env:
+          PACT_BROKER_URL: ${{ secrets.PACT_BROKER_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+        run: |
+          ./gradlew pactPublish \
+            -PpactBrokerUrl=$PACT_BROKER_URL \
+            -PpactBrokerToken=$PACT_BROKER_TOKEN \
+            -Ppact.consumer.version=${{ github.sha }} \
+            -Ppact.consumer.tag=${{ github.ref_name }}
+
+      - name: Can I Deploy (Consumer)
+        run: |
+          docker run --rm \
+            pactfoundation/pact-cli:latest \
+            broker can-i-deploy \
+            --broker-base-url ${{ secrets.PACT_BROKER_URL }} \
+            --broker-token ${{ secrets.PACT_BROKER_TOKEN }} \
+            --pacticipant order-service \
+            --version ${{ github.sha }} \
+            --to-environment production
+
+  provider-verification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Provider Verification
+        env:
+          PACT_BROKER_URL: ${{ secrets.PACT_BROKER_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+        run: |
+          ./gradlew test --tests "*ContractVerificationTest" \
+            -Dpact.provider.version=${{ github.sha }} \
+            -Dpact.verifier.publishResults=true \
+            -Dpact.broker.url=$PACT_BROKER_URL \
+            -Dpact.broker.token=$PACT_BROKER_TOKEN
+
+      - name: Can I Deploy (Provider)
+        run: |
+          docker run --rm \
+            pactfoundation/pact-cli:latest \
+            broker can-i-deploy \
+            --broker-base-url ${{ secrets.PACT_BROKER_URL }} \
+            --broker-token ${{ secrets.PACT_BROKER_TOKEN }} \
+            --pacticipant product-service \
+            --version ${{ github.sha }} \
+            --to-environment production
+```
+
+### 계약 위반 유형별 대응
+
+**Provider가 Consumer와 협의 없이 응답을 바꾼 경우**
+
+필드 이름을 바꾸거나 제거하면 Consumer Contract가 깨진다. Provider 변경을 되돌리고 Consumer 팀과 먼저 협의한 뒤 Expand-Migrate-Contract 순서로 진행한다. 이 경우가 가장 흔하고, 보통 "영향받는 서비스가 없을 줄 알았다"가 원인이다.
+
+**Consumer Contract에 Provider가 아직 구현하지 않은 필드가 있는 경우**
+
+Consumer 팀이 미래 스펙을 기반으로 Contract를 미리 작성했거나, Provider Expand 단계 배포가 지연된 경우다. Provider가 해당 필드를 Expand 단계에서 추가하기 전까지 Consumer PR은 `can-i-deploy` 단계에서 막힌다.
+
+Pact Broker에 Webhook을 등록해두면 Provider Verification 실패 시 Slack으로 알림을 받는다:
+
+```bash
+# Pact Broker Webhook 등록
+pact-broker create-webhook \
+  --broker-base-url $PACT_BROKER_URL \
+  --broker-token $PACT_BROKER_TOKEN \
+  --url "https://hooks.slack.com/services/YOUR_WEBHOOK" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "text": "계약 검증 실패\nConsumer: ${pactbroker.consumerName}\nProvider: ${pactbroker.providerName}\n자세히: ${pactbroker.pactUrl}"
+  }' \
+  --event-name provider_verification_failed \
+  --description "Contract Violation to Slack"
+```
+
+배포가 갑자기 막히는 원인을 `can-i-deploy` 실패 메시지와 Broker UI의 Pact Matrix에서 바로 확인할 수 있다. Broker 없이 Pact 파일을 Git에만 보관하면 이 가시성이 사라진다. 팀이 3개 이상이면 Broker 도입이 사실상 필수다.
 
 
 ## 서비스 간 통합 테스트와 Test Double
