@@ -997,6 +997,10 @@
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Cloud/AWS/Compute/Lambda_Traffic_Shifting/</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Cloud/AWS/Compute/Lambda_VPC_%EC%97%B0%EB%8F%99/</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
@@ -2074,6 +2078,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/DevOps/Infrastructure_as_Code/Terragrunt/</loc>
+         <lastmod>2026-08-06</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DevOps/Kubernetes/Argo_Rollouts/</loc>
          <lastmod>2026-08-06</lastmod>
     </url>
     <url>
