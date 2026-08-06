@@ -1,7 +1,7 @@
 ---
 title: 모바일 앱 토큰 저장 보안
-tags: [Mobile, ios, android, keychain, keystore, token, security, authentication, pkce]
-updated: 2026-08-01
+tags: [Mobile, iOS, Android, Keychain, Keystore, token, security, authentication, PKCE, TEE, StrongBox, BiometricPrompt]
+updated: 2026-08-07
 ---
 
 # 모바일 앱 토큰 저장 보안
@@ -23,35 +23,81 @@ Keychain 항목마다 접근 가능 시점을 설정할 수 있다:
 ```swift
 import Security
 
-func saveToken(_ token: String, key: String) {
-    let data = token.data(using: .utf8)!
-    
-    let query: [String: Any] = [
-        kSecClass as String: kSecClassGenericPassword,
-        kSecAttrAccount as String: key,
-        kSecValueData as String: data,
-        kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-    ]
-    
-    SecItemDelete(query as CFDictionary)
-    SecItemAdd(query as CFDictionary, nil)
+enum KeychainError: Error {
+    case itemNotFound
+    case duplicateItem
+    case unexpectedStatus(OSStatus)
 }
 
-func loadToken(key: String) -> String? {
-    let query: [String: Any] = [
-        kSecClass as String: kSecClassGenericPassword,
-        kSecAttrAccount as String: key,
-        kSecReturnData as String: true,
-        kSecMatchLimit as String: kSecMatchLimitOne
-    ]
-    
-    var result: AnyObject?
-    let status = SecItemCopyMatching(query as CFDictionary, &result)
-    
-    guard status == errSecSuccess,
-          let data = result as? Data else { return nil }
-    
-    return String(data: data, encoding: .utf8)
+final class TokenKeychain {
+    private let service: String
+    private let accessGroup: String?
+
+    init(service: String = Bundle.main.bundleIdentifier ?? "app", accessGroup: String? = nil) {
+        self.service = service
+        self.accessGroup = accessGroup
+    }
+
+    func save(_ token: String, for key: String) throws {
+        guard let data = token.data(using: .utf8) else { return }
+
+        var query = baseQuery(for: key)
+        query[kSecValueData as String] = data
+
+        let status = SecItemAdd(query as CFDictionary, nil)
+
+        if status == errSecDuplicateItem {
+            try update(data, for: key)
+        } else if status != errSecSuccess {
+            throw KeychainError.unexpectedStatus(status)
+        }
+    }
+
+    func load(key: String) throws -> String {
+        var query = baseQuery(for: key)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let token = String(data: data, encoding: .utf8) else {
+            throw KeychainError.itemNotFound
+        }
+        return token
+    }
+
+    func delete(key: String) throws {
+        let query = baseQuery(for: key)
+        let status = SecItemDelete(query as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            throw KeychainError.unexpectedStatus(status)
+        }
+    }
+
+    private func update(_ data: Data, for key: String) throws {
+        let query = baseQuery(for: key)
+        let attributes: [String: Any] = [kSecValueData as String: data]
+        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if status != errSecSuccess {
+            throw KeychainError.unexpectedStatus(status)
+        }
+    }
+
+    private func baseQuery(for key: String) -> [String: Any] {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        if let group = accessGroup {
+            query[kSecAttrAccessGroup as String] = group
+        }
+        return query
+    }
 }
 ```
 
@@ -66,25 +112,48 @@ func loadToken(key: String) -> String? {
 
 토큰 저장에는 `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`를 쓰는 게 맞다. `kSecAttrAccessibleAlways`는 기기가 잠긴 상태에서도 접근이 가능해서, 탈옥 환경에서 악성 앱이 토큰을 읽을 수 있는 경로가 된다.
 
+`kSecAttrAccessGroup`을 지정하면 같은 Team ID의 앱과 App Extension 간에 Keychain을 공유할 수 있다. 위젯이나 Share Extension에서 토큰이 필요한 경우에 쓴다. 공유 그룹 범위가 넓어질수록 공격 표면도 넓어지니 최소한으로 설정해야 한다.
+
 고보안 토큰에는 `SecAccessControl`로 생체 인증을 추가로 요구할 수 있다:
 
 ```swift
-let access = SecAccessControlCreateWithFlags(
-    nil,
-    kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
-    .biometryCurrentSet, // Face ID / Touch ID 필수
-    nil
-)!
+import LocalAuthentication
 
-let query: [String: Any] = [
-    kSecClass as String: kSecClassGenericPassword,
-    kSecAttrAccount as String: "refresh_token",
-    kSecValueData as String: tokenData,
-    kSecAttrAccessControl as String: access
-]
+func saveWithBiometry(_ token: String, key: String) throws {
+    guard let data = token.data(using: .utf8) else { return }
 
-SecItemAdd(query as CFDictionary, nil)
+    var error: Unmanaged<CFError>?
+    guard let access = SecAccessControlCreateWithFlags(
+        nil,
+        kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
+        .biometryCurrentSet,
+        &error
+    ) else {
+        throw error!.takeRetainedValue() as Error
+    }
+
+    let context = LAContext()
+    context.localizedReason = "토큰 저장 보안 인증"
+
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: "com.example.app",
+        kSecAttrAccount as String: key,
+        kSecValueData as String: data,
+        kSecAttrAccessControl as String: access,
+        kSecUseAuthenticationContext as String: context
+    ]
+
+    let status = SecItemAdd(query as CFDictionary, nil)
+    if status != errSecSuccess {
+        throw KeychainError.unexpectedStatus(status)
+    }
+}
 ```
+
+`.biometryCurrentSet`은 등록된 생체 정보가 변경되면 자동으로 접근을 차단한다. Face ID 재등록이나 지문 추가 후 재인증이 강제되므로, 기기를 타인에게 넘겨준 뒤 생체 정보를 교체해도 기존 토큰에 접근할 수 없다.
+
+`LAContext`를 미리 생성해서 `kSecUseAuthenticationContext`에 넘기면 저장/조회 시 보여주는 생체 인증 팝업의 문구를 제어할 수 있다. 넘기지 않으면 시스템 기본 문구가 나온다.
 
 ---
 
@@ -95,47 +164,148 @@ Android Keystore System은 암호화 키를 앱 프로세스 밖에서 관리한
 토큰 자체는 EncryptedSharedPreferences에 저장하고, 암호화 키만 Keystore에서 관리하는 패턴이 일반적이다:
 
 ```kotlin
+import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
 class TokenStorage(private val context: Context) {
-    
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
-    
-    private val prefs = EncryptedSharedPreferences.create(
-        context,
-        "secure_token_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
-    
-    fun saveToken(key: String, token: String) {
-        prefs.edit().putString(key, token).apply()
+
+    private val prefs by lazy { buildPrefs(strongBoxBacked = true) }
+
+    private fun buildPrefs(strongBoxBacked: Boolean) = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .setRequestStrongBoxBacked(strongBoxBacked)
+            .build()
+
+        EncryptedSharedPreferences.create(
+            context,
+            "secure_token_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        if (strongBoxBacked) {
+            // StrongBox 미지원 기기: TEE fallback
+            buildPrefs(strongBoxBacked = false)
+        } else {
+            throw e
+        }
     }
-    
-    fun loadToken(key: String): String? = prefs.getString(key, null)
-    
-    fun deleteToken(key: String) {
-        prefs.edit().remove(key).apply()
+
+    fun save(key: String, token: String) = prefs.edit().putString(key, token).apply()
+
+    fun load(key: String): String? = prefs.getString(key, null)
+
+    fun delete(key: String) = prefs.edit().remove(key).apply()
+
+    fun clear() = prefs.edit().clear().apply()
+}
+```
+
+StrongBox가 없는 기기에서 `setRequestStrongBoxBacked(true)`를 설정하면 예외가 발생한다. 위 코드처럼 `strongBoxBacked = false`로 재시도하면 TEE로 자동 fallback된다.
+
+실제 키가 하드웨어에 올라갔는지 확인하는 방법:
+
+```kotlin
+import android.security.keystore.KeyInfo
+import java.security.KeyStore
+import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
+
+fun isKeyHardwareBacked(keyAlias: String): Boolean {
+    return try {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        val key = keyStore.getKey(keyAlias, null) as? SecretKey ?: return false
+        val factory = SecretKeyFactory.getInstance(key.algorithm, "AndroidKeyStore")
+        val keyInfo = factory.getKeySpec(key, KeyInfo::class.java) as KeyInfo
+        keyInfo.securityLevel == KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT
+                || keyInfo.securityLevel == KeyProperties.SECURITY_LEVEL_STRONGBOX
+    } catch (e: Exception) {
+        false
     }
 }
 ```
 
-`EncryptedSharedPreferences`는 Jetpack Security 라이브러리가 Keystore 연동과 암호화를 묶어서 처리한다. 내부적으로 AES-256-GCM으로 값을 암호화하고, 암호화 키는 Keystore가 관리한다.
+`SECURITY_LEVEL_STRONGBOX`면 물리적으로 분리된 보안 칩에 키가 있다. `SECURITY_LEVEL_TRUSTED_ENVIRONMENT`면 TEE다. `SECURITY_LEVEL_SOFTWARE`가 나오면 소프트웨어 Keystore다. 루팅 기기에서 소프트웨어 Keystore를 쓰면 키 추출 가능성이 있다.
 
-StrongBox를 명시적으로 요구하면 지원 기기에서 더 강한 보호를 받는다:
+고보안 토큰은 BiometricPrompt와 Keystore를 직접 연동해 암호화한다:
 
 ```kotlin
-val masterKey = MasterKey.Builder(context)
-    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-    .setRequestStrongBoxBacked(true)
-    .build()
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import androidx.biometric.BiometricPrompt
+import androidx.fragment.app.FragmentActivity
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+
+class BiometricTokenStorage(private val activity: FragmentActivity) {
+
+    private val KEY_ALIAS = "biometric_token_key"
+    private val KEYSTORE = "AndroidKeyStore"
+
+    fun generateKey() {
+        val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+        if (keyStore.containsAlias(KEY_ALIAS)) return
+
+        KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE).apply {
+            init(
+                KeyGenParameterSpec.Builder(
+                    KEY_ALIAS,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                )
+                    .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+                    .setUserAuthenticationRequired(true)
+                    .setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
+                    .setInvalidatedByBiometricEnrollment(true)
+                    .build()
+            )
+            generateKey()
+        }
+    }
+
+    fun encryptWithBiometric(plaintext: String, onSuccess: (ByteArray, ByteArray) -> Unit) {
+        val cipher = getCipher()
+        val secretKey = getSecretKey()
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+
+        val cryptoObject = BiometricPrompt.CryptoObject(cipher)
+        val prompt = BiometricPrompt(activity, activity.mainExecutor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    val encryptedBytes = result.cryptoObject?.cipher?.doFinal(
+                        plaintext.toByteArray(Charsets.UTF_8)
+                    ) ?: return
+                    onSuccess(encryptedBytes, cipher.iv)
+                }
+            }
+        )
+
+        prompt.authenticate(
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle("토큰 저장 인증")
+                .setNegativeButtonText("취소")
+                .build(),
+            cryptoObject
+        )
+    }
+
+    private fun getCipher() = Cipher.getInstance(
+        "${KeyProperties.KEY_ALGORITHM_AES}/${KeyProperties.BLOCK_MODE_CBC}/${KeyProperties.ENCRYPTION_PADDING_PKCS7}"
+    )
+
+    private fun getSecretKey(): SecretKey {
+        val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+        return keyStore.getKey(KEY_ALIAS, null) as SecretKey
+    }
+}
 ```
 
-StrongBox가 없는 기기에서는 예외가 발생하므로, 지원 여부 확인 후 fallback 처리가 필요하다.
+`setInvalidatedByBiometricEnrollment(true)`를 설정하면 새 지문이나 얼굴 등록 시 기존 키가 자동으로 무효화된다. iOS의 `.biometryCurrentSet`과 동일한 효과다.
 
 ---
 
@@ -341,6 +511,7 @@ async def revoke_device(
 | Keychain (`WhenUnlockedThisDeviceOnly`) | iOS | 하드웨어 | 일부 노출 가능 | Access/Refresh Token |
 | Keychain + BiometryCurrentSet | iOS | 하드웨어 + 생체 | 노출 어려움 | 고보안 토큰 |
 | EncryptedSharedPreferences | Android | AES-256-GCM | TEE 없는 기기는 위험 | Access/Refresh Token |
+| Keystore + BiometricPrompt | Android | 하드웨어 + 생체 | 노출 어려움 | 고보안 토큰 |
 | SharedPreferences | Android | 없음 | 즉시 노출 | 사용 금지 |
 | UserDefaults | iOS | 없음 | 즉시 노출 | 사용 금지 |
 | 메모리 변수 | 공통 | N/A | 앱 종료 시 소멸 | Access Token (단기) |

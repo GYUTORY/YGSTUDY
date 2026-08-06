@@ -1,7 +1,7 @@
 ---
 title: 미래 예약 저장
 tags: [scheduling, reservation, database, redis, sqs, rabbitmq, dst, idempotency, Optimistic-Locking, backend]
-updated: 2026-07-31
+updated: 2026-08-07
 ---
 
 # 미래 예약 저장
@@ -37,6 +37,34 @@ CREATE INDEX idx_scheduled_jobs_poll
     WHERE status = 'PENDING';
 ```
 
+MySQL 환경이라면 partial index 대신 복합 인덱스로 대응한다.
+
+```sql
+-- MySQL 8.0+
+CREATE TABLE scheduled_jobs (
+    id                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    job_type              VARCHAR(100) NOT NULL,
+    payload               JSON,
+    scheduled_at          TIMESTAMP(3)  NOT NULL,
+    timezone_id           VARCHAR(50),
+    status                VARCHAR(20)   NOT NULL DEFAULT 'PENDING',
+    version               INT           NOT NULL DEFAULT 0,
+    locked_until          TIMESTAMP(3),
+    locked_by             VARCHAR(100),
+    retry_count           INT           NOT NULL DEFAULT 0,
+    max_retries           INT           NOT NULL DEFAULT 3,
+    next_retry_at         TIMESTAMP(3),
+    retry_backoff_seconds INT           NOT NULL DEFAULT 60,
+    created_at            TIMESTAMP(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at            TIMESTAMP(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+                          ON UPDATE CURRENT_TIMESTAMP(3),
+    INDEX idx_poll  (status, scheduled_at),
+    INDEX idx_retry (status, next_retry_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+MySQL `TIMESTAMP`는 UTC로 저장한다. `2038-01-19 03:14:07 UTC` 이후 시각은 저장하지 못하는 Y2K38 제한이 있다. 그 이후 시각을 예약할 가능성이 있으면 `DATETIME`을 쓰되, 팀 전체가 UTC 값만 삽입한다는 규칙을 지켜야 한다. MySQL은 partial index를 지원하지 않으므로 `status`를 선두 컬럼으로 두는 복합 인덱스로 유사한 효과를 낸다.
+
 ### timezone_id 분리 저장 vs Instant 단독 저장
 
 `scheduled_at`에 UTC Instant만 저장할지, 아니면 `timezone_id` 컬럼을 함께 둘지는 비즈니스 요구사항에 따라 갈린다.
@@ -67,10 +95,16 @@ PENDING → RUNNING → COMPLETED
 
 ```sql
 ALTER TABLE scheduled_jobs
-    ADD COLUMN locked_until TIMESTAMPTZ,
-    ADD COLUMN locked_by    VARCHAR(100),
-    ADD COLUMN retry_count  INTEGER NOT NULL DEFAULT 0,
-    ADD COLUMN max_retries  INTEGER NOT NULL DEFAULT 3;
+    ADD COLUMN locked_until          TIMESTAMPTZ,
+    ADD COLUMN locked_by             VARCHAR(100),
+    ADD COLUMN retry_count           INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN max_retries           INTEGER NOT NULL DEFAULT 3,
+    ADD COLUMN next_retry_at         TIMESTAMPTZ,
+    ADD COLUMN retry_backoff_seconds INTEGER NOT NULL DEFAULT 60;
+
+CREATE INDEX idx_scheduled_jobs_retry
+    ON scheduled_jobs (next_retry_at, status)
+    WHERE status = 'PENDING' AND next_retry_at IS NOT NULL;
 ```
 
 ## 폴링 방식 실행
@@ -85,6 +119,7 @@ SELECT id, job_type, payload, scheduled_at
 FROM scheduled_jobs
 WHERE status = 'PENDING'
   AND scheduled_at <= NOW()
+  AND (next_retry_at IS NULL OR next_retry_at <= NOW())
 ORDER BY scheduled_at
 LIMIT 10
 FOR UPDATE SKIP LOCKED;
@@ -116,11 +151,14 @@ public List<ScheduledJob> fetchAndLock(int batchSize, Duration lockTimeout) {
 `locked_until`이 지난 `RUNNING` 상태 잡을 `PENDING`으로 되돌려야 한다. 별도의 복구 스레드나 배치로 주기적으로 실행한다.
 
 ```sql
+-- 재시도 횟수에 따라 지수 백오프 적용: 1분 * 2^retry_count, 최대 1시간
 UPDATE scheduled_jobs
-SET status      = 'PENDING',
-    locked_until = NULL,
-    locked_by    = NULL,
-    retry_count  = retry_count + 1
+SET status                = 'PENDING',
+    locked_until           = NULL,
+    locked_by              = NULL,
+    retry_count            = retry_count + 1,
+    retry_backoff_seconds  = LEAST(POWER(2, retry_count) * 60, 3600)::INTEGER,
+    next_retry_at          = NOW() + LEAST(POWER(2, retry_count) * 60, 3600) * INTERVAL '1 second'
 WHERE status = 'RUNNING'
   AND locked_until < NOW()
   AND retry_count < max_retries;
@@ -132,6 +170,106 @@ WHERE status = 'RUNNING'
   AND locked_until < NOW()
   AND retry_count >= max_retries;
 ```
+
+### 폴링 워커 전체 구현
+
+위 쿼리들을 Spring Boot에서 묶으면 이런 형태가 된다.
+
+```java
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class JobPollingScheduler {
+
+    private final ScheduledJobRepository jobRepository;
+    private final JobExecutor jobExecutor;
+
+    private static final int BATCH_SIZE = 10;
+    private static final Duration LOCK_TIMEOUT = Duration.ofMinutes(5);
+
+    @Scheduled(fixedDelay = 1_000)
+    public void poll() {
+        List<ScheduledJob> jobs = jobRepository.fetchAndLockPending(BATCH_SIZE, LOCK_TIMEOUT);
+        for (ScheduledJob job : jobs) {
+            try {
+                jobExecutor.execute(job);
+                jobRepository.markCompleted(job.getId());
+            } catch (Exception e) {
+                log.error("잡 실행 실패: jobId={}", job.getId(), e);
+                jobRepository.markFailed(job.getId(), e.getMessage());
+            }
+        }
+    }
+
+    @Scheduled(fixedDelay = 30_000)
+    public void recoverStuck() {
+        int recovered = jobRepository.recoverTimedOutJobs();
+        int failed = jobRepository.failExhaustedJobs();
+        if (recovered > 0 || failed > 0) {
+            log.info("잡 복구: recovered={}, failed={}", recovered, failed);
+        }
+    }
+}
+```
+
+`@Scheduled(fixedDelay = 1_000)`은 이전 실행이 완료된 후 1초 뒤에 다시 실행한다. `fixedRate`는 이전 실행과 무관하게 예약 시각에 실행되므로, 폴링 쿼리가 오래 걸릴 때 스레드가 겹친다. 폴링에는 `fixedDelay`가 맞다.
+
+잡 수가 늘어나서 1초 폴링이 DB에 부하를 주면 빈 큐일 때 간격을 늘리는 방식으로 전환한다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class AdaptiveJobPoller {
+
+    private final ScheduledJobRepository jobRepository;
+    private final JobExecutor jobExecutor;
+    private final ScheduledExecutorService executor =
+        Executors.newSingleThreadScheduledExecutor();
+
+    private long delayMs = 1_000;
+    private static final long MIN_DELAY_MS = 1_000;
+    private static final long MAX_DELAY_MS = 30_000;
+
+    @PostConstruct
+    public void start() {
+        scheduleNext();
+    }
+
+    private void scheduleNext() {
+        executor.schedule(this::runAndReschedule, delayMs, TimeUnit.MILLISECONDS);
+    }
+
+    private void runAndReschedule() {
+        try {
+            List<ScheduledJob> jobs = jobRepository.fetchAndLockPending(10, Duration.ofMinutes(5));
+            if (jobs.isEmpty()) {
+                delayMs = Math.min(delayMs * 2, MAX_DELAY_MS);
+            } else {
+                delayMs = MIN_DELAY_MS;
+                for (ScheduledJob job : jobs) {
+                    try {
+                        jobExecutor.execute(job);
+                        jobRepository.markCompleted(job.getId());
+                    } catch (Exception e) {
+                        jobRepository.markFailed(job.getId(), e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            delayMs = Math.min(delayMs * 2, MAX_DELAY_MS);
+        } finally {
+            scheduleNext();
+        }
+    }
+
+    @PreDestroy
+    public void stop() {
+        executor.shutdown();
+    }
+}
+```
+
+잡이 없으면 폴링 간격이 최대 30초까지 늘어나고, 잡이 다시 들어오면 1초로 돌아온다. 단일 스레드 executor라서 `delayMs` 필드에 별도 동기화가 필요 없다.
 
 ### 분산 락 없이 FOR UPDATE SKIP LOCKED로 충분한가
 

@@ -1,7 +1,7 @@
 ---
 title: 비밀번호 해싱과 저장
 tags: [backend, authentication, password, bcrypt, argon2, scrypt, security]
-updated: 2026-05-08
+updated: 2026-08-07
 ---
 
 # 비밀번호 해싱과 저장
@@ -57,6 +57,35 @@ bcrypt가 1999년에 나왔을 때는 CPU 연산량을 늘리는 것만으로 �
 - Node.js 표준 라이브러리(`crypto.scrypt`)에 기본 포함되어 있다.
 
 bcrypt보다 GPU 저항성은 좋은데, argon2id가 나온 이후로는 신규 채택이 줄었다. 이미 scrypt로 운영 중이면 굳이 마이그레이션할 필요는 없다.
+
+```typescript
+// Node.js 내장 crypto 모듈 — 외부 패키지 불필요
+import { randomBytes, scrypt as scryptCb, timingSafeEqual } from 'crypto';
+import { promisify } from 'util';
+
+const scrypt = promisify(scryptCb);
+
+const PARAMS = { N: 32768, r: 8, p: 1 }; // ~32MB
+const SALT_LEN = 16;
+const KEY_LEN = 64;
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(SALT_LEN);
+  const hash = (await scrypt(password, salt, KEY_LEN, PARAMS)) as Buffer;
+  // bcrypt/argon2와 달리 자체 설명적 형식이 없으므로 직접 직렬화
+  return [PARAMS.N, PARAMS.r, PARAMS.p, salt.toString('base64'), hash.toString('base64')].join(':');
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [N, r, p, saltB64, hashB64] = stored.split(':');
+  const salt = Buffer.from(saltB64, 'base64');
+  const expected = Buffer.from(hashB64, 'base64');
+  const derived = (await scrypt(password, salt, expected.length, { N: +N, r: +r, p: +p })) as Buffer;
+  return timingSafeEqual(derived, expected);
+}
+```
+
+Node.js의 `crypto.scrypt`는 bcrypt나 argon2와 달리 해시 결과에 파라미터와 솔트를 포함시키지 않는다. `N:r:p:salt:hash` 형식으로 직렬화해서 DB에 저장해야 검증 시 파라미터를 복원할 수 있다.
 
 ### argon2id
 
@@ -195,6 +224,44 @@ $argon2id$v=19$m=19456,t=2,p=1$c2FsdHN0cmluZ2hlcmU$hashstringhere
 알고리즘, 버전, 파라미터, 솔트, 해시가 모두 하나의 문자열에 들어간다. DB에는 이 문자열만 통째로 저장하면 된다. VARCHAR(255)면 충분하다.
 
 직접 솔트를 만들어서 넣으려는 사람이 가끔 있는데, 자기가 짠 코드보다 라이브러리 기본 동작을 믿는 게 낫다. 솔트는 길이 16바이트 이상의 CSPRNG(암호학적 의사난수 생성기) 출력이어야 하고, 라이브러리는 OS의 `/dev/urandom`이나 `SecureRandom`을 정확히 쓴다.
+
+## 다국어 비밀번호 처리
+
+비밀번호에 한글, 일본어, 아랍어 같은 비ASCII 문자가 들어올 때 두 가지를 챙겨야 한다.
+
+### Unicode 정규화
+
+같은 글자가 다른 바이트 시퀀스로 들어올 수 있다. "café"의 "é"는 단일 코드포인트 U+00E9로 표현되거나, "e" + 결합 악센트 기호 U+0301 두 코드포인트로 표현되거나 — 화면에는 똑같이 보인다. NFC와 NFD의 차이다.
+
+iOS와 macOS는 기본적으로 NFD를 쓴다. Android와 Windows는 NFC다. 맥에서 가입한 사용자가 안드로이드폰으로 로그인하면 해시가 맞지 않을 수 있다. 한국어에서도 한글 자모가 조합 방식에 따라 같은 글자인데 다른 바이트 시퀀스로 들어오는 케이스가 있다.
+
+NIST SP 800-63B는 해싱 전 NFC 정규화를 권장한다(Appendix A-1).
+
+```typescript
+// 해싱과 검증 양쪽에서 동일하게 적용해야 한다
+function normalizePassword(password: string): string {
+  return password.normalize('NFC');
+}
+
+// 가입
+const hash = await argon2.hash(normalizePassword(rawPassword), {
+  type: argon2.argon2id,
+  memoryCost: 19456,
+  timeCost: 2,
+  parallelism: 1,
+});
+
+// 로그인 검증
+const valid = await argon2.verify(storedHash, normalizePassword(rawPassword));
+```
+
+기존 서비스에 정규화를 뒤늦게 추가하면 저장된 해시와 불일치가 생긴다. 신규 가입자부터 적용하고, 기존 사용자는 로그인 시 구방식으로 검증 후 성공하면 정규화된 버전으로 재해싱하는 점진적 마이그레이션을 써야 한다.
+
+### bcrypt의 한글 바이트 제한
+
+bcrypt의 72바이트 제한은 한글에서 더 빨리 걸린다. UTF-8에서 한글 한 글자는 3바이트다. 72 / 3 = 24글자. 한글 비밀번호 25글자부터는 뒤가 잘린다.
+
+영문 기준 72자 제한이 한국 사용자에게는 24자 제한이다. argon2id로 전환하거나, HMAC으로 전처리해서 우회한다. HMAC 전처리 방법은 아래 peppering 섹션에서 다룬다.
 
 ## peppering
 

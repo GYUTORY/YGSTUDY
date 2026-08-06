@@ -1,7 +1,7 @@
 ---
 title: UTC 저장
-tags: [utc, timezone, datetime, spring, mysql, postgresql, java, backend]
-updated: 2026-07-31
+tags: [utc, timezone, datetime, spring, mysql, postgresql, java, backend, locale, i18n]
+updated: 2026-08-07
 ---
 
 # UTC 저장
@@ -26,7 +26,7 @@ DB에 KST로 저장하는 경우를 자주 본다. 국내 서비스만 하는 �
 
 `Instant`는 UTC 기준 에포크 타임이다. 타임존 개념이 없고 항상 UTC다. 내부 처리나 DB 저장용으로 가장 명확하다. 사용자에게 보여줄 때는 `ZoneId`를 적용해서 변환한다.
 
-실무에서 쓰는 패턴은 다음과 같다.
+실무에서 쓰는 패턴:
 
 - 내부 저장·처리: `Instant`
 - 사용자 입력 수신·표시: `ZonedDateTime`
@@ -44,6 +44,39 @@ ZonedDateTime display = now.atZone(userZone);
 // 2026-07-31T19:00:00+09:00[Asia/Seoul]
 ```
 
+### JPA 엔티티 매핑
+
+`Instant`는 Hibernate 5.x부터 별도 컨버터 없이 `TIMESTAMP` 또는 `DATETIME` 컬럼에 매핑된다. 다만 `hibernate.jdbc.time_zone=UTC` 설정이 없으면 JVM 타임존 기준으로 동작하는 경우가 있어서, 설정을 명시하고 `Instant`를 쓰는 게 가장 예측 가능하다.
+
+```java
+@Entity
+public class Order {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist
+    private void prePersist() {
+        createdAt = Instant.now();
+        updatedAt = createdAt;
+    }
+
+    @PreUpdate
+    private void preUpdate() {
+        updatedAt = Instant.now();
+    }
+}
+```
+
+`ZonedDateTime`을 엔티티 필드로 쓰는 경우 Hibernate가 UTC로 변환해서 저장하지만, `hibernate.jdbc.time_zone` 설정이 없으면 JVM 타임존을 기준으로 처리하는 버전이 있다. `Instant`가 더 안전하다.
+
 ## DB 레이어 설정
 
 ### MySQL
@@ -52,7 +85,7 @@ MySQL의 `TIMESTAMP` 타입은 저장 시 세션 타임존을 기준으로 UTC �
 
 `DATETIME` 타입은 입력값을 그대로 저장한다. 타임존 변환을 하지 않는다. DB 서버 타임존과 무관하게 항상 같은 값을 반환하지만, 그 값이 어떤 타임존인지는 애플리케이션이 알아서 관리해야 한다.
 
-UTC 저장 원칙 기준으로 정리하면:
+UTC 저장 원칙 기준으로:
 
 - `DATETIME` + 애플리케이션에서 UTC로 변환 후 저장: 가장 명확하다. DB 서버 타임존에 영향을 받지 않는다.
 - `TIMESTAMP`: DB 서버 타임존을 반드시 UTC로 설정해야 한다. 세션 타임존도 UTC로 고정해야 한다.
@@ -60,10 +93,12 @@ UTC 저장 원칙 기준으로 정리하면:
 ```sql
 -- DB 서버 타임존 확인
 SELECT @@global.time_zone, @@session.time_zone;
+```
 
--- UTC로 설정 (my.cnf)
--- [mysqld]
--- default-time-zone = '+00:00'
+```ini
+# my.cnf
+[mysqld]
+default-time-zone = '+00:00'
 ```
 
 JDBC 연결 시 타임존을 명시한다.
@@ -73,6 +108,15 @@ jdbc:mysql://host/db?serverTimezone=UTC&useLegacyDatetimeCode=false
 ```
 
 `serverTimezone=UTC`를 빠뜨리면 JVM 타임존과 MySQL 서버 타임존이 다를 때 저장값이 틀어진다. 로컬 개발 환경은 KST, 운영 서버는 UTC인 경우 로컬에서 정상 동작하다가 운영에서 9시간 차이가 생기는 문제가 발생한다.
+
+HikariCP를 쓰는 경우 커넥션 풀 초기화 시 세션 타임존을 UTC로 강제 설정할 수 있다. 레거시 코드에서 `serverTimezone`을 빠뜨린 경우 임시 대응으로도 쓸 수 있다.
+
+```yaml
+spring:
+  datasource:
+    hikari:
+      connection-init-sql: SET time_zone = '+00:00'
+```
 
 ### PostgreSQL
 
@@ -88,11 +132,23 @@ UTC 저장 원칙 기준으로 `timestamptz`를 쓰면서 세션 타임존을 UT
 -- 세션 타임존 확인
 SHOW timezone;
 
--- UTC 설정 (postgresql.conf)
--- timezone = 'UTC'
-
 -- 또는 연결 시
 SET TIME ZONE 'UTC';
+```
+
+```ini
+# postgresql.conf
+timezone = 'UTC'
+```
+
+JDBC URL에 직접 옵션을 넘길 수도 있지만, HikariCP `connection-init-sql`로 처리하는 게 더 일관적이다.
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://host/db
+    hikari:
+      connection-init-sql: SET TIME ZONE 'UTC'
 ```
 
 ## Spring Boot 설정
@@ -127,6 +183,63 @@ spring:
 ```
 
 이 설정 없이 `Instant`나 `ZonedDateTime`을 DB에 저장하면 Hibernate가 JVM 타임존을 기준으로 변환하는 경우가 있다. Hibernate 버전마다 동작이 다르기 때문에 명시적으로 설정하는 게 낫다.
+
+## locale 저장과의 관계
+
+UTC로 저장하는 것만으로는 부족하다. 저장된 시각을 사용자에게 보여줄 때 어느 타임존으로 변환해야 하는지, 어떤 형식으로 출력해야 하는지를 알아야 한다. 그 정보가 locale이다.
+
+### 무엇을 저장해야 하는가
+
+타임존과 언어 설정은 독립적이다. `Asia/Seoul` 타임존을 쓴다고 해서 반드시 한국어 사용자는 아니다. 재외 한국인은 `America/Los_Angeles` 타임존에서 한국어 UI를 쓸 수 있다. 두 가지를 별개 컬럼으로 저장한다.
+
+```sql
+CREATE TABLE users (
+    id         BIGINT       NOT NULL AUTO_INCREMENT,
+    email      VARCHAR(255) NOT NULL,
+    timezone   VARCHAR(50)  NOT NULL DEFAULT 'UTC',  -- IANA 타임존 식별자
+    locale     VARCHAR(10)  NOT NULL DEFAULT 'en',   -- BCP 47 언어 태그
+    created_at DATETIME(6)  NOT NULL,
+    PRIMARY KEY (id)
+);
+```
+
+`timezone` 컬럼에는 `Asia/Seoul`, `America/New_York`처럼 IANA 타임존 데이터베이스 식별자를 저장한다. `+09:00` 같은 오프셋 문자열은 DST(일광 절약 시간) 적용 여부를 반영하지 못해서 쓰면 안 된다.
+
+`locale` 컬럼에는 `ko`, `en-US`, `ja-JP`처럼 BCP 47 형식을 저장한다. 숫자·날짜 형식·통화 기호가 locale에 따라 달라지기 때문에 타임존과 분리해서 관리해야 한다.
+
+### 응답 DTO 변환
+
+DB에서 `Instant`로 꺼낸 값은 UTC다. DTO를 만들 때 사용자의 `timezone`과 `locale`을 둘 다 적용해서 변환한다.
+
+```java
+@Entity
+public class User {
+    private String timezone; // "Asia/Seoul"
+    private String locale;   // "ko"
+}
+
+public OrderResponse toResponse(Order order, User user) {
+    ZoneId zoneId = ZoneId.of(user.getTimezone());
+    Locale locale = Locale.forLanguageTag(user.getLocale());
+
+    DateTimeFormatter formatter = DateTimeFormatter
+        .ofLocalizedDateTime(FormatStyle.MEDIUM)
+        .withLocale(locale)
+        .withZone(zoneId);
+
+    return OrderResponse.builder()
+        .createdAt(formatter.format(order.getCreatedAt()))
+        .build();
+}
+```
+
+`DateTimeFormatter.ofLocalizedDateTime`에 locale을 지정하면 날짜 형식도 locale에 맞게 나온다. 한국어(`ko`)는 `2026. 8. 7. 오후 7:00:00`, 영어(`en-US`)는 `Aug 7, 2026, 7:00:00 PM` 형식으로 반환된다.
+
+### 타임존 초기값 처리
+
+가입 시 타임존을 설정하지 않으면 클라이언트가 보낸 정보에서 추론한다. 브라우저는 `Intl.DateTimeFormat().resolvedOptions().timeZone`으로 IANA 타임존을 구할 수 있고, 이를 가입 요청에 포함해서 보내면 된다.
+
+IP로 타임존을 추론하는 방법은 신뢰도가 낮다. VPN 사용자나 해외 법인 직원처럼 IP와 실제 타임존이 다른 경우가 많다. 추론값은 초기 기본값으로만 쓰고, 사용자가 명시적으로 변경할 수 있도록 설정 화면을 열어둬야 한다.
 
 ## 캐시 레이어
 
@@ -202,7 +315,6 @@ SELECT NOW(), NOW() AT TIME ZONE 'UTC';
 ```bash
 # JVM 타임존 확인
 java -XshowSettings:all -version 2>&1 | grep timezone
-# 또는 애플리케이션 로그에서
 echo $TZ
 ```
 
