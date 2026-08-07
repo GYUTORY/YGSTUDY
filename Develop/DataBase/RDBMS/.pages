@@ -46,6 +46,7 @@ nav:
     - AUTO_INCREMENT: Auto_Increment.md
     - ULID: ULID.md
     - 데이터 타입 선택: Data_Type_Selection.md
+    - 컬럼 접미 패턴: Column_Suffix_Pattern.md
   - 무결성과 관계:
     - 참조 무결성: Referential_Integrity.md
     - 외래키 없는 설계: No_FK_Design.md
