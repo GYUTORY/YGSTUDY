@@ -389,9 +389,6 @@ plugins:
       match_path: ".*"
       date_from_meta:
         as_creation: date
-      feeds_filenames:
-        json_feed: feed.json
-        rss_feed: feed.xml
       length: 30
   - minify:
       minify_html: true
