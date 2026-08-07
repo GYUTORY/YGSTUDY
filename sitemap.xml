@@ -1869,6 +1869,10 @@
          <lastmod>2026-08-07</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/JSON_Column_JPA/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/My_SQL_Inno_DB_Locking_Deep_Dive/</loc>
          <lastmod>2026-08-07</lastmod>
     </url>
@@ -1894,6 +1898,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/Postgre_SQL_Advisory_Lock/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/Postgre_SQL_JSONB/</loc>
          <lastmod>2026-08-07</lastmod>
     </url>
     <url>
