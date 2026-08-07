@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-pre-commit 훅: 스테이징된 .md 파일의 updated 필드를 오늘 날짜로 자동 갱신.
+pre-commit 훅: 스테이징된 .md 파일의 updated 필드를 오늘 날짜로 자동 갱신 +
+NFD 문자 포함 파일 차단.
 
 설치: bash tools/install_hooks.sh
 """
@@ -8,6 +9,7 @@ pre-commit 훅: 스테이징된 .md 파일의 updated 필드를 오늘 날짜로
 import re
 import subprocess
 import sys
+import unicodedata
 from datetime import date
 from pathlib import Path
 
@@ -37,7 +39,6 @@ def update_file(path: Path) -> bool:
     if not content.startswith('---'):
         return False
 
-    # 프론트매터 끝 위치 찾기
     matches = list(FM_END_RE.finditer(content, 3))
     if not matches:
         return False
@@ -58,6 +59,21 @@ def update_file(path: Path) -> bool:
     return True
 
 
+def check_nfc(files: list[Path]) -> list[Path]:
+    """NFD 문자가 포함된 파일 반환. macOS 에서 한글 경로 입력 시 NFD 로 저장되는 것을 잡는다."""
+    bad = []
+    for p in files:
+        if not p.exists():
+            continue
+        try:
+            text = p.read_text(encoding='utf-8')
+        except Exception:
+            continue
+        if text != unicodedata.normalize('NFC', text):
+            bad.append(p)
+    return bad
+
+
 def main():
     files = get_staged_md_files()
     updated = []
@@ -73,6 +89,14 @@ def main():
         print(f'[pre-commit] updated 필드 갱신: {len(updated)}개 파일')
         for f in updated:
             print(f'  {f}')
+
+    nfd_files = check_nfc(files)
+    if nfd_files:
+        print('[pre-commit] NFD 문자 발견 — NFC 로 정규화 후 커밋하세요:')
+        print('  (실행: python3 tools/nfc_normalize.py)')
+        for f in nfd_files:
+            print(f'  {f}')
+        sys.exit(1)
 
     sys.exit(0)
 

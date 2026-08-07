@@ -1,0 +1,8 @@
+#!/bin/sh
+# pre-push: mkdocs build --strict 로컬 검증
+# CI 를 디버거로 쓰지 않기 위한 첫 번째 방어선.
+# 설정 오류(rss 키 오타 등)는 페이지 처리 전에 터지므로 가장 빠르게 잡힌다.
+set -e
+echo "[pre-push] mkdocs build --strict (약 3분 소요)"
+mkdocs build --strict --quiet
+echo "[pre-push] OK"

@@ -33,18 +33,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-docs.txt
 
-      # 1. 허용 태그 검사
-      - name: Check tags
-        run: python3 tools/gen_tags.py || true      # 태그 정리 완료 후 --strict 복원
-
-      # 2. 프론트매터 필수 필드 (title / tags / updated)
-      - name: Check frontmatter
-        run: python3 tools/check_frontmatter.py --strict
-
-      # 3. 내부 링크 검사 (P1 재발 방지)
-      - name: Check internal links
-        run: python3 tools/check_links.py --strict
-
-      # 4. strict 빌드 (경고 → 실패)
-      - name: Build strict
-        run: mkdocs build --strict
+      - name: Docs checks
+        uses: ./.github/actions/docs-checks
+        with:
+          before_sha: ${{ github.event.before }}

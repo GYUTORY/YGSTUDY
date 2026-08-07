@@ -7,6 +7,7 @@
   python3 tools/check_sources.py --file path/to/file.md  # 단일 파일 검사
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -59,6 +60,29 @@ def get_recent_files(days: int = 90) -> set[Path]:
     return paths
 
 
+def get_push_diff_files() -> set[Path]:
+    """BEFORE_SHA/AFTER_SHA 환경변수가 있으면 push diff 기준으로 검사.
+    없으면 최근 90일 fallback. NFC 일괄 정규화 같은 대량 변경이 전체 검사를 유발하는 문제 방지."""
+    before = os.environ.get("BEFORE_SHA", "").strip()
+    after = os.environ.get("AFTER_SHA", "HEAD").strip() or "HEAD"
+    if not before or before == "0000000000000000000000000000000000000000":
+        return get_recent_files(90)
+    result = subprocess.run(
+        ["git", "diff", "--name-only", before, after],
+        cwd=ROOT.parent,
+        capture_output=True,
+        text=True,
+    )
+    paths = set()
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.endswith(".md"):
+            p = ROOT.parent / line
+            if p.exists():
+                paths.add(p)
+    return paths
+
+
 def check_file(path: Path) -> tuple[bool, list[str]]:
     """(위반여부, 매칭된_주장들) 반환"""
     try:
@@ -89,8 +113,12 @@ def main():
     if single_file:
         targets = [single_file]
     elif strict:
-        targets = list(get_recent_files(90))
-        print(f"최근 90일 변경 파일 {len(targets)}개 검사")
+        before = os.environ.get("BEFORE_SHA", "").strip()
+        targets = list(get_push_diff_files())
+        if before and before != "0000000000000000000000000000000000000000":
+            print(f"푸시 diff 파일 {len(targets)}개 검사 ({before[:8]}..HEAD)")
+        else:
+            print(f"최근 90일 변경 파일 {len(targets)}개 검사")
     else:
         targets = list(ROOT.rglob("*.md"))
         print(f"전체 {len(targets)}개 파일 검사")

@@ -1,0 +1,36 @@
+name: Docs Quality Checks
+description: |
+  태그·프론트매터·링크·출처·빌드 검사.
+  검사 스텝 정의는 이 파일 한 곳에만 있다 — 두 워크플로가 여기를 참조한다.
+
+inputs:
+  before_sha:
+    description: 이전 커밋 SHA (check_sources push diff 모드)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Check tags
+      shell: bash
+      run: python3 tools/gen_tags.py || true      # 태그 정리 완료 후 --strict 복원
+
+    - name: Check frontmatter
+      shell: bash
+      run: python3 tools/check_frontmatter.py --strict
+
+    - name: Check internal links
+      shell: bash
+      run: python3 tools/check_links.py --strict
+
+    - name: Check sources
+      shell: bash
+      env:
+        BEFORE_SHA: ${{ inputs.before_sha }}
+        AFTER_SHA: ${{ github.sha }}
+      run: python3 tools/check_sources.py || true  # 패턴 정밀화 후 --strict 복원
+
+    - name: Build strict
+      shell: bash
+      run: mkdocs build --strict
