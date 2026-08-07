@@ -9,6 +9,7 @@ nav:
   - Shared Table: Shared_Table.md
   - Row Level Security: Row_Level_Security.md
   - 테넌트 컬럼 JPA: Tenant_Column_JPA.md
+  - JSON 컬럼 JPA: JSON_Column_JPA.md
   - 술어 누락: 술어_누락.md
   - 유니크 제약 충돌: Unique_Constraint_Conflict.md
   - MySQL utf8mb4: utf8mb4.md
@@ -56,6 +57,7 @@ nav:
     - 읽기 전용 복제본: 읽기_전용_복제본.md
     - CDC 파이프라인: CDC_Pipeline.md
     - MySQL vs PostgreSQL 실무 비교: My_SQL_vs_Postgre_SQL.md
+    - PostgreSQL JSONB: Postgre_SQL_JSONB.md
     - PostgreSQL 스키마 마이그레이션: Postgre_SQL_Schema_Migration.md
     - MySQL Online DDL: My_SQL_Online_DDL.md
     - gh-ost: gh_ost.md
