@@ -95,9 +95,9 @@ public class RedisCacheConfig {
 
 ## @Cacheable
 
-![키 기반 캐시 조회 구조 — 해시 테이블로 SpEL 키를 매핑하는 원리](../../../assets/images/auto/캐싱/8cb61583.webp)
+![키 기반 캐시 조회 구조 — 해시 테이블로 SpEL 키를 매핑하는 원리](../../../assets/images/auto/캐싱/8cb61583.webp)
 
-![실제 서비스의 캐시 히트·미스 비율 모니터링 화면 (캐시 미스 발생 시 동시 스레드 문제와 직결)](../../../assets/images/auto/캐싱/d2789c7e.webp)
+![실제 서비스의 캐시 히트·미스 비율 모니터링 화면 (캐시 미스 발생 시 동시 스레드 문제와 직결)](../../../assets/images/auto/캐싱/d2789c7e.webp)
 
 
 메서드가 처음 호출되면 결과를 캐시에 저장하고, 이후 같은 키로 호출되면 메서드를 실행하지 않고 캐시 값을 반환한다.
@@ -162,9 +162,9 @@ public Product updateProduct(Product product) {
 
 ## @Caching
 
-![@Caching 적용 시 개별 키별로 분리 관리되는 캐시 엔트리 구조](../../../assets/images/auto/캐싱/8cb61583.webp)
+![@Caching 적용 시 개별 키별로 분리 관리되는 캐시 엔트리 구조](../../../assets/images/auto/캐싱/8cb61583.webp)
 
-![캐시 채우기·무효화 복합 연산 후 히트율 변화를 확인하는 모니터링 예시](../../../assets/images/auto/캐싱/d2789c7e.webp)
+![캐시 채우기·무효화 복합 연산 후 히트율 변화를 확인하는 모니터링 예시](../../../assets/images/auto/캐싱/d2789c7e.webp)
 
 
 여러 캐시 어노테이션을 한 메서드에 함께 적용한다.
