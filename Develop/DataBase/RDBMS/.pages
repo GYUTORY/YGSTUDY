@@ -33,6 +33,7 @@ nav:
     - 갱신 이상: 갱신_이상.md
     - 비정규화: 비정규화.md
     - 계층형 데이터 모델링: Hierarchical_Data_Modeling.md
+    - EAV 패턴: EAV.md
   - 시간 데이터:
     - 시간 데이터 모델링: Temporal_Data_Modeling.md
     - Valid Time: Valid_Time.md

@@ -10,7 +10,9 @@ updated: 2026-08-07
 
 ### EAV 방식 (Translation Table)
 
-EAV(Entity-Attribute-Value) 구조를 번역에 적용한 패턴이다. 메인 엔티티에는 언어 독립 데이터만, 번역 가능한 필드는 별도 테이블로 분리한다.
+번역 테이블은 [EAV(Entity-Attribute-Value) 패턴](../../DataBase/RDBMS/EAV.md)을 i18n 도메인에 특화한 구조다. 범용 EAV에서 attribute 자리가 locale 코드로 고정되고, value 자리가 단일 TEXT가 아닌 복수 번역 필드(title, body, meta 등)로 구성된 레코드로 대체된다. 속성 집합이 런타임에 무한히 늘어날 수 있는 범용 EAV와 달리, 번역 테이블은 지원 언어 수만큼만 attribute가 존재하고 그 집합이 명시적으로 관리된다. 이 제약 덕분에 범용 EAV에서 피할 수 없는 orphan 데이터 문제나 타입 불일치 문제가 상당 부분 사라진다.
+
+메인 엔티티에는 언어 독립 데이터만, 번역 가능한 필드는 별도 테이블로 분리한다.
 
 ```sql
 CREATE TABLE articles (
