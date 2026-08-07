@@ -89,6 +89,46 @@ GROUP BY locale;
 
 MySQL에는 `FILTER` 절이 없으므로 `SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END)`로 대체한다.
 
+번역팀이 개입하는 서비스에서는 상태 기반 모니터링 쿼리가 운영 도구로 쓰인다.
+
+```sql
+-- MySQL: 언어별 번역 상태 현황
+SELECT
+    locale,
+    SUM(status = 'draft')     AS draft_count,
+    SUM(status = 'review')    AS review_count,
+    SUM(status = 'published') AS published_count,
+    COUNT(*)                  AS total,
+    ROUND(SUM(status = 'published') * 100.0 / COUNT(*), 1) AS published_pct
+FROM product_translations
+GROUP BY locale
+ORDER BY locale;
+
+-- 48시간 이상 review 상태로 멈춰 있는 번역 (검토 지연 감지)
+SELECT
+    product_id,
+    locale,
+    name,
+    translated_by,
+    translated_at
+FROM product_translations
+WHERE status = 'review'
+  AND translated_at < NOW() - INTERVAL 48 HOUR
+ORDER BY translated_at ASC
+LIMIT 50;
+
+-- 서비스에 노출할 published 번역이 없는 상품 (ko 기준)
+SELECT DISTINCT p.id, p.sku
+FROM products p
+LEFT JOIN product_translations t
+    ON t.product_id = p.id
+   AND t.locale = 'ko'
+   AND t.status = 'published'
+WHERE t.product_id IS NULL;
+```
+
+`translated_at`이 NULL인 행이 있으면 review 체류 쿼리에 `AND translated_at IS NOT NULL` 조건을 추가해야 한다. 임포트된 번역이나 초기 데이터 마이그레이션 행에서 NULL이 들어오는 경우가 있다.
+
 ### JSONB 컬럼 방식
 
 번역 데이터를 JSON으로 한 컬럼에 몰아넣는 방식이다. PostgreSQL의 JSONB가 대표적이다.
@@ -329,6 +369,76 @@ public String getTranslatedNameWithFallback(Long productId, String locale) {
 }
 ```
 
+`TranslationAlertService`에서 누락 건마다 Slack을 직접 보내면 트래픽이 몰리는 시간대에 채널이 노이즈로 가득 찬다. 메트릭만 실시간으로 기록하고, 알림은 배치로 분리한다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class TranslationAlertService {
+
+    private final MeterRegistry meterRegistry;
+
+    public void notifyMissing(Long entityId, String locale) {
+        // 매 요청마다 알림 발송 금지 — 메트릭만 기록하고 배치에서 처리
+        meterRegistry.counter("translation.fallback.exhausted",
+                "locale", locale)
+            .increment();
+    }
+}
+```
+
+`translation.fallback.exhausted` 카운터를 Grafana에 연결해두면 특정 locale의 누락 건수가 임계값을 초과하는 시점에 경보 조건을 설정할 수 있다.
+
+번역팀에 보내는 일일 리포트는 스케줄러로 처리한다:
+
+```java
+@Component
+@RequiredArgsConstructor
+public class TranslationMissingReportJob {
+
+    private final TranslationRepository translationRepo;
+    private final SlackNotifier slackNotifier;
+
+    @Scheduled(cron = "0 0 9 * * MON-FRI")
+    public void reportMissingTranslations() {
+        List<MissingLocaleCount> summary = translationRepo.countMissingPublished();
+        if (summary.isEmpty()) return;
+
+        StringBuilder sb = new StringBuilder("번역 published 누락 현황\n");
+        for (MissingLocaleCount item : summary) {
+            sb.append(String.format("- %s: %d건 누락 / 전체 %d건\n",
+                item.locale(), item.missingCount(), item.totalCount()));
+        }
+        slackNotifier.send("#translation-ops", sb.toString());
+    }
+}
+```
+
+`countMissingPublished()`가 실행하는 쿼리:
+
+```sql
+-- MySQL: locale별 published 번역 누락 집계
+SELECT
+    required.locale,
+    COUNT(p.id)                        AS total_count,
+    COUNT(p.id) - COUNT(t.product_id)  AS missing_count
+FROM (
+    SELECT 'ko' AS locale
+    UNION ALL SELECT 'en'
+    UNION ALL SELECT 'ja'
+) required
+CROSS JOIN products p
+LEFT JOIN product_translations t
+    ON t.product_id = p.id
+   AND t.locale = required.locale
+   AND t.status = 'published'
+GROUP BY required.locale
+HAVING missing_count > 0
+ORDER BY missing_count DESC;
+```
+
+지원 언어 목록을 DB 테이블로 관리 중이면 서브쿼리의 UNION ALL 대신 해당 테이블을 CROSS JOIN한다.
+
 ## 쿼리 성능과 인덱스 설계
 
 ### N+1 문제
@@ -371,17 +481,44 @@ List<Product> findAllWithTranslation(@Param("locale") String locale);
 
 UNIQUE 제약 `(product_id, locale)`은 자동으로 인덱스가 생성된다. 특정 상품의 모든 번역을 가져오는 쿼리에서 쓰인다.
 
-특정 locale의 번역 목록을 전체에서 조회하는 쿼리가 많다면 `locale`을 선행 컬럼으로 둔 별도 인덱스가 필요하다:
+특정 locale의 번역 목록을 전체에서 조회하는 쿼리가 많다면 `locale`을 선행 컬럼으로 둔 별도 인덱스가 필요하다. 단순 locale 인덱스보다 자주 SELECT하는 컬럼까지 포함한 커버링 인덱스로 만들면 테이블 heap 접근이 없어진다.
 
 ```sql
-CREATE INDEX idx_translations_locale ON product_translations (locale);
+-- 서비스 목록 조회 패턴
+-- WHERE locale = 'ko' AND status = 'published' ORDER BY product_id
+-- SELECT product_id, name → name까지 인덱스에 포함해 테이블 접근 제거
+CREATE INDEX idx_pt_svc_covering
+    ON product_translations (locale, status, product_id, name);
 
--- 커버링 인덱스로 구성하면 테이블 접근 없이 인덱스만 읽는다
-CREATE INDEX idx_translations_locale_covering
-    ON product_translations (locale, product_id, name);
+-- 워크플로우 모니터링 패턴
+-- WHERE status = 'review' ORDER BY translated_at
+-- SELECT product_id, locale, translated_by, translated_at
+CREATE INDEX idx_pt_workflow
+    ON product_translations (status, translated_at, product_id, locale);
 ```
 
-번역이 없는 상품을 찾는 쿼리는 NOT EXISTS 패턴을 쓰게 되는데, 테이블이 커질수록 느려진다. 번역 현황을 별도 컬럼이나 집계 테이블로 관리하는 편이 낫다.
+인덱스 컬럼 순서 결정 기준: 등호 조건(`=`)이 먼저, 범위 조건(`<`, `>`) 다음, ORDER BY 컬럼 그 다음, SELECT 커버용 컬럼이 마지막이다.
+
+`idx_pt_svc_covering`에서 `(locale, status, product_id, name)` 순서인 이유:
+- `locale = 'ko'` 등호 → locale 선행
+- `status = 'published'` 등호 → status 차선
+- `ORDER BY product_id` 페이징 → product_id 그 다음
+- `name` → SELECT 커버용으로 조건에 쓰이지 않으므로 마지막
+
+```sql
+-- EXPLAIN으로 커버링 인덱스 사용 여부 확인
+EXPLAIN SELECT product_id, name
+FROM product_translations
+WHERE locale = 'ko' AND status = 'published'
+ORDER BY product_id;
+-- Extra = "Using index"           → 테이블 접근 없음
+-- Extra = "Using index condition" → 인덱스 필터링은 됐으나 테이블 접근 있음
+-- Extra = "Using filesort"        → ORDER BY에 인덱스 미적용, 정렬 추가 발생
+```
+
+`description TEXT` 컬럼은 인덱스에 포함할 수 없다. MySQL 인덱스 컬럼 합산 크기 제한(3072바이트)과 TEXT 타입 제약 때문이다. `name VARCHAR(255)` utf8mb4는 255 × 4 = 1020바이트로 단독 포함은 가능하지만, 컬럼을 여럿 조합할 때 제한에 걸릴 수 있어서 `name(100)`처럼 접두사 길이를 지정하기도 한다. 이 경우 100바이트를 초과하는 name 값은 커버링에서 빠진다.
+
+번역이 없는 상품을 찾는 NOT EXISTS 쿼리는 테이블이 커질수록 느려진다. 번역 현황을 별도 컬럼이나 집계 테이블로 관리하는 편이 낫다.
 
 ## 실무 트러블슈팅
 
