@@ -3,6 +3,7 @@ nav:
   - 부분 인덱스: 부분_인덱스.md
   - 복합 인덱스 선두 컬럼: 복합_인덱스_선두.md
   - 인덱스 무력화: 인덱스_무력화.md
+  - 인덱스 가능성: 인덱스_가능성.md
   - 소프트 삭제: Soft_Delete.md
   - 아카이브 테이블: Archive_Table.md
   - Schema-Per-Tenant: Schema_Per_Tenant.md
