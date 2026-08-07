@@ -487,11 +487,11 @@ async function getData() {
 
 await와 then 콜백이 어느 tick에 실행되는지, 마이크로태스크 큐가 매크로태스크보다 먼저 비워지는 규칙은 별도 문서에서 명세 수준으로 정리했다.
 
-- [Promise 내부 동작 과정](../04_심화_JavaScript/Promise 내부 동작 과정.md) — 상태 슬롯, reaction 큐, await의 desugar, 마이크로태스크 고갈 규칙
+- [Promise 내부 동작 과정](../04_심화_JavaScript/Promise%20내부%20동작%20과정.md) — 상태 슬롯, reaction 큐, await의 desugar, 마이크로태스크 고갈 규칙
 
 ## 참고
 
 - [MDN Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
 - [MDN async function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function)
-- [실행 순서 이해](실행 순서 이해.md) — 이벤트 루프 기초
+- [실행 순서 이해](실행%20순서%20이해.md) — 이벤트 루프 기초
 - [Closure](../01_기본_JavaScript/Closure/Closure.md) — 비동기 콜백과 클로저

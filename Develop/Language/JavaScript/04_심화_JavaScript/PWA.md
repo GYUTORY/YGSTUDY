@@ -307,17 +307,17 @@ Manifest는 설치 가능 여부와 설치된 앱의 외형을 정하는 JSON �
   "theme_color": "#1a73e8",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icons/icon-192.webp",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-512.webp",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512-maskable.png",
+      "src": "/icons/icon-512-maskable.webp",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -448,7 +448,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || '알림', {
       body: data.body,
-      icon: '/icons/icon-192.png',
+      icon: '/icons/icon-192.webp',
       data: { url: data.url },
     })
   );

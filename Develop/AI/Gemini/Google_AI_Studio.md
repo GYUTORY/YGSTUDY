@@ -2,6 +2,7 @@
 title: Google AI Studio 웹 도구
 tags: [ai, gemini, google, ai-studio, prototyping]
 updated: 2026-08-04
+volatility: high
 ---
 
 # Google AI Studio 웹 도구
@@ -373,7 +374,7 @@ from google import genai
 
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-image_bytes = pathlib.Path("error_screenshot.png").read_bytes()
+image_bytes = pathlib.Path("error_screenshot.webp").read_bytes()
 
 response = client.models.generate_content(
     model="gemini-2.5-flash",
@@ -426,7 +427,7 @@ response = client.models.generate_content(
         {
             "file_data": {
                 "mime_type": "image/jpeg",
-                "file_uri": "https://example.com/diagram.jpg"
+                "file_uri": "https://example.com/diagram.webp"
             }
         },
         "이 다이어그램이 나타내는 아키텍처를 설명해줘"
@@ -441,7 +442,7 @@ response = client.models.generate_content(
 `contents` 리스트에 파트를 계속 붙이면 된다.
 
 ```python
-images = ["before.png", "after.png"]
+images = ["before.webp", "after.webp"]
 parts = []
 for img_path in images:
     img_bytes = pathlib.Path(img_path).read_bytes()

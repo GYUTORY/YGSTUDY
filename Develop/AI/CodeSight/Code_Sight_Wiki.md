@@ -2,6 +2,7 @@
 title: "CodeSight --wiki"
 tags: [ai, codesight, wiki, documentation, cli]
 updated: 2026-04-10
+volatility: high
 ---
 
 # CodeSight --wiki

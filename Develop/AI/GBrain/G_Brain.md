@@ -2,6 +2,7 @@
 title: GBrain
 tags: [ai, gbrain, enterprise-ai, korean-ai, knowledge-management]
 updated: 2026-04-10
+volatility: high
 ---
 
 # GBrain

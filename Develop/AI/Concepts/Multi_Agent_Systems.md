@@ -2,6 +2,7 @@
 title: 멀티 에이전트 시스템 (오케스트레이터-워커, 핸드오프, 컨텍스트 격리)
 tags: [ai, agent, multi-agent, orchestrator, handoff, a2a, context-isolation, fan-out]
 updated: 2026-06-22
+volatility: high
 ---
 
 # 멀티 에이전트 시스템

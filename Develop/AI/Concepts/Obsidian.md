@@ -2,6 +2,7 @@
 title: Obsidian 실무 사용법
 tags: [obsidian, markdown, pkm, knowledge-management, dataview, templater]
 updated: 2026-06-17
+volatility: high
 ---
 
 # Obsidian 실무 사용법

@@ -2,6 +2,7 @@
 title: Claude Code Auto Mode 실전 활용
 tags: [ai, claude-code, auto-mode, workflow, permissions]
 updated: 2026-06-06
+volatility: high
 ---
 
 # Claude Code Auto Mode 실전 활용

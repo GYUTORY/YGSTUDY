@@ -134,7 +134,7 @@ role은 user와 assistant만 번갈아 나와야 한다. user 두 번 연속, as
 Claude 3 계열과 Llama 3.2 Vision은 이미지를 입력으로 받는다. 영수증 OCR, 스크린샷에서 에러 메시지 추출, 차트 해석, 디자인 시안에서 컴포넌트 추출 같은 작업에 쓴다.
 
 ```python
-with open("receipt.jpg", "rb") as f:
+with open("receipt.webp", "rb") as f:
     image_bytes = f.read()
 
 response = client.converse(

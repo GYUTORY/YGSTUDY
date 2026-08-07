@@ -231,7 +231,7 @@ try_files $uri @backend;
 location /img/ {
     rewrite ^/img/(.*)$ /static/img/$1 break;
     try_files $uri =404;
-    # $uri는 /static/img/foo.png (rewrite 결과)
+    # $uri는 /static/img/foo.webp (rewrite 결과)
     root /var/www;
 }
 ```

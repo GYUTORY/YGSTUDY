@@ -201,7 +201,7 @@ hide:
   <div class="yg-proj-grid">
     <a class="yg-proj" href="http://gyutory.co.kr/momo" target="_blank" rel="noopener">
       <div class="yg-proj-thumb">
-        <img src="assets/images/momo_assistant.png" alt="MOMO Assistant">
+        <img src="assets/images/momo_assistant.webp" alt="MOMO Assistant">
       </div>
       <div class="yg-proj-body">
         <span class="yg-proj-tag">AI · Web</span>
@@ -211,7 +211,7 @@ hide:
     </a>
     <a class="yg-proj" href="http://gyutory.co.kr/momo_editor/" target="_blank" rel="noopener">
       <div class="yg-proj-thumb">
-        <img src="assets/images/momo_editor.png" alt="MOMO Editor">
+        <img src="assets/images/momo_editor.webp" alt="MOMO Editor">
       </div>
       <div class="yg-proj-body">
         <span class="yg-proj-tag">Desktop · Video</span>
@@ -221,7 +221,7 @@ hide:
     </a>
     <div class="yg-proj yg-proj--wip">
       <div class="yg-proj-thumb">
-        <img src="assets/images/trip_planner.png" alt="AI Trip Planner">
+        <img src="assets/images/trip_planner.webp" alt="AI Trip Planner">
         <span class="yg-proj-badge">준비 중</span>
       </div>
       <div class="yg-proj-body">

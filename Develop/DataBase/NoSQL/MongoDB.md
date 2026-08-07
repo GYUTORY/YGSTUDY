@@ -1016,5 +1016,5 @@ async function searchUsers(criteria: UserSearchCriteria): Promise<User[]> {
 - [MongoDB Documentation](https://www.mongodb.com/docs/)
 - [MongoDB University](https://university.mongodb.com/)
 - [NoSQL 개요](NoSQL.md) — NoSQL 데이터베이스 분류
-- [Redis](Redis/Redis 다루기.md) — Key-Value 스토어
+- [Redis](Redis/Redis%20다루기.md) — Key-Value 스토어
 - [데이터베이스 샤딩](../RDBMS/데이터베이스_샤딩.md) — 샤딩 전략 비교

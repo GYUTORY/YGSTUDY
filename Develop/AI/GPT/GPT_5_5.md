@@ -2,6 +2,7 @@
 title: GPT-5.5
 tags: [ai, openai, gpt, gpt-5-5, llm, api]
 updated: 2026-04-24
+volatility: high
 ---
 
 # GPT-5.5
@@ -276,7 +277,7 @@ for chunk in stream:
 ```python
 import base64
 
-with open("screenshot.png", "rb") as f:
+with open("screenshot.webp", "rb") as f:
     image_data = base64.b64encode(f.read()).decode("utf-8")
 
 response = client.chat.completions.create(

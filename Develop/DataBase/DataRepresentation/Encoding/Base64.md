@@ -203,7 +203,7 @@ url_encoded = base64.urlsafe_b64encode(text.encode('utf-8'))
 print(url_encoded)  # b'SGVsbG8sIFdvcmxkIQ=='
 
 # 파일 인코딩 (이미지 등)
-with open('image.png', 'rb') as f:
+with open('image.webp', 'rb') as f:
     image_data = f.read()
     image_base64 = base64.b64encode(image_data).decode('ascii')
 

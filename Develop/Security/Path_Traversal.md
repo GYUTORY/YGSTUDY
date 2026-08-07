@@ -79,7 +79,7 @@ const safe = input.replace(/\.\.\//g, '');
 오래된 시스템에서 통하던 기법이다. C 기반 파일 API는 널 바이트를 문자열 끝으로 인식한다. 확장자를 강제로 붙이는 코드를 우회할 때 썼다.
 
 ```
-file=secret.txt%00.png
+file=secret.txt%00.webp
 // 앱은 확장자가 .png라 통과시키지만
 // 하위 C API는 %00에서 끊어 secret.txt를 연다
 ```
@@ -87,7 +87,7 @@ file=secret.txt%00.png
 최신 Node.js는 경로에 널 바이트가 있으면 `fs` 호출이 즉시 에러를 던진다.
 
 ```javascript
-fs.readFile('secret.txt\0.png', () => {});
+fs.readFile('secret.txt\0.webp', () => {});
 // TypeError [ERR_INVALID_ARG_VALUE]: The argument 'path' must be a string,
 // Uint8Array, or URL without null bytes.
 ```

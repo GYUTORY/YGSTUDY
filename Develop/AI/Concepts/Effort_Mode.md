@@ -2,6 +2,7 @@
 title: effort mode와 reasoning effort
 tags: [ai, llm, reasoning, effort, gpt, claude, codex, deepseek]
 updated: 2026-05-30
+volatility: high
 ---
 
 # effort mode와 reasoning effort

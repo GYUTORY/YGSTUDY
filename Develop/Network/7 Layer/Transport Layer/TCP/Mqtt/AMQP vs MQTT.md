@@ -58,12 +58,12 @@ updated: 2025-12-05
 메시지 브로커를 우체국에 비유하면 이해가 쉽습니다:
 
 **전통적인 직접 통신 (Without Broker)**
-```
+```text
 A가 B의 집 주소를 알고 있어야 함 → A가 직접 B의 집에 방문 → B가 집에 없으면 실패
 ```
 
 **메시지 브로커를 통한 통신 (With Broker)**
-```
+```text
 A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 편지함을 확인할 때 전달
 ```
 
@@ -109,7 +109,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
 #### 1. **비동기 통신 (Asynchronous Communication)**
 
 **동기 통신의 작동 방식**
-```
+```text
 클라이언트 → 요청 전송 → [대기...] → 서버 처리 → 응답 수신 → 다음 작업
 ```
 - 전화 통화와 같음: 상대방이 받을 때까지 기다려야 함
@@ -120,7 +120,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
   - 동시에 많은 요청을 처리하기 어려움
 
 **비동기 통신의 작동 방식**
-```
+```text
 클라이언트 → 메시지 전송 → 즉시 다음 작업 → ... → (나중에) 응답 처리
 ```
 - 이메일과 같음: 보내고 바로 다른 일을 할 수 있음
@@ -131,7 +131,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
   - 대량의 요청을 순차적으로 처리 가능
 
 **실제 예시: 주문 처리 시스템**
-```
+```text
 동기 방식:
 주문 접수(3초) → 재고 확인(2초) → 결제 처리(5초) → 배송 등록(3초) = 총 13초 소요
 각 단계가 끝날 때까지 대기해야 함
@@ -147,7 +147,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
 메시지를 어디에 저장하느냐에 따라 성능과 안정성이 달라집니다.
 
 **메모리 기반 (In-Memory)**
-```
+```text
 [메시지] → RAM에 저장 → 빠른 읽기/쓰기 → 전원 꺼지면 사라짐
 ```
 - **장점**:
@@ -166,7 +166,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
   - 실시간 게임 상태 동기화
 
 **디스크 기반 (Persistent)**
-```
+```text
 [메시지] → 먼저 디스크에 저장 → 메모리에 캐시 → 느린 쓰기, 안전함
 ```
 - **장점**:
@@ -185,7 +185,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
   - 이벤트 소싱 (모든 이벤트 기록 필요)
 
 **하이브리드 방식**
-```
+```text
 [메시지] → RAM에 먼저 저장 → 비동기로 디스크에 쓰기 → 성능과 안정성 균형
 ```
 - 쓰기는 빠르게 메모리에
@@ -198,7 +198,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
 시스템 부하가 증가할 때 대처하는 두 가지 방법:
 
 **수평 확장 (Scale-Out) - 브로커 클러스터링**
-```
+```text
 단일 브로커:
 [모든 트래픽] → [Broker] → 부하 집중
 
@@ -222,7 +222,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
   - 관리 포인트 증가
 
 **수직 확장 (Scale-Up) - 단일 서버 성능 향상**
-```
+```text
 기존: [4 Core, 8GB RAM] → 제한된 성능
 업그레이드: [32 Core, 128GB RAM] → 성능 향상
 ```
@@ -244,7 +244,7 @@ A가 우체국에 편지를 맡김 → 우체국이 편지를 보관 → B가 �
   - 업그레이드 시 서비스 중단 필요
 
 **실제 시나리오**
-```
+```text
 초기 단계 (일일 사용자 1천명):
 → 단일 브로커로 충분, 수직 확장 고려
 
@@ -333,7 +333,7 @@ MQTT는 메시지 전달의 신뢰성을 3단계로 나누어 제공합니다. �
 #### QoS 0 - 최대 한 번 전달 (At most once) - "Fire and Forget"
 
 **작동 방식**
-```
+```text
 Publisher → [PUBLISH 메시지] → Broker → [PUBLISH 메시지] → Subscriber
            (확인 응답 없음)           (확인 응답 없음)
 ```
@@ -361,7 +361,7 @@ Publisher → [PUBLISH 메시지] → Broker → [PUBLISH 메시지] → Subscri
 - 신뢰성이 필요한 경우 부적합
 
 **적합한 사용 사례**
-```
+```text
 1. 실시간 센서 데이터
    - 온도: 23.5°C → 23.6°C (하나 유실되어도 다음 값이 곧 옴)
    - GPS 위치: 현재 위치가 중요, 과거 위치는 덜 중요
@@ -378,7 +378,7 @@ Publisher → [PUBLISH 메시지] → Broker → [PUBLISH 메시지] → Subscri
 #### QoS 1 - 최소 한 번 전달 (At least once)
 
 **작동 방식**
-```
+```text
 Publisher → [PUBLISH, msg_id=123] → Broker
            ← [PUBACK, msg_id=123] ←
            
@@ -395,7 +395,7 @@ Broker → [PUBLISH, msg_id=123] → Subscriber
 6. 브로커 → Subscriber 간에도 동일한 과정 반복
 
 **메시지 중복 발생 시나리오**
-```
+```text
 시나리오 1: ACK 손실
 Publisher → [PUBLISH, msg_id=123] → Broker (메시지 잘 받음)
            ← [PUBACK] 손실됨! ← (네트워크 문제)
@@ -424,7 +424,7 @@ Publisher: "응답이 너무 늦네? 재전송!" → Broker (중복!)
 - QoS 0보다 오버헤드 증가
 
 **적합한 사용 사례**
-```
+```text
 1. 알림 시스템
    - 푸시 알림 (중복 전송되어도 사용자가 무시 가능)
    - 이메일 알림 (중복은 괜찮지만 누락은 안 됨)
@@ -462,7 +462,7 @@ function handleMessage(message) {
 #### QoS 2 - 정확히 한 번 전달 (Exactly once)
 
 **작동 방식 - 4단계 핸드셰이크**
-```
+```text
 Publisher → [PUBLISH, msg_id=123] → Broker
            ← [PUBREC, msg_id=123] ← (메시지 수신 확인)
            → [PUBREL, msg_id=123] → (메시지 해제 요청)
@@ -481,7 +481,7 @@ Broker → [PUBLISH, msg_id=123] → Subscriber
 4. **PUBCOMP (Publish Complete)**: "처리 완료했어. 이제 삭제해도 돼"
 
 **중복 방지 메커니즘**
-```
+```text
 상황 1: PUBREC 손실
 Publisher → [PUBLISH, msg_id=123] → Broker (받음, 저장)
            ← [PUBREC] 손실! ←
@@ -496,7 +496,7 @@ Broker: "이미 해제했어!" → [PUBCOMP] → (중복 처리 방지)
 ```
 
 **상태 관리**
-```
+```text
 Publisher의 상태:
 [전송 전] → [PUBLISH 전송] → [PUBREC 대기] → [PUBREL 전송] → [PUBCOMP 대기] → [완료]
 
@@ -524,7 +524,7 @@ Broker의 상태:
 - 브로커와 클라이언트 모두 상태 관리 필요
 
 **적합한 사용 사례**
-```
+```text
 1. 금융 거래
    - 계좌 이체 (중복 이체 절대 안 됨)
    - 결제 처리 (한 번만 결제되어야 함)
@@ -543,7 +543,7 @@ Broker의 상태:
 ```
 
 **성능 비교**
-```
+```text
 처리 시간 (상대적):
 QoS 0: 1ms (기준)
 QoS 1: 2-3ms (약 2배)
@@ -561,7 +561,7 @@ QoS 2: 최대 (4단계 완료까지 상태 저장)
 ```
 
 **QoS 레벨 선택 기준**
-```
+```text
 QoS 0을 선택하는 경우:
 ✓ 성능이 최우선
 ✓ 일부 데이터 손실 허용
@@ -644,7 +644,7 @@ AMQP의 Exchange는 메시지 라우팅의 핵심입니다. 각 Exchange 타입�
 #### Direct Exchange - 정확한 매칭
 
 **작동 원리**
-```
+```text
 Producer → [routing_key: "order.created"] → Direct Exchange
                                                     ↓ (정확히 일치 검사)
                                               routing_key == binding_key?
@@ -659,7 +659,7 @@ Producer → [routing_key: "order.created"] → Direct Exchange
 4. 일치하는 Queue가 없으면 메시지 폐기 (또는 alternate exchange로 전달)
 
 **바인딩 설정 예시**
-```
+```text
 Queue 1 (order_processing):
   - binding_key: "order.created"
   
@@ -671,7 +671,7 @@ Queue 3 (order_notification):
 ```
 
 **메시지 라우팅 결과**
-```
+```text
 routing_key: "order.created"
 → Queue 1 (order_processing) ✓ 전달됨
 → Queue 2 (payment_processing) ✗ 전달 안 됨
@@ -693,7 +693,7 @@ routing_key: "order.updated"
 - **로드 밸런싱**: 같은 키에 여러 Consumer 연결 시 라운드로빈
 
 **적합한 사용 사례**
-```
+```text
 1. 작업 큐 (Task Queue)
    routing_key: "task.image.resize" → 이미지 처리 워커
    routing_key: "task.video.encode" → 비디오 인코딩 워커
@@ -710,7 +710,7 @@ routing_key: "order.updated"
 #### Topic Exchange - 패턴 매칭
 
 **작동 원리**
-```
+```text
 Producer → [routing_key: "user.123.email.sent"] → Topic Exchange
                                                         ↓ (패턴 매칭)
                                               "user.*.email.*" 패턴과 일치?
@@ -725,7 +725,7 @@ Producer → [routing_key: "user.123.email.sent"] → Topic Exchange
 - 라우팅 키는 최대 255바이트
 
 **패턴 매칭 예시**
-```
+```text
 Binding 패턴: "user.*.notification"
 ✓ "user.123.notification" (매칭)
 ✓ "user.abc.notification" (매칭)
@@ -752,7 +752,7 @@ Binding 패턴: "*.*.critical"
 ```
 
 **복잡한 라우팅 시나리오**
-```
+```text
 Queue 설정:
 Queue A: "user.#.email" → 모든 사용자의 이메일 이벤트
 Queue B: "user.*.created" → 사용자 생성 이벤트만
@@ -786,7 +786,7 @@ routing_key: "system.database.connection.error"
 - **O(n) 시간 복잡도**: 모든 바인딩 패턴을 검사해야 함
 
 **적합한 사용 사례**
-```
+```text
 1. 로그 수집 시스템
    "app.frontend.error" → 프론트엔드 에러 수집
    "app.backend.#" → 백엔드의 모든 로그
@@ -805,7 +805,7 @@ routing_key: "system.database.connection.error"
 #### Fanout Exchange - 브로드캐스트
 
 **작동 원리**
-```
+```text
 Producer → [routing_key 무시] → Fanout Exchange
                                       ↓ (모든 바인딩된 Queue에)
                         ↙             ↓             ↘
@@ -819,7 +819,7 @@ Producer → [routing_key 무시] → Fanout Exchange
 4. Queue가 없으면 메시지 폐기
 
 **실제 동작 예시**
-```
+```text
 설정:
 Fanout Exchange "system_events"
   ↓ binding (라우팅 키 불필요)
@@ -843,7 +843,7 @@ Producer → "system_events" (routing_key: "shutdown" 또는 아무거나)
 - **라우팅 키 불필요**: 설정하더라도 무시됨
 
 **적합한 사용 사례**
-```
+```text
 1. 시스템 전체 알림
    시스템 종료 → 모든 서비스에 알림
    긴급 업데이트 → 모든 노드에 전파
@@ -862,7 +862,7 @@ Producer → "system_events" (routing_key: "shutdown" 또는 아무거나)
 #### Headers Exchange - 속성 기반 라우팅
 
 **작동 원리**
-```
+```text
 Producer → [headers: {format:"pdf", priority:"high"}] → Headers Exchange
                                                               ↓ (헤더 매칭)
                                                     조건: format=pdf AND priority=high?
@@ -871,7 +871,7 @@ Producer → [headers: {format:"pdf", priority:"high"}] → Headers Exchange
 ```
 
 **매칭 방식**
-```
+```text
 x-match: "all" (AND 연산)
 → 모든 헤더가 일치해야 함
 
@@ -908,7 +908,7 @@ Queue 3 바인딩:
 ```
 
 **복잡한 매칭 시나리오**
-```
+```text
 메시지 헤더: {format:"pdf", priority:"high", size:"large"}
 
 Queue A 조건: {x-match:"all", format:"pdf", priority:"high"}
@@ -931,7 +931,7 @@ Queue D 조건: {x-match:"any", format:"xml", language:"en"}
 - **성능 저하**: 복잡한 조건일수록 느림
 
 **적합한 사용 사례**
-```
+```text
 1. 파일 처리 시스템
    {type:"image", format:"png", size:"large"} → 이미지 리사이징
    {type:"document", format:"pdf", ocr:"needed"} → OCR 처리
@@ -946,7 +946,7 @@ Queue D 조건: {x-match:"any", format:"xml", language:"en"}
 ```
 
 **Exchange 타입 선택 기준**
-```
+```text
 Direct Exchange:
 ✓ 명확한 라우팅 규칙
 ✓ 간단한 1:1 또는 1:N 매칭
@@ -1588,7 +1588,7 @@ graph TB
 ### 실제 통합 사례
 
 #### 1. **스마트 팩토리 시스템**
-```
+```text
 IoT 센서 → MQTT → 데이터 수집 서버 → AMQP → 분석 엔진 → MQTT → 제어 시스템
 ```
 
@@ -1646,12 +1646,12 @@ class FactoryIntegration {
 ```
 
 #### 2. **스마트 시티 플랫폼**
-```
+```text
 도시 센서 → MQTT → 시티 허브 → AMQP → 시티 서비스 → MQTT → 시민 앱
 ```
 
 #### 3. **의료 IoT 시스템**
-```
+```text
 의료기기 → MQTT → 병원 서버 → AMQP → 의료 분석 → MQTT → 의료진 알림
 ```
 

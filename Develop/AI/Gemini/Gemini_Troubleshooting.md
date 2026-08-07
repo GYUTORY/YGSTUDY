@@ -2,6 +2,7 @@
 title: "Gemini 트러블슈팅"
 tags: [gemini, troubleshooting, api, Google AI]
 updated: 2026-04-15
+volatility: high
 ---
 
 # Gemini 트러블슈팅
@@ -285,7 +286,7 @@ cache.update(ttl=datetime.timedelta(hours=4))
 import google.generativeai as genai
 
 # 파일 업로드
-uploaded_file = genai.upload_file("large_image.png")
+uploaded_file = genai.upload_file("large_image.webp")
 
 # 업로드 상태 확인 - 큰 파일은 처리에 시간이 걸린다
 import time

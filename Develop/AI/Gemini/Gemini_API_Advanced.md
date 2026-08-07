@@ -2,6 +2,7 @@
 title: Gemini API 심화 (멀티모달, Function Calling, Streaming, Safety, Context Caching)
 tags: [ai, gemini, google, api, multimodal, function-calling, streaming, safety, caching]
 updated: 2026-04-18
+volatility: high
 ---
 
 # Gemini API 심화
@@ -74,9 +75,9 @@ response = client.models.generate_content(
                 "1번은 v1.0, 2번은 v1.1, 3번은 v1.2 디자인이다. "
                 "버전 간 시각적 변경점을 순서대로 정리해줘."
             ),
-            read_image("login_v1.png", "image/png"),
-            read_image("login_v1_1.png", "image/png"),
-            read_image("login_v1_2.png", "image/png"),
+            read_image("login_v1.webp", "image/png"),
+            read_image("login_v1_1.webp", "image/png"),
+            read_image("login_v1_2.webp", "image/png"),
         ])
     ]
 )
@@ -100,8 +101,8 @@ total = client.models.count_tokens(
         types.Content(parts=[
             types.Part.from_text("확인해달라는 프롬프트"),
             types.Part.from_uri(file_uri=pdf.uri, mime_type="application/pdf"),
-            read_image("screen1.png", "image/png"),
-            read_image("screen2.png", "image/png"),
+            read_image("screen1.webp", "image/png"),
+            read_image("screen2.webp", "image/png"),
         ])
     ]
 )

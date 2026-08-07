@@ -16,7 +16,7 @@ Go로 만든 웹 서버. 2015년 Matt Holt가 처음 만들었고, 2020년에 v2
 
 Caddy가 클라이언트 요청을 받아서 응답을 돌려주기까지의 과정이다.
 
-```
+```text
   클라이언트
       │
       ▼
@@ -69,7 +69,7 @@ Caddy가 클라이언트 요청을 받아서 응답을 돌려주기까지의 과
 
 Caddyfile에서 디렉티브를 나열하는 순서와 실제 실행 순서는 다르다. Caddy는 내부적으로 디렉티브마다 고정된 우선순위를 갖고 있다. 예를 들어 `encode`는 `reverse_proxy`보다 항상 먼저 실행된다. 이 순서를 직접 제어하려면 `route` 블록으로 감싸야 한다.
 
-```
+```caddyfile
 example.com {
     # 이 순서로 실행되는 게 아니다
     file_server
@@ -145,7 +145,7 @@ Caddyfile은 `/etc/caddy/Caddyfile`에 위치한다. Nginx 설정과 비교하�
 
 ### 기본 구조
 
-```
+```caddyfile
 사이트주소 {
     디렉티브 인자
 }
@@ -153,7 +153,7 @@ Caddyfile은 `/etc/caddy/Caddyfile`에 위치한다. Nginx 설정과 비교하�
 
 실제 예시:
 
-```
+```caddyfile
 example.com {
     respond "Hello, World!"
 }
@@ -163,7 +163,7 @@ example.com {
 
 ### 여러 사이트 설정
 
-```
+```caddyfile
 example.com {
     root * /var/www/example
     file_server
@@ -201,7 +201,7 @@ api.example.com {
 
 특정 경로나 조건에만 디렉티브를 적용할 때 사용한다.
 
-```
+```caddyfile
 example.com {
     # /api/*로 오는 요청만 프록시
     reverse_proxy /api/* localhost:8080
@@ -214,7 +214,7 @@ example.com {
 
 이름 있는 매처를 쓰면 복잡한 조건을 표현할 수 있다.
 
-```
+```caddyfile
 example.com {
     @websocket {
         header Connection *Upgrade*
@@ -223,7 +223,7 @@ example.com {
     reverse_proxy @websocket localhost:6001
 
     @static {
-        path *.css *.js *.png *.jpg *.gif *.svg *.woff2
+        path *.css *.js *.webp *.webp *.webp *.svg *.woff2
     }
     header @static Cache-Control "public, max-age=31536000"
 
@@ -233,7 +233,7 @@ example.com {
 
 ### 환경 변수 사용
 
-```
+```caddyfile
 {$DOMAIN:localhost} {
     reverse_proxy {$BACKEND_HOST:localhost}:{$BACKEND_PORT:8080}
 }
@@ -245,7 +245,7 @@ example.com {
 
 Caddyfile 맨 위에 중괄호로 감싸서 전역 옵션을 설정한다.
 
-```
+```caddyfile
 {
     email admin@example.com  # ACME 계정 이메일
     acme_ca https://acme-staging-v02.api.letsencrypt.org/directory  # 스테이징 CA
@@ -259,7 +259,7 @@ Caddy의 핵심 기능이다. 도메인 이름으로 사이트를 설정하면 �
 
 ### 자동 HTTPS 동작 과정
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │  Caddy 시작 / 설정 로드                                   │
 │  Caddyfile에서 도메인 목록 추출                            │
@@ -320,7 +320,7 @@ Caddy의 핵심 기능이다. 도메인 이름으로 사이트를 설정하면 �
 
 Cloudflare 예시:
 
-```
+```caddyfile
 {
     acme_dns cloudflare {env.CF_API_TOKEN}
 }
@@ -342,7 +342,7 @@ xcaddy build --with github.com/caddy-dns/cloudflare
 
 로컬 개발 환경에서 HTTPS가 필요하면 내부 CA로 자체 서명 인증서를 쓸 수 있다.
 
-```
+```caddyfile
 {
     local_certs
 }
@@ -354,7 +354,7 @@ localhost {
 
 또는 사이트 단위로:
 
-```
+```caddyfile
 localhost {
     tls internal
     reverse_proxy localhost:3000
@@ -369,7 +369,7 @@ localhost {
 
 SaaS 서비스에서 고객이 커스텀 도메인을 붙이는 경우에 쓴다. 고객이 100개 도메인을 연결하든 10,000개를 연결하든 Caddyfile에 일일이 적지 않아도 된다.
 
-```
+```caddyfile
 {
     on_demand_tls {
         ask http://localhost:5555/check-domain
@@ -418,7 +418,7 @@ Caddy는 HTTP/3(QUIC)을 기본으로 지원한다. v2.6부터 별도 설정 없
 
 HTTP/3은 TCP가 아니라 UDP 기반의 QUIC 프로토콜 위에서 동작한다. 기존 HTTP/2가 TCP 위에서 head-of-line blocking 문제를 겪는 것과 달리, QUIC은 스트림 단위로 독립적이라서 하나의 패킷 손실이 다른 스트림을 막지 않는다.
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │  HTTP/2 (TCP 기반)                       │
 │                                         │
@@ -446,7 +446,7 @@ HTTP/3은 TCP가 아니라 UDP 기반의 QUIC 프로토콜 위에서 동작한�
 
 기본적으로 활성화되어 있어서 따로 할 건 없다. 비활성화하거나 세부 설정이 필요한 경우:
 
-```
+```caddyfile
 {
     servers {
         protocols h1 h2 h3
@@ -456,7 +456,7 @@ HTTP/3은 TCP가 아니라 UDP 기반의 QUIC 프로토콜 위에서 동작한�
 
 HTTP/3만 끄려면:
 
-```
+```caddyfile
 {
     servers {
         protocols h1 h2
@@ -484,7 +484,7 @@ services:
 
 Caddy는 HTTP/2 응답에 `Alt-Svc` 헤더를 자동으로 추가한다. 브라우저는 이 헤더를 보고 다음 요청부터 HTTP/3(QUIC)으로 전환한다.
 
-```
+```text
 Alt-Svc: h3=":443"; ma=2592000
 ```
 
@@ -494,7 +494,7 @@ HTTP/3이 실제로 동작하는지 확인하려면 브라우저 개발자 도�
 
 ### 기본 설정
 
-```
+```caddyfile
 example.com {
     reverse_proxy localhost:8080
 }
@@ -502,7 +502,7 @@ example.com {
 
 ### 경로별 라우팅
 
-```
+```caddyfile
 example.com {
     handle /api/* {
         reverse_proxy localhost:8080
@@ -521,7 +521,7 @@ example.com {
 
 `handle`과 `handle_path`의 차이를 알아야 한다. `handle`은 원래 경로를 그대로 백엔드에 전달하고, `handle_path`는 매칭된 prefix를 제거한다.
 
-```
+```caddyfile
 example.com {
     # /api/users → 백엔드에 /api/users로 전달
     handle /api/* {
@@ -537,7 +537,7 @@ example.com {
 
 ### 로드 밸런싱
 
-```
+```caddyfile
 example.com {
     reverse_proxy localhost:8001 localhost:8002 localhost:8003 {
         lb_policy round_robin
@@ -560,7 +560,7 @@ example.com {
 
 ### 헤더 전달
 
-```
+```caddyfile
 example.com {
     reverse_proxy localhost:8080 {
         header_up Host {upstream_hostport}
@@ -577,7 +577,7 @@ Caddy는 `X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host`를 기본으
 
 별도 설정이 필요 없다. `reverse_proxy`가 WebSocket 업그레이드를 자동으로 처리한다.
 
-```
+```caddyfile
 example.com {
     reverse_proxy /ws localhost:6001
     reverse_proxy localhost:8080
@@ -588,7 +588,7 @@ example.com {
 
 ### 기본 설정
 
-```
+```caddyfile
 example.com {
     root * /var/www/site
     file_server
@@ -597,7 +597,7 @@ example.com {
 
 ### 디렉토리 목록 표시
 
-```
+```caddyfile
 example.com {
     root * /var/www/files
     file_server browse
@@ -608,7 +608,7 @@ example.com {
 
 React, Vue 같은 SPA는 모든 경로를 `index.html`로 보내야 한다.
 
-```
+```caddyfile
 example.com {
     root * /var/www/app
     try_files {path} /index.html
@@ -618,7 +618,7 @@ example.com {
 
 ### 압축
 
-```
+```caddyfile
 example.com {
     root * /var/www/site
     encode gzip zstd
@@ -630,12 +630,12 @@ example.com {
 
 ### 캐시 헤더
 
-```
+```caddyfile
 example.com {
     root * /var/www/site
 
     @static {
-        path *.css *.js *.png *.jpg *.gif *.svg *.woff2
+        path *.css *.js *.webp *.webp *.webp *.svg *.woff2
     }
     header @static Cache-Control "public, max-age=31536000, immutable"
 
@@ -814,7 +814,7 @@ volumes:
 
 Caddyfile:
 
-```
+```caddyfile
 example.com {
     reverse_proxy app:8080
 }
@@ -898,7 +898,7 @@ sudo iptables -L -n
 
 Let's Encrypt는 동일 도메인에 대해 주당 5회까지 인증서를 발급한다. 테스트할 때는 반드시 스테이징 CA를 쓴다.
 
-```
+```caddyfile
 {
     acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
@@ -929,7 +929,7 @@ sudo journalctl -u caddy --no-pager -f
 # Caddyfile에 로그 설정 추가
 ```
 
-```
+```caddyfile
 example.com {
     log {
         output file /var/log/caddy/access.log {

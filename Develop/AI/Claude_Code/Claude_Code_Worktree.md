@@ -2,6 +2,7 @@
 title: Claude Code Worktree
 tags: [ai, claude-code, git-worktree, parallel-development, isolation]
 updated: 2026-04-08
+volatility: high
 ---
 
 # Claude Code Worktree

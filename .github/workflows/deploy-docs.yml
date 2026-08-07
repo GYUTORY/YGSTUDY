@@ -38,5 +38,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-docs.txt
 
-      - name: Build and deploy
+      - name: Check tags
+        run: python3 tools/gen_tags.py --strict
+
+      - name: Check sources (recent 90d)
+        run: python3 tools/check_sources.py --strict
+
+      - name: Build (link check)
+        run: mkdocs build --strict
+
+      - name: Deploy
         run: mkdocs gh-deploy --force

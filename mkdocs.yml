@@ -3,10 +3,14 @@ site_url: https://gyutory.github.io/YGSTUDY/
 site_description: 백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것
 site_author: GYUTORY
 
-repo_name: GYUTORY/YGSTUDY
-repo_url: https://github.com/GYUTORY/YGSTUDY
+repo_name: gyutory/YGSTUDY
+repo_url: https://github.com/gyutory/YGSTUDY
 
 docs_dir: Develop
+
+hooks:
+  - tools/volatility_banner.py
+  - tools/inject_build_meta.py
 
 theme:
   name: material
@@ -49,12 +53,14 @@ plugins:
       lang:
         - ko
         - en
-      separator: '[\s\-\.]+'
+      separator: '[\s\-\._]+'
   - awesome-pages
   - tags
   # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
   - redirects:
       redirect_maps:
+        # Claude_Code_Fable_5.md 폐기 — 전제가 틀린 환각 문서, Claude.md로 임시 연결 (2026-08-07)
+        'AI/Claude_Code/Claude_Code_Fable_5.md': 'AI/Claude/Claude.md'
         # Infra/DevOps 경계 정리 (2026-08-01): 겹치던 주제를 DevOps로 모음
         'Infra/CI_CD/CI_CD_Pipeline.md': 'DevOps/CI_CD/CI_CD_Pipeline.md'
         'Infra/GitOps/Git_Ops_Argo_CD.md': 'DevOps/GitOps/Argo_CD_운영_실무.md'
@@ -378,6 +384,14 @@ plugins:
       enable_creation_date: true
       type: date
       locale: ko
+  - rss:
+      match_path: ".*"
+      date_from_meta:
+        as_creation: date
+      feeds_filenames:
+        json_feed: feed.json
+        rss_feed: feed.xml
+      length: 30
   - minify:
       minify_html: true
 

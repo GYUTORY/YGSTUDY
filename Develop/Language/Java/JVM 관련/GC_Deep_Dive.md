@@ -11,7 +11,7 @@ GC(Garbage Collection)는 JVM이 사용하지 않는 객체를 자동으로 해�
 
 ### 왜 GC를 알아야 하는가
 
-```
+```text
 문제 상황:
   - API 응답이 간헐적으로 1초 이상 걸린다 → GC Pause
   - 서버가 갑자기 OOM으로 죽는다 → 메모리 누수
@@ -24,7 +24,7 @@ GC(Garbage Collection)는 JVM이 사용하지 않는 객체를 자동으로 해�
 
 ### 1. JVM 힙 메모리 구조
 
-```
+```text
 ┌──────────────────────────────────────────────┐
 │                    Heap                       │
 │  ┌─────────────────────┐  ┌───────────────┐  │
@@ -77,7 +77,7 @@ graph TB
 
 멀티스레드 환경에서 객체를 Eden에 할당할 때, 스레드마다 잠금(lock) 없이 독립적으로 사용하는 작은 버퍼다.
 
-```
+```text
 Eden 영역:
 ┌────────────────────────────────────────────┐
 │  ┌──────┐  ┌──────┐  ┌──────┐             │
@@ -117,7 +117,7 @@ TLAB 관련 주의사항:
 
 #### 객체 생명주기
 
-```
+```text
 1. 객체 생성 → TLAB에 할당 (TLAB이 가득 찼거나 큰 객체면 Eden 직접 할당)
 2. Eden이 가득 참 → Minor GC 발생
 3. 살아있는 객체 → Survivor 영역으로 이동 (age +1)
@@ -125,7 +125,7 @@ TLAB 관련 주의사항:
 5. Old가 가득 참 → Major GC (Full GC) 발생
 ```
 
-```
+```text
 Minor GC:
   Eden [████████████] → GC → Eden [          ]
   살아남은 객체 → S0 [██]
@@ -170,7 +170,7 @@ flowchart LR
 
 #### Mark and Sweep
 
-```
+```text
 1. Mark: 루트(GC Root)에서 시작하여 참조 체인을 따라 살아있는 객체 표시
 2. Sweep: 표시되지 않은 객체 해제
 3. Compact: 파편화 방지를 위해 객체를 한쪽으로 모음
@@ -228,7 +228,7 @@ Java에는 일반 참조(Strong Reference) 외에 3가지 특수 참조 타입�
 
 #### GC 사이클에서의 처리 순서
 
-```
+```text
 Mark 단계:
   1. GC Root에서 시작해 참조 체인 탐색
   2. Strong Reference로 도달 가능한 객체 → 살림
@@ -274,7 +274,7 @@ cleaner.register(resource, () -> {
 
 Reference 수가 많으면 GC pause가 늘어난다. G1 GC 로그에서 `Ref Proc` 시간이 눈에 띄게 크면 Reference 객체가 너무 많다는 신호다.
 
-```
+```text
 # G1 GC 로그에서 Reference Processing 시간 확인
 [GC pause (G1 Evacuation Pause) 168M->76M(512M), 0.0234s]
    [Ref Proc: 8.5 ms]   ← 이 값이 크면 Reference 과다
@@ -319,7 +319,7 @@ Java 8까지 저지연이 필요한 웹 서비스에서 많이 사용됐다. Jav
 
 CMS의 핵심 아이디어: Old 영역 수거를 애플리케이션 스레드와 동시에(concurrent) 처리해서 STW 시간을 줄인다.
 
-```
+```text
 CMS GC 단계:
 
 1. Initial Mark (STW)
@@ -363,7 +363,7 @@ CMS의 치명적 문제점:
 
 **Compaction이 없다.** Sweep 후 메모리 파편화가 누적된다. 파편화가 심해지면 연속된 공간을 확보하지 못해 Full GC가 발생한다. 이 Full GC는 Serial Old GC(단일 스레드)로 동작해서 힙이 크면 수 초~수십 초 멈출 수 있다.
 
-```
+```text
 파편화 발생:
 [사용] [빈] [사용] [빈] [사용] [빈] [빈] [사용]
 
@@ -392,7 +392,7 @@ Java 8에서 CMS를 쓰고 있다면 G1으로 바꾸는 게 맞다. Java 8에서
 
 Java 9+ 기본 GC. 힙을 리전(Region) 단위로 나누어 관리한다.
 
-```
+```text
 G1 힙 구조 (리전 기반):
 
 ┌───┬───┬───┬───┬───┬───┬───┬───┐
@@ -412,7 +412,7 @@ E=Eden, S=Survivor, O=Old, H=Humongous (대형 객체)
 
 Young GC를 할 때 Old 영역의 객체가 Young 객체를 참조하고 있는지 확인해야 한다. 그런데 Old 전체를 스캔하면 Minor GC 의미가 없다. 이 문제를 Remembered Set(RSet)과 Card Table로 해결한다.
 
-```
+```text
 Card Table (전통적 Generational GC에서 사용):
   - Old 영역을 512 byte 크기의 카드로 나눈다
   - Old → Young 참조가 발생하면 해당 카드를 dirty로 표시
@@ -447,7 +447,7 @@ RSet은 리전마다 유지해야 해서 메모리를 먹는다. 힙의 5~10%를
 
 G1의 Concurrent Marking에서 사용하는 기법이다. Marking을 시작한 시점의 객체 그래프 스냅샷을 기준으로 마킹한다.
 
-```
+```text
 문제: Concurrent Marking 중에 애플리케이션이 참조를 변경하면?
 
   Marking 시작 시점:
@@ -475,7 +475,7 @@ CMS는 Incremental Update 방식을 쓴다. 새로운 참조가 생길 때를 �
 
 G1은 Young GC만으로 Old 영역이 차오르면 Mixed GC를 수행한다. 전체 과정:
 
-```
+```text
 1. Young GC (반복)
    - Eden이 차면 실행
    - Eden + Survivor를 수거, 일부 객체를 Old로 Promote
@@ -558,7 +558,7 @@ java -XX:+UseG1GC \
 
 ZGC의 핵심 기술. 64비트 객체 포인터의 상위 비트에 메타데이터를 저장한다.
 
-```
+```text
 64비트 포인터 구조 (ZGC):
 
   ┌──────────────────────────────────────────────────────────────┐
@@ -578,7 +578,7 @@ Colored Pointer 덕분에 객체 헤더를 건드리지 않고도 GC 상태를 �
 
 ZGC는 Write Barrier 대신 Load Barrier를 사용한다. 객체 참조를 읽을 때(load) 포인터의 색상 비트를 확인한다.
 
-```
+```text
 일반적인 객체 참조 읽기:
   Object obj = field.ref;
 
@@ -598,7 +598,7 @@ Write Barrier(G1)는 참조를 쓸 때마다 동작하고, Load Barrier(ZGC)는 
 
 ##### ZGC 동작 과정
 
-```
+```text
 1. Pause Mark Start (STW < 1ms)
    - GC Root만 스캔, 직접 참조하는 객체 마킹
 
@@ -641,7 +641,7 @@ STW가 GC Root 스캔에만 발생하고, 나머지는 전부 concurrent다. 힙
 
 Java 21부터 ZGC에도 세대 구분이 추가됐다. 기존 ZGC는 세대 구분 없이 전체 힙을 대상으로 GC를 수행해서, Young 객체의 빠른 수거에 불리했다.
 
-```
+```text
 Generational ZGC:
   - Young Generation과 Old Generation을 분리
   - Young GC와 Old GC를 독립적으로 실행
@@ -679,7 +679,7 @@ java -XX:+UseZGC \
 
 JVM은 GC 성능 목표에 맞게 Young/Old 비율, Survivor 크기 등을 자동 조절한다. 이 자동 조절 메커니즘이 Adaptive Size Policy다.
 
-```
+```text
 Adaptive Size Policy가 조절하는 값:
   - Eden 크기
   - Survivor 크기
@@ -695,7 +695,7 @@ Adaptive Size Policy가 조절하는 값:
 
 대부분의 경우 Adaptive Size Policy에 맡기는 게 맞다. 하지만 끄는 게 나은 경우가 있다:
 
-```
+```text
 Adaptive Size Policy를 끄는 경우:
   - Young/Old 비율을 직접 잡아놓고 테스트한 설정이 있을 때
   - GC마다 Eden/Survivor 크기가 변하면서 오히려 불안정할 때
@@ -750,7 +750,7 @@ Adaptive Size Policy가 동작하고 있는지 확인하려면 GC 로그에서 �
 
 #### GC 로그 분석
 
-```
+```text
 # G1 GC 로그 예시
 [2026-03-01T10:15:30.123+0900] GC(42) Pause Young (Normal) (G1 Evacuation Pause)
 [2026-03-01T10:15:30.123+0900] GC(42)   Eden regions: 24->0(24)
@@ -813,7 +813,7 @@ jfr print --events jdk.GCPhasePause gc_recording.jfr
 
 JFR에서 볼 수 있는 GC 관련 이벤트:
 
-```
+```text
 jdk.GarbageCollection    — GC 발생 시점, 원인, 소요 시간
 jdk.GCPhasePause         — STW 구간별 소요 시간
 jdk.GCHeapSummary        — GC 전후 힙 사용량
@@ -860,7 +860,7 @@ Docker/Kubernetes에서 JVM을 돌릴 때 가장 흔한 문제: **cgroup 메모�
 
 #### 문제 상황
 
-```
+```text
 K8s Pod 설정:
   resources:
     limits:
@@ -899,7 +899,7 @@ java -XshowSettings:vm -version
 
 #### 컨테이너 메모리 계산
 
-```
+```text
 컨테이너 메모리 제한: 2GB 기준
 
   힙 (Xmx):          ~1.5GB  (75%)
@@ -981,7 +981,7 @@ Connection conn = dataSource.getConnection();
 
 ### 10. 실전 튜닝 시나리오
 
-```
+```text
 시나리오: API 응답 P99 지연이 2초를 넘는다
 
 1. GC 로그 확인
@@ -1013,5 +1013,5 @@ Connection conn = dataSource.getConnection();
 
 - [JVM Garbage Collectors Documentation](https://docs.oracle.com/en/java/javase/21/gctuning/)
 - [GCEasy — GC 로그 분석 도구](https://gceasy.io)
-- [JVM 구조](JVM 구조 및 메모리 관리.md) — JVM 기본 구조
-- [자바 메모리 구조](../Java 기본 개념/자바 메모리 구조.md) — 메모리 영역
+- [JVM 구조](JVM%20구조%20및%20메모리%20관리.md) — JVM 기본 구조
+- [자바 메모리 구조](../Java%20기본%20개념/자바%20메모리%20구조.md) — 메모리 영역

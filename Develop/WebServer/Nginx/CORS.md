@@ -81,7 +81,7 @@ CORS 헤더는 서버에서 설정해야 한다. Nginx에서는 `add_header` 지
 
 ### Simple Request vs Preflight Request
 
-CORS 요청은 크게 두 가지 유형으로 나뉩니다:
+CORS 요청은 크게 두 가지 유형으로 나뉜다:
 
 **Simple Request (단순 요청)**
 - GET, HEAD, POST 메서드만 사용
@@ -364,7 +364,7 @@ Preflight는 실제 요청 전에 OPTIONS 요청을 보낸다. 서버가 OPTIONS
 
 ### 웹 표준의 진화
 
-CORS는 웹 보안의 기본이 되는 Same-Origin Policy를 유지하면서도 현대적인 웹 개발 요구사항을 충족시키기 위해 등장했습니다. 하지만 웹 생태계가 계속 발전하면서 CORS도 함께 진화하고 있습니다.
+CORS는 웹 보안의 기본이 되는 Same-Origin Policy를 유지하면서도 현대적인 웹 개발 요구사항을 충족시키기 위해 등장했다. 웹 생태계가 계속 발전하면서 CORS도 함께 진화하고 있다.
 
 **최근의 변화**:
 - **CORS와 CSP(Content Security Policy)의 통합**: 더 세밀한 보안 제어
@@ -373,7 +373,7 @@ CORS는 웹 보안의 기본이 되는 Same-Origin Policy를 유지하면서도 
 
 ### 대안 기술들의 등장
 
-CORS가 모든 상황의 해답은 아닙니다. 특정 상황에서는 다른 접근법이 더 적합할 수 있습니다.
+CORS가 모든 상황의 해답은 아니다. 특정 상황에서는 다른 접근법이 더 적합할 수 있다.
 
 **프록시 서버 활용**:
 - 클라이언트와 API 서버 사이에 프록시 서버 배치

@@ -46,7 +46,7 @@ Reflect.metadata('design:paramtypes', [UserRepository])(UserService);
 }
 ```
 
-`experimentalDecorators`를 설정하지 않으면 TypeScript 5.0+는 TC39 Stage 3 스펙을 사용한다. `emitDecoratorMetadata`는 Stage 3 모드에서 동작하지 않고 `reflect-metadata` 기반 DI 시스템과 호환되지 않는다. NestJS는 2026년 현재까지 Stage 3 방식을 공식 지원하지 않는다.
+`experimentalDecorators`를 설정하지 않으면 TypeScript 5.0+는 TC39 Stage 3 스펙을 사용한다. `emitDecoratorMetadata`는 Stage 3 모드에서 동작하지 않고 `reflect-metadata` 기반 DI 시스템과 호환되지 않는다. NestJS는 2026-08 기준까지 Stage 3 방식을 공식 지원하지 않는다.
 
 ## 레거시 데코레이터 동작 원리
 

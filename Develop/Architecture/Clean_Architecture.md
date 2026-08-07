@@ -829,5 +829,5 @@ public ProductResult createProduct(CreateProductCommand command) {
 - [Clean Architecture — Robert C. Martin](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [Hexagonal Architecture — Alistair Cockburn](https://alistair.cockburn.us/hexagonal-architecture/)
 - [DDD (Domain-Driven Design)](DDD.md) — 도메인 주도 설계
-- [Design Pattern](Design Pattern/Creational_Pattern.md) — 생성 패턴
+- [Design Pattern](Design%20Pattern/Creational_Pattern.md) — 생성 패턴
 - [Spring Boot](../Framework/Java/Spring/Bean.md) — Spring 프레임워크

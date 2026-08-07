@@ -65,7 +65,7 @@ get_url = s3.generate_presigned_url(
     ClientMethod="get_object",
     Params={
         "Bucket": "my-app-uploads",
-        "Key": "user/123/profile.jpg",
+        "Key": "user/123/profile.webp",
     },
     ExpiresIn=600,
 )
@@ -75,7 +75,7 @@ put_url = s3.generate_presigned_url(
     ClientMethod="put_object",
     Params={
         "Bucket": "my-app-uploads",
-        "Key": "user/123/profile.jpg",
+        "Key": "user/123/profile.webp",
         "ContentType": "image/jpeg",
     },
     ExpiresIn=300,
@@ -99,14 +99,14 @@ const s3 = new S3Client({ region: "ap-northeast-2" });
 // GET URL
 const getCmd = new GetObjectCommand({
   Bucket: "my-app-uploads",
-  Key: "user/123/profile.jpg",
+  Key: "user/123/profile.webp",
 });
 const getUrl = await getSignedUrl(s3, getCmd, { expiresIn: 600 });
 
 // PUT URL + Content-Type 강제
 const putCmd = new PutObjectCommand({
   Bucket: "my-app-uploads",
-  Key: "user/123/profile.jpg",
+  Key: "user/123/profile.webp",
   ContentType: "image/jpeg",
 });
 const putUrl = await getSignedUrl(s3, putCmd, { expiresIn: 300 });
@@ -143,7 +143,7 @@ try (S3Presigner presigner = S3Presigner.builder()
     // GET URL
     GetObjectRequest getReq = GetObjectRequest.builder()
             .bucket("my-app-uploads")
-            .key("user/123/profile.jpg")
+            .key("user/123/profile.webp")
             .build();
 
     String getUrl = presigner.presignGetObject(
@@ -156,7 +156,7 @@ try (S3Presigner presigner = S3Presigner.builder()
     // PUT URL
     PutObjectRequest putReq = PutObjectRequest.builder()
             .bucket("my-app-uploads")
-            .key("user/123/profile.jpg")
+            .key("user/123/profile.webp")
             .contentType("image/jpeg")
             .build();
 

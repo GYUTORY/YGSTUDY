@@ -12,7 +12,7 @@ updated: 2026-04-02
 
 Redis Cluster는 **데이터를 자동으로 여러 노드에 분산**하는 수평 확장 솔루션이다. 16384개의 해시 슬롯(Hash Slot)으로 키 공간을 분할한다.
 
-```
+```text
 키 → 해시 슬롯 매핑:
   HASH_SLOT = CRC16(key) mod 16384
 
@@ -34,7 +34,7 @@ Redis Cluster는 **데이터를 자동으로 여러 노드에 분산**하는 수
 
 ### 1.2 해시 슬롯과 키 분배
 
-```
+```text
 키 분배 규칙:
   "user:1000" → CRC16("user:1000") mod 16384 → 슬롯 12345 → Master C
   "order:500"  → CRC16("order:500") mod 16384 → 슬롯 2345  → Master A
@@ -71,7 +71,7 @@ redis-cli --cluster reshard 192.168.1.1:7000
 
 클라이언트가 잘못된 노드에 요청하면 올바른 노드로 리다이렉트된다.
 
-```
+```text
 클라이언트 → Master A: GET user:1000
 Master A → 클라이언트: MOVED 12345 192.168.1.3:7000
 클라이언트 → Master C: GET user:1000
@@ -83,7 +83,7 @@ ASK:   슬롯이 마이그레이션 중 → 일시적 리다이렉트 (테이블
 
 ### 1.4 페일오버
 
-```
+```text
 정상 상태:
   Master A (슬롯 0~5460) ←── 복제 ──→ Replica A'
 
@@ -151,7 +151,7 @@ const client = new Redis.Cluster(
 
 Sentinel은 **자동 장애 감지와 페일오버**를 관리하는 고가용성(HA) 솔루션이다.
 
-```
+```text
 ┌──────────┐   ┌──────────┐   ┌──────────┐
 │Sentinel 1│   │Sentinel 2│   │Sentinel 3│
 └─────┬────┘   └─────┬────┘   └─────┬────┘
@@ -171,7 +171,7 @@ Sentinel의 역할:
 
 ### 2.2 페일오버 프로세스
 
-```
+```text
 1. SDOWN (Subjective Down):
    - 개별 Sentinel이 Master 무응답 감지
    - down-after-milliseconds 설정 기준
@@ -195,7 +195,7 @@ Sentinel의 역할:
 
 Sentinel 환경에서 가장 위험한 장애는 split-brain이다. 네트워크 파티션으로 Master가 Sentinel 과반수와 분리되면, 기존 Master는 계속 쓰기를 받는데 Sentinel은 새 Master를 승격시킨다. 이 순간 Master가 2대가 되고, 양쪽에 다른 데이터가 쓰인다.
 
-```
+```text
 정상 상태:
   [Sentinel 1] [Sentinel 2] [Sentinel 3]
        │             │             │
@@ -229,7 +229,7 @@ min-replicas-to-write 1        # 최소 1대의 Replica가 연결되어야 쓰�
 min-replicas-max-lag 10        # Replica의 복제 지연이 10초 이내여야 쓰기 허용
 ```
 
-```
+```text
 min-replicas-to-write가 동작하는 방식:
   파티션 발생 → 기존 Master에서 Replica가 끊어짐
   → min-replicas-to-write 조건 미충족
@@ -248,7 +248,7 @@ min-replicas-to-write가 동작하는 방식:
 
 quorum은 ODOWN 판정에 필요한 최소 Sentinel 동의 수다. 이 값을 잘못 설정하면 페일오버가 안 되거나 너무 빨리 된다.
 
-```
+```text
 사례 1: Sentinel 2대에 quorum 2
 
   sentinel monitor mymaster 192.168.1.1 6379 2
@@ -325,7 +325,7 @@ SENTINEL MONITOR newmaster 192.168.1.5 6379 2
 SENTINEL REMOVE mymaster
 ```
 
-```
+```text
 운영 시 주기적으로 확인할 항목:
   1. SENTINEL masters → flags가 "master"인지 (s_down, o_down이 붙어있으면 문제)
   2. SENTINEL replicas mymaster → 모든 Replica가 "slave" 상태인지
@@ -381,7 +381,7 @@ spring:
 
 #### 데이터 크기 기준
 
-```
+```text
 데이터가 단일 서버 메모리에 들어가는가?
 
   10GB 이하:
@@ -402,7 +402,7 @@ spring:
 
 #### 트래픽 패턴 기준
 
-```
+```text
 읽기 비율이 높은 경우 (읽기 80% 이상):
   → Sentinel + ReadFrom.REPLICA_PREFERRED로 읽기 분산
   → Cluster보다 구성이 간단하고 멀티 키 연산에 제약이 없다.
@@ -421,7 +421,7 @@ MGET, 파이프라인, 트랜잭션을 많이 쓰는 경우:
 
 #### 운영 인력 기준
 
-```
+```text
 1~2명이 Redis를 포함한 인프라 전체를 관리하는 경우:
   → Sentinel을 쓴다.
   → Cluster는 슬롯 리밸런싱, 노드 추가/제거, MOVED 에러 대응 등 운영 포인트가 많다.
@@ -437,7 +437,7 @@ MGET, 파이프라인, 트랜잭션을 많이 쓰는 경우:
 
 데이터가 커지거나 트래픽이 증가해서 Sentinel에서 Cluster로 옮겨야 하는 경우가 있다. 무중단으로 하려면 단계적으로 접근해야 한다.
 
-```
+```text
 마이그레이션 순서:
 
 1. Cluster 구축
@@ -468,7 +468,7 @@ MGET, 파이프라인, 트랜잭션을 많이 쓰는 경우:
    - Sentinel 환경은 일정 기간 유지 후 제거한다.
 ```
 
-```
+```text
 주의사항:
   - SELECT (DB 번호) 사용 시: Cluster는 DB 0만 지원한다.
     Sentinel에서 DB 1, DB 2를 쓰고 있었다면 키 네이밍을 바꿔야 한다.
@@ -482,7 +482,7 @@ MGET, 파이프라인, 트랜잭션을 많이 쓰는 경우:
 
 #### Sentinel에서 흔히 겪는 장애
 
-```
+```text
 1. 페일오버 후 클라이언트가 기존 Master에 계속 접속
 
   원인: 클라이언트의 Sentinel 토폴로지 갱신이 늦음.
@@ -570,7 +570,7 @@ MGET, 파이프라인, 트랜잭션을 많이 쓰는 경우:
 
 Redis Streams는 **로그 기반 메시지 스트리밍** 데이터 구조다. Kafka의 핵심 개념을 Redis 내에서 구현한다.
 
-```
+```text
 Pub/Sub vs Streams:
   Pub/Sub: 구독자 없으면 메시지 손실, 히스토리 없음
   Streams: 메시지 영구 저장, Consumer Group, ACK, 재처리 가능
@@ -610,7 +610,7 @@ XTRIM orders MINID 1647830400000      # 특정 ID 이전 삭제
 
 여러 Consumer가 **분업**하여 메시지를 처리한다.
 
-```
+```text
 Stream: orders
   │
   ├── Consumer Group: order-processing
@@ -715,7 +715,7 @@ async function startOrderConsumer(redis: Redis): Promise<void> {
 
 Redis 명령어는 개별적으로 원자적이지만, **여러 명령어를 묶은 로직**은 원자적이지 않다. Lua 스크립트로 이 문제를 해결한다.
 
-```
+```text
 문제 상황 (Race Condition):
   스레드 A: GET stock → 1
   스레드 B: GET stock → 1
@@ -856,7 +856,7 @@ EVAL "
 " 1 lock:order:123 "owner-uuid"
 ```
 
-```
+```text
 왜 Lua로 해제해야 하는가?
 
   ❌ 잘못된 방법:
@@ -871,7 +871,7 @@ EVAL "
 
 독립된 Redis 인스턴스 N대에서 **과반수 락 획득**으로 안정성을 보장한다.
 
-```
+```text
 Redlock (N=5 인스턴스):
   1. 현재 시간 T1 기록
   2. 5개 인스턴스에 순차적으로 락 요청 (짧은 타임아웃)
@@ -1260,7 +1260,7 @@ CONFIG SET maxmemory 4gb
 CONFIG SET maxmemory-policy allkeys-lru
 ```
 
-```
+```text
 메모리 정책 비교:
   noeviction:     메모리 초과 시 쓰기 거부 (기본값)
   allkeys-lru:    모든 키 대상 LRU 삭제 (캐시 용도 추천)
@@ -1274,7 +1274,7 @@ CONFIG SET maxmemory-policy allkeys-lru
 
 ### 7.4 Pipeline과 배치 처리
 
-```
+```text
 개별 요청:
   클라이언트 → SET a 1 → 응답 대기 → SET b 2 → 응답 대기 → ...
   총 시간: N × (명령 실행 + RTT)
@@ -1321,7 +1321,7 @@ aof-use-rdb-preamble yes
 # → 빠른 로딩 + 높은 내구성
 ```
 
-```
+```text
 RDB vs AOF 비교:
   ┌─────────────┬──────────────────┬──────────────────┐
   │             │      RDB         │      AOF         │
@@ -1359,7 +1359,7 @@ Redis는 `maxmemory`를 설정해도 OS 레벨에서 추가 메모리를 사용�
 
 커넥션 풀이 고갈되면 `RedisConnectionFailureException`이나 `Cannot get Jedis connection`이 발생한다. Lettuce와 Jedis는 커넥션 관리 방식이 근본적으로 다르다.
 
-```
+```text
 Lettuce:
   - 단일 커넥션을 여러 스레드가 공유 (Netty 기반, 비동기 I/O)
   - 커넥션 풀이 기본적으로 필요 없다
@@ -1410,7 +1410,7 @@ INFO memory
 # mem_fragmentation_bytes: 524288000
 ```
 
-```
+```text
 단편화가 발생하는 원인:
   - 크기가 다른 키를 반복적으로 생성/삭제
   - 짧은 TTL 키가 대량으로 만료되면서 메모리 구멍이 생김
@@ -1434,7 +1434,7 @@ INFO memory
 
 BGSAVE(RDB 저장)나 AOF 재작성 시 Redis는 `fork()`를 호출한다. Copy-on-Write(CoW) 방식이라 이론적으로는 메모리가 크게 늘지 않지만, 쓰기가 많은 워크로드에서는 거의 2배까지 메모리를 사용한다.
 
-```
+```text
 문제 시나리오:
   물리 메모리: 16GB
   Redis maxmemory: 12GB
@@ -1456,7 +1456,7 @@ BGSAVE(RDB 저장)나 AOF 재작성 시 Redis는 `fork()`를 호출한다. Copy-
 
 실제로 많이 겪는 장애 패턴이다.
 
-```
+```text
 사례 1: maxmemory를 설정하지 않음
   - Redis 기본값은 maxmemory 0 (무제한)
   - 메모리를 계속 써서 OS가 OOM Killer로 프로세스를 죽임
@@ -1524,7 +1524,7 @@ FUNCTION DUMP
 FUNCTION RESTORE <serialized-data>
 ```
 
-```
+```text
 Lua 스크립트 vs Functions:
   EVAL/EVALSHA:
     - 클라이언트가 스크립트를 보내야 한다
@@ -1558,7 +1558,7 @@ SPUBLISH channel1 "message"
 # 클러스터가 30노드여도 해당 슬롯의 Master+Replica에서만 메시지 흐름
 ```
 
-```
+```text
 언제 Sharded Pub/Sub을 써야 하는가:
   - 클러스터 환경에서 채널 수가 많을 때
   - 노드 수가 많아서 기존 Pub/Sub의 브로드캐스트 오버헤드가 큰 경우
@@ -1579,7 +1579,7 @@ CLIENT TRACKING ON BCAST PREFIX user: PREFIX product:
 # user:* 또는 product:*로 시작하는 키가 변경되면 알림
 ```
 
-```
+```text
 동작 방식:
   1. 클라이언트가 GET user:1000 → 서버가 응답 + 키 추적 시작
   2. 클라이언트가 응답값을 로컬 메모리에 캐시
@@ -1645,7 +1645,7 @@ user admin on >adminpass ~* &* +@all
 
 Redis Labs가 Redis 7.4부터 라이선스를 BSD에서 **SSPL + RSALv2 듀얼 라이선스**로 변경했다. 클라우드 벤더가 Redis를 그대로 서비스로 제공하는 것을 막기 위한 결정이다.
 
-```
+```text
 라이선스 변경의 영향:
   - Redis를 자사 서비스에 내장하여 사용: 영향 없음 (대부분의 경우)
   - Redis를 기반으로 매니지드 서비스 제공: SSPL/RSALv2 제약에 해당
@@ -1659,7 +1659,7 @@ Redis Labs가 Redis 7.4부터 라이선스를 BSD에서 **SSPL + RSALv2 듀얼 �
 
 라이선스 변경 직후 Linux Foundation 주도로 **Valkey**가 Redis 7.2.4 기반으로 포크됐다. AWS, Google, Oracle, Ericsson 등이 참여하고 있다.
 
-```
+```text
 Valkey 특징:
   - BSD 3-Clause 라이선스 (오픈소스 유지)
   - Redis 7.2.4와 호환 — 기존 Redis 클라이언트, 명령어 그대로 사용 가능

@@ -2,6 +2,7 @@
 title: Claude Code Memory 시스템
 tags: [ai, claude-code, memory, persistence, context-management]
 updated: 2026-04-15
+volatility: high
 ---
 
 # Claude Code Memory 시스템

@@ -414,5 +414,5 @@ const results = new QueryBuilder<User>()
 - [TypeScript Handbook — Advanced Types](https://www.typescriptlang.org/docs/handbook/2/types-from-types.html)
 - [TypeScript Playground](https://www.typescriptlang.org/play)
 - [Generics](Generics.md) — 제네릭 기초
-- [유틸리티 타입](유틸리티 타입.md) — 내장 유틸리티 타입
-- [고급 타입 기법](../타입 및 타입 정의/고급 타입 기법.md) — 기본 고급 타입
+- [유틸리티 타입](유틸리티%20타입.md) — 내장 유틸리티 타입
+- [고급 타입 기법](../타입%20및%20타입%20정의/고급%20타입%20기법.md) — 기본 고급 타입

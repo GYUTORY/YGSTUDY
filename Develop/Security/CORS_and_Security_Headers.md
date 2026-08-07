@@ -497,7 +497,7 @@ X-Content-Type-Options: nosniff
 
 #### 이걸 안 넣으면 생기는 일
 
-공격자가 이미지 업로드 기능에 JavaScript가 포함된 파일을 `.jpg` 확장자로 올린다. 서버가 `Content-Type: image/jpeg`로 응답하지만, 브라우저가 내용을 보고 "이건 JavaScript인데?"라고 판단해서 스크립트로 실행해버린다. `nosniff`가 있으면 서버가 내려준 Content-Type을 그대로 따르므로 이런 공격이 차단된다.
+공격자가 이미지 업로드 기능에 JavaScript가 포함된 파일을 `.webp` 확장자로 올린다. 서버가 `Content-Type: image/jpeg`로 응답하지만, 브라우저가 내용을 보고 "이건 JavaScript인데?"라고 판단해서 스크립트로 실행해버린다. `nosniff`가 있으면 서버가 내려준 Content-Type을 그대로 따르므로 이런 공격이 차단된다.
 
 설정 한 줄이니까 무조건 넣는다.
 

@@ -234,7 +234,7 @@ HTTP/2의 핵심. 한 TCP 연결 안에서 여러 스트림이 동시에 흐른�
 ```
 [연결 1] ─┬─ Stream 1: GET /a.js
           ├─ Stream 3: GET /b.css
-          ├─ Stream 5: GET /c.png
+          ├─ Stream 5: GET /c.webp
           └─ Stream 7: GET /d.html
 ```
 

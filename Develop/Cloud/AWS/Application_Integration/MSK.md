@@ -1065,5 +1065,5 @@ Consumer가 Producer 속도를 못 따라가면 Lag(처리 안 된 메시지 수
 - MSK 운영 권장 사항: https://docs.aws.amazon.com/msk/latest/developerguide/bestpractices.html
 
 ---
-이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.
+이 문서는 [메시징과 전달 보장 허브](../../../_hub/메시징과_전달_보장.md)의 일부입니다.
 

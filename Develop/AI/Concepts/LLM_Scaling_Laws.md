@@ -2,6 +2,7 @@
 title: LLM 스케일링 법칙
 tags: [ai, llm, scaling-laws, chinchilla, compute-optimal, emergent-capabilities, karpathy]
 updated: 2026-07-25
+volatility: high
 ---
 
 # LLM 스케일링 법칙

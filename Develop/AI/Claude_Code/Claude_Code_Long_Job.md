@@ -2,6 +2,7 @@
 title: Claude Code 롱잡 운영
 tags: [ai, claude-code, long-running, background, monitor, lifecycle]
 updated: 2026-05-07
+volatility: high
 ---
 
 # Claude Code 롱잡 운영

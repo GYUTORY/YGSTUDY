@@ -55,7 +55,7 @@ IPv4에서 멀티캐스트는 클래스 D 대역인 224.0.0.0 ~ 239.255.255.255�
 
 ## 멀티캐스트
 
-![멀티캐스트 기본 전달 구조: 한 번 송신해 여러 수신자에게 전달](../../../assets/images/auto/network/3e6ae556.png)
+![멀티캐스트 기본 전달 구조: 한 번 송신해 여러 수신자에게 전달](../../../assets/images/auto/network/3e6ae556.webp)
 
 ![IGMP 스누핑으로 가입 신호를 받은 그룹에만 트래픽을 흘려보내는 예시](../../../assets/images/auto/network/9bac0386.svg)
 

@@ -2,6 +2,7 @@
 title: Prompt Caching
 tags: [ai, prompt-caching, anthropic, gemini, context-caching, cost-optimization, llm]
 updated: 2026-08-04
+volatility: high
 ---
 
 # Prompt Caching

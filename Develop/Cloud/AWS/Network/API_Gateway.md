@@ -460,4 +460,4 @@ WebSocket API는 **연결 시간 + 메시지 수**로 과금된다. 클라이언
 - [AWS API Gateway 공식 문서](https://docs.aws.amazon.com/apigateway/)
 - [Cognito](../Security/Cognito.md)
 - [Lambda](../Compute/Lambda.md)
-- [ALB vs API Gateway](../Load_Balancer/ALB vs API Gateway.md)
+- [ALB vs API Gateway](../Load_Balancer/ALB%20vs%20API%20Gateway.md)

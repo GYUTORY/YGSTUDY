@@ -2,6 +2,7 @@
 title: Claude Code 플랜모드 실전 활용
 tags: [ai, claude-code, plan-mode, workflow, Refactoring]
 updated: 2026-06-06
+volatility: high
 ---
 
 # Claude Code 플랜모드 실전 활용

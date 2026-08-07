@@ -2,6 +2,7 @@
 title: Gemini API 실무 사용법
 tags: [ai, gemini, google, api, multimodal, function-calling]
 updated: 2026-04-15
+volatility: high
 ---
 
 # Gemini API 실무 사용법
@@ -177,7 +178,7 @@ from google.genai import types
 client = genai.Client(api_key="YOUR_API_KEY")
 
 # 로컬 파일
-with open("architecture-diagram.png", "rb") as f:
+with open("architecture-diagram.webp", "rb") as f:
     image_data = f.read()
 
 response = client.models.generate_content(
@@ -199,7 +200,7 @@ response = client.models.generate_content(
         types.Content(parts=[
             types.Part.from_text("이 에러 스크린샷을 분석해줘"),
             types.Part.from_uri(
-                file_uri="https://example.com/error-screenshot.png",
+                file_uri="https://example.com/error-screenshot.webp",
                 mime_type="image/png"
             ),
         ])

@@ -2,6 +2,7 @@
 title: MCP 서버 직접 구현
 tags: [ai, mcp, typescript, python, fastmcp, sdk, tool-registration, claude-code]
 updated: 2026-08-04
+volatility: high
 ---
 
 # MCP 서버 직접 구현

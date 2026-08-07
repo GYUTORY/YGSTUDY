@@ -122,8 +122,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
 ```bash
 # polyglot 파일 만들기 — PNG로 보이지만 PHP도 실행됨
-cat valid.png > polyglot.png
-echo '<?php system($_GET["cmd"]); ?>' >> polyglot.png
+cat valid.webp > polyglot.webp
+echo '<?php system($_GET["cmd"]); ?>' >> polyglot.webp
 ```
 
 그래서 매직 바이트 검증만으로는 부족하다. 저장 시 확장자를 강제로 변경하고, 업로드 디렉토리에서 스크립트 실행을 차단해야 한다.
@@ -138,7 +138,7 @@ echo '<?php system($_GET["cmd"]); ?>' >> polyglot.png
 
 ```javascript
 const ALLOWED_EXTENSIONS = {
-  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+  image: ['.webp', '.webp', '.webp', '.webp', '.webp'],
   document: ['.pdf', '.docx', '.xlsx'],
   archive: ['.zip']
 };
@@ -154,13 +154,13 @@ function validateExtension(filename, category) {
 }
 ```
 
-이중 확장자 공격도 있다. `image.php.jpg` 같은 파일이 들어오면 일부 웹서버 설정에서 PHP로 해석된다. Apache의 `AddHandler`나 `mod_mime` 설정 미스가 대표적이다.
+이중 확장자 공격도 있다. `image.php.webp` 같은 파일이 들어오면 일부 웹서버 설정에서 PHP로 해석된다. Apache의 `AddHandler`나 `mod_mime` 설정 미스가 대표적이다.
 
 ```javascript
 // 이중 확장자 차단
 function hasMultipleExtensions(filename) {
   const parts = filename.split('.');
-  // image.php.jpg → ['image', 'php', 'jpg']
+  // image.php.webp → ['image', 'php', 'jpg']
   return parts.length > 2;
 }
 ```

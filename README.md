@@ -1,37 +1,40 @@
-## YG Study History
+# YGSTUDY
 
-### 연도별 요약
+백엔드 엔지니어 강영규의 기술 노트. 시스템, 인프라, 그 사이의 모든 것.
 
-**2023년**
-- 내용 정리 및 지식 습득
-
-**2024년**
-- 2023년에 정리했던 내용들을 다듬으면서 개선 작업 진행
+**[사이트 바로가기](https://gyutory.github.io/YGSTUDY/)** · 문서 1,153개 · 최근 갱신 2026-08-07
 
 ---
 
-### <span style="color: skyblue;">History</span>
+## 다루는 범위
+
+| 분야 | 주제 |
+|---|---|
+| Backend | API 설계, 인증, i18n, 성능 최적화 |
+| Architecture | 디자인 패턴, MSA, Clean Architecture, DDD |
+| Database | RDBMS, NoSQL, 쿼리 최적화, 인덱스 |
+| Cloud | AWS (EC2/RDS/S3/Lambda 등), GCP |
+| DevOps | Docker, Kubernetes, CI/CD, Monitoring |
+| Network | HTTP/HTTPS, TCP/IP, 7계층, 보안 |
+| Language | Java, JavaScript, TypeScript, Python, Go |
+| Framework | Spring, NestJS, Node.js, React |
+| Security | 취약점 분석, 인증·인가, 암호화 |
+| AI | Claude, LLM 개념, Agent 설계 |
+| Algorithm | 자료구조, 알고리즘 |
+| OS | 프로세스, 메모리, 스케줄링 |
+
+---
+
+## History
+
+**2023년** — 내용 정리 및 지식 습득
+
+**2024년** — 정리한 내용 개선 작업
 
 **2024.01.09 ~ 2024.01.15**
 - 디렉토리 구조 개편 및 이미지 재작업 진행
-- 일부 이미지 링크 수정
 
-**2024.01.16 ~ 2024.01.19**
-- Kubernetes 및 HTTP 정리
-
-**2024.01.20**
-- DNS 정리
-
-**2024.02.14**
-- 기본적인 JavaScript나 코드보다는 CS(Computer Science)에 더 집중할 때인 것 같다.
-
-**2024.03.10 회고록**
-- 지금은, 단순 코드 공부나 CS보다는 방향성 잡는데 힘을 써야 할 것 같다.
-
-**2024.04.01 회고록**
-- 점점 모노리틱 방식에서 MSA 방식을 도입하면서, MSA에 대해 공부하고 알아가도록 하자.
-
-**2024.04.26 회고록**
+**2024.04.26**
 - 부딪히는 시련에, 해결하는 능력을 키우도록 하자.
 
----
+**2026년 7월 ~** — 전면 개편: 문서 체계 재구성, MkDocs 사이트 구축, 자동화 파이프라인 도입

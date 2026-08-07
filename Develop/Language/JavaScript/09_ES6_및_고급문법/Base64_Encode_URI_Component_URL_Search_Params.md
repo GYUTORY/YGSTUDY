@@ -8,7 +8,7 @@ updated: 2026-04-23
 
 ## 이 문서의 범위
 
-각 도구의 상세는 다른 문서에 이미 있다. Base64의 문자셋/패딩/변형은 [Base64 인코딩](../../../DataRepresentation/Encoding/Base64.md), `encodeURIComponent`/`decodeURIComponent`의 예약문자·URIError·보안 이슈는 [encodeURIComponent / decodeURIComponent](./Encode_URI_Component_Decode_URI_Component.md), 퍼센트 인코딩 자체의 개념은 [URL 인코딩](../../../DataRepresentation/Encoding/URL_Encoding.md)에 정리해 뒀다.
+각 도구의 상세는 다른 문서에 이미 있다. Base64의 문자셋/패딩/변형은 [Base64 인코딩](../../../DataBase/DataRepresentation/Encoding/Base64.md), `encodeURIComponent`/`decodeURIComponent`의 예약문자·URIError·보안 이슈는 [encodeURIComponent / decodeURIComponent](./Encode_URI_Component_Decode_URI_Component.md), 퍼센트 인코딩 자체의 개념은 [URL 인코딩](../../../DataBase/DataRepresentation/Encoding/URL_Encoding.md)에 정리해 뒀다.
 
 이 문서는 그 위에서 하나만 다룬다. **"지금 내 손에 있는 값을 URL에 실을 때, base64/`encodeURIComponent`/`URLSearchParams` 중 뭘 어떤 순서로 써야 하는가"**다. 세 도구는 해결하는 문제가 겹치는 듯하면서도 실제 입력/출력 도메인이 전혀 다르다. 그걸 뭉뚱그리다가 이중 인코딩, 서명 깨짐, 복원 불가 같은 버그가 나온다.
 

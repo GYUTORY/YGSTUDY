@@ -8,7 +8,7 @@ updated: 2026-04-23
 
 ## 이 문서의 범위
 
-퍼센트 인코딩의 일반적인 개념은 [URL 인코딩](../../../DataRepresentation/Encoding/URL_Encoding.md) 문서에서 다룬다. `encodeURI` 전반적인 설명은 [encodeURI](./encodeURI.md) 문서에 있다. 이 문서는 `encodeURIComponent`/`decodeURIComponent` 쌍에서 실무에서 자주 문제가 되는 부분만 다룬다. 예약문자 처리 범위 차이, 사용 위치별 함정, URIError, 이중 디코딩 공격, HTTP 클라이언트와의 충돌, 폼 인코딩과의 차이 같은 것들이다.
+퍼센트 인코딩의 일반적인 개념은 [URL 인코딩](../../../DataBase/DataRepresentation/Encoding/URL_Encoding.md) 문서에서 다룬다. `encodeURI` 전반적인 설명은 [encodeURI](./encodeURI.md) 문서에 있다. 이 문서는 `encodeURIComponent`/`decodeURIComponent` 쌍에서 실무에서 자주 문제가 되는 부분만 다룬다. 예약문자 처리 범위 차이, 사용 위치별 함정, URIError, 이중 디코딩 공격, HTTP 클라이언트와의 충돌, 폼 인코딩과의 차이 같은 것들이다.
 
 ## encodeURI와 encodeURIComponent의 경계선
 

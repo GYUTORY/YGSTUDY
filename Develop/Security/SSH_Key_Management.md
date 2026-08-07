@@ -911,7 +911,7 @@ az ssh vm --name my-vm --resource-group my-rg
 
 ## 참고
 
-- [SSH 보안 기초](../Linux/보안/SSH.md) — SSH 키 인증, sshd_config, 포트 포워딩 등 기본 설정
+- [SSH 보안 기초](../DevOps/Linux/보안/SSH.md) — SSH 키 인증, sshd_config, 포트 포워딩 등 기본 설정
 - [HashiCorp Vault 공식 문서 — SSH Secrets Engine](https://developer.hashicorp.com/vault/docs/secrets/ssh)
 - [OpenSSH Certificate 인증](https://man.openbsd.org/ssh-keygen#CERTIFICATES)
 - [OpenSSH FIDO/U2F 지원](https://www.openssh.com/txt/release-8.2)

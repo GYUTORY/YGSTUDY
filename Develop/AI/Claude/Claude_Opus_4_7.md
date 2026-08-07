@@ -2,6 +2,7 @@
 title: Claude Opus 4.7
 tags: [ai, claude, anthropic, opus, opus-4-7, llm, api]
 updated: 2026-04-17
+volatility: high
 ---
 
 # Claude Opus 4.7

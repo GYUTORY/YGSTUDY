@@ -2,6 +2,7 @@
 title: LangChain / LlamaIndex vs 순수 SDK
 tags: [langchain, llamaindex, sdk, llm, rag, abstraction, framework]
 updated: 2026-08-04
+volatility: high
 ---
 
 # LangChain / LlamaIndex vs 순수 SDK

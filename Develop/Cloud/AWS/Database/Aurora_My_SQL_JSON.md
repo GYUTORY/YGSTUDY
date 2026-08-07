@@ -8,7 +8,7 @@ updated: 2026-06-15
 
 Aurora MySQL은 MySQL 8.0과 호환되므로 JSON 타입 동작도 기본적으로 커뮤니티 MySQL 8.0과 같다. 함수 시그니처, 저장 포맷, 인덱싱 우회 방법 모두 8.0 그대로다. 하지만 Aurora는 스토리지 계층과 복제 메커니즘이 다르기 때문에, JSON을 많이 쓰는 워크로드에서 커뮤니티 MySQL과 다르게 움직이는 지점이 몇 군데 있다. Parallel Query 적용 제외, reader 분산, in-place update와 복제 부하가 그렇다.
 
-이 문서는 JSON 타입의 기본 쿼리부터 시작해서 인덱싱 우회, Aurora 특화 주의사항, 그리고 실무에서 반복적으로 겪는 안티패턴까지 다룬다. 엔진 자체 비교는 [My_SQL_vs_Postgre_SQL.md](../../DataBase/RDBMS/My_SQL_vs_Postgre_SQL.md), Aurora 클러스터 운영은 [Aurora_DB_Cluster.md](Aurora_DB_Cluster.md)를 참고한다.
+이 문서는 JSON 타입의 기본 쿼리부터 시작해서 인덱싱 우회, Aurora 특화 주의사항, 그리고 실무에서 반복적으로 겪는 안티패턴까지 다룬다. 엔진 자체 비교는 [My_SQL_vs_Postgre_SQL.md](../../../DataBase/RDBMS/My_SQL_vs_Postgre_SQL.md), Aurora 클러스터 운영은 [Aurora_DB_Cluster.md](Aurora_DB_Cluster.md)를 참고한다.
 
 ---
 

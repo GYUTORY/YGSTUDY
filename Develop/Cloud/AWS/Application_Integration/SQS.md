@@ -499,4 +499,4 @@ DLQ에는 `ApproximateNumberOfMessagesVisible > 0` 알람을 반드시 건다. D
 - AWS SDK for JavaScript v3 (SQS): https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/sqs/
 
 ---
-이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.
+이 문서는 [메시징과 전달 보장 허브](../../../_hub/메시징과_전달_보장.md)의 일부입니다.

@@ -10,7 +10,7 @@ updated: 2026-03-26
 
 OpenTelemetry(OTel)는 **로그·메트릭·트레이스** 세 가지 관찰 데이터를 수집하고 내보내는 **벤더 중립적 오픈소스 표준**이다. 특정 모니터링 벤더에 종속되지 않고, 데이터를 Jaeger·Tempo·Prometheus·Datadog 등 원하는 백엔드로 보낼 수 있다.
 
-```
+```text
 수집 대상:
   Traces  — 요청이 여러 서비스를 거치는 전체 경로 추적
   Metrics — 수치 기반 상태 측정 (RPS, 오류율, 응답 시간)
@@ -78,7 +78,7 @@ Semantic Conventions는 속성 이름에 대한 **공통 네이밍 규칙**이�
 
 주요 네이밍 패턴:
 
-```
+```text
 http.request.method          — GET, POST 등
 http.response.status_code    — 200, 500 등
 http.route                   — /api/users/:id (패턴)
@@ -118,7 +118,7 @@ import {
 
 Trace는 하나의 요청이 시스템을 통과하는 전체 경로를 나타낸다. Trace 자체는 독립적인 데이터 객체가 아니라, **같은 trace ID를 공유하는 Span들의 집합**이다. Span은 하나의 작업 단위를 나타내고, Span들이 부모-자식 관계로 연결되어 트리 구조를 형성한다.
 
-```
+```text
 Trace (trace_id: abc123)
 │
 ├── Span A: "POST /api/orders" (parent_span_id: 없음 = root span)
@@ -135,7 +135,7 @@ Jaeger UI에서 보는 워터폴 차트가 이 구조를 시간축 위에 펼친
 
 각 Span은 다음 필드를 가진다.
 
-```
+```text
 trace_id         — 이 span이 속한 trace의 고유 ID (128-bit, 32자 hex)
                    같은 요청에서 만들어진 모든 span이 이 값을 공유한다
 
@@ -209,7 +209,7 @@ tracer.startActiveSpan('order.retry', { links: [link] }, (span) => {
 
 비동기 메시징이나 배치 처리가 섞이면 Link 때문에 관계가 **DAG(Directed Acyclic Graph)**로 확장된다. 부모-자식 관계는 여전히 트리지만, Link를 포함하면 하나의 span이 여러 trace의 span들과 연결될 수 있다.
 
-```
+```text
 Trace 1: [Producer A] ──publish──▶ [message queue]
 Trace 2: [Producer B] ──publish──▶ [message queue]
                                         │
@@ -227,7 +227,7 @@ Context는 현재 실행 중인 코드의 **부가 정보를 담는 불변 객�
 
 함수 A가 span을 시작하고 함수 B를 호출하면, 함수 B는 어떻게 "내 부모 span이 A다"라는 걸 아는가? 매번 span을 파라미터로 넘길 수는 없으니까, OTel은 Context라는 **암묵적 저장소**에 현재 span을 넣어두고, 하위 코드에서 `context.active()`로 꺼내 쓴다.
 
-```
+```text
 함수 호출 흐름:
 
 handleRequest()                    context = { activeSpan: spanA }
@@ -275,7 +275,7 @@ Java에서는 `ThreadLocal`이 같은 역할을 하는데, 스레드 풀에서 �
 
 과정은 세 단계다:
 
-```
+```text
 1. Inject (주입)  — 서비스 A가 현재 Context에서 trace_id, span_id를 꺼내
                     HTTP 요청 헤더에 넣는다
                     propagation.inject(context.active(), headers)
@@ -302,7 +302,7 @@ NodeSDK 래퍼를 쓰면 초기화 코드가 간단하지만, 내부에서 어�
 
 #### TracerProvider → Tracer → Span
 
-```
+```text
 TracerProvider (SDK 초기화 시 1개 생성)
   │
   ├── Resource 설정 (service.name, environment 등)
@@ -332,7 +332,7 @@ TracerProvider (SDK 초기화 시 1개 생성)
 
 Span이 `end()`되면 SpanProcessor에게 전달된다. Processor가 Exporter를 호출해서 실제로 데이터를 보낸다.
 
-```
+```text
 Span.end()
   │
   ▼
@@ -378,7 +378,7 @@ const simpleProcessor = new SimpleSpanProcessor(exporter);
 
 SpanProcessor가 Exporter를 호출하면, Exporter가 실제 네트워크 전송을 담당한다.
 
-```
+```text
 Exporter 종류:
   OTLPTraceExporter (HTTP)  — http://collector:4318/v1/traces 로 전송
   OTLPTraceExporter (gRPC)  — collector:4317 로 전송
@@ -390,7 +390,7 @@ Exporter는 바꿔 끼울 수 있다. Collector로 보내다가 Jaeger로 직접
 
 #### 전체 흐름 정리
 
-```
+```text
 [애플리케이션 코드]
      │
      │ tracer.startActiveSpan('op')
@@ -456,7 +456,7 @@ const sampler = new ParentBasedSampler({
 
 실무에서 쓰는 패턴:
 
-```
+```text
 패턴 1: ParentBased + TraceIdRatio (가장 흔함)
   → root span은 10% 샘플링, 나머지는 부모를 따름
   → 서비스 간 trace가 끊기지 않음
@@ -482,7 +482,7 @@ Sampler는 SDK(head-based)와 Collector(tail-based)에서 각각 다른 레이�
 
 내부적으로 **monkey-patching** 방식으로 동작한다. 라이브러리가 export하는 함수나 메서드를 SDK가 가로채서, 원래 함수 실행 전후에 span 생성/종료 코드를 끼워 넣는다.
 
-```
+```text
 원래 동작:
   http.request(options) → 네트워크 요청 → 응답
 
@@ -502,7 +502,7 @@ Java Agent(`-javaagent:opentelemetry-javaagent.jar`)는 더 저수준에서 동�
 
 #### Auto vs Manual 트레이드오프
 
-```
+```text
 Auto Instrumentation:
   장점
   - 코드 수정 없이 HTTP, DB, 메시지 큐 등 인프라 레벨 계측이 된다
@@ -576,7 +576,7 @@ getNodeAutoInstrumentations({
 
 OTel은 Prometheus, Jaeger, Datadog 같은 도구를 **대체하는 게 아니다.** OTel의 역할은 데이터를 수집하고 전송하는 **계층**이고, 저장·쿼리·시각화는 기존 도구가 담당한다.
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                    OTel의 영역                       │
 │  계측 (SDK) → 수집/처리 (Collector) → 전송 (OTLP)   │
@@ -609,7 +609,7 @@ OTel은 Prometheus, Jaeger, Datadog 같은 도구를 **대체하는 게 아니�
 
 ## 아키텍처
 
-```
+```text
 ┌────────────┐   OTLP   ┌─────────────────────┐   ┌──────────┐
 │  서비스 A   │ ────────▶│  OTel Collector      │──▶│  Jaeger  │
 │ (Node.js)  │          │  - 수신 (OTLP)       │   └──────────┘
@@ -649,7 +649,7 @@ HTTP 전송에서는 protobuf 바이너리(`Content-Type: application/x-protobuf
 
 HTTP 전송에서 각 signal 타입은 별도의 경로를 사용한다.
 
-```
+```text
 POST /v1/traces      — trace 데이터
 POST /v1/metrics     — metric 데이터
 POST /v1/logs        — log 데이터
@@ -657,7 +657,7 @@ POST /v1/logs        — log 데이터
 
 gRPC에서는 경로 대신 protobuf 서비스 정의로 구분한다.
 
-```
+```text
 opentelemetry.proto.collector.trace.v1.TraceService/Export
 opentelemetry.proto.collector.metrics.v1.MetricsService/Export
 opentelemetry.proto.collector.logs.v1.LogsService/Export
@@ -755,7 +755,7 @@ Collector를 어떤 모드로 배포하느냐에 따라 운영 방식이 완전�
 
 각 서비스(또는 노드)마다 Collector를 하나씩 붙인다. 서비스와 같은 호스트에서 돌아가므로 네트워크 지연이 없다.
 
-```
+```text
 ┌──────────────────────────────┐
 │ Node 1                       │
 │  ┌─────────┐  ┌───────────┐  │
@@ -773,7 +773,7 @@ Collector를 어떤 모드로 배포하느냐에 따라 운영 방식이 완전�
 
 중앙에 Collector 클러스터를 두고, 모든 서비스가 여기로 데이터를 보낸다.
 
-```
+```text
 ┌─────────┐
 │ 서비스 A │──┐
 └─────────┘  │   ┌───────────────┐
@@ -793,7 +793,7 @@ Collector를 어떤 모드로 배포하느냐에 따라 운영 방식이 완전�
 
 프로덕션에서는 Agent + Gateway 2단 구조를 많이 쓴다.
 
-```
+```text
 서비스 → Agent Collector (로컬) → Gateway Collector (중앙) → 백엔드
 ```
 
@@ -941,7 +941,7 @@ import express from 'express';
 
 Span을 만들 때 `kind`를 지정할 수 있다. Jaeger나 Tempo에서 span을 시각화할 때 이 정보로 요청의 방향과 역할을 파악한다.
 
-```
+```text
 CLIENT   — 외부 서비스를 호출하는 쪽. HTTP 요청을 보내거나 gRPC call을 하는 span
 SERVER   — 외부에서 들어온 요청을 처리하는 쪽. Express 핸들러, gRPC 서버 메서드
 PRODUCER — 메시지를 큐에 넣는 쪽. Kafka produce, RabbitMQ publish
@@ -1050,7 +1050,7 @@ async function callDownstreamService(url: string) {
 
 OTel SDK의 기본 propagator다. `traceparent`와 `tracestate` 두 개의 헤더를 사용한다.
 
-```
+```text
 traceparent: 00-a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4-1a2b3c4d5e6f7a8b-01
              │   │                                  │                  │
              버전  trace-id (32자)                    span-id (16자)     샘플링 플래그
@@ -1062,7 +1062,7 @@ W3C 표준이라 대부분의 APM 도구와 클라우드 서비스가 지원한�
 
 Zipkin에서 시작된 포맷이다. 기존에 Zipkin 기반 트레이싱을 쓰고 있는 환경에서 마이그레이션할 때 필요하다.
 
-```
+```text
 # B3 Multi-header (각각 별도 헤더)
 X-B3-TraceId: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
 X-B3-SpanId: 1a2b3c4d5e6f7a8b
@@ -1115,7 +1115,7 @@ OTel의 Logs는 Traces, Metrics와 접근 방식이 다르다. Traces와 Metrics
 
 대부분의 애플리케이션에는 이미 로거가 있다. winston이든 pino든 이미 로그를 찍고 있는데, OTel을 도입했다고 로거를 전부 교체하는 건 비현실적이다. 그래서 OTel은 로그 생성 자체를 맡지 않고, 기존 로거가 만든 로그를 OTel의 LogRecord로 변환해서 Collector로 보내는 **브릿지** 역할만 한다.
 
-```
+```text
 기존 방식:
   winston → console/file → Fluentd → Loki
 
@@ -1128,7 +1128,7 @@ OTel 방식:
 
 OTel의 LogRecord는 다음 필드로 구성된다.
 
-```
+```text
 Timestamp           — 로그 발생 시각 (nanosecond 정밀도)
 ObservedTimestamp   — OTel이 로그를 수집한 시각
 SeverityNumber      — 로그 레벨 (1~24, INFO=9, ERROR=17)
@@ -1329,7 +1329,7 @@ app.use((req, res, next) => {
 
 Loki에 로그를 보내고 있다면, Grafana 데이터소스 설정에서 Tempo와 Loki를 연결한다.
 
-```
+```text
 Tempo 데이터소스 설정:
   Trace to logs:
     Data source: Loki
@@ -1795,7 +1795,7 @@ spec:
 
 ### 패턴 선택 기준
 
-```
+```text
 DaemonSet:
   - 노드당 리소스 고정 → 예측 가능한 비용
   - 노드 수가 많으면 낭비 (트래픽 없는 노드에도 Collector가 뜸)
@@ -1815,7 +1815,7 @@ Sidecar:
 
 ## 샘플링
 
-```
+```text
 트레이스 전체 수집 시 문제:
   - 초당 1,000 RPS → 하루 86,400,000 트레이스 → 스토리지 비용 폭증
   - 99%는 정상 요청 → 분석 가치 낮음
@@ -1998,7 +1998,7 @@ processors:
 
 ### Exporter 연결 실패
 
-```
+```text
 2024/03/26 10:30:00 exporter/otlp: failed to export: rpc error: connection refused
 ```
 

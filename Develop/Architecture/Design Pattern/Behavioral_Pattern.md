@@ -509,6 +509,6 @@ chain.handle(request);  // 순서대로 검증
 
 - [Design Patterns — GoF](https://www.amazon.com/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612)
 - [Refactoring.Guru — Behavioral Patterns](https://refactoring.guru/design-patterns/behavioral-patterns)
-- [Observer 패턴](Observer Pattern.md) — 관찰자 패턴
+- [Observer 패턴](Observer%20Pattern.md) — 관찰자 패턴
 - [생성 패턴](Creational_Pattern.md) — 객체 생성 패턴
 - [클린 아키텍처](../Clean_Architecture.md) — 아키텍처 패턴

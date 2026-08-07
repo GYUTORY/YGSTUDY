@@ -2,6 +2,7 @@
 title: Claude Opus 4.8
 tags: [ai, claude, anthropic, opus, opus-4-8, llm, api]
 updated: 2026-05-29
+volatility: high
 ---
 
 # Claude Opus 4.8

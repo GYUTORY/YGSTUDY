@@ -1047,9 +1047,9 @@ COMMIT;
 
 - [MySQL InnoDB Locking](https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html)
 - [PostgreSQL Transaction Isolation](https://www.postgresql.org/docs/current/transaction-iso.html)
-- [인덱스 전략](RDBMS에서의 index.md) — 인덱스와 락의 관계
+- [인덱스 전략](RDBMS에서의%20index.md) — 인덱스와 락의 관계
 - [성능 튜닝](데이터베이스_성능_튜닝.md) — 쿼리 최적화
-- [Deadlock](../../OS/Process & Thread/Deadlock.md) — OS 레벨 데드락 개념
+- [Deadlock](../../OS/Process%20%26%20Thread/Deadlock.md) — OS 레벨 데드락 개념
 
 ---
 이 문서는 [트랜잭션과 동시성 허브](../../_hub/트랜잭션과_동시성.md)의 일부입니다.

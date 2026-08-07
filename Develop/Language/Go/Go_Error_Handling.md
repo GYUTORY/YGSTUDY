@@ -39,7 +39,7 @@ return fmt.Errorf("some context: %w", err)  // %w 로 wrapping
 
 ## errors.Is / errors.As
 
-![Go 코드 편집 시 Vim의 자동완성 및 구문 검사 플러그인 동작 화면](../../assets/images/auto/go/e3b56532.png)
+![Go 코드 편집 시 Vim의 자동완성 및 구문 검사 플러그인 동작 화면](../../assets/images/auto/go/e3b56532.webp)
 
 
 ### errors.Is

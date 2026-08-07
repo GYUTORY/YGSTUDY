@@ -2,6 +2,7 @@
 title: Claude를 전문가처럼 활용하는 방법
 tags: [ai, claude, prompt, system-prompt, hallucination, projects]
 updated: 2026-03-30
+volatility: high
 ---
 
 # Claude를 전문가처럼 활용하는 방법

@@ -57,7 +57,7 @@ example.com {
     @api path /api/*
     header @api Cache-Control "no-store"
 
-    @static path *.css *.js *.png *.jpg *.woff2
+    @static path *.css *.js *.webp *.webp *.woff2
     header @static Cache-Control "public, max-age=31536000, immutable"
 
     reverse_proxy localhost:3000

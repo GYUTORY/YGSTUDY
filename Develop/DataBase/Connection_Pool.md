@@ -436,5 +436,5 @@ PostgreSQL 9.6+ 기능. MySQL은 `wait_timeout`이 트랜잭션 중에는 안 �
 다음 문서에서 각론을 더 다룬다.
 
 - 애플리케이션 인스턴스 분배 관점: [Connection_Limit.md](../Backend/Resilience/Connection_Limit.md)
-- Node.js 풀 라이브러리 동작: [Framework/Node](../../Framework/Node/데이터베이스)
+- Node.js 풀 라이브러리 동작: [연결 풀 관리](../Framework/Node/데이터베이스/연결_풀_관리.md)
 - 데이터베이스 일반: [Database_Deep_Dive.md](Database_Deep_Dive.md)

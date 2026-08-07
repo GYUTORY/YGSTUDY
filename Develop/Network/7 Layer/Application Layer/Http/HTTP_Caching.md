@@ -715,7 +715,7 @@ curl -H "If-None-Match: \"abc123\"" -I https://example.com/api/data
 
 ```bash
 # CloudFront
-curl -I https://cdn.example.com/image.png
+curl -I https://cdn.example.com/image.webp
 # X-Cache: Hit from cloudfront
 
 # Cloudflare

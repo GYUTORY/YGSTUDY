@@ -2,6 +2,7 @@
 title: Function Calling / Tool Use (도구 호출 메커니즘)
 tags: [ai, llm, tool-use, function-calling, json-schema, agent]
 updated: 2026-08-04
+volatility: high
 ---
 
 # Function Calling / Tool Use

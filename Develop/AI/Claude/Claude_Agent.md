@@ -2,6 +2,7 @@
 title: Claude Agent SDK
 tags: [ai, claude, agent, agent-sdk, anthropic-sdk, tool-use, mcp, system-prompt, permission, context-management, python, typescript]
 updated: 2026-06-06
+volatility: high
 ---
 
 # Claude Agent SDK

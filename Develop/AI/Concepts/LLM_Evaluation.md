@@ -2,6 +2,7 @@
 title: LLM 평가 방법론
 tags: [ai, llm, evaluation, benchmark, mmlu, humaneval, gsm8k, mt-bench, arena-hard]
 updated: 2026-06-04
+volatility: high
 ---
 
 # LLM 평가 방법론

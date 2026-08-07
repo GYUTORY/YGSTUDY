@@ -26,9 +26,9 @@ sequenceDiagram
     participant 내부 리소스
 
     Note over 공격자, 내부 리소스: 정상 시나리오 — 외부 URL 페치
-    공격자->>외부망: POST /api/preview {url: "https://example.com/img.png"}
+    공격자->>외부망: POST /api/preview {url: "https://example.com/img.webp"}
     외부망->>애플리케이션 서버: 요청 전달
-    애플리케이션 서버->>외부망: GET https://example.com/img.png
+    애플리케이션 서버->>외부망: GET https://example.com/img.webp
     외부망-->>애플리케이션 서버: 이미지 응답
     애플리케이션 서버-->>공격자: 200 OK + 이미지
 

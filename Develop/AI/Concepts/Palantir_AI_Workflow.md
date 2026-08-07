@@ -2,6 +2,7 @@
 title: 팔란티어가 AI로 일하는 방식
 tags: [ai, palantir, aip, foundry, ontology, enterprise-ai, llm, agent]
 updated: 2026-04-23
+volatility: high
 ---
 
 # 팔란티어가 AI로 일하는 방식

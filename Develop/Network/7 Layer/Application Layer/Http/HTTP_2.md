@@ -67,7 +67,7 @@ sequenceDiagram
     Note over C,S: 단일 TCP/TLS 연결
     C->>S: HEADERS (stream 1) GET /style.css
     C->>S: HEADERS (stream 3) GET /app.js
-    C->>S: HEADERS (stream 5) GET /logo.png
+    C->>S: HEADERS (stream 5) GET /logo.webp
     S-->>C: HEADERS (stream 1) 200 OK
     S-->>C: DATA (stream 1) chunk 1
     S-->>C: DATA (stream 3) chunk 1
@@ -397,12 +397,12 @@ curl --http2 https://example.com/
 
 ```html
 <!-- 변경 전 -->
-<img src="https://img1.example.com/a.png">
-<img src="https://img2.example.com/b.png">
+<img src="https://img1.example.com/a.webp">
+<img src="https://img2.example.com/b.webp">
 
 <!-- 변경 후 -->
-<img src="https://static.example.com/a.png">
-<img src="https://static.example.com/b.png">
+<img src="https://static.example.com/a.webp">
+<img src="https://static.example.com/b.webp">
 ```
 
 ### 리소스 인라이닝
@@ -426,8 +426,8 @@ CSS나 작은 SVG를 HTML에 인라인으로 박아 넣는 것도 요청 수를 
 
 ```css
 /* 변경 전: 스프라이트 시트 */
-.icon-home   { background: url(/sprite.png) -0px -0px; }
-.icon-search { background: url(/sprite.png) -24px -0px; }
+.icon-home   { background: url(/sprite.webp) -0px -0px; }
+.icon-search { background: url(/sprite.webp) -24px -0px; }
 
 /* 변경 후: 개별 파일 */
 .icon-home   { background: url(/icons/home.svg); }

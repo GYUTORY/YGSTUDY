@@ -172,7 +172,7 @@ example.com {
 
 ```caddy
 @compressible {
-    not path *.jpg *.jpeg *.png *.gif *.webp *.mp4 *.webm *.zip
+    not path *.webp *.webp *.webp *.webp *.webp *.mp4 *.webm *.zip
 }
 encode @compressible zstd gzip
 ```
@@ -344,7 +344,7 @@ WebSocket도 같은 백엔드를 쓴다면 별도 처리는 필요 없다. `reve
 
 브라우저는 응답의 Content-Type이 명확하지 않거나 본문이 헤더와 안 맞아 보이면, 본문 앞부분을 보고 타입을 추측한다. 이걸 MIME sniffing이라고 한다. 편리한 기능이지만 보안 관점에선 위험하다.
 
-사용자가 업로드한 `image.jpg` 파일에 사실은 HTML/JavaScript가 들어 있다고 해보자. 서버는 `Content-Type: image/jpeg`로 내려보내지만, 브라우저가 sniffing으로 `text/html`로 해석하면 그 페이지에서 스크립트가 실행될 수 있다. XSS 공격 벡터가 된다.
+사용자가 업로드한 `image.webp` 파일에 사실은 HTML/JavaScript가 들어 있다고 해보자. 서버는 `Content-Type: image/jpeg`로 내려보내지만, 브라우저가 sniffing으로 `text/html`로 해석하면 그 페이지에서 스크립트가 실행될 수 있다. XSS 공격 벡터가 된다.
 
 이걸 막는 게 `X-Content-Type-Options: nosniff` 헤더다. 브라우저에게 "내가 보낸 Content-Type 그대로 써, sniffing하지 마"라고 알리는 것이다.
 
@@ -382,7 +382,7 @@ header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 
 심볼릭 링크는 기본적으로 따라간다. 보안상 문제가 될 수 있어서, 신뢰할 수 없는 사용자가 파일을 넣을 수 있는 디렉토리라면 심볼릭 링크가 루트 밖을 가리키지 않는지 주의해야 한다.
 
-대소문자 처리가 파일 시스템에 따라 다르다. macOS/Windows는 보통 대소문자 무시고, Linux는 구분한다. 개발 환경이 macOS인데 배포는 Linux라면, `Image.PNG`로 참조하는 코드가 로컬에선 되고 운영에선 404가 나는 황당한 상황이 생긴다. Caddy 자체는 운영체제 동작을 그대로 따른다.
+대소문자 처리가 파일 시스템에 따라 다르다. macOS/Windows는 보통 대소문자 무시고, Linux는 구분한다. 개발 환경이 macOS인데 배포는 Linux라면, `Image.webp`로 참조하는 코드가 로컬에선 되고 운영에선 404가 나는 황당한 상황이 생긴다. Caddy 자체는 운영체제 동작을 그대로 따른다.
 
 `.well-known` 경로는 가리지 마라. ACME 챌린지나 다양한 표준 메타데이터 위치다. `hide` 패턴에 `.*`처럼 광범위하게 잡으면 인증서 갱신이 깨진다.
 

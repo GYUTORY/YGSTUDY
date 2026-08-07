@@ -571,4 +571,4 @@ Comparator<String> comp = (Comparator<String> & Serializable) (a, b) -> a.compar
 
 ## 관련 문서
 
-- [함수형 인터페이스 실무 활용](../../자바 디자인 패턴 및 원칙/Java_Functional_Interface.md) — JDK/Spring에서의 활용, 커스텀 함수형 인터페이스 설계
+- [함수형 인터페이스 실무 활용](../../자바%20디자인%20패턴%20및%20원칙/Java_Functional_Interface.md) — JDK/Spring에서의 활용, 커스텀 함수형 인터페이스 설계

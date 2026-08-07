@@ -79,7 +79,7 @@ button.disabled = true;
 
 // 이미지 요소
 let image = document.getElementById("profileImg") as HTMLImageElement;
-image.src = "profile.jpg";
+image.src = "profile.webp";
 
 // 폼 요소
 let form = document.getElementById("userForm") as HTMLFormElement;

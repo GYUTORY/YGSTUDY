@@ -234,7 +234,7 @@ S3에서 멀티테넌트 파일을 저장할 때 경로 설계가 잘못되면 �
 
 ```
 # 취약한 경로 구조 - 테넌트 ID가 없거나 예측 가능하다
-s3://my-bucket/uploads/profile.jpg
+s3://my-bucket/uploads/profile.webp
 s3://my-bucket/uploads/2024/01/report.pdf
 s3://my-bucket/tenant1/uploads/file.pdf  # 테넌트명이 추측 가능
 ```

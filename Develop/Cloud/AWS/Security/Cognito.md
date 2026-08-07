@@ -459,4 +459,4 @@ JWT 검증 내부, JWKS 키 캐싱 전략, Lambda 트리거 디자인 패턴 등
 - [AWS Cognito 공식 문서](https://docs.aws.amazon.com/cognito/)
 - [IAM](IAM.md) — AWS 리소스 접근 제어
 - [API Gateway](../Network/API_Gateway.md) — Cognito Authorizer 설정
-- [인증 전략](../../Backend/Authentication/Authentication_Strategy.md) — 인증 방식 비교
+- [인증 전략](../../../Backend/Authentication/Authentication_Strategy.md) — 인증 방식 비교

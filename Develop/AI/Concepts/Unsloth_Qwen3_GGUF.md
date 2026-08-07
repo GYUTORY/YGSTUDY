@@ -2,6 +2,7 @@
 title: unsloth/Qwen3.6-27B-GGUF 로컬 구동
 tags: [ai, llm, qwen, unsloth, gguf, llama-cpp, ollama, quantization, local-inference]
 updated: 2026-04-24
+volatility: high
 ---
 
 # unsloth/Qwen3.6-27B-GGUF 로컬 구동

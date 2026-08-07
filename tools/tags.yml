@@ -1,0 +1,81 @@
+# 허용 태그 목록 (controlled vocabulary)
+# 이 파일 외 태그는 gen_tags.py 실행 시 위반으로 보고됩니다.
+# 세부 키워드는 태그 대신 본문 검색에 맡깁니다.
+
+allowed:
+  # ── 언어 ──────────────────────────────────────────────
+  - java
+  - spring
+  - kotlin
+  - javascript
+  - typescript
+  - nodejs
+  - python
+  - go
+  - rust
+  - language
+
+  # ── 데이터베이스 ───────────────────────────────────────
+  - database
+  - rdbms
+  - mysql
+  - postgresql
+  - nosql
+  - mongodb
+  - redis
+  - elasticsearch
+  - cache
+
+  # ── 클라우드 / 인프라 ──────────────────────────────────
+  - aws
+  - gcp
+  - cloud
+  - kubernetes
+  - docker
+  - linux
+  - devops
+  - ci-cd
+  - iac
+  - terraform
+  - git
+
+  # ── 네트워크 ───────────────────────────────────────────
+  - network
+  - http
+  - tcp
+  - dns
+  - vpc
+  - cdn
+  - load-balancer
+  - proxy
+
+  # ── 보안 ───────────────────────────────────────────────
+  - security
+  - iam
+  - encryption
+  - jwt
+  - auth
+
+  # ── 백엔드 / 아키텍처 ─────────────────────────────────
+  - backend
+  - api
+  - rest
+  - grpc
+  - graphql
+  - microservices
+  - messaging
+  - event-driven
+  - architecture
+  - design-patterns
+
+  # ── 관측성 / 품질 ──────────────────────────────────────
+  - monitoring
+  - observability
+  - performance
+  - testing
+
+  # ── AI ────────────────────────────────────────────────
+  - ai
+  - llm
+  - rag
+  - mcp

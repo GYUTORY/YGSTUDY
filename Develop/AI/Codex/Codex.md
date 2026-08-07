@@ -2,6 +2,7 @@
 title: OpenAI Codex 사용법 및 핵심 개념
 tags: [ai, codex, openai, cli, agentic-coding]
 updated: 2026-03-01
+volatility: high
 ---
 
 # OpenAI Codex
@@ -220,7 +221,7 @@ codex \
   -a on-request \                  # 승인 정책
   -s workspace-write \             # 샌드박스 모드
   -C /path/to/project \            # 작업 디렉토리
-  -i screenshot.png \              # 이미지 첨부
+  -i screenshot.webp \              # 이미지 첨부
   --full-auto \                    # on-request + workspace-write
   --search \                       # 웹 검색 활성화
   --add-dir /extra/path            # 추가 쓰기 경로
@@ -404,7 +405,7 @@ codex fork
 
 ```bash
 # 스크린샷을 첨부하여 UI 구현 요청
-codex -i design.png "이 디자인대로 React 컴포넌트 만들어줘"
+codex -i design.webp "이 디자인대로 React 컴포넌트 만들어줘"
 ```
 
 ---

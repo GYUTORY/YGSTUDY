@@ -2,6 +2,7 @@
 title: Cursor Rules - 프로젝트별 AI 규칙 설정
 tags: [cursor, rules, cursor-rules, ai-context, project-config]
 updated: 2026-04-10
+volatility: high
 ---
 
 # Cursor Rules

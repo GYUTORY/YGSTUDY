@@ -2,6 +2,7 @@
 title: Functional RAG
 tags: [RAG, functional-programming, LangChain, LCEL, pipeline, python, streaming, testing]
 updated: 2026-04-12
+volatility: high
 ---
 
 # Functional RAG

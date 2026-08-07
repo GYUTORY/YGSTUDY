@@ -230,7 +230,7 @@ uploadAvatar(
 
 ### FileTypeValidator의 함정 — MIME 스푸핑
 
-`FileTypeValidator`가 기본적으로 검사하는 건 클라이언트가 보낸 `Content-Type` 헤더와 파일명 확장자 둘 다 신뢰한다는 점이다. 즉 공격자가 `.png`로 이름만 바꾸고 안에 PHP 코드가 있는 파일을 올려도 통과한다.
+`FileTypeValidator`가 기본적으로 검사하는 건 클라이언트가 보낸 `Content-Type` 헤더와 파일명 확장자 둘 다 신뢰한다는 점이다. 즉 공격자가 `.webp`로 이름만 바꾸고 안에 PHP 코드가 있는 파일을 올려도 통과한다.
 
 실제 운영에서는 magic number 기반 검사기를 따로 깔아야 한다. `file-type` 라이브러리가 표준에 가깝다.
 

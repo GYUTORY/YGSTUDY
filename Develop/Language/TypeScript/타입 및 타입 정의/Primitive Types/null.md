@@ -192,8 +192,8 @@ interface User {
 }
 
 function getAvatar(user: User): string {
-    return user.profile?.avatar ?? "default.jpg";
+    return user.profile?.avatar ?? "default.webp";
 }
 ```
 
-`user.profile`이 null이면 `?.` 시점에 멈추고 undefined가 된다. `?? "default.jpg"`가 undefined를 기본값으로 대체한다. `?.`는 null과 undefined만 멈추게 하고, 다른 falsy 값(0, "")은 그대로 통과시킨다는 점을 기억해두면 예상치 못한 동작을 피할 수 있다.
+`user.profile`이 null이면 `?.` 시점에 멈추고 undefined가 된다. `?? "default.webp"`가 undefined를 기본값으로 대체한다. `?.`는 null과 undefined만 멈추게 하고, 다른 falsy 값(0, "")은 그대로 통과시킨다는 점을 기억해두면 예상치 못한 동작을 피할 수 있다.

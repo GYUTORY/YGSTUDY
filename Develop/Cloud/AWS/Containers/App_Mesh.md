@@ -316,7 +316,7 @@ App Mesh에서는 Virtual Node `listener`에 **outlier detection**으로 표현�
 | 학습 비용 | 높다 | 낮다 |
 | 향후 전망 | **deprecation 예정** | 계속 발전 |
 
-### 언제 App Mesh를 쓰는가 (2026년 현재)
+### 언제 App Mesh를 쓰는가 (2026-04 기준)
 
 솔직히 신규로 App Mesh를 고를 이유가 거의 없다. 이미 쓰고 있거나, 아래 중 하나가 꼭 필요한 경우뿐이다.
 

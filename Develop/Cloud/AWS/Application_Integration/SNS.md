@@ -816,4 +816,4 @@ exports.handler = async (event) => {
 - [AWS CDK SNS 구성 요소](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sns-readme.html)
 
 ---
-이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.
+이 문서는 [메시징과 전달 보장 허브](../../../_hub/메시징과_전달_보장.md)의 일부입니다.

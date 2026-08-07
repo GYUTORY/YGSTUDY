@@ -293,7 +293,7 @@ const userResponse = {
             name: '홍길동',
             email: 'hong@example.com',
             profile: {
-                avatar: 'avatar.jpg',
+                avatar: 'avatar.webp',
                 bio: '안녕하세요!'
             }
         },

@@ -182,7 +182,7 @@ app.post('/resize', async (req, res) => {
   const { filename, width } = req.body;
   // filename에 "; rm -rf /" 같은 입력이 들어올 수 있다
   const { exec } = require('child_process');
-  exec(`convert ${filename} -resize ${width} output.jpg`); // 위험
+  exec(`convert ${filename} -resize ${width} output.webp`); // 위험
 });
 
 // 수정된 코드 — execFile로 인자를 분리 (쉘 인터프리터를 거치지 않는다)
@@ -192,7 +192,7 @@ app.post('/resize', async (req, res) => {
   if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
     return res.status(400).json({ error: 'Invalid filename' });
   }
-  await execFileAsync('convert', [filename, '-resize', String(width), 'output.jpg'], {
+  await execFileAsync('convert', [filename, '-resize', String(width), 'output.webp'], {
     cwd: '/uploads',
   });
   res.json({ ok: true });

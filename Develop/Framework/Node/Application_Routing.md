@@ -77,7 +77,7 @@ app.get('/files/*splat', (req, res) => {
 });
 ```
 
-`/files/a/b/c.png` 를 호출하면 `splat`에 `a/b/c.png`가 들어온다. 옵셔널 파라미터도 `:id?`에서 `{:id}` 문법으로 바뀌었다. Express 4 코드를 5로 올릴 때 라우트 정의가 안 잡히면 거의 이 문제다.
+`/files/a/b/c.webp` 를 호출하면 `splat`에 `a/b/c.webp`가 들어온다. 옵셔널 파라미터도 `:id?`에서 `{:id}` 문법으로 바뀌었다. Express 4 코드를 5로 올릴 때 라우트 정의가 안 잡히면 거의 이 문제다.
 
 ### 정규식 라우트
 
@@ -496,7 +496,7 @@ app.use('/files', filesRouter);
 
 // 와일드카드는 라우터 안에서 처리
 filesRouter.get('/*splat', (req, res) => {
-  res.send(req.params.splat); // 'a/b/c.png'
+  res.send(req.params.splat); // 'a/b/c.webp'
 });
 ```
 

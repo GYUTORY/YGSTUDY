@@ -164,7 +164,7 @@ npm도 마찬가지다. `lodash` 대신 `lodahs`, `cross-env` 대신 `cross-env.
 
 ## log4shell (CVE-2021-44228)
 
-![Log4Shell 취약점(CVE-2021-44228)의 공식 로고](../assets/images/auto/security/078acfa8.png)
+![Log4Shell 취약점(CVE-2021-44228)의 공식 로고](../assets/images/auto/security/078acfa8.webp)
 
 
 ### 사고 개요

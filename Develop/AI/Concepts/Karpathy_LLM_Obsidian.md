@@ -2,6 +2,7 @@
 title: Karpathy의 LLM + Obsidian 워크플로우
 tags: [ai, llm, obsidian, pkm, knowledge-management, karpathy, second-brain]
 updated: 2026-04-17
+volatility: high
 ---
 
 # Karpathy의 LLM + Obsidian 워크플로우

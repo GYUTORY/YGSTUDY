@@ -70,7 +70,7 @@ const client = mqtt.connect('mqtt://broker', {
 ```
 
 **동작 방식:**
-```
+```text
 연결 → 정상 동작 → 연결 끊김 → 1시간 대기
                                 ↓
                     세션 자동 삭제 (메모리 해제)
@@ -110,7 +110,7 @@ client.on('message', (topic, message, packet) => {
 ```
 
 **동작 흐름:**
-```
+```text
 앱 → [요청 + responseTopic + correlationData] → 기기
                                                   ↓
                                              요청 처리
@@ -137,7 +137,7 @@ client.publish('sensor/alert', '긴급 알림', {
 ```
 
 **동작 방식:**
-```
+```text
 T=0: 메시지 발행 (만료 시간: 300초)
 T=60: 클라이언트 오프라인 (큐에 저장)
 T=240: 클라이언트 재연결 → 메시지 전달 (남은 시간: 60초)
@@ -172,12 +172,12 @@ client3.subscribe('$share/workers/sensor/data');
 ```
 
 **주제 형식:**
-```
+```text
 $share/{그룹이름}/{실제주제}
 ```
 
 **분산 방식:**
-```
+```text
 메시지 1 → 브로커 → Worker 1
 메시지 2 → 브로커 → Worker 2
 메시지 3 → 브로커 → Worker 3
@@ -336,7 +336,7 @@ const client = mqtt.connect('mqtt://broker', {
 ```
 
 **동작 방식:**
-```
+```text
 브로커가 receiveMaximum = 10 설정
   ↓
 클라이언트는 최대 10개의 QoS 1/2 메시지만 전송
@@ -371,7 +371,7 @@ client.publish('', '26', {  // 빈 주제 이름
 ```
 
 **대역폭 절약:**
-```
+```text
 일반 방식:
   메시지 1: 45바이트 주제 + 2바이트 데이터 = 47바이트
   메시지 2: 45바이트 주제 + 2바이트 데이터 = 47바이트
@@ -426,7 +426,7 @@ Keep-Alive는 TCP 연결이 살아있는지 확인하는 하트비트 메커니�
 #### Keep-Alive의 필요성
 
 **문제 상황:**
-```
+```text
 센서 ─────────[정상 연결]────────► 브로커
         (네트워크 케이블 뽑힘!)
 센서 X ─────────[끊어짐]────────X► 브로커
@@ -444,7 +444,7 @@ const client = mqtt.connect('mqtt://broker', {
 ```
 
 **타임라인:**
-```
+```text
 T=0:   CONNECT (Keep-Alive=60)
 T=0:   CONNACK
 T=30:  PUBLISH (일반 메시지)
@@ -460,7 +460,7 @@ T=270: 타임아웃 (60 × 1.5 = 90초) → 연결 끊김 감지
 #### ⚙ 상세 동작
 
 **클라이언트 측:**
-```
+```text
 마지막 패킷 전송 후 Keep-Alive 시간이 지나면
   ↓
 아무 패킷도 보내지 않았다면
@@ -473,7 +473,7 @@ Keep-Alive × 1.5 시간 내에 PINGRESP를 받지 못하면
 ```
 
 **브로커 측:**
-```
+```text
 클라이언트로부터 Keep-Alive × 1.5 시간 동안 패킷을 받지 못하면
   ↓
 클라이언트 연결 끊김으로 간주
@@ -669,7 +669,7 @@ const client = mqtt.connect('mqtt://broker', {
 - **메시지 복사**: 각 구독자에게 메시지의 독립적인 복사본 전달
 
 **내부 동작:**
-```
+```text
 1. PUBLISH 패킷 수신
 2. 주제를 파싱하여 구독자 맵(Topic Trie) 조회
 3. 매칭되는 모든 구독자 목록 가져오기
@@ -687,7 +687,7 @@ const client = mqtt.connect('mqtt://broker', {
 - **동시 연결 제한**: 리소스 보호를 위한 연결 수 제한
 
 **연결 상태 관리:**
-```
+```text
 Connected (연결됨)
    ↓
 Active (활성) ←→ Idle (유휴)
@@ -707,7 +707,7 @@ Disconnected (연결 끊김)
 - **세션 만료**: 오래된 세션 정리
 
 **세션 데이터 구조:**
-```
+```text
 Session {
   clientId: "sensor001",
   subscriptions: [
@@ -749,7 +749,7 @@ Session {
 - **단점**: 단일 장애점, 확장성 제한
 - **적합한 경우**: 소규모 시스템, 프로토타입
 
-```
+```text
 ┌─────────────────┐
 │   클라이언트들   │
 └────────┬────────┘
@@ -764,7 +764,7 @@ Session {
 - **단점**: 복잡한 설정, 세션 동기화 필요
 - **적합한 경우**: 대규모 시스템, 엔터프라이즈
 
-```
+```text
 ┌─────────────────┐
 │   클라이언트들   │
 └───┬─────┬───┬───┘
@@ -781,7 +781,7 @@ Session {
 - **단점**: 메시지 지연, 설정 복잡성
 - **적합한 경우**: 다중 지역, 계층적 구조
 
-```
+```text
 ┌──────┐      ┌──────┐
 │브로커A│◄────►│브로커B│
 └──────┘      └──────┘
@@ -813,7 +813,7 @@ Session {
 주제는 메시지를 분류하는 **주소** 시스템입니다:
 
 #### 📂 주제 구조
-```
+```text
 home/livingroom/temperature    # 거실 온도
 home/kitchen/humidity          # 부엌 습도
 car/gps/location              # 차량 위치
@@ -856,7 +856,7 @@ factory/machine/status        # 공장 기계 상태
 #### 주제 명명 규칙 예시
 
 **좋은 예:**
-```
+```text
 sensor/building1/floor3/room301/temperature
 sensor/building1/floor3/room301/humidity
 device/lighting/livingroom/status
@@ -864,7 +864,7 @@ device/lighting/livingroom/brightness
 ```
 
 **나쁜 예:**
-```
+```text
 temp                    # 너무 일반적
 sensor_building1_floor3 # 구분자로 밑줄 사용 (계층 구조 미사용)
 Building1/Floor3/Temp   # 대소문자 혼용 (일관성 없음)
@@ -878,7 +878,7 @@ MQTT는 TCP 위에서 동작하며, 모든 통신은 패킷 단위로 이루어�
 
 모든 MQTT 패킷은 다음 세 부분으로 구성됩니다:
 
-```
+```text
 ┌─────────────────────────────────┐
 │    Fixed Header (고정 헤더)      │  ← 2~5 바이트
 ├─────────────────────────────────┤
@@ -891,7 +891,7 @@ MQTT는 TCP 위에서 동작하며, 모든 통신은 패킷 단위로 이루어�
 #### 고정 헤더 (Fixed Header)
 
 **바이트 1 (제어 패킷):**
-```
+```text
   7  6  5  4    3  2  1  0
 ┌──────────┬──────────────┐
 │ 패킷 타입  │  플래그      │
@@ -927,7 +927,7 @@ MQTT는 TCP 위에서 동작하며, 모든 통신은 패킷 단위로 이루어�
 #### 주요 패킷 타입별 상세 구조
 
 **CONNECT 패킷:**
-```
+```text
 고정 헤더: 0x10
 가변 헤더:
   - 프로토콜 이름 (MQTT)
@@ -941,7 +941,7 @@ MQTT는 TCP 위에서 동작하며, 모든 통신은 패킷 단위로 이루어�
 ```
 
 **PUBLISH 패킷:**
-```
+```text
 고정 헤더: 0x30 + (DUP << 3) + (QoS << 1) + RETAIN
 가변 헤더:
   - 주제 이름 (Topic Name)
@@ -951,7 +951,7 @@ MQTT는 TCP 위에서 동작하며, 모든 통신은 패킷 단위로 이루어�
 ```
 
 **SUBSCRIBE 패킷:**
-```
+```text
 고정 헤더: 0x82
 가변 헤더:
   - 패킷 식별자
@@ -964,7 +964,7 @@ MQTT는 TCP 위에서 동작하며, 모든 통신은 패킷 단위로 이루어�
 MQTT가 경량 프로토콜인 이유를 패킷 크기로 살펴보면:
 
 **최소 PUBLISH 패킷 예시:**
-```
+```text
 고정 헤더: 2바이트
 주제 길이: 2바이트
 주제: "t" (1바이트)
@@ -974,7 +974,7 @@ MQTT가 경량 프로토콜인 이유를 패킷 크기로 살펴보면:
 ```
 
 **HTTP POST 요청 비교:**
-```
+```text
 POST /topic HTTP/1.1
 Host: broker.example.com
 Content-Type: text/plain
@@ -1006,7 +1006,7 @@ Content-Length: 1
   - 일회성 통신
 
 **동작 흐름:**
-```
+```text
 1. 클라이언트 연결 (Clean Session = 1)
 2. 브로커가 새 세션 생성
 3. 클라이언트가 주제 구독
@@ -1036,7 +1036,7 @@ Content-Length: 1
 - 브로커로부터 받았지만 확인되지 않은 QoS 2 메시지
 
 **동작 흐름:**
-```
+```text
 1. 클라이언트 연결 (Clean Session = 0, Client ID = "sensor001")
 2. 주제 구독: "command/sensor001"
 3. 메시지 수신 중...
@@ -1092,7 +1092,7 @@ Retained Message는 주제의 "마지막 알려진 좋은 값"을 저장하는 �
 #### 동작 방식
 
 **Retained 메시지 발행:**
-```
+```text
 발행자 → PUBLISH (Retain=1, Topic="home/temp", Payload="23°C")
           ↓
 브로커 → 메시지를 주제에 저장 (이전 Retained 메시지 덮어쓰기)
@@ -1101,7 +1101,7 @@ Retained Message는 주제의 "마지막 알려진 좋은 값"을 저장하는 �
 ```
 
 **새로운 구독자:**
-```
+```text
 새 구독자 → SUBSCRIBE ("home/temp")
             ↓
 브로커 → 저장된 Retained 메시지 즉시 전달 ("23°C")
@@ -1175,7 +1175,7 @@ Last Will은 클라이언트가 예기치 않게 연결이 끊어졌을 때, 브
 #### 동작 방식
 
 **설정 단계 (CONNECT 시):**
-```
+```text
 클라이언트 → CONNECT {
               Will Flag: 1,
               Will Topic: "device/sensor001/status",
@@ -1188,7 +1188,7 @@ Last Will은 클라이언트가 예기치 않게 연결이 끊어졌을 때, 브
 ```
 
 **정상 종료:**
-```
+```text
 클라이언트 → DISCONNECT 패킷 전송
             ↓
 브로커 → 유언 메시지를 발행하지 않음 (정상 종료로 간주)
@@ -1196,7 +1196,7 @@ Last Will은 클라이언트가 예기치 않게 연결이 끊어졌을 때, 브
 ```
 
 **비정상 종료:**
-```
+```text
 클라이언트 → 연결 끊김 (네트워크 장애, 기기 고장, 전원 차단 등)
             ↓
 브로커 → Keep-Alive 타임아웃 감지
@@ -1271,7 +1271,7 @@ const options = {
 Last Will은 Keep-Alive 메커니즘과 밀접하게 연관되어 있습니다.
 
 **Keep-Alive 동작:**
-```
+```text
 1. CONNECT 시 Keep-Alive 시간 설정 (예: 60초)
 2. 클라이언트는 60초 이내에 패킷을 전송해야 함
 3. 전송할 메시지가 없으면 PINGREQ 패킷 전송
@@ -1431,7 +1431,7 @@ QoS는 **택배 배송 서비스**와 비슷한 개념입니다:
 "Fire and Forget" 방식으로, 발행자가 메시지를 보내면 끝입니다. TCP가 보장하는 수준의 신뢰성만 제공합니다.
 
 **프로토콜 흐름:**
-```
+```text
 발행자                브로커                구독자
   │                    │                    │
   │─── PUBLISH ──────► │                    │
@@ -1470,7 +1470,7 @@ QoS는 **택배 배송 서비스**와 비슷한 개념입니다:
 메시지가 적어도 한 번은 전달되는 것을 보장합니다. 하지만 네트워크 재전송으로 인해 중복 가능합니다.
 
 **프로토콜 흐름:**
-```
+```text
 발행자                브로커                구독자
   │                    │                    │
   │─── PUBLISH ──────► │                    │
@@ -1509,7 +1509,7 @@ QoS는 **택배 배송 서비스**와 비슷한 개념입니다:
    - 구독자는 같은 패킷 ID를 받으면 중복으로 간주 가능
 
 **중복 발생 시나리오:**
-```
+```text
 발행자                브로커                구독자
   │                    │                    │
   │─── PUBLISH(1) ────► │                    │
@@ -1562,7 +1562,7 @@ client.on('message', (topic, message) => {
 4단계 핸드셰이크를 통해 메시지가 정확히 한 번만 전달되는 것을 보장합니다. 가장 안전하지만 가장 복잡하고 느립니다.
 
 **프로토콜 흐름 (4단계 핸드셰이크):**
-```
+```text
 발행자                브로커                구독자
   │                    │                    │
 1 │─── PUBLISH ──────► │                    │ ← 1단계: 발행
@@ -1608,7 +1608,7 @@ client.on('message', (topic, message) => {
 
 단순히 ACK만으로는 중복을 완전히 방지할 수 없습니다. 예를 들어:
 
-```
+```text
 시나리오 1: PUBREC 손실
 발행자                브로커
   │                    │
@@ -1627,7 +1627,7 @@ client.on('message', (topic, message) => {
 **상태 머신:**
 
 발행자의 상태:
-```
+```text
 1. PUBLISH 전송 → "Published"
 2. PUBREC 수신 → "Received"
 3. PUBREL 전송 → "Released"
@@ -1635,7 +1635,7 @@ client.on('message', (topic, message) => {
 ```
 
 브로커의 상태:
-```
+```text
 1. PUBLISH 수신 → 패킷 ID 저장, PUBREC 전송
 2. PUBREL 수신 → 구독자에게 전달 시작
 3. 모든 구독자가 PUBCOMP 응답 → 발행자에게 PUBCOMP 전송
@@ -1645,7 +1645,7 @@ client.on('message', (topic, message) => {
 **재전송 처리:**
 
 각 단계에서 응답이 없으면 재전송:
-```
+```text
 │─── PUBLISH ──────► │
 │   (타임아웃)        │
 │─── PUBLISH ──────► │ ← DUP=1 (재전송 표시)
@@ -1892,7 +1892,7 @@ topic write app/+/command
 ### 🏗 아키텍처 차이
 
 #### **Kafka 아키텍처**
-```
+```text
 Producer → Topic (Partitioned) → Consumer Group
     ↓
 Broker Cluster (Zookeeper)
@@ -1901,7 +1901,7 @@ Disk Storage (Log Segments)
 ```
 
 #### **MQTT 아키텍처**
-```
+```text
 Publisher → Topic → Broker → Subscriber
     ↓
 In-Memory Storage
@@ -1958,7 +1958,7 @@ QoS Management
 ### 실제 시나리오 예시
 
 #### **스마트 팩토리 시스템**
-```
+```text
 센서 데이터 수집: MQTT (실시간, 저전력)
     ↓
 데이터 집계: Kafka (대용량 처리, 분석)
@@ -1967,7 +1967,7 @@ QoS Management
 ```
 
 #### **스마트 홈 시스템**
-```
+```text
 IoT 기기들: MQTT (조명, 센서, 가전제품)
     ↓
 홈 허브: MQTT Broker
@@ -1992,7 +1992,7 @@ IoT 기기들: MQTT (조명, 센서, 가전제품)
 ### 통합 시나리오
 
 #### **하이브리드 아키텍처**
-```
+```text
 IoT 기기 → MQTT Broker → Kafka Connect → Kafka Cluster
 ```
 

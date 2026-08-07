@@ -249,7 +249,7 @@ dist/
 ├── assets/
 │   ├── main.a3f2c891.js
 │   ├── main.a3f2c891.css
-│   └── logo.7d1e4b22.png
+│   └── logo.7d1e4b22.webp
 ```
 
 `index.html`만 짧은 TTL로 두고, 나머지 자산은 매우 긴 TTL로 둔다.

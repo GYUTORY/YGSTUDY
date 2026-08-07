@@ -2,6 +2,7 @@
 title: RAG 품질 평가 - RAGAS와 TruLens 실무
 tags: [rag, evaluation, ragas, trulens, faithfulness, context-recall, answer-relevancy, llm]
 updated: 2026-08-04
+volatility: high
 ---
 
 # RAG 품질 평가

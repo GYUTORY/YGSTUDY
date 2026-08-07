@@ -2,6 +2,7 @@
 title: Claude Code 실전 팁
 tags: [ai, claude-code, anthropic, tips, productivity]
 updated: 2026-04-05
+volatility: high
 ---
 
 # Claude Code 실전 팁

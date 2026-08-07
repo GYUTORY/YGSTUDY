@@ -101,7 +101,7 @@ location ~ ^(.+\.php)(/.*)$ {
 
 `fastcgi_split_path_info`에 지정한 정규식의 첫 번째 캡처 그룹이 `$fastcgi_script_name`에, 두 번째 캡처 그룹이 `$fastcgi_path_info`에 들어간다. location 정규식도 `.php` 이후 경로를 허용하도록 `^(.+\.php)(/.*)?$` 형태로 잡아야 한다.
 
-이 설정에서 흔히 생기는 문제가 있다. `/images/photo.jpg/index.php` 같은 요청이 들어오면 `photo.jpg`가 실제로 존재하더라도 `index.php`가 `SCRIPT_FILENAME`으로 설정되어 PHP-FPM에 전달된다. Nginx가 `.php`를 찾을 때 경로 전체를 탐색하기 때문이다. 이걸 막으려면 `cgi.fix_pathinfo=0`을 `php.ini`에 설정하고, location에서 파일 존재 여부를 먼저 확인해야 한다.
+이 설정에서 흔히 생기는 문제가 있다. `/images/photo.jpg/index.php` 같은 요청이 들어오면 `photo.webp`가 실제로 존재하더라도 `index.php`가 `SCRIPT_FILENAME`으로 설정되어 PHP-FPM에 전달된다. Nginx가 `.php`를 찾을 때 경로 전체를 탐색하기 때문이다. 이걸 막으려면 `cgi.fix_pathinfo=0`을 `php.ini`에 설정하고, location에서 파일 존재 여부를 먼저 확인해야 한다.
 
 ## uWSGI 연동
 

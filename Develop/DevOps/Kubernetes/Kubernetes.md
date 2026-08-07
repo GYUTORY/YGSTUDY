@@ -1219,7 +1219,7 @@ HPA는 기본 15초 주기로 메트릭을 확인한다. 스케일업은 빠르�
 | **장점** | AWS 생태계 통합 | 가장 성숙, 비용 효율 | AD/Azure 통합 |
 | **단점** | 비교적 높은 비용 | GCP 종속 | 학습 곡선 |
 
-AWS EKS 상세는 [AWS EKS](../../AWS/Containers/EKS.md) 참조.
+AWS EKS 상세는 [AWS EKS](../../Cloud/AWS/Containers/EKS.md) 참조.
 
 ### 관리형 vs 자체 구축
 
@@ -1358,5 +1358,5 @@ kubectl run debug --image=curlimages/curl --rm -it -- \
 - [Kubernetes The Hard Way](https://github.com/kelseyhightower/kubernetes-the-hard-way) — K8s 내부를 이해하기 위한 수동 설치 가이드
 - [CNCF Landscape](https://landscape.cncf.io/) — 클라우드 네이티브 생태계 전체 지도
 - [Helm 공식 문서](https://helm.sh/docs/)
-- [AWS EKS 가이드](../../AWS/Containers/EKS.md) — AWS 환경의 Kubernetes
+- [AWS EKS 가이드](../../Cloud/AWS/Containers/EKS.md) — AWS 환경의 Kubernetes
 - [Docker Compose](Docker/Docker_Compose.md) — 로컬 개발 환경의 컨테이너 관리

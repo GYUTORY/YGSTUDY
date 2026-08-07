@@ -324,7 +324,7 @@ app.use(contentTypeGuard);
 
 ### 확장자만 검증하면 안 된다
 
-확장자를 `.jpg`로 바꿔서 `.jsp` 파일을 올리는 건 기본적인 공격이다. 파일의 실제 내용(매직 바이트)을 확인해야 한다.
+확장자를 `.webp`로 바꿔서 `.jsp` 파일을 올리는 건 기본적인 공격이다. 파일의 실제 내용(매직 바이트)을 확인해야 한다.
 
 ```typescript
 import { BadRequestException } from '@nestjs/common';
@@ -379,7 +379,7 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 
 function generateSafeFilename(originalFilename: string): string {
-  const ext = path.extname(originalFilename).toLowerCase(); // ".jpg"
+  const ext = path.extname(originalFilename).toLowerCase(); // ".webp"
   // UUID로 새 파일명을 생성하고, 확장자만 유지한다
   return `${randomUUID()}${ext}`;
 }

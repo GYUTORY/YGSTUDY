@@ -2,6 +2,7 @@
 title: LLM 에이전트 (Claude 관점)
 tags: [ai, llm, agent, claude, react, tool-use, agent-loop, planning, memory]
 updated: 2026-06-06
+volatility: high
 ---
 
 # LLM 에이전트 (Claude 관점)

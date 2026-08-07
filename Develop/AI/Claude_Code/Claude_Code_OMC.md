@@ -2,6 +2,7 @@
 title: Claude Code OMC (Orchestrated Multi-Claude)
 tags: [ai, claude-code, headless, multi-instance, git-worktree, automation]
 updated: 2026-06-29
+volatility: high
 ---
 
 # Claude Code OMC (Orchestrated Multi-Claude)

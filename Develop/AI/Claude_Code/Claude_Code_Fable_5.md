@@ -150,3 +150,7 @@ Sonnet 5는 2026-08-31까지 인트로 가격($2 입력 / $10 출력)이 적용�
 ## 7. Fast Mode 호환성
 
 `speed: "fast"` 파라미터는 **Opus 5 / Opus 4.8 전용**이다. Fable 5에서 요청하면 에러가 난다. first-party Claude API에서만 동작하며 Bedrock / Google Cloud / Microsoft Foundry는 미지원이고 Batch API와도 병용 불가다.
+
+---
+
+[^mythos]: **Claude Mythos 5** (`claude-mythos-5`)는 Fable 5와 스펙·가격이 동일하나 Project Glasswing 초대 전용이며 방어적 사이버보안 워크플로 대상 모델이다. 셀프서브 가입 경로 없음.

@@ -1,6 +1,7 @@
 ---
 title: LLM Context Window
 tags: [llm, Context Window, RoPE, YaRN, Long Context, Prompt Caching]
+volatility: high
 ---
 
 # LLM 컨텍스트 윈도우

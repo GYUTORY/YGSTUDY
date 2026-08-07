@@ -10,7 +10,7 @@ updated: 2026-06-03
 
 HTTP/3는 TCP 위에서 동작하던 이전 HTTP 버전과 달리 **QUIC** 위에서 동작하는 차세대 프로토콜이다. QUIC은 구글이 개발하고 IETF가 표준화한 UDP 기반 전송 프로토콜로, TCP의 구조적 한계를 해결한다.
 
-```
+```text
 HTTP/1.1 → TCP + TLS 1.2/1.3       → 텍스트 기반, HOL 블로킹
 HTTP/2   → TCP + TLS 1.2/1.3       → 바이너리, 멀티플렉싱 (TCP HOL 블로킹 잔존)
 HTTP/3   → QUIC (UDP 기반) + TLS 1.3 → HOL 블로킹 완전 제거, 0-RTT 연결
@@ -18,7 +18,7 @@ HTTP/3   → QUIC (UDP 기반) + TLS 1.3 → HOL 블로킹 완전 제거, 0-RTT 
 
 ### 프로토콜 스택 비교
 
-```
+```text
 ┌───────────┐  ┌───────────┐  ┌───────────┐
 │  HTTP/1.1 │  │  HTTP/2   │  │  HTTP/3   │
 ├───────────┤  ├───────────┤  ├───────────┤
@@ -44,7 +44,7 @@ QUIC이 등장한 이유를 단순히 "TCP가 느려서"라고 정리하면 핵�
 
 ### 1. Head-of-Line (HOL) 블로킹
 
-```
+```text
 HTTP/2의 멀티플렉싱 (TCP):
   Stream 1: [패킷 A] [패킷 B] [X 손실] [패킷 D]
   Stream 2: [패킷 E] [패킷 F]
@@ -64,7 +64,7 @@ TCP는 바이트 스트림 추상화를 OS 커널에서 제공한다. recv() 시
 
 ### 2. 연결 수립 지연
 
-```
+```text
 TCP + TLS 1.2:
   Client → Server: SYN                        (1 RTT)
   Client ← Server: SYN-ACK
@@ -87,7 +87,7 @@ TCP Fast Open(TFO)으로 TCP 핸드셰이크를 0 RTT로 만들려는 시도가 
 
 TCP 헤더 옵션을 새로 정의해도 인터넷 곳곳의 미들박스가 알 수 없는 옵션을 가진 세그먼트를 떨어뜨린다. 새 TCP 옵션이 실제 배포되기까지 10년 단위가 걸린 사례가 다수다. MPTCP, SACK 확장, TFO 모두 같은 문제를 겪었다.
 
-```
+```text
 TCP의 진화 정체 사례:
   ECN (RFC 3168, 2001) → 2020년대에도 일부 네트워크에서 비활성화
   TCP Fast Open (RFC 7413, 2014) → 모바일 캐리어 차단으로 실패
@@ -106,7 +106,7 @@ QUIC 패킷의 페이로드만 암호화하는 게 아니라, 거의 모든 헤�
 
 TCP는 OS 커널에 박혀 있어서 새 알고리즘을 도입하려면 커널 업그레이드가 필요하다. 서버는 그나마 가능해도 클라이언트(특히 모바일 디바이스)의 커널은 통제 불가능하다. QUIC은 유저스페이스 라이브러리로 구현되므로 애플리케이션 배포만으로 업그레이드가 끝난다.
 
-```
+```text
 TCP 혼잡 제어 알고리즘 배포:
   Linux 커널에 CUBIC 도입 (2.6.19, 2006)
   BBR 도입 (4.9, 2016)
@@ -129,7 +129,7 @@ QUIC은 스트림을 OS 커널이 아닌 애플리케이션 레이어에서 관�
 
 흐름 제어는 두 단계로 작동한다.
 
-```
+```text
 연결 레벨 흐름 제어:
   → MAX_DATA 프레임으로 전체 연결에 흐를 수 있는 바이트 한도 지정
   → 한도를 초과하면 모든 스트림 전송 중단
@@ -145,7 +145,7 @@ QUIC은 스트림을 OS 커널이 아닌 애플리케이션 레이어에서 관�
 
 QUIC은 TLS를 별도 레이어로 추가하는 게 아니라 프로토콜 내부에 통합했다. 핸드셰이크와 암호화가 동시에 이루어지므로 왕복 횟수가 줄어든다.
 
-```
+```text
 TCP+TLS의 핸드셰이크 구조:
   [TCP 핸드셰이크: 1 RTT] → [TLS 핸드셰이크: 1 RTT] → 데이터 전송
   → 직렬화된 두 단계
@@ -165,7 +165,7 @@ QUIC 도입의 가장 큰 동기 중 하나가 0-RTT 재연결이다. 모바일 
 
 ### 동작 메커니즘
 
-```
+```text
 [1차 연결: 1-RTT]
 
   Client                                                Server
@@ -203,7 +203,7 @@ QUIC 도입의 가장 큰 동기 중 하나가 0-RTT 재연결이다. 모바일 
 
 0-RTT 데이터는 PSK만 알면 누구나 만들 수 있다는 약점이 있다. 공격자가 0-RTT 패킷을 캡처해서 서버에 재전송하면, 서버는 같은 요청을 두 번 처리한다.
 
-```
+```text
 공격 시나리오:
   1. 사용자가 0-RTT로 "POST /transfer {amount: 1000}" 전송
   2. 공격자가 패킷을 캡처
@@ -214,7 +214,7 @@ QUIC 도입의 가장 큰 동기 중 하나가 0-RTT 재연결이다. 모바일 
 
 이 때문에 0-RTT 데이터의 사용 범위에 제약이 걸려 있다.
 
-```
+```text
 0-RTT 사용 가능:
   - GET, HEAD 등 멱등(idempotent) 요청
   - 캐싱된 정적 자원 요청
@@ -228,7 +228,7 @@ QUIC 도입의 가장 큰 동기 중 하나가 0-RTT 재연결이다. 모바일 
 
 서버 구현 측에서도 방어 장치를 둔다.
 
-```
+```text
 RFC 9001이 권장하는 방어:
   1. Anti-Replay Window
      → 최근 받은 0-RTT 패킷 번호를 일정 시간 기록
@@ -293,7 +293,7 @@ async def block_unsafe_early_data(request: Request, call_next):
 
 ### 0-RTT 적용 시 체감 효과
 
-```
+```text
 조건: RTT 100ms, 50KB 정적 자원 요청
 
 1-RTT (HTTP/3 일반): 100ms (핸드셰이크) + 100ms (응답) = 200ms
@@ -312,7 +312,7 @@ QUIC은 4-튜플이 아닌 Connection ID로 연결을 식별한다. 네트워크
 
 ### Connection ID 동작
 
-```
+```text
 [연결 수립]
 
   Client                                          Server
@@ -336,7 +336,7 @@ QUIC은 4-튜플이 아닌 Connection ID로 연결을 식별한다. 네트워크
 
 연결 마이그레이션이 단순히 "Connection ID만 같으면 되는" 게 아니다. 새 경로가 실제로 도달 가능한지, 그리고 그 IP가 공격자가 만든 가짜가 아닌지 검증해야 한다.
 
-```
+```text
 [마이그레이션 시 Path Validation]
 
 WiFi 환경 (IP: 192.168.1.10)
@@ -371,7 +371,7 @@ WiFi 환경 (IP: 192.168.1.10)
 
 새 네트워크 경로의 대역폭, 지연, 손실률은 이전 경로와 다르다. WiFi에서 LTE로 옮기면 RTT가 늘고 손실률이 변할 수 있다. QUIC은 마이그레이션 후 혼잡 윈도우를 초기값으로 재설정하고 슬로우 스타트부터 다시 시작한다.
 
-```
+```text
 WiFi (RTT 5ms, BW 100Mbps) → LTE (RTT 80ms, BW 20Mbps)
 
 마이그레이션 전: cwnd = 5MB (WiFi에 맞춰 성장)
@@ -385,7 +385,7 @@ WiFi (RTT 5ms, BW 100Mbps) → LTE (RTT 80ms, BW 20Mbps)
 
 모바일에서 IP가 안 바뀌어도 NAT 장비가 포트 매핑을 변경하는 경우가 있다. UDP 세션은 보통 30~60초 무활동이면 만료된다.
 
-```
+```text
 NAT Rebinding 시나리오:
   1. 클라이언트가 30초간 무통신
   2. NAT 장비가 외부 포트를 재할당
@@ -401,7 +401,7 @@ TCP였다면 같은 상황에서 RST가 발생하거나 응답이 안 와서 타
 
 서버가 클라이언트에게 "다음부터는 이 주소로 연결하라"고 안내할 수 있다. 핸드셰이크 시 전송 파라미터로 `preferred_address`를 보낸다.
 
-```
+```text
 사용 예시:
   - 글로벌 로드밸런서가 사용자를 가까운 리전으로 유도
   - 임시 IP에서 영구 IP로 마이그레이션
@@ -412,7 +412,7 @@ TCP였다면 같은 상황에서 RST가 발생하거나 응답이 안 와서 타
 
 ### 마이그레이션이 안 되는 경우
 
-```
+```text
 disable_active_migration 파라미터:
   → 서버가 이 옵션을 보내면 클라이언트는 마이그레이션을 시도하지 않음
   → 5-튜플과 connection state를 강하게 묶는 미들박스가 있는 환경에서 사용
@@ -427,7 +427,7 @@ disable_active_migration 파라미터:
 
 ### 모바일 클라이언트에서의 효과
 
-```
+```text
 실측 사례 (구글 발표 기준):
   YouTube 모바일 앱에서 QUIC 도입 후
   - 비디오 재생 중 네트워크 전환 시 끊김 빈도 30% 감소
@@ -447,7 +447,7 @@ QUIC 패킷은 크게 **Long Header**와 **Short Header** 두 가지로 나뉜�
 
 Initial, Handshake, 0-RTT 패킷에 사용된다.
 
-```
+```text
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+
@@ -472,7 +472,7 @@ Initial, Handshake, 0-RTT 패킷에 사용된다.
 
 핸드셰이크 이후 실제 데이터 전송에 사용된다. Long Header보다 오버헤드가 작다.
 
-```
+```text
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+
@@ -494,7 +494,7 @@ Initial, Handshake, 0-RTT 패킷에 사용된다.
 
 하나의 QUIC 패킷 안에 여러 프레임이 들어간다.
 
-```
+```text
 QUIC 패킷
 ├── Frame 1: STREAM (Stream ID=4, Offset=0, Data="GET /index.html")
 ├── Frame 2: ACK (Largest Ack=15, Ack Delay=3ms)
@@ -525,7 +525,7 @@ HTTP/2에서 HPACK을 쓰는 것처럼 HTTP/3에서는 QPACK을 쓴다. HPACK을
 
 HPACK은 동적 테이블을 순서대로 업데이트하는 구조다. 인코더가 "이 헤더를 인덱스 62에 넣었다"라고 하면, 디코더도 같은 순서로 받아야 62번에 같은 값이 들어간다.
 
-```
+```text
 HPACK (HTTP/2):
 
   요청 1: "content-type: application/json" → 동적 테이블 인덱스 62에 추가
@@ -544,7 +544,7 @@ QUIC에서 HPACK을 그대로 쓰면:
 
 QPACK은 이 문제를 **단방향 스트림 2개**로 해결한다.
 
-```
+```text
 ┌──────────────────────────────────────────────────────┐
 │                    QPACK 구조                         │
 │                                                       │
@@ -683,9 +683,9 @@ curl -sI https://your-domain.com | grep -i alt-svc
 - 2022년 8월부터 HTTP/3 지원
 - 배포(Distribution) 설정에서 활성화: **Supported HTTP versions → HTTP/3 체크**
 - 원본(Origin)과의 통신은 HTTP/1.1 또는 HTTP/2만 지원. CloudFront → Origin 구간은 HTTP/3를 쓰지 않는다
-- ALB(Application Load Balancer)는 2026년 현재 HTTP/3 미지원. CloudFront를 앞에 두는 구성이 필요하다
+- ALB(Application Load Balancer)는 2026-06 기준 HTTP/3 미지원. CloudFront를 앞에 두는 구성이 필요하다
 
-```
+```text
 클라이언트 ──HTTP/3──→ CloudFront ──HTTP/2──→ ALB ──HTTP/1.1──→ EC2
                        (QUIC)                 (TCP)            (TCP)
 ```
@@ -920,7 +920,7 @@ curl --http3 -H "X-Test: 0rtt" https://your-domain.com -v 2>&1 | grep -i "cf-0rt
 
 ### 직접 운영 시 주의
 
-```
+```text
 다중 서버 환경에서 0-RTT가 동작하려면:
   1. 세션 티켓 키를 서버 간 공유 (Nginx: ssl_session_ticket_key)
   2. 또는 외부 세션 캐시 (Redis 등)
@@ -938,7 +938,7 @@ curl --http3 -H "X-Test: 0rtt" https://your-domain.com -v 2>&1 | grep -i "cf-0rt
 
 Node.js의 HTTP/3 지원은 실험적이다. 실무에서는 Nginx/Caddy 등 웹서버에서 HTTP/3를 종료하고 백엔드와는 HTTP/1.1 또는 HTTP/2로 통신하는 구조가 일반적이다.
 
-```
+```text
                  [HTTP/3 (UDP 443)]
    Browser ───────────────────────────> Nginx/Caddy
                                             │
@@ -960,7 +960,7 @@ QUIC은 전송 계층 프로토콜이므로 혼잡 제어 알고리즘을 자체
 
 ### TCP와 다른 점
 
-```
+```text
 TCP 혼잡 제어:
   - 커널의 단일 알고리즘 (Linux 기본 CUBIC, BBR 옵션)
   - 한 연결의 cwnd가 패킷 손실 시 절반으로 감소
@@ -977,7 +977,7 @@ QUIC 혼잡 제어:
 
 TCP는 같은 시퀀스 번호를 재전송에도 쓰기 때문에 ACK를 받아도 그게 원본인지 재전송본인지 알 수 없다(애매한 ACK 문제). QUIC은 패킷 번호를 절대 재사용하지 않는다. 재전송할 때 새 패킷 번호를 부여한다.
 
-```
+```text
 TCP:
   원본 패킷: seq=1000 (loss)
   재전송:    seq=1000 (같은 번호)
@@ -994,7 +994,7 @@ QUIC:
 
 ### 알고리즘 선택
 
-```
+```text
 Cloudflare quiche: CUBIC 기본, BBR2 옵션
 Google QUICHE:     BBR/BBRv2 기본
 Microsoft msquic:  CUBIC 기본
@@ -1011,7 +1011,7 @@ HTTP/3 도입 후 무엇을 모니터링해야 하는지가 실무의 핵심이�
 
 ### 서버 측 메트릭
 
-```
+```text
 필수 메트릭:
   - HTTP/3 vs HTTP/2 연결 비율
   - 0-RTT 시도 수 / 0-RTT 거부 수
@@ -1043,7 +1043,7 @@ http {
 }
 ```
 
-```
+```text
 # 주요 메트릭
 nginx_http_requests_total{protocol="HTTP/3.0"}
 nginx_http_request_duration_seconds{protocol="HTTP/3.0"}
@@ -1055,7 +1055,7 @@ nginx_quic_handshakes_completed_total
 
 Chrome/Firefox는 개발자 도구에서 HTTP/3 사용 여부를 표시한다.
 
-```
+```text
 Chrome DevTools → Network → 응답 헤더 → Protocol 컬럼
   h3 → HTTP/3로 응답
   h2 → HTTP/2로 응답 (HTTP/3 시도 실패 또는 미지원)
@@ -1103,7 +1103,7 @@ qlog은 데이터 양이 매우 많아서 프로덕션 상시 활성화는 어�
 
 ### HTTP/3 연결이 안 될 때 확인 순서
 
-```
+```text
 1. UDP 443 포트 열려 있는가?
    → 서버 방화벽, 보안 그룹, 네트워크 장비 모두 확인
    → TCP 443만 열고 UDP 443을 안 여는 실수가 흔함
@@ -1121,7 +1121,7 @@ qlog은 데이터 양이 매우 많아서 프로덕션 상시 활성화는 어�
 
 ### Wireshark로 QUIC 트래픽 분석
 
-```
+```text
 # Wireshark 캡처 필터 (캡처 시)
 udp port 443
 
@@ -1168,7 +1168,7 @@ QLOGDIR=/tmp/qlogs curl --http3 https://www.cloudflare.com
 
 **문제: HTTP/3 연결 후 간헐적 타임아웃**
 
-```
+```text
 원인: 중간 네트워크 장비(NAT, 방화벽)가 UDP 세션을 빠르게 만료시킴
   → TCP는 보통 300초 이상 유지하지만
   → UDP는 30초 정도에 만료하는 장비가 있음
@@ -1181,7 +1181,7 @@ QLOGDIR=/tmp/qlogs curl --http3 https://www.cloudflare.com
 
 **문제: 특정 클라이언트에서만 HTTP/3 안 됨**
 
-```
+```text
 원인 후보:
   1. 기업 방화벽/프록시가 UDP 차단
   2. 오래된 공유기의 NAT 테이블이 QUIC Connection ID를 못 다룸
@@ -1196,7 +1196,7 @@ QLOGDIR=/tmp/qlogs curl --http3 https://www.cloudflare.com
 
 **문제: HTTP/3 활성화 후 전체적으로 느려짐**
 
-```
+```text
 원인 후보:
   1. 서버의 UDP 수신 버퍼가 작음
   2. CPU 사용량 증가 (QUIC은 유저스페이스 처리, TCP는 커널)
@@ -1218,7 +1218,7 @@ QLOGDIR=/tmp/qlogs curl --http3 https://www.cloudflare.com
 
 ### 연결 수립 시간
 
-```
+```text
 테스트 조건: 서울 → 미국 서부 (RTT ~150ms)
 
 TCP + TLS 1.2 (HTTP/1.1):
@@ -1240,7 +1240,7 @@ RTT가 높을수록 HTTP/3의 연결 수립 시간 이점이 커진다. 한국-�
 
 ### 패킷 손실 환경에서의 비교
 
-```
+```text
 테스트: 100개의 이미지(각 50KB)를 동시 요청
 네트워크: RTT 100ms
 
@@ -1269,7 +1269,7 @@ RTT가 높을수록 HTTP/3의 연결 수립 시간 이점이 커진다. 한국-�
 
 ### 서버 리소스 비교
 
-```
+```text
 동시 접속 10,000건 기준 (Nginx, 동일 하드웨어):
 
              HTTP/2 (TCP)    HTTP/3 (QUIC)
@@ -1297,7 +1297,7 @@ QUIC은 유저스페이스에서 동작하기 때문에 TCP보다 CPU와 메모�
 
 ## 언제 HTTP/3가 유리한가
 
-```
+```text
 HTTP/3 도입이 의미 있는 환경:
   - 모바일 네트워크 (WiFi ↔ LTE 전환 잦음)
   - 패킷 손실률이 높은 환경 (무선, 약한 신호)

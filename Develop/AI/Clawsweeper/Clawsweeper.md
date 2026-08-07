@@ -2,6 +2,7 @@
 title: Clawsweeper
 tags: [ai, clawsweeper, code-cleanup, dead-code, static-analysis, cli]
 updated: 2026-04-28
+volatility: high
 ---
 
 # Clawsweeper

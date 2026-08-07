@@ -84,7 +84,7 @@ default via 10.0.0.1 dev eth0 proto dhcp metric 100
 
 ## 정적 라우팅 vs 동적 라우팅
 
-정적 라우팅은 사람이 라우트를 직접 박는 방식이다. 작은 망, 경로가 거의 안 바뀌는 환경에서는 이게 제일 깔끔하다. 동작이 예측 가능하고, 라우팅 프로토콜이 CPU를 먹지도 않고, 누가 봐도 트래픽이 어디로 가는지 명확하다. 클라우드 VPC 라우팅 테이블도 본질적으로 정적 라우팅이다(자세한 건 [AWS 라우팅 테이블](../../../AWS/Network/Route_Table.md) 문서에 정리했다).
+정적 라우팅은 사람이 라우트를 직접 박는 방식이다. 작은 망, 경로가 거의 안 바뀌는 환경에서는 이게 제일 깔끔하다. 동작이 예측 가능하고, 라우팅 프로토콜이 CPU를 먹지도 않고, 누가 봐도 트래픽이 어디로 가는지 명확하다. 클라우드 VPC 라우팅 테이블도 본질적으로 정적 라우팅이다(자세한 건 [AWS 라우팅 테이블](../../../Cloud/AWS/Network/Route_Table.md) 문서에 정리했다).
 
 단점은 경로가 바뀌면 사람이 손으로 고쳐야 한다는 점이다. 링크가 끊겼을 때 우회로가 자동으로 잡히지 않는다. 라우터가 수십 대 되고 경로가 수시로 바뀌는 망에서 정적으로 관리하면 한 군데 빠뜨려서 블랙홀이 생기는 사고가 반드시 난다.
 
@@ -257,7 +257,7 @@ $ traceroute 10.0.99.10
 ## 더 볼 것
 
 - [네트워크 기초](../../Networking_Fundamentals.md) — 백엔드 관점에서 네트워크 전반을 훑는 진입 문서
-- [AWS 라우팅 테이블](../../../AWS/Network/Route_Table.md) — L3 라우팅 개념이 클라우드 VPC에서 어떻게 적용되는지
+- [AWS 라우팅 테이블](../../../Cloud/AWS/Network/Route_Table.md) — L3 라우팅 개념이 클라우드 VPC에서 어떻게 적용되는지
 - [ARP](ARP.md) — 게이트웨이의 MAC을 알아내는 과정
 - [ICMP](ICMP.md) — traceroute가 기대는 Time Exceeded와 Destination Unreachable
 - [MTU·MSS와 PMTUD](MTU_MSS_PMTUD.md) — 라우팅 블랙홀과 헷갈리는 MTU 블랙홀

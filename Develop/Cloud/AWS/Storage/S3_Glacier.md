@@ -249,7 +249,7 @@ S3 Standard-IA보다 저렴.
 복구 과정 없이 바로 다운로드한다.
 
 ```bash
-aws s3 cp s3://my-bucket/images/old-photo.jpg ./
+aws s3 cp s3://my-bucket/images/old-photo.webp ./
 ```
 
 즉시 다운로드된다.

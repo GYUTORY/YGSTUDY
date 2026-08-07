@@ -7,7 +7,7 @@ tags: [msa, aws, vpc, network, architecture]
 
 VPC 자체는 어렵지 않다. 서브넷 자르고 라우트 테이블 붙이고 NAT 박으면 끝이다. 문제는 서비스가 30개를 넘어가는 순간부터 시작된다. ECS Task가 ENI 하나씩 잡으면서 /24 서브넷이 일주일 만에 IP가 동난다거나, 신규 결제 도메인 팀이 자기네 계정에 별도 VPC를 파고 합류하는데 CIDR이 겹쳐서 Peering이 안 되거나, AZ 간 트래픽 비용이 컴퓨트보다 더 나오는 일이 흔하다.
 
-기존 [VPC.md](../../AWS/Network/VPC.md), [PrivateLink.md](../../AWS/Network/PrivateLink.md), [Transit_Gateway.md](../../AWS/Network/Transit_Gateway.md), [VPC_Peering.md](../../AWS/Network/VPC_Peering.md), [VPC_Endpoints.md](../../AWS/Network/VPC_Endpoints.md) 문서가 각 자원의 동작을 다룬다면, 이 문서는 MSA 환경에서 그것들을 언제 어떻게 조합하는지에 집중한다.
+기존 [VPC.md](../../Cloud/AWS/Network/VPC.md), [PrivateLink.md](../../Cloud/AWS/Network/PrivateLink.md), [Transit_Gateway.md](../../Cloud/AWS/Network/Transit_Gateway.md), [VPC_Peering.md](../../Cloud/AWS/Network/VPC_Peering.md), [VPC_Endpoints.md](../../Cloud/AWS/Network/VPC_Endpoints.md) 문서가 각 자원의 동작을 다룬다면, 이 문서는 MSA 환경에서 그것들을 언제 어떻게 조합하는지에 집중한다.
 
 ---
 
@@ -465,11 +465,11 @@ VPC는 한 번 잘못 설계하면 마이그레이션이 진짜 비싸다. 처�
 
 ## 관련 문서
 
-- [VPC 기본 개념](../../AWS/Network/VPC.md)
-- [VPC Peering](../../AWS/Network/VPC_Peering.md)
-- [PrivateLink](../../AWS/Network/PrivateLink.md)
-- [Transit Gateway](../../AWS/Network/Transit_Gateway.md)
-- [VPC Endpoints](../../AWS/Network/VPC_Endpoints.md)
+- [VPC 기본 개념](../../Cloud/AWS/Network/VPC.md)
+- [VPC Peering](../../Cloud/AWS/Network/VPC_Peering.md)
+- [PrivateLink](../../Cloud/AWS/Network/PrivateLink.md)
+- [Transit Gateway](../../Cloud/AWS/Network/Transit_Gateway.md)
+- [VPC Endpoints](../../Cloud/AWS/Network/VPC_Endpoints.md)
 - [서비스 디스커버리 및 API Gateway](서비스_디스커버리_및_API_Gateway.md)
 - [서비스 메시 및 사이드카 패턴](서비스_메시_및_사이드카_패턴.md)
-- [서버 간 통신 방식 정리](서버 간 통신 방식 정리.md)
+- [서버 간 통신 방식 정리](서버%20간%20통신%20방식%20정리.md)

@@ -7,7 +7,7 @@ tags: [network, cdn, cache, cloudfront, Cloudflare]
 
 CDN(Content Delivery Network)은 Origin 서버에 있는 콘텐츠를 전 세계 Edge 노드에 복제해두고, 사용자에게 가장 가까운 노드가 응답하게 만드는 분산 캐시 인프라다. 기본 개념은 간단하지만 실제 운영에서는 캐시 키 설계, Vary 헤더 처리, 무효화 비용, Signed URL 같은 부분에서 사고가 자주 난다. 한 번이라도 운영 환경에서 캐시 히트율이 갑자기 떨어지거나, 특정 사용자에게만 다른 응답이 캐싱돼서 사고를 친 경험이 있으면 이 문서가 도움이 될 것이다.
 
-브라우저/HTTP 레벨의 캐싱은 [HTTP_Caching](7 Layer/Application Layer/Http/HTTP_Caching.md)에서 다룬다. 여기서는 인프라 레벨에서 CDN이 어떻게 캐시를 보관하고 무효화하는지, 그리고 실제 CDN 벤더(CloudFront, Cloudflare, Fastly)를 운영할 때 부딪히는 문제들에 집중한다.
+브라우저/HTTP 레벨의 캐싱은 [HTTP_Caching](7%20Layer/Application%20Layer/Http/HTTP_Caching.md)에서 다룬다. 여기서는 인프라 레벨에서 CDN이 어떻게 캐시를 보관하고 무효화하는지, 그리고 실제 CDN 벤더(CloudFront, Cloudflare, Fastly)를 운영할 때 부딪히는 문제들에 집중한다.
 
 ## Origin과 Edge의 관계
 

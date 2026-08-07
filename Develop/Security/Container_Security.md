@@ -783,7 +783,7 @@ spec:
 
 ![이중 방화벽 DMZ 다이어그램 — 필요한 트래픽만 허용하는 분리 정책 시각화](../assets/images/auto/보안/4143dc9f.svg)
 
-![격리 기반 보안 시스템 다이어그램 — 횡이동 차단을 위한 네트워크 분리 개념](../assets/images/auto/보안/d47e7ba5.png)
+![격리 기반 보안 시스템 다이어그램 — 횡이동 차단을 위한 네트워크 분리 개념](../assets/images/auto/보안/d47e7ba5.webp)
 
 
 기본적으로 Kubernetes Pod은 클러스터 내 모든 Pod과 통신할 수 있다. 하나의 Pod이 뚫리면 횡이동(lateral movement)이 가능하다는 뜻이다.

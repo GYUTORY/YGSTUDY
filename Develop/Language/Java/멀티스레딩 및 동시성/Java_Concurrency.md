@@ -403,5 +403,5 @@ CPU 바운드 작업은 Virtual Thread로 전환해도 성능이 나아지지 �
 - [Java Concurrency in Practice — Brian Goetz](https://jcip.net/)
 - [Java 21 Virtual Threads](https://openjdk.org/jeps/444)
 - [멀티 스레딩 기초](Multi_Threading.md)
-- [레이스 컨디션](../../../OS/Process & Thread/레이스_컨디션.md)
-- [Deadlock](../../../OS/Process & Thread/Deadlock.md)
+- [레이스 컨디션](../../../OS/Process%20%26%20Thread/레이스_컨디션.md)
+- [Deadlock](../../../OS/Process%20%26%20Thread/Deadlock.md)

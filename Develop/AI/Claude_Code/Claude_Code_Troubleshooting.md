@@ -2,6 +2,7 @@
 title: Claude Code 트러블슈팅
 tags: [ai, claude-code, troubleshooting, cli, debugging]
 updated: 2026-04-05
+volatility: high
 ---
 
 # Claude Code 트러블슈팅

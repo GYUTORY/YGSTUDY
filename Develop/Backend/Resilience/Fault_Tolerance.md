@@ -393,7 +393,7 @@ private getUserProfileFallback(userId: string, error: Error): UserProfile {
   return {
     userId,
     name: 'Guest',
-    avatar: '/images/default-avatar.png',
+    avatar: '/images/default-avatar.webp',
   };
 }
 ```

@@ -1156,7 +1156,7 @@ Virtual Thread와 Coroutine은 행위 패턴 자체를 없애진 않는다. Stra
 ## 참고
 
 - [기본 행동 패턴 가이드](Behavioral_Pattern.md) — Strategy/Template Method/Command/State/CoR 기본 사용법
-- [Observer 패턴](Observer Pattern.md) — Observer 패턴 상세
+- [Observer 패턴](Observer%20Pattern.md) — Observer 패턴 상세
 - [Design Patterns — GoF](https://www.amazon.com/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612)
 - [Refactoring.Guru — Behavioral Patterns](https://refactoring.guru/design-patterns/behavioral-patterns)
 - [Effective Java 3rd — Item 22, 42, 43, 44](https://www.oreilly.com/library/view/effective-java-3rd/9780134686097/) — 인터페이스, 람다, 메서드 참조

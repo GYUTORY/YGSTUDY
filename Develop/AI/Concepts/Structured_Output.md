@@ -2,6 +2,7 @@
 title: Structured Output (LLM 구조화 출력 강제)
 tags: [ai, llm, structured-output, json-schema, function-calling, validation]
 updated: 2026-06-22
+volatility: high
 ---
 
 # Structured Output

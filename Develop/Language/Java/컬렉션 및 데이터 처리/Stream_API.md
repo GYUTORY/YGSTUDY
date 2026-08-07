@@ -497,6 +497,6 @@ users.stream()
 
 - [Java Stream API Documentation](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html)
 - [Optional](Optional_Concept.md) — null 안전 처리
-- [Functional Interface](../자바 디자인 패턴 및 원칙/Java_Functional_Interface.md) — 람다와 함수형 인터페이스
+- [Functional Interface](../자바%20디자인%20패턴%20및%20원칙/Java_Functional_Interface.md) — 람다와 함수형 인터페이스
 - [Collection Framework](Collection_Framework/Collection_Framework.md) — 컬렉션 기초
-- [Java 동시성](../멀티스레딩 및 동시성/Java_Concurrency.md) — Parallel Stream과 동시성
+- [Java 동시성](../멀티스레딩%20및%20동시성/Java_Concurrency.md) — Parallel Stream과 동시성

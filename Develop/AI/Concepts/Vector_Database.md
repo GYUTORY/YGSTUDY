@@ -2,6 +2,7 @@
 title: 벡터 DB 실무 비교와 운영 (pgvector·Qdrant·Pinecone·Milvus)
 tags: [ai, vector-database, pgvector, qdrant, hnsw, ivfflat]
 updated: 2026-06-22
+volatility: high
 ---
 
 # 벡터 DB 실무 비교와 운영

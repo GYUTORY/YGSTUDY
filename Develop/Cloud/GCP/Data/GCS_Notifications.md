@@ -65,7 +65,7 @@ GCS가 발행하는 이벤트는 네 가지다.
 {
   "kind": "storage#object",
   "id": "my-bucket/images/photo.jpg/1721234567890000",
-  "name": "images/photo.jpg",
+  "name": "images/photo.webp",
   "bucket": "my-bucket",
   "generation": "1721234567890000",
   "metageneration": "1",
@@ -82,7 +82,7 @@ Pub/Sub 메시지 자체에는 `attributes`도 붙는다. 이벤트 타입 구�
 {
   "eventType": "OBJECT_FINALIZE",
   "bucketId": "my-bucket",
-  "objectId": "images/photo.jpg",
+  "objectId": "images/photo.webp",
   "objectGeneration": "1721234567890000",
   "payloadFormat": "JSON_API_V1"
 }
@@ -313,7 +313,7 @@ gcloud pubsub subscriptions create test-sub \
   --topic=gcs-events
 
 # 테스트 파일 업로드
-gcloud storage cp test.jpg gs://my-image-bucket/images/test.jpg
+gcloud storage cp test.webp gs://my-image-bucket/images/test.webp
 
 # 메시지 확인 (최대 5개, 5초 대기)
 gcloud pubsub subscriptions pull test-sub \

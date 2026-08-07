@@ -2,6 +2,7 @@
 title: Gemini Code Assist & CLI 사용법
 tags: [ai, gemini, google, code-assist, gemini-cli]
 updated: 2026-06-15
+volatility: high
 ---
 
 # Gemini Code Assist & CLI
@@ -10,7 +11,7 @@ Google의 AI 코딩 도구는 두 갈래다. 하나는 IDE에 붙는 Gemini Code
 
 ## Gemini CLI
 
-![Gemini CLI 실행 화면 스크린샷](../../assets/images/auto/gemini/1bdbd627.png)
+![Gemini CLI 실행 화면 스크린샷](../../assets/images/auto/gemini/1bdbd627.webp)
 
 
 설치는 npm 글로벌이나 npx 둘 중 하나로 한다.

@@ -2,6 +2,7 @@
 title: 코딩을 위한 프롬프트 엔지니어링
 tags: [ai, prompt-engineering, coding, few-shot, chain-of-thought]
 updated: 2026-04-08
+volatility: high
 ---
 
 # 코딩을 위한 프롬프트 엔지니어링
@@ -215,7 +216,7 @@ flowchart TD
 출력: "로그인이 만료되었습니다. 다시 로그인해 주세요. (ERR_AUTH_EXPIRED)"
 
 변환 대상:
-입력: "File not found: /uploads/avatar.png"
+입력: "File not found: /uploads/avatar.webp"
 ```
 
 예시가 2~3개면 대부분 패턴을 잡는다. 복잡한 변환이면 5개까지 늘린다. 그 이상은 토큰 낭비다.

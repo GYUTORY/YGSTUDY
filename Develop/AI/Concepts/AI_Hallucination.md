@@ -2,6 +2,7 @@
 title: AI 할루시네이션 — 코드 생성에서 프로덕션 검증까지
 tags: [ai, hallucination, llm, code-generation, verification, testing]
 updated: 2026-04-08
+volatility: high
 ---
 
 # AI 할루시네이션

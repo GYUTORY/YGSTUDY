@@ -8,13 +8,13 @@ updated: 2026-05-26
 
 ALB를 만들면 `myapp-123456.ap-northeast-2.elb.amazonaws.com` 같은 DNS 이름이 나온다. 사용자가 이 주소로 접속하지는 않는다. `example.com`이나 `api.example.com`을 이 ALB에 붙이는 작업이 따로 필요하다. 작업은 두 축으로 나뉜다. 하나는 Route 53에서 도메인 이름을 ALB로 향하게 하는 레코드, 다른 하나는 HTTPS를 위한 ACM 인증서다. 이 둘은 별개라서 한쪽만 해두고 나머지를 빠뜨려 SSL 오류나 연결 실패를 보는 경우가 흔하다.
 
-이 문서는 도메인을 ALB에 연결하는 과정만 다룬다. ALB의 리스너 규칙·타깃 그룹·SNI 내부 동작은 [ALB.md](./ALB.md)에, DNS 레코드 일반론과 쿠키 스코프는 [Subdomain.md](../../Network/Domain/Subdomain.md)에, 요청이 흐르는 전체 경로는 [ALB_ECS_S3_Request_Flow.md](../Network/ALB_ECS_S3_Request_Flow.md)에 있다. 여기서는 그쪽과 겹치지 않게 연결 작업 자체만 본다.
+이 문서는 도메인을 ALB에 연결하는 과정만 다룬다. ALB의 리스너 규칙·타깃 그룹·SNI 내부 동작은 [ALB.md](./ALB.md)에, DNS 레코드 일반론과 쿠키 스코프는 [Subdomain.md](../../../Network/Domain/Subdomain.md)에, 요청이 흐르는 전체 경로는 [ALB_ECS_S3_Request_Flow.md](../Network/ALB_ECS_S3_Request_Flow.md)에 있다. 여기서는 그쪽과 겹치지 않게 연결 작업 자체만 본다.
 
 ## Route 53 alias로 ALB 연결
 
 ### zone apex에서 CNAME을 못 쓴다
 
-`api.example.com` 같은 서브도메인은 CNAME으로 ALB DNS 이름을 가리켜도 동작한다. 문제는 `example.com` 자체, 즉 zone apex(루트 도메인)다. apex에는 CNAME을 둘 수 없다. apex에는 SOA와 NS 레코드가 반드시 있어야 하는데, CNAME은 같은 이름에 다른 레코드와 공존하지 못한다는 DNS 규칙 때문이다. 자세한 배경은 [Subdomain.md](../../Network/Domain/Subdomain.md)에 정리해 뒀다.
+`api.example.com` 같은 서브도메인은 CNAME으로 ALB DNS 이름을 가리켜도 동작한다. 문제는 `example.com` 자체, 즉 zone apex(루트 도메인)다. apex에는 CNAME을 둘 수 없다. apex에는 SOA와 NS 레코드가 반드시 있어야 하는데, CNAME은 같은 이름에 다른 레코드와 공존하지 못한다는 DNS 규칙 때문이다. 자세한 배경은 [Subdomain.md](../../../Network/Domain/Subdomain.md)에 정리해 뒀다.
 
 그래서 `example.com`을 ALB에 붙이려면 Route 53의 alias 레코드를 쓴다. alias는 타입이 A(또는 AAAA)지만 IP 대신 AWS 리소스를 가리킨다. apex에서도 쓸 수 있고, 조회 시점에 ALB DNS 이름을 실제 IP 묶음으로 풀어서 A 레코드처럼 응답한다. 클라이언트는 CNAME 추적 없이 IP를 바로 받는다.
 
@@ -119,7 +119,7 @@ HTTPS 리스너를 붙이려면 인증서가 필요하다. ALB에는 ACM(AWS Cer
 
 이게 가장 먼저 막히는 지점이다. ALB에 붙일 인증서는 ALB와 같은 리전에서 발급해야 한다. 서울 리전(`ap-northeast-2`)의 ALB에는 서울 리전 ACM 인증서만 붙는다. `us-east-1`에서 발급한 인증서는 안 보인다.
 
-CloudFront는 반대로 무조건 `us-east-1` 인증서를 요구하는데(이건 [Subdomain.md](../../Network/Domain/Subdomain.md)에 정리해 뒀다), 그래서 CloudFront와 ALB를 같이 쓰는 구조면 같은 도메인 인증서를 `us-east-1`과 ALB 리전 양쪽에 각각 발급하게 된다. 인증서 ARN이 두 개가 된다. 헷갈리지 말아야 한다.
+CloudFront는 반대로 무조건 `us-east-1` 인증서를 요구하는데(이건 [Subdomain.md](../../../Network/Domain/Subdomain.md)에 정리해 뒀다), 그래서 CloudFront와 ALB를 같이 쓰는 구조면 같은 도메인 인증서를 `us-east-1`과 ALB 리전 양쪽에 각각 발급하게 된다. 인증서 ARN이 두 개가 된다. 헷갈리지 말아야 한다.
 
 ### DNS 검증 CNAME
 

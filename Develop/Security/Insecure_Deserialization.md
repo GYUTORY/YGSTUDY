@@ -7,7 +7,7 @@ tags: [security, deserialization, RCE, java, python, PHP, nodejs]
 
 역직렬화 취약점은 한 번 터지면 대부분 RCE(원격 코드 실행)로 직결된다. SQL Injection처럼 데이터만 새는 게 아니라, 공격자가 서버에서 임의 코드를 돌릴 수 있게 된다. 그런데도 코드 리뷰에서 잘 안 잡힌다. `readObject()` 한 줄, `pickle.loads()` 한 줄이 어떤 의미인지 모르고 지나가기 때문이다.
 
-직렬화 포맷 자체를 다루는 내용은 [Serialization_Formats_Deep_Dive](../DataRepresentation/Serialization_Formats_Deep_Dive.md)에 있다. 여기서는 그 포맷들이 어떻게 공격에 악용되는지, 그리고 어떻게 막는지만 본다.
+직렬화 포맷 자체를 다루는 내용은 [Serialization_Formats_Deep_Dive](../DataBase/DataRepresentation/Serialization_Formats_Deep_Dive.md)에 있다. 여기서는 그 포맷들이 어떻게 공격에 악용되는지, 그리고 어떻게 막는지만 본다.
 
 ## 직렬화와 역직렬화에서 뭐가 위험한가
 

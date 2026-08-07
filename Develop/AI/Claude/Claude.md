@@ -25,9 +25,9 @@ Claude는 세 가지 등급으로 나뉜다. 같은 세대라도 등급에 따�
 graph LR
     subgraph Claude 모델 패밀리
         direction TB
-        O["<b>상위 (Fable 5)</b><br/>최고 지능 모델<br/>━━━━━━━━━<br/>성능: 최고<br/>속도: 느림<br/>비용: $10 / $50<br/>━━━━━━━━━<br/>장기 에이전트<br/>복잡한 추론<br/>대규모 분석"]
-        S["<b>중간 (Sonnet 5)</b><br/>균형 모델<br/>━━━━━━━━━<br/>성능: 높음<br/>속도: 중간<br/>비용: $3 / $15<br/>━━━━━━━━━<br/>일반 코딩<br/>코드 리뷰<br/>문서 작성"]
-        H["<b>경량 (Haiku 4.5)</b><br/>고속 모델<br/>━━━━━━━━━<br/>성능: 보통<br/>속도: 빠름<br/>비용: $1 / $5<br/>━━━━━━━━━<br/>분류, 요약<br/>단순 변환<br/>대량 배치"]
+        O["<b>상위 (Fable 5)</b><br/>최고 지능 모델<br/>━━━━━━━━━<br/>성능: 최고<br/>속도: 느림<br/>━━━━━━━━━<br/>장기 에이전트<br/>복잡한 추론<br/>대규모 분석"]
+        S["<b>중간 (Sonnet 5)</b><br/>균형 모델<br/>━━━━━━━━━<br/>성능: 높음<br/>속도: 중간<br/>━━━━━━━━━<br/>일반 코딩<br/>코드 리뷰<br/>문서 작성"]
+        H["<b>경량 (Haiku 4.5)</b><br/>고속 모델<br/>━━━━━━━━━<br/>성능: 보통<br/>속도: 빠름<br/>━━━━━━━━━<br/>분류, 요약<br/>단순 변환<br/>대량 배치"]
     end
 
     O -->|"품질 부족 시<br/>업그레이드"| S
@@ -85,7 +85,7 @@ graph LR
   <rect x="110" y="202" width="408" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
   <!-- 컨텍스트 바 -->
   <rect x="110" y="236" width="510" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
-  <rect x="110" y="249" width="204" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
+  <rect x="110" y="249" width="510" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
   <rect x="110" y="262" width="204" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
   <!-- 범례 -->
   <rect x="200" y="296" width="14" height="14" rx="3" fill="url(#opus-grad)"/>
@@ -101,17 +101,14 @@ graph LR
   <text class="ch2-vp" x="319" y="125" font-size="10">40</text>
   <text class="ch2-vb" x="472" y="138" font-size="10">70</text>
   <text class="ch2-vg" x="625" y="151" font-size="10">100</text>
-  <text class="ch2-vp" x="196" y="185" font-size="10">$50</text>
-  <text class="ch2-vb" x="285" y="198" font-size="10">$15</text>
-  <text class="ch2-vg" x="523" y="211" font-size="10">$5</text>
   <text class="ch2-vp" x="625" y="245" font-size="10">1M</text>
-  <text class="ch2-vb" x="319" y="258" font-size="10">200K</text>
+  <text class="ch2-vb" x="625" y="258" font-size="10">1M</text>
   <text class="ch2-vg" x="319" y="271" font-size="10">200K</text>
 </svg>
 
-상위 모델(Fable 5)의 출력 단가가 $50/1M으로 Haiku 4.5의 10배다. Sonnet 5는 성능 80% 수준에서 비용이 Fable 5의 30% 수준이라 가성비가 가장 좋다. Haiku 4.5는 성능을 포기하는 대신 속도와 비용에서 이긴다.
+가격표 기준으로 Sonnet 5의 출력 단가는 Fable 5의 약 30%, Haiku 4.5는 약 10% 수준이다. Sonnet 5는 성능 80% 수준에서 비용이 Fable 5의 30% 수준이라 가성비가 가장 좋다. Haiku 4.5는 성능을 포기하는 대신 속도와 비용에서 이긴다.
 
-등급은 세대별로 갱신된다. 2026-05 기준 Claude 5 계열(Opus 5, Sonnet 5, Fable 5)이 출시됐고 Haiku 4.5는 경량 라인으로 유지 중이다. 아래 가격표 수치는 확인 후 갱신 예정이다.
+등급은 세대별로 갱신된다. 2026-05 기준 Claude 5 계열(Opus 5, Sonnet 5, Fable 5)이 출시됐고 Haiku 4.5는 경량 라인으로 유지 중이다.
 
 ### 2.1 Opus / Sonnet / Haiku
 
@@ -318,37 +315,29 @@ graph LR
     [data-md-color-scheme="slate"] .ch4-vg { fill: #6ee7b7; }
   </style>
   <rect class="ch4-bg" width="720" height="300" rx="12"/>
-  <text class="ch4-title" x="360" y="30" text-anchor="middle" font-size="15" font-weight="600">출력 토큰 1M당 비용 ($)</text>
+  <text class="ch4-title" x="360" y="30" text-anchor="middle" font-size="15" font-weight="600">출력 토큰 단가 등급 비교 (단가는 아래 가격표 참조)</text>
   <!-- Y축 눈금 -->
   <line class="ch4-axis-line" x1="100" y1="55" x2="100" y2="240" stroke-width="1"/>
   <line class="ch4-axis-line" x1="100" y1="240" x2="640" y2="240" stroke-width="1"/>
-  <text class="ch4-tick" x="90" y="63" text-anchor="end" font-size="11">$50</text>
-  <text class="ch4-tick" x="90" y="107" text-anchor="end" font-size="11">$37</text>
-  <text class="ch4-tick" x="90" y="152" text-anchor="end" font-size="11">$25</text>
-  <text class="ch4-tick" x="90" y="196" text-anchor="end" font-size="11">$12</text>
-  <text class="ch4-tick" x="90" y="244" text-anchor="end" font-size="11">$0</text>
+  <text class="ch4-tick" x="90" y="63" text-anchor="end" font-size="11">높음</text>
+  <text class="ch4-tick" x="90" y="152" text-anchor="end" font-size="11">중간</text>
+  <text class="ch4-tick" x="90" y="244" text-anchor="end" font-size="11">낮음</text>
   <line class="ch4-grid" x1="100" y1="55" x2="640" y2="55" stroke-width="0.5" stroke-dasharray="4"/>
   <line class="ch4-grid" x1="100" y1="103" x2="640" y2="103" stroke-width="0.5" stroke-dasharray="4"/>
   <line class="ch4-grid" x1="100" y1="148" x2="640" y2="148" stroke-width="0.5" stroke-dasharray="4"/>
   <line class="ch4-grid" x1="100" y1="192" x2="640" y2="192" stroke-width="0.5" stroke-dasharray="4"/>
   <!-- Fable 5 입력 바 -->
   <rect x="140" y="203" width="55" height="37" rx="4" fill="#7c3aed" opacity="0.5"/>
-  <text class="ch4-bar-label" x="167" y="225" text-anchor="middle" font-size="10">$10</text>
   <!-- Fable 5 출력 바 -->
   <rect x="200" y="55" width="55" height="185" rx="4" fill="#7c3aed"/>
-  <text class="ch4-vp" x="227" y="48" text-anchor="middle" font-size="11" font-weight="600">$50</text>
   <!-- Sonnet 5 입력 바 -->
   <rect x="320" y="229" width="55" height="11" rx="4" fill="#2563eb" opacity="0.5"/>
-  <text class="ch4-bar-label" x="347" y="224" text-anchor="middle" font-size="10">$3</text>
   <!-- Sonnet 5 출력 바 -->
   <rect x="380" y="184" width="55" height="56" rx="4" fill="#2563eb"/>
-  <text class="ch4-vb" x="407" y="178" text-anchor="middle" font-size="11" font-weight="600">$15</text>
   <!-- Haiku 4.5 입력 바 -->
   <rect x="500" y="236" width="55" height="4" rx="1" fill="#059669" opacity="0.5"/>
-  <text class="ch4-bar-label" x="527" y="231" text-anchor="middle" font-size="10">$1</text>
   <!-- Haiku 4.5 출력 바 -->
   <rect x="560" y="221" width="55" height="19" rx="4" fill="#059669"/>
-  <text class="ch4-vg" x="587" y="215" text-anchor="middle" font-size="11" font-weight="600">$5</text>
   <!-- 모델 레이블 -->
   <text class="ch4-vp" x="195" y="260" text-anchor="middle" font-size="12" font-weight="500">Fable 5</text>
   <text class="ch4-vb" x="375" y="260" text-anchor="middle" font-size="12" font-weight="500">Sonnet 5</text>
@@ -360,7 +349,9 @@ graph LR
   <text class="ch4-legend" x="378" y="289" font-size="11">출력 토큰</text>
 </svg>
 
-Fable 5의 출력 단가 $50/1M을 기준으로 Sonnet 5는 30%, Haiku 4.5는 10% 수준이다. 코드 생성처럼 출력이 긴 작업에서는 모델 선택이 비용에 직접 영향을 준다.
+아래 가격표 기준으로 Sonnet 5의 출력 단가는 Fable 5의 약 30%, Haiku 4.5는 약 10% 수준이다. 코드 생성처럼 출력이 긴 작업에서는 모델 선택이 비용에 직접 영향을 준다.
+
+기준일: 2026-08-07
 
 | 모델 | 입력 (1M 토큰) | 출력 (1M 토큰) | 입출력 비율 |
 |------|---------------|---------------|-----------|
@@ -368,6 +359,8 @@ Fable 5의 출력 단가 $50/1M을 기준으로 Sonnet 5는 30%, Haiku 4.5는 10
 | Opus 5 | $5 | $25 | 1 : 5 |
 | Sonnet 5 | $3 (↑표준가, 2026-09-01~) | $15 | 1 : 5 |
 | Haiku 4.5 | $1 | $5 | 1 : 5 |
+
+> **참고**: Claude Mythos 5(`claude-mythos-5`)는 Fable 5와 스펙·가격이 같으나 Project Glasswing 초대 전용이며 방어적 사이버보안 워크플로 전용이다. 셀프서브 가입 경로 없음.
 
 Sonnet 5는 2026-08-31까지 인트로 가격($2 입력 / $10 출력)이 적용된다. 표에는 표준가를 기재했다. 캐시·배치 단가는 [Claude Fable 5](../Claude_Code/Claude_Code_Fable_5.md)에 전체 표로 정리했다.
 
@@ -447,6 +440,14 @@ message = client.messages.create(
 ```
 
 `ttl` 필드를 빼면 5분이 적용된다. 비용 계산을 잘못하면 1시간 TTL이 더 비싸지는 경우가 있다. 캐시 히트 빈도와 캐시 쓰기 비용 증가분을 비교해야 한다. 캐시 히트가 시간당 5번 미만이면 보통 5분 TTL이 더 싸다.
+
+### 4.4 단가 라이브 확인
+
+가격은 자주 바뀐다. 위 가격표는 기준일 이후 변경됐을 수 있으니 아래 경로에서 직접 확인한다.
+
+- 모델 스펙: `client.models.retrieve("claude-fable-5")` → `max_input_tokens`, `max_tokens`, `capabilities`
+- 모델 목록: `platform.claude.com/docs/en/about-claude/models/overview`
+- 가격: `platform.claude.com/docs/en/about-claude/pricing`
 
 ---
 
@@ -691,7 +692,7 @@ API가 아닌 claude.ai 웹이나 Desktop 앱으로 사용할 때의 주요 기�
   <text class="ch7-legend" x="390" y="282" font-size="12">GPT-4o</text>
   <rect class="ch7-bar-gemini" x="470" y="270" width="14" height="14" rx="3"/>
   <text class="ch7-legend" x="490" y="282" font-size="12">Gemini</text>
-  <text class="ch7-footnote" x="360" y="305" text-anchor="middle" font-size="10">* 2026년 4월 기준 체감 비교. 벤치마크와 다를 수 있음</text>
+  <text class="ch7-footnote" x="360" y="305" text-anchor="middle" font-size="10">* 2026-08 기준 체감 비교. 벤치마크와 다를 수 있음</text>
 </svg>
 
 모든 항목에서 한 모델이 압도하는 건 아니다. Claude는 코딩과 지시 준수에서 강하고, GPT-4o는 멀티모달(이미지 생성 포함)에서 대안이 없다. Gemini는 컨텍스트 크기와 가격에서 유리하다.
@@ -714,7 +715,7 @@ API가 아닌 claude.ai 웹이나 Desktop 앱으로 사용할 때의 주요 기�
 | 항목 | Claude | Gemini |
 |------|--------|--------|
 | **코딩** | 코드 품질이 안정적 | 간단한 작업은 잘 하지만, 복잡하면 실수가 느는 편 |
-| **컨텍스트** | 200K (Opus 1M) | 1M~2M |
+| **컨텍스트** | 1M (Claude 5 전체) | 1M~2M |
 | **멀티모달** | 이미지, PDF 입력 | 이미지, 비디오, 오디오 입력 |
 | **Google 연동** | 없음 | Google Workspace, Search 연동 |
 | **가격** | 중간~높음 | 상대적으로 저렴 |
@@ -782,7 +783,7 @@ if response.stop_reason == "max_tokens":
 ```python
 import base64
 
-with open("screenshot.png", "rb") as f:
+with open("screenshot.webp", "rb") as f:
     image_data = base64.standard_b64encode(f.read()).decode("utf-8")
 
 message = client.messages.create(
@@ -824,7 +825,7 @@ message = client.messages.create(
                     "type": "image",
                     "source": {
                         "type": "url",
-                        "url": "https://example.com/static/error-screenshot.png"
+                        "url": "https://example.com/static/error-screenshot.webp"
                     }
                 },
                 {

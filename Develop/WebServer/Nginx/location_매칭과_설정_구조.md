@@ -67,7 +67,7 @@ location ~ \.php$ {
     fastcgi_pass unix:/run/php/php-fpm.sock;
 }
 
-# 대소문자 무시 - .jpg, .JPG 모두 매칭
+# 대소문자 무시 - .jpg, .webp 모두 매칭
 location ~* \.(jpg|png|gif|ico)$ {
     expires 30d;
 }

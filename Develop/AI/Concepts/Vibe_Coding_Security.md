@@ -2,6 +2,7 @@
 title: 바이브 코딩 보안 대처법
 tags: [ai, security, vibe-coding, slopsquatting, prompt-injection, sast]
 updated: 2026-06-22
+volatility: high
 ---
 
 # 바이브 코딩 보안 대처법

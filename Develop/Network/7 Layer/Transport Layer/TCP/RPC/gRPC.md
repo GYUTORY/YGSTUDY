@@ -45,7 +45,7 @@ const result = remoteFunction("hello"); // 실제로는 네트워크를 통해 �
 | 스트리밍 | 네이티브 지원 | 제한적 |
 | 브라우저 지원 | 제한적 (gRPC-Web 필요) | 완전 지원 |
 
-![gRPC & Rest.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FgRPC%20%26%20Rest.png)
+![gRPC & Rest.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FgRPC%20%26%20Rest.webp)
 
 ### 데이터 크기 비교
 
@@ -62,7 +62,7 @@ const result = remoteFunction("hello"); // 실제로는 네트워크를 통해 �
 // 바이너리 형태로 저장되어 크기가 훨씬 작음
 ```
 
-![Protocol Buffer.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FProtocol%20Buffer.png)
+![Protocol Buffer.png](..%2F..%2F..%2F..%2F..%2Fetc%2Fimage%2FNetwork_image%2F7Layer%2FgRPC%2FProtocol%20Buffer.webp)
 
 ---
 

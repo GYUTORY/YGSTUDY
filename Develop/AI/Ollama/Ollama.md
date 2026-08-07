@@ -2,6 +2,7 @@
 title: Ollama로 로컬 LLM 서빙하기 - 운영 실무
 tags: [ai, llm, ollama, local-llm, gguf, self-hosting, vllm]
 updated: 2026-06-22
+volatility: high
 ---
 
 # Ollama

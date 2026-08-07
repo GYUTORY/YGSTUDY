@@ -1,5 +1,7 @@
 최종 업데이트 2026-07-29, 버전 v1.2
 
+> **참고**: 이 파일은 GitHub 저장소 뷰어용 인덱스입니다. 배포된 문서 사이트는 MkDocs로 서빙되며 `Develop/` 디렉터리를 루트로 사용합니다.
+
 # YGSTUDY 인덱스
 
 레포 전체를 한눈에 볼 수 있도록 주제 맵과 대표 문서를 모았습니다.
@@ -15,7 +17,7 @@
 - 대표 문서:
   - [MSA 개요](Develop/Architecture/MSA/Microservices_Architecture.md)
   - [Kubernetes 핵심](Develop/DevOps/Kubernetes/Kubernetes.md)
-  - [생성 패턴](Develop/Architecture/Design Pattern/Creational_Pattern.md)
+  - [생성 패턴](Develop/Architecture/Design%20Pattern/Creational_Pattern.md)
 
 ## AWS
 
@@ -24,9 +26,9 @@
 - 선택 기준과 비용/보안 고려사항을 함께 다룹니다.
 
 - 대표 문서:
-  - [EKS](Develop/AWS/Containers/EKS.md)
-  - [ECS](Develop/AWS/Containers/ECS.md)
-  - [IAM](Develop/AWS/Security/IAM.md)
+  - [EKS](Develop/Cloud/AWS/Containers/EKS.md)
+  - [ECS](Develop/Cloud/AWS/Containers/ECS.md)
+  - [IAM](Develop/Cloud/AWS/Security/IAM.md)
 
 ## DataBase
 
@@ -35,7 +37,7 @@
 - 보안(SQL Injection)과 운영을 포함합니다.
 
 - 대표 문서:
-  - [RDBMS에서의 Index](Develop/DataBase/RDBMS/RDBMS에서의 index.md)
+  - [RDBMS에서의 Index](Develop/DataBase/RDBMS/RDBMS에서의%20index.md)
   - [Transaction & Lock](Develop/DataBase/RDBMS/Transaction_and_Lock.md)
   - [Redis](Develop/DataBase/NoSQL/Redis/Redis.md)
 
@@ -58,8 +60,8 @@
 
 - 대표 문서:
   - [JS 비동기 & Promise](Develop/Language/JavaScript/05_이벤트_루프_비동기/Async_Await_and_Promise.md)
-  - [TypeScript 유틸리티 타입](Develop/Language/TypeScript/타입 유틸리티/유틸리티 타입.md)
-  - [JVM 구조](Develop/Language/Java/JVM 관련/JVM/JVM 구조 및 메모리 관리.md)
+  - [TypeScript 유틸리티 타입](Develop/Language/TypeScript/타입%20유틸리티/유틸리티%20타입.md)
+  - [JVM 구조](Develop/Language/Java/JVM%20관련/JVM/JVM%20구조%20및%20메모리%20관리.md)
 
 ## Network
 
@@ -68,9 +70,9 @@
 - gRPC/MQTT/RPC 등 통신 스택 비교를 포함합니다.
 
 - 대표 문서:
-  - [HTTP](Develop/Network/7 Layer/Application Layer/Http/HTTP.md)
+  - [HTTP](Develop/Network/7%20Layer/Application%20Layer/Http/HTTP.md)
   - [TLS & HTTPS](Develop/Network/Security/TLS_HTTPS.md)
-  - [gRPC](Develop/Network/7 Layer/Transport Layer/TCP/RPC/gRPC.md)
+  - [gRPC](Develop/Network/7%20Layer/Transport%20Layer/TCP/RPC/gRPC.md)
 
 ## OS
 
@@ -79,9 +81,9 @@
 - 운영 관점의 핵심 체크포인트를 담았습니다.
 
 - 대표 문서:
-  - [Process & Thread](Develop/OS/Process & Thread/Process & Thread.md)
-  - [메모리 관리](Develop/OS/Memory/메모리 관리.md)
-  - [레이스 컨디션](Develop/OS/Process & Thread/레이스_컨디션.md)
+  - [Process & Thread](Develop/OS/Process%20%26%20Thread/Process%20%26%20Thread.md)
+  - [메모리 관리](Develop/OS/Memory/메모리%20관리.md)
+  - [레이스 컨디션](Develop/OS/Process%20%26%20Thread/레이스_컨디션.md)
 
 ## Security
 
@@ -114,7 +116,7 @@
 - 대표 문서:
   - [Bitbucket Pipeline](Develop/DevOps/CI_CD/Bitbucket_Pipeline.md)
   - [GitHub Actions](Develop/DevOps/CI_CD/GitHub_Actions.md)
-  - [SSM Deploy](Develop/AWS/Monitoring/SSM_Deploy.md)
+  - [SSM Deploy](Develop/Cloud/AWS/Monitoring/SSM_Deploy.md)
 
 ## DataRepresentation
 
@@ -123,9 +125,9 @@
 - 실제 버그로 이어지는 함정도 함께 다룹니다.
 
 - 대표 문서:
-  - [2진수→16진수 변환](Develop/DataRepresentation/2진수를 16진수로 변환하는 방법.md)
-  - [Buffer](Develop/DataRepresentation/Buffer.md)
-  - [Base64](Develop/DataRepresentation/Encoding/Base64.md)
+  - [2진수→16진수 변환](Develop/DataBase/DataRepresentation/Binary_Hex_Conversion_Deep_Dive.md)
+  - [Buffer](Develop/DataBase/DataRepresentation/Buffer.md)
+  - [Base64](Develop/DataBase/DataRepresentation/Encoding/Base64.md)
 
 ---
 

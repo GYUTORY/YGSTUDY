@@ -524,10 +524,10 @@ switch (key.hashCode()) {
 
 ```java
 // 안전하지 않다
-if (path.toLowerCase().endsWith(".jpg")) { ... }
+if (path.toLowerCase().endsWith(".webp")) { ... }
 
 // 항상 이렇게 쓴다
-if (path.toLowerCase(Locale.ROOT).endsWith(".jpg")) { ... }
+if (path.toLowerCase(Locale.ROOT).endsWith(".webp")) { ... }
 ```
 
 `equalsIgnoreCase`는 내부적으로 Locale을 타지 않는 간이 비교라 대부분의 경우 안전하지만, 특수한 유니코드 케이스에서는 여전히 문제가 될 수 있다. 비교 기준이 중요한 도메인에서는 `java.text.Collator`를 검토한다.
