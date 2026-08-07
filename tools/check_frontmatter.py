@@ -19,6 +19,7 @@ REQUIRED_FIELDS = ["title", "tags", "updated"]
 FRONT_MATTER_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 
 SKIP_DIRS = {"_hub"}
+SKIP_FILES = {"index.md", "todo.md", "404.md"}
 
 
 def check_file(md: Path) -> list[str]:
@@ -53,6 +54,8 @@ def main():
 
     for md in sorted(DOCS_DIR.rglob("*.md")):
         if args.skip_hub and "_hub" in md.parts:
+            continue
+        if md.name in SKIP_FILES:
             continue
         missing = check_file(md)
         if missing:
