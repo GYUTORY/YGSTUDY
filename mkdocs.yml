@@ -11,6 +11,7 @@ docs_dir: Develop
 hooks:
   - tools/volatility_banner.py
   - tools/inject_build_meta.py
+  - tools/related_docs.py
 
 theme:
   name: material
