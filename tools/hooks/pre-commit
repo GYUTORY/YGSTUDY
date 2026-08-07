@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""
+pre-commit 훅: 스테이징된 .md 파일의 updated 필드를 오늘 날짜로 자동 갱신.
+
+설치: bash tools/install_hooks.sh
+"""
+
+import re
+import subprocess
+import sys
+from datetime import date
+from pathlib import Path
+
+TODAY = date.today().isoformat()
+FM_END_RE = re.compile(r'^---\s*$', re.MULTILINE)
+UPDATED_RE = re.compile(r'^(updated\s*:\s*).*$', re.MULTILINE)
+
+
+def get_staged_md_files() -> list[Path]:
+    result = subprocess.run(
+        ['git', 'diff', '--cached', '--name-only', '--diff-filter=ACM'],
+        capture_output=True, text=True
+    )
+    return [
+        Path(p) for p in result.stdout.splitlines()
+        if p.endswith('.md')
+    ]
+
+
+def update_file(path: Path) -> bool:
+    """updated 필드 갱신. 변경되었으면 True."""
+    try:
+        content = path.read_text(encoding='utf-8')
+    except Exception:
+        return False
+
+    if not content.startswith('---'):
+        return False
+
+    # 프론트매터 끝 위치 찾기
+    matches = list(FM_END_RE.finditer(content, 3))
+    if not matches:
+        return False
+
+    fm_end = matches[0].end()
+    fm = content[3:matches[0].start()]
+
+    if 'updated' in fm:
+        new_fm = UPDATED_RE.sub(rf'\g<1>{TODAY}', fm)
+    else:
+        new_fm = fm.rstrip() + f'\nupdated: {TODAY}\n'
+
+    new_content = '---' + new_fm + '---' + content[fm_end:]
+    if new_content == content:
+        return False
+
+    path.write_text(new_content, encoding='utf-8')
+    return True
+
+
+def main():
+    files = get_staged_md_files()
+    updated = []
+
+    for f in files:
+        if not f.exists():
+            continue
+        if update_file(f):
+            subprocess.run(['git', 'add', str(f)])
+            updated.append(f)
+
+    if updated:
+        print(f'[pre-commit] updated 필드 갱신: {len(updated)}개 파일')
+        for f in updated:
+            print(f'  {f}')
+
+    sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()

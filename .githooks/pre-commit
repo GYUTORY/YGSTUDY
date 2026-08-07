@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# pre-commit: 스테이지된 .md 파일의 updated 필드를 오늘 날짜로 자동 갱신
+# 적용: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+TODAY=$(date +%Y-%m-%d)
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+CHANGED=0
+
+for file in $STAGED; do
+  [ -f "$file" ] || continue
+
+  if ! head -1 "$file" | grep -q '^---'; then
+    continue
+  fi
+
+  if grep -q '^updated:' "$file"; then
+    sed -i "s|^updated:.*|updated: $TODAY|" "$file"
+  else
+    # 두 번째 --- 직전에 삽입
+    awk -v today="$TODAY" '
+      /^---/ { dash++; if (dash == 2) { print "updated: " today } }
+      { print }
+    ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  fi
+
+  git add "$file"
+  CHANGED=1
+done
+
+if [ "$CHANGED" -eq 1 ]; then
+  echo "[pre-commit] updated: $TODAY 로 자동 갱신 완료"
+fi
