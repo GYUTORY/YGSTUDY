@@ -1,7 +1,8 @@
 ---
 title: Claude
 tags: [ai, claude, anthropic, llm, api]
-updated: 2026-05-29
+updated: 2026-08-07
+volatility: high
 ---
 
 # Claude
@@ -10,7 +11,7 @@ updated: 2026-05-29
 
 Anthropic이 만든 대규모 언어 모델이다. GPT-4o, Gemini와 함께 현재 실무에서 가장 많이 쓰이는 LLM 중 하나다.
 
-Constitutional AI라는 자체 안전 학습 방식을 적용했고, 코딩·분석·글쓰기 등 범용 작업에서 높은 성능을 보인다. 2025년 기준 Claude 3.5 시리즈에서 Claude 4 시리즈로 넘어왔고, 2026년 현재 Opus는 4.8, Sonnet은 4.6, Haiku는 4.5가 최신이다. Opus는 4.6 → 4.7 → 4.8로 올라왔다.
+Constitutional AI라는 자체 안전 학습 방식을 적용했고, 코딩·분석·글쓰기 등 범용 작업에서 높은 성능을 보인다. 2025년 기준 Claude 3.5 시리즈에서 Claude 4 시리즈로 넘어왔고, 2026-05 기준 Claude 5 계열(Opus 5, Sonnet 5, Fable 5)이 출시됐다. 경량 라인은 Haiku 4.5가 여전히 현역이다.
 
 ---
 
@@ -24,9 +25,9 @@ Claude는 세 가지 등급으로 나뉜다. 같은 세대라도 등급에 따�
 graph LR
     subgraph Claude 모델 패밀리
         direction TB
-        O["<b>Opus</b><br/>최상위 모델<br/>━━━━━━━━━<br/>성능: 최고<br/>속도: 느림<br/>비용: $15 / $75<br/>━━━━━━━━━<br/>복잡한 코드 분석<br/>대규모 리팩토링<br/>고난도 추론"]
-        S["<b>Sonnet</b><br/>중간 모델<br/>━━━━━━━━━<br/>성능: 높음<br/>속도: 중간<br/>비용: $3 / $15<br/>━━━━━━━━━<br/>일반 코딩<br/>코드 리뷰<br/>문서 작성"]
-        H["<b>Haiku</b><br/>경량 모델<br/>━━━━━━━━━<br/>성능: 보통<br/>속도: 빠름<br/>비용: $0.80 / $4<br/>━━━━━━━━━<br/>분류, 요약<br/>단순 변환<br/>대량 배치"]
+        O["<b>상위 (Fable 5)</b><br/>최고 지능 모델<br/>━━━━━━━━━<br/>성능: 최고<br/>속도: 느림<br/>비용: $10 / $50<br/>━━━━━━━━━<br/>장기 에이전트<br/>복잡한 추론<br/>대규모 분석"]
+        S["<b>중간 (Sonnet 5)</b><br/>균형 모델<br/>━━━━━━━━━<br/>성능: 높음<br/>속도: 중간<br/>비용: $3 / $15<br/>━━━━━━━━━<br/>일반 코딩<br/>코드 리뷰<br/>문서 작성"]
+        H["<b>경량 (Haiku 4.5)</b><br/>고속 모델<br/>━━━━━━━━━<br/>성능: 보통<br/>속도: 빠름<br/>비용: $1 / $5<br/>━━━━━━━━━<br/>분류, 요약<br/>단순 변환<br/>대량 배치"]
     end
 
     O -->|"품질 부족 시<br/>업그레이드"| S
@@ -79,20 +80,20 @@ graph LR
   <rect x="110" y="129" width="357" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
   <rect x="110" y="142" width="510" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
   <!-- 비용(역) 바 — 저렴할수록 길다 -->
-  <rect x="110" y="176" width="54" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
+  <rect x="110" y="176" width="81" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
   <rect x="110" y="189" width="170" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
-  <rect x="110" y="202" width="510" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
+  <rect x="110" y="202" width="408" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
   <!-- 컨텍스트 바 -->
   <rect x="110" y="236" width="510" height="10" rx="5" fill="url(#opus-grad)" opacity="0.9"/>
   <rect x="110" y="249" width="204" height="10" rx="5" fill="url(#sonnet-grad)" opacity="0.9"/>
   <rect x="110" y="262" width="204" height="10" rx="5" fill="url(#haiku-grad)" opacity="0.9"/>
   <!-- 범례 -->
   <rect x="200" y="296" width="14" height="14" rx="3" fill="url(#opus-grad)"/>
-  <text class="ch2-legend" x="220" y="308" font-size="12">Opus 4.8</text>
+  <text class="ch2-legend" x="220" y="308" font-size="12">Opus (상위)</text>
   <rect x="310" y="296" width="14" height="14" rx="3" fill="url(#sonnet-grad)"/>
-  <text class="ch2-legend" x="330" y="308" font-size="12">Sonnet 4.6</text>
+  <text class="ch2-legend" x="330" y="308" font-size="12">Sonnet (중간)</text>
   <rect x="430" y="296" width="14" height="14" rx="3" fill="url(#haiku-grad)"/>
-  <text class="ch2-legend" x="450" y="308" font-size="12">Haiku 4.5</text>
+  <text class="ch2-legend" x="450" y="308" font-size="12">Haiku (경량)</text>
   <!-- 값 표시 -->
   <text class="ch2-vp" x="625" y="65" font-size="10">100</text>
   <text class="ch2-vb" x="523" y="78" font-size="10">80</text>
@@ -100,17 +101,17 @@ graph LR
   <text class="ch2-vp" x="319" y="125" font-size="10">40</text>
   <text class="ch2-vb" x="472" y="138" font-size="10">70</text>
   <text class="ch2-vg" x="625" y="151" font-size="10">100</text>
-  <text class="ch2-vp" x="169" y="185" font-size="10">$75</text>
+  <text class="ch2-vp" x="196" y="185" font-size="10">$50</text>
   <text class="ch2-vb" x="285" y="198" font-size="10">$15</text>
-  <text class="ch2-vg" x="625" y="211" font-size="10">$4</text>
+  <text class="ch2-vg" x="523" y="211" font-size="10">$5</text>
   <text class="ch2-vp" x="625" y="245" font-size="10">1M</text>
   <text class="ch2-vb" x="319" y="258" font-size="10">200K</text>
   <text class="ch2-vg" x="319" y="271" font-size="10">200K</text>
 </svg>
 
-Opus는 성능과 컨텍스트(1M 확장)에서 압도적이지만 출력 토큰 단가가 $75/1M으로 Haiku의 약 19배다. Sonnet은 성능 80% 수준에서 비용이 Opus의 1/5이라 가성비가 가장 좋다. Haiku는 성능을 포기하는 대신 속도와 비용에서 이긴다.
+상위 모델(Fable 5)의 출력 단가가 $50/1M으로 Haiku 4.5의 10배다. Sonnet 5는 성능 80% 수준에서 비용이 Fable 5의 30% 수준이라 가성비가 가장 좋다. Haiku 4.5는 성능을 포기하는 대신 속도와 비용에서 이긴다.
 
-등급은 세대별로 갱신된다. 2026년 현재 Opus는 4.8, Sonnet은 4.6, Haiku는 4.5가 최신이다. Opus 계열은 4.6 → 4.7 → 4.8로 올라오면서 추론 깊이와 도구 호출 판단이 바뀌었지만, 단가와 컨텍스트 한도는 4.6 이후 그대로다. 위 다이어그램의 Opus 수치($15/$75, 1M 확장)는 4.8에도 동일하게 적용된다. Opus 4.8의 세부 변경점과 4.7 대비 차이, 1M variant 비용 패턴은 [Claude Opus 4.8](./Claude_Opus_4_8.md) 문서에 따로 정리했다.
+등급은 세대별로 갱신된다. 2026-05 기준 Claude 5 계열(Opus 5, Sonnet 5, Fable 5)이 출시됐고 Haiku 4.5는 경량 라인으로 유지 중이다. 아래 가격표 수치는 확인 후 갱신 예정이다.
 
 ### 2.1 Opus / Sonnet / Haiku
 
@@ -321,36 +322,36 @@ graph LR
   <!-- Y축 눈금 -->
   <line class="ch4-axis-line" x1="100" y1="55" x2="100" y2="240" stroke-width="1"/>
   <line class="ch4-axis-line" x1="100" y1="240" x2="640" y2="240" stroke-width="1"/>
-  <text class="ch4-tick" x="90" y="63" text-anchor="end" font-size="11">$75</text>
-  <text class="ch4-tick" x="90" y="107" text-anchor="end" font-size="11">$56</text>
-  <text class="ch4-tick" x="90" y="152" text-anchor="end" font-size="11">$37</text>
-  <text class="ch4-tick" x="90" y="196" text-anchor="end" font-size="11">$19</text>
+  <text class="ch4-tick" x="90" y="63" text-anchor="end" font-size="11">$50</text>
+  <text class="ch4-tick" x="90" y="107" text-anchor="end" font-size="11">$37</text>
+  <text class="ch4-tick" x="90" y="152" text-anchor="end" font-size="11">$25</text>
+  <text class="ch4-tick" x="90" y="196" text-anchor="end" font-size="11">$12</text>
   <text class="ch4-tick" x="90" y="244" text-anchor="end" font-size="11">$0</text>
   <line class="ch4-grid" x1="100" y1="55" x2="640" y2="55" stroke-width="0.5" stroke-dasharray="4"/>
   <line class="ch4-grid" x1="100" y1="103" x2="640" y2="103" stroke-width="0.5" stroke-dasharray="4"/>
   <line class="ch4-grid" x1="100" y1="148" x2="640" y2="148" stroke-width="0.5" stroke-dasharray="4"/>
   <line class="ch4-grid" x1="100" y1="192" x2="640" y2="192" stroke-width="0.5" stroke-dasharray="4"/>
-  <!-- Opus 입력 바 -->
+  <!-- Fable 5 입력 바 -->
   <rect x="140" y="203" width="55" height="37" rx="4" fill="#7c3aed" opacity="0.5"/>
-  <text class="ch4-bar-label" x="167" y="225" text-anchor="middle" font-size="10">$15</text>
-  <!-- Opus 출력 바 -->
+  <text class="ch4-bar-label" x="167" y="225" text-anchor="middle" font-size="10">$10</text>
+  <!-- Fable 5 출력 바 -->
   <rect x="200" y="55" width="55" height="185" rx="4" fill="#7c3aed"/>
-  <text class="ch4-vp" x="227" y="48" text-anchor="middle" font-size="11" font-weight="600">$75</text>
-  <!-- Sonnet 입력 바 -->
-  <rect x="320" y="233" width="55" height="7" rx="4" fill="#2563eb" opacity="0.5"/>
-  <text class="ch4-bar-label" x="347" y="228" text-anchor="middle" font-size="10">$3</text>
-  <!-- Sonnet 출력 바 -->
-  <rect x="380" y="203" width="55" height="37" rx="4" fill="#2563eb"/>
-  <text class="ch4-vb" x="407" y="197" text-anchor="middle" font-size="11" font-weight="600">$15</text>
-  <!-- Haiku 입력 바 -->
-  <rect x="500" y="238" width="55" height="2" rx="1" fill="#059669" opacity="0.5"/>
-  <text class="ch4-bar-label" x="527" y="234" text-anchor="middle" font-size="10">$0.8</text>
-  <!-- Haiku 출력 바 -->
-  <rect x="560" y="230" width="55" height="10" rx="4" fill="#059669"/>
-  <text class="ch4-vg" x="587" y="225" text-anchor="middle" font-size="11" font-weight="600">$4</text>
+  <text class="ch4-vp" x="227" y="48" text-anchor="middle" font-size="11" font-weight="600">$50</text>
+  <!-- Sonnet 5 입력 바 -->
+  <rect x="320" y="229" width="55" height="11" rx="4" fill="#2563eb" opacity="0.5"/>
+  <text class="ch4-bar-label" x="347" y="224" text-anchor="middle" font-size="10">$3</text>
+  <!-- Sonnet 5 출력 바 -->
+  <rect x="380" y="184" width="55" height="56" rx="4" fill="#2563eb"/>
+  <text class="ch4-vb" x="407" y="178" text-anchor="middle" font-size="11" font-weight="600">$15</text>
+  <!-- Haiku 4.5 입력 바 -->
+  <rect x="500" y="236" width="55" height="4" rx="1" fill="#059669" opacity="0.5"/>
+  <text class="ch4-bar-label" x="527" y="231" text-anchor="middle" font-size="10">$1</text>
+  <!-- Haiku 4.5 출력 바 -->
+  <rect x="560" y="221" width="55" height="19" rx="4" fill="#059669"/>
+  <text class="ch4-vg" x="587" y="215" text-anchor="middle" font-size="11" font-weight="600">$5</text>
   <!-- 모델 레이블 -->
-  <text class="ch4-vp" x="195" y="260" text-anchor="middle" font-size="12" font-weight="500">Opus 4.8</text>
-  <text class="ch4-vb" x="375" y="260" text-anchor="middle" font-size="12" font-weight="500">Sonnet 4.6</text>
+  <text class="ch4-vp" x="195" y="260" text-anchor="middle" font-size="12" font-weight="500">Fable 5</text>
+  <text class="ch4-vb" x="375" y="260" text-anchor="middle" font-size="12" font-weight="500">Sonnet 5</text>
   <text class="ch4-vg" x="555" y="260" text-anchor="middle" font-size="12" font-weight="500">Haiku 4.5</text>
   <!-- 범례 -->
   <rect x="240" y="278" width="12" height="12" rx="2" fill="#7c3aed" opacity="0.5"/>
@@ -359,19 +360,18 @@ graph LR
   <text class="ch4-legend" x="378" y="289" font-size="11">출력 토큰</text>
 </svg>
 
-그래프로 보면 Opus의 출력 토큰 비용이 얼마나 큰지 체감된다. Sonnet 출력 단가가 Opus의 1/5, Haiku의 출력 단가는 Opus의 약 1/19 수준이다. 코드 생성처럼 출력이 긴 작업에서는 모델 선택이 비용에 직접적으로 영향을 준다.
+Fable 5의 출력 단가 $50/1M을 기준으로 Sonnet 5는 30%, Haiku 4.5는 10% 수준이다. 코드 생성처럼 출력이 긴 작업에서는 모델 선택이 비용에 직접 영향을 준다.
 
-| 모델 (현행 최신) | 입력 (1M 토큰) | 출력 (1M 토큰) | 입출력 비율 |
-|-----------------|---------------|---------------|-----------|
-| Opus 4.8 | $15 | $75 | 1 : 5 |
-| Sonnet 4.6 | $3 | $15 | 1 : 5 |
-| Haiku 4.5 | $0.80 | $4 | 1 : 5 |
+| 모델 | 입력 (1M 토큰) | 출력 (1M 토큰) | 입출력 비율 |
+|------|---------------|---------------|-----------|
+| Fable 5 | $10 | $50 | 1 : 5 |
+| Opus 5 | $5 | $25 | 1 : 5 |
+| Sonnet 5 | $3 (↑표준가, 2026-09-01~) | $15 | 1 : 5 |
+| Haiku 4.5 | $1 | $5 | 1 : 5 |
 
-모든 모델에서 출력이 입력의 5배다. 출력을 많이 생성하는 작업(코드 생성, 긴 문서 작성)일수록 비용이 크게 늘어난다.
+Sonnet 5는 2026-08-31까지 인트로 가격($2 입력 / $10 출력)이 적용된다. 표에는 표준가를 기재했다. 캐시·배치 단가는 [Claude Fable 5](../Claude_Code/Claude_Code_Fable_5.md)에 전체 표로 정리했다.
 
-Opus 단가는 4.6 → 4.7 → 4.8을 거치며 그대로 유지됐다. 모델만 4.8로 올려도 표의 단가는 바뀌지 않는다. 다만 4.8은 어려운 문제에서 추론·출력 토큰을 더 쓰는 경향이 있어, 단가가 같아도 청구서가 움직이는 경우가 있다.
-
-가격은 수시로 변동되니 공식 문서를 확인해야 한다. Opus는 출력 토큰 단가가 Haiku의 거의 20배다. Opus 4.8을 1M 컨텍스트 variant(`claude-opus-4-8[1m]`)로 쓰면 입력이 200K를 넘는 순간부터 단가가 뛴다(200K 초과분 입력 $30/1M, 출력 $112.5/1M). 1M variant의 비용 계산 예시는 [Claude Opus 4.8](./Claude_Opus_4_8.md)에 정리했다.
+모델마다 출력 토큰 단가가 입력의 수 배에서 수십 배까지 차이 난다. 코드 생성처럼 출력이 긴 작업일수록 모델 선택이 비용에 직접 영향을 준다.
 
 ### 4.2 토큰 계산 시 주의사항
 
@@ -456,13 +456,19 @@ message = client.messages.create(
 
 | 모델 | 컨텍스트 윈도우 |
 |------|----------------|
-| Claude 4.8 Opus | 200K (1M 확장 지원) |
-| Claude 4.6 Sonnet | 200K |
-| Claude 4.5 Haiku | 200K |
+| Claude Fable 5 | 1M 토큰 (기본) |
+| Claude Opus 5 | 1M 토큰 (기본) |
+| Claude Sonnet 5 | 1M 토큰 (기본) |
+| Claude Haiku 4.5 | 200K 토큰 |
 
-200K 토큰은 대략 코드 파일 수백 개, 일반 텍스트 기준 책 한 권 분량이다.
+Claude 5 계열(Fable 5 / Opus 5 / Sonnet 5)은 1M 토큰이 기본값이다. 4.8 세대의 `[1m]` variant처럼 별도 모델 ID가 필요하지 않다.
 
-1M 확장은 Opus 계열만 별도 variant로 지원한다. Opus 4.8의 1M variant(`claude-opus-4-8[1m]`)는 200K를 넘는 입력에서 단가가 따로 붙고, 4.7보다 중간 영역 회수율이 올라갔다. 모델 ID 구분, 1M 진입 시 비용·rate limit 동작은 [Claude Opus 4.8](./Claude_Opus_4_8.md)에 정리했다.
+1M 토큰이라도 Claude 4.6 세대와 담기는 글자 수는 다르다. Opus 4.7부터 새 토크나이저가 도입돼 같은 텍스트가 약 30% 더 많은 토큰이 된다.
+
+| 세대 | 1M 토큰의 실제 글자 수 |
+|------|----------------------|
+| Fable 5 / Opus 5 / Sonnet 5 | ~55.5만 단어 / 유니코드 250만 자 |
+| Opus 4.6 / Sonnet 4.6 세대 | ~75만 단어 / 유니코드 340만 자 |
 
 ### 컨텍스트 윈도우 구성 시각화
 
