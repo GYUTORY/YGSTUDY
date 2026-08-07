@@ -61,7 +61,7 @@
 - 대표 문서:
   - [JS 비동기 & Promise](Develop/Language/JavaScript/05_이벤트_루프_비동기/Async_Await_and_Promise.md)
   - [TypeScript 유틸리티 타입](Develop/Language/TypeScript/타입%20유틸리티/유틸리티%20타입.md)
-  - [JVM 구조](Develop/Language/Java/JVM%20관련/JVM/JVM%20구조%20및%20메모리%20관리.md)
+  - [JVM 구조](Develop/Language/Java/JVM%20관련/JVM%20구조%20및%20메모리%20관리.md)
 
 ## Network
 
