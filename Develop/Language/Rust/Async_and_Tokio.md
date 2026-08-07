@@ -1,6 +1,7 @@
 ---
 title: Rust async/await와 Tokio
 tags: [Rust, async, Tokio, Future, concurrency]
+updated: 2026-08-02
 ---
 
 # Rust async/await와 Tokio

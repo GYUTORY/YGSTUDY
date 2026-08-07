@@ -1,6 +1,7 @@
 ---
 title: AWS VPC MSA 네트워크 설계
 tags: [msa, aws, vpc, network, architecture]
+updated: 2026-08-07
 ---
 
 # AWS VPC를 MSA에서 어떻게 설계할 것인가

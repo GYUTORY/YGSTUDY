@@ -1,6 +1,7 @@
 ---
 title: ECS Task 스케일 아웃에 따른 DB 커넥션 풀 관리
 tags: [aws, ecs, rds, aurora, hikaricp, pgbouncer, rds-proxy, 운영]
+updated: 2026-08-05
 ---
 
 # ECS Task 스케일 아웃에 따른 DB 커넥션 풀 관리

@@ -1,6 +1,7 @@
 ---
 title: 라우터 — 패킷이 다음 홉을 찾는 방법
 tags: [network, Router, routing, Layer3, OSPF, BGP, iproute2]
+updated: 2026-08-07
 ---
 
 # 라우터 — 패킷이 다음 홉을 찾는 방법

@@ -1,6 +1,7 @@
 ---
 title: AbortController로 비동기 작업 취소하기
 tags: [nodejs, AbortController, AbortSignal, 비동기, 취소, 타임아웃]
+updated: 2026-08-02
 ---
 
 # AbortController로 비동기 작업 취소하기

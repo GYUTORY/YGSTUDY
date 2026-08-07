@@ -1,6 +1,7 @@
 ---
 title: JavaScript 호이스팅(Hoisting)
 tags: [javascript, Hoisting, TDZ, var, let, const]
+updated: 2026-08-02
 ---
 
 # JavaScript 호이스팅(Hoisting)

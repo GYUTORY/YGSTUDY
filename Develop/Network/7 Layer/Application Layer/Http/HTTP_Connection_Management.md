@@ -1,6 +1,7 @@
 ---
 title: HTTP 커넥션 관리
 tags: [http, Connection, keep-alive, connection-pool, tcp, nginx, spring]
+updated: 2026-08-02
 ---
 
 # HTTP 커넥션 관리

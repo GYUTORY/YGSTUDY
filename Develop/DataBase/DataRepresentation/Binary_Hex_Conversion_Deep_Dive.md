@@ -1,6 +1,7 @@
 ---
 title: 2진수와 16진수 변환 심화
 tags: [datarepresentation, binary, hexadecimal, TwosComplement, IEEE754, Endianness]
+updated: 2026-08-07
 ---
 
 # 2진수와 16진수 변환 심화

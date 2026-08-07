@@ -1,6 +1,7 @@
 ---
 title: Node.js 그레이스풀 셧다운 실무
 tags: [nodejs, graceful-shutdown, sigterm, kubernetes, http, Production]
+updated: 2026-08-02
 ---
 
 # Node.js 그레이스풀 셧다운 실무

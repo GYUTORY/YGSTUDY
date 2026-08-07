@@ -1,6 +1,7 @@
 ---
 title: UUIDv4 — 실무에서 쓰다 보면 생기는 문제들
 tags: [uuid, UUIDv4, backend, database, security]
+updated: 2026-08-02
 ---
 
 # UUIDv4 — 실무에서 쓰다 보면 생기는 문제들

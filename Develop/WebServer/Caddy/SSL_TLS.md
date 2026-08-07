@@ -1,6 +1,7 @@
 ---
 title: Caddy SSL/TLS 심화
 tags: [webserver, Caddy, ssl, tls, https, ACME, lets-encrypt, mtls]
+updated: 2026-08-02
 ---
 
 # Caddy SSL/TLS 심화

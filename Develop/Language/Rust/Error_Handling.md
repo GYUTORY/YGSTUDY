@@ -1,6 +1,7 @@
 ---
 title: Rust 에러 처리
 tags: [Rust, error-handling, Result, Option, thiserror, anyhow]
+updated: 2026-08-02
 ---
 
 # Rust 에러 처리

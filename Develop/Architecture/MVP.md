@@ -1,6 +1,7 @@
 ---
 title: MVP (Minimum Viable Product)
 tags: [architecture, MVP, Product, backend, Startup]
+updated: 2026-08-02
 ---
 
 # MVP (Minimum Viable Product)

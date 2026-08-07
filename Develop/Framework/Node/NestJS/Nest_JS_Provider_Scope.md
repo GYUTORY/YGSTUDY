@@ -1,6 +1,7 @@
 ---
 title: NestJS Provider Scope 심화
 tags: [nestjs, provider, scope, di, request-scope, asynclocalstorage, durable-provider, multi-tenancy]
+updated: 2026-08-02
 ---
 
 # NestJS Provider Scope 심화

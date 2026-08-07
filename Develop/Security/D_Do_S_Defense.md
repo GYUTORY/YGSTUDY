@@ -1,6 +1,7 @@
 ---
 title: DDoS 공격 방어
 tags: [security, ddos, network, rate-limiting, Cloudflare, AWS-Shield]
+updated: 2026-08-02
 ---
 
 # DDoS 공격 방어

@@ -1,6 +1,7 @@
 ---
 title: Lambda VPC 연동 심화
 tags: [aws, lambda, vpc, eni, networking, serverless]
+updated: 2026-08-05
 ---
 
 # Lambda VPC 연동 심화

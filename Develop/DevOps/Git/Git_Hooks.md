@@ -1,6 +1,7 @@
 ---
 title: Git Hooks 실무
 tags: [Git, hooks, ci]
+updated: 2026-08-05
 ---
 
 # Git Hooks 실무

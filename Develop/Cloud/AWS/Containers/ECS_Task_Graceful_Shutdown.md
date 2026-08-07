@@ -1,6 +1,7 @@
 ---
 title: ECS Task Graceful Shutdown
 tags: [aws, ecs, fargate, alb, sigterm, graceful-shutdown, 운영]
+updated: 2026-08-05
 ---
 
 # ECS Task Graceful Shutdown

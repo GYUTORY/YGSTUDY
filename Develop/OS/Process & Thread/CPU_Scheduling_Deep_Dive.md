@@ -1,6 +1,7 @@
 ---
 title: CPU 스케줄링 심화 (알고리즘 비교·Context Switch 비용·Linux CFS/EEVDF 내부 구조)
 tags: [os, CPU Scheduling, linux, CFS, EEVDF, Context Switch, cgroup]
+updated: 2026-08-02
 ---
 
 # CPU 스케줄링 심화

@@ -1,6 +1,7 @@
 ---
 title: NestJS에 Clean Architecture 입히기
 tags: [nestjs, clean-architecture, Hexagonal Architecture, ddd, architecture, typescript, typeorm]
+updated: 2026-08-02
 ---
 
 # NestJS에 Clean Architecture 입히기

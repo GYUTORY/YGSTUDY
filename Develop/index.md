@@ -3,6 +3,7 @@ title: YGSTUDY
 hide:
   - toc
   - footer
+updated: 2026-08-07
 ---
 
 <div class="yg-home" markdown="0">

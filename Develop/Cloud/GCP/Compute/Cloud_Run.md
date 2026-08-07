@@ -1,6 +1,7 @@
 ---
 title: "Cloud Run"
 tags: [GCP, Cloud Run, container, serverless]
+updated: 2026-08-05
 ---
 
 # Cloud Run

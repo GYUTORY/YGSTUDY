@@ -1,6 +1,7 @@
 ---
 title: NestJS Throttler 심화
 tags: [nestjs, Throttler, rate-limit, redis, security]
+updated: 2026-08-02
 ---
 
 # NestJS Throttler 심화

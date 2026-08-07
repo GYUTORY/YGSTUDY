@@ -1,6 +1,7 @@
 ---
 title: ECS 비용 산정과 절감
 tags: [aws, ecs, fargate, cost, FinOps]
+updated: 2026-08-05
 ---
 
 # ECS 비용 산정과 절감

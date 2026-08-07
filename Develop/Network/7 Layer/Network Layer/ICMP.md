@@ -1,6 +1,7 @@
 ---
 title: ICMP — 진단 프로토콜의 안과 밖
 tags: [network, ICMP, ICMPv6, ping, traceroute, PMTUD]
+updated: 2026-08-02
 ---
 
 # ICMP — 진단 프로토콜의 안과 밖

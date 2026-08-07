@@ -1,6 +1,7 @@
 ---
 title: 소켓 I/O 멀티플렉싱 - select, poll, epoll, kqueue, IOCP
 tags: [network, IO, Multiplexing, epoll, kqueue, IOCP, C10K]
+updated: 2026-08-02
 ---
 
 # 소켓 I/O 멀티플렉싱 - select, poll, epoll, kqueue, IOCP

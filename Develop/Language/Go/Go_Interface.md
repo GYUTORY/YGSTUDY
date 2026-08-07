@@ -1,6 +1,7 @@
 ---
 title: Go 인터페이스와 타입 시스템
 tags: [Go, Golang, interface, 타입어서션, 타입스위치]
+updated: 2026-08-02
 ---
 
 # Go 인터페이스와 타입 시스템

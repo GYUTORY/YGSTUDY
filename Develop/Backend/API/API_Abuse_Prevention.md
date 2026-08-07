@@ -1,6 +1,7 @@
 ---
 title: API 남용 방지 실무 패턴
 tags: [api, security, rate-limiting, Bot Detection, Abuse Prevention]
+updated: 2026-08-02
 ---
 
 # API 남용 방지 실무 패턴

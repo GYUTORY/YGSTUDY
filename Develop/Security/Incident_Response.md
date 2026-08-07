@@ -1,6 +1,7 @@
 ---
 title: 보안 사고 대응 절차 (Incident Response)
 tags: [security, IR, NIST, SANS, KISA, Forensics]
+updated: 2026-08-02
 ---
 
 # 보안 사고 대응 절차

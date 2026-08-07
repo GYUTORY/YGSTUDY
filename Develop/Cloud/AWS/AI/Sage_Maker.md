@@ -1,6 +1,7 @@
 ---
 title: Amazon SageMaker 실무 활용
 tags: [aws, ai, SageMaker, MLOps, ML]
+updated: 2026-08-05
 ---
 
 # Amazon SageMaker 실무 활용

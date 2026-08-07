@@ -1,6 +1,7 @@
 ---
 title: CPU 스케줄링
 tags: [os, CPU Scheduling, process, linux]
+updated: 2026-08-02
 ---
 
 # CPU 스케줄링

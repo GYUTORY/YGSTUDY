@@ -1,6 +1,7 @@
 ---
 title: JavaScript this 바인딩
 tags: [javascript, this, Binding, Arrow Function, call, apply, bind]
+updated: 2026-08-02
 ---
 
 # JavaScript this 바인딩
