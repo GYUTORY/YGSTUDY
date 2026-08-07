@@ -1,3 +1,4 @@
 title: i18n
 nav:
   - 다국어 저장: Multilingual_Storage.md
+  - i18n 스키마 설계: i18n_Schema_Design.md
