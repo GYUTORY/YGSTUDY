@@ -1,0 +1,50 @@
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Docs Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-docs.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements-docs.txt
+
+      # 1. 허용 태그 검사
+      - name: Check tags
+        run: python3 tools/gen_tags.py --strict
+
+      # 2. 프론트매터 필수 필드 (title / tags / updated)
+      - name: Check frontmatter
+        run: python3 tools/check_frontmatter.py --strict
+
+      # 3. 내부 링크 검사 (P1 재발 방지)
+      - name: Check internal links
+        run: python3 tools/check_links.py --strict
+
+      # 4. strict 빌드 (경고 → 실패)
+      - name: Build strict
+        run: mkdocs build --strict
