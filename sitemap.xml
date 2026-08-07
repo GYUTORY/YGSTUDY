@@ -5,7 +5,19 @@
          <lastmod>2026-08-07</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/404/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/tags/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/todo/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/%EC%B5%9C%EA%B7%BC/</loc>
          <lastmod>2026-08-07</lastmod>
     </url>
     <url>
@@ -446,6 +458,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Architecture/Design%20Pattern/Behavioral_Pattern_Advanced/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Architecture/Design%20Pattern/Builder_Pattern/</loc>
          <lastmod>2026-08-07</lastmod>
     </url>
     <url>
@@ -4606,6 +4622,18 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/%EB%A1%9C%EB%93%9C%EB%A7%B5/AWS_%EC%8B%A4%EB%AC%B4_%EC%9E%85%EB%AC%B8_15%EC%84%A0/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/%EB%A1%9C%EB%93%9C%EB%A7%B5/%EB%B0%B1%EC%97%94%EB%93%9C_%EC%8B%A0%EC%9E%85_%ED%95%84%EB%8F%85_20%EC%84%A0/</loc>
+         <lastmod>2026-08-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/%EB%A1%9C%EB%93%9C%EB%A7%B5/%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%84%A4%EA%B3%84_%EB%A9%B4%EC%A0%91_%EC%A4%80%EB%B9%84_10%EC%84%A0/</loc>
          <lastmod>2026-08-07</lastmod>
     </url>
 </urlset>
