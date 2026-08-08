@@ -3,15 +3,15 @@ nav:
   - Claude
   - Claude_Code
   - Cursor
-  - GitHub Copilot: GitHub_Copilot/GitHub_Copilot.md
-  - Codex: Codex/Codex.md
+  - GitHub_Copilot
+  - Codex
   - Gemini
-  - GPT: GPT/GPT_5_5.md
-  - Grok: Grok/Grok.md
-  - Qwen: Qwen/Qwen.md
-  - DeepSeek: DeepSeek/Deep_Seek.md
-  - Ollama: Ollama/Ollama.md
+  - GPT
+  - Grok
+  - Qwen
+  - DeepSeek
+  - Ollama
   - MCP
-  - CodeSight: CodeSight/Code_Sight_Wiki.md
-  - Clawsweeper: Clawsweeper/Clawsweeper.md
-  - GBrain: GBrain/G_Brain.md
+  - CodeSight
+  - Clawsweeper
+  - GBrain

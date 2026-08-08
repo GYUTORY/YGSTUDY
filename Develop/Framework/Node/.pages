@@ -5,12 +5,12 @@ nav:
     - 개요: Nodejs_Framework_Overview.md
     - 비교 (Express·Fastify·NestJS·Hapi): Nest_Hapi_Express_fastify.md
     - 애플리케이션 라우팅: Application_Routing.md
-    - 뷰 엔진 (Handlebars): View_Engine/Handlebars.md
+    - View_Engine
   - 코어 모듈:
     - HTTP / HTTPS: HTTP_Module.md
     - fs: File_System.md
     - net (TCP): Net_Module.md
-    - Stream: 데이터 처리 및 통신/스트림(Stream).md
+    - "데이터 처리 및 통신"
     - crypto: Crypto_Module.md
     - child_process: Child_Process.md
     - AbortController: Abort_Controller.md
@@ -23,16 +23,16 @@ nav:
     - 실전: Functional_Programming.md
   - 운영:
     - 에러 처리: Error_Handling.md
-    - 에러 처리 심화: 에러_핸들링/에러_핸들링_전략.md
+    - 에러_핸들링
     - 그레이스풀 셧다운: Graceful_Shutdown.md
-    - 로깅 전략: 로깅/로깅_전략.md
-    - Observability 전략: 모니터링/Observability_전략.md
-    - 성능 최적화와 프로파일링: Performance/Node.js_성능_최적화_및_프로파일링.md
-    - 부하 테스트 전략: 성능/부하_테스트_전략.md
-    - 보안 모범사례: 보안/Node.js_보안_모범사례.md
-    - JWT 구현과 보안: 인증/JWT_구현_및_보안.md
-    - 작업 큐 처리: 백그라운드_작업/작업_큐_처리.md
-    - 파일 업로드와 처리: 파일_처리/파일_업로드_및_처리.md
+    - 로깅
+    - 모니터링
+    - Performance
+    - 성능
+    - 보안
+    - 인증
+    - 백그라운드_작업
+    - 파일_처리
   - API
   - NestJS
   - 런타임 구조: Nodejs의 구조 및 작동 원리
