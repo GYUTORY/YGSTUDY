@@ -1,6 +1,6 @@
 ---
 title: Google AI Studio 웹 도구
-tags: [ai, gemini, google, ai-studio, prototyping]
+tags: [ai]
 updated: 2026-08-04
 volatility: high
 ---

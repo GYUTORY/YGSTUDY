@@ -1,16 +1,6 @@
 ---
 title: Go sync 패키지 심화
-tags:
-  - Go
-  - Golang
-  - sync
-  - atomic
-  - sync.Once
-  - sync.Map
-  - sync.Cond
-  - sync.Pool
-  - race-detector
-  - data-race
+tags: [go, language]
 updated: 2026-07-23
 ---
 

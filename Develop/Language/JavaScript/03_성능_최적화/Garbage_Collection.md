@@ -1,6 +1,6 @@
 ---
 title: JavaScript 가비지 컬렉션(Garbage Collection)
-tags: [language, javascript, 03성능최적화, garbage-collection, memory-management]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

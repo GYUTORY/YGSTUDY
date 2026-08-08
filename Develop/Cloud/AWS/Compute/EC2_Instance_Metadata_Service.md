@@ -1,6 +1,6 @@
 ---
 title: EC2 Instance Metadata Service (IMDS) 심화
-tags: [aws, ec2, imds, imdsv2, ssrf, iam, security, irsa, eks, metadata]
+tags: [aws, security, iam, cloud]
 updated: 2026-06-17
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: UTC 저장
-tags: [utc, timezone, datetime, spring, mysql, postgresql, java, backend, locale, i18n]
+tags: [backend, spring, mysql, postgresql]
 updated: 2026-08-07
 ---
 

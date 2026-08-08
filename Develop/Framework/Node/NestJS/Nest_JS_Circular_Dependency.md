@@ -1,6 +1,6 @@
 ---
 title: NestJS 순환 의존성 해결 심화
-tags: [nestjs, dependency-injection, forwardRef, module-ref, EventEmitter, Refactoring]
+tags: [nodejs]
 updated: 2026-08-02
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: DNS (Domain Name System)
-tags: [network, domain, dns, name-resolution, internet-infrastructure]
+tags: [network, architecture, dns]
 updated: 2026-05-14
 ---
 

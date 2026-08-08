@@ -1,6 +1,6 @@
 ---
 title: 대리키
-tags: [database, surrogate-key, primary-key, composite-key, jpa, generated-value, bridge-table, migration, natural-key, uuid, ulid, auto-increment, key-space]
+tags: [database, java, devops, backend]
 updated: 2026-07-30
 ---
 

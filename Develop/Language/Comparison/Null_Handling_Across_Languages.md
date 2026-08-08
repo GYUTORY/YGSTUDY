@@ -1,6 +1,6 @@
 ---
 title: 언어별 null 처리 방식 비교
-tags: [java, Go, Rust, typescript, python, kotlin, "null", optional, Option, Pointer]
+tags: [java, go, rust, typescript]
 updated: 2026-07-27
 ---
 

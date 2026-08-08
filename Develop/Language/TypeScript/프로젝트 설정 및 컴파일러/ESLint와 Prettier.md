@@ -1,6 +1,6 @@
 ---
 title: TypeScript ESLint와 Prettier 설정
-tags: [language, typescript, 프로젝트-설정-및-컴파일러, eslint, prettier, code-quality]
+tags: [language, typescript]
 updated: 2026-06-22
 ---
 

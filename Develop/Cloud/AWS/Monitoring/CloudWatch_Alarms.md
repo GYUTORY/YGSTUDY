@@ -1,6 +1,6 @@
 ---
 title: AWS CloudWatch Alarms
-tags: [aws, cloudwatch, Alarms, monitoring, alerts, sns, auto-scaling]
+tags: [aws, monitoring, messaging, cloud]
 updated: 2026-01-22
 ---
 

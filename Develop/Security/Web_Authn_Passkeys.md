@@ -1,6 +1,6 @@
 ---
 title: WebAuthn / FIDO2 / Passkeys
-tags: [webauthn, fido2, passkeys, authentication, passwordless, security]
+tags: [auth, security]
 updated: 2026-04-29
 ---
 

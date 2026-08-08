@@ -1,6 +1,6 @@
 ---
 title: TypeScript tsconfig.json 옵션과 컴파일 동작 깊이 보기
-tags: [language, typescript, 프로젝트-설정-및-컴파일러, tsconfig, configuration]
+tags: [language, typescript, devops]
 updated: 2026-04-28
 ---
 

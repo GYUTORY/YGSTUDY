@@ -1,6 +1,6 @@
 ---
 title: 시크릿 관리
-tags: [secrets-management, vault, aws-secrets-manager, kubernetes-secrets, gitleaks, trufflehog, env-files, secret-rotation, security, devops]
+tags: [security, devops]
 updated: 2026-05-03
 ---
 

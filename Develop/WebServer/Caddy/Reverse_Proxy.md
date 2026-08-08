@@ -1,6 +1,6 @@
 ---
 title: Caddy reverse_proxy 디렉티브 심화
-tags: [webserver, Caddy, reverse-proxy, load-balancing, health-check, websocket]
+tags: [web-server, proxy, monitoring, network]
 updated: 2026-08-02
 ---
 

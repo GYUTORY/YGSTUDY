@@ -1,6 +1,6 @@
 ---
 title: AWS WAF Bot Control과 봇 방어
-tags: [aws, waf, bot-control, captcha, atp, rate-limit, scraping, credential-stuffing, security]
+tags: [aws, security, cloud]
 updated: 2026-06-19
 ---
 

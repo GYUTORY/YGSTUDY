@@ -1,6 +1,6 @@
 ---
 title: 상태 머신 (State Machine)
-tags: [architecture, design-pattern, state-machine, fsm, spring-state-machine, behavioral]
+tags: [architecture, design-patterns]
 updated: 2026-08-03
 ---
 

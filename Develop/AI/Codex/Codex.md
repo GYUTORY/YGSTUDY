@@ -1,6 +1,6 @@
 ---
 title: OpenAI Codex 사용법 및 핵심 개념
-tags: [ai, codex, openai, cli, agentic-coding]
+tags: [ai, devops]
 updated: 2026-03-01
 volatility: high
 ---

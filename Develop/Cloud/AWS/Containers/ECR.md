@@ -1,6 +1,6 @@
 ---
 title: AWS ECR (Elastic Container Registry)
-tags: [aws, containers, ecr, docker, registry, oci]
+tags: [aws, docker, cloud]
 updated: 2026-04-14
 ---
 

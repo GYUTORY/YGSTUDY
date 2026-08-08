@@ -1,6 +1,6 @@
 ---
 title: XXE (XML External Entity) 주입
-tags: [security, XXE, XML, ssrf, java, nodejs, python]
+tags: [security, java, nodejs, python]
 updated: 2026-08-02
 ---
 

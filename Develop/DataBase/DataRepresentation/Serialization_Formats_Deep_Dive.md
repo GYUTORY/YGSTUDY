@@ -1,15 +1,6 @@
 ---
 title: 직렬화 포맷 심화 — JSON·Protobuf·MessagePack·Avro 비교, 스키마 진화, 성능·보안
-tags:
-  - serialization
-  - json
-  - protobuf
-  - messagepack
-  - avro
-  - schema-evolution
-  - kafka
-  - grpc
-  - security
+tags: [api, messaging, grpc, security]
 updated: 2026-06-05
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Java 가상 스레드 (Virtual Threads)
-tags: [language, java, virtual-thread, loom, concurrency, thread-pool, structured-concurrency]
+tags: [language, java, os]
 updated: 2026-07-26
 ---
 

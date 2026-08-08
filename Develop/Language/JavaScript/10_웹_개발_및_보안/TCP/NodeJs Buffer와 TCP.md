@@ -1,6 +1,6 @@
 ---
 title: Node.js Buffer TCP
-tags: [language, javascript, 10웹개발및보안, tcp, nodejs-buffer와-tcp]
+tags: [language, javascript, tcp]
 updated: 2025-12-21
 ---
 # Node.js Buffer와 TCP 이해하기

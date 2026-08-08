@@ -1,6 +1,6 @@
 ---
 title: ECS Secrets 관리 — Secrets Manager / SSM 값을 Task에 주입하기
-tags: [aws, ecs, secrets-manager, ssm, parameter-store, iam, containers]
+tags: [aws, security, iam, docker]
 updated: 2026-06-15
 ---
 

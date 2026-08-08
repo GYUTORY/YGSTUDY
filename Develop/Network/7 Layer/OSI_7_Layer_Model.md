@@ -1,6 +1,6 @@
 ---
 title: OSI 7 계층 모델 (OSI 7 Layer Model)
-tags: [network, osi, 7-layer, protocol, encapsulation, troubleshooting, tcpdump, wireshark]
+tags: [network, observability]
 updated: 2026-06-03
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: SFU 미디어 서버
-tags: [network, webrtc, sfu, mcu, mediasoup, livekit, p2p, turn, simulcast, bandwidth]
+tags: [network]
 updated: 2026-07-25
 ---
 

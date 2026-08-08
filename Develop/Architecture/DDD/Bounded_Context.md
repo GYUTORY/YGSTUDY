@@ -1,6 +1,6 @@
 ---
 title: Bounded Context
-tags: [ddd, bounded-context, context-map, ubiquitous-language, anti-corruption-layer, strategic-design]
+tags: [architecture]
 updated: 2026-05-01
 ---
 

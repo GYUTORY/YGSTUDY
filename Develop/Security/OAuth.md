@@ -1,6 +1,6 @@
 ---
 title: OAuth 2.0
-tags: [auth, oauth, authentication, authorization, security, pkce]
+tags: [auth, security]
 updated: 2026-04-14
 ---
 

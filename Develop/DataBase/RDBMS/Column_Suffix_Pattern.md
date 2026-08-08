@@ -1,6 +1,6 @@
 ---
 title: 컬럼 접미 패턴
-tags: [database, naming-convention, column-naming, suffix, timestamp, identifier, boolean, status, jpa, typeorm, mysql, postgresql]
+tags: [database, java, rdbms, mysql]
 updated: 2026-08-07
 ---
 

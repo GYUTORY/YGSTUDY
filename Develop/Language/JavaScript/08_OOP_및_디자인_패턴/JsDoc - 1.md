@@ -1,6 +1,6 @@
 ---
 title: JSDoc
-tags: [language, javascript, 08oop및디자인패턴, jsdoc, documentation]
+tags: [language, javascript]
 updated: 2026-01-12
 ---
 

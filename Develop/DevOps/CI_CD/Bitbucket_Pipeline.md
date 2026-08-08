@@ -1,6 +1,6 @@
 ---
 title: Bitbucket Pipelines
-tags: [devops, cicd, bitbucket, pipeline, automation, deployment]
+tags: [devops, ci-cd]
 updated: 2025-12-05
 ---
 

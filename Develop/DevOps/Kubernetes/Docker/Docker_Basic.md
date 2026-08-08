@@ -1,6 +1,6 @@
 ---
 title: Docker 핵심 개념
-tags: [docker, container, devops]
+tags: [docker, devops, kubernetes]
 updated: 2026-04-11
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 자연키
-tags: [database, natural-key, primary-key, composite-key, foreign-key, on-update-cascade, iso-code, surrogate-key, legacy, business-identifier, key-space, postal-code, isbn]
+tags: [database, rdbms]
 updated: 2026-07-30
 ---
 

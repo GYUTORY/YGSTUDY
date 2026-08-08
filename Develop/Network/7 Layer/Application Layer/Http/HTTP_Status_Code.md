@@ -1,6 +1,6 @@
 ---
 title: HTTP Status Code
-tags: [network, 7-layer, application-layer, http, status-code, rest-api, troubleshooting]
+tags: [network, http, observability]
 updated: 2026-05-14
 ---
 

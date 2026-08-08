@@ -1,6 +1,6 @@
 ---
 title: CORS - Origin, Preflight, 인증 쿠키, 인프라 설정
-tags: [network, cors, http, security, preflight, browser, csrf]
+tags: [network, security, http]
 updated: 2026-04-30
 ---
 

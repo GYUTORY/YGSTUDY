@@ -1,6 +1,6 @@
 ---
 title: 터널링 - 캡슐화 기반 가상 경로의 원리와 실무
-tags: [network, tunneling, vpn, ipsec, wireguard, gre, vxlan, ssh, overlay]
+tags: [network, linux]
 updated: 2026-04-29
 ---
 

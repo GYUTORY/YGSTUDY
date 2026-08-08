@@ -1,6 +1,6 @@
 ---
 title: AWS CloudWatch 로그 분석 및 실시간 모니터링
-tags: [aws, cloudwatch, monitoring, logs, observability]
+tags: [aws, monitoring, observability, cloud]
 updated: 2026-04-26
 ---
 

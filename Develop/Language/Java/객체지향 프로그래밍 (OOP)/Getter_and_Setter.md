@@ -1,6 +1,6 @@
 ---
 title: Getter와 Setter
-tags: [language, java, 객체지향-프로그래밍-oop, getter-and-setter]
+tags: [language, java]
 updated: 2026-07-26
 ---
 

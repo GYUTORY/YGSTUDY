@@ -1,11 +1,6 @@
 ---
 title: etcd
-tags:
-  - infra
-  - etcd
-  - raft
-  - kubernetes
-  - distributed-systems
+tags: [iac, kubernetes, devops]
 updated: 2026-06-16
 ---
 

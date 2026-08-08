@@ -1,6 +1,6 @@
 ---
 title: ECS 헬스체크 3중 구조 (컨테이너 / ALB / Service)
-tags: [aws, ecs, health-check, alb, troubleshooting, terraform, cloudwatch]
+tags: [aws, monitoring, observability, terraform]
 updated: 2026-08-05
 ---
 

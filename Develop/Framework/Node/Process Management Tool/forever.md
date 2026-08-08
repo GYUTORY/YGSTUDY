@@ -1,6 +1,6 @@
 ---
 title: Node.js Forever 프로세스 관리 도구
-tags: [framework, node, process-management-tool, forever, nodejs, process-manager]
+tags: [nodejs]
 updated: 2026-04-30
 ---
 

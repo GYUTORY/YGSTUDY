@@ -1,6 +1,6 @@
 ---
 title: Java Reflection
-tags: [language, java, 자바-디자인-패턴-및-원칙, reflection]
+tags: [language, java]
 updated: 2026-03-31
 ---
 

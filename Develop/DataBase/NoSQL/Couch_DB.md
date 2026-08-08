@@ -1,6 +1,6 @@
 ---
 title: CouchDB
-tags: [database, nosql, CouchDB, replication, mvcc]
+tags: [database, nosql]
 updated: 2026-08-02
 ---
 

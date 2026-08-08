@@ -1,6 +1,6 @@
 ---
 title: ORM 심화 및 실전 활용
-tags: [framework, node, orm, typeorm, sequelize, prisma, database, performance]
+tags: [nodejs, rdbms, database, performance]
 updated: 2025-12-14
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: encodeURIComponent / decodeURIComponent
-tags: [language, javascript, 09es6및고급문법, encoding, url, security]
+tags: [language, javascript, database, security]
 updated: 2026-04-23
 ---
 

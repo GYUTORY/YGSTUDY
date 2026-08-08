@@ -1,6 +1,6 @@
 ---
 title: AWS CloudWatch Logs Insights
-tags: [aws, cloudwatch, logs, insights, query, search, monitoring]
+tags: [aws, monitoring, cloud]
 updated: 2026-01-22
 ---
 

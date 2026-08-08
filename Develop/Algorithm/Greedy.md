@@ -1,6 +1,6 @@
 ---
 title: Greedy Algorithm (그리디 알고리즘)
-tags: [algorithm, greedy, optimization, exchange-argument, scheduling, knapsack, mst, kruskal]
+tags: [algorithm, os]
 updated: 2026-05-11
 ---
 

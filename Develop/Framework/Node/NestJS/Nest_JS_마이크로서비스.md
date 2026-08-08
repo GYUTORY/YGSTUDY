@@ -1,6 +1,6 @@
 ---
 title: NestJS 마이크로서비스
-tags: [nestjs, microservice, grpc, redis, tcp, nats, node]
+tags: [nodejs, grpc, redis, tcp]
 updated: 2026-04-15
 ---
 

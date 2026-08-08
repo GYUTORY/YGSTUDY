@@ -1,6 +1,6 @@
 ---
 title: Binary Search (이진 탐색)
-tags: [algorithm, binary-search, parametric-search, lower-bound, upper-bound]
+tags: [algorithm]
 updated: 2026-04-18
 ---
 

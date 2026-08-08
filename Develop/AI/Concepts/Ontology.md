@@ -1,6 +1,6 @@
 ---
 title: 온톨로지 (Ontology)
-tags: [ai, ontology, knowledge-graph, rdf, owl, SPARQL, semantic-web]
+tags: [ai, llm]
 updated: 2026-05-07
 volatility: high
 ---

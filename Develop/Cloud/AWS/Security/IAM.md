@@ -1,6 +1,6 @@
 ---
 title: AWS IAM
-tags: [aws, security, iam, sts, policy]
+tags: [aws, security, iam, cloud]
 updated: 2026-05-04
 ---
 

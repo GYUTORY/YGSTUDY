@@ -1,12 +1,6 @@
 ---
 title: Node.js crypto 모듈 심화
-tags:
-  - nodejs
-  - crypto
-  - security
-  - aes-gcm
-  - argon2
-  - webcrypto
+tags: [nodejs, security]
 updated: 2026-06-03
 ---
 

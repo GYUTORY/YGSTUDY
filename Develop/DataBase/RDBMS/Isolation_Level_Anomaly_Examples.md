@@ -1,6 +1,6 @@
 ---
 title: 격리 수준별 이상 현상 재현
-tags: [database, isolation-level, dirty-read, non-repeatable-read, phantom-read, mysql, postgresql, mvcc, repeatable-read]
+tags: [database, mysql, postgresql, rdbms]
 updated: 2026-07-30
 ---
 

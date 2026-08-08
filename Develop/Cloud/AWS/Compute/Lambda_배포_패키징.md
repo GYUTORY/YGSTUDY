@@ -1,6 +1,6 @@
 ---
 title: Lambda 배포와 패키징 심화
-tags: [aws, lambda, serverless, container, Layer, deployment, SAM, CDK]
+tags: [aws, cloud, docker, devops]
 updated: 2026-08-05
 ---
 

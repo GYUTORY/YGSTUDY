@@ -1,6 +1,6 @@
 ---
 title: Linkerd 서비스 메시 도입
-tags: [infra, service-mesh, linkerd, kubernetes, mtls, observability]
+tags: [iac, kubernetes, encryption, observability]
 updated: 2026-06-03
 ---
 

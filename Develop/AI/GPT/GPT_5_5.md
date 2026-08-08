@@ -1,6 +1,6 @@
 ---
 title: GPT-5.5
-tags: [ai, openai, gpt, gpt-5-5, llm, api]
+tags: [ai, llm, api]
 updated: 2026-04-24
 volatility: high
 ---

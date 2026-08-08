@@ -1,6 +1,6 @@
 ---
 title: JavaScript 쓰로틀링(Throttling)
-tags: [language, javascript, 03성능최적화, throttling, performance-optimization]
+tags: [language, javascript, performance]
 updated: 2025-08-10
 ---
 

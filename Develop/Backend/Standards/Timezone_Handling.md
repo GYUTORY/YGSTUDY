@@ -1,6 +1,6 @@
 ---
 title: 타임존 처리
-tags: [timezone, utc, dst, iso8601, datetime, backend]
+tags: [backend]
 updated: 2026-07-31
 ---
 

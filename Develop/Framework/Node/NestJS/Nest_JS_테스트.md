@@ -1,6 +1,6 @@
 ---
 title: NestJS 테스트 (Jest, Supertest, TestingModule)
-tags: [framework, node, nestjs, test, jest, supertest]
+tags: [nodejs]
 updated: 2026-04-16
 ---
 

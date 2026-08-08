@@ -1,6 +1,6 @@
 ---
 title: OWASP Top 10
-tags: [security, owasp, access-control, injection, authentication, misconfiguration, vulnerable-components, integrity, logging]
+tags: [security, auth, observability]
 updated: 2026-04-07
 ---
 

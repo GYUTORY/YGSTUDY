@@ -1,6 +1,6 @@
 ---
 title: String 불변 객체 심화 (String Pool, intern(), StringBuilder/StringBuffer)
-tags: [language, java, java-기본-개념, string, string-pool, intern, stringbuilder, stringbuffer, compact-string]
+tags: [language, java]
 updated: 2026-04-17
 ---
 

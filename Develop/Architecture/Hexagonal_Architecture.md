@@ -1,6 +1,6 @@
 ---
 title: 헥사고날 아키텍처
-tags: [backend, architecture, hexagonal, ports-and-adapters, clean-architecture, spring-boot, nestjs, ddd, testing]
+tags: [backend, architecture, spring, nodejs]
 updated: 2026-05-11
 ---
 

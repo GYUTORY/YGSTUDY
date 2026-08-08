@@ -1,6 +1,6 @@
 ---
 title: 이벤트 기반 아키텍처
-tags: [backend, architecture, event-driven, eda, kafka, pub-sub, idempotency, schema-registry, avro, event-storming]
+tags: [backend, architecture, event-driven, messaging]
 updated: 2026-05-11
 ---
 

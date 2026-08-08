@@ -1,6 +1,6 @@
 ---
 title: JPA @Lock 어노테이션 종류 비교
-tags: [jpa, spring, 비관적락, 낙관적락, 동시성, 트랜잭션, PESSIMISTIC, OPTIMISTIC, Version]
+tags: [java, spring]
 updated: 2026-07-30
 ---
 

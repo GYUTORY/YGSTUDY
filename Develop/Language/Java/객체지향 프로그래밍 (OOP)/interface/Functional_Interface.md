@@ -1,6 +1,6 @@
 ---
 title: "Java 함수형 인터페이스 (Functional Interface)"
-tags: [java, FunctionalInterface, lambda, stream, java.util.function]
+tags: [java, aws, language]
 updated: 2026-04-09
 ---
 

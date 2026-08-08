@@ -1,6 +1,6 @@
 ---
 title: NestJS Schedule Module 심화
-tags: [nestjs, Schedule, Cron, SchedulerRegistry, bullmq, distributed-lock]
+tags: [nodejs, architecture]
 updated: 2026-08-02
 ---
 

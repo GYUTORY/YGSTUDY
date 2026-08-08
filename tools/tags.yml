@@ -79,3 +79,11 @@ allowed:
   - llm
   - rag
   - mcp
+
+  # ── 어휘로 덮이지 않던 섹션 보강 ───────────────────────
+  # Algorithm·OS·WebServer·Frontend 는 문서가 있는데 대응 태그가 없어
+  # 태그 정리 시 전부 무태그가 된다. 최소한으로만 추가한다.
+  - algorithm
+  - os
+  - web-server
+  - frontend

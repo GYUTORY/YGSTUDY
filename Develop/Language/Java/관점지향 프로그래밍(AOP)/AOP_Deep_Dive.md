@@ -1,6 +1,6 @@
 ---
 title: Java AOP 심화
-tags: [java, spring, aop, proxy, CGLIB, AspectJ]
+tags: [java, spring, proxy, language]
 updated: 2026-04-28
 ---
 

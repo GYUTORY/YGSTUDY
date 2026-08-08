@@ -1,6 +1,6 @@
 ---
 title: AWS PrivateLink
-tags: [aws, privatelink, vpc, endpoint, security, networking, service]
+tags: [aws, vpc, security, network]
 updated: 2026-01-23
 ---
 

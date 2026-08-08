@@ -1,13 +1,6 @@
 ---
 title: Go Context 심화
-tags:
-  - Go
-  - Golang
-  - context
-  - WithCancelCause
-  - AfterFunc
-  - propagation
-  - performance
+tags: [go, performance, language]
 updated: 2026-07-27
 ---
 

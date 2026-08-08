@@ -1,6 +1,6 @@
 ---
 title: Claude Code 개발 루틴
-tags: [ai, claude-code, anthropic, routine, workflow, automation]
+tags: [ai, architecture, devops]
 updated: 2026-08-04
 volatility: high
 ---

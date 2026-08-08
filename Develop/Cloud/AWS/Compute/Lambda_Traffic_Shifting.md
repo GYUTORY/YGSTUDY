@@ -1,6 +1,6 @@
 ---
 title: Lambda 무중단 배포 — Traffic Shifting
-tags: [aws, lambda, alias, traffic-shifting, canary, codedeploy, sam, cdk, serverless]
+tags: [aws, devops, cloud]
 updated: 2026-08-06
 ---
 

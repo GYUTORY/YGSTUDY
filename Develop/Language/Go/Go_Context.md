@@ -1,12 +1,6 @@
 ---
 title: Go context 패키지
-tags:
-  - Go
-  - Golang
-  - context
-  - goroutine
-  - cancellation
-  - timeout
+tags: [go, language]
 updated: 2026-07-08
 ---
 

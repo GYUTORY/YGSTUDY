@@ -1,6 +1,6 @@
 ---
 title: Node.js 캐싱 심화 - 알고리즘, 패턴, 장애 대응
-tags: [framework, node, cache, lru, lfu, ttl, stampede, distributed-cache, write-behind, stale-while-revalidate]
+tags: [nodejs, cache]
 updated: 2026-04-17
 ---
 

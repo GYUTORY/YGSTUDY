@@ -1,6 +1,6 @@
 ---
 title: Caddyfile 문법 심화
-tags: [webserver, Caddy, caddyfile, syntax, matcher, snippet, placeholder, route, handle]
+tags: [web-server]
 updated: 2026-05-03
 ---
 

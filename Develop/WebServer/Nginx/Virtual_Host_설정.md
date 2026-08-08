@@ -1,6 +1,6 @@
 ---
 title: Virtual Host 설정
-tags: [nginx, virtual-host, server-block, multi-domain, server-name, listen, docker]
+tags: [web-server, docker]
 updated: 2026-07-27
 ---
 

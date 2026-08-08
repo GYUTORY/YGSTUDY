@@ -1,6 +1,6 @@
 ---
 title: ECS Scheduled Tasks — EventBridge로 RunTask 예약 실행하기
-tags: [aws, ecs, eventbridge, scheduler, batch, fargate, runtask]
+tags: [aws, backend, cloud]
 updated: 2026-05-26
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Enum
-tags: [java, enum, 상수, enummap, enumset, 싱글턴, 전략패턴]
+tags: [java, language]
 updated: 2026-05-03
 ---
 

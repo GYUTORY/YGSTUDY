@@ -1,6 +1,6 @@
 ---
 title: API 설계 원칙 및 고급 패턴
-tags: [framework, node, api, restful, design, versioning, openapi, swagger]
+tags: [nodejs, api]
 updated: 2025-11-30
 ---
 

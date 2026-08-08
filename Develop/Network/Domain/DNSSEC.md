@@ -1,6 +1,6 @@
 ---
 title: DNSSEC (DNS Security Extensions)
-tags: [network, domain, dns, dnssec, security, integrity, rrsig, dnskey]
+tags: [network, architecture, dns, security]
 updated: 2026-06-21
 ---
 

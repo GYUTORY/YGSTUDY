@@ -1,6 +1,6 @@
 ---
 title: Claude Code Agent 시스템
-tags: [ai, claude-code, agent, sub-agent, context-management]
+tags: [ai]
 updated: 2026-06-06
 volatility: high
 ---

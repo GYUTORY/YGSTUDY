@@ -1,6 +1,6 @@
 ---
 title: AWS EventBridge
-tags: [aws, eventbridge, event-driven, serverless, integration, event-bus]
+tags: [aws, event-driven, cloud]
 updated: 2026-01-18
 ---
 

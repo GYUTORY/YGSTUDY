@@ -1,6 +1,6 @@
 ---
 title: AWS Shield
-tags: [aws, shield, ddos, security, protection, waf, cloudfront]
+tags: [aws, security, cdn, cloud]
 updated: 2026-01-18
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: NestJS gRPC 트랜스포트 심화
-tags: [nestjs, grpc, protobuf, microservice, streaming, node]
+tags: [nodejs, grpc, messaging]
 updated: 2026-07-10
 ---
 

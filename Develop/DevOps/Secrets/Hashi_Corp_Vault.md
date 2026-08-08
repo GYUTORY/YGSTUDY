@@ -1,11 +1,6 @@
 ---
 title: HashiCorp Vault
-tags:
-  - infra
-  - secrets
-  - security
-  - vault
-  - kubernetes
+tags: [iac, security, kubernetes, devops]
 updated: 2026-06-03
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS SCP (Service Control Policies)
-tags: [aws, scp, organizations, policy, governance, security, compliance]
+tags: [aws, security, cloud]
 updated: 2026-01-18
 ---
 

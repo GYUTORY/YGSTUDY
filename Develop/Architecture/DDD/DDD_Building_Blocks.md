@@ -1,6 +1,6 @@
 ---
 title: DDD 빌딩 블록 (전술적 설계)
-tags: [ddd, tactical-design, entity, value-object, aggregate, repository, domain-service, factory, jpa, hibernate]
+tags: [architecture, java]
 updated: 2026-04-17
 ---
 

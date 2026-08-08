@@ -1,6 +1,6 @@
 ---
 title: 크로스 테넌트 유출
-tags: [security, multi-tenancy, idor, cache-pollution, tenant-isolation, async-context, s3-security]
+tags: [security, architecture]
 updated: 2026-08-04
 ---
 

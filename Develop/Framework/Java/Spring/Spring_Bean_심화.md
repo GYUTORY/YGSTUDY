@@ -1,6 +1,6 @@
 ---
 title: Spring Bean 심화
-tags: [framework, java, spring, bean, lifecycle, scope, beanpostprocessor, circular-reference]
+tags: [java, spring, devops, javascript]
 updated: 2026-06-08
 ---
 

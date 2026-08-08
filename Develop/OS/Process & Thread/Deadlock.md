@@ -1,6 +1,6 @@
 ---
 title: "Deadlock"
-tags: [os, process, Thread, deadlock, 동기화, Banker's Algorithm]
+tags: [os, rdbms]
 updated: 2026-03-31
 ---
 

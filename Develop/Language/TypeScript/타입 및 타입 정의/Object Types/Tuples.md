@@ -1,6 +1,6 @@
 ---
 title: TypeScript Tuple 타입 심화
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, object-types, tuples]
+tags: [language, typescript]
 updated: 2026-06-05
 ---
 

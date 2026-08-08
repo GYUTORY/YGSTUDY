@@ -1,6 +1,6 @@
 ---
 title: Caddy 서브도메인 라우팅과 와일드카드 인증서 실무
-tags: [webserver, Caddy, subdomain, wildcard, tls, multi-tenant, on-demand-tls, dns-01]
+tags: [web-server, encryption]
 updated: 2026-05-03
 ---
 

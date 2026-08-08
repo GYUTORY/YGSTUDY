@@ -1,6 +1,6 @@
 ---
 title: Spring SSE (Server-Sent Events)
-tags: [spring, sse, server-sent-events, sseemitter, webflux, redis-pubsub, spring-security, nginx, async]
+tags: [spring, web-server, language, java]
 updated: 2026-07-21
 ---
 

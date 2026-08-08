@@ -1,6 +1,6 @@
 ---
 title: 웹 통신의 흐름
-tags: [network, domain, http, tcp, tls, dns, troubleshooting]
+tags: [network, architecture, http, tcp]
 updated: 2026-07-25
 ---
 

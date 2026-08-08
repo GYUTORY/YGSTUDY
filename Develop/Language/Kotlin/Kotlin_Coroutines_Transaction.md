@@ -1,6 +1,6 @@
 ---
 title: Kotlin 코루틴 DB 트랜잭션
-tags: [kotlin, coroutine, transaction, spring, r2dbc, flow, threadlocal, transactional, suspend, jpa]
+tags: [kotlin, rdbms, spring, java]
 updated: 2026-07-30
 ---
 

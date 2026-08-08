@@ -1,6 +1,6 @@
 ---
 title: "직렬화(Serialization)"
-tags: [serialization, deserialization, json, protobuf, messagepack, avro, schema-registry, java]
+tags: [api, java, database]
 updated: 2026-06-05
 ---
 

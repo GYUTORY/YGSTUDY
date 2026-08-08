@@ -1,6 +1,6 @@
 ---
 title: Java Stream API 심화
-tags: [java, stream, lambda, functional-programming, collectors, parallel-stream]
+tags: [java, language, aws]
 updated: 2026-03-01
 ---
 

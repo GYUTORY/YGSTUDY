@@ -1,6 +1,6 @@
 ---
 title: ECS IAM Role 설정 — Task Role, Execution Role, ECR 권한
-tags: [aws, ecs, iam, ecr, containers, role]
+tags: [aws, iam, docker, cloud]
 updated: 2026-04-14
 ---
 

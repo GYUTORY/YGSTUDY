@@ -1,6 +1,6 @@
 ---
 title: Linux 네트워크 관리 심화
-tags: [linux, network, namespace, iproute2, nftables, tc, conntrack, ethtool, tcpdump, sysctl]
+tags: [linux, network, devops]
 updated: 2026-04-25
 ---
 

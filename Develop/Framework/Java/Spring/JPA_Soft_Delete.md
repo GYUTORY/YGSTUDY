@@ -1,6 +1,6 @@
 ---
 title: JPA 소프트 삭제 (deleted_at)
-tags: [Spring, JPA, Hibernate, SoftDelete, QueryDSL]
+tags: [spring, java]
 updated: 2026-08-03
 ---
 

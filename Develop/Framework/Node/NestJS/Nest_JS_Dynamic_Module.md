@@ -1,6 +1,6 @@
 ---
 title: NestJS Dynamic Module 심화
-tags: [nestjs, dynamic-module, forroot, forfeature, configurable-module-builder, module-ref, async-providers, library-module, node]
+tags: [nodejs]
 updated: 2026-06-09
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Spring Cloud MSA
-tags: [spring, spring-cloud, msa, eureka, config-server, gateway, feign, circuit-breaker, resilience4j, cloud-bus, load-balancer, distributed-tracing]
+tags: [spring, microservices, load-balancer, java]
 updated: 2026-03-29
 ---
 

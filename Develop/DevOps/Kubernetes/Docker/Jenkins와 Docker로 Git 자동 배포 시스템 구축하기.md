@@ -1,6 +1,6 @@
 ---
 title: Jenkins, Docker, Git을 활용한 Node.js 자동 배포 시스템 구축
-tags: [application-architecture, kubernetes, docker, jenkins, nodejs, cicd]
+tags: [kubernetes, docker, nodejs, ci-cd]
 updated: 2025-09-22
 ---
 

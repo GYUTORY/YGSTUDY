@@ -1,6 +1,6 @@
 ---
 title: NestJS 데코레이터(Decorator) 완전 정리
-tags: [nestjs, decorator, annotation, reflect-metadata, dependency-injection, node]
+tags: [nodejs]
 updated: 2026-06-06
 ---
 

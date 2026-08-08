@@ -1,6 +1,6 @@
 ---
 title: Docker Compose
-tags: [docker, DockerCompose, container, devops]
+tags: [docker, devops, kubernetes]
 updated: 2026-04-11
 ---
 

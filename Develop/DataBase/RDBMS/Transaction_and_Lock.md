@@ -1,6 +1,6 @@
 ---
 title: 트랜잭션과 Lock
-tags: [database, transaction, acid, isolation-level, lock, mvcc, deadlock, OptimisticLock, pessimistic-lock, savepoint, spring-transactional]
+tags: [database, rdbms]
 updated: 2026-04-10
 ---
 

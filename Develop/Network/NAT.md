@@ -1,6 +1,6 @@
 ---
 title: NAT (Network Address Translation)
-tags: [network, nat, napt, pat, cgnat, conntrack, hairpin, alg, troubleshooting]
+tags: [network, observability]
 updated: 2026-06-04
 ---
 

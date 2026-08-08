@@ -1,6 +1,6 @@
 ---
 title: Dynamic Programming 유형 (자릿수·기댓값·카운팅·점화식 가속)
-tags: [algorithm, dynamic-programming, digit-dp, expected-value-dp, counting-dp, monotonic-deque, convex-hull-trick]
+tags: [algorithm]
 updated: 2026-07-11
 ---
 

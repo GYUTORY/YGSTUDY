@@ -1,16 +1,6 @@
 ---
 title: Go 테스트
-tags:
-  - Go
-  - Golang
-  - testing
-  - table-driven-test
-  - httptest
-  - race-condition
-  - mock
-  - benchmark
-  - fuzzing
-  - testcontainers
+tags: [go, testing, language]
 updated: 2026-07-10
 ---
 

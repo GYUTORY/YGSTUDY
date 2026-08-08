@@ -1,6 +1,6 @@
 ---
 title: API 버전 관리
-tags: [backend, msa, api, versioning, gateway]
+tags: [backend, microservices, api, architecture]
 updated: 2026-04-01
 ---
 

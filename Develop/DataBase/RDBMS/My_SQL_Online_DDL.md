@@ -1,6 +1,6 @@
 ---
 title: MySQL Online DDL
-tags: [mysql, ddl, online-ddl, innodb, alter-table, migration, mdl, aurora, performance-schema]
+tags: [mysql, devops, rdbms, database]
 updated: 2026-08-06
 ---
 

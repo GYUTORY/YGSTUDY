@@ -1,6 +1,6 @@
 ---
 title: Node.js Cluster (클러스터)
-tags: [framework, node, nodejs의-구조-및-작동-원리, cluster, nodejs, multi-process]
+tags: [nodejs, kubernetes]
 updated: 2025-08-15
 ---
 

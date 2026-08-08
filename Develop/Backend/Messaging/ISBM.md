@@ -1,6 +1,6 @@
 ---
 title: ISBM (Integration Services for Business Messaging)
-tags: [backend, messaging, isbm, oasis, pub-sub, b2b, ws-notification, rest-api]
+tags: [backend, messaging]
 updated: 2026-04-06
 ---
 

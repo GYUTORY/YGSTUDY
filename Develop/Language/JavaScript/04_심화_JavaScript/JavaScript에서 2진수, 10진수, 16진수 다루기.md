@@ -1,6 +1,6 @@
 ---
 title: JavaScript에서 2진수, 10진수, 16진수 다루기
-tags: [language, javascript, 04심화javascript, javascript에서-2진수-10진수-16진수-다루기, number-system, binary, hexadecimal]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

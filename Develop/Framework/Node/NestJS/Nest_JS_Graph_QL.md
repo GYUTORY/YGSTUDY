@@ -1,6 +1,6 @@
 ---
 title: NestJS GraphQL 모듈 운영기
-tags: [nestjs, graphql, apollo, mercurius, dataloader, federation, subscription, auth]
+tags: [nodejs, graphql, auth]
 updated: 2026-06-04
 ---
 

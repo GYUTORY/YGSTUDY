@@ -1,6 +1,6 @@
 ---
 title: 고아 레코드
-tags: [database, orphan-record, referential-integrity, no-fk, msa, soft-delete, migration, outbox, batch, left-join]
+tags: [database, microservices, devops, backend]
 updated: 2026-07-30
 ---
 

@@ -1,13 +1,6 @@
 ---
 title: Node.js HTTP / HTTPS 코어 모듈 심화
-tags:
-  - nodejs
-  - http
-  - https
-  - http2
-  - keep-alive
-  - undici
-  - tls
+tags: [nodejs, http, encryption]
 updated: 2026-06-03
 ---
 

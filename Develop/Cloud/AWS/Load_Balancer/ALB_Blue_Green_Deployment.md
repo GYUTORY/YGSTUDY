@@ -1,6 +1,6 @@
 ---
 title: ALB 기반 Blue/Green 무중단 배포
-tags: [aws, alb, blue-green, codedeploy, ecs, canary, deployment, rollback]
+tags: [aws, devops, cloud]
 updated: 2026-05-26
 ---
 

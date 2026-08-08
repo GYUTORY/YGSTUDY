@@ -1,6 +1,6 @@
 ---
 title: Redis 다루기 — 코드 패턴과 실무 트러블슈팅
-tags: [database, nosql, redis, cache, spring-boot, node]
+tags: [database, nosql, redis, cache]
 updated: 2026-03-27
 ---
 

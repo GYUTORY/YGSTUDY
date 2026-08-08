@@ -1,6 +1,6 @@
 ---
 title: Docker BuildKit과 buildx
-tags: [docker, buildkit, buildx, multi-arch, devops]
+tags: [docker, devops, kubernetes]
 updated: 2026-04-30
 ---
 

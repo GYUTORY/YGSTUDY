@@ -1,6 +1,6 @@
 ---
 title: MSA 테스트
-tags: [msa, testing, contract-testing, pact, testcontainers, e2e, expand-migrate-contract]
+tags: [microservices, testing, architecture]
 updated: 2026-08-06
 ---
 

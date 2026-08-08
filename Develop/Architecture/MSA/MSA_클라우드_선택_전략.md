@@ -1,6 +1,6 @@
 ---
 title: MSA를 어떤 클라우드에 올릴 것인가
-tags: [msa, cloud, aws, GCP, Oracle, architecture]
+tags: [microservices, cloud, aws, gcp]
 updated: 2026-08-02
 ---
 

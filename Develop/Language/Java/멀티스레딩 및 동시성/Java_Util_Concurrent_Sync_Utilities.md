@@ -1,6 +1,6 @@
 ---
 title: java.util.concurrent 동기화 유틸리티 심화
-tags: [java, concurrency, juc, aqs, countdownlatch, cyclicbarrier, semaphore, phaser, exchanger, blockingqueue, concurrenthashmap, copyonwritearraylist]
+tags: [java, os, language]
 updated: 2026-06-05
 ---
 

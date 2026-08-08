@@ -1,6 +1,6 @@
 ---
 title: ALB에 커스텀 도메인 연결 (Route 53 + ACM)
-tags: [aws, alb, route53, acm, dns, tls, domain]
+tags: [aws, dns, encryption, architecture]
 updated: 2026-05-26
 ---
 

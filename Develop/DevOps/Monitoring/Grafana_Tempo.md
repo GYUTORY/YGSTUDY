@@ -1,6 +1,6 @@
 ---
 title: Grafana Tempo
-tags: [devops, monitoring, observability, tracing, tempo, grafana, opentelemetry, otlp, traceql, jaeger, loki, prometheus, exemplar, s3]
+tags: [devops, monitoring, observability, aws]
 updated: 2026-07-31
 ---
 

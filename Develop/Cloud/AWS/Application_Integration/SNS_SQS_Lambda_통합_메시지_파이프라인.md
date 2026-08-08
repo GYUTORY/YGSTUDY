@@ -1,6 +1,6 @@
 ---
 title: AWS SNS/SQS/Lambda 통합 메시지 파이프라인
-tags: [aws, sns, sqs, lambda, messaging, pipeline, event-driven, microservices, nestjs]
+tags: [aws, messaging, ci-cd, event-driven]
 updated: 2026-01-14
 ---
 

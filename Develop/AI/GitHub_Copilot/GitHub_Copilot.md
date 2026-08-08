@@ -1,6 +1,6 @@
 ---
 title: GitHub Copilot 사용법 및 핵심 개념
-tags: [ai, github-copilot, code-completion, agent-mode, ide]
+tags: [ai]
 updated: 2026-05-03
 volatility: high
 ---

@@ -1,6 +1,6 @@
 ---
 title: AWS CloudFormation
-tags: [aws, cloudformation, iac, infrastructure-as-code, CDK, SAM, stack, Template, drift, stackset]
+tags: [aws, iac, cloud]
 updated: 2026-05-06
 ---
 

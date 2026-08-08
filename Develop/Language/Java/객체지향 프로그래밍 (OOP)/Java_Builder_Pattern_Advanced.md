@@ -1,6 +1,6 @@
 ---
 title: Java Builder Pattern 심화
-tags: [language, java, 객체지향-프로그래밍-oop, builder-pattern, lombok]
+tags: [language, java]
 updated: 2026-05-28
 ---
 

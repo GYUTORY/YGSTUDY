@@ -1,6 +1,6 @@
 ---
 title: Subnet
-tags: [network, 7-layer, network-layer, ip, subnet]
+tags: [network]
 updated: 2025-12-19
 ---
 

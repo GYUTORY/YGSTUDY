@@ -1,6 +1,6 @@
 ---
 title: LLM 동작 원리와 프로덕션 통합
-tags: [ai, llm, transformer, inference, backend, FineTuning, Embedding, evaluation]
+tags: [ai, llm, backend, rag]
 updated: 2026-04-08
 volatility: high
 ---

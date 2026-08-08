@@ -1,6 +1,6 @@
 ---
 title: 정합성 검증 시점
-tags: [validation, consistency, backend, api, ddd, concurrency]
+tags: [backend, api, architecture, os]
 updated: 2026-07-30
 ---
 

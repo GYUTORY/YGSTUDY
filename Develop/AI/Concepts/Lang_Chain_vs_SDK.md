@@ -1,6 +1,6 @@
 ---
 title: LangChain / LlamaIndex vs 순수 SDK
-tags: [langchain, llamaindex, sdk, llm, rag, abstraction, framework]
+tags: [llm, rag, ai]
 updated: 2026-08-04
 volatility: high
 ---

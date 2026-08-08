@@ -1,6 +1,6 @@
 ---
 title: 참조 무결성
-tags: [database, foreign-key, referential-integrity, cascade, on-delete, on-update, innodb, postgresql, msa, typeorm, prisma, orphan-data]
+tags: [database, mysql, postgresql, microservices]
 updated: 2026-07-30
 ---
 

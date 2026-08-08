@@ -1,6 +1,6 @@
 ---
 title: i18n DB 스키마 설계
-tags: [backend, i18n, database, schema, postgresql, jsonb, hstore, orm, eav, migration, jpa, hibernate, index, n+1, fallback]
+tags: [backend, database, postgresql, devops]
 updated: 2026-08-07
 ---
 

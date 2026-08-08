@@ -1,6 +1,6 @@
 ---
 title: Fargate Spot 운영 심화
-tags: [aws, ecs, fargate, fargate-spot, spot, cost, checkpoint]
+tags: [aws, cloud]
 updated: 2026-06-15
 ---
 

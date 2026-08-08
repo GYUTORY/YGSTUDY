@@ -1,12 +1,6 @@
 ---
 title: Envoy
-tags:
-  - infra
-  - load-balancer
-  - envoy
-  - proxy
-  - service-mesh
-  - xds
+tags: [iac, load-balancer, proxy, kubernetes]
 updated: 2026-06-22
 ---
 

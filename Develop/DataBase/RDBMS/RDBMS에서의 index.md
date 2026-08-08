@@ -1,6 +1,6 @@
 ---
 title: RDBMS에서의 Index
-tags: [database, rdbms, index, b-tree, innodb, clustering-index]
+tags: [database, rdbms, mysql]
 updated: 2026-03-29
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AI로 보안 강화하기 (LLM in Security Operations)
-tags: [security, ai, llm, sast, triage, anomaly-detection, incident-response]
+tags: [security, ai, llm]
 updated: 2026-06-21
 ---
 

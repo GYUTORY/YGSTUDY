@@ -1,6 +1,6 @@
 ---
 title: 케밥같은 용어들 — 개발 명명 규칙
-tags: [naming-convention, kebab-case, camelCase, snake_case, PascalCase, backend]
+tags: [backend]
 updated: 2026-07-27
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 유니코드 정규화 (Unicode Normalization)
-tags: [unicode, normalization, nfc, nfd, nfkc, nfkd, encoding, security]
+tags: [rdbms, database, security]
 updated: 2026-08-05
 ---
 

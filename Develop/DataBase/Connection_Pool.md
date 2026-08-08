@@ -1,12 +1,6 @@
 ---
 title: DB Connection Pool 종합
-tags:
-  - database
-  - connection-pool
-  - hikaricp
-  - pgbouncer
-  - rds-proxy
-  - performance
+tags: [database, aws, performance]
 updated: 2026-05-08
 ---
 

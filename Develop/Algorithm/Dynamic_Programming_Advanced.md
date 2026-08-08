@@ -1,6 +1,6 @@
 ---
 title: Dynamic Programming 심화 (비트마스킹·구간·트리 DP)
-tags: [algorithm, dynamic-programming, bitmask-dp, interval-dp, tree-dp, optimization]
+tags: [algorithm]
 updated: 2026-07-11
 ---
 

@@ -1,13 +1,6 @@
 ---
 title: Go 런타임 스케줄러 내부 구조
-tags:
-  - Go
-  - Golang
-  - GMP
-  - scheduler
-  - goroutine
-  - runtime
-  - concurrency
+tags: [go, os, language]
 updated: 2026-07-27
 ---
 

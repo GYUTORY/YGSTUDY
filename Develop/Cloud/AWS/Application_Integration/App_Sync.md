@@ -1,6 +1,6 @@
 ---
 title: AWS AppSync (관리형 GraphQL API)
-tags: [aws, appsync, graphql, resolver, subscription, dynamodb, lambda]
+tags: [aws, graphql, cloud]
 updated: 2026-07-03
 ---
 

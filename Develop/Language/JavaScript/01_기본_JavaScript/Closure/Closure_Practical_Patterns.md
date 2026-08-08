@@ -1,6 +1,6 @@
 ---
 title: 백엔드 실무에서 클로저를 설계 도구로 쓰는 패턴
-tags: [language, javascript, closure, nodejs, dependency-injection, currying, factory]
+tags: [language, javascript, nodejs]
 updated: 2026-06-15
 ---
 

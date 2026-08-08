@@ -1,6 +1,6 @@
 ---
 title: Socket Manage
-tags: [language, javascript, 10웹개발및보안, tcp, socket-manage]
+tags: [language, javascript, tcp]
 updated: 2025-11-01
 ---
 

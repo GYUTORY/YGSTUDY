@@ -1,6 +1,6 @@
 ---
 title: AWS VPC Peering
-tags: [aws, vpc, Peering, networking, routing, private-network]
+tags: [aws, vpc, network, cloud]
 updated: 2026-01-18
 ---
 

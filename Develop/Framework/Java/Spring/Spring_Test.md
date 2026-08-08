@@ -1,6 +1,6 @@
 ---
 title: Spring 테스트
-tags: [framework, java, spring, testing, junit5, mockito, testcontainers, integration-test, spring-security]
+tags: [java, spring, testing]
 updated: 2026-06-14
 ---
 

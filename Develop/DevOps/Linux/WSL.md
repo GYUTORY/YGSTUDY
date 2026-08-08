@@ -1,6 +1,6 @@
 ---
 title: WSL2 (Windows Subsystem for Linux)
-tags: [linux, wsl, wsl2, windows, hyper-v, virtualization, docker, systemd, vscode]
+tags: [linux, docker, devops]
 updated: 2026-04-28
 ---
 

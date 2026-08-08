@@ -1,6 +1,6 @@
 ---
 title: Claude Code 스킬과 룰 시스템
-tags: [ai, claude-code, anthropic, skill, rule, claude-md, settings]
+tags: [ai]
 updated: 2026-03-25
 volatility: high
 ---

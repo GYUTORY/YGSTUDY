@@ -1,6 +1,6 @@
 ---
 title: AWS CodePipeline
-tags: [aws, codepipeline, cicd, deployment, pipeline, automation]
+tags: [aws, ci-cd, devops, cloud]
 updated: 2026-01-18
 ---
 

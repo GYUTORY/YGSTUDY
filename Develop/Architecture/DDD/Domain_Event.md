@@ -1,6 +1,6 @@
 ---
 title: 도메인 이벤트 (Domain Event)
-tags: [ddd, domain-event, spring, transactional-event-listener, outbox-pattern, kafka, event-driven]
+tags: [architecture, spring, messaging, event-driven]
 updated: 2026-04-17
 ---
 

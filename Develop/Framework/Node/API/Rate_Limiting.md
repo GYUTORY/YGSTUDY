@@ -1,6 +1,6 @@
 ---
 title: Rate Limiting & Bulkhead
-tags: [framework, node, rate-limiting, bulkhead, api, security, redis, ioredis]
+tags: [nodejs, performance, api, security]
 updated: 2026-07-15
 ---
 

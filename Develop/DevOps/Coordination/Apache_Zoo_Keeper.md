@@ -1,11 +1,6 @@
 ---
 title: Apache ZooKeeper
-tags:
-  - infra
-  - zookeeper
-  - zab
-  - distributed-systems
-  - coordination
+tags: [iac, devops]
 updated: 2026-06-21
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 인프라 용량 산정
-tags: [infrastructure, Capacity_Planning, performance, sre]
+tags: [iac, performance, devops]
 updated: 2026-08-05
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: API 설계 패턴
-tags: [backend, api, rest, graphql, grpc, api-gateway, versioning, hateoas, error-handling]
+tags: [backend, api, rest, graphql]
 updated: 2026-03-26
 ---
 

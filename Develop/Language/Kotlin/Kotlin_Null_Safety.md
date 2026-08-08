@@ -1,6 +1,6 @@
 ---
 title: Kotlin Null Safety
-tags: [kotlin, null-safety, nullable, smart-cast, platform-type, lateinit, elvis, safe-call]
+tags: [kotlin, language]
 updated: 2026-07-27
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Java 객체지향 프로그래밍(OOP)
-tags: [language, java, 객체지향-프로그래밍-oop, oop, encapsulation, inheritance, polymorphism, abstraction]
+tags: [language, java]
 updated: 2026-01-07
 ---
 

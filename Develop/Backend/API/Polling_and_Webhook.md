@@ -1,6 +1,6 @@
 ---
 title: Polling과 Webhook
-tags: [polling, webhook, short-polling, long-polling, callback, api, hmac, idempotency, dlq]
+tags: [api, architecture, backend]
 updated: 2026-05-06
 ---
 

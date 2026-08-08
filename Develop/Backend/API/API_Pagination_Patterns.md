@@ -1,6 +1,6 @@
 ---
 title: API 페이지네이션 패턴
-tags: [backend, api, pagination, cursor, keyset, relay, performance, database]
+tags: [backend, api, performance, database]
 updated: 2026-05-06
 ---
 

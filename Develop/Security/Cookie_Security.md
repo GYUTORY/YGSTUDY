@@ -1,6 +1,6 @@
 ---
 title: Cookie Security
-tags: [security, cookie, samesite, chips, browser, web]
+tags: [security]
 updated: 2026-05-06
 ---
 

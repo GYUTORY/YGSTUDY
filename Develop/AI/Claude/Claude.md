@@ -1,6 +1,6 @@
 ---
 title: Claude
-tags: [ai, claude, anthropic, llm, api]
+tags: [ai, llm, api]
 updated: 2026-08-07
 volatility: high
 ---

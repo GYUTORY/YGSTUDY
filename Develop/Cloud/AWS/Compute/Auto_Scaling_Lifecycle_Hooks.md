@@ -1,6 +1,6 @@
 ---
 title: ASG 라이프사이클 훅
-tags: [aws, auto-scaling, asg, lifecycle-hook, ec2]
+tags: [aws, cloud]
 updated: 2026-07-03
 ---
 

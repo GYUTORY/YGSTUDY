@@ -1,6 +1,6 @@
 ---
 title: 패스워드 해싱 (Password Hashing)
-tags: [security, password, hashing, bcrypt, scrypt, argon2, salt, pepper]
+tags: [security]
 updated: 2026-04-29
 ---
 

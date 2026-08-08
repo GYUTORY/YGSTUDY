@@ -1,6 +1,6 @@
 ---
 title: "원시 타입과 래퍼 클래스"
-tags: [java, primitive, wrapper, autoboxing, unboxing]
+tags: [java, language]
 updated: 2026-05-03
 ---
 

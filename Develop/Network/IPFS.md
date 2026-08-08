@@ -1,6 +1,6 @@
 ---
 title: IPFS
-tags: [network, p2p, ipfs, cid, merkle-dag, libp2p, kademlia, dht, content-addressing, pinning]
+tags: [network]
 updated: 2026-07-25
 ---
 

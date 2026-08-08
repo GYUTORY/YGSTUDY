@@ -1,6 +1,6 @@
 ---
 title: Node.js 메모리 영역
-tags: [framework, node, nodejs의-구조-및-작동-원리, v8, memory, heap, gc]
+tags: [nodejs, os]
 updated: 2026-04-23
 ---
 

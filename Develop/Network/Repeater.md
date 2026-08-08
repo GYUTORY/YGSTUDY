@@ -1,6 +1,6 @@
 ---
 title: 리피터 (Repeater)
-tags: [network, repeater, physical-layer, hub, collision-domain, troubleshooting]
+tags: [network, observability]
 updated: 2026-06-07
 ---
 

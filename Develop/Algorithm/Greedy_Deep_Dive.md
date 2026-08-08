@@ -1,6 +1,6 @@
 ---
 title: Greedy 알고리즘 심화 (Matroid, 근사, 온라인)
-tags: [algorithm, greedy, matroid, approximation, online-algorithm, mst, Dijkstra, knapsack, stable-matching]
+tags: [algorithm]
 updated: 2026-05-02
 ---
 

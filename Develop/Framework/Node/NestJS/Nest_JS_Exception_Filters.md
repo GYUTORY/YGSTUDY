@@ -1,13 +1,6 @@
 ---
 title: NestJS Exception Filters
-tags:
-  - nestjs
-  - exception
-  - error-handling
-  - prisma
-  - typeorm
-  - sentry
-  - observability
+tags: [nodejs, backend, rdbms, observability]
 updated: 2026-06-04
 ---
 

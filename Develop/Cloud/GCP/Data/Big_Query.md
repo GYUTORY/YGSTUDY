@@ -1,6 +1,6 @@
 ---
 title: "BigQuery"
-tags: [GCP, BigQuery, Data Warehouse, SQL, BigQuery ML, CDC]
+tags: [gcp, database, cloud]
 updated: 2026-04-12
 ---
 

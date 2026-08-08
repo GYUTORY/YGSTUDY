@@ -1,6 +1,6 @@
 ---
 title: Greedy 문제 패턴 모음 (코딩테스트/면접 빈출)
-tags: [algorithm, greedy, coding-test, interview, java, priority-queue, two-pointer]
+tags: [algorithm, java]
 updated: 2026-05-05
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: PM2 Ecosystem File (에코시스템 파일)
-tags: [framework, node, process-management-tool, pm2, ecosystem, configuration]
+tags: [nodejs, devops]
 updated: 2025-08-10
 ---
 

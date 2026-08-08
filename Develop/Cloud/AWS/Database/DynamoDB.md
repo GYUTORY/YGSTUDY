@@ -1,6 +1,6 @@
 ---
 title: AWS DynamoDB
-tags: [aws, dynamodb, nosql, database, key-value, serverless]
+tags: [aws, nosql, database, cloud]
 updated: 2026-01-18
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: OAuth 2.0 / OIDC Flow 종류별 심화 구현
-tags: [backend, authentication, oauth2, oidc, pkce, jwt, jwks, keycloak, spring-authorization-server]
+tags: [backend, auth, jwt]
 updated: 2026-05-08
 ---
 

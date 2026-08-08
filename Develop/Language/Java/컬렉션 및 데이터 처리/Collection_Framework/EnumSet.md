@@ -1,6 +1,6 @@
 ---
 title: Java EnumSet
-tags: [language, java, 컬렉션-및-데이터-처리, collectionframework, enumset, enummap]
+tags: [language, java]
 updated: 2026-04-25
 ---
 

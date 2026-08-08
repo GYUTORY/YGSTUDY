@@ -1,6 +1,6 @@
 ---
 title: npm ci와 bin
-tags: [framework, node, 모듈-시스템, npm, ci, bin, nodejs]
+tags: [nodejs, ci-cd]
 updated: 2026-08-05
 ---
 

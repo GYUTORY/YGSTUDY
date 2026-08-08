@@ -1,6 +1,6 @@
 ---
 title: MSA 서비스 체인 멱등성
-tags: [MSA, 멱등성, Saga, 분산트랜잭션, 재시도]
+tags: [microservices, architecture]
 updated: 2026-08-06
 ---
 

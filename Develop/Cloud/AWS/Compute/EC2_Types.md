@@ -1,6 +1,6 @@
 ---
 title: AWS EC2 인스턴스 유형
-tags: [aws, compute, ec2, instance-types, cloud-computing]
+tags: [aws, cloud]
 updated: 2026-04-10
 ---
 

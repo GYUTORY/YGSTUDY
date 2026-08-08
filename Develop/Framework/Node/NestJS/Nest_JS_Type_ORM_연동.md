@@ -1,6 +1,6 @@
 ---
 title: NestJS TypeORM 연동
-tags: [nestjs, typeorm, database, orm, repository, migration]
+tags: [nodejs, rdbms, database, devops]
 updated: 2026-04-16
 ---
 

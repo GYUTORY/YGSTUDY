@@ -1,6 +1,6 @@
 ---
 title: 마이크로서비스 아키텍처
-tags: [backend, architecture, msa, microservices, distributed-system, ddd, api-gateway, service-discovery, saga]
+tags: [backend, architecture, microservices, api]
 updated: 2026-05-11
 ---
 

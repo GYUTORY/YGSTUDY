@@ -1,6 +1,6 @@
 ---
 title: Symbol, WeakRef, FinalizationRegistry
-tags: [javascript, symbol, weakref, finalizationregistry, memory-management, es2021, iterator, well-known-symbol]
+tags: [javascript, language]
 updated: 2026-08-03
 ---
 

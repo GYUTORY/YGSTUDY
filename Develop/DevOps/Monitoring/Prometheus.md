@@ -1,6 +1,6 @@
 ---
 title: Prometheus
-tags: [devops, monitoring, prometheus, metrics, observability, promql, micrometer]
+tags: [devops, monitoring, observability]
 updated: 2026-04-09
 ---
 

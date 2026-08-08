@@ -1,6 +1,6 @@
 ---
 title: Kubernetes Operator 및 CRD
-tags: [kubernetes, operator, crd, custom-resource, controller-runtime, operator-sdk]
+tags: [kubernetes, devops]
 updated: 2026-04-12
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 타입 시스템 비교
-tags: [java, typescript, Go, Rust, javascript, 타입시스템, 제네릭]
+tags: [java, typescript, go, rust]
 updated: 2026-07-09
 ---
 

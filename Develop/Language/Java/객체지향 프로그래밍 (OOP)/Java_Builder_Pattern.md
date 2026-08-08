@@ -1,6 +1,6 @@
 ---
 title: Java Builder Pattern
-tags: [language, java, 객체지향-프로그래밍-oop, builder-pattern, lombok]
+tags: [language, java]
 updated: 2026-04-24
 ---
 

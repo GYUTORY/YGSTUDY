@@ -1,6 +1,6 @@
 ---
 title: "Gemini 트러블슈팅"
-tags: [gemini, troubleshooting, api, Google AI]
+tags: [ai, observability, api]
 updated: 2026-04-15
 volatility: high
 ---

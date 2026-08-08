@@ -1,6 +1,6 @@
 ---
 title: Spring AOP & 트랜잭션 심화
-tags: [framework, java, spring, aop, transaction, aspect, transactional, propagation, isolation]
+tags: [java, spring, rdbms]
 updated: 2026-04-30
 ---
 

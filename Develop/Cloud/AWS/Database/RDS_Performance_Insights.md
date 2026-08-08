@@ -1,6 +1,6 @@
 ---
 title: Performance Insights로 RDS 성능 진단하기
-tags: [aws, rds, performance-insights, aas, wait-events, slow-query, enhanced-monitoring, mysql, postgresql]
+tags: [aws, mysql, postgresql, cloud]
 updated: 2026-07-24
 ---
 

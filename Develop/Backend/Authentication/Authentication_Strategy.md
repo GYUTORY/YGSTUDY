@@ -1,6 +1,6 @@
 ---
 title: 인증/인가 방식 비교
-tags: [backend, authentication, authorization, session, jwt, oauth2, sso, api-key]
+tags: [backend, auth, jwt]
 updated: 2026-03-26
 ---
 

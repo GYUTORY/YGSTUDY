@@ -1,6 +1,6 @@
 ---
 title: NestJS GraphQL·마이크로서비스 버전 관리
-tags: [nestjs, graphql, microservice, versioning, schema-evolution, e2e, supertest, node]
+tags: [nodejs, graphql, api]
 updated: 2026-06-26
 ---
 

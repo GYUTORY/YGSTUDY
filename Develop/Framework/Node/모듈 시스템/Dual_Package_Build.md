@@ -1,6 +1,6 @@
 ---
 title: Dual Package Build (CJS + ESM 동시 지원)
-tags: [framework, node, 모듈-시스템, commonjs, esm, dual-package, tsup, rollup]
+tags: [nodejs]
 updated: 2026-07-17
 ---
 

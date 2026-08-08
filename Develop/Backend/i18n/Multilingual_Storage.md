@@ -1,6 +1,6 @@
 ---
 title: 다국어 콘텐츠 DB 저장
-tags: [backend, i18n, l10n, translation, database, mysql, postgresql, jsonb, bcp47, utf8mb4, fallback, troubleshooting]
+tags: [backend, database, mysql, postgresql]
 updated: 2026-08-07
 ---
 

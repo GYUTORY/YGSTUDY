@@ -1,6 +1,6 @@
 ---
 title: NestJS Event Emitter / CQRS 심화
-tags: [nestjs, event-driven, cqrs, EventEmitter, saga, outbox-pattern, domain-event]
+tags: [nodejs, event-driven, architecture]
 updated: 2026-08-02
 ---
 

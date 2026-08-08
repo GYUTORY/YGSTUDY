@@ -1,6 +1,6 @@
 ---
 title: API Security
-tags: [security, api, rest, graphql, grpc, bola, bfla, api-gateway, openapi]
+tags: [security, api, rest, graphql]
 updated: 2026-06-03
 ---
 

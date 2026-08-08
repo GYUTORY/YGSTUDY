@@ -1,6 +1,6 @@
 ---
 title: Node.js 보안 모범 사례
-tags: [framework, node, security, helmet, cors, validation, vulnerability]
+tags: [nodejs, security, backend]
 updated: 2025-12-15
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: NestJS에서 AWS Secrets Manager와 KMS 사용하기
-tags: [nestjs, aws, secrets-manager, kms, security, node]
+tags: [nodejs, aws, security, encryption]
 updated: 2026-06-04
 ---
 

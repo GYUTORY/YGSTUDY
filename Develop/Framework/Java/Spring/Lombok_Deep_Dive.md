@@ -1,6 +1,6 @@
 ---
 title: Spring Lombok 심화
-tags: [framework, java, spring, lombok, annotation-processor, jpa]
+tags: [java, spring]
 updated: 2026-06-03
 ---
 

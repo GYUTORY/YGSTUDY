@@ -1,6 +1,6 @@
 ---
 title: AWS MSK (Managed Streaming for Apache Kafka)
-tags: [aws, msk, kafka, streaming, messaging, event-streaming, iam, encryption, msk-connect, msk-serverless, schema-registry]
+tags: [aws, messaging, iam, encryption]
 updated: 2026-05-26
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 인프라 네트워크 토폴로지 설계
-tags: [infrastructure, network, subnet, egress, load-balancer, segmentation, zero-trust, service-discovery, blast-radius]
+tags: [iac, network, load-balancer, security]
 updated: 2026-07-03
 ---
 

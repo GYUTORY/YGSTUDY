@@ -1,6 +1,6 @@
 ---
 title: API 캐싱 (HTTP Caching)
-tags: [backend, api, caching, http, cdn, etag, cache-control]
+tags: [backend, api, cache, http]
 updated: 2026-04-15
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: P2P (Peer-to-Peer) 네트워크
-tags: [network, p2p, webrtc, dht, kademlia, bittorrent, nat-traversal, stun, turn, ice]
+tags: [network]
 updated: 2026-05-27
 ---
 

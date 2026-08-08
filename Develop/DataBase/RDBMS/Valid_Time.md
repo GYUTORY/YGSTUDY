@@ -1,6 +1,6 @@
 ---
 title: Valid Time
-tags: [database, temporal, valid-time, transaction-time, bitemporal, sql2011, period, history, slowly-changing-dimension, overlaps]
+tags: [database, rdbms]
 updated: 2026-07-31
 ---
 

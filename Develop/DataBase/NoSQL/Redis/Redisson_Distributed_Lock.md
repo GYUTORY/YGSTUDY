@@ -1,6 +1,6 @@
 ---
 title: Redisson 분산 락 심화
-tags: [redis, redisson, distributed-lock, rlock, rreadwritelock, rsemaphore, redlock, watchdog]
+tags: [redis, architecture, nosql, database]
 updated: 2026-07-30
 ---
 

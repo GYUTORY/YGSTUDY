@@ -1,6 +1,6 @@
 ---
 title: B-Tree 페이지 분할
-tags: [database, rdbms, b-tree, page-split, innodb, fill-factor, uuid, performance_schema, mysql]
+tags: [database, rdbms, mysql, backend]
 updated: 2026-07-29
 ---
 

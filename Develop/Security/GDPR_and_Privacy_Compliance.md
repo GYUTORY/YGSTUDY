@@ -1,6 +1,6 @@
 ---
 title: GDPR과 개인정보 컴플라이언스
-tags: [gdpr, ccpa, 개인정보보호법, privacy, consent, dpia, dpo, data-subject-rights, cross-border-transfer, breach-notification, compliance, security]
+tags: [security]
 updated: 2026-06-04
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 모바일 앱 토큰 저장 보안
-tags: [Mobile, iOS, Android, Keychain, Keystore, token, security, authentication, PKCE, TEE, StrongBox, BiometricPrompt]
+tags: [security, auth]
 updated: 2026-08-07
 ---
 

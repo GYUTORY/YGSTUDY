@@ -1,6 +1,6 @@
 ---
 title: AWS Control Tower
-tags: [aws, control-tower, landing-zone, account-factory, guardrails, multi-account, organizations]
+tags: [aws, cloud]
 updated: 2026-07-25
 ---
 

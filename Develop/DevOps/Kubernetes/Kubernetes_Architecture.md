@@ -1,6 +1,6 @@
 ---
 title: Kubernetes 클러스터 아키텍처
-tags: [infra, kubernetes, k8s, control-plane, etcd, scheduler, kubelet, cni, eviction]
+tags: [iac, kubernetes, devops]
 updated: 2026-07-25
 ---
 

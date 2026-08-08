@@ -1,6 +1,6 @@
 ---
 title: Webhook Security
-tags: [security, webhook, hmac, signature, replay-attack, ssrf, idempotency, secret-rotation]
+tags: [security, architecture]
 updated: 2026-06-21
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: OpenTelemetry
-tags: [devops, monitoring, observability, opentelemetry, otel, tracing, metrics, logs, jaeger, tempo, collector, kubernetes, baggage, otlp, semantic-conventions, propagator, spankind]
+tags: [devops, monitoring, observability, kubernetes]
 updated: 2026-03-26
 ---
 

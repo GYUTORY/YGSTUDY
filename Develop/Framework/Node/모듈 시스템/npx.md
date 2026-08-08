@@ -1,6 +1,6 @@
 ---
 title: npx (Node Package Execute)
-tags: [framework, node, 모듈-시스템, npx, package-runner, nodejs]
+tags: [nodejs]
 updated: 2025-12-15
 ---
 

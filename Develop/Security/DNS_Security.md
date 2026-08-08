@@ -1,6 +1,6 @@
 ---
 title: DNS Security
-tags: [security, dns, dnssec, DoH, DoT, network]
+tags: [security, dns, network]
 updated: 2026-08-02
 ---
 

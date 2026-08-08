@@ -1,11 +1,6 @@
 ---
 title: Node.js fs 모듈 실무 심화
-tags:
-  - nodejs
-  - filesystem
-  - fs
-  - stream
-  - chokidar
+tags: [nodejs, language]
 updated: 2026-06-03
 ---
 

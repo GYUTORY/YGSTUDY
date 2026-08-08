@@ -1,6 +1,6 @@
 ---
 title: E2EE 종단간 암호화
-tags: [security, e2ee, encryption, signal-protocol, double-ratchet, x3dh, ecdh, forward-secrecy, mls, nodejs]
+tags: [security, encryption, nodejs]
 updated: 2026-04-29
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: SSM Parameter Store
-tags: [aws, ssm, parameter-store, secrets, kms, configuration, iam]
+tags: [aws, encryption, devops, iam]
 updated: 2026-06-21
 ---
 

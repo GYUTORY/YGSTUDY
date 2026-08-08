@@ -1,6 +1,6 @@
 ---
 title: RabbitMQ MQTT Plugin - AMQP와 MQTT 브릿지 실무
-tags: [rabbitmq, MQTT, IoT, messaging, AMQP]
+tags: [messaging, backend]
 updated: 2026-03-26
 ---
 

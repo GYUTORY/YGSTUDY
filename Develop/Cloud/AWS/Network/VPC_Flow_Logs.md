@@ -1,6 +1,6 @@
 ---
 title: VPC Flow Logs
-tags: [aws, vpc, flow-logs, networking, observability, athena, troubleshooting, nat-gateway, transit-gateway]
+tags: [aws, vpc, network, observability]
 updated: 2026-05-20
 ---
 

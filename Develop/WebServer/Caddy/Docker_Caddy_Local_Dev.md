@@ -1,6 +1,6 @@
 ---
 title: Docker Caddy 로컬 개발 환경 구성
-tags: [webserver, Caddy, docker, DockerCompose, tls, LocalDev]
+tags: [web-server, docker, encryption]
 updated: 2026-08-02
 ---
 

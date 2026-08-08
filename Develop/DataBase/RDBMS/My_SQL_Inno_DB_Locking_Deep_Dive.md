@@ -1,6 +1,6 @@
 ---
 title: MySQL InnoDB 락 심화
-tags: [mysql, innodb, lock, deadlock, transaction, database, rdbms]
+tags: [mysql, rdbms, database]
 updated: 2026-07-30
 ---
 

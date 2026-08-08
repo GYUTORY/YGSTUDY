@@ -1,6 +1,6 @@
 ---
 title: AWS Glue (서버리스 ETL)
-tags: [aws, glue, etl, pyspark, crawler, data-catalog, athena, redshift, job-bookmark, dpu, lake-formation, oom]
+tags: [aws, cloud]
 updated: 2026-06-21
 ---
 

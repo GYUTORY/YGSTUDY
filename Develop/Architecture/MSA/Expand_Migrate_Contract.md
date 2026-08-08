@@ -1,6 +1,6 @@
 ---
 title: "Expand-Migrate-Contract 패턴"
-tags: [msa, schema-migration, dual-write, backward-compatibility, spring-boot]
+tags: [microservices, spring, architecture]
 updated: 2026-08-06
 ---
 

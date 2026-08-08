@@ -1,6 +1,6 @@
 ---
 title: "SSRF (Server-Side Request Forgery)"
-tags: [security, ssrf, web, cloud, kubernetes, blind-ssrf]
+tags: [security, cloud, kubernetes]
 updated: 2026-04-29
 ---
 

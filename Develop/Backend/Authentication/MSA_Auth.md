@@ -1,6 +1,6 @@
 ---
 title: 마이크로서비스 환경의 인증/인가
-tags: [backend, authentication, authorization, msa, api-gateway, mtls, jwt, spring-cloud-gateway]
+tags: [backend, auth, microservices, api]
 updated: 2026-03-26
 ---
 

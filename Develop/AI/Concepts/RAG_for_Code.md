@@ -1,6 +1,6 @@
 ---
 title: RAG for Code (코드 기반 RAG)
-tags: [ai, RAG, retrieval-augmented-generation, code, architecture]
+tags: [ai, rag, architecture, llm]
 updated: 2026-04-12
 volatility: high
 ---

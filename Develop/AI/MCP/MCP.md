@@ -1,6 +1,6 @@
 ---
 title: MCP (Model Context Protocol) 핵심 개념
-tags: [ai, mcp, model-context-protocol, anthropic, open-standard]
+tags: [ai, mcp]
 updated: 2026-04-05
 volatility: high
 ---

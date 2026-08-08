@@ -1,6 +1,6 @@
 ---
 title: Java Marker Interface 심화
-tags: [language, java, 객체지향-프로그래밍-oop, interface, marker-interface, serializable, cloneable, jvm]
+tags: [language, java]
 updated: 2026-04-26
 ---
 

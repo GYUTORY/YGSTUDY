@@ -1,11 +1,6 @@
 ---
 title: CoreDNS
-tags:
-  - infra
-  - service-discovery
-  - coredns
-  - kubernetes
-  - dns
+tags: [iac, microservices, kubernetes, dns]
 updated: 2026-07-12
 ---
 

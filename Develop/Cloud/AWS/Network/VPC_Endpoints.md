@@ -1,6 +1,6 @@
 ---
 title: VPC Endpoints
-tags: [aws, vpc, endpoint, privatelink, networking, s3, dynamodb]
+tags: [aws, vpc, network, cloud]
 updated: 2026-05-06
 ---
 

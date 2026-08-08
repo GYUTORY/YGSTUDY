@@ -1,6 +1,6 @@
 ---
 title: Nginx Rate Limiting
-tags: [webserver, nginx, rate-limiting, ddos, security, limit-req, limit-conn]
+tags: [web-server, performance, security]
 updated: 2026-04-09
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS SQS와 SNS 연동
-tags: [aws, sqs, sns, messaging, queue, fan-out, dlq]
+tags: [aws, messaging, cloud]
 updated: 2026-05-29
 ---
 

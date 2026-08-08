@@ -1,6 +1,6 @@
 ---
 title: ALB vs API Gateway 비교 심화 — 라우팅, 인증, 비용, 사용 사례별 선택
-tags: [aws, alb, api-gateway, networking, load-balancer, microservices, serverless, cost, authentication]
+tags: [aws, api, network, load-balancer]
 updated: 2026-04-24
 ---
 

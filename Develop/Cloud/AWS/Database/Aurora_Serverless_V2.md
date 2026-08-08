@@ -1,6 +1,6 @@
 ---
 title: Aurora MySQL Serverless v2 운영
-tags: [aws, aurora, mysql, serverless, acu, scaling, cost, cloudwatch, rds-proxy, data-api]
+tags: [aws, rdbms, mysql, cloud]
 updated: 2026-06-21
 ---
 

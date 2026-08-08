@@ -1,6 +1,6 @@
 ---
 title: Node.js 성능 최적화 및 프로파일링
-tags: [framework, node, performance, optimization, profiling, memory, cpu, async]
+tags: [nodejs, performance, os, language]
 updated: 2025-12-13
 ---
 

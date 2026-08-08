@@ -1,6 +1,6 @@
 ---
 title: 멀티테넌시
-tags: [architecture, multi-tenancy, saas, postgresql, rls, row-level-security, tenant-isolation, database, backend]
+tags: [architecture, postgresql, database, backend]
 updated: 2026-08-04
 ---
 

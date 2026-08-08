@@ -1,6 +1,6 @@
 ---
 title: 한글 자모 분리
-tags: [hangul, jamo, unicode, nfd, decomposition, elasticsearch, nori, search, autocomplete, python, java, javascript]
+tags: [elasticsearch, python, java, javascript]
 updated: 2026-08-05
 ---
 

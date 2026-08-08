@@ -1,6 +1,6 @@
 ---
 title: AWS Config
-tags: [aws, config, compliance, configuration, audit, governance, security]
+tags: [aws, security, devops, cloud]
 updated: 2026-01-22
 ---
 

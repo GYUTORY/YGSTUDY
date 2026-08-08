@@ -1,6 +1,6 @@
 ---
 title: URL과 URI의 차이 - 구조, 인코딩, 실무 활용
-tags: [network, url, uri, urn, rfc-3986, http, web]
+tags: [network, http]
 updated: 2026-04-28
 ---
 

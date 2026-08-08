@@ -1,6 +1,6 @@
 ---
 title: AWS EBS (Elastic Block Store)
-tags: [aws, ebs, storage, volume, disk, ec2, snapshot, IOPS]
+tags: [aws, database, cloud]
 updated: 2026-01-18
 ---
 

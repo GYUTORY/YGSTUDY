@@ -1,6 +1,6 @@
 ---
 title: 리버스 프록시 (Reverse Proxy)
-tags: [network, proxy, reverse-proxy, nginx, upstream, health-check, x-forwarded-for, 502, 504, timeout, buffering]
+tags: [network, proxy, web-server, monitoring]
 updated: 2026-07-19
 ---
 

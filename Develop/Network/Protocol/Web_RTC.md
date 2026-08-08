@@ -1,6 +1,6 @@
 ---
 title: WebRTC 심화
-tags: [network, webrtc, p2p, stun, turn, ice, sdp, datachannel, nat]
+tags: [network]
 updated: 2026-06-17
 ---
 

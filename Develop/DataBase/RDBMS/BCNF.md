@@ -1,6 +1,6 @@
 ---
 title: BCNF
-tags: [database, bcnf, normalization, functional-dependency, 3nf, dependency-preservation]
+tags: [database, rdbms]
 updated: 2026-07-28
 ---
 

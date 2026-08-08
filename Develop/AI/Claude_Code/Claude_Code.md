@@ -1,6 +1,6 @@
 ---
 title: Claude Code
-tags: [ai, claude-code, anthropic, cli, agentic-coding]
+tags: [ai, devops]
 updated: 2026-04-09
 volatility: high
 ---

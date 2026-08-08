@@ -1,6 +1,6 @@
 ---
 title: AWS SNS (Simple Notification Service)
-tags: [aws, sns, notification, messaging, pub-sub, serverless]
+tags: [aws, messaging, cloud]
 updated: 2026-05-29
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: SSH 키 라이프사이클 관리
-tags: [ssh, key-management, security, vault, certificate-authority, devops, fido2, yubikey, ssh-agent, cloud, audit]
+tags: [linux, security, devops, cloud]
 updated: 2026-04-29
 ---
 

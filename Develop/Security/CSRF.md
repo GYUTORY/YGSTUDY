@@ -1,6 +1,6 @@
 ---
 title: CSRF (Cross-Site Request Forgery)
-tags: [security, csrf, samesite, cookie, spring-security, spa, cors]
+tags: [security, spring]
 updated: 2026-04-14
 ---
 

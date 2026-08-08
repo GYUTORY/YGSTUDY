@@ -1,6 +1,6 @@
 ---
 title: NestJS ValidationPipe와 정합성 검증 시점
-tags: [nestjs, validation, class-validator, class-transformer, dto, pipe, pipe-scope, lifecycle, node]
+tags: [nodejs, backend, devops]
 updated: 2026-07-30
 ---
 

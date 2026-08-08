@@ -1,6 +1,6 @@
 ---
 title: AI 개발 도구 허브
-tags: [hub, ai, claude, llm, copilot, prompt-engineering, RAG, agent, mcp, gemini, cursor]
+tags: [ai, llm, rag, mcp]
 updated: 2026-08-04
 ---
 

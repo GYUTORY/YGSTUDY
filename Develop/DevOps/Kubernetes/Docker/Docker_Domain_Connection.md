@@ -1,6 +1,6 @@
 ---
 title: Docker에서 도메인 연결하는 방법
-tags: [docker, domain, dns, reverse-proxy, traefik, nginx-proxy, lets-encrypt]
+tags: [docker, architecture, dns, proxy]
 updated: 2026-05-04
 ---
 

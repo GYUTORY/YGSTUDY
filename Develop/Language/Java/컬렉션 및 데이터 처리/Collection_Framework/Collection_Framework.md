@@ -1,6 +1,6 @@
 ---
 title: Java 컬렉션 프레임워크
-tags: [language, java, 컬렉션-및-데이터-처리, collectionframework]
+tags: [language, java]
 updated: 2026-03-25
 ---
 

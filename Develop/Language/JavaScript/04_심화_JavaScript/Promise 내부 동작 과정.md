@@ -1,6 +1,6 @@
 ---
 title: Promise 내부 동작 과정
-tags: [language, javascript, promise, async, event-loop, microtask]
+tags: [language, javascript, nodejs]
 updated: 2026-05-09
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Docker 컨테이너 보안
-tags: [security, docker, kubernetes, container, devsecops, trivy, snyk, cosign]
+tags: [security, docker, kubernetes]
 updated: 2026-05-03
 ---
 

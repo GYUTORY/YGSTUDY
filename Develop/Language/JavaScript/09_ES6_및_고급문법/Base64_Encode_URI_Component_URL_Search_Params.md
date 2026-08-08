@@ -1,6 +1,6 @@
 ---
 title: Base64 · encodeURIComponent · URLSearchParams — 세 도구 중 뭘 쓸지
-tags: [language, javascript, 09es6및고급문법, encoding, base64, url, urlsearchparams]
+tags: [language, javascript, database]
 updated: 2026-04-23
 ---
 

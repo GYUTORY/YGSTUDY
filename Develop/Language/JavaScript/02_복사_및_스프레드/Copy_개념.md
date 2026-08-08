@@ -1,6 +1,6 @@
 ---
 title: JavaScript 얕은 복사와 깊은 복사 (Shallow vs Deep Copy)
-tags: [language, javascript, 02복사및스프레드, copy, shallow-copy, deep-copy, immutability]
+tags: [language, javascript]
 updated: 2026-05-03
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: ECS Volumes와 EFS — 컨테이너에 영구 스토리지 붙이기
-tags: [aws, ecs, efs, fargate, volumes, storage, fsx]
+tags: [aws, database, cloud]
 updated: 2026-05-20
 ---
 

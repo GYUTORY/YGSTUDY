@@ -1,6 +1,6 @@
 ---
 title: Nginx
-tags: [webserver, nginx, reverse-proxy, load-balancer]
+tags: [web-server, proxy, load-balancer]
 updated: 2026-03-25
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: TypeScript null 타입
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, "null"]
+tags: [language, typescript, javascript]
 updated: 2026-07-27
 ---
 

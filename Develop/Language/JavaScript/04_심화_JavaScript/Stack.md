@@ -1,6 +1,6 @@
 ---
 title: JavaScript Stack (스택) 자료구조
-tags: [language, javascript, 04심화javascript, stack, data-structure]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

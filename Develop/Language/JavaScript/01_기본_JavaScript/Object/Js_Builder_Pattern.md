@@ -1,6 +1,6 @@
 ---
 title: JavaScript Builder
-tags: [language, javascript, 01기본javascript, object, jsbuilderpattern]
+tags: [language, javascript]
 updated: 2026-06-28
 ---
 # JavaScript Builder 패턴

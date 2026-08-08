@@ -1,6 +1,6 @@
 ---
 title: AsyncLocalStorage (요청 단위 컨텍스트 전파)
-tags: [framework, node, nodejs의-구조-및-작동-원리, async-hooks, asynclocalstorage, tracing, logging]
+tags: [nodejs, observability]
 updated: 2026-06-02
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Dynamic Programming (동적 계획법)
-tags: [algorithm, dynamic-programming, memoization, tabulation, optimization]
+tags: [algorithm]
 updated: 2026-07-11
 ---
 

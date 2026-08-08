@@ -1,6 +1,6 @@
 ---
 title: TPS와 RPS
-tags: [backend, performance, TPS, RPS, database, Capacity_Planning]
+tags: [backend, performance, database]
 updated: 2026-08-02
 ---
 

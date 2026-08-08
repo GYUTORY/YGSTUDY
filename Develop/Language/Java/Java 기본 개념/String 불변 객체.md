@@ -1,6 +1,6 @@
 ---
 title: Java String 불변 객체 (Immutable String)
-tags: [language, java, java-기본-개념, string, immutable, string-pool, stringbuilder]
+tags: [language, java]
 updated: 2026-04-24
 ---
 

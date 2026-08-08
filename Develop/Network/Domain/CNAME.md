@@ -1,6 +1,6 @@
 ---
 title: CNAME (Canonical Name Record)
-tags: [network, domain, dns, cname, alias, dns-record]
+tags: [network, architecture, dns]
 updated: 2026-05-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: OSPF — 내부망을 굴리는 Link-State 라우팅
-tags: [network, OSPF, routing, IGP, LinkState, Dijkstra, FRRouting, Quagga]
+tags: [network]
 updated: 2026-08-02
 ---
 

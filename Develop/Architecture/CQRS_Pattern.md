@@ -1,6 +1,6 @@
 ---
 title: CQRS 패턴
-tags: [backend, architecture, cqrs, event-sourcing, ddd, read-model, projection, eventual-consistency, jpa, spring]
+tags: [backend, architecture, java, spring]
 updated: 2026-05-11
 ---
 

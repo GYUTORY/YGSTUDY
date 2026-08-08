@@ -1,6 +1,6 @@
 ---
 title: APNs (Apple Push Notification service) 직접 연동
-tags: [backend, messaging, apns, push, ios, jwt, http2, node]
+tags: [backend, messaging, jwt, nodejs]
 updated: 2026-06-15
 ---
 

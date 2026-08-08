@@ -1,12 +1,6 @@
 ---
 title: Node.js diagnostics_channel 모듈 심화
-tags:
-  - nodejs
-  - diagnostics_channel
-  - observability
-  - tracing
-  - asynclocalstorage
-  - apm
+tags: [nodejs, observability]
 updated: 2026-06-06
 ---
 

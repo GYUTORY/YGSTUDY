@@ -1,6 +1,6 @@
 ---
 title: AWS Fargate
-tags: [aws, fargate, serverless, containers, ecs, eks]
+tags: [aws, cloud, docker]
 updated: 2026-04-14
 ---
 

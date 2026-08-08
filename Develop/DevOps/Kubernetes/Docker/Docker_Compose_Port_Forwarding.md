@@ -1,6 +1,6 @@
 ---
 title: Docker Compose Port Forwarding
-tags: [docker, DockerCompose, port-forwarding, network, devops]
+tags: [docker, network, devops, kubernetes]
 updated: 2026-04-30
 ---
 

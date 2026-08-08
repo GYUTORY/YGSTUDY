@@ -1,6 +1,6 @@
 ---
 title: Gateway (게이트웨이)
-tags: [network, gateway, definition, api-gateway, network-gateway]
+tags: [network, api]
 updated: 2026-07-25
 ---
 

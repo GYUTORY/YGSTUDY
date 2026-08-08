@@ -1,6 +1,6 @@
 ---
 title: Node.js Cluster vs Worker Threads (클러스터 vs 멀티스레드)
-tags: [framework, node, nodejs의-구조-및-작동-원리, cluster, worker-threads, nodejs, multi-process, multi-thread]
+tags: [nodejs, kubernetes]
 updated: 2025-08-15
 ---
 

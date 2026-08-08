@@ -1,6 +1,6 @@
 ---
 title: 파일 권한 심화 - ACL, Special Permissions, Capabilities
-tags: [linux, acl, capabilities, setuid, xattr, chattr, security, container]
+tags: [linux, security, docker, devops]
 updated: 2026-04-23
 ---
 

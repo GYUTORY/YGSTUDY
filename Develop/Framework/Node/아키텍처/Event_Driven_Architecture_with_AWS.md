@@ -1,6 +1,6 @@
 ---
 title: NestJS Event Driven Architecture with AWS
-tags: [nestjs, event-driven, aws, sns, sqs, lambda, microservices, architecture]
+tags: [nodejs, event-driven, aws, messaging]
 updated: 2025-12-15
 ---
 

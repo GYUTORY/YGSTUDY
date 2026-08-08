@@ -1,6 +1,6 @@
 ---
 title: "Java Annotation"
-tags: [java, annotation, reflection, spring, lombok, annotation-processor]
+tags: [java, spring, language]
 updated: 2026-05-03
 ---
 

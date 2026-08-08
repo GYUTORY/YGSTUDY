@@ -1,6 +1,6 @@
 ---
 title: "GCP IAM (Identity and Access Management)"
-tags: [GCP, iam, Service Account, Workload Identity, Custom Role, 최소 권한, 감사 로그]
+tags: [gcp, iam, cloud]
 updated: 2026-07-14
 ---
 

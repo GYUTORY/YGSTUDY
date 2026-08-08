@@ -1,11 +1,6 @@
 ---
 title: 링크 애그리게이션과 LACP
-tags:
-  - network
-  - data-link-layer
-  - lacp
-  - bonding
-  - link-aggregation
+tags: [network]
 updated: 2026-06-23
 ---
 

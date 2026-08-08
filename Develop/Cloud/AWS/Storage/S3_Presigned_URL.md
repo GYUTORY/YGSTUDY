@@ -1,6 +1,6 @@
 ---
 title: S3 Presigned URL 심층 정리
-tags: [aws, s3, presigned-url, security, signature-v4, cors, multipart]
+tags: [aws, security, cloud]
 updated: 2026-05-15
 ---
 

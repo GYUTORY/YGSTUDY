@@ -1,6 +1,6 @@
 ---
 title: S3 정적 웹사이트 호스팅
-tags: [aws, s3, static-website, cloudfront, route53, oac, spa, troubleshooting]
+tags: [aws, cdn, dns, observability]
 updated: 2026-05-15
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "Java 예외 처리"
-tags: [java, exception, error-handling, try-with-resources]
+tags: [java, backend, language]
 updated: 2026-05-03
 ---
 

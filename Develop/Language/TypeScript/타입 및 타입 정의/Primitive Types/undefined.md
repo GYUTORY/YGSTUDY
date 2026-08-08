@@ -1,6 +1,6 @@
 ---
 title: TypeScript undefined 타입
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, undefined]
+tags: [language, typescript, javascript]
 updated: 2025-08-10
 ---
 

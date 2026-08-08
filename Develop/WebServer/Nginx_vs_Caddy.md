@@ -1,6 +1,6 @@
 ---
 title: Nginx vs Caddy
-tags: [webserver, nginx, Caddy, reverse-proxy, https, docker, comparison]
+tags: [web-server, proxy, http, docker]
 updated: 2026-04-14
 ---
 

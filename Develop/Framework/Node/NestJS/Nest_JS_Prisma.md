@@ -1,6 +1,6 @@
 ---
 title: NestJS Prisma 연동
-tags: [nestjs, prisma, database, orm, migration, transaction]
+tags: [nodejs, rdbms, database, devops]
 updated: 2026-07-10
 ---
 

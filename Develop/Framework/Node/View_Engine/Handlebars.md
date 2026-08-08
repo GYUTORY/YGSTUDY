@@ -1,6 +1,6 @@
 ---
 title: Handlebars (.hbs)
-tags: [nodejs, express, View Engine, Handlebars, Template]
+tags: [nodejs]
 updated: 2026-08-02
 ---
 

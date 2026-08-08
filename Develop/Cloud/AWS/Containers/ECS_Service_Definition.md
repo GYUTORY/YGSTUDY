@@ -1,6 +1,6 @@
 ---
 title: ECS Service 설정 심화
-tags: [aws, ecs, service, deployment, alb, fargate, capacity-provider, networking]
+tags: [aws, devops, network, cloud]
 updated: 2026-04-22
 ---
 

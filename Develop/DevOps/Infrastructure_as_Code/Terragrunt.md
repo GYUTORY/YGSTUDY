@@ -1,6 +1,6 @@
 ---
 title: Terragrunt
-tags: [terragrunt, terraform, iac, infrastructure-as-code, devops, aws, multi-account]
+tags: [terraform, iac, devops, aws]
 updated: 2026-04-12
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: ECS 인프라와 Task Definition의 관계
-tags: [aws, ecs, Task Definition, cluster, capacity-provider, fargate, ec2, eni, iam, service-discovery, alb, auto-scaling, blue-green, lifecycle, runtask]
+tags: [aws, kubernetes, vpc, iam]
 updated: 2026-05-08
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "Java 형변환 (Type Casting)"
-tags: [java, type-casting, primitive, reference, instanceof, generics, type-erasure]
+tags: [java, typescript, language]
 updated: 2026-07-09
 ---
 

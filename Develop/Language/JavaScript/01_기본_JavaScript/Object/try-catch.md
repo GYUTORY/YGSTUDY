@@ -1,6 +1,6 @@
 ---
 title: JavaScript try-catch 에러 처리
-tags: [language, javascript, 01기본javascript, object, try-catch, error-handling]
+tags: [language, javascript, backend]
 updated: 2025-08-10
 ---
 

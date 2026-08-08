@@ -1,6 +1,6 @@
 ---
 title: Amazon QuickSight
-tags: [aws, quicksight, bi, spice, dashboard, embedded, access-control, analytics]
+tags: [aws, cloud]
 updated: 2026-07-25
 ---
 

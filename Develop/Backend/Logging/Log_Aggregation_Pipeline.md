@@ -1,6 +1,6 @@
 ---
 title: 로그 수집 파이프라인
-tags: [backend, logging, elk, loki, grafana, fluentd, filebeat, elasticsearch, pipeline]
+tags: [backend, observability, monitoring, elasticsearch]
 updated: 2026-04-11
 ---
 

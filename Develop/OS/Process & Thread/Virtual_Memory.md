@@ -1,6 +1,6 @@
 ---
 title: "프로세스/스레드 관점의 가상 메모리"
-tags: [os, Virtual Memory, process, Thread, Address Space, fork, COW, mmap]
+tags: [os]
 updated: 2026-04-11
 ---
 

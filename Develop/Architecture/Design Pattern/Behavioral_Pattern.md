@@ -1,6 +1,6 @@
 ---
 title: 행동 패턴 (Behavioral Patterns)
-tags: [architecture, design-pattern, behavioral, strategy, template-method, command, State, observer, chain-of-responsibility]
+tags: [architecture, design-patterns]
 updated: 2026-03-01
 ---
 

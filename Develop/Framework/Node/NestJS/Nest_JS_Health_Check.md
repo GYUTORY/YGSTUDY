@@ -1,6 +1,6 @@
 ---
 title: NestJS Health Check 심화
-tags: [nestjs, health-check, Terminus, kubernetes, graceful-shutdown]
+tags: [nodejs, monitoring, kubernetes, devops]
 updated: 2026-08-02
 ---
 

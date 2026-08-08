@@ -1,6 +1,6 @@
 ---
 title: ECS Task Placement
-tags: [aws, ecs, ec2, placement-strategy, placement-constraint, fargate]
+tags: [aws, cloud]
 updated: 2026-05-20
 ---
 

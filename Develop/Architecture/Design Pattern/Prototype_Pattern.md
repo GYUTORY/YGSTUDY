@@ -1,6 +1,6 @@
 ---
 title: Prototype Pattern (프로토타입 패턴)
-tags: [design-pattern, prototype-pattern, creational-pattern, javascript, deep-copy]
+tags: [design-patterns, javascript, architecture]
 updated: 2026-03-30
 ---
 

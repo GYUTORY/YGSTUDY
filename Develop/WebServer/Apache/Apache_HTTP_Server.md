@@ -1,6 +1,6 @@
 ---
 title: Apache HTTP Server
-tags: [webserver, apache, httpd, reverse-proxy, mod_rewrite, virtual-host]
+tags: [web-server, proxy]
 updated: 2026-04-07
 ---
 

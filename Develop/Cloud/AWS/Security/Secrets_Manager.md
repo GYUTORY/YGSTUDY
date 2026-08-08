@@ -1,6 +1,6 @@
 ---
 title: AWS Secrets Manager
-tags: [aws, security, secrets-manager, 암호화, 시크릿관리, aes, kms]
+tags: [aws, security, encryption, cloud]
 updated: 2026-04-10
 ---
 

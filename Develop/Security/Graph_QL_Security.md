@@ -1,6 +1,6 @@
 ---
 title: GraphQL Security
-tags: [security, graphql, apollo, introspection, query-complexity, dos, persisted-query, authorization]
+tags: [security, graphql, auth]
 updated: 2026-06-21
 ---
 

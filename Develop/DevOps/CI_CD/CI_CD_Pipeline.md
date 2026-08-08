@@ -1,11 +1,6 @@
 ---
 title: CI/CD 파이프라인 인프라 설계
-tags:
-  - infra
-  - cicd
-  - pipeline
-  - deployment
-  - kubernetes
+tags: [iac, ci-cd, devops, kubernetes]
 updated: 2026-07-25
 ---
 

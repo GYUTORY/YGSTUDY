@@ -1,6 +1,6 @@
 ---
 title: AWS WAF (Web Application Firewall)
-tags: [aws, waf, security, firewall, ddos, sql-injection, xss, alb, cloudfront]
+tags: [aws, security, cdn, cloud]
 updated: 2026-01-18
 ---
 

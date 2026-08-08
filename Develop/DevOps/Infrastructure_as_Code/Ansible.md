@@ -1,6 +1,6 @@
 ---
 title: Ansible
-tags: [ansible, iac, configuration-management, devops, ssh, automation, collections, molecule, mitogen]
+tags: [iac, devops, linux]
 updated: 2026-04-11
 ---
 

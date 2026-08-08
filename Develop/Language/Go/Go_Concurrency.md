@@ -1,13 +1,6 @@
 ---
 title: Go 동시성 - 고루틴과 채널
-tags:
-  - Go
-  - Golang
-  - goroutine
-  - channel
-  - concurrency
-  - WaitGroup
-  - Mutex
+tags: [go, os, language]
 updated: 2026-07-08
 ---
 

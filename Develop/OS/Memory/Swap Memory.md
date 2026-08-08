@@ -1,6 +1,6 @@
 ---
 title: 스왑 메모리 (Swap Memory)
-tags: [os, memory, swap-memory, Virtual Memory, paging, zram, zswap, kubernetes, mlock]
+tags: [os, kubernetes]
 updated: 2026-05-02
 ---
 

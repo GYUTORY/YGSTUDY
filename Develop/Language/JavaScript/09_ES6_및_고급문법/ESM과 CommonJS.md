@@ -1,6 +1,6 @@
 ---
 title: ESM과 CommonJS
-tags: [language, javascript, 09es6및고급문법, es6, esm과-commonjs]
+tags: [language, javascript]
 updated: 2026-07-17
 ---
 

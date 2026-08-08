@@ -1,12 +1,6 @@
 ---
 title: Python 예외 처리
-tags:
-  - python
-  - exception
-  - error-handling
-  - try-except
-  - ExceptionGroup
-  - asyncio
+tags: [python, backend, language]
 updated: 2026-07-18
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: worker_threads 모듈 심화
-tags: [framework, node, nodejs, worker-threads, message-port, shared-array-buffer, atomics]
+tags: [nodejs]
 updated: 2026-06-06
 ---
 

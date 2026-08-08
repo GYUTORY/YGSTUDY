@@ -1,6 +1,6 @@
 ---
 title: Java static 사용 패턴과 안티패턴
-tags: [language, java, 객체지향-프로그래밍-oop, static, anti-pattern, jvm]
+tags: [language, java]
 updated: 2026-04-27
 ---
 

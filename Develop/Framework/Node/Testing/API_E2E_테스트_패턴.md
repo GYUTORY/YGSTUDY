@@ -1,6 +1,6 @@
 ---
 title: API E2E 테스트 패턴
-tags: [framework, node, testing, api, e2e, rest, authentication, express, integration-testing]
+tags: [nodejs, testing, api, rest]
 updated: 2025-12-13
 ---
 

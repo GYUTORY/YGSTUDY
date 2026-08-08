@@ -1,6 +1,6 @@
 ---
 title: ECS Service Connect 설정
-tags: [aws, ecs, service-connect, service-discovery, cloud-map, envoy, mtls, networking]
+tags: [aws, microservices, proxy, encryption]
 updated: 2026-04-22
 ---
 

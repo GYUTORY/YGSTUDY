@@ -1,6 +1,6 @@
 ---
 title: Buffer
-tags: [datarepresentation, buffer, java, nodejs, python, netty, zero-copy]
+tags: [database, java, nodejs, python]
 updated: 2026-05-06
 ---
 

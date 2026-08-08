@@ -1,6 +1,6 @@
 ---
 title: GraphQL 상세
-tags: [framework, node, graphql, api, backend, query-language]
+tags: [nodejs, graphql, api, backend]
 updated: 2025-11-30
 ---
 

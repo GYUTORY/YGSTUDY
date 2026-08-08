@@ -1,6 +1,6 @@
 ---
 title: PostgreSQL JSONB 실무
-tags: [postgresql, jsonb, json, gin-index, jsonpath, jsonb_set, jsonb_each]
+tags: [postgresql, api, rdbms, database]
 updated: 2026-08-07
 ---
 

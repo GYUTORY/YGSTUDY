@@ -1,6 +1,6 @@
 ---
 title: Java EE (Jakarta EE)
-tags: [language, java, 애플리케이션-서버, java-ee, jakarta-ee]
+tags: [language, java]
 updated: 2026-03-30
 ---
 

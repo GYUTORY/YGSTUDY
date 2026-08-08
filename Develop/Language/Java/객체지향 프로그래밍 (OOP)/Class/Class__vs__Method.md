@@ -1,6 +1,6 @@
 ---
 title: Java 클래스(Class)와 메서드(Method)
-tags: [language, java, 객체지향-프로그래밍-oop, class, class-vs-method]
+tags: [language, java]
 updated: 2026-05-03
 ---
 

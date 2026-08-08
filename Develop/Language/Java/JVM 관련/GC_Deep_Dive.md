@@ -1,6 +1,6 @@
 ---
 title: JVM Garbage Collection 심화
-tags: [java, jvm, gc, garbage-collection, g1gc, zgc, cms, heap, memory, tuning, container]
+tags: [java, os, docker, language]
 updated: 2026-04-09
 ---
 

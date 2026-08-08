@@ -1,6 +1,6 @@
 ---
 title: 이벤트 소싱과 CQRS 개념 정리
-tags: [backend, event-sourcing, cqrs, distributed-system]
+tags: [backend, microservices, architecture]
 updated: 2026-03-29
 ---
 

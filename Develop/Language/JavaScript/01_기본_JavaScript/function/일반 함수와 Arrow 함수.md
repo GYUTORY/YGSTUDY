@@ -1,6 +1,6 @@
 ---
 title: JavaScript 일반 함수와 화살표 함수 비교
-tags: [language, javascript, 01기본javascript, function, Arrow Function, this-binding]
+tags: [language, javascript]
 updated: 2025-11-11
 ---
 

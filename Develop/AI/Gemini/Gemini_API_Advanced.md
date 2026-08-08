@@ -1,6 +1,6 @@
 ---
 title: Gemini API 심화 (멀티모달, Function Calling, Streaming, Safety, Context Caching)
-tags: [ai, gemini, google, api, multimodal, function-calling, streaming, safety, caching]
+tags: [ai, api, messaging, cache]
 updated: 2026-04-18
 volatility: high
 ---

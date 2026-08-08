@@ -1,6 +1,6 @@
 ---
 title: 다중 인증과 패스키
-tags: [backend, authentication, mfa, totp, webauthn, fido2, passkey, security]
+tags: [backend, auth, security]
 updated: 2026-05-08
 ---
 

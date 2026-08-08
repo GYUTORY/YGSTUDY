@@ -1,6 +1,6 @@
 ---
 title: Java 함수형 프로그래밍 - Stream, Optional, Collectors
-tags: [java, functional-programming, stream, optional, collectors, parallel-stream, lazy-evaluation]
+tags: [java, language]
 updated: 2026-06-15
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: JavaScript 디스트럭처링과 템플릿 리터럴
-tags: [language, javascript, 04심화javascript, destructuring, template-literals, es6]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

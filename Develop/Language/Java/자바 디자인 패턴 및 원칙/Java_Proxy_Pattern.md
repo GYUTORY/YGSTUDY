@@ -1,6 +1,6 @@
 ---
 title: Java - Proxy Pattern (프록시 패턴)
-tags: [language, java, design-pattern, proxy, dynamic-proxy, CGLIB, spring-aop]
+tags: [language, java, design-patterns, proxy]
 updated: 2026-07-19
 ---
 

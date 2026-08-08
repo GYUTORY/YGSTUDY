@@ -1,11 +1,6 @@
 ---
 title: Consul
-tags:
-  - infra
-  - service-discovery
-  - service-mesh
-  - consul
-  - hashicorp
+tags: [iac, microservices, kubernetes, devops]
 updated: 2026-06-03
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: TypeScript 고급 타입 패턴
-tags: [typescript, conditional-types, mapped-types, template-literal, type-guard, discriminated-union, infer]
+tags: [typescript, language]
 updated: 2026-03-01
 ---
 

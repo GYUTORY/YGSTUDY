@@ -1,6 +1,6 @@
 ---
 title: Claude Code 하네스 — 내부 동작과 디버깅
-tags: [ai, claude-code, harness, runtime, permission, hooks, mcp, sandbox]
+tags: [ai, mcp]
 updated: 2026-05-07
 volatility: high
 ---

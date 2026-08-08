@@ -1,6 +1,6 @@
 ---
 title: Kafka Exactly-Once Semantics (EOS)
-tags: [kafka, exactly-once, idempotent-producer, transactions, eos, kafka-streams, messaging]
+tags: [messaging, backend]
 updated: 2026-08-02
 ---
 

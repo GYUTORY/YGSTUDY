@@ -1,6 +1,6 @@
 ---
 title: 인프라 관찰성 설계
-tags: [infrastructure, observability, metrics, logs, traces, golden-signals, sli, slo, alerting, on-call, dashboard]
+tags: [iac, observability, monitoring, devops]
 updated: 2026-06-04
 ---
 

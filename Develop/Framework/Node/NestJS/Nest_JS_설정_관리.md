@@ -1,6 +1,6 @@
 ---
 title: NestJS 설정 관리
-tags: [nestjs, config, env, validation, node]
+tags: [nodejs, backend]
 updated: 2026-04-15
 ---
 

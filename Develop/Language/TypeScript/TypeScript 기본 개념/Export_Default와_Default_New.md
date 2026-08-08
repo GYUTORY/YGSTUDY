@@ -1,6 +1,6 @@
 ---
 title: TypeScript export default와 default new
-tags: [language, typescript, typescript-기본-개념, export-default, default-new]
+tags: [language, typescript]
 updated: 2025-11-01
 ---
 

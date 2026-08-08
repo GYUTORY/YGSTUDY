@@ -1,6 +1,6 @@
 ---
 title: 재해 복구(DR) 인프라 구성
-tags: [infrastructure, disaster-recovery, rto, rpo, backup, multi-region, failover, standby, dns-failover, data-consistency]
+tags: [iac, devops]
 updated: 2026-06-17
 ---
 

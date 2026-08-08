@@ -1,6 +1,6 @@
 ---
 title: TypeScript null 타입 심화
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, "null", strictNullChecks]
+tags: [language, typescript, javascript]
 updated: 2026-06-07
 ---
 

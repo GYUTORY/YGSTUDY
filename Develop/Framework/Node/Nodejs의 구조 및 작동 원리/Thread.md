@@ -1,6 +1,6 @@
 ---
 title: Node.js Worker Threads (워커 스레드)
-tags: [framework, node, nodejs의-구조-및-작동-원리, worker-threads, nodejs, multi-threading]
+tags: [nodejs]
 updated: 2025-08-15
 ---
 

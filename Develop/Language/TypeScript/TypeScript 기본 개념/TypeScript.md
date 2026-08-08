@@ -1,6 +1,6 @@
 ---
 title: TypeScript
-tags: [language, typescript, typescript-기본-개념, javascript-superset]
+tags: [language, typescript]
 updated: 2025-12-16
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: SHA (Secure Hash Algorithm) 해시 함수
-tags: [security, sha, hash, cryptography, integrity, hmac, sha-3]
+tags: [security]
 updated: 2026-04-09
 ---
 

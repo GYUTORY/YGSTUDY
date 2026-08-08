@@ -1,6 +1,6 @@
 ---
 title: AWS API Gateway
-tags: [aws, api-gateway, rest-api, http-api, websocket, lambda, throttling, cognito]
+tags: [aws, api, network, performance]
 updated: 2026-04-26
 ---
 

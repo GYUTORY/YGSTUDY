@@ -1,6 +1,6 @@
 ---
 title: 테넌트 네트워크 격리
-tags: [architecture, multi-tenancy, kubernetes, networkpolicy, namespace, resourcequota, limitrange, ingress, tenant-isolation, k8s]
+tags: [architecture, kubernetes]
 updated: 2026-08-04
 ---
 

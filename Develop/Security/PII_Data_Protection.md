@@ -1,6 +1,6 @@
 ---
 title: PII(개인정보) 데이터 보호
-tags: [pii, privacy, gdpr, 개인정보보호법, masking, pseudonymization, anonymization, tokenization, fpe, field-level-encryption, key-management, data-minimization, security]
+tags: [security]
 updated: 2026-05-29
 ---
 

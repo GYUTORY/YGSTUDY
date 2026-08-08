@@ -1,6 +1,6 @@
 ---
 title: Connection Limit
-tags: [backend, resilience, Connection, ulimit, file-descriptor, somaxconn, ephemeral-port, max-connections, hikaricp, pgbouncer, rds-proxy]
+tags: [backend, aws]
 updated: 2026-05-08
 ---
 

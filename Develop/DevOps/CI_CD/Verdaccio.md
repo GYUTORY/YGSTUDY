@@ -1,6 +1,6 @@
 ---
 title: Verdaccio 사설 npm 레지스트리
-tags: [devops, cicd, verdaccio, npm, registry, private-registry, monorepo]
+tags: [devops, ci-cd, nodejs]
 updated: 2026-05-04
 ---
 

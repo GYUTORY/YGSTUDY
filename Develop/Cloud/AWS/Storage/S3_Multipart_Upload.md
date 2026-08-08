@@ -1,6 +1,6 @@
 ---
 title: S3 Multipart Upload 심층 정리
-tags: [aws, s3, MultipartUpload, transfer-acceleration, boto3, etag]
+tags: [aws, cloud]
 updated: 2026-05-15
 ---
 

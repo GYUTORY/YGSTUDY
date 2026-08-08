@@ -1,6 +1,6 @@
 ---
 title: 데이터베이스 통합 테스트
-tags: [framework, node, testing, database, integration-testing, jest, mysql, postgresql]
+tags: [nodejs, testing, database, mysql]
 updated: 2025-12-13
 ---
 

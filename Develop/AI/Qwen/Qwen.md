@@ -1,6 +1,6 @@
 ---
 title: Qwen 모델 패밀리 개요와 실무 사용
-tags: [ai, llm, qwen, alibaba, dashscope, open-source-llm, reasoning]
+tags: [ai, llm]
 updated: 2026-05-15
 volatility: high
 ---

@@ -1,6 +1,6 @@
 ---
 title: AWS OpenSearch (관리형 검색·로그 분석)
-tags: [aws, opensearch, elasticsearch, elk, kibana, ism, fluent-bit, firehose, logstash, sharding]
+tags: [aws, elasticsearch, cloud]
 updated: 2026-05-27
 ---
 

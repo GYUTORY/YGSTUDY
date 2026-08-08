@@ -1,13 +1,6 @@
 ---
 title: Traefik on Kubernetes
-tags:
-  - infra
-  - load-balancer
-  - traefik
-  - kubernetes
-  - ingress
-  - crd
-  - cert-manager
+tags: [iac, load-balancer, kubernetes, devops]
 updated: 2026-07-17
 ---
 

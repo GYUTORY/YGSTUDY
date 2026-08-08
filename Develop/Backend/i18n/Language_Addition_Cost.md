@@ -1,6 +1,6 @@
 ---
 title: 언어 추가 비용
-tags: [i18n, localization, backend, infrastructure, performance]
+tags: [backend, iac, performance]
 updated: 2026-08-07
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: TypeORM 엔티티 관계 매핑 심화
-tags: [typeorm, entity, relations, onetomany, manytomany, joincolumn, cascade, soft-delete, self-referential, owning-side]
+tags: [rdbms, database]
 updated: 2026-07-28
 ---
 

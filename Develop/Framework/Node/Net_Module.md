@@ -1,13 +1,6 @@
 ---
 title: Node.js net 모듈 TCP 서버/클라이언트 실무 심화
-tags:
-  - nodejs
-  - net
-  - tcp
-  - socket
-  - backpressure
-  - unix-domain-socket
-  - keep-alive
+tags: [nodejs, tcp, network]
 updated: 2026-06-06
 ---
 

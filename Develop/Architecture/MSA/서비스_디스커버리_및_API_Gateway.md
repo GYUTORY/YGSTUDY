@@ -1,6 +1,6 @@
 ---
 title: 서비스 디스커버리와 API Gateway
-tags: [backend, msa, service-discovery, api-gateway, infrastructure]
+tags: [backend, microservices, api, iac]
 updated: 2026-03-28
 ---
 

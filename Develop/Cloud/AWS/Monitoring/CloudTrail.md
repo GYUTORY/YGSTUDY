@@ -1,6 +1,6 @@
 ---
 title: AWS CloudTrail
-tags: [aws, monitoring-and-management, cloudtrail, Auditing, compliance]
+tags: [aws, security, cloud]
 updated: 2025-12-07
 ---
 

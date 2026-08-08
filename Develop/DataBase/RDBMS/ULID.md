@@ -1,6 +1,6 @@
 ---
 title: ULID
-tags: [database, ulid, uuid, primary-key, identifier, mysql, postgresql, spring, jpa, redis, cassandra, distributed-id, monotonic, crockford-base32]
+tags: [database, backend, mysql, postgresql]
 updated: 2026-07-29
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Lombok 보조 어노테이션
-tags: [framework, java, spring, lombok, annotation-processor]
+tags: [java, spring]
 updated: 2026-07-02
 ---
 

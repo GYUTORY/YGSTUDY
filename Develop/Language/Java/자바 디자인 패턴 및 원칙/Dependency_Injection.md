@@ -1,6 +1,6 @@
 ---
 title: Java - Dependency Injection (의존성 주입)
-tags: [language, java, design-pattern, dependency-injection, spring, ioc]
+tags: [language, java, design-patterns, spring]
 updated: 2026-05-02
 ---
 

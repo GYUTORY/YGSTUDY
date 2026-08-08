@@ -1,12 +1,6 @@
 ---
 title: Go Modules
-tags:
-  - Go
-  - Golang
-  - Go Modules
-  - go.mod
-  - GOPATH
-  - Workspace
+tags: [go, language]
 updated: 2026-07-27
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: DST (일광 절약 시간)
-tags: [dst, timezone, tzdata, python, iana, scheduler, backend]
+tags: [backend, python]
 updated: 2026-07-31
 ---
 

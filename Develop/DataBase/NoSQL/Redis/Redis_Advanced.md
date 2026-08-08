@@ -1,6 +1,6 @@
 ---
 title: Redis 심화
-tags: [redis, cluster, sentinel, streams, lua, distributed-lock, spring-data-redis, performance, valkey, redis-functions, split-brain, network-partition, quorum]
+tags: [redis, kubernetes, architecture, performance]
 updated: 2026-04-02
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 유니코드 (Unicode)
-tags: [unicode, utf-8, utf-16, utf-32, encoding, surrogate-pair, normalization, emoji, collation]
+tags: [database, rdbms]
 updated: 2026-08-05
 ---
 

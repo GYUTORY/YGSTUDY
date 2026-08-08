@@ -1,6 +1,6 @@
 ---
 title: Jenkins
-tags: [devops, cicd, jenkins, pipeline, jenkinsfile, automation]
+tags: [devops, ci-cd]
 updated: 2026-04-30
 ---
 

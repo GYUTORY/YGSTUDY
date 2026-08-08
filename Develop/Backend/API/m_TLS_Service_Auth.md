@@ -1,6 +1,6 @@
 ---
 title: "서비스 간 API 인증 — mTLS"
-tags: [api, mtls, security, zero-trust, certificate, service-mesh]
+tags: [api, encryption, security, kubernetes]
 updated: 2026-04-07
 ---
 

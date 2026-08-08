@@ -1,6 +1,6 @@
 ---
 title: Terraform
-tags: [terraform, iac, infrastructure-as-code, devops, aws, hcl]
+tags: [terraform, iac, devops, aws]
 updated: 2026-04-12
 ---
 

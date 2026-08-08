@@ -1,6 +1,6 @@
 ---
 title: Dockerfile 작성법
-tags: [docker, dockerfile, container, devops]
+tags: [docker, devops, kubernetes]
 updated: 2026-04-06
 ---
 

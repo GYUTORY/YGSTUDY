@@ -1,6 +1,6 @@
 ---
 title: EKS 비용 절감
-tags: [aws, eks, kubernetes, Karpenter, cost, FinOps]
+tags: [aws, kubernetes, cloud]
 updated: 2026-08-07
 ---
 

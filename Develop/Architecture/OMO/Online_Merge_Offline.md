@@ -1,6 +1,6 @@
 ---
 title: Online-Merge-Offline (OMO) 아키텍처
-tags: [omo, online-merge-offline, OMS, 재고동기화, 고객식별, kafka, redis, event-driven, backend]
+tags: [messaging, redis, event-driven, backend]
 updated: 2026-07-23
 ---
 

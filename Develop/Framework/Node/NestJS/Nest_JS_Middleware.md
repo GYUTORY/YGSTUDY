@@ -1,12 +1,6 @@
 ---
 title: NestJS Middleware
-tags:
-  - nestjs
-  - middleware
-  - express
-  - fastify
-  - request-lifecycle
-  - logging
+tags: [nodejs, observability]
 updated: 2026-06-06
 ---
 

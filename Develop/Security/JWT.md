@@ -1,6 +1,6 @@
 ---
 title: JWT (JSON Web Token)
-tags: [auth, jwt, jws, jwe, jwk, security, authentication, token]
+tags: [auth, jwt, security]
 updated: 2026-04-29
 ---
 

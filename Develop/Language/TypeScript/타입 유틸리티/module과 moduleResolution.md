@@ -1,6 +1,6 @@
 ---
 title: TypeScript module과 moduleResolution
-tags: [language, typescript, module, module-resolution, es-modules, commonjs, node16, nodenext, verbatimModuleSyntax, mts, cts]
+tags: [language, typescript]
 updated: 2026-07-17
 ---
 

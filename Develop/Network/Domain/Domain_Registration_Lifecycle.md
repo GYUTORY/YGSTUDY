@@ -1,6 +1,6 @@
 ---
 title: 도메인 등록과 라이프사이클
-tags: [network, domain, registrar, icann, whois, rdap, dnssec, transfer]
+tags: [network, architecture]
 updated: 2026-05-04
 ---
 

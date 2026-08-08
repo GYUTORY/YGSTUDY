@@ -1,6 +1,6 @@
 ---
 title: Spring Boot 2.x vs 3.x 마이그레이션 의사결정
-tags: [framework, java, spring, spring-boot, migration, jakarta-ee, graalvm, observability]
+tags: [java, spring, devops, observability]
 updated: 2026-04-28
 ---
 

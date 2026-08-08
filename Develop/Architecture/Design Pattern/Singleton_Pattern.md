@@ -1,6 +1,6 @@
 ---
 title: Singleton Pattern (싱글톤 패턴)
-tags: [design-pattern, singleton-pattern, creational-pattern, javascript, architecture]
+tags: [design-patterns, javascript, architecture]
 updated: 2025-11-30
 ---
 

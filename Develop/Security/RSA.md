@@ -1,6 +1,6 @@
 ---
 title: RSA
-tags: [security, rsa, encryption, digital-signature]
+tags: [security, encryption]
 updated: 2026-03-30
 ---
 

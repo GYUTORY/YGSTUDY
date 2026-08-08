@@ -1,6 +1,6 @@
 ---
 title: Binary와 Bit의 차이
-tags: [datarepresentation, bit, binary, byte, networking, encoding]
+tags: [database, network]
 updated: 2026-04-27
 ---
 

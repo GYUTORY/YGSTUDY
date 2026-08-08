@@ -1,6 +1,6 @@
 ---
 title: Docker 환경에서 Caddy 운영 심화
-tags: [webserver, Caddy, docker, kubernetes, Swarm, CertMagic, Production]
+tags: [web-server, docker, kubernetes]
 updated: 2026-08-02
 ---
 

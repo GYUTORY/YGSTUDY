@@ -1,6 +1,6 @@
 ---
 title: Amazon DocumentDB
-tags: [aws, documentdb, mongodb, nosql, database, document-store]
+tags: [aws, mongodb, nosql, database]
 updated: 2026-04-23
 ---
 

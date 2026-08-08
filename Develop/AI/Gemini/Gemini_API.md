@@ -1,6 +1,6 @@
 ---
 title: Gemini API 실무 사용법
-tags: [ai, gemini, google, api, multimodal, function-calling]
+tags: [ai, api]
 updated: 2026-04-15
 volatility: high
 ---

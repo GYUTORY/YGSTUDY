@@ -1,6 +1,6 @@
 ---
 title: PKI와 인증서 수명주기 관리
-tags: [security, PKI, tls, certificate, mtls, HSM]
+tags: [security, encryption]
 updated: 2026-08-02
 ---
 

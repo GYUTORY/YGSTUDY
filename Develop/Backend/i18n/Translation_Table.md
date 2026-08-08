@@ -1,6 +1,6 @@
 ---
 title: 번역 테이블(EAV) 심화
-tags: [backend, i18n, translation-table, eav, partitioning, archiving, workflow, csv-import, translation-memory, microservices, postgresql, mysql]
+tags: [backend, database, architecture, microservices]
 updated: 2026-08-07
 ---
 

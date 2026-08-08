@@ -1,6 +1,6 @@
 ---
 title: 비밀번호 해싱과 저장
-tags: [backend, authentication, password, bcrypt, argon2, scrypt, security]
+tags: [backend, auth, security]
 updated: 2026-08-07
 ---
 

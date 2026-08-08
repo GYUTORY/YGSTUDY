@@ -1,6 +1,6 @@
 ---
 title: NestJS 작업 큐 BullMQ 운영기
-tags: [nestjs, bullmq, queue, redis, worker, retry, idempotency]
+tags: [nodejs, messaging, redis, architecture]
 updated: 2026-05-27
 ---
 

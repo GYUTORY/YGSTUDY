@@ -1,6 +1,6 @@
 ---
 title: AWS VPC MSA 네트워크 설계
-tags: [msa, aws, vpc, network, architecture]
+tags: [microservices, aws, vpc, network]
 updated: 2026-08-07
 ---
 

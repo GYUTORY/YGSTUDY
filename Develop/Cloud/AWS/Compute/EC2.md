@@ -1,6 +1,6 @@
 ---
 title: EC2
-tags: [aws, ec2, compute, instance, ami, security-group, elastic-ip, eni, imds, user-data, placement-group, instance-type, launch-template, ebs, spot]
+tags: [aws, vpc, cloud]
 updated: 2026-05-04
 ---
 

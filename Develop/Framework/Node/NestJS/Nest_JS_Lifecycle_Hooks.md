@@ -1,11 +1,6 @@
 ---
 title: NestJS 라이프사이클 훅
-tags:
-  - nestjs
-  - lifecycle
-  - hooks
-  - graceful-shutdown
-  - sigterm
+tags: [nodejs, devops]
 updated: 2026-06-02
 ---
 

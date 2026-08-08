@@ -1,6 +1,6 @@
 ---
 title: JWKS URL (JWK Set Endpoint)
-tags: [security, jwt, jwks, jwk, oidc, public-key, key-rotation, authentication]
+tags: [security, jwt, auth]
 updated: 2026-05-29
 ---
 

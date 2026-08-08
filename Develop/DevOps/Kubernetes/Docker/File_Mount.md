@@ -1,6 +1,6 @@
 ---
 title: Docker 파일 마운트
-tags: [docker, mount, volume, bind-mount, tmpfs, buildkit]
+tags: [docker, kubernetes, devops]
 updated: 2026-04-06
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Clickjacking (클릭재킹)
-tags: [security, clickjacking, x-frame-options, csp, frame-ancestors, samesite, iframe]
+tags: [security]
 updated: 2026-06-15
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: RabbitMQ 심화
-tags: [rabbitmq, AMQP, messaging, NestJS AMQP, Quorum Queue]
+tags: [messaging, backend]
 updated: 2026-04-02
 ---
 

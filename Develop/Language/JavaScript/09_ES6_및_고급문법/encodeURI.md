@@ -1,6 +1,6 @@
 ---
 title: encodeURI - URI
-tags: [language, javascript, 09es6및고급문법, encodeuri, java]
+tags: [language, javascript, java]
 updated: 2025-12-21
 ---
 # encodeURI() - URI 인코딩 함수

@@ -1,6 +1,6 @@
 ---
 title: 네트워크 기초 — 백엔드 개발자가 실제로 마주치는 것들
-tags: [network, backend, troubleshooting, tcp, socket]
+tags: [network, backend, observability, tcp]
 updated: 2026-08-02
 ---
 

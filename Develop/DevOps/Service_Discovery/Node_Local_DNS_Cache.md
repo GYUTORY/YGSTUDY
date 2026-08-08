@@ -1,6 +1,6 @@
 ---
 title: NodeLocal DNSCache
-tags: [kubernetes, dns, nodelocaldns, coredns, service-discovery]
+tags: [kubernetes, dns, microservices, devops]
 updated: 2026-07-04
 ---
 

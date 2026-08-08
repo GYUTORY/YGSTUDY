@@ -1,6 +1,6 @@
 ---
 title: 고가용성 인프라 구성
-tags: [infrastructure, high-availability, active-active, active-passive, multi-az, multi-region, replication, failover, rto, rpo, split-brain]
+tags: [iac, database, devops]
 updated: 2026-06-04
 ---
 

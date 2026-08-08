@@ -1,6 +1,6 @@
 ---
 title: Spring Cache
-tags: [spring, cache, cacheable, cacheevict, cacheput, caffeine, redis, cache-manager, cache-key, cache-invalidation, conditional-caching]
+tags: [spring, cache, redis, java]
 updated: 2026-07-29
 ---
 

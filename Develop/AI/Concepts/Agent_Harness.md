@@ -1,6 +1,6 @@
 ---
 title: Agent Harness — Claude Code 하네스로 보는 에이전트 런타임
-tags: [ai, agent, harness, claude-code, runtime, hooks, session]
+tags: [ai, llm]
 updated: 2026-06-06
 volatility: high
 ---

@@ -1,6 +1,6 @@
 ---
 title: MySQL vs PostgreSQL 실무 비교
-tags: [rdbms, mysql, postgresql, innodb, mvcc, 트랜잭션, 인덱스, 복제, 부분-인덱스]
+tags: [rdbms, mysql, postgresql, database]
 updated: 2026-08-03
 ---
 

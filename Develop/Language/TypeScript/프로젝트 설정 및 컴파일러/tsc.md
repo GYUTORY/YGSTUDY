@@ -1,6 +1,6 @@
 ---
 title: TypeScript 컴파일러 (tsc)
-tags: [language, typescript, 프로젝트-설정-및-컴파일러, tsc, compiler, tsconfig, build]
+tags: [language, typescript]
 updated: 2026-04-28
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: RDS 보안
-tags: [aws, rds, security, vpc, kms, ssl, iam, secrets-manager]
+tags: [aws, security, vpc, encryption]
 updated: 2026-07-24
 ---
 

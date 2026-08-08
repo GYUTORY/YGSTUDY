@@ -1,6 +1,6 @@
 ---
 title: 네트워크 플로우 (Network Flow)
-tags: [network, 7-layer, network-flow, dns, tcp, tls, http]
+tags: [network, dns, tcp, encryption]
 updated: 2026-06-03
 ---
 

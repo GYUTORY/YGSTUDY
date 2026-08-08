@@ -1,6 +1,6 @@
 ---
 title: JavaScript 프로토타입 기반 상속
-tags: [language, javascript, 01기본javascript, object, prototype, inheritance]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

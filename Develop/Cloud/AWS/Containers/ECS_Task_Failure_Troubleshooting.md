@@ -1,6 +1,6 @@
 ---
 title: ECS 태스크가 안 뜨거나 죽을 때 stoppedReason 디버깅
-tags: [aws, ecs, fargate, troubleshooting, stoppedReason]
+tags: [aws, observability, cloud]
 updated: 2026-08-05
 ---
 

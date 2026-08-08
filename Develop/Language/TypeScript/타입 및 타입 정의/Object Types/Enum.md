@@ -1,6 +1,6 @@
 ---
 title: TypeScript Enum
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, object-types, enum]
+tags: [language, typescript]
 updated: 2026-04-20
 ---
 

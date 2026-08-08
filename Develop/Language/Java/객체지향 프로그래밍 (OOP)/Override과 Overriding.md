@@ -1,6 +1,6 @@
 ---
 title: Override Overriding
-tags: [language, java, 객체지향-프로그래밍-oop, override과-overriding]
+tags: [language, java]
 updated: 2026-04-09
 ---
 

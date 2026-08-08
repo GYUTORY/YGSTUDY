@@ -1,6 +1,6 @@
 ---
 title: FCM (Firebase Cloud Messaging)
-tags: [backend, messaging, fcm, push, firebase, apns, node, firebase-admin]
+tags: [backend, messaging, nodejs]
 updated: 2026-06-15
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Redis 키스페이스 알림
-tags: [redis, key-space, Pub/Sub, 만료 이벤트, nosql]
+tags: [redis, nosql, database]
 updated: 2026-07-30
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 위협 모델링
-tags: [threat-modeling, stride, dread, dfd, trust-boundary, security, secure-design, audit-logging, authorization]
+tags: [security, auth]
 updated: 2026-04-29
 ---
 

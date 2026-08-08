@@ -1,6 +1,6 @@
 ---
 title: 쿠버네티스 보안
-tags: [security, kubernetes, RBAC, NetworkPolicy, PodSecurity, OPA]
+tags: [security, kubernetes]
 updated: 2026-08-02
 ---
 

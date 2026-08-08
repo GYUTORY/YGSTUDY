@@ -1,6 +1,6 @@
 ---
 title: 테넌트 컬럼 JPA
-tags: [database, multi-tenant, jpa, hibernate, spring-boot, spring-security, querydsl, tenant-id, filter, current-tenant-identifier-resolver, threadlocal, request-context]
+tags: [database, java, spring, rdbms]
 updated: 2026-08-04
 ---
 

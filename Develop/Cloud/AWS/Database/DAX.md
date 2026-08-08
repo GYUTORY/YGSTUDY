@@ -1,6 +1,6 @@
 ---
 title: AWS DAX (DynamoDB Accelerator)
-tags: [aws, dax, dynamodb, cache, in-memory, performance]
+tags: [aws, cache, performance, cloud]
 updated: 2026-01-18
 ---
 

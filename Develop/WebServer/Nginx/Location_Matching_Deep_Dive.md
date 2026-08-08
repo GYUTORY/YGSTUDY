@@ -1,6 +1,6 @@
 ---
 title: "Nginx location 매칭 우선순위 심화"
-tags: [nginx, location, rewrite, try_files, named-location, proxy_pass]
+tags: [web-server]
 updated: 2026-06-07
 ---
 

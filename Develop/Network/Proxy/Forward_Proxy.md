@@ -1,6 +1,6 @@
 ---
 title: 포워드 프록시 (Forward Proxy)
-tags: [network, proxy, forward-proxy, squid, no-proxy, pac, ssl-intercept, http-connect]
+tags: [network, proxy]
 updated: 2026-07-19
 ---
 

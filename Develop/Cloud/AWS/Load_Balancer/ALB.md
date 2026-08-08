@@ -1,6 +1,6 @@
 ---
 title: AWS Application Load Balancer (ALB)
-tags: [aws, alb, load-balancer, networking, http, microservices]
+tags: [aws, load-balancer, network, http]
 updated: 2026-05-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 소프트 삭제
-tags: [database, soft-delete, deleted-at, is-deleted, partial-index, gdpr, referential-integrity, unique-constraint, audit-log, mysql, postgresql]
+tags: [database, mysql, postgresql, rdbms]
 updated: 2026-08-03
 ---
 

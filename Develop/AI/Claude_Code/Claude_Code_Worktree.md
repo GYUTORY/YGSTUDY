@@ -1,6 +1,6 @@
 ---
 title: Claude Code Worktree
-tags: [ai, claude-code, git-worktree, parallel-development, isolation]
+tags: [ai]
 updated: 2026-04-08
 volatility: high
 ---

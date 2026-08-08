@@ -1,6 +1,6 @@
 ---
 title: AWS CloudFront 캐시 무효화(Cache Invalidation) 정책
-tags: [aws, cloudfront, cdn, cache, invalidation, terraform, github-actions]
+tags: [aws, cdn, cache, terraform]
 updated: 2026-04-24
 ---
 

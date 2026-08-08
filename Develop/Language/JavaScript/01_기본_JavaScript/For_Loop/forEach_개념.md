@@ -1,6 +1,6 @@
 ---
 title: JavaScript forEach 메서드 개념과 사용법
-tags: [language, javascript, 01기본javascript, forloop, foreach, array-methods]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

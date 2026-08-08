@@ -1,6 +1,6 @@
 ---
 title: EC2 구매 옵션
-tags: [aws, ec2, on-demand, reserved-instance, savings-plans, spot-instance, cost]
+tags: [aws, cloud]
 updated: 2026-04-11
 ---
 

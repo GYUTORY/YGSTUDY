@@ -1,6 +1,6 @@
 ---
 title: AWS Elastic Load Balancer (ELB)
-tags: [aws, load-balancer, elb]
+tags: [aws, load-balancer, cloud]
 updated: 2025-12-06
 ---
 

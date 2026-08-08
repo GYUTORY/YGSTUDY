@@ -1,6 +1,6 @@
 ---
 title: Spread 연산자 심화 — 내부 동작과 성능
-tags: [language, javascript, spread, iterator, performance, v8, structured-clone]
+tags: [language, javascript, performance]
 updated: 2026-06-02
 ---
 

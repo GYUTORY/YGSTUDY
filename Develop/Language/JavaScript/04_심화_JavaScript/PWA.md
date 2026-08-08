@@ -1,6 +1,6 @@
 ---
 title: PWA (Progressive Web App)
-tags: [javascript, pwa, service-worker, web-manifest, offline, caching, workbox]
+tags: [javascript, cache, language]
 updated: 2026-06-15
 ---
 

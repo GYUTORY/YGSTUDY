@@ -1,6 +1,6 @@
 ---
 title: ECS Event-Driven RunTask — 이벤트 패턴으로 standalone Task 띄우기
-tags: [aws, ecs, eventbridge, eventbridge-pipes, sqs, s3, runtask, idempotency]
+tags: [aws, messaging, architecture, cloud]
 updated: 2026-06-12
 ---
 

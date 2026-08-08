@@ -1,6 +1,6 @@
 ---
 title: LLM Reasoning 패턴과 모델
-tags: [ai, llm, reasoning, chain-of-thought, react, o1, deepseek-r1, claude-extended-thinking]
+tags: [ai, llm]
 updated: 2026-06-04
 volatility: high
 ---

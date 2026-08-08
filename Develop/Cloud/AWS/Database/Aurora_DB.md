@@ -1,6 +1,6 @@
 ---
 title: Aurora MySQL vs RDS for MySQL 상세 비교
-tags: [aws, rds, aurora, mysql, database, replication, failover, cost]
+tags: [aws, rdbms, mysql, database]
 updated: 2026-04-27
 ---
 

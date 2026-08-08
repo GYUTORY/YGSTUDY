@@ -1,6 +1,6 @@
 ---
 title: Spring Boot Rate Limiting 구현
-tags: [framework, java, spring, rate-limiting, bucket4j, redis, spring-cloud-gateway, distributed]
+tags: [java, spring, performance, redis]
 updated: 2026-04-06
 ---
 

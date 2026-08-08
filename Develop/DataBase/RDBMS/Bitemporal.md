@@ -1,6 +1,6 @@
 ---
 title: Bitemporal
-tags: [database, temporal, bitemporal, valid-time, transaction-time, sql2011, retroactive, as-of, audit, history]
+tags: [database, security, rdbms]
 updated: 2026-07-31
 ---
 

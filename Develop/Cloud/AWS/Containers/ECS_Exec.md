@@ -1,6 +1,6 @@
 ---
 title: ECS Exec — 실행 중인 컨테이너에 SSH 없이 접속하기
-tags: [aws, ecs, ssm, fargate, debugging, containers]
+tags: [aws, docker, cloud]
 updated: 2026-05-20
 ---
 

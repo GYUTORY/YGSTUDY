@@ -1,6 +1,6 @@
 ---
 title: Kafka Consumer Group Rebalancing
-tags: [kafka, consumer-group, rebalancing, cooperative-rebalance, static-membership, messaging]
+tags: [messaging, backend]
 updated: 2026-08-02
 ---
 

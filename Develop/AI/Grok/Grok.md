@@ -1,6 +1,6 @@
 ---
 title: Grok 사용법 및 핵심 개념
-tags: [ai, grok, xai, coding-assistant, api]
+tags: [ai, api]
 updated: 2026-04-09
 volatility: high
 ---

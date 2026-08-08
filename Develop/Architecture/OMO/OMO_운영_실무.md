@@ -1,6 +1,6 @@
 ---
 title: OMO 운영 실무
-tags: [omo, online-merge-offline, 채널통합, 재고동기화, 주문라우팅, 고객식별, e-commerce, backend]
+tags: [backend, architecture]
 updated: 2026-07-23
 ---
 

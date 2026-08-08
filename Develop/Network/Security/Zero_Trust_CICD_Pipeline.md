@@ -1,6 +1,6 @@
 ---
 title: CI/CD 파이프라인 Zero Trust 적용
-tags: [zero-trust, cicd, github-actions, oidc, vault, aws, supply-chain, least-privilege, pipeline-security]
+tags: [security, ci-cd, auth, aws]
 updated: 2026-07-27
 ---
 

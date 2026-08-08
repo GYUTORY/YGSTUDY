@@ -1,6 +1,6 @@
 ---
 title: LLM 토크나이저 — BPE 내부 동작과 병리 현상
-tags: [ai, llm, tokenizer, bpe, tiktoken, karpathy]
+tags: [ai, llm]
 updated: 2026-07-25
 volatility: high
 ---

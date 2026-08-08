@@ -1,6 +1,6 @@
 ---
 title: Cross-Schema 쿼리
-tags: [database, cross-schema, postgresql, mysql, search-path, fdw, foreign-data-wrapper, multi-tenant, schema-per-tenant, microservices, referential-integrity, join]
+tags: [database, postgresql, mysql, microservices]
 updated: 2026-07-30
 ---
 

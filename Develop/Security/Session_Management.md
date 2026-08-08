@@ -1,6 +1,6 @@
 ---
 title: Session Management
-tags: [security, session, cookie, authentication, redis]
+tags: [security, auth, redis]
 updated: 2026-04-30
 ---
 

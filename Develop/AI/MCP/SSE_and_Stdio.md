@@ -1,6 +1,6 @@
 ---
 title: MCP 전송 방식 — stdio와 SSE/Streamable HTTP
-tags: [ai, mcp, stdio, sse, streamable-http, transport, json-rpc]
+tags: [ai, mcp]
 updated: 2026-04-27
 volatility: high
 ---

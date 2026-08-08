@@ -1,6 +1,6 @@
 ---
 title: Schema-Per-Tenant
-tags: [database, postgresql, multi-tenant, schema-per-tenant, provisioning, migration, pgbouncer, flyway, liquibase, connection-pool, search-path, autovacuum]
+tags: [database, postgresql, devops, rdbms]
 updated: 2026-08-04
 ---
 

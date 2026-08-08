@@ -1,6 +1,6 @@
 ---
 title: Aurora MySQL에서의 JSON 타입 실무
-tags: [aws, aurora, mysql, json, index, parallel-query, replication]
+tags: [aws, rdbms, mysql, api]
 updated: 2026-06-15
 ---
 

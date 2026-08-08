@@ -1,6 +1,6 @@
 ---
 title: Spring Boot Profiles 심화
-tags: [framework, java, spring, spring-boot, profiles, configuration, environment]
+tags: [java, spring, devops]
 updated: 2026-06-07
 ---
 

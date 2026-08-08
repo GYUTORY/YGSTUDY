@@ -1,6 +1,6 @@
 ---
 title: 웹 캐시 포이즈닝 (Web Cache Poisoning)
-tags: [security, web-cache-poisoning, cache, cdn, nginx, reverse-proxy, http-headers]
+tags: [security, cache, cdn, web-server]
 updated: 2026-06-15
 ---
 

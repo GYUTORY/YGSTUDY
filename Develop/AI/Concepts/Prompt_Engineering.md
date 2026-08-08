@@ -1,6 +1,6 @@
 ---
 title: 코딩을 위한 프롬프트 엔지니어링
-tags: [ai, prompt-engineering, coding, few-shot, chain-of-thought]
+tags: [ai, llm]
 updated: 2026-04-08
 volatility: high
 ---

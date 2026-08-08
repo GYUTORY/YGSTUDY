@@ -1,6 +1,6 @@
 ---
 title: Claude Code 모델 선택
-tags: [ai, claude-code, anthropic, opus, sonnet, haiku, model-selection]
+tags: [ai]
 updated: 2026-05-22
 volatility: high
 ---

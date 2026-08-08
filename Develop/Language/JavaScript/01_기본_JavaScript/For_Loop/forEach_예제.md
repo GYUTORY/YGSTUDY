@@ -1,6 +1,6 @@
 ---
 title: forEach 실전 예제와 함정
-tags: [language, javascript, 01기본javascript, forloop, foreach예제]
+tags: [language, javascript]
 updated: 2026-06-08
 ---
 

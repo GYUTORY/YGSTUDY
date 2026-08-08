@@ -1,12 +1,6 @@
 ---
 title: Python asyncio 심화
-tags:
-  - python
-  - asyncio
-  - concurrency
-  - task
-  - coroutine
-  - taskgroup
+tags: [python, os, language]
 updated: 2026-07-19
 ---
 

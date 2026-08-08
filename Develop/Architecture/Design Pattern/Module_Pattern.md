@@ -1,6 +1,6 @@
 ---
 title: 모듈 패턴 (Module Pattern)
-tags: [application-architecture, design-pattern, module-pattern, javascript, es6]
+tags: [design-patterns, javascript, architecture]
 updated: 2025-11-30
 ---
 

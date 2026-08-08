@@ -1,6 +1,6 @@
 ---
 title: Abstract Factory Pattern (추상 팩토리 패턴)
-tags: [design-pattern, abstract-factory, creational-pattern, javascript, typescript, architecture]
+tags: [design-patterns, javascript, typescript, architecture]
 updated: 2026-03-30
 ---
 

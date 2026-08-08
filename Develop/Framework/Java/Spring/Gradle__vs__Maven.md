@@ -1,6 +1,6 @@
 ---
 title: Gradle vs Maven (빌드 도구 비교)
-tags: [framework, java, spring, gradle, maven, build-tools]
+tags: [java, spring]
 updated: 2024-12-19
 ---
 

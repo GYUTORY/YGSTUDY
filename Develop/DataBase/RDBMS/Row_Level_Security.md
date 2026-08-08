@@ -1,11 +1,6 @@
 ---
 title: Row Level Security
-tags:
-  - PostgreSQL
-  - RLS
-  - Multi-Tenant
-  - Security
-  - Database
+tags: [postgresql, security, database, rdbms]
 updated: 2026-08-04
 ---
 

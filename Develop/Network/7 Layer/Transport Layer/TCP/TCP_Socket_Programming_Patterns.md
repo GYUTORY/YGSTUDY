@@ -1,6 +1,6 @@
 ---
 title: TCP 소켓 프로그래밍 실무 패턴
-tags: [network, 7-layer, transport-layer, tcp, socket, epoll, kqueue, connection-pool, nagle, sendfile, syn-cookies, thundering-herd, troubleshooting]
+tags: [network, tcp, database, observability]
 updated: 2026-06-10
 ---
 

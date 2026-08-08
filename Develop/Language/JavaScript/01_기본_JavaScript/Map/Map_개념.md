@@ -1,6 +1,6 @@
 ---
 title: JavaScript Map 개념과 사용법
-tags: [language, javascript, 01기본javascript, map, map개념, data-structure]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

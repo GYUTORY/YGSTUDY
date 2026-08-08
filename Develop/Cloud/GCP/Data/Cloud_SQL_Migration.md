@@ -1,6 +1,6 @@
 ---
 title: Cloud SQL 마이그레이션
-tags: [GCP, Cloud SQL, DMS, migration, CDC]
+tags: [gcp, devops, database, cloud]
 updated: 2026-08-05
 ---
 

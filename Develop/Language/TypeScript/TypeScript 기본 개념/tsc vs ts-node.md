@@ -1,6 +1,6 @@
 ---
 title: tsc와 ts-node의 차이
-tags: [language, typescript, typescript-기본-개념, tsc, ts-node, compiler]
+tags: [language, typescript]
 updated: 2025-11-01
 ---
 

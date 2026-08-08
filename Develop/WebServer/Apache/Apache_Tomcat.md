@@ -1,6 +1,6 @@
 ---
 title: Apache Tomcat
-tags: [tomcat, servlet-container, java, war, jndi, connector, session-clustering]
+tags: [java, web-server]
 updated: 2026-04-07
 ---
 

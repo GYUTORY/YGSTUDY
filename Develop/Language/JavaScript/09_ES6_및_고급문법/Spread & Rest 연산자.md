@@ -1,6 +1,6 @@
 ---
 title: Spread & Rest 연산자
-tags: [language, javascript, es6, spread, rest, destructuring]
+tags: [language, javascript, rest]
 updated: 2026-06-25
 ---
 

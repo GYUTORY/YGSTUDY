@@ -1,6 +1,6 @@
 ---
 title: NestJS MongoDB/Mongoose 연동
-tags: [nestjs, mongodb, Mongoose, database, Schema, transaction]
+tags: [nodejs, mongodb, database, rdbms]
 updated: 2026-07-10
 ---
 

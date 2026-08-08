@@ -1,11 +1,6 @@
 ---
 title: Keepalived
-tags:
-  - infra
-  - load-balancer
-  - keepalived
-  - vrrp
-  - high-availability
+tags: [iac, load-balancer, devops]
 updated: 2026-06-21
 ---
 

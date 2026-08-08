@@ -1,6 +1,6 @@
 ---
 title: RDS Blue/Green Deployment
-tags: [aws, rds, blue-green, switchover, upgrade, mysql, postgresql, binlog, multi-az]
+tags: [aws, devops, mysql, postgresql]
 updated: 2026-07-24
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Claude API 고급 기능
-tags: [ai, claude, anthropic, api, batch, citations, files, structured-output, Prompt Caching]
+tags: [ai, api, backend]
 updated: 2026-04-15
 volatility: high
 ---

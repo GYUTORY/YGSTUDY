@@ -1,6 +1,6 @@
 ---
 title: EKS VPC CNI와 ENI — Pod IP 할당, warm pool, prefix delegation, Too many pods 디버깅
-tags: [aws, eks, eni, vpc-cni, kubernetes, networking, pod-networking, ip-management]
+tags: [aws, vpc, kubernetes, network]
 updated: 2026-07-22
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS Organizations
-tags: [aws, organizations, multi-account, governance, management, consolidated-billing]
+tags: [aws, cloud]
 updated: 2026-05-08
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Amazon Q
-tags: [aws, ai, Amazon Q, Developer Tools, Code Assistant]
+tags: [aws, ai, cloud]
 updated: 2026-08-05
 ---
 

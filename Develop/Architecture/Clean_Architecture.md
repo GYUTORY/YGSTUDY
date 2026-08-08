@@ -1,6 +1,6 @@
 ---
 title: 클린 아키텍처
-tags: [architecture, clean-architecture, hexagonal, layered, ports-and-adapters, ddd, solid]
+tags: [architecture]
 updated: 2026-03-25
 ---
 

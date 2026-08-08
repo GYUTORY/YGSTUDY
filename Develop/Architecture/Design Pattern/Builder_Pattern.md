@@ -1,6 +1,6 @@
 ---
 title: Builder Pattern (빌더 패턴)
-tags: [application-architecture, design-pattern, creational-patterns, builder, nodejs, backend]
+tags: [design-patterns, nodejs, backend, architecture]
 updated: 2026-08-07
 ---
 

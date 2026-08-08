@@ -1,6 +1,6 @@
 ---
 title: AWS SSM을 활용한 자동화 배포
-tags: [aws, monitoring-and-management, ssm, deployment, automation, ansible]
+tags: [aws, devops, cloud]
 updated: 2026-04-11
 ---
 

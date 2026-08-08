@@ -1,6 +1,6 @@
 ---
 title: DevSecOps
-tags: [devsecops, security, cicd, sast, dast, sca, supply-chain]
+tags: [security, ci-cd]
 updated: 2026-04-11
 ---
 

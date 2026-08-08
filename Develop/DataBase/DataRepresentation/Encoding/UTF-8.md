@@ -1,6 +1,6 @@
 ---
 title: UTF-8 심화
-tags: [utf-8, encoding, security, overlong-encoding, replacement-character, json, rfc-8259, chardet, java, python, go, postgresql, sqlite, redis]
+tags: [database, security, api, java]
 updated: 2026-08-05
 ---
 

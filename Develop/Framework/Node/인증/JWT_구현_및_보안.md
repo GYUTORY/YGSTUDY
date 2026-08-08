@@ -1,6 +1,6 @@
 ---
 title: JWT 구현 및 보안
-tags: [framework, node, jwt, authentication, security, token, refresh-token]
+tags: [nodejs, jwt, auth, security]
 updated: 2025-12-27
 ---
 

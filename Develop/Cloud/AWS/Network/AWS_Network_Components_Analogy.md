@@ -1,6 +1,6 @@
 ---
 title: AWS 네트워크 구성요소를 건물 비유로 이해하기
-tags: [aws, vpc, subnet, route-table, igw, alb, ecs, networking, terraform, analogy]
+tags: [aws, vpc, network, terraform]
 updated: 2026-05-14
 ---
 

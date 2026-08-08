@@ -1,6 +1,6 @@
 ---
 title: JWT 토큰 무효화
-tags: [authentication, jwt, redis, Token Revocation, security]
+tags: [auth, jwt, redis, security]
 updated: 2026-08-02
 ---
 

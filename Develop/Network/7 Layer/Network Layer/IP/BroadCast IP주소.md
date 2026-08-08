@@ -1,6 +1,6 @@
 ---
 title: 브로드캐스트 IP 주소 (Broadcast IP Address)
-tags: [network, 7-layer, network-layer, ip, broadcast-ip주소]
+tags: [network]
 updated: 2025-12-26
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS FSx (관리형 파일 시스템)
-tags: [aws, fsx, storage, lustre, ontap, openzfs, windows-file-server, hpc]
+tags: [aws, database, cloud]
 updated: 2026-06-21
 ---
 

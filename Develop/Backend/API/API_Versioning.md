@@ -1,6 +1,6 @@
 ---
 title: API 버저닝 실무
-tags: [backend, api, versioning, migration, backward-compatibility, deprecation]
+tags: [backend, api, devops]
 updated: 2026-03-26
 ---
 

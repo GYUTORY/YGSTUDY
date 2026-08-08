@@ -1,6 +1,6 @@
 ---
 title: Java Serialization & Deserialization
-tags: [language, java, 컬렉션-및-데이터-처리, serialization, deserialization, jackson]
+tags: [language, java]
 updated: 2026-07-15
 ---
 

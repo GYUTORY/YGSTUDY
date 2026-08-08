@@ -1,6 +1,6 @@
 ---
 title: TCP vs UDP - 실무 선택 기준
-tags: [network, transport-layer, tcp, udp, quic, http3, game-server, streaming, dns, troubleshooting]
+tags: [network, tcp, messaging, dns]
 updated: 2026-07-09
 ---
 

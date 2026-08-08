@@ -1,6 +1,6 @@
 ---
 title: Open Redirect 심화 (Open Redirect Deep Dive)
-tags: [security, open-redirect, crlf-injection, ssrf, tabnapping, idna, ipv6, spring-security, nextjs, django, subdomain-takeover, pentest]
+tags: [security, spring]
 updated: 2026-07-27
 ---
 

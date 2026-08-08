@@ -1,6 +1,6 @@
 ---
 title: 모놀리스 to MSA 마이그레이션
-tags: [msa, migration, strangler-fig, branch-by-abstraction, dual-write, database-split, monolith]
+tags: [microservices, devops, architecture]
 updated: 2026-04-01
 ---
 

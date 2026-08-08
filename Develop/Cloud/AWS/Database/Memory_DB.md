@@ -1,6 +1,6 @@
 ---
 title: AWS MemoryDB
-tags: [aws, memorydb, redis, in-memory, database, durability, replication]
+tags: [aws, redis, database, cloud]
 updated: 2026-06-16
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: SSO - SAML 2.0과 OIDC
-tags: [auth, sso, saml, oidc, federation, idp, security]
+tags: [auth, security]
 updated: 2026-05-06
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Grafana
-tags: [devops, monitoring, grafana, visualization, dashboard, alerting, loki, tempo]
+tags: [devops, monitoring]
 updated: 2026-04-08
 ---
 

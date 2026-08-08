@@ -1,6 +1,6 @@
 ---
 title: REST와 RESTful API
-tags: [network, 7-layer, application-layer, http, restful, api, web-service]
+tags: [network, http, api]
 updated: 2025-12-26
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS ECS (Elastic Container Service)
-tags: [aws, containers, ecs, docker, orchestration]
+tags: [aws, docker, cloud]
 updated: 2026-04-14
 ---
 

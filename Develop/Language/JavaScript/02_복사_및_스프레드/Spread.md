@@ -1,6 +1,6 @@
 ---
 title: JavaScript Spread 연산자 개념과 사용법
-tags: [language, javascript, 02복사및스프레드, spread, shallow-copy]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Claude Code Worktree 병렬 스크립트
-tags: [ai, claude-code, git-worktree, automation, cicd, shell-script]
+tags: [ai, devops, ci-cd]
 updated: 2026-07-15
 volatility: high
 ---

@@ -1,6 +1,6 @@
 ---
 title: DDD (Domain-Driven Design)
-tags: [architecture, ddd, domain-driven-design, aggregate, entity, value-object, bounded-context, specification, factory]
+tags: [architecture]
 updated: 2026-03-31
 ---
 

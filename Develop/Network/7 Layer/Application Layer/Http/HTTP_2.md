@@ -1,6 +1,6 @@
 ---
 title: HTTP/2
-tags: [network, 7-layer, application-layer, http, http2, hpack, Multiplexing, alpn]
+tags: [network, http]
 updated: 2026-06-03
 ---
 

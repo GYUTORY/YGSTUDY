@@ -1,6 +1,6 @@
 ---
 title: Clawsweeper
-tags: [ai, clawsweeper, code-cleanup, dead-code, static-analysis, cli]
+tags: [ai, devops]
 updated: 2026-04-28
 volatility: high
 ---

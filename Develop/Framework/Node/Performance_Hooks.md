@@ -1,12 +1,6 @@
 ---
 title: Node.js perf_hooks 모듈 심화
-tags:
-  - nodejs
-  - perf_hooks
-  - performance
-  - event-loop
-  - profiling
-  - apm
+tags: [nodejs, performance]
 updated: 2026-06-03
 ---
 

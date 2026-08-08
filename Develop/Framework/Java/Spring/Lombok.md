@@ -1,6 +1,6 @@
 ---
 title: Project Lombok
-tags: [framework, java, spring, lombok]
+tags: [java, spring]
 updated: 2026-06-03
 ---
 

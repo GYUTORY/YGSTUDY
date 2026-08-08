@@ -1,6 +1,6 @@
 ---
 title: Kustomize
-tags: [devops, kubernetes, kustomize, configuration-management, gitops]
+tags: [devops, kubernetes]
 updated: 2026-04-12
 ---
 

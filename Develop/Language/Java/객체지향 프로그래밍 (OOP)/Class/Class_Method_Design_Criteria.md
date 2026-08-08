@@ -1,6 +1,6 @@
 ---
 title: Java 클래스와 메서드 설계 기준
-tags: [language, java, 객체지향-프로그래밍-oop, class, design]
+tags: [language, java]
 updated: 2026-06-22
 ---
 

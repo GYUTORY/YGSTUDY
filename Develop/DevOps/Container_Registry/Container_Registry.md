@@ -1,12 +1,6 @@
 ---
 title: 프라이빗 컨테이너 레지스트리 구축과 운영
-tags:
-  - infra
-  - container-registry
-  - harbor
-  - docker-registry
-  - trivy
-  - cosign
+tags: [iac, devops]
 updated: 2026-06-24
 ---
 

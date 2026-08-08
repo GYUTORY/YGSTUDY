@@ -1,6 +1,6 @@
 ---
 title: AWS Lambda
-tags: [aws, compute, lambda, serverless, event-driven, FaaS]
+tags: [aws, cloud, event-driven]
 updated: 2026-01-17
 ---
 

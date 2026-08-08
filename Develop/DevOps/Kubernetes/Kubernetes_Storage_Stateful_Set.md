@@ -1,6 +1,6 @@
 ---
 title: Kubernetes 스토리지와 StatefulSet
-tags: [devops, kubernetes, k8s, storage, pv, pvc, storage-class, statefulset, csi]
+tags: [devops, kubernetes, database]
 updated: 2026-06-16
 ---
 

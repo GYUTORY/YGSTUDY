@@ -1,6 +1,6 @@
 ---
 title: 유니크 제약 충돌
-tags: [RDBMS, UniqueConstraint, MySQL, PostgreSQL, JPA, TypeORM, Prisma, UPSERT, TOCTOU]
+tags: [rdbms, mysql, postgresql, java]
 updated: 2026-08-03
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Redis 캐시 설계 실무
-tags: [redis, cache, ttl, memory, monitoring, deployment, key-design]
+tags: [redis, cache, os, monitoring]
 updated: 2026-04-08
 ---
 

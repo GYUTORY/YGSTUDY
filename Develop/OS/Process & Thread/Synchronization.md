@@ -1,6 +1,6 @@
 ---
 title: "동기화 프리미티브 심화"
-tags: [os, process, Thread, Synchronization, Mutex, semaphore, Spinlock, RWLock, futex]
+tags: [os]
 updated: 2026-03-25
 ---
 

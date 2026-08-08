@@ -1,6 +1,6 @@
 ---
 title: HMAC (Hash-based Message Authentication Code)
-tags: [security, hmac, MAC, hash, signature, sha256, timing-attack, key-rotation]
+tags: [security]
 updated: 2026-06-30
 ---
 

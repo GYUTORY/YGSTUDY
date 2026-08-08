@@ -1,6 +1,6 @@
 ---
 title: ECS Networking Modes — awsvpc / bridge / host / none 모드 상세
-tags: [aws, ecs, networking, awsvpc, bridge, host, service-connect, cloud-map, vpc-endpoint]
+tags: [aws, network, cloud]
 updated: 2026-04-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 메시지 큐 & 이벤트 기반 아키텍처
-tags: [backend, messaging, kafka, rabbitmq, event-driven, pub-sub, message-queue, async]
+tags: [backend, messaging, event-driven, language]
 updated: 2026-04-02
 ---
 

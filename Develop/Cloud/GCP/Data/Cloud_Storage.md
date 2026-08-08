@@ -1,6 +1,6 @@
 ---
 title: "Cloud Storage (GCS)"
-tags: [GCP, Cloud Storage, GCS, Object Storage, gsutil, Signed URL]
+tags: [gcp, cloud]
 updated: 2026-07-03
 ---
 

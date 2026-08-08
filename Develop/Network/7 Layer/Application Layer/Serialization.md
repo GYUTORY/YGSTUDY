@@ -1,6 +1,6 @@
 ---
 title: 직렬화(Serialization)와 역직렬화(Deserialization)
-tags: [network, 7-layer, application-layer, serialization, data-format, json, XML]
+tags: [network, api]
 updated: 2025-12-26
 ---
 

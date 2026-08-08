@@ -1,6 +1,6 @@
 ---
 title: AWS Budgets
-tags: [aws, budgets, cost, alert, notification, threshold, organizations]
+tags: [aws, cloud]
 updated: 2026-05-08
 ---
 

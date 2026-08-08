@@ -1,6 +1,6 @@
 ---
 title: EventEmitter (events 모듈)
-tags: [framework, node, nodejs의-구조-및-작동-원리, events, EventEmitter, async, memory-leak]
+tags: [nodejs, language]
 updated: 2026-06-02
 ---
 

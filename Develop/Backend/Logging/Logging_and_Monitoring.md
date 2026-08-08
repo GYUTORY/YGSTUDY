@@ -1,6 +1,6 @@
 ---
 title: 로깅 & 모니터링
-tags: [backend, logging, monitoring, elk, efk, distributed-tracing, alerting, observability]
+tags: [backend, observability, monitoring]
 updated: 2026-04-08
 ---
 

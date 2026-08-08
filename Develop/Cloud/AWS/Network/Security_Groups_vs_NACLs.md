@@ -1,6 +1,6 @@
 ---
 title: Security Groups vs NACLs
-tags: [aws, security-groups, nacl, firewall, vpc, network, security]
+tags: [aws, security, vpc, network]
 updated: 2026-01-23
 ---
 

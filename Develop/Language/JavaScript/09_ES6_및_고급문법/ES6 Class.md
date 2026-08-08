@@ -1,6 +1,6 @@
 ---
 title: ES6 Class
-tags: [language, javascript, 09es6및고급문법, es6, es6-class]
+tags: [language, javascript]
 updated: 2025-12-21
 ---
 # ES6 Class

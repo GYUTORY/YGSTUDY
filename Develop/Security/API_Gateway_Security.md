@@ -1,6 +1,6 @@
 ---
 title: API Gateway Security
-tags: [security, api-gateway, kong, apisix, envoy, jwt, oauth2, mtls, rate-limiting, header-sanitization]
+tags: [security, api, proxy, jwt]
 updated: 2026-06-21
 ---
 

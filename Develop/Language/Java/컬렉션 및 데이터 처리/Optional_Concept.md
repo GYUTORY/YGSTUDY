@@ -1,6 +1,6 @@
 ---
 title: Java Optional 심화
-tags: [language, java, 컬렉션-및-데이터-처리, optional, npe]
+tags: [language, java]
 updated: 2026-04-20
 ---
 

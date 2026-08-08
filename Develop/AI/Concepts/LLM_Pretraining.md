@@ -1,6 +1,6 @@
 ---
 title: LLM 사전학습 파이프라인
-tags: [ai, llm, pretraining, gpt, karpathy, training, data-pipeline, common-crawl]
+tags: [ai, llm]
 updated: 2026-07-25
 volatility: high
 ---

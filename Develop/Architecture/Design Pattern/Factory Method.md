@@ -1,6 +1,6 @@
 ---
 title: Factory Method Pattern (팩토리 메서드 패턴)
-tags: [design-pattern, factory-method, creational-pattern, javascript, architecture, oop]
+tags: [design-patterns, javascript, architecture, language]
 updated: 2025-11-30
 ---
 

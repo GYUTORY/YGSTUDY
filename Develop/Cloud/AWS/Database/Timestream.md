@@ -1,6 +1,6 @@
 ---
 title: Amazon Timestream
-tags: [aws, timestream, timeseries, database, IoT, metrics, grafana, cloudwatch, kinesis, scheduled-queries]
+tags: [aws, database, monitoring, cloud]
 updated: 2026-07-26
 ---
 

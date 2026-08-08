@@ -1,6 +1,6 @@
 ---
 title: AWS SES (Simple Email Service)
-tags: [aws, ses, email, smtp, bounce, dkim, spf, dmarc, messaging]
+tags: [aws, messaging, cloud]
 updated: 2026-05-14
 ---
 

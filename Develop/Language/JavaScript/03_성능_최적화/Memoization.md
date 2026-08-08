@@ -1,6 +1,6 @@
 ---
 title: JavaScript 메모이제이션(Memoization)
-tags: [language, javascript, 03성능최적화, memoization, performance-optimization]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

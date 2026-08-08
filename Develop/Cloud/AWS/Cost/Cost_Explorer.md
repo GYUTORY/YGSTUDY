@@ -1,6 +1,6 @@
 ---
 title: AWS Cost Explorer
-tags: [aws, cost, billing, cost-explorer, savings-plans, reserved-instances]
+tags: [aws, cloud]
 updated: 2026-05-08
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: HTTPS & TLS
-tags: [security, https, tls, ssl, certificate, encryption, handshake, openssl, pem, pkcs12, mtls]
+tags: [security, http, encryption]
 updated: 2026-03-26
 ---
 

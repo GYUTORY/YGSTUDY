@@ -1,6 +1,6 @@
 ---
 title: JavaScript static 멤버
-tags: [language, javascript, oop, static, class]
+tags: [language, javascript]
 updated: 2026-06-22
 ---
 

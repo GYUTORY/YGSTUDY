@@ -1,6 +1,6 @@
 ---
 title: JUnit 5 + Mockito 단위 테스트
-tags: [framework, java, spring, junit, mockito, testing, unit-test]
+tags: [java, spring, testing]
 updated: 2026-06-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS GuardDuty
-tags: [aws, guardduty, security, threat-detection, vpc-flow-logs, cloudtrail, eventbridge, security-hub]
+tags: [aws, security, cloud]
 updated: 2026-05-06
 ---
 

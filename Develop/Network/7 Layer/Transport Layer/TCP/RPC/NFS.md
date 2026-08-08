@@ -1,6 +1,6 @@
 ---
 title: NFS (Network File System)
-tags: [network, 7-layer, transport-layer, tcp, rpc]
+tags: [network, tcp]
 updated: 2025-12-22
 ---
 

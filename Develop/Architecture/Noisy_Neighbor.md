@@ -1,6 +1,6 @@
 ---
 title: Noisy Neighbor
-tags: [architecture, multi-tenancy, kubernetes, performance, isolation]
+tags: [architecture, kubernetes, performance]
 updated: 2026-08-04
 ---
 

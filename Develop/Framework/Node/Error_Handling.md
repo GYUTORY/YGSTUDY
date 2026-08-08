@@ -1,6 +1,6 @@
 ---
 title: Node.js 에러 처리
-tags: [nodejs, error-handling, express, nestjs, fastify, middleware, global-handler, custom-error]
+tags: [nodejs, backend]
 updated: 2026-04-09
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: WebSocket 심화
-tags: [network, websocket, real-time, socket, stomp, Socket.IO, sse]
+tags: [network]
 updated: 2026-07-25
 ---
 

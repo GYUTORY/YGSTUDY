@@ -1,6 +1,6 @@
 ---
 title: API Gateway 심화
-tags: [network, api-gateway, spring-cloud-gateway, kong, envoy, rate-limiting, bff, circuit-breaker]
+tags: [network, api, proxy, performance]
 updated: 2026-07-25
 ---
 

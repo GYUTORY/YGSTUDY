@@ -1,6 +1,6 @@
 ---
 title: RDS Backup & Snapshot
-tags: [aws, database, rds, backup, snapshot, PITR, point-in-time-recovery, dr, disaster-recovery, cross-region]
+tags: [aws, database, cloud]
 updated: 2026-07-24
 ---
 

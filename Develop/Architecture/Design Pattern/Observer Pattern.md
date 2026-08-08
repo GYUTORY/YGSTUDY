@@ -1,6 +1,6 @@
 ---
 title: Observer Pattern (옵저버 패턴)
-tags: [design-pattern, observer-pattern, behavioral-pattern, javascript, architecture]
+tags: [design-patterns, javascript, architecture]
 updated: 2025-11-30
 ---
 

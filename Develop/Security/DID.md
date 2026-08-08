@@ -1,6 +1,6 @@
 ---
 title: DID (Decentralized Identifier)
-tags: [did, ssi, verifiable-credential, decentralized-identity, security]
+tags: [security]
 updated: 2026-03-27
 ---
 

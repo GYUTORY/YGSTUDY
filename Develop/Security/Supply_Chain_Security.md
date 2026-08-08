@@ -1,6 +1,6 @@
 ---
 title: 공급망 공격 방어
-tags: [security, supply-chain, sbom, dependency-confusion, typosquatting, sigstore, oidc, dependabot, renovate, lockfile]
+tags: [security, auth]
 updated: 2026-04-30
 ---
 

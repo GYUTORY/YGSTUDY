@@ -1,6 +1,6 @@
 ---
 title: Reconciliation Loop
-tags: [kubernetes, controller, operator, reconciliation, controller-runtime]
+tags: [kubernetes, devops]
 updated: 2026-07-30
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Secrets Manager vs KMS — 뭘 써야 하나
-tags: [aws, security, kms, secrets-manager, ssm, encryption]
+tags: [aws, security, encryption, cloud]
 updated: 2026-05-15
 ---
 

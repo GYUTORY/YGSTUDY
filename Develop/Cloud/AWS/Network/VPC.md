@@ -1,6 +1,6 @@
 ---
 title: AWS VPC
-tags: [aws, vpc, networking, cidr, subnet, routing, ipv6, terraform, cloudformation, infrastructure]
+tags: [aws, vpc, network, terraform]
 updated: 2026-05-06
 ---
 

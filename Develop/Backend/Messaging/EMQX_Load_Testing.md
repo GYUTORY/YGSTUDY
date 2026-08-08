@@ -1,6 +1,6 @@
 ---
 title: EMQX 부하 테스트 - 수백만 커넥션 검증
-tags: [EMQX, MQTT, Load Testing, emqtt_bench, benchmark, performance]
+tags: [performance, messaging, backend]
 updated: 2026-07-30
 ---
 

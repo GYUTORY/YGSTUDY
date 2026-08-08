@@ -1,6 +1,6 @@
 ---
 title: XSS (Cross-Site Scripting)
-tags: [security, xss, csp, sanitization, frontend-security, trusted-types, sri]
+tags: [security]
 updated: 2026-04-29
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: RPC (Remote Procedure Call)
-tags: [network, 7-layer, transport-layer, tcp, rpc]
+tags: [network, tcp]
 updated: 2026-04-28
 ---
 

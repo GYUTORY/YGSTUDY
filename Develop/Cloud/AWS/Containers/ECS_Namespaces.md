@@ -1,6 +1,6 @@
 ---
 title: ECS 네임스페이스 (Cloud Map Namespace)
-tags: [aws, ecs, cloud-map, namespace, service-discovery, service-connect, route53, networking]
+tags: [aws, microservices, dns, network]
 updated: 2026-06-15
 ---
 

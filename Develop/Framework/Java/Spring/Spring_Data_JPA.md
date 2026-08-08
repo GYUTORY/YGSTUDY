@@ -1,6 +1,6 @@
 ---
 title: Spring Data JPA 핵심 개념과 실전 적용
-tags: [framework, java, spring, jpa, hibernate, orm, database, query]
+tags: [java, spring, database]
 updated: 2026-05-14
 ---
 

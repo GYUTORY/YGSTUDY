@@ -1,6 +1,6 @@
 ---
 title: Helm
-tags: [devops, kubernetes, helm, package-manager, chart]
+tags: [devops, kubernetes]
 updated: 2026-04-21
 ---
 

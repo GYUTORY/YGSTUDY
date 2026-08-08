@@ -1,6 +1,6 @@
 ---
 title: 외부 API 모킹
-tags: [framework, node, testing, mocking, nock, axios-mock-adapter, external-api, integration-testing]
+tags: [nodejs, testing]
 updated: 2025-09-17
 ---
 

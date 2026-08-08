@@ -1,6 +1,6 @@
 ---
 title: NestJS API 버저닝
-tags: [nestjs, api-versioning, versioning, dto, swagger, node]
+tags: [nodejs, api]
 updated: 2026-06-12
 ---
 

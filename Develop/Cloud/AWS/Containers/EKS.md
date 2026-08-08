@@ -1,6 +1,6 @@
 ---
 title: AWS EKS (Elastic Kubernetes Service)
-tags: [aws, kubernetes, containers, eks, orchestration, k8s]
+tags: [aws, kubernetes, docker, cloud]
 updated: 2026-01-18
 ---
 

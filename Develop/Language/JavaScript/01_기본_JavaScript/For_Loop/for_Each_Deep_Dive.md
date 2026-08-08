@@ -1,6 +1,6 @@
 ---
 title: JavaScript forEach 메서드 심화 (동작 원리·콜백 시그니처·break 불가 한계)
-tags: [language, javascript, 01기본javascript, forloop, foreach, deep-dive, ecmascript]
+tags: [language, javascript]
 updated: 2026-06-05
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: TypeScript 제네릭 (Generics)
-tags: [language, typescript, generics, type-utility, constraints]
+tags: [language, typescript]
 updated: 2025-12-16
 ---
 

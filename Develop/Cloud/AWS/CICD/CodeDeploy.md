@@ -1,6 +1,6 @@
 ---
 title: AWS CodeDeploy
-tags: [aws, codedeploy, deployment, blue-green, canary, rolling, ec2, ecs, lambda]
+tags: [aws, devops, cloud]
 updated: 2026-04-14
 ---
 

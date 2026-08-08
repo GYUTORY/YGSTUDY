@@ -1,6 +1,6 @@
 ---
 title: Java Static 개념
-tags: [language, java, 객체지향-프로그래밍-oop, static, jvm, metaspace]
+tags: [language, java]
 updated: 2026-04-24
 ---
 

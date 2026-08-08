@@ -1,6 +1,6 @@
 ---
 title: Kotlin 코루틴
-tags: [kotlin, coroutine, suspend, coroutinescope, dispatcher, flow, channel, structured-concurrency, virtual-threads]
+tags: [kotlin, language]
 updated: 2026-07-16
 ---
 

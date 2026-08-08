@@ -1,6 +1,6 @@
 ---
 title: Async/Await & Promise 심화
-tags: [javascript, async, await, promise, error-handling, concurrency, event-loop]
+tags: [javascript, language, backend, os]
 updated: 2026-06-30
 ---
 

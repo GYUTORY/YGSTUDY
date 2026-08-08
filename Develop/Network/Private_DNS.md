@@ -1,6 +1,6 @@
 ---
 title: Private DNS - Split-horizon DNS와 내부 서비스 디스커버리
-tags: [network, dns, private-dns, split-horizon, route53, private-hosted-zone, ecs, coredns, service-discovery, private-network]
+tags: [network, dns, aws, microservices]
 updated: 2026-07-25
 ---
 

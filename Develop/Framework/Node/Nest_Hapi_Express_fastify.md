@@ -1,6 +1,6 @@
 ---
 title: Node.js 프레임워크 비교 - Express, Fastify, NestJS, Hapi
-tags: [framework, node, express, fastify, nestjs, hapi, nodejs]
+tags: [nodejs]
 updated: 2026-04-09
 ---
 

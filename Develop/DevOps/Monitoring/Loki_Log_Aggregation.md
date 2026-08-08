@@ -1,6 +1,6 @@
 ---
 title: Loki 로그 집계
-tags: [loki, promtail, logql, grafana, observability, logging]
+tags: [monitoring, observability, devops]
 updated: 2026-07-31
 ---
 

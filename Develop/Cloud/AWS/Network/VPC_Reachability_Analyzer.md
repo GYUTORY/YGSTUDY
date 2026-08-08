@@ -1,6 +1,6 @@
 ---
 title: VPC Reachability Analyzer
-tags: [aws, vpc, reachability-analyzer, network, troubleshooting, security-groups, nacl, route-table, eni]
+tags: [aws, vpc, network, observability]
 updated: 2026-07-20
 ---
 

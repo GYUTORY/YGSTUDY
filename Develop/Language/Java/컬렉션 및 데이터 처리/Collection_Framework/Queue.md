@@ -1,6 +1,6 @@
 ---
 title: Java Queue
-tags: [language, java, 컬렉션-및-데이터-처리, collectionframework, queue, blockingqueue, deque, concurrentlinkedqueue]
+tags: [language, java, messaging]
 updated: 2026-04-24
 ---
 

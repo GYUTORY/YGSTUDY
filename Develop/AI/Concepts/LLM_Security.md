@@ -1,6 +1,6 @@
 ---
 title: LLM 보안 위협과 대응
-tags: [ai, llm, security, prompt-injection, guardrails, pii, jailbreak]
+tags: [ai, llm, security]
 updated: 2026-04-08
 volatility: high
 ---

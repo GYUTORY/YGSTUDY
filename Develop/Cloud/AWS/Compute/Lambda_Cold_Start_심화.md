@@ -1,6 +1,6 @@
 ---
 title: Lambda 콜드 스타트 심화
-tags: [aws, lambda, serverless, ColdStart, performance, SnapStart]
+tags: [aws, cloud, performance]
 updated: 2026-08-05
 ---
 

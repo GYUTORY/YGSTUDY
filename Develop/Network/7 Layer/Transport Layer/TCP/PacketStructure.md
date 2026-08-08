@@ -1,6 +1,6 @@
 ---
 title: TCP 패킷 구조 상세 설명
-tags: [network, 7-layer, transport-layer, tcp, packetstructure, packet-analysis]
+tags: [network, tcp]
 updated: 2025-12-22
 ---
 

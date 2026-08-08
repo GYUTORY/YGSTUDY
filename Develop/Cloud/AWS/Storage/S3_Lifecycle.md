@@ -1,6 +1,6 @@
 ---
 title: S3 라이프사이클
-tags: [aws, s3, lifecycle, storage-class, transition, expiration, cost]
+tags: [aws, devops, cloud]
 updated: 2026-07-03
 ---
 

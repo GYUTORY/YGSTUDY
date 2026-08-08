@@ -1,6 +1,6 @@
 ---
 title: Docker 네트워크
-tags: [docker, network, container, devops]
+tags: [docker, network, devops, kubernetes]
 updated: 2026-04-11
 ---
 

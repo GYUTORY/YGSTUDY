@@ -1,6 +1,6 @@
 ---
 title: TypeScript 데코레이터
-tags: [typescript, decorator, nestjs, reflect-metadata, tc39, experimental-decorators]
+tags: [typescript, nodejs, language]
 updated: 2026-08-03
 ---
 

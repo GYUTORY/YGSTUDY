@@ -1,6 +1,6 @@
 ---
 title: ECS Container Insights
-tags: [aws, ecs, container-insights, cloudwatch, monitoring, metrics, observability]
+tags: [aws, monitoring, observability, cloud]
 updated: 2026-05-26
 ---
 

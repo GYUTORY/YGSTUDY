@@ -1,6 +1,6 @@
 ---
 title: 식별자 설계
-tags: [database, identifier, uuid, ulid, snowflake, auto-increment, primary-key, surrogate-key, natural-key, mysql, innodb, binary16]
+tags: [database, backend, mysql, rdbms]
 updated: 2026-07-29
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 시간복잡도와 공간복잡도
-tags: [algorithm, time-complexity, space-complexity, big-o, master-theorem, amortized-analysis]
+tags: [algorithm]
 updated: 2026-04-18
 ---
 

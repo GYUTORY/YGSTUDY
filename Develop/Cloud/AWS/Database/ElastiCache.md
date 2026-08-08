@@ -1,6 +1,6 @@
 ---
 title: AWS ElastiCache
-tags: [aws, elasticache, redis, memcached, cache, in-memory, performance]
+tags: [aws, redis, cache, performance]
 updated: 2026-01-18
 ---
 

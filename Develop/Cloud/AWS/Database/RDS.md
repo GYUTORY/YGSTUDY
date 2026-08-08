@@ -1,6 +1,6 @@
 ---
 title: AWS RDS (Relational Database Service)
-tags: [aws, database, rds, mysql, postgresql, mariadb, Oracle, sql-server, multi-az, read-replica]
+tags: [aws, database, mysql, postgresql]
 updated: 2026-07-24
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: npm, package.json, package-lock.json
-tags: [framework, node, 모듈-시스템, npm, nodejs]
+tags: [nodejs]
 updated: 2025-12-15
 ---
 

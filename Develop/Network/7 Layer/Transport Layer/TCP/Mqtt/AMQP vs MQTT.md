@@ -1,6 +1,6 @@
 ---
 title: AMQP vs MQTT 비교 분석
-tags: [network, 7-layer, transport-layer, tcp, MQTT, AMQP, messaging, protocol-comparison]
+tags: [network, tcp, messaging]
 updated: 2025-12-05
 ---
 

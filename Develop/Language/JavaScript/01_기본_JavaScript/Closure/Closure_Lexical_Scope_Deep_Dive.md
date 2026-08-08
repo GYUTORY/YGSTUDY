@@ -1,6 +1,6 @@
 ---
 title: JavaScript 클로저와 렉시컬 스코프 심화
-tags: [language, javascript, closure, lexical-scope, v8, memory-leak, react-hooks]
+tags: [language, javascript]
 updated: 2026-04-25
 ---
 

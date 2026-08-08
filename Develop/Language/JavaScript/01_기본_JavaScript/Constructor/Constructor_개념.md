@@ -1,6 +1,6 @@
 ---
 title: JavaScript 생성자 (Constructor) 개념과 사용법
-tags: [language, javascript, 01기본javascript, constructor, oop, object-oriented]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: QoS와 트래픽 셰이핑 (Traffic Shaping)
-tags: [network, qos, traffic-shaping, dscp, tc, bandwidth]
+tags: [network]
 updated: 2026-06-22
 ---
 

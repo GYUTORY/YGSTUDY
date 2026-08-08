@@ -1,6 +1,6 @@
 ---
 title: JavaScript 클로저와 렉시컬 스코프
-tags: [language, javascript, 01기본javascript, closure, lexical-scope, scope, var, let]
+tags: [language, javascript]
 updated: 2026-04-25
 ---
 

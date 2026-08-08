@@ -1,6 +1,6 @@
 ---
 title: AWS Athena (S3 서버리스 SQL)
-tags: [aws, athena, glue, s3, presto, trino, parquet, partitioning, cloudtrail, alb-logs]
+tags: [aws, database, cloud]
 updated: 2026-05-27
 ---
 

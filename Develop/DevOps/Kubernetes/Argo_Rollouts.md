@@ -1,6 +1,6 @@
 ---
 title: Argo Rollouts
-tags: [kubernetes, argo-rollouts, progressive-delivery, bluegreen, canary, gitops]
+tags: [kubernetes, devops]
 updated: 2026-08-06
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Spring WebFlux
-tags: [spring, webflux, reactive, mono, flux, r2dbc, webclient, netty, non-blocking, backpressure, websocket]
+tags: [spring, network, java]
 updated: 2026-03-26
 ---
 

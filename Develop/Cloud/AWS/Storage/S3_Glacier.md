@@ -1,6 +1,6 @@
 ---
 title: AWS S3 Glacier
-tags: [aws, s3, glacier, archive, backup, storage, cold-storage]
+tags: [aws, database, cloud]
 updated: 2026-01-18
 ---
 

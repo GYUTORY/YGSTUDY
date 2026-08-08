@@ -1,6 +1,6 @@
 ---
 title: TypeScript 배열 타입
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, object-types, arrays]
+tags: [language, typescript]
 updated: 2026-04-20
 ---
 

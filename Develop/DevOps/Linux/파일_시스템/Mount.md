@@ -1,6 +1,6 @@
 ---
 title: Mount
-tags: [linux, mount, umount, fstab, bind-mount, tmpfs, nfs, namespace, autofs, troubleshooting]
+tags: [linux, observability, devops]
 updated: 2026-05-15
 ---
 

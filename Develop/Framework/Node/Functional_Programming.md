@@ -1,6 +1,6 @@
 ---
 title: Node.js 함수형 프로그래밍 실전
-tags: [framework, node, functional-programming, middleware, stream, rxjs, worker-threads, memoization, fp-ts, effect-ts]
+tags: [nodejs, language]
 updated: 2026-05-16
 ---
 

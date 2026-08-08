@@ -1,6 +1,6 @@
 ---
 title: Claude Code Ultra Review
-tags: [ai, claude-code, code-review, ultra, multi-agent]
+tags: [ai]
 updated: 2026-05-30
 volatility: high
 ---

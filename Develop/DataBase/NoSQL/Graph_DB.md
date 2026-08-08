@@ -1,6 +1,6 @@
 ---
 title: Graph DB 관계 모델
-tags: [database, nosql, graph-db, neo4j, cypher, property-graph, traversal, relationship-model]
+tags: [database, nosql]
 updated: 2026-07-28
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Proxy Pattern (프록시 패턴)
-tags: [design-pattern, proxy-pattern, structural-pattern, javascript, architecture]
+tags: [design-patterns, javascript, architecture]
 updated: 2026-07-19
 ---
 

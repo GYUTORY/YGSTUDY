@@ -1,6 +1,6 @@
 ---
 title: pnpm
-tags: [framework, node, 모듈-시스템, pnpm, store, monorepo, nodejs]
+tags: [nodejs]
 updated: 2026-05-27
 ---
 

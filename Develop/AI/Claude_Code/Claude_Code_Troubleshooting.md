@@ -1,6 +1,6 @@
 ---
 title: Claude Code 트러블슈팅
-tags: [ai, claude-code, troubleshooting, cli, debugging]
+tags: [ai, observability, devops]
 updated: 2026-04-05
 volatility: high
 ---

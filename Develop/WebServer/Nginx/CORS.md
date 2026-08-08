@@ -1,6 +1,6 @@
 ---
 title: CORS (Cross-Origin Resource Sharing)
-tags: [webserver, nginx, cors, cross-origin, security, web-security]
+tags: [web-server, security]
 updated: 2025-12-10
 ---
 

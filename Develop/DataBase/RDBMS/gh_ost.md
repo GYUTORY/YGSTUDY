@@ -1,6 +1,6 @@
 ---
 title: gh-ost
-tags: [mysql, gh-ost, online-schema-change, binlog, cut-over, migration, aurora, throttling, replica]
+tags: [mysql, devops, rdbms, performance]
 updated: 2026-08-06
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 설정 관리 및 Secret 관리 (Config Server, Consul, Vault, AWS Secrets Manager)
-tags: [msa, config-server, consul, etcd, vault, aws-secrets-manager, configuration, secret-management]
+tags: [microservices, devops, architecture]
 updated: 2026-04-01
 ---
 

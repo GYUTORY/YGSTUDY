@@ -1,6 +1,6 @@
 ---
 title: JavaScript 디바운싱(Debouncing)
-tags: [language, javascript, 03성능최적화, debouncing, performance-optimization]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

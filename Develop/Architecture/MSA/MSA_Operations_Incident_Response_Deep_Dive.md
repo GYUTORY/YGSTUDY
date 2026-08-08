@@ -1,6 +1,6 @@
 ---
 title: 마이크로서비스 운영 및 장애 대응 심화
-tags: [msa, incident-response, sre, slo, observability, on-call, postmortem, resilience4j, kubernetes, prometheus]
+tags: [microservices, observability, kubernetes, monitoring]
 updated: 2026-04-26
 ---
 

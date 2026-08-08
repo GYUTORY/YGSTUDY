@@ -1,6 +1,6 @@
 ---
 title: ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)
-tags: [aws, alb, ecs, s3, vpc, networking]
+tags: [aws, vpc, network, cloud]
 updated: 2026-05-14
 ---
 

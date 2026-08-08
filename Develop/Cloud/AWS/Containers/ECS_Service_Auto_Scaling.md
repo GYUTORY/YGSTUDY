@@ -1,6 +1,6 @@
 ---
 title: ECS Service Auto Scaling
-tags: [aws, ecs, auto-scaling, application-auto-scaling, fargate, cloudwatch]
+tags: [aws, cloud]
 updated: 2026-04-20
 ---
 

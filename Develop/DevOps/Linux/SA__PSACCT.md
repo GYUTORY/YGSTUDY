@@ -1,6 +1,6 @@
 ---
 title: SA와 PSACCT 모니터링 도구
-tags: [linux, system-monitoring, sa, psacct, sysstat, process-accounting]
+tags: [linux, devops]
 updated: 2025-10-15
 ---
 

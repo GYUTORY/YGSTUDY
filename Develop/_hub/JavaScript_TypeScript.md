@@ -1,6 +1,6 @@
 ---
 title: JavaScript & TypeScript 허브
-tags: [hub, javascript, typescript, java, async, closure, generics, event-loop, prototype, this-binding, scope, functional-programming, type-system, oop]
+tags: [javascript, typescript, java, language]
 updated: 2026-08-03
 ---
 

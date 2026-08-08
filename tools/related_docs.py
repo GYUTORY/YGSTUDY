@@ -52,13 +52,14 @@ def _extract_title(fm_body: str) -> str:
 
 def on_page_markdown(markdown: str, page, **kwargs) -> str:
     """페이지 마크다운 처리 시 메타 수집 + 이전 페이지에 관련 문서 블록 삽입."""
-    fm_match = FM_RE.match(markdown)
-    if not fm_match:
-        return markdown
-
-    fm_body = fm_match.group(1)
-    tags = _extract_tags(fm_body)
-    title = _extract_title(fm_body) or page.title or ''
+    # mkdocs 는 프론트매터를 걷어낸 본문을 넘긴다. 여기서 다시 파싱하려 들면 항상 실패한다
+    # (이 훅이 오랫동안 아무것도 출력하지 않던 이유다). 메타는 page.meta 에서 읽는다.
+    meta = getattr(page, 'meta', None) or {}
+    raw_tags = meta.get('tags') or []
+    if isinstance(raw_tags, str):
+        raw_tags = [raw_tags]
+    tags = [str(t).strip() for t in raw_tags if str(t).strip()]
+    title = str(meta.get('title') or page.title or '').strip()
 
     src = page.file.src_path
 
@@ -77,21 +78,29 @@ def on_page_markdown(markdown: str, page, **kwargs) -> str:
     if '<!-- related-docs -->' in markdown:
         return markdown
 
-    # 공유 태그가 있는 다른 문서 찾기
+    # 공유 태그가 있는 다른 문서 찾기.
+    #
+    # 태그를 통제 어휘 65종으로 줄인 뒤로는 태그 1개만 겹치는 문서가 수백 개씩 나온다.
+    # 공유 개수만으로 정렬하면 동점이 대량으로 생기고, 그 안에서는 사실상 무작위로 잘린다.
+    # 같은 섹션(최상위 디렉터리) 문서를 먼저 놓고, 그다음 제목순으로 확정한다.
+    # 제목순은 취향이 아니라 결정성을 위한 것 — 빌드마다 결과가 흔들리면 안 된다.
     current_tags = set(tags)
+    section = src.split('/')[0] if '/' in src else ''
     related = []
     for other_src, meta in _doc_meta.items():
         if other_src == src:
             continue
         shared = current_tags & meta['tags']
         if len(shared) >= MIN_SHARED_TAGS:
-            related.append((len(shared), meta['title'], meta['url']))
+            other_section = other_src.split('/')[0] if '/' in other_src else ''
+            same_section = 1 if (section and other_section == section) else 0
+            related.append((len(shared), same_section, meta['title'], meta['url']))
 
     if not related:
         return markdown
 
-    related.sort(key=lambda x: -x[0])
-    related = related[:MAX_RELATED]
+    related.sort(key=lambda x: (-x[0], -x[1], x[2]))
+    related = [(s, t, u) for s, _, t, u in related[:MAX_RELATED]]
 
     block_lines = [
         '\n\n<!-- related-docs -->',
@@ -108,3 +117,42 @@ def on_page_markdown(markdown: str, page, **kwargs) -> str:
 def on_pre_build(config, **kwargs):
     """빌드 시작 시 메타 캐시 초기화."""
     _doc_meta.clear()
+
+
+def _url_for(rel_path: str) -> str:
+    """use_directory_urls 기준 URL 조각. index.md 는 디렉터리 자체가 된다."""
+    if rel_path == 'index.md':
+        return ''
+    if rel_path.endswith('/index.md'):
+        return rel_path[: -len('index.md')]
+    if rel_path.endswith('.md'):
+        return rel_path[: -len('.md')] + '/'
+    return rel_path
+
+
+def on_files(files, config, **kwargs):
+    """페이지 렌더링 전에 전체 문서 메타를 먼저 채운다.
+
+    on_page_markdown 에서만 수집하면 그때까지 처리된 문서만 후보가 된다.
+    빌드 순서상 앞쪽 문서는 관련 문서가 비거나 빈약해지고, 결과가 순서에 따라
+    달라진다. 여기서 한 번에 모아두면 모든 문서가 같은 후보군을 본다.
+    """
+    docs_dir = Path(config['docs_dir'])
+    for f in files:
+        rel = f.src_path
+        if not rel.endswith('.md'):
+            continue
+        try:
+            text = (docs_dir / rel).read_text(encoding='utf-8')
+        except Exception:
+            continue
+        m = FM_RE.match(text)
+        if not m:
+            continue
+        fm_body = m.group(1)
+        _doc_meta[rel] = {
+            'title': _extract_title(fm_body) or Path(rel).stem.replace('_', ' '),
+            'tags': set(_extract_tags(fm_body)),
+            'url': _url_for(rel),
+        }
+    return files

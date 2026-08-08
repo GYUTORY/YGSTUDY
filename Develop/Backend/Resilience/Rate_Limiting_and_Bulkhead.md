@@ -1,6 +1,6 @@
 ---
 title: Rate Limiting & Bulkhead 패턴
-tags: [backend, resilience, rate-limiting, bulkhead, throttling, token-bucket, sliding-window, leaky-bucket, thread-pool-isolation]
+tags: [backend, performance]
 updated: 2026-04-09
 ---
 

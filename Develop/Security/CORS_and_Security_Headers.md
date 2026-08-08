@@ -1,6 +1,6 @@
 ---
 title: "CORS와 브라우저 보안 헤더"
-tags: [security, cors, http-headers, csp, hsts, nginx, express, spring-boot, devsecops]
+tags: [security, web-server, nodejs, spring]
 updated: 2026-05-03
 ---
 

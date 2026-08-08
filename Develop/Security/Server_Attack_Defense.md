@@ -1,6 +1,6 @@
 ---
 title: 서버 취약점 공격 방어
-tags: [security, server-hardening, firewall, fail2ban, ddos, ids, ips, hids, vulnerability-scanner, auditd]
+tags: [security]
 updated: 2026-04-18
 ---
 

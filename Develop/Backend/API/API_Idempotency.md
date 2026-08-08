@@ -1,6 +1,6 @@
 ---
 title: API 멱등성 (Idempotency)
-tags: [backend, api, idempotency, payment, redis, kafka, outbox, observability, distributed-systems]
+tags: [backend, api, architecture, redis]
 updated: 2026-05-03
 ---
 

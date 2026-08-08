@@ -1,6 +1,6 @@
 ---
 title: AWS VPC Sharing (Shared VPC)
-tags: [aws, vpc, ram, Shared VPC, networking, multi-account]
+tags: [aws, vpc, network, cloud]
 updated: 2026-06-27
 ---
 

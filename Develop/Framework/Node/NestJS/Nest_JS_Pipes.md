@@ -1,12 +1,6 @@
 ---
 title: NestJS Pipes
-tags:
-  - nestjs
-  - pipes
-  - parsepipe
-  - transform
-  - validation
-  - node
+tags: [nodejs, backend]
 updated: 2026-06-06
 ---
 

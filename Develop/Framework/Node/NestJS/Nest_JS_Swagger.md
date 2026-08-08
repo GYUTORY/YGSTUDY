@@ -1,6 +1,6 @@
 ---
 title: NestJS Swagger로 API 문서 자동화
-tags: [nestjs, swagger, openapi, api-docs, dto, node]
+tags: [nodejs]
 updated: 2026-06-07
 ---
 

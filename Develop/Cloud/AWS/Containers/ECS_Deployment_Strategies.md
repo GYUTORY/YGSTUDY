@@ -1,6 +1,6 @@
 ---
 title: ECS Deployment Strategies
-tags: [aws, ecs, deployment, rolling-update, blue-green, codedeploy, canary]
+tags: [aws, devops, cloud]
 updated: 2026-04-20
 ---
 

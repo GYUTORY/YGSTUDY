@@ -1,6 +1,6 @@
 ---
 title: child_process.spawn
-tags: [language, javascript, child-process, spawn, nodejs, process]
+tags: [language, javascript, nodejs, os]
 updated: 2026-04-27
 ---
 

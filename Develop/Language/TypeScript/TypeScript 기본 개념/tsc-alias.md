@@ -1,6 +1,6 @@
 ---
 title: TypeScript tsc-alias
-tags: [language, typescript, typescript-기본-개념, tsc-alias, path-alias]
+tags: [language, typescript]
 updated: 2025-12-16
 ---
 

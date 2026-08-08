@@ -1,6 +1,6 @@
 ---
 title: Kubernetes 핵심 개념 및 운영
-tags: [devops, kubernetes, k8s, container-orchestration, cloud-native]
+tags: [devops, kubernetes]
 updated: 2026-04-12
 ---
 

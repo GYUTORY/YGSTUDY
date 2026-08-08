@@ -1,6 +1,6 @@
 ---
 title: Aurora MySQL 메이저 버전 업그레이드 (2.x → 3.x)
-tags: [aws, aurora, mysql, upgrade, blue-green, switchover, maintenance]
+tags: [aws, rdbms, mysql, devops]
 updated: 2026-06-15
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS CodeBuild
-tags: [aws, codebuild, build, docker, ci, test, compile]
+tags: [aws, docker, ci-cd, cloud]
 updated: 2026-01-18
 ---
 

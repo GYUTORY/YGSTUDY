@@ -1,6 +1,6 @@
 ---
 title: mTLS - 상호 TLS 인증과 서비스 간 신뢰
-tags: [network, security, mtls, tls, certificate, spiffe, istio, envoy, zero-trust]
+tags: [network, security, encryption, proxy]
 updated: 2026-06-22
 ---
 

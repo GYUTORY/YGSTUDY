@@ -1,6 +1,6 @@
 ---
 title: AWS CloudFront — CDN & 캐싱 이해
-tags: [aws, cloudfront, cdn, edge, caching, networking]
+tags: [aws, cdn, cache, network]
 updated: 2026-01-15
 ---
 

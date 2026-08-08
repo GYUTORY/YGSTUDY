@@ -1,14 +1,6 @@
 ---
 title: Go 고급 동시성 패턴
-tags:
-  - Go
-  - Golang
-  - concurrency
-  - pipeline
-  - fan-out
-  - fan-in
-  - semaphore
-  - GOMAXPROCS
+tags: [go, os, ci-cd, language]
 updated: 2026-07-23
 ---
 

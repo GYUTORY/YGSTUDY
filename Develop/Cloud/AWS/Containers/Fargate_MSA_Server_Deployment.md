@@ -1,6 +1,6 @@
 ---
 title: Fargate로 MSA 서버 처음 띄우기
-tags: [aws, fargate, ecs, msa, deployment, ecr, alb, vpc, route53, service-connect, cloud-map, cloudwatch]
+tags: [aws, microservices, devops, vpc]
 updated: 2026-05-08
 ---
 

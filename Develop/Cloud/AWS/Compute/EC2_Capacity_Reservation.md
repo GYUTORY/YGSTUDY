@@ -1,11 +1,6 @@
 ---
 title: EC2 On-Demand Capacity Reservation
-tags:
-  - aws
-  - ec2
-  - capacity-reservation
-  - odcr
-  - capacity-block
+tags: [aws, cloud]
 updated: 2026-05-26
 ---
 

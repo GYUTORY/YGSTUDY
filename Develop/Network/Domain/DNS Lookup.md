@@ -1,6 +1,6 @@
 ---
 title: DNS Lookup (도메인 이름 시스템 조회)
-tags: [network, domain, dns-lookup, name-resolution, resolver, getaddrinfo]
+tags: [network, architecture]
 updated: 2026-04-29
 ---
 

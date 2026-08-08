@@ -1,6 +1,6 @@
 ---
 title: Kubernetes 네트워킹 심화
-tags: [devops, kubernetes, k8s, networking, cni, kube-proxy, ingress, coredns]
+tags: [devops, kubernetes, network]
 updated: 2026-06-16
 ---
 

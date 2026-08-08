@@ -1,6 +1,6 @@
 ---
 title: "equals()와 hashCode()"
-tags: [java, object, equals, hashCode, HashMap]
+tags: [java, language]
 updated: 2026-03-25
 ---
 

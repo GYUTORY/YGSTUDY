@@ -1,6 +1,6 @@
 ---
 title: SSH 보안
-tags: [linux, ssh, security, key-authentication, sshd-config, certificate-auth, hardening]
+tags: [linux, security, devops]
 updated: 2026-04-10
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS Elastic Beanstalk
-tags: [aws, elastic-beanstalk, paas, deployment, ebextensions, eb-cli]
+tags: [aws, devops, cloud]
 updated: 2026-04-26
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 공인 IP와 사설 IP
-tags: [network, ip, private-ip, public-ip, nat, cgnat, rfc1918, vpc]
+tags: [network, vpc]
 updated: 2026-07-25
 ---
 

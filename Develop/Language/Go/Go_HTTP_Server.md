@@ -1,13 +1,6 @@
 ---
 title: Go net/http 서버
-tags:
-  - Go
-  - Golang
-  - http
-  - handler
-  - middleware
-  - graceful-shutdown
-  - timeout
+tags: [go, http, devops, language]
 updated: 2026-07-08
 ---
 

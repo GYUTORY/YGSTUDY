@@ -1,6 +1,6 @@
 ---
 title: 코드 포인트 (Code Point)
-tags: [unicode, code-point, code-unit, grapheme-cluster, general-category, surrogate, pua, noncharacter, python, java, go, javascript]
+tags: [python, java, go, javascript]
 updated: 2026-08-05
 ---
 

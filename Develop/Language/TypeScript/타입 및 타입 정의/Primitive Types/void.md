@@ -1,6 +1,6 @@
 ---
 title: TypeScript void 타입
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, primitive-types, void]
+tags: [language, typescript, javascript]
 updated: 2025-08-10
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: pnpm-lock.yaml과 catalog
-tags: [framework, node, 모듈-시스템, pnpm, lockfile, catalog, monorepo]
+tags: [nodejs]
 updated: 2026-05-20
 ---
 

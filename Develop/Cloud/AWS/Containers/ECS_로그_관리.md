@@ -1,6 +1,6 @@
 ---
 title: ECS 로그 관리
-tags: [aws, ecs, logging, cloudwatch-logs, firelens, fluent-bit, awslogs, logs-insights]
+tags: [aws, observability, cloud]
 updated: 2026-04-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Protocol
-tags: [network, protocol]
+tags: [network]
 updated: 2026-05-12
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: JVM 옵션 및 메모리 관리
-tags: [language, java, jvm, memory, gc, tuning, container]
+tags: [language, java, os, docker]
 updated: 2026-04-09
 ---
 

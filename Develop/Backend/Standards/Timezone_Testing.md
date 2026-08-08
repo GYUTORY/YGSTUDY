@@ -1,6 +1,6 @@
 ---
 title: 타임존 테스트
-tags: [timezone, testing, clock, dst, java, spring, nestjs, jest, backend]
+tags: [backend, testing, java, spring]
 updated: 2026-07-31
 ---
 

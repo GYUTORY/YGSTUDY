@@ -1,12 +1,6 @@
 ---
 title: Go 기본 문법
-tags:
-  - Go
-  - Golang
-  - 타입시스템
-  - defer
-  - panic
-  - recover
+tags: [go, language]
 updated: 2026-07-08
 ---
 

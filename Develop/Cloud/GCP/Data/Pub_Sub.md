@@ -1,6 +1,6 @@
 ---
 title: "Cloud Pub/Sub"
-tags: [GCP, Pub/Sub, messaging, queue, Ordering Key, Dead Letter, Filter, snapshot, Schema]
+tags: [gcp, messaging, cloud]
 updated: 2026-07-19
 ---
 

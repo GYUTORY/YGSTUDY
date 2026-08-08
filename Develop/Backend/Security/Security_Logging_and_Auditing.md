@@ -1,6 +1,6 @@
 ---
 title: 보안 감사 로깅
-tags: [security, audit-log, compliance, soc2, pci-dss, iso27001, worm, incident-response]
+tags: [security, backend]
 updated: 2026-08-03
 ---
 

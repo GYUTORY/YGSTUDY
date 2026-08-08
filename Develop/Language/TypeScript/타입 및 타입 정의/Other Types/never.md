@@ -1,6 +1,6 @@
 ---
 title: TypeScript never 타입
-tags: [language, typescript, 타입-및-타입-정의, typescript-types, other-types, never]
+tags: [language, typescript]
 updated: 2025-08-10
 ---
 

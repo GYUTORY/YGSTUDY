@@ -1,6 +1,6 @@
 ---
 title: 이벤트 루프
-tags: [javascript, event-loop, call-stack, microtask, macrotask, requestAnimationFrame, async, queueMicrotask]
+tags: [javascript, nodejs, language]
 updated: 2026-08-03
 ---
 

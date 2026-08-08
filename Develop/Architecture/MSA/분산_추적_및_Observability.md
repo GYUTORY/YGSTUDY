@@ -1,6 +1,6 @@
 ---
 title: 분산 추적 및 Observability (OpenTelemetry / Jaeger / Prometheus / Grafana)
-tags: [distributed-tracing, opentelemetry, jaeger, zipkin, prometheus, grafana, observability]
+tags: [observability, monitoring, microservices, architecture]
 updated: 2026-04-01
 ---
 

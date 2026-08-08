@@ -1,6 +1,6 @@
 ---
 title: ECS ENI 제한과 Task 한계 — awsvpc / bridge / host 네트워크 모드 비교
-tags: [aws, ecs, eni, networking, containers, fargate]
+tags: [aws, vpc, network, docker]
 updated: 2026-04-14
 ---
 

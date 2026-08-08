@@ -1,6 +1,6 @@
 ---
 title: Mutual TLS (mTLS)
-tags: [security, mtls, tls, service-mesh, spiffe, istio, linkerd]
+tags: [security, encryption, kubernetes]
 updated: 2026-08-02
 ---
 

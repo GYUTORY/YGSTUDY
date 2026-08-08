@@ -1,6 +1,6 @@
 ---
 title: GitHub Actions CI/CD
-tags: [devops, cicd, github-actions, workflow, automation, deployment]
+tags: [devops, ci-cd, architecture]
 updated: 2026-03-01
 ---
 

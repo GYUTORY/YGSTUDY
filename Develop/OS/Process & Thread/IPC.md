@@ -1,6 +1,6 @@
 ---
 title: "프로세스 간 통신 (IPC)"
-tags: [os, IPC, pipe, shared-memory, socket, signal, message-queue, msa, container]
+tags: [os, network, microservices, docker]
 updated: 2026-07-25
 ---
 

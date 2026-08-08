@@ -1,6 +1,6 @@
 ---
 title: Brute Force (완전탐색)
-tags: [algorithm, brute-force, backtracking, combinatorics, bitmask]
+tags: [algorithm]
 updated: 2026-04-18
 ---
 

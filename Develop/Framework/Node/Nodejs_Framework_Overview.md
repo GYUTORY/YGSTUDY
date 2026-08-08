@@ -1,6 +1,6 @@
 ---
 title: Node.js 프레임워크 개요
-tags: [nodejs, express, fastify, nestjs, koa, hapi, framework]
+tags: [nodejs]
 updated: 2026-04-09
 ---
 

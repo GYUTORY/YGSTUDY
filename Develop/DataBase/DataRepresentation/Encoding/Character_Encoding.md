@@ -1,6 +1,6 @@
 ---
 title: 문자 인코딩 (Character Encoding)
-tags: [datarepresentation, encoding, character-encoding, utf-8, unicode, euc-kr, ascii]
+tags: [database]
 updated: 2026-04-10
 ---
 

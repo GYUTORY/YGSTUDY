@@ -1,6 +1,6 @@
 ---
 title: 인프라 설계 원칙
-tags: [infrastructure, availability, scalability, resilience, isolation, spof, multi-az, blast-radius, health-check]
+tags: [iac, monitoring, devops]
 updated: 2026-06-04
 ---
 

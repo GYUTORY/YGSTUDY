@@ -1,6 +1,6 @@
 ---
 title: Refresh Token Rotation
-tags: [authentication, jwt, refresh-token, RTR, security, redis]
+tags: [auth, jwt, security, redis]
 updated: 2026-08-02
 ---
 

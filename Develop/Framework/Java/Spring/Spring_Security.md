@@ -1,6 +1,6 @@
 ---
 title: Spring Security 핵심 개념과 실전 적용
-tags: [framework, java, spring, spring-security, authentication, authorization, jwt, oauth2]
+tags: [java, spring, auth, jwt]
 updated: 2026-04-14
 ---
 

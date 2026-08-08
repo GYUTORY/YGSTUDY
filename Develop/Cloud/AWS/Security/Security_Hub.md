@@ -1,6 +1,6 @@
 ---
 title: AWS Security Hub
-tags: [aws, security-hub, guardduty, inspector, config, cspm, organizations, eventbridge, compliance]
+tags: [aws, security, cloud]
 updated: 2026-06-16
 ---
 

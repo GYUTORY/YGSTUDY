@@ -1,6 +1,6 @@
 ---
 title: NestJS 요청 라이프사이클
-tags: [nestjs, lifecycle, middleware, guard, interceptor, pipe, node]
+tags: [nodejs, devops]
 updated: 2026-06-06
 ---
 

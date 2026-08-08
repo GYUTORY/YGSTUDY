@@ -1,6 +1,6 @@
 ---
 title: JSON 컬럼 JPA 매핑
-tags: [database, jpa, hibernate, spring-boot, json, jackson, typeorm, attribute-converter, usertype]
+tags: [database, java, spring, api]
 updated: 2026-08-07
 ---
 

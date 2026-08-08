@@ -1,6 +1,6 @@
 ---
 title: Caddy Admin API와 JSON 설정
-tags: [webserver, Caddy, AdminAPI, json, devops]
+tags: [web-server, api, devops]
 updated: 2026-08-02
 ---
 

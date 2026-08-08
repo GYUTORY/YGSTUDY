@@ -1,12 +1,6 @@
 ---
 title: Traefik
-tags:
-  - infra
-  - load-balancer
-  - traefik
-  - reverse-proxy
-  - docker
-  - kubernetes
+tags: [iac, load-balancer, proxy, docker]
 updated: 2026-06-23
 ---
 

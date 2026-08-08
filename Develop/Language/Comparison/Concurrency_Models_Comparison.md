@@ -1,6 +1,6 @@
 ---
 title: 언어별 동시성 모델 비교
-tags: [java, Go, Rust, javascript, concurrency, Thread, goroutine, Async-Await, event-loop, Tokio]
+tags: [java, go, rust, javascript]
 updated: 2026-07-09
 ---
 

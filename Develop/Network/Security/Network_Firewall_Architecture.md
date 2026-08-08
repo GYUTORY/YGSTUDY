@@ -1,6 +1,6 @@
 ---
 title: 네트워크 경계 방화벽 아키텍처
-tags: [network, firewall, DMZ, security-group, nacl, aws-network-firewall, l3, l4, architecture]
+tags: [network, security, architecture]
 updated: 2026-07-25
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Node.js Stream
-tags: [framework, node, 데이터-처리-및-통신, stream, backpressure, pipe]
+tags: [nodejs, language]
 updated: 2026-07-25
 ---
 

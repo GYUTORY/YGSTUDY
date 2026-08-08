@@ -1,6 +1,6 @@
 ---
 title: NestJS CacheModule 운영기
-tags: [nestjs, cache, cache-manager, redis, caching, ttl, invalidation, memory-leak]
+tags: [nodejs, cache, redis]
 updated: 2026-06-04
 ---
 

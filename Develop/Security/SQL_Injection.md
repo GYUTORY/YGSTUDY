@@ -1,6 +1,6 @@
 ---
 title: SQL Injection 심화
-tags: [security, sql-injection, database, prepared-statement, mybatis, jpa, nosql-injection]
+tags: [security, database, java]
 updated: 2026-04-30
 ---
 

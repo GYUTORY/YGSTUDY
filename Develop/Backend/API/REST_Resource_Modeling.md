@@ -1,6 +1,6 @@
 ---
 title: REST 리소스 모델링 심화
-tags: [backend, api, rest, resource-modeling, api-design, rest-api]
+tags: [backend, api, rest]
 updated: 2026-07-26
 ---
 

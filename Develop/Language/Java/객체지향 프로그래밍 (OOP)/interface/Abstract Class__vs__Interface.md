@@ -1,6 +1,6 @@
 ---
 title: Abstract Class vs Interface
-tags: [language, java, 객체지향-프로그래밍-oop, interface, abstract-class-vs-interface]
+tags: [language, java]
 updated: 2026-04-28
 ---
 

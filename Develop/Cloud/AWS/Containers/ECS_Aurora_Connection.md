@@ -1,6 +1,6 @@
 ---
 title: ECS에서 Aurora 클러스터 접속하기
-tags: [aws, ecs, fargate, aurora, hikaricp, secrets-manager, rds-proxy, 운영]
+tags: [aws, rdbms, security, cloud]
 updated: 2026-08-05
 ---
 

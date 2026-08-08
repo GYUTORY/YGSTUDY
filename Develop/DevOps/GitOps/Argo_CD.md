@@ -1,6 +1,6 @@
 ---
 title: Argo CD
-tags: [devops, gitops, kubernetes, argocd, CD]
+tags: [devops, kubernetes, ci-cd]
 updated: 2026-08-02
 ---
 

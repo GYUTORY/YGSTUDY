@@ -1,6 +1,6 @@
 ---
 title: Valkey — 설치·운영·마이그레이션 실무
-tags: [database, nosql, valkey, redis, in-memory, cache, cluster, elasticache, memorystore]
+tags: [database, nosql, redis, cache]
 updated: 2026-04-23
 ---
 

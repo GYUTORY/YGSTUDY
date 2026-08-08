@@ -1,13 +1,6 @@
 ---
 title: Python 동시성 모델 비교
-tags:
-  - python
-  - concurrency
-  - GIL
-  - threading
-  - multiprocessing
-  - asyncio
-  - concurrent.futures
+tags: [python, os, language]
 updated: 2026-07-16
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Nginx FastCGI & PHP-FPM
-tags: [nginx, fastcgi, PHP-FPM, uwsgi, fastcgi_cache, fastcgi_params, PATH_INFO, socket, tcp]
+tags: [web-server, network, tcp]
 updated: 2026-07-26
 ---
 

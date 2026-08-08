@@ -1,6 +1,6 @@
 ---
 title: "Java 고급 인터페이스 (Advanced Interface)"
-tags: [java, interface, Default Method, Static Method, Private Method, Sealed Interface]
+tags: [java, language]
 updated: 2026-04-08
 ---
 

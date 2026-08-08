@@ -1,6 +1,6 @@
 ---
 title: AWS KMS (Key Management Service)
-tags: [aws, security, kms, encryption]
+tags: [aws, security, encryption, cloud]
 updated: 2026-05-29
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS Terraform 실전
-tags: [terraform, aws, iac, devops, ecs, vpc, rds]
+tags: [terraform, aws, iac, devops]
 updated: 2026-06-12
 ---
 

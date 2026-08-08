@@ -1,6 +1,6 @@
 ---
 title: URL 인코딩 (Percent Encoding) 심화
-tags: [encoding, url, percent-encoding, web, rfc-3986, whatwg, utf-8]
+tags: [database]
 updated: 2026-06-09
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "Cloud Functions"
-tags: [GCP, Cloud Functions, serverless, FaaS]
+tags: [gcp, cloud]
 updated: 2026-08-05
 ---
 

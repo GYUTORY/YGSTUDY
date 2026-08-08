@@ -1,6 +1,6 @@
 ---
 title: AWS Systems Manager SSM
-tags: [aws, monitoring-and-management, ssm]
+tags: [aws, cloud]
 updated: 2025-12-07
 ---
 

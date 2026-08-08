@@ -1,6 +1,6 @@
 ---
 title: Linux 보안 하드닝
-tags: [linux, security, hardening, firewall, ssh, audit, selinux, fail2ban, ssh-ca, 2fa, port-knocking]
+tags: [linux, security, devops]
 updated: 2026-04-10
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Spring Boot 로깅
-tags: [spring, spring-boot, logging, logback, slf4j, mdc, actuator, json-logging]
+tags: [spring, observability, java]
 updated: 2026-07-26
 ---
 

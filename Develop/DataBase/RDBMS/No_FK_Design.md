@@ -1,6 +1,6 @@
 ---
 title: 외래키 없는 설계
-tags: [database, foreign-key, no-fk, typeorm, prisma, msa, ddd, aggregate, toctou, orphan-data, soft-delete, referential-integrity]
+tags: [database, rdbms, microservices, architecture]
 updated: 2026-07-30
 ---
 

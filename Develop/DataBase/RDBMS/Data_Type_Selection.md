@@ -1,6 +1,6 @@
 ---
 title: 데이터 타입 선택
-tags: [database, data-type, mysql, postgresql, varchar, decimal, timestamp, enum]
+tags: [database, mysql, postgresql, rdbms]
 updated: 2026-04-08
 ---
 

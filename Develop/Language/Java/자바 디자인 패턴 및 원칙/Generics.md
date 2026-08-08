@@ -1,6 +1,6 @@
 ---
 title: Java Generics
-tags: [language, java, 자바-디자인-패턴-및-원칙, generics, type-erasure, pecs]
+tags: [language, java, typescript]
 updated: 2026-03-30
 ---
 

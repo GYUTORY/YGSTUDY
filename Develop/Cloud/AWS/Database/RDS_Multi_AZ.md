@@ -1,6 +1,6 @@
 ---
 title: RDS Multi-AZ
-tags: [aws, database, rds, multi-az, failover, high-availability, dns, read-replica, cloudwatch]
+tags: [aws, database, dns, cloud]
 updated: 2026-07-25
 ---
 

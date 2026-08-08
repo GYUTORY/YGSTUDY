@@ -1,6 +1,6 @@
 ---
 title: "파일 업로드 보안"
-tags: [security, file-upload, MIME, magic-bytes, clamav, s3-presigned, zip-bomb, path-traversal]
+tags: [security]
 updated: 2026-04-30
 ---
 

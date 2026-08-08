@@ -1,6 +1,6 @@
 ---
 title: NestJS 시작하기와 핵심 문법
-tags: [framework, node, nestjs, typescript, di, decorator, cli]
+tags: [nodejs, typescript, devops]
 updated: 2026-06-04
 ---
 

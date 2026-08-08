@@ -1,6 +1,6 @@
 ---
 title: TCP 프로토콜 동작 메커니즘
-tags: [network, 7-layer, transport-layer, tcp, handshake, congestion-control, flow-control, socket-options, troubleshooting]
+tags: [network, tcp, observability]
 updated: 2026-06-03
 ---
 

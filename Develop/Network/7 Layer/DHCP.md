@@ -1,6 +1,6 @@
 ---
 title: DHCP (Dynamic Host Configuration Protocol)
-tags: [network, 7-layer, dhcp, protocol, ip-assignment]
+tags: [network]
 updated: 2025-12-12
 ---
 

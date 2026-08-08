@@ -1,6 +1,6 @@
 ---
 title: Node.js 다층 캐시 - L1(인메모리) + L2(Redis) 아키텍처
-tags: [framework, node, cache, multi-level, lru-cache, ioredis, redis, pub-sub, negative-cache, prefix-versioning]
+tags: [nodejs, cache, redis]
 updated: 2026-04-30
 ---
 

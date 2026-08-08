@@ -1,6 +1,6 @@
 ---
 title: Spring Data JPA 심화 - 동적 쿼리, 락, 영속성 컨텍스트, 대용량 처리
-tags: [framework, java, spring, jpa, hibernate, querydsl, locking, projection, performance]
+tags: [java, spring, performance]
 updated: 2026-05-01
 ---
 

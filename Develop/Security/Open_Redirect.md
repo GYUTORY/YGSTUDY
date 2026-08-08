@@ -1,6 +1,6 @@
 ---
 title: Open Redirect (오픈 리다이렉트)
-tags: [security, open-redirect, oauth, redirect-uri, url-parsing, phishing]
+tags: [security]
 updated: 2026-06-15
 ---
 

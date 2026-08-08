@@ -1,6 +1,6 @@
 ---
 title: 장애 주입 테스트 (Chaos Engineering)
-tags: [backend, resilience, chaos-engineering, chaos-monkey, toxiproxy, litmus, kubernetes, fault-injection]
+tags: [backend, kubernetes]
 updated: 2026-03-30
 ---
 

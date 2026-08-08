@@ -1,6 +1,6 @@
 ---
 title: Pulumi
-tags: [pulumi, iac, infrastructure-as-code, devops, typescript, python]
+tags: [iac, devops, typescript, python]
 updated: 2026-04-08
 ---
 

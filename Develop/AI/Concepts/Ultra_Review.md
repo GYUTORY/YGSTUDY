@@ -1,6 +1,6 @@
 ---
 title: UltraReview - AI 기반 심층 코드 리뷰
-tags: [ai, code-review, ultrareview, llm, cicd, static-analysis]
+tags: [ai, llm, ci-cd]
 updated: 2026-04-17
 volatility: high
 ---

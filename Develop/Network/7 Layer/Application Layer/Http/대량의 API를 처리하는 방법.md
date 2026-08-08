@@ -1,6 +1,6 @@
 ---
 title: 대량의 API를 처리하는 방법
-tags: [network, 7-layer, application-layer, http, 대량의-api를-처리하는-방법, redis, caching, load-balancing, aws, ecs, rds-proxy, elasticache, alb]
+tags: [network, http, redis, cache]
 updated: 2025-12-26
 ---
 

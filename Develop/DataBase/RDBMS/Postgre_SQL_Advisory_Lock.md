@@ -1,6 +1,6 @@
 ---
 title: PostgreSQL Advisory Lock
-tags: [postgresql, advisory-lock, distributed-lock, concurrency, spring, jdbctemplate]
+tags: [postgresql, architecture, os, spring]
 updated: 2026-07-30
 ---
 

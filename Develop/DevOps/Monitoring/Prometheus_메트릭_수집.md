@@ -1,6 +1,6 @@
 ---
 title: Prometheus 메트릭 수집
-tags: [prometheus, metrics, monitoring, nodejs, prom-client, grafana]
+tags: [monitoring, nodejs, devops]
 updated: 2026-04-09
 ---
 

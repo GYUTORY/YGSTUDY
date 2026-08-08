@@ -1,12 +1,6 @@
 ---
 title: Nginx (Load Balancer)
-tags:
-  - infra
-  - load-balancer
-  - nginx
-  - proxy
-  - l4
-  - l7
+tags: [iac, load-balancer, web-server, proxy]
 updated: 2026-06-24
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: NAT 트래버설 — STUN, TURN, ICE
-tags: [network, nat-traversal, stun, turn, ice, webrtc, hole-punching, coturn, p2p]
+tags: [network]
 updated: 2026-06-24
 ---
 

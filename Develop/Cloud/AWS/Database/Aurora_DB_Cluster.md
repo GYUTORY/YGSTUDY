@@ -1,6 +1,6 @@
 ---
 title: Aurora DB Cluster Failover
-tags: [aws, aurora, mysql, rds, failover, global-database, db-proxy]
+tags: [aws, rdbms, mysql, cloud]
 updated: 2026-03-29
 ---
 

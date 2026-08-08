@@ -1,6 +1,6 @@
 ---
 title: Gemini Code Assist & CLI 사용법
-tags: [ai, gemini, google, code-assist, gemini-cli]
+tags: [ai]
 updated: 2026-06-15
 volatility: high
 ---

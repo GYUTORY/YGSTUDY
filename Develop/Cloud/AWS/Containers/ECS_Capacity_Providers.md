@@ -1,6 +1,6 @@
 ---
 title: ECS Capacity Providers
-tags: [aws, ecs, capacity-provider, fargate, fargate-spot, ec2, asg]
+tags: [aws, cloud]
 updated: 2026-04-20
 ---
 

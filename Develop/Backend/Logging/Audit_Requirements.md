@@ -1,6 +1,6 @@
 ---
 title: 감사 요구사항
-tags: [audit-log, compliance, nestjs, pci-dss, gdpr, logging]
+tags: [security, nodejs, observability, backend]
 updated: 2026-08-03
 ---
 

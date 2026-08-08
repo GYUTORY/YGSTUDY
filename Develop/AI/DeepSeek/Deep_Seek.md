@@ -1,6 +1,6 @@
 ---
 title: DeepSeek 모델 패밀리 개요와 실무 사용
-tags: [ai, llm, deepseek, moe, reasoning, self-hosting, open-source-llm]
+tags: [ai, llm]
 updated: 2026-05-26
 volatility: high
 ---

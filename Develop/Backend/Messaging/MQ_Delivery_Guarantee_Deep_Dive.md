@@ -1,6 +1,6 @@
 ---
 title: Message Queue 심화 (RabbitMQ vs Kafka vs SQS 비교, 전달 보증/순서 보장/DLQ/멱등성)
-tags: [backend, messaging, rabbitmq, kafka, sqs, delivery-guarantee, dlq, idempotency, exactly-once]
+tags: [backend, messaging, architecture]
 updated: 2026-04-17
 ---
 

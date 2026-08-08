@@ -1,6 +1,6 @@
 ---
 title: Path Traversal
-tags: [security, path-traversal, directory-traversal, lfi, nodejs, file-access]
+tags: [security, nodejs]
 updated: 2026-06-15
 ---
 

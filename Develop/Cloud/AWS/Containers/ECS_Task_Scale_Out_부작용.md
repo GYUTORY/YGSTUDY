@@ -1,6 +1,6 @@
 ---
 title: ECS Task Scale Out 시 발생하는 부작용
-tags: [aws, ecs, fargate, auto-scaling, vpc, rds, nat-gateway, cloudwatch, 운영]
+tags: [aws, vpc, cloud]
 updated: 2026-08-05
 ---
 

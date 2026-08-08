@@ -1,6 +1,6 @@
 ---
 title: Claude Code 실전 팁
-tags: [ai, claude-code, anthropic, tips, productivity]
+tags: [ai]
 updated: 2026-04-05
 volatility: high
 ---

@@ -1,6 +1,6 @@
 ---
 title: CommonJS vs ESM (ECMAScript Modules)
-tags: [framework, node, 모듈-시스템, commonjs, esm, nodejs]
+tags: [nodejs]
 updated: 2026-07-17
 ---
 

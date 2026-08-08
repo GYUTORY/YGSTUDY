@@ -1,6 +1,6 @@
 ---
 title: 낙관적 락 충돌 후 재시도 처리
-tags: [spring, jpa, 낙관적락, 동시성, 트랜잭션, OptimisticLock, redis, ExponentialBackoff, DataIntegrityViolationException, 유니크제약]
+tags: [spring, java, redis]
 updated: 2026-08-03
 ---
 

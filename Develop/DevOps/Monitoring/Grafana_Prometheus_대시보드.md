@@ -1,6 +1,6 @@
 ---
 title: Grafana + Prometheus 대시보드
-tags: [grafana, prometheus, dashboard, promql, monitoring, devops]
+tags: [monitoring, devops]
 updated: 2026-04-09
 ---
 

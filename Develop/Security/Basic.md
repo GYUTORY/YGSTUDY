@@ -1,6 +1,6 @@
 ---
 title: 보안 기초 개념
-tags: [security, owasp, injection, xss, csrf, ssrf, idor, authentication, authorization, input-validation, output-encoding, SecurityHeaders]
+tags: [security, auth]
 updated: 2026-05-03
 ---
 

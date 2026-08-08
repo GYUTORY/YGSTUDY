@@ -1,6 +1,6 @@
 ---
 title: LLM 파인튜닝 실무
-tags: [ai, llm, FineTuning, LoRA, QLoRA, PEFT]
+tags: [ai, llm]
 updated: 2026-06-04
 volatility: high
 ---

@@ -1,6 +1,6 @@
 ---
 title: SQL Injection 진단과 테스트
-tags: [security, sql-injection, sqlmap, oob, exfiltration, penetration-testing, dbms]
+tags: [security]
 updated: 2026-06-15
 ---
 

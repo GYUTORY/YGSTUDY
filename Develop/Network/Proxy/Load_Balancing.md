@@ -1,6 +1,6 @@
 ---
 title: 로드 밸런싱 심화
-tags: [network, load-balancing, nginx, haproxy, alb, health-check, session-persistence, l4, l7]
+tags: [network, web-server, aws, monitoring]
 updated: 2026-03-01
 ---
 

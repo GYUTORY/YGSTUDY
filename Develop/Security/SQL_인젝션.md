@@ -1,6 +1,6 @@
 ---
 title: SQL Injection
-tags: [database, security, sql-injection, web-security, owasp]
+tags: [database, security]
 updated: 2026-03-28
 ---
 

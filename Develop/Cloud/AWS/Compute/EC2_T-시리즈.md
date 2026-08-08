@@ -1,6 +1,6 @@
 ---
 title: EC2 T 시리즈 인스턴스
-tags: [aws, ec2, t-series, burstable, cpu-credit, compute]
+tags: [aws, cloud]
 updated: 2026-04-11
 ---
 

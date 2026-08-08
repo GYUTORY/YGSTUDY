@@ -1,11 +1,6 @@
 ---
 title: HAProxy
-tags:
-  - infra
-  - load-balancer
-  - haproxy
-  - keepalived
-  - high-availability
+tags: [iac, load-balancer, devops]
 updated: 2026-06-16
 ---
 

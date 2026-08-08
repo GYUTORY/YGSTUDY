@@ -1,6 +1,6 @@
 ---
 title: Cursor - AI 네이티브 IDE
-tags: [ai, cursor, ide, agentic-coding, composer, context-management]
+tags: [ai]
 updated: 2026-04-10
 volatility: high
 ---

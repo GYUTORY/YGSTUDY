@@ -1,6 +1,6 @@
 ---
 title: NestJS vs Express.js
-tags: [framework, node, nestjs, nestjs-vs-expressjs, nodejs]
+tags: [nodejs]
 updated: 2026-06-04
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: ECS Cluster 생성과 설정
-tags: [aws, ecs, cluster, capacity-provider, container-insights, execute-command, service-connect]
+tags: [aws, kubernetes, cloud]
 updated: 2026-04-22
 ---
 

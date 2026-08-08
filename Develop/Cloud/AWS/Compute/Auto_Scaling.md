@@ -1,6 +1,6 @@
 ---
 title: AWS Auto Scaling
-tags: [aws, auto-scaling, ec2, ecs, scaling, high-availability]
+tags: [aws, cloud]
 updated: 2026-04-14
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: ClickHouse
-tags: [database, clickhouse, olap, columnar-database, distributed]
+tags: [database, rdbms]
 updated: 2026-03-25
 ---
 

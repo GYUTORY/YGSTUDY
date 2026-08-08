@@ -1,6 +1,6 @@
 ---
 title: "GCE (Google Compute Engine)"
-tags: [GCP, Compute Engine, VM, infrastructure]
+tags: [gcp, iac, cloud]
 updated: 2026-08-05
 ---
 

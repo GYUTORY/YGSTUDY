@@ -1,6 +1,6 @@
 ---
 title: 테넌트별 암호화 키 격리
-tags: [security, multi-tenancy, aws-kms, encryption, kek, dek, key-management, tenant-isolation, cryptographic-erasure]
+tags: [security, architecture, encryption]
 updated: 2026-08-04
 ---
 

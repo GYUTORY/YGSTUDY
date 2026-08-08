@@ -1,6 +1,6 @@
 ---
 title: Marker Interface
-tags: [language, java, 객체지향-프로그래밍-oop, interface, marker-interface]
+tags: [language, java]
 updated: 2026-05-03
 ---
 

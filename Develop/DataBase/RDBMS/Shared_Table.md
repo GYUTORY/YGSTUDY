@@ -1,6 +1,6 @@
 ---
 title: Shared Table
-tags: [database, multi-tenant, postgresql, mysql, shared-table, tenant-id, rls, row-level-security, index, partitioning, migration, repository-pattern, contextvars]
+tags: [database, postgresql, mysql, rdbms]
 updated: 2026-08-04
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Java 동시성 심화
-tags: [java, concurrency, executor, completablefuture, lock, atomic, concurrent-collections, thread-pool]
+tags: [java, os, rdbms, language]
 updated: 2026-07-16
 ---
 

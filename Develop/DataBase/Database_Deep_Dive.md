@@ -1,6 +1,6 @@
 ---
 title: 데이터베이스 심화 (Database Deep Dive)
-tags: [backend, database, connection-pool, lock, n+1, query-optimization, partitioning, isolation-level, hikaricp, jpa, distributed-lock, CDC, multi-datasource]
+tags: [backend, database, rdbms, java]
 updated: 2026-04-01
 ---
 

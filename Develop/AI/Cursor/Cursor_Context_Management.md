@@ -1,6 +1,6 @@
 ---
 title: Cursor Context 관리 - 컨텍스트 태그, 인덱싱, 토큰 관리
-tags: [ai, cursor, context, indexing, cursorignore, token-management]
+tags: [ai]
 updated: 2026-04-10
 volatility: high
 ---

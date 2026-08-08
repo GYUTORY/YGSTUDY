@@ -1,11 +1,6 @@
 ---
 title: NestJS 인증 - JWT와 Passport
-tags:
-  - nestjs
-  - authentication
-  - jwt
-  - passport
-  - security
+tags: [nodejs, auth, jwt, security]
 updated: 2026-04-16
 ---
 

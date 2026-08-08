@@ -1,11 +1,6 @@
 ---
 title: tcpdump 패킷 캡처와 분석
-tags:
-  - network
-  - tcpdump
-  - wireshark
-  - troubleshooting
-  - observability
+tags: [network, observability]
 updated: 2026-06-23
 ---
 

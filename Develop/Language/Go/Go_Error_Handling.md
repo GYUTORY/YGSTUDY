@@ -1,6 +1,6 @@
 ---
 title: Go 에러 처리
-tags: [Go, Error, errors.Is, errors.As, panic, wrapping, sentinel, custom-error]
+tags: [go, language]
 updated: 2026-07-10
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: JavaScript Getter Setter
-tags: [language, javascript, 09es6및고급문법, es6, getter-and-setter]
+tags: [language, javascript]
 updated: 2025-12-21
 ---
 # JavaScript Getter & Setter

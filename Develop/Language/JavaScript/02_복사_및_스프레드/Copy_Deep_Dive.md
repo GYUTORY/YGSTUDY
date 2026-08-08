@@ -1,6 +1,6 @@
 ---
 title: JavaScript 얕은 복사/깊은 복사 심화 (Shallow vs Deep, structuredClone, 참조 동작)
-tags: [language, javascript, 02복사및스프레드, copy, structured-clone, immutability, v8, weakmap]
+tags: [language, javascript]
 updated: 2026-04-24
 ---
 

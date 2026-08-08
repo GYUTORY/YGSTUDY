@@ -1,6 +1,6 @@
 ---
 title: 계층형 데이터 모델링
-tags: [database, hierarchical, tree, adjacency-list, closure-table, nested-set, recursive-cte, category, comment]
+tags: [database, rdbms]
 updated: 2026-04-08
 ---
 

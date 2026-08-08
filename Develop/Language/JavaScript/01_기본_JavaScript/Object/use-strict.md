@@ -1,6 +1,6 @@
 ---
 title: JavaScript Strict Mode (엄격 모드)
-tags: [language, javascript, 01기본javascript, object, use-strict, strict-mode]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

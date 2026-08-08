@@ -1,6 +1,6 @@
 ---
 title: 시간 데이터 모델링
-tags: [database, temporal, timestamp, datetime, utc, timestamptz, timezone, migration, soft-delete, bitemporal, partitioning, scheduling, sql2011, index]
+tags: [database, backend, devops, os]
 updated: 2026-07-31
 ---
 

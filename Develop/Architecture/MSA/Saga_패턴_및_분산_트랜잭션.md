@@ -1,6 +1,6 @@
 ---
 title: Saga 패턴 및 분산 트랜잭션
-tags: [backend, saga, distributed-transaction, choreography, orchestration, outbox, idempotency, compensation, spring-cloud-stream, kafka, axon-framework]
+tags: [backend, architecture, messaging, microservices]
 updated: 2026-03-29
 ---
 

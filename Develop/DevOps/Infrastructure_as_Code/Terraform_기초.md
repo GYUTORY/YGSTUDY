@@ -1,6 +1,6 @@
 ---
 title: Terraform 기초
-tags: [devops, iac, terraform, aws, infrastructure]
+tags: [devops, iac, terraform, aws]
 updated: 2026-04-12
 ---
 

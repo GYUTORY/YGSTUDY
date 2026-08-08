@@ -1,6 +1,6 @@
 ---
 title: JavaScript 함수형 프로그래밍
-tags: [language, javascript, 01기본javascript, function, functional-programming, pure-functions]
+tags: [language, javascript]
 updated: 2026-06-15
 ---
 

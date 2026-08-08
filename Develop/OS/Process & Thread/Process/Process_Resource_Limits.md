@@ -1,6 +1,6 @@
 ---
 title: 프로세스 자원 한계값
-tags: [os, process, ulimit, rlimit, cgroups, file-descriptor, core-dump]
+tags: [os]
 updated: 2026-07-13
 ---
 

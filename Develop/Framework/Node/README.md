@@ -1,6 +1,6 @@
 ---
 title: Node.js 프레임워크 문서 인덱스
-tags: [framework, node, index, navigation]
+tags: [nodejs, rdbms]
 updated: 2026-05-06
 ---
 

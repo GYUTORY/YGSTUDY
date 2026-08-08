@@ -1,6 +1,6 @@
 ---
 title: PBKDF2 (Password-Based Key Derivation Function 2)
-tags: [language, javascript, 10웹개발및보안, pbkdf2, password-security, cryptography]
+tags: [language, javascript]
 updated: 2025-11-01
 ---
 

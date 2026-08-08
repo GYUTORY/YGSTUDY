@@ -1,6 +1,6 @@
 ---
 title: Spring Bean 개념과 사용법
-tags: [framework, java, spring, bean, dependency-injection, ioc]
+tags: [java, spring]
 updated: 2025-08-10
 ---
 

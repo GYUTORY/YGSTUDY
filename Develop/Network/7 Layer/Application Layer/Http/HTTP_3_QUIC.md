@@ -1,6 +1,6 @@
 ---
 title: HTTP/3와 QUIC
-tags: [network, 7-layer, application-layer, http3, quic, udp, tls, performance, qpack]
+tags: [network, encryption, performance]
 updated: 2026-06-03
 ---
 

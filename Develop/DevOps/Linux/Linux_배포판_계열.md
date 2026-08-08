@@ -1,6 +1,6 @@
 ---
 title: Linux 배포판 계열
-tags: [linux, distribution, redhat, debian, ubuntu, centos, fedora, suse, arch]
+tags: [linux, devops]
 updated: 2025-12-08
 ---
 

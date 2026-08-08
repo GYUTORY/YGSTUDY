@@ -1,6 +1,6 @@
 ---
 title: "암묵적 형변환"
-tags: [java, implicit-conversion, widening, overloading, ternary-operator, string-concatenation, autoboxing, unboxing]
+tags: [java, language]
 updated: 2026-08-05
 ---
 

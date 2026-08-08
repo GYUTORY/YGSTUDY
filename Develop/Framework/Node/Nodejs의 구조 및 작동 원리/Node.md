@@ -1,6 +1,6 @@
 ---
 title: Node.js 구조와 작동 원리
-tags: [framework, node, nodejs의-구조-및-작동-원리, nodejs, v8, libuv, event-loop]
+tags: [nodejs]
 updated: 2026-06-02
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 생성 패턴 (Creational Patterns)
-tags: [application-architecture, design-pattern, creational-patterns, singleton, factory, builder, prototype, nodejs, backend]
+tags: [design-patterns, javascript, nodejs, backend]
 updated: 2026-08-07
 ---
 

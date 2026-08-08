@@ -1,6 +1,6 @@
 ---
 title: API Input Validation
-tags: [security, api, validation, json-schema, bean-validation, file-upload, content-type]
+tags: [security, api, backend]
 updated: 2026-04-07
 ---
 

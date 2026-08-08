@@ -1,6 +1,6 @@
 ---
 title: AWS WAF 고급 규칙 운영 (CAPTCHA·라벨 체이닝·JSON 검사·Firewall Manager)
-tags: [aws, waf, wafv2, captcha, challenge, json-body, atp, firewall-manager, false-positive, security]
+tags: [aws, security, cloud]
 updated: 2026-06-21
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: JavaScript Truthy와 Falsy
-tags: [language, javascript, 09es6및고급문법, truthy, falsy, boolean-conversion]
+tags: [language, javascript]
 updated: 2026-06-14
 ---
 

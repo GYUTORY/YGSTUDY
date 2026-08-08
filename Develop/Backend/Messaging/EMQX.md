@@ -1,6 +1,6 @@
 ---
 title: EMQX - 분산 MQTT 브로커 운영
-tags: [EMQX, MQTT, IoT, messaging, Broker, cluster]
+tags: [messaging, kubernetes, backend]
 updated: 2026-06-15
 ---
 

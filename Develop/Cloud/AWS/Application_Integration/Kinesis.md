@@ -1,6 +1,6 @@
 ---
 title: AWS Kinesis
-tags: [aws, kinesis, streaming, real-time, data-processing, analytics]
+tags: [aws, messaging, cloud]
 updated: 2026-01-18
 ---
 

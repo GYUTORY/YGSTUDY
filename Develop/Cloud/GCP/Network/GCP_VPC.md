@@ -1,6 +1,6 @@
 ---
 title: GCP VPC
-tags: [GCP, vpc, network, subnet, firewall, Peering, Shared VPC]
+tags: [gcp, vpc, network, security]
 updated: 2026-04-12
 ---
 

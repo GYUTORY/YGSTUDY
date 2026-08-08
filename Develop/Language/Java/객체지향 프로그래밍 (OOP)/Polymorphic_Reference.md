@@ -1,6 +1,6 @@
 ---
 title: "다형적 참조 (Polymorphic Reference)"
-tags: [java, polymorphism, dynamic-dispatch, upcasting, interface, abstract-class, repository-pattern, strategy-pattern, instanceof]
+tags: [java, language]
 updated: 2026-07-30
 ---
 

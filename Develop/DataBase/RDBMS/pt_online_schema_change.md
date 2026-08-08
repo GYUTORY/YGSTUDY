@@ -1,6 +1,6 @@
 ---
 title: pt-online-schema-change
-tags: [mysql, pt-osc, online-schema-change, percona, trigger, shadow-table, migration, aurora, galera, throttling, replica]
+tags: [mysql, devops, rdbms, performance]
 updated: 2026-08-06
 ---
 

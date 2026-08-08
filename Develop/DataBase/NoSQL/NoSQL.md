@@ -1,6 +1,6 @@
 ---
 title: NoSQL 데이터베이스 개요
-tags: [database, nosql, cap-theorem, mongodb, redis, cassandra, hbase, neo4j, column-family, document-database, key-value, graph-database]
+tags: [database, nosql, mongodb, redis]
 updated: 2026-03-29
 ---
 

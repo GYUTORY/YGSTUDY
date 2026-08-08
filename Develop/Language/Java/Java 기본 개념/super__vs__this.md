@@ -1,6 +1,6 @@
 ---
 title: Java this와 super 키워드
-tags: [language, java, java-기본-개념, this, super, inheritance]
+tags: [language, java]
 updated: 2025-12-28
 ---
 

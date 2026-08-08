@@ -1,10 +1,6 @@
 ---
 title: Worktree, Submodule, LFS 실무
-tags:
-  - Git
-  - Worktree
-  - Submodule
-  - LFS
+tags: [git, devops]
 updated: 2026-07-03
 ---
 

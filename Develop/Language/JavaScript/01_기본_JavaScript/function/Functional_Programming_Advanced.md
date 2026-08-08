@@ -1,6 +1,6 @@
 ---
 title: JavaScript 함수형 프로그래밍 심화
-tags: [language, javascript, 01기본javascript, function, functional-programming, currying, monad, transducer, lens]
+tags: [language, javascript]
 updated: 2026-04-24
 ---
 

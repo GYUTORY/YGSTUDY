@@ -1,6 +1,6 @@
 ---
 title: Cookie VS Session
-tags: [network, 7-layer, application-layer, http, cookie-vs-session]
+tags: [network, http]
 updated: 2026-07-11
 ---
 

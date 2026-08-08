@@ -1,6 +1,6 @@
 ---
 title: AES (Advanced Encryption Standard)
-tags: [security, aes, aes-128, aes-256, encryption, cryptography, java, spring-boot]
+tags: [security, encryption, java, spring]
 updated: 2026-05-26
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 인증 전략 심화 (Session vs JWT vs OAuth2 vs OIDC)
-tags: [backend, authentication, security, jwt, oauth2, oidc, csrf, xss, refresh-token]
+tags: [backend, auth, security, jwt]
 updated: 2026-04-17
 ---
 

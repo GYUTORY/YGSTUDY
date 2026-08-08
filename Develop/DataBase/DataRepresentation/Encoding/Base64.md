@@ -1,6 +1,6 @@
 ---
 title: Base64 인코딩
-tags: [datarepresentation, encoding, base64, data-encoding, binary-to-text]
+tags: [database]
 updated: 2026-04-10
 ---
 

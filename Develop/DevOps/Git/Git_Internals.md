@@ -1,9 +1,6 @@
 ---
 title: Git 내부 구조
-tags:
-  - Git
-  - VersionControl
-  - Internals
+tags: [git, devops]
 updated: 2026-07-03
 ---
 

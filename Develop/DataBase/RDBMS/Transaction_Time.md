@@ -1,6 +1,6 @@
 ---
 title: Transaction Time
-tags: [database, temporal, transaction-time, system-time, sql2011, system-versioned, bitemporal, history-table, audit, row-start, row-end]
+tags: [database, security, rdbms]
 updated: 2026-07-31
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Network Gateway 심화
-tags: [network, gateway, l3-routing, nat, pat, default-gateway, proxy, troubleshooting]
+tags: [network, proxy, observability]
 updated: 2026-06-08
 ---
 

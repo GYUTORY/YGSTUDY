@@ -1,6 +1,6 @@
 ---
 title: MySQL utf8mb4
-tags: [mysql, charset, utf8mb4, encoding, migration, mariadb]
+tags: [mysql, database, devops, rdbms]
 updated: 2026-08-05
 ---
 

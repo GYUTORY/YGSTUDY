@@ -1,6 +1,6 @@
 ---
 title: AWS Route 53
-tags: [aws, networking, route53, dns]
+tags: [aws, network, dns, cloud]
 updated: 2026-05-14
 ---
 

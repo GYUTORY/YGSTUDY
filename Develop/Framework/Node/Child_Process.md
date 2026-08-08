@@ -1,6 +1,6 @@
 ---
 title: Node.js child_process 모듈 실무 심화
-tags: [nodejs, child-process, spawn, fork, IPC, signal]
+tags: [nodejs]
 updated: 2026-08-02
 ---
 

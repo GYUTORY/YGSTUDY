@@ -1,6 +1,6 @@
 ---
 title: Collation
-tags: [collation, mysql, postgresql, encoding, unicode, korean, database, index]
+tags: [mysql, postgresql, database, rdbms]
 updated: 2026-08-05
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: BFF 패턴 - NestJS 구현
-tags: [backend, msa, bff, nestjs, rxjs, axios, typescript]
+tags: [backend, microservices, nodejs, typescript]
 updated: 2026-07-25
 ---
 

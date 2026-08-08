@@ -1,6 +1,6 @@
 ---
 title: AWS Step Functions
-tags: [aws, step-functions, workflow, orchestration, state-machine, serverless]
+tags: [aws, architecture, cloud]
 updated: 2026-01-18
 ---
 

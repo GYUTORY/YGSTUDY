@@ -1,6 +1,6 @@
 ---
 title: DB 모델링
-tags: [database, modeling, normalization, denormalization, erd, schema-design, jpa, ddl]
+tags: [database, rdbms, java]
 updated: 2026-04-07
 ---
 

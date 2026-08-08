@@ -1,6 +1,6 @@
 ---
 title: 안전하지 않은 역직렬화 (Insecure Deserialization)
-tags: [security, deserialization, RCE, java, python, PHP, nodejs]
+tags: [security, java, python, nodejs]
 updated: 2026-08-07
 ---
 

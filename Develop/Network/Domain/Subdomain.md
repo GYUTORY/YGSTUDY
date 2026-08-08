@@ -1,6 +1,6 @@
 ---
 title: 서브도메인 (Subdomain)
-tags: [network, domain, dns, subdomain, multi-tenant, wildcard, nginx]
+tags: [network, architecture, dns, web-server]
 updated: 2026-05-01
 ---
 

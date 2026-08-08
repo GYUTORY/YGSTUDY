@@ -1,6 +1,6 @@
 ---
 title: LLM 추론 최적화 심화
-tags: [ai, llm, inference, quantization, kv-cache, vllm, gpu, optimization]
+tags: [ai, llm]
 updated: 2026-06-04
 volatility: high
 ---

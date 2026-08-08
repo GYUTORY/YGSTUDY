@@ -1,6 +1,6 @@
 ---
 title: TCP와 OSI 7 계층
-tags: [network, 7-layer, osi-model, transport-layer, tcp, encapsulation, tls, http, tcpdump]
+tags: [network, tcp, encryption, http]
 updated: 2026-07-16
 ---
 

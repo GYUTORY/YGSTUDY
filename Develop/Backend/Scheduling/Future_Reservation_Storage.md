@@ -1,6 +1,6 @@
 ---
 title: 미래 예약 저장
-tags: [scheduling, reservation, database, redis, sqs, rabbitmq, dst, idempotency, Optimistic-Locking, backend]
+tags: [os, database, redis, messaging]
 updated: 2026-08-07
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 호스트 방화벽 (iptables / nftables)
-tags: [network, firewall, iptables, nftables, netfilter, packet-filter, troubleshooting]
+tags: [network, security, observability]
 updated: 2026-06-21
 ---
 

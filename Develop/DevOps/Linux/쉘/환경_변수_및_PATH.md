@@ -1,6 +1,6 @@
 ---
 title: 환경 변수 및 PATH
-tags: [linux, environment-variable, path, bashrc, profile, direnv, dotfiles]
+tags: [linux, devops]
 updated: 2026-04-12
 ---
 

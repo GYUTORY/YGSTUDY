@@ -1,7 +1,7 @@
 ---
 title: JVM 구조 및 메모리 관리
 description: JVM의 내부 구조(Class Loader, Runtime Data Area, Execution Engine)와 메모리 영역별 동작 원리, 모니터링 도구 사용법, 실제 장애 사례 진단 과정을 다룬다.
-tags: [java, jvm, memory, class-loader, runtime-data-area, gc, monitoring]
+tags: [java, os, monitoring, language]
 updated: 2026-04-09
 ---
 

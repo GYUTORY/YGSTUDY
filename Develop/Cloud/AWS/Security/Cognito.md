@@ -1,6 +1,6 @@
 ---
 title: AWS Cognito
-tags: [aws, security, cognito, authentication, user-pool, identity-pool, jwt, oauth2, refresh-token, lambda-trigger]
+tags: [aws, security, auth, jwt]
 updated: 2026-04-25
 ---
 

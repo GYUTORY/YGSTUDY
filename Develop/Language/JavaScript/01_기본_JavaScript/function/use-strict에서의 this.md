@@ -1,6 +1,6 @@
 ---
 title: JavaScript use strict에서의 this 바인딩
-tags: [language, javascript, 01기본javascript, function, use-strict, this-binding]
+tags: [language, javascript]
 updated: 2025-08-10
 ---
 

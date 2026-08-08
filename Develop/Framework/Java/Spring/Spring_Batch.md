@@ -1,6 +1,6 @@
 ---
 title: Spring Batch
-tags: [spring, batch, job, step, reader, writer, processor, chunk, partitioning, monitoring]
+tags: [spring, backend, database, monitoring]
 updated: 2026-03-30
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AWS Transit Gateway
-tags: [aws, transit-gateway, vpc, networking, routing, hybrid-cloud]
+tags: [aws, vpc, network, cloud]
 updated: 2026-01-23
 ---
 

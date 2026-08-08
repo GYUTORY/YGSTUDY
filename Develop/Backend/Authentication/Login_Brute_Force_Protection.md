@@ -1,6 +1,6 @@
 ---
 title: 로그인 무차별 대입 방어
-tags: [backend, authentication, security, rate-limiting, brute-force, redis]
+tags: [backend, auth, security, performance]
 updated: 2026-06-27
 ---
 

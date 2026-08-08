@@ -1,6 +1,6 @@
 ---
 title: DuckDNS 동적 DNS 서비스
-tags: [network, domain, dns, ddns, duckdns, lets-encrypt, homelab]
+tags: [network, architecture, dns]
 updated: 2026-05-13
 ---
 

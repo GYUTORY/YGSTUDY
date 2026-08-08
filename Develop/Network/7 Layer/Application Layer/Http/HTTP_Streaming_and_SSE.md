@@ -1,6 +1,6 @@
 ---
 title: HTTP 스트리밍과 실시간 통신
-tags: [network, http, streaming, chunked-transfer, sse, websocket, long-polling, server-sent-events, webtransport, http2-push, early-hints, llm-streaming, backpressure]
+tags: [network, http, messaging]
 updated: 2026-07-25
 ---
 

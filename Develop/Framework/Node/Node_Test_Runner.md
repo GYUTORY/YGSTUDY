@@ -1,12 +1,6 @@
 ---
 title: node:test 빌트인 테스트 러너 실무
-tags:
-  - nodejs
-  - test-runner
-  - node-test
-  - jest
-  - vitest
-  - ci
+tags: [nodejs, ci-cd]
 updated: 2026-06-04
 ---
 

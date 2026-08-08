@@ -1,6 +1,6 @@
 ---
 title: AWS Backup
-tags: [aws, backup, disaster-recovery, rds, ebs, efs, dynamodb, restore]
+tags: [aws, cloud]
 updated: 2026-01-18
 ---
 

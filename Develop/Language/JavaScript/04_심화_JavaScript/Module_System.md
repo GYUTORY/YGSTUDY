@@ -1,6 +1,6 @@
 ---
 title: JavaScript 모듈 시스템
-tags: [javascript, commonjs, esm, module, import, require, nodejs, dynamic-import, top-level-await]
+tags: [javascript, nodejs, language]
 updated: 2026-08-03
 ---
 

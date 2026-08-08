@@ -1,6 +1,6 @@
 ---
 title: "Oracle에서의 MSA"
-tags: [msa, Oracle, 분산 트랜잭션, XA, Transactional Outbox, RAC, 커넥션 풀]
+tags: [microservices, architecture]
 updated: 2026-07-03
 ---
 

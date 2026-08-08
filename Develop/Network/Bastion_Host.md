@@ -1,6 +1,6 @@
 ---
 title: 배스천 호스트 - private subnet 접근과 감사 구성
-tags: [network, bastion-host, ssh, jump-server, aws-ssm, session-manager, private-network, audit]
+tags: [network, linux, security]
 updated: 2026-07-25
 ---
 

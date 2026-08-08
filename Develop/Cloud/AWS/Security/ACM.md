@@ -1,6 +1,6 @@
 ---
 title: AWS ACM (Certificate Manager)
-tags: [aws, acm, ssl, tls, certificate, https, security]
+tags: [aws, encryption, http, security]
 updated: 2026-01-18
 ---
 

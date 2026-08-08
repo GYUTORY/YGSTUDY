@@ -1,6 +1,6 @@
 ---
 title: Node.js 이벤트 루프 심화
-tags: [framework, node, nodejs의-구조-및-작동-원리, event-loop, libuv, microtask, performance]
+tags: [nodejs, performance]
 updated: 2026-06-03
 ---
 

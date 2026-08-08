@@ -1,6 +1,6 @@
 ---
 title: AWS Cognito 심화
-tags: [aws, security, cognito, jwt, jwks, oauth2, authentication, authorization, refresh-token, lambda-trigger]
+tags: [aws, security, jwt, auth]
 updated: 2026-04-25
 ---
 

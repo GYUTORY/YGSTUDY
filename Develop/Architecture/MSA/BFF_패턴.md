@@ -1,6 +1,6 @@
 ---
 title: BFF 패턴 (Backend for Frontend)
-tags: [backend, msa, bff, api-gateway, graphql, architecture]
+tags: [backend, microservices, api, graphql]
 updated: 2026-04-06
 ---
 

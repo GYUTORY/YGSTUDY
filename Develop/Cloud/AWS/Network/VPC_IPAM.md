@@ -1,6 +1,6 @@
 ---
 title: AWS VPC IPAM
-tags: [aws, vpc, ipam, cidr, ip-management, multi-account, networking, terraform]
+tags: [aws, vpc, network, terraform]
 updated: 2026-06-27
 ---
 

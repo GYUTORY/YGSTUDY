@@ -1,6 +1,6 @@
 ---
 title: EAV 패턴
-tags: [database, eav, entity-attribute-value, dynamic-schema, jsonb, sparse-column, e-commerce, user-defined-field, orphan-data, index-design]
+tags: [database, rdbms]
 updated: 2026-08-07
 ---
 

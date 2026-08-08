@@ -1,6 +1,6 @@
 ---
 title: Spring Boot 2.x → 3.x 마이그레이션 심화
-tags: [framework, java, spring, spring-boot, migration, jakarta-ee, hibernate, spring-security, micrometer]
+tags: [java, spring, devops]
 updated: 2026-04-24
 ---
 

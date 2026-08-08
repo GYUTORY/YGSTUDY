@@ -1,6 +1,6 @@
 ---
 title: ECS Task Definition 심화
-tags: [aws, ecs, Task Definition, fargate, secrets-manager, parameter-store, containers]
+tags: [aws, security, docker, cloud]
 updated: 2026-04-20
 ---
 

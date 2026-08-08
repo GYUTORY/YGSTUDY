@@ -1,6 +1,6 @@
 ---
 title: Istio와 Service Mesh
-tags: [infra, service-mesh, istio, envoy, kubernetes, observability]
+tags: [iac, kubernetes, proxy, observability]
 updated: 2026-04-21
 ---
 

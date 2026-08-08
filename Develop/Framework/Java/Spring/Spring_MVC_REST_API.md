@@ -1,6 +1,6 @@
 ---
 title: Spring MVC와 REST API 설계
-tags: [framework, java, spring, spring-mvc, rest-api, controller, exception-handling, validation]
+tags: [java, spring, backend]
 updated: 2026-05-09
 ---
 

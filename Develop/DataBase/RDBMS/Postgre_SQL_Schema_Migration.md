@@ -1,6 +1,6 @@
 ---
 title: PostgreSQL 스키마 마이그레이션
-tags: [postgresql, schema-migration, ddl-lock, concurrently, pg-repack, flyway, expand-migrate-contract, pg-dump]
+tags: [postgresql, rdbms, database]
 updated: 2026-08-06
 ---
 

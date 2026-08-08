@@ -1,6 +1,6 @@
 ---
 title: AWS Savings Plans
-tags: [aws, cost, savings-plans, reserved-instances, ec2, fargate, lambda, organizations]
+tags: [aws, cloud]
 updated: 2026-07-25
 ---
 

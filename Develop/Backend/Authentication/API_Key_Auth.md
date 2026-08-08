@@ -1,6 +1,6 @@
 ---
 title: API Key 인증 구현
-tags: [backend, authentication, api-key, security, sha256, rate-limiting, scope]
+tags: [backend, auth, security, performance]
 updated: 2026-07-22
 ---
 

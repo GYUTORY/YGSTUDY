@@ -1,11 +1,6 @@
 ---
 title: Node.js Permission Model 심화
-tags:
-  - nodejs
-  - permission-model
-  - security
-  - sandboxing
-  - node20
+tags: [nodejs, security]
 updated: 2026-06-06
 ---
 

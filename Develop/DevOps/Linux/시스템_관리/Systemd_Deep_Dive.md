@@ -1,6 +1,6 @@
 ---
 title: Linux 시스템 서비스 관리 (systemd) 심화
-tags: [linux, systemd, systemctl, cgroup, journald, service, unit]
+tags: [linux, devops]
 updated: 2026-04-25
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: ALB Lambda 타겟 그룹 심화
-tags: [aws, alb, lambda, target-group, serverless, terraform]
+tags: [aws, cloud, terraform]
 updated: 2026-07-18
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 분산 트랜잭션
-tags: [database, distributed-transaction, 2pc, saga, tcc, outbox, compensation, eventual-consistency]
+tags: [database, architecture, rdbms]
 updated: 2026-04-01
 ---
 

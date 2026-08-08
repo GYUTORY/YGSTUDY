@@ -1,6 +1,6 @@
 ---
 title: AWS Inspector
-tags: [aws, inspector, security, vulnerability-scanning, cve, ecr, lambda, ec2, security-hub]
+tags: [aws, security, cloud]
 updated: 2026-06-16
 ---
 

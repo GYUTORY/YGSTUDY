@@ -1,6 +1,6 @@
 ---
 title: 애플리케이션 라우팅 (Express / NestJS)
-tags: [nodejs, express, nestjs, routing, http, middleware, controller]
+tags: [nodejs, http]
 updated: 2026-06-08
 ---
 

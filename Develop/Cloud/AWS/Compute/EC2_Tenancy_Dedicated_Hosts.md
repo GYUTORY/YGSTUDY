@@ -1,11 +1,6 @@
 ---
 title: EC2 테넌시와 Dedicated Hosts
-tags:
-  - aws
-  - ec2
-  - tenancy
-  - dedicated-hosts
-  - byol
+tags: [aws, cloud]
 updated: 2026-05-26
 ---
 

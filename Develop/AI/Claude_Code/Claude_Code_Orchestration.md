@@ -1,6 +1,6 @@
 ---
 title: Claude Code 오케스트레이션
-tags: [ai, claude-code, orchestration, workflow, multi-agent, agent-sdk]
+tags: [ai, architecture]
 updated: 2026-06-06
 volatility: high
 ---

@@ -1,6 +1,6 @@
 ---
 title: SLF4J (Simple Logging Facade for Java)
-tags: [framework, java, spring, slf4j, logging, logback, log4j2, mdc]
+tags: [java, spring, observability]
 updated: 2026-07-26
 ---
 

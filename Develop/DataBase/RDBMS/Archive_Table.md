@@ -1,6 +1,6 @@
 ---
 title: 아카이브 테이블
-tags: [database, archive, retention-policy, batch, partitioning, index, union-all, deadlock, replication-lag, mysql, postgresql]
+tags: [database, backend, rdbms, mysql]
 updated: 2026-08-04
 ---
 

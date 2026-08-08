@@ -1,6 +1,6 @@
 ---
 title: PM2 Node.js
-tags: [framework, node, process-management-tool, pm2, nodejs]
+tags: [nodejs]
 updated: 2025-12-02
 ---
 # PM2와 Node.js

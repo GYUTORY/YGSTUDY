@@ -1,6 +1,6 @@
 ---
 title: Node.js Observability 전략
-tags: [framework, node, observability, metrics, tracing, logging, prometheus, opentelemetry]
+tags: [nodejs, observability, monitoring]
 updated: 2026-05-08
 ---
 

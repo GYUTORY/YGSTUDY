@@ -1,6 +1,6 @@
 ---
 title: JavaScript 스코프와 var/let/const
-tags: [javascript, scope, var, let, const, closure]
+tags: [javascript, language]
 updated: 2026-08-02
 ---
 

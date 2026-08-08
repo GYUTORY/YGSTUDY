@@ -1,6 +1,6 @@
 ---
 title: Java Servlet
-tags: [language, java, 애플리케이션-서버, java-servlet]
+tags: [language, java]
 updated: 2026-03-28
 ---
 

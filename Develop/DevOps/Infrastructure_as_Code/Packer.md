@@ -1,12 +1,6 @@
 ---
 title: Packer로 이미지 빌드하기
-tags:
-  - infra
-  - packer
-  - image
-  - ami
-  - docker
-  - golden-image
+tags: [iac, docker, devops]
 updated: 2026-06-23
 ---
 

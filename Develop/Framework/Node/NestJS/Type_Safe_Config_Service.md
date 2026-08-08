@@ -1,6 +1,6 @@
 ---
 title: Type-safe하게 ConfigService로 환경변수 관리하기
-tags: [nestjs, config, typescript, type-safety, configservice]
+tags: [nodejs, typescript]
 updated: 2026-05-20
 ---
 

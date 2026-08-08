@@ -1,6 +1,6 @@
 ---
 title: MongoDB 심화
-tags: [database, nosql, mongodb, document-database, aggregation, index, replica-set, sharding, schema-design, transaction, change-streams, profiling, security, backup, monitoring]
+tags: [database, nosql, mongodb, rdbms]
 updated: 2026-04-12
 ---
 

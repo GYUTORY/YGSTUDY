@@ -1,6 +1,6 @@
 ---
 title: EC2 Nitro System
-tags: [aws, ec2, nitro, virtualization, nvme, ebs, ena, imdsv2, enclaves, xen, migration]
+tags: [aws, devops, cloud]
 updated: 2026-05-20
 ---
 

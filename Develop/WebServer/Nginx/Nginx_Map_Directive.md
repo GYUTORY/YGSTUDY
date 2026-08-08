@@ -1,6 +1,6 @@
 ---
 title: "Nginx map 지시어 심화"
-tags: [nginx, map, geo, split_clients, upstream, routing, variables]
+tags: [web-server]
 updated: 2026-07-20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: DLQ 재처리 자동화
-tags: [messaging, dlq, dead-letter-queue, kafka, rabbitmq, sqs, idempotency, monitoring, parking-lot]
+tags: [messaging, architecture, monitoring, backend]
 updated: 2026-08-02
 ---
 

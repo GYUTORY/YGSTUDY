@@ -1,6 +1,6 @@
 ---
 title: Native Method
-tags: [language, java, 객체지향-프로그래밍-oop, method, nativemethod, jni, jnr, panama]
+tags: [language, java]
 updated: 2026-04-15
 ---
 

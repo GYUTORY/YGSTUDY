@@ -1,6 +1,6 @@
 ---
 title: 쿠버네티스 클러스터 재해 복구
-tags: [kubernetes, disaster-recovery, etcd, velero, statefulset, multi-cluster, failover, backup, restore, pv]
+tags: [kubernetes, devops]
 updated: 2026-07-21
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: 백엔드 레이아웃
-tags: [backend, architecture, layout, package-structure, hexagonal, clean-architecture, ddd, modular-monolith, multi-module]
+tags: [backend, architecture]
 updated: 2026-05-06
 ---
 
