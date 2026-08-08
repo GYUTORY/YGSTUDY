@@ -29,6 +29,9 @@ def _last_commit_date():
 
 _FM_TITLE_RE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
 
+# 최근 목록에서 제외할 메타 페이지 (문서가 아니라 사이트 장치)
+_META_PAGES = {"index.md", "최근.md", "404.md", "tags.md", "todo.md"}
+
 
 def _doc_title(abs_path, fallback):
     """프론트매터 title 을 우선 사용. 없으면 파일명 기반 fallback."""
@@ -100,7 +103,9 @@ def _recent_docs(repo_root, docs_dir, limit=60):
             current_date = line[5:]
         elif line.endswith(".md") and current_date:
             rel = line.replace("Develop/", "", 1)
-            if rel in seen or rel == "index.md" or rel == "최근.md":
+            # 메타 페이지는 "최근에 쓴 글"이 아니다. 404·태그·todo 가 목록에 섞이면
+            # 새 글을 보러 온 사람에게 노이즈가 된다.
+            if rel in seen or rel in _META_PAGES:
                 continue
             seen.add(rel)
             abs_path = os.path.join(docs_dir, rel)
