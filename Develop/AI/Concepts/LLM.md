@@ -509,7 +509,7 @@ tools = [
 ]
 
 response = client.messages.create(
-    model="claude-sonnet-4-6-20250514",
+    model="claude-sonnet-4-6",
     max_tokens=1024,
     tools=tools,
     messages=[{"role": "user", "content": "ORD-12345 배송 어디까지 왔어?"}]
@@ -781,7 +781,7 @@ def select_model(task_type: str) -> str:
         "classification": "gpt-4o-mini",     # 단순 분류 → 저렴한 모델
         "extraction": "gpt-4o-mini",          # 데이터 추출 → 저렴한 모델
         "code_generation": "gpt-4o",          # 코드 생성 → 중간 모델
-        "complex_reasoning": "claude-opus-4-6-20250514",  # 복잡한 추론 → 고성능 모델
+        "complex_reasoning": "claude-opus-4-6",  # 복잡한 추론 → 고성능 모델
     }
     return routing.get(task_type, "gpt-4o-mini")
 ```
@@ -1537,7 +1537,7 @@ def llm_judge(question: str, answer_a: str, answer_b: str) -> str:
 평가 결과를 JSON으로 출력해라:
 {{"winner": "A" 또는 "B" 또는 "tie", "reason": "판단 근거"}}"""
 
-    return call_llm("claude-sonnet-4-6-20250514", prompt)
+    return call_llm("claude-sonnet-4-6", prompt)
 ```
 
 LLM-as-Judge를 사용할 때 주의할 점:

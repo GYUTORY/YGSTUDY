@@ -3,3 +3,6 @@ site/
 __pycache__/
 .claude/
 .omc/
+
+# 빌드 시점에 tools/inject_build_meta.py 가 생성하는 페이지
+Develop/최근.md

@@ -40,7 +40,6 @@ updated: 2026-08-04
 | [Claude Code 모델 선택](../AI/Claude_Code/Claude_Code_Model.md) | 에이전틱 환경에서 Opus·Sonnet·Haiku 선택 기준 | 실무 |
 | [Claude Code Ultra Review](../AI/Claude_Code/Claude_Code_Ultra.md) | /code-review ultra 멀티에이전트 코드 리뷰 사용법 | 실무 |
 | [Claude Code 웹취약점 대응](../AI/Claude_Code/Claude_Code_Web_Vulnerability.md) | AI 생성 코드에서 XSS·SSRF·IDOR가 발생하는 패턴과 차단 | 실무 |
-| [Claude Code Fable 5 릴리스](../AI/Claude_Code/Claude_Code_Fable_5.md) | Fable 5 주요 변경사항과 마이그레이션 체크리스트 | 실무 |
 | [Claude Code 트러블슈팅](../AI/Claude_Code/Claude_Code_Troubleshooting.md) | 실무에서 자주 겪는 CLI 문제와 해결법 | 실무 |
 
 ### Claude API & 모델

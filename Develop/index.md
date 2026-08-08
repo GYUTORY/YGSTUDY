@@ -45,6 +45,17 @@ updated: 2026-08-07
 <section class="yg-section">
   <div class="yg-section-head">
     <div>
+      <span class="yg-section-kicker">RECENT</span>
+      <h2 class="yg-section-title">최근에 쓴 글</h2>
+    </div>
+    <a class="yg-section-more" href="최근/">전체 보기</a>
+  </div>
+  <!-- YG_RECENT: 빌드 시점에 tools/inject_build_meta.py 가 채운다. 직접 쓰지 말 것. -->
+</section>
+
+<section class="yg-section">
+  <div class="yg-section-head">
+    <div>
       <span class="yg-section-kicker">CATEGORIES</span>
       <h2 class="yg-section-title">관심 있는 주제로 바로 가기</h2>
     </div>

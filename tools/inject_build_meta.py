@@ -3,6 +3,9 @@ MkDocs hook: 빌드 시점 메타 자동 주입 및 최근 변경 문서 페이�
 
 1. index.md 의 하드코딩된 '최근 업데이트 YYYY.MM' 을 마지막 git 커밋 날짜로 교체.
 2. Develop/최근.md 를 최근 60일 내 변경된 문서 목록으로 자동 생성.
+3. index.md 의 <!-- YG_RECENT --> 자리에 최근 문서 카드를 채움.
+   대문에서 "무엇이 새로 올라왔는지" 바로 보이게 하는 용도. 하드코딩하면 낡으므로
+   반드시 빌드 시점에 생성한다.
 """
 
 import os
@@ -22,6 +25,53 @@ def _last_commit_date():
         return r.stdout.strip() or date.today().strftime("%Y.%m")
     except Exception:
         return date.today().strftime("%Y.%m")
+
+
+_FM_TITLE_RE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
+
+
+def _doc_title(abs_path, fallback):
+    """프론트매터 title 을 우선 사용. 없으면 파일명 기반 fallback."""
+    try:
+        with open(abs_path, "r", encoding="utf-8") as f:
+            head = f.read(1500)
+    except Exception:
+        return fallback
+    if not head.startswith("---"):
+        return fallback
+    end = head.find("\n---", 3)
+    if end == -1:
+        return fallback
+    m = _FM_TITLE_RE.search(head[3:end])
+    if not m:
+        return fallback
+    return m.group(1).strip().strip('"').strip("'") or fallback
+
+
+def _doc_url(rel_path):
+    """Develop 기준 상대 경로를 사이트 URL 조각으로 변환.
+
+    index.md(사이트 루트)에 직접 써넣는 raw HTML 전용이다. 루트 기준이라
+    디렉터리형 경로가 그대로 맞다.
+    """
+    if rel_path.endswith("/index.md"):
+        base = rel_path[: -len("index.md")]
+    elif rel_path.endswith(".md"):
+        base = rel_path[: -len(".md")] + "/"
+    else:
+        base = rel_path
+    return base.replace(" ", "%20")
+
+
+def _doc_md_link(rel_path):
+    """마크다운 링크의 destination 을 만든다.
+
+    디렉터리형 URL(`AI/X/Y/`)을 마크다운에 쓰면 mkdocs 가 내부 문서 링크로 인식하지
+    못해 그대로 두고, 결과적으로 그 페이지 기준 상대경로로 풀려 전부 404가 된다
+    (`/최근/AI/X/Y/`). `.md` 경로로 줘야 mkdocs 가 올바른 URL 로 바꿔준다.
+    공백이 있는 경로는 <> 로 감싸야 파서가 끊어 읽지 않는다.
+    """
+    return f"<{rel_path}>" if " " in rel_path else rel_path
 
 
 def _recent_docs(repo_root, docs_dir, limit=60):
@@ -53,20 +103,34 @@ def _recent_docs(repo_root, docs_dir, limit=60):
             if rel in seen or rel == "index.md" or rel == "최근.md":
                 continue
             seen.add(rel)
-            name = Path(rel).stem.replace("_", " ")
+            abs_path = os.path.join(docs_dir, rel)
+            # 이후 커밋에서 삭제·이동된 문서는 목록에 남기지 않는다(죽은 링크 방지).
+            if not os.path.isfile(abs_path):
+                continue
+            name = _doc_title(abs_path, Path(rel).stem.replace("_", " "))
             entries.append((current_date, name, rel))
 
     return entries
 
 
+# on_pre_build 에서 계산해 on_page_markdown 이 재사용한다(git 호출 1회로 끝내기 위함).
+_recent_cache = []
+
+
 def on_pre_build(config, **kwargs):
+    global _recent_cache
     docs_dir = config["docs_dir"]
     repo_root = os.path.dirname(docs_dir)
     entries = _recent_docs(repo_root, docs_dir)
+    _recent_cache = entries
 
+    # tags·updated 는 check_frontmatter.py 가 요구하는 필수 필드다.
+    # 생성 파일이라고 빼면 검증이 매번 실패한다.
     lines = [
         "---\n",
         "title: 최근 변경 문서\n",
+        "tags: []\n",
+        f"updated: {date.today().isoformat()}\n",
         "hide:\n  - toc\n",
         "---\n\n",
         "# 최근 변경 문서\n\n",
@@ -77,8 +141,7 @@ def on_pre_build(config, **kwargs):
         lines.append("| 날짜 | 문서 |\n")
         lines.append("|------|------|\n")
         for d, name, path in entries[:80]:
-            url = path.replace(".md", "/").replace(" ", "%20")
-            lines.append(f"| {d} | [{name}]({url}) |\n")
+            lines.append(f"| {d} | [{name}]({_doc_md_link(path)}) |\n")
     else:
         lines.append("_(변경 이력 없음 또는 git 정보를 읽을 수 없습니다)_\n")
 
@@ -87,12 +150,43 @@ def on_pre_build(config, **kwargs):
         f.writelines(lines)
 
 
+_RECENT_MARKER_RE = re.compile(r"<!--\s*YG_RECENT:.*?-->", re.DOTALL)
+
+# 최상위 디렉터리명 → 카드에 붙일 라벨
+_CAT_LABEL = {
+    "_hub": "주제별 가이드",
+    "DataBase": "Database",
+}
+
+
+def _recent_cards_html(entries, limit=6):
+    if not entries:
+        return '<p class="yg-empty">최근 변경 이력을 읽을 수 없습니다.</p>'
+    out = ['<div class="yg-series-grid">']
+    for d, name, rel in entries[:limit]:
+        top = rel.split("/")[0]
+        label = _CAT_LABEL.get(top, top)
+        out.append(
+            f'  <a class="yg-series" href="{_doc_url(rel)}">\n'
+            f'    <div class="yg-series-body">\n'
+            f'      <span class="yg-series-tag">{label} · {d}</span>\n'
+            f"      <h3>{name}</h3>\n"
+            f"    </div>\n"
+            f"  </a>"
+        )
+    out.append("</div>")
+    return "\n".join(out)
+
+
 def on_page_markdown(markdown, page, **kwargs):
     if page.file.src_path != "index.md":
         return markdown
     last_date = _last_commit_date()
-    return re.sub(
+    markdown = re.sub(
         r"최근 업데이트 <strong>[^<]+</strong>",
         f"최근 업데이트 <strong>{last_date}</strong>",
         markdown,
+    )
+    return _RECENT_MARKER_RE.sub(
+        lambda _: _recent_cards_html(_recent_cache), markdown, count=1
     )
