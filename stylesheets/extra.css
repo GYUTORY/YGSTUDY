@@ -1143,6 +1143,15 @@ body {
   gap: 16px;
   margin-bottom: 28px;
 }
+.yg-section-more {
+  flex: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--notion-blue);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.yg-section-more:hover { text-decoration: underline; }
 .yg-section-kicker {
   display: inline-block;
   font-size: 12px;
