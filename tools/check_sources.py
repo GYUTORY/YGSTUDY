@@ -5,6 +5,8 @@
   python3 tools/check_sources.py             # 전체 스캔 (경고만)
   python3 tools/check_sources.py --strict    # 최근 90일 변경 파일만 검사, 위반 시 exit 1
   python3 tools/check_sources.py --file path/to/file.md  # 단일 파일 검사
+  python3 tools/check_sources.py --file X.md --base-ref SHA --strict
+                                             # SHA 대비 새로 추가된 줄만 검사
 """
 
 import re
@@ -59,20 +61,51 @@ def get_recent_files(days: int = 90) -> set[Path]:
     return paths
 
 
-def check_file(path: Path) -> tuple[bool, list[str]]:
+def added_lines(path: Path, base_ref: str) -> str | None:
+    """base_ref 대비 이 파일에서 새로 추가된 줄만 이어붙여 반환.
+
+    오래된 문서를 한 줄만 고쳐도 파일 전체의 과거 무출처 주장이 걸리면
+    게이트로 쓸 수 없다. 이번에 새로 들어온 주장만 보기 위한 것.
+    diff 를 얻지 못하면 None(=전체 검사로 폴백).
+    """
+    try:
+        r = subprocess.run(
+            ["git", "diff", "--unified=0", base_ref, "--", str(path)],
+            capture_output=True, text=True, cwd=ROOT.parent,
+        )
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    out = []
+    for line in r.stdout.splitlines():
+        if line.startswith("+") and not line.startswith("+++"):
+            out.append(line[1:])
+    return "\n".join(out)
+
+
+def check_file(path: Path, base_ref: str | None = None) -> tuple[bool, list[str]]:
     """(위반여부, 매칭된_주장들) 반환"""
     try:
         text = path.read_text(encoding="utf-8")
     except Exception:
         return False, []
 
+    # 주장 탐지 대상. base_ref 가 있으면 새로 추가된 줄만 본다.
+    target = text
+    if base_ref:
+        added = added_lines(path, base_ref)
+        if added is not None:
+            target = added
+
     # 코드블록 내부 제거 (언어 태그 없는 것 포함)
-    text_no_code = re.sub(r"```[\s\S]*?```", "", text)
+    text_no_code = re.sub(r"```[\s\S]*?```", "", target)
 
     claims = has_claim(text_no_code)
     if not claims:
         return False, []
 
+    # 출처 링크는 파일 전체에서 찾는다. 문서 어딘가에 근거가 있으면 통과.
     if has_external_link(text):
         return False, []
 
@@ -81,6 +114,10 @@ def check_file(path: Path) -> tuple[bool, list[str]]:
 
 def main():
     strict = "--strict" in sys.argv
+    base_ref = None
+    if "--base-ref" in sys.argv:
+        base_ref = sys.argv[sys.argv.index("--base-ref") + 1]
+
     single_file = None
     if "--file" in sys.argv:
         idx = sys.argv.index("--file")
@@ -97,7 +134,7 @@ def main():
 
     violations = []
     for path in sorted(targets):
-        violated, claims = check_file(path)
+        violated, claims = check_file(path, base_ref)
         if violated:
             rel = path.relative_to(ROOT.parent)
             violations.append((rel, claims))

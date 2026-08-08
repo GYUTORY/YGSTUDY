@@ -45,15 +45,19 @@ jobs:
       - name: Check internal links
         run: python3 tools/check_links.py --strict
 
-      # 3-1. 사실 주장 출처 — 이번 푸시에서 바뀐 문서만 검사한다.
-      #      전역 --strict 는 누적 위반에 걸려 항상 실패하므로 게이트로 못 쓴다.
-      #      새로 들어오는 무출처 주장만 막는 것이 목적.
-      - name: Check sources (changed files only)
+      # 3-1. 사실 주장 출처 — 이번 푸시에서 "새로 추가된 줄"만 검사한다.
+      #      전역 --strict 는 누적 위반(수백 건)에 걸려 항상 실패하고,
+      #      바뀐 파일 전체를 보면 오래된 문서를 한 줄만 고쳐도 과거 부채가 걸린다.
+      #      둘 다 게이트로 못 쓰므로 새로 들어오는 주장만 본다.
+      - name: Check sources (added lines only)
         run: |
           set -euo pipefail
           BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             echo "기준 커밋 없음 — 검사 생략"; exit 0
+          fi
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "기준 커밋($BASE)을 찾을 수 없음 — 검사 생략"; exit 0
           fi
           CHANGED=$(git diff --name-only --diff-filter=AM "$BASE" HEAD -- 'Develop/**/*.md' || true)
           if [ -z "$CHANGED" ]; then echo "변경된 문서 없음"; exit 0; fi
@@ -61,7 +65,7 @@ jobs:
           FAIL=0
           while IFS= read -r f; do
             [ -f "$f" ] || continue
-            python3 tools/check_sources.py --file "$PWD/$f" --strict || FAIL=1
+            python3 tools/check_sources.py --file "$PWD/$f" --base-ref "$BASE" --strict || FAIL=1
           done <<< "$CHANGED"
           exit $FAIL
 
