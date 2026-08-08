@@ -9,6 +9,7 @@
                                              # SHA 대비 새로 추가된 줄만 검사
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -19,14 +20,25 @@ ROOT = Path(__file__).parent.parent / "Develop"
 # 사실 주장 패턴 — 출처가 필요한 서술
 CLAIM_PATTERNS = [
     r"\bv\d+\.\d+",                          # v1.23 같은 버전 표기
-    r"(?:Node\.js|Java|Python|Go|Rust|PHP|Ruby|Kotlin|Swift)\s+\d+",  # 런타임 버전
-    r"\d+(?:\.\d+)?\s*(?:ms|μs|ns|MB|GB|KB|초|밀리초|마이크로초)",  # 수치 측정값
+    # 런타임 버전: 두 자리 이상 또는 소수점 있을 때만 (Java 8·Go 1 같은 단일 숫자 제외)
+    r"(?:Node\.js|Java|Python|Go|Rust|PHP|Ruby|Kotlin|Swift)\s+(?:\d{2,}|\d+\.\d+)",
     r"\d+(?:\.\d+)?\s*%\s*(?:빠르|느리|향상|감소|개선|절약)",       # 성능 수치 비교
     r"(?:벤치마크|benchmark|autocannon|wrk|ab\s+테스트|JMH|k6)",     # 벤치마크 도구
     r"(?:~부터\s*지원|버전부터\s*(?:지원|추가|도입))",               # 버전별 지원 여부
     r"(?:deprecated|폐기|제거됨)\s+(?:in|in\s+v|since\s+v)",        # deprecation 버전
-    r"(?:RFC|ISO|OWASP)\s*\d+",                                     # 표준 문서 참조
+    # RFC/ISO/OWASP 는 그 자체가 출처이므로 제외
 ]
+
+# 측정값은 비교·벤치마크 맥락 줄에서만 주장으로 간주
+# (?<![A-Za-z]) — 앞에 영문자가 붙으면 측정값이 아님 (utf8mb4의 '8mb' 오탐 방지)
+_MEASUREMENT_RE = re.compile(
+    r"(?<![A-Za-z])\d+(?:\.\d+)?\s*(?:ms|μs|ns|MB|GB|KB|초|밀리초|마이크로초)",
+    re.IGNORECASE,
+)
+_COMPARISON_CTX_RE = re.compile(
+    r"측정|벤치마크|benchmark|대비|빠르|느리|향상|감소|개선|절약|latency|throughput|성능",
+    re.IGNORECASE,
+)
 
 EXTERNAL_LINK_RE = re.compile(r"https?://(?!(?:localhost|127\.|example\.com|evil\.com))")
 
@@ -37,6 +49,12 @@ def has_claim(text: str) -> list[str]:
         m = re.search(pat, text, re.IGNORECASE)
         if m:
             found.append(m.group(0))
+    # 측정값은 비교 맥락 줄에서만 주장으로 판단
+    for line in text.splitlines():
+        m = _MEASUREMENT_RE.search(line)
+        if m and _COMPARISON_CTX_RE.search(line):
+            found.append(m.group(0))
+            break
     return found
 
 
@@ -47,6 +65,29 @@ def has_external_link(text: str) -> bool:
 def get_recent_files(days: int = 90) -> set[Path]:
     result = subprocess.run(
         ["git", "log", f"--since={days} days ago", "--name-only", "--pretty=format:"],
+        cwd=ROOT.parent,
+        capture_output=True,
+        text=True,
+    )
+    paths = set()
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.endswith(".md"):
+            p = ROOT.parent / line
+            if p.exists():
+                paths.add(p)
+    return paths
+
+
+def get_push_diff_files() -> set[Path]:
+    """BEFORE_SHA/AFTER_SHA 환경변수가 있으면 push diff 기준으로 검사.
+    없으면 최근 90일 fallback. NFC 일괄 정규화 같은 대량 변경이 전체 검사를 유발하는 문제 방지."""
+    before = os.environ.get("BEFORE_SHA", "").strip()
+    after = os.environ.get("AFTER_SHA", "HEAD").strip() or "HEAD"
+    if not before or before == "0000000000000000000000000000000000000000":
+        return get_recent_files(90)
+    result = subprocess.run(
+        ["git", "diff", "--name-only", before, after],
         cwd=ROOT.parent,
         capture_output=True,
         text=True,
@@ -117,6 +158,13 @@ def main():
     base_ref = None
     if "--base-ref" in sys.argv:
         base_ref = sys.argv[sys.argv.index("--base-ref") + 1]
+    else:
+        # 명시적으로 안 줬으면 push diff 기준을 그대로 쓴다.
+        # get_push_diff_files 가 "어떤 파일"을 고르고, base_ref 가 "그 파일의 어느 줄"을 고른다.
+        # 둘을 같이 걸어야 오래된 문서를 한 줄만 고쳤을 때 과거 부채가 안 걸린다.
+        _before = os.environ.get("BEFORE_SHA", "").strip()
+        if _before and _before != "0000000000000000000000000000000000000000":
+            base_ref = _before
 
     single_file = None
     if "--file" in sys.argv:
@@ -126,8 +174,12 @@ def main():
     if single_file:
         targets = [single_file]
     elif strict:
-        targets = list(get_recent_files(90))
-        print(f"최근 90일 변경 파일 {len(targets)}개 검사")
+        before = os.environ.get("BEFORE_SHA", "").strip()
+        targets = list(get_push_diff_files())
+        if before and before != "0000000000000000000000000000000000000000":
+            print(f"푸시 diff 파일 {len(targets)}개 검사 ({before[:8]}..HEAD)")
+        else:
+            print(f"최근 90일 변경 파일 {len(targets)}개 검사")
     else:
         targets = list(ROOT.rglob("*.md"))
         print(f"전체 {len(targets)}개 파일 검사")

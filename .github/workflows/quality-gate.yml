@@ -33,42 +33,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-docs.txt
 
-      # 1. 허용 태그 검사
-      - name: Check tags
-        run: python3 tools/gen_tags.py || true      # 태그 정리 완료 후 --strict 복원
-
-      # 2. 프론트매터 필수 필드 (title / tags / updated)
-      - name: Check frontmatter
-        run: python3 tools/check_frontmatter.py --strict
-
-      # 3. 내부 링크 검사 (P1 재발 방지)
-      - name: Check internal links
-        run: python3 tools/check_links.py --strict
-
-      # 3-1. 사실 주장 출처 — 이번 푸시에서 "새로 추가된 줄"만 검사한다.
-      #      전역 --strict 는 누적 위반(수백 건)에 걸려 항상 실패하고,
-      #      바뀐 파일 전체를 보면 오래된 문서를 한 줄만 고쳐도 과거 부채가 걸린다.
-      #      둘 다 게이트로 못 쓰므로 새로 들어오는 주장만 본다.
-      - name: Check sources (added lines only)
-        run: |
-          set -euo pipefail
-          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            echo "기준 커밋 없음 — 검사 생략"; exit 0
-          fi
-          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            echo "기준 커밋($BASE)을 찾을 수 없음 — 검사 생략"; exit 0
-          fi
-          CHANGED=$(git diff --name-only --diff-filter=AM "$BASE" HEAD -- 'Develop/**/*.md' || true)
-          if [ -z "$CHANGED" ]; then echo "변경된 문서 없음"; exit 0; fi
-          echo "$CHANGED"
-          FAIL=0
-          while IFS= read -r f; do
-            [ -f "$f" ] || continue
-            python3 tools/check_sources.py --file "$PWD/$f" --base-ref "$BASE" --strict || FAIL=1
-          done <<< "$CHANGED"
-          exit $FAIL
-
-      # 4. strict 빌드 (경고 → 실패)
-      - name: Build strict
-        run: mkdocs build --strict
+      # 검사 스텝 정의는 .github/actions/docs-checks 한 곳에만 둔다.
+      # PR 에서는 base.sha, push 에서는 before 가 기준 커밋이 된다.
+      - name: Docs checks
+        uses: ./.github/actions/docs-checks
+        with:
+          before_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
