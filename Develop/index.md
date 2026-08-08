@@ -85,13 +85,21 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="DevOps">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="AWS" href="AWS/Compute/Auto_Scaling/">
+    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="Cloud" href="Cloud/AWS/Containers/ECS/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>Cloud</h3>
+        <p>AWS · GCP · 컨테이너 · 네트워킹</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="Cloud">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="AWS" href="Cloud/AWS/Compute/Auto_Scaling/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>AWS</h3>
         <p>ECS · Fargate · Network · IAM</p>
       </div>
-      <div class="yg-cat-v2-count" data-yg-count="AWS">—</div>
+      <div class="yg-cat-v2-count" data-yg-count="Cloud/AWS">—</div>
     </a>
     <a class="yg-cat-v2" data-cat="database" data-yg-cat="DataBase" href="DataBase/NoSQL/NoSQL/">
       <div class="yg-cat-v2-icon"><span></span></div>
@@ -141,13 +149,29 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Security">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="linux" data-yg-cat="Linux" href="Linux/기본_명령어/기본_명령어/">
+    <a class="yg-cat-v2" data-cat="linux" data-yg-cat="Linux" href="DevOps/Linux/기본_명령어/기본_명령어/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Linux</h3>
         <p>Shell · 권한 · 프로세스 · 시스템</p>
       </div>
-      <div class="yg-cat-v2-count" data-yg-count="Linux">—</div>
+      <div class="yg-cat-v2-count" data-yg-count="DevOps/Linux">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="OS" href="OS/Process%20&amp;%20Thread/Process%20&amp;%20Thread/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>OS</h3>
+        <p>프로세스 · 스레드 · 메모리 · 스케줄링</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="OS">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="arch" data-yg-cat="Algorithm" href="Algorithm/Binary_Search/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>Algorithm</h3>
+        <p>탐색 · 정렬 · 동적 계획법</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="Algorithm">—</div>
     </a>
     <a class="yg-cat-v2" data-cat="webserver" data-yg-cat="WebServer" href="WebServer/Nginx/Definition/">
       <div class="yg-cat-v2-icon"><span></span></div>

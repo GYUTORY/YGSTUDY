@@ -162,9 +162,16 @@
             path = path.replace(/^\/+/, "");
           }
           if (!path || path === "/" || path === "index.html") return;
-          var seg = path.split("/")[0];
+          var parts = path.split("/").filter(Boolean);
+          var seg = parts[0];
           if (!seg || seg === "tags") return;
           counts[seg] = (counts[seg] || 0) + 1;
+          // AWS·Linux 처럼 한 단계 아래에 있는 카드도 세어야 한다.
+          // 첫 세그먼트만 보면 Cloud/AWS/, DevOps/Linux/ 가 영영 0 이라 "—" 로 남는다.
+          if (parts.length > 1) {
+            counts[parts[1]] = (counts[parts[1]] || 0) + 1;
+            counts[seg + "/" + parts[1]] = (counts[seg + "/" + parts[1]] || 0) + 1;
+          }
           total += 1;
         });
 

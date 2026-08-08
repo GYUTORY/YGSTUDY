@@ -443,3 +443,6 @@ extra_css:
 
 extra_javascript:
   - javascripts/extra.js
+  # 머메이드는 버전을 고정해 직접 초기화한다. Material 번들이 CDN 최신본을 끌어다
+  # 렌더하던 경로가 깨져 다이어그램 938개가 빈 상자로 나가고 있었다.
+  - javascripts/mermaid-init.js
