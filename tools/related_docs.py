@@ -8,6 +8,7 @@ mkdocs.yml 의 hooks 섹션에 추가:
 
 from __future__ import annotations
 
+import posixpath
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -68,6 +69,7 @@ def on_page_markdown(markdown: str, page, **kwargs) -> str:
         'title': title,
         'tags': set(tags),
         'url': page.url or src.replace('.md', '/'),
+        'src': src,
     }
 
     # 태그 없으면 스킵
@@ -94,7 +96,7 @@ def on_page_markdown(markdown: str, page, **kwargs) -> str:
         if len(shared) >= MIN_SHARED_TAGS:
             other_section = other_src.split('/')[0] if '/' in other_src else ''
             same_section = 1 if (section and other_section == section) else 0
-            related.append((len(shared), same_section, meta['title'], meta['url']))
+            related.append((len(shared), same_section, meta['title'], meta['src']))
 
     if not related:
         return markdown
@@ -108,8 +110,14 @@ def on_page_markdown(markdown: str, page, **kwargs) -> str:
         '**관련 문서**',
         '',
     ]
-    for _, title_r, url_r in related:
-        block_lines.append(f'- [{title_r}]({url_r})')
+    here = posixpath.dirname(src)
+    for _, title_r, src_r in related:
+        # 디렉터리형 URL 을 그대로 쓰면 mkdocs 가 내부 문서 링크로 인식하지 못하고
+        # 현재 페이지 기준 상대경로로 풀려 전부 404 가 된다(실제로 5,768건이 그랬다).
+        # .md 경로를 주면 mkdocs 가 올바른 URL 로 다시 쓴다. 공백은 <> 로 감싼다.
+        rel_link = posixpath.relpath(src_r, here) if here else src_r
+        dest = f'<{rel_link}>' if ' ' in rel_link else rel_link
+        block_lines.append(f'- [{title_r}]({dest})')
 
     return markdown + '\n'.join(block_lines)
 
@@ -154,5 +162,6 @@ def on_files(files, config, **kwargs):
             'title': _extract_title(fm_body) or Path(rel).stem.replace('_', ' '),
             'tags': set(_extract_tags(fm_body)),
             'url': _url_for(rel),
+            'src': rel,
         }
     return files

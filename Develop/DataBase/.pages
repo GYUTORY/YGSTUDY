@@ -1,5 +1,6 @@
 title: Database
 nav:
+  - index.md
   - DB Connection Pool 종합: Connection_Pool.md
   - 데이터베이스 심화: Database_Deep_Dive.md
   - 데이터베이스 마이그레이션 전략: 마이그레이션_전략.md

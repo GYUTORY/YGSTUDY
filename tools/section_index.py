@@ -116,3 +116,15 @@ def on_pre_build(config, **kwargs):
 
         with open(index_path, "w", encoding="utf-8") as f:
             f.writelines(lines)
+
+        # 만들어만 두면 어디서도 링크되지 않아 고아가 된다.
+        # navigation.indexes 가 켜져 있으므로 .pages 의 nav 맨 앞에 index.md 를 물리면
+        # 사이드바의 섹션 제목 자체가 이 페이지로 가는 링크가 된다.
+        pages_path = os.path.join(section, ".pages")
+        if os.path.exists(pages_path):
+            with open(pages_path, "r", encoding="utf-8") as f:
+                txt = f.read()
+            if "index.md" not in txt and "\nnav:" in "\n" + txt:
+                txt = txt.replace("nav:\n", "nav:\n  - index.md\n", 1)
+                with open(pages_path, "w", encoding="utf-8") as f:
+                    f.write(txt)

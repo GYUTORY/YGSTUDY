@@ -1,4 +1,5 @@
 title: Cloud
 nav:
+  - index.md
   - AWS
   - GCP

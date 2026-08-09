@@ -1,5 +1,6 @@
 title: Web Server
 nav:
+  - index.md
   - Nginx vs Caddy: Nginx_vs_Caddy.md
   - Nginx
   - Apache
