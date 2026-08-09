@@ -1,427 +1,208 @@
 ---
 title: TypeScript never 타입
 tags: [language, typescript]
-updated: 2025-08-10
+updated: 2026-08-09
 ---
 
-# TypeScript never 타입
-## 배경
+# never
 
-TypeScript에서 `never` 타입은 절대로 발생하지 않는 값의 타입을 나타냅니다.
+## never가 필요한 순간
 
-### never 타입의 필요성
-- **타입 시스템 완성성**: 타입 시스템의 논리적 완성성 유지
-- **예외 처리**: 함수가 예외를 던지거나 프로그램이 중단되는 경우
-- **무한 반복**: 함수가 끝나지 않고 계속 반복되는 경우
-- **타입 가드**: 모든 경우를 처리했을 때 남은 경우 처리
+유니온을 다루는 함수를 하나 쓴다고 하자.
 
-### 기본 개념
-- **절대 발생하지 않음**: 해당 코드 블록이 실행되면 함수가 더 이상 진행되지 않음
-- **타입 안전성**: 타입 시스템에서 논리적으로 불가능한 상황 표현
-- **완전성 검사**: 모든 경우를 처리했는지 컴파일 타임에 확인
-
-## 핵심
-
-### 1. never 타입의 기본 사용법
-
-#### 예외를 던지는 함수
 ```typescript
-// 예외를 던지는 함수
-function throwError(message: string): never {
-    throw new Error(message);
-}
+type Shape =
+  | { kind: "circle"; r: number }
+  | { kind: "square"; side: number };
 
-// 사용 예시
-function processData(data: string): string {
-    if (!data) {
-        throwError('데이터가 없습니다.'); // never 반환
-    }
-    return data.toUpperCase();
-}
-
-// 함수 호출
-try {
-    const result = processData('');
-} catch (error) {
-    console.error(error.message); // "데이터가 없습니다."
+function area(s: Shape): number {
+  switch (s.kind) {
+    case "circle": return Math.PI * s.r ** 2;
+    case "square": return s.side ** 2;
+  }
 }
 ```
 
-#### 무한 반복 함수
+여기까지는 문제가 없다. 그런데 몇 달 뒤 삼각형이 추가된다.
+
 ```typescript
-// 무한 반복 함수
-function infiniteLoop(): never {
-    while (true) {
-        console.log('무한 반복 중...');
-        // 실제로는 break 조건이 있어야 함
-    }
+type Shape =
+  | { kind: "circle"; r: number }
+  | { kind: "square"; side: number }
+  | { kind: "triangle"; base: number; height: number };
+```
+
+`area`는 여전히 컴파일된다. 삼각형을 넣으면 `undefined`가 나온다. 런타임에 조용히 틀린 값이 돌아다니고, 그걸 곱하거나 더한 어딘가에서 `NaN`으로 터진다. 원인 지점과 증상 지점이 멀어서 추적이 오래 걸린다.
+
+`never`는 이 상황을 **컴파일 시점의 에러로 바꾸기 위해** 존재한다. 타입을 하나 추가했을 때 그 타입을 처리하지 않은 곳이 전부 빨간 줄로 뜨게 만드는 장치다.
+
+## 값이 존재할 수 없다는 뜻
+
+`never`는 공집합이다. 어떤 값도 이 타입을 만족하지 못한다. `null`도, `undefined`도 아니다.
+
+여기서 두 가지 성질이 따라 나온다.
+
+```typescript
+declare const n: never;
+const a: string = n;   // OK — never는 모든 타입에 대입 가능
+const b: number = n;   // OK
+
+declare const s: string;
+const c: never = s;
+// Type 'string' is not assignable to type 'never'.
+```
+
+원소가 없는 집합은 모든 집합의 부분집합이므로 `never`는 어디에나 들어간다. 반대로 `never` 자리에는 아무것도 못 들어간다 — 넣을 수 있는 값이 없기 때문이다.
+
+이 성질 때문에 `never`는 유니온의 항등원이 된다.
+
+```typescript
+type A = string | never;   // string
+type B = never | never;    // never
+type C = string & never;   // never — 인터섹션에서는 흡수원
+```
+
+`T | never`가 `T`가 되는 건 나중에 조건부 타입에서 걸러내기로 쓰인다.
+
+## 컴파일러가 never를 만드는 세 경우
+
+직접 `never`라고 쓰는 일은 드물다. 대부분은 컴파일러가 추론해서 만든다.
+
+**1. 반환하지 않는 함수**
+
+```typescript
+function fail(msg: string): never {
+  throw new Error(msg);
 }
 
-// 실제 사용 예시
-function processQueue(): never {
-    while (true) {
-        const task = getNextTask();
-        if (task) {
-            executeTask(task);
-        } else {
-            // 작업이 없으면 잠시 대기
-            sleep(1000);
-        }
-    }
-}
-
-function getNextTask(): any {
-    // 작업 큐에서 다음 작업 가져오기
-    return null;
-}
-
-function executeTask(task: any): void {
-    // 작업 실행
-    console.log('작업 실행:', task);
-}
-
-function sleep(ms: number): void {
-    // 대기 함수
-    const start = Date.now();
-    while (Date.now() - start < ms) {}
+function loop(): never {
+  while (true) {}
 }
 ```
 
-### 2. never 타입과 타입 가드
+값을 반환하지 않는 것(`void`)과 **반환이라는 사건 자체가 일어나지 않는 것**(`never`)은 다르다. `fail`은 정상 종료가 없으므로 반환값의 타입을 말할 수 없다.
 
-#### 완전성 검사 (Exhaustive Check)
+이 구분은 제어 흐름 분석에 쓰인다.
+
 ```typescript
-// 유니온 타입 정의
-type Status = 'loading' | 'success' | 'error';
-
-function handleStatus(status: Status): string {
-    switch (status) {
-        case 'loading':
-            return '로딩 중...';
-        case 'success':
-            return '성공!';
-        case 'error':
-            return '오류 발생';
-        default:
-            // 모든 경우를 처리했으므로 이 코드는 실행되지 않아야 함
-            const exhaustiveCheck: never = status;
-            throw new Error(`처리되지 않은 상태: ${exhaustiveCheck}`);
-    }
-}
-
-// 사용 예시
-console.log(handleStatus('loading')); // "로딩 중..."
-console.log(handleStatus('success')); // "성공!"
-console.log(handleStatus('error'));   // "오류 발생"
-```
-
-#### 타입 가드와 never
-```typescript
-function processValue(value: string | number | boolean): string {
-    if (typeof value === 'string') {
-        return `문자열: ${value}`;
-    } else if (typeof value === 'number') {
-        return `숫자: ${value}`;
-    } else if (typeof value === 'boolean') {
-        return `불린: ${value}`;
-    } else {
-        // 모든 타입을 처리했으므로 이 코드는 실행되지 않아야 함
-        const exhaustiveCheck: never = value;
-        throw new Error(`처리되지 않은 타입: ${exhaustiveCheck}`);
-    }
-}
-
-// 사용 예시
-console.log(processValue('hello'));   // "문자열: hello"
-console.log(processValue(42));        // "숫자: 42"
-console.log(processValue(true));      // "불린: true"
-```
-
-### 3. never 타입의 고급 패턴
-
-#### 조건부 타입에서의 never
-```typescript
-// 조건부 타입에서 never 사용
-type NonNullable<T> = T extends null | undefined ? never : T;
-
-// 사용 예시
-type StringOrNull = string | null;
-type NonNullString = NonNullable<StringOrNull>; // string
-
-// 실제 사용
-function processNonNullValue<T>(value: NonNullable<T>): void {
-    console.log('처리 중:', value);
-}
-
-// processNonNullValue(null); // 컴파일 오류
-processNonNullValue('hello'); // 정상 실행
-```
-
-#### 유니온 타입에서 never 제거
-```typescript
-// never를 유니온에서 제거하는 유틸리티 타입
-type RemoveNever<T> = T extends never ? never : T;
-
-// 또는 더 정확한 방법
-type ExcludeNever<T> = T extends never ? never : T;
-
-// 사용 예시
-type UnionWithNever = string | number | never | boolean;
-type CleanUnion = ExcludeNever<UnionWithNever>; // string | number | boolean
-```
-
-## 예시
-
-### 1. 실제 사용 사례
-
-#### API 응답 처리
-```typescript
-type ApiResponse<T> = 
-    | { status: 'loading' }
-    | { status: 'success'; data: T }
-    | { status: 'error'; error: string };
-
-function handleApiResponse<T>(response: ApiResponse<T>): string {
-    switch (response.status) {
-        case 'loading':
-            return '로딩 중...';
-        case 'success':
-            return `성공: ${JSON.stringify(response.data)}`;
-        case 'error':
-            return `오류: ${response.error}`;
-        default:
-            // 모든 경우를 처리했으므로 이 코드는 실행되지 않아야 함
-            const exhaustiveCheck: never = response;
-            throw new Error(`처리되지 않은 응답 상태: ${exhaustiveCheck}`);
-    }
-}
-
-// 사용 예시
-const loadingResponse: ApiResponse<string> = { status: 'loading' };
-const successResponse: ApiResponse<string> = { status: 'success', data: 'Hello World' };
-const errorResponse: ApiResponse<string> = { status: 'error', error: 'Network Error' };
-
-console.log(handleApiResponse(loadingResponse)); // "로딩 중..."
-console.log(handleApiResponse(successResponse)); // "성공: \"Hello World\""
-console.log(handleApiResponse(errorResponse));   // "오류: Network Error"
-```
-
-#### 이벤트 시스템
-```typescript
-type EventType = 'click' | 'hover' | 'focus' | 'blur';
-
-interface ClickEvent {
-    type: 'click';
-    x: number;
-    y: number;
-}
-
-interface HoverEvent {
-    type: 'hover';
-    element: string;
-}
-
-interface FocusEvent {
-    type: 'focus';
-    element: string;
-}
-
-interface BlurEvent {
-    type: 'blur';
-    element: string;
-}
-
-type Event = ClickEvent | HoverEvent | FocusEvent | BlurEvent;
-
-function handleEvent(event: Event): void {
-    switch (event.type) {
-        case 'click':
-            console.log(`클릭 위치: (${event.x}, ${event.y})`);
-            break;
-        case 'hover':
-            console.log(`호버 요소: ${event.element}`);
-            break;
-        case 'focus':
-            console.log(`포커스 요소: ${event.element}`);
-            break;
-        case 'blur':
-            console.log(`블러 요소: ${event.element}`);
-            break;
-        default:
-            // 모든 이벤트 타입을 처리했으므로 이 코드는 실행되지 않아야 함
-            const exhaustiveCheck: never = event;
-            throw new Error(`처리되지 않은 이벤트 타입: ${exhaustiveCheck}`);
-    }
-}
-
-// 사용 예시
-const clickEvent: ClickEvent = { type: 'click', x: 100, y: 200 };
-const hoverEvent: HoverEvent = { type: 'hover', element: 'button' };
-
-handleEvent(clickEvent); // "클릭 위치: (100, 200)"
-handleEvent(hoverEvent); // "호버 요소: button"
-```
-
-### 2. 고급 패턴
-
-#### 타입 안전한 상태 머신
-```typescript
-type State = 'idle' | 'loading' | 'success' | 'error';
-
-interface StateMachine {
-    state: State;
-    data?: any;
-    error?: string;
-}
-
-function transitionState(machine: StateMachine, newState: State): StateMachine {
-    switch (machine.state) {
-        case 'idle':
-            if (newState === 'loading') {
-                return { state: 'loading' };
-            }
-            break;
-        case 'loading':
-            if (newState === 'success' || newState === 'error') {
-                return { state: newState };
-            }
-            break;
-        case 'success':
-        case 'error':
-            if (newState === 'idle') {
-                return { state: 'idle' };
-            }
-            break;
-        default:
-            const exhaustiveCheck: never = machine.state;
-            throw new Error(`처리되지 않은 상태: ${exhaustiveCheck}`);
-    }
-    
-    throw new Error(`잘못된 상태 전환: ${machine.state} -> ${newState}`);
-}
-
-// 사용 예시
-let machine: StateMachine = { state: 'idle' };
-
-try {
-    machine = transitionState(machine, 'loading');
-    console.log('상태:', machine.state); // "상태: loading"
-    
-    machine = transitionState(machine, 'success');
-    console.log('상태:', machine.state); // "상태: success"
-    
-    machine = transitionState(machine, 'idle');
-    console.log('상태:', machine.state); // "상태: idle"
-} catch (error) {
-    console.error('상태 전환 오류:', error.message);
+function parse(input: string | null): string {
+  if (input === null) fail("input is null");
+  return input.toUpperCase();  // input은 여기서 string
 }
 ```
 
-#### 함수 오버로드와 never
+`fail`의 반환 타입이 `void`였다면 `input`은 여전히 `string | null`이라 `toUpperCase` 호출에서 에러가 난다. `never`이기 때문에 컴파일러가 "이 줄 아래로는 `input === null`인 경우가 도달하지 않는다"고 판단한다.
+
+**2. 좁히기를 다 소진한 분기**
+
 ```typescript
-// 함수 오버로드 정의
-function processData(data: string): string;
-function processData(data: number): number;
-function processData(data: boolean): never; // boolean은 처리하지 않음
-
-// 실제 구현
-function processData(data: string | number | boolean): string | number | never {
-    if (typeof data === 'string') {
-        return data.toUpperCase();
-    } else if (typeof data === 'number') {
-        return data * 2;
-    } else {
-        // boolean 타입은 처리하지 않으므로 never 반환
-        throw new Error('boolean 타입은 지원하지 않습니다.');
-    }
-}
-
-// 사용 예시
-console.log(processData('hello')); // "HELLO"
-console.log(processData(5));       // 10
-// processData(true);              // 컴파일 오류
-```
-
-## 운영 팁
-
-### 성능 최적화
-
-#### never 타입과 최적화
-```typescript
-// never 타입을 사용한 최적화된 타입 가드
-function isString(value: unknown): value is string {
-    return typeof value === 'string';
-}
-
-function isNumber(value: unknown): value is number {
-    return typeof value === 'number';
-}
-
-function processOptimized(value: unknown): string {
-    if (isString(value)) {
-        return value.toUpperCase();
-    } else if (isNumber(value)) {
-        return value.toString();
-    } else {
-        // 모든 타입을 처리했으므로 이 코드는 실행되지 않아야 함
-        const exhaustiveCheck: never = value;
-        throw new Error(`처리되지 않은 타입: ${exhaustiveCheck}`);
-    }
+function f(x: string | number) {
+  if (typeof x === "string") return;
+  if (typeof x === "number") return;
+  x;  // never
 }
 ```
 
-### 에러 처리
+가능한 경우를 전부 걷어내면 남는 자리의 타입은 `never`다. 이게 다음 절의 배타성 검사가 작동하는 원리다.
 
-#### 안전한 never 타입 사용
+**3. 불가능한 인터섹션**
+
 ```typescript
-// 안전한 예외 처리 함수
-function safeThrowError(message: string): never {
-    console.error('오류 발생:', message);
-    throw new Error(message);
+type Impossible = string & number;  // never
+```
+
+문자열이면서 동시에 숫자인 값은 없다. 이건 실수로 만들어지는 경우가 많다 — 제네릭 제약을 잘못 걸었을 때 결과 타입이 `never`로 붕괴하고, 그 뒤로 모든 대입이 실패한다.
+
+## 배타성 검사 — never를 쓰는 주된 이유
+
+앞의 `area`로 돌아가자. `default` 분기에 `never` 변수를 하나 두면 된다.
+
+```typescript
+function assertNever(x: never): never {
+  throw new Error(`처리하지 않은 분기: ${JSON.stringify(x)}`);
 }
 
-// 타입 안전한 완전성 검사
-function exhaustiveCheck(value: never): never {
-    throw new Error(`처리되지 않은 값: ${value}`);
-}
-
-// 사용 예시
-function processStatus(status: 'active' | 'inactive'): string {
-    switch (status) {
-        case 'active':
-            return '활성';
-        case 'inactive':
-            return '비활성';
-        default:
-            return exhaustiveCheck(status); // 컴파일 타임에 완전성 검사
-    }
+function area(s: Shape): number {
+  switch (s.kind) {
+    case "circle": return Math.PI * s.r ** 2;
+    case "square": return s.side ** 2;
+    default: return assertNever(s);
+  }
 }
 ```
+
+`Shape`가 두 종류일 때는 `default`에 도달한 `s`가 `never`로 좁혀져 통과한다. 삼각형을 추가하는 순간 `s`는 `never`가 아니라 삼각형 타입이 되고, `assertNever`에 넘길 수 없어 에러가 난다.
+
+> `Argument of type '{ kind: "triangle"; base: number; height: number; }' is not assignable to parameter of type 'never'.`
+
+에러 메시지가 **빠뜨린 타입을 그대로 알려준다**. 이게 핵심이다. 유니온에 멤버를 추가하면 처리를 빠뜨린 모든 위치가 한 번에 드러나고, 메시지만 읽어도 무엇을 더 써야 하는지 안다.
+
+`assertNever`가 런타임에도 던지는 이유는 타입 단언이나 `any`로 뚫고 들어온 값에 대비하기 위해서다. 타입 검사는 컴파일 시점에서 끝나므로, 외부 JSON처럼 검증 없이 들어온 값은 여전히 `default`에 도달할 수 있다.
+
+## 조건부 타입에서의 never
+
+분배 조건부 타입에서 `never`는 "이 멤버를 결과에서 뺀다"는 뜻으로 동작한다. `T | never === T`이기 때문이다.
+
+```typescript
+type Exclude<T, U> = T extends U ? never : T;
+
+type R = Exclude<"a" | "b" | "c", "b">;
+// "a" extends "b" ? never : "a"  →  "a"
+// "b" extends "b" ? never : "b"  →  never
+// "c" extends "b" ? never : "c"  →  "c"
+// 합치면  "a" | never | "c"  →  "a" | "c"
+```
+
+`Exclude`가 저렇게 생긴 이유가 여기 있다. 걸러낼 항목을 `never`로 만들어두면 유니온으로 합쳐질 때 저절로 사라진다.
+
+주의할 점은 분배가 **네이키드 타입 파라미터**에서만 일어난다는 것이다.
+
+```typescript
+type NoDistribute<T, U> = [T] extends [U] ? never : T;
+type X = NoDistribute<"a" | "b", "b">;  // "a" | "b" — 통째로 비교되어 걸러지지 않음
+```
+
+## 자주 틀리는 지점
+
+**`never[]`가 튀어나오는 경우**
+
+```typescript
+const xs = [];        // never[] (noImplicitAny 켜져 있고 추론 문맥이 없을 때)
+xs.push(1);
+// Argument of type 'number' is not assignable to parameter of type 'never'.
+```
+
+빈 배열 리터럴은 원소 타입을 알 수 없어 `never[]`로 추론될 수 있다. 선언 시점에 타입을 주면 된다 — `const xs: number[] = []`.
+
+**`Promise<never>`**
+
+절대 이행되지 않는 프로미스다. 거부되거나 영원히 대기한다. `Promise<void>`(값 없이 이행됨)와 다르다.
+
+**`void`와 혼동**
+
+| | 의미 | 반환문 |
+|---|---|---|
+| `void` | 반환값이 없음 | 정상적으로 끝남 |
+| `never` | 반환 자체가 일어나지 않음 | throw 하거나 끝나지 않음 |
+
+```typescript
+function a(): void { return; }        // OK
+function b(): never { return; }
+// A function returning 'never' cannot have a reachable end point.
+```
+
+**`strictNullChecks`를 끄면**
+
+`strictNullChecks`가 꺼져 있으면 `null`과 `undefined`가 모든 타입에 대입 가능해지고, 좁히기 결과도 달라진다. 배타성 검사가 의도대로 동작하려면 이 옵션이 켜져 있어야 한다.
+
+## never를 쓰면 안 되는 곳
+
+**에러 타입 자리에 습관적으로 넣는 것.** `Result<T, never>` 같은 표기를 "에러가 없다"는 뜻으로 쓰는 경우가 있는데, 그 타입을 다루는 쪽에서 `catch` 분기를 만들 수 없게 된다. 에러가 실제로 발생하지 않는다는 보장이 있을 때만 쓴다.
+
+**타입 퍼즐을 위한 타입 퍼즐.** 조건부 타입을 몇 겹씩 쌓아 `never`로 분기시키는 코드는 작성자 말고는 읽지 못한다. 타입 수준에서 표현할 수 있다고 해서 표현해야 하는 건 아니다. 컴파일 에러 메시지가 의미를 잃기 시작하면 그 지점이 한계다.
 
 ## 참고
 
-### never 타입 특성
-
-| 특성 | 설명 |
-|------|------|
-| **절대 발생하지 않음** | 해당 값이 절대 발생할 수 없음을 나타냄 |
-| **타입 시스템 완성성** | 타입 시스템의 논리적 완성성 유지 |
-| **완전성 검사** | 모든 경우를 처리했는지 컴파일 타임에 확인 |
-| **예외 처리** | 함수가 예외를 던지거나 프로그램이 중단되는 경우 |
-
-### never vs void vs undefined 비교표
-
-| 타입 | 의미 | 사용 목적 |
-|------|------|-----------|
-| **never** | 절대 발생하지 않는 값 | 예외, 무한 반복, 완전성 검사 |
-| **void** | 반환값이 없음 | 일반적인 함수 반환 |
-| **undefined** | 정의되지 않은 값 | 선택적 속성, 초기화되지 않은 변수 |
-
-### 결론
-TypeScript의 never 타입은 타입 시스템의 논리적 완성성을 유지하는 중요한 도구입니다.
-예외 처리, 무한 반복, 완전성 검사 등 특정 상황에서 사용됩니다.
-완전성 검사를 통해 모든 경우를 처리했는지 컴파일 타임에 확인할 수 있습니다.
-never 타입을 적절히 사용하여 타입 안전성을 향상시키세요.
-조건부 타입과 함께 사용하여 더욱 정교한 타입 시스템을 구축하세요.
-never 타입의 특성을 이해하고 적절한 상황에서 활용하세요.
-
+- [TypeScript Handbook — Narrowing: Exhaustiveness checking](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#exhaustiveness-checking)
+- [TypeScript Handbook — Conditional Types: Distributive conditional types](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#distributive-conditional-types)
+- [TypeScript Handbook — More on Functions: never](https://www.typescriptlang.org/docs/handbook/2/functions.html#never)

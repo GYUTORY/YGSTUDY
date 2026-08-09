@@ -20,6 +20,12 @@ runs:
       shell: bash
       run: python3 tools/check_frontmatter.py --strict
 
+    # 머메이드 파스 에러는 원인 줄이 아니라 그 아래 줄을 가리켜 추적이 헛돈다.
+    # 원인(sequenceDiagram 안의 이름 있는 HTML 엔티티)을 직접 짚는다.
+    - name: Check mermaid entities
+      shell: bash
+      run: python3 tools/check_mermaid_entities.py
+
     - name: Check internal links
       shell: bash
       run: python3 tools/check_links.py --strict
