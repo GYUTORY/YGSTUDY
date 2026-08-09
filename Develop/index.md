@@ -61,7 +61,7 @@ updated: 2026-08-07
     </div>
   </div>
   <div class="yg-cats-v2">
-    <a class="yg-cat-v2" data-cat="ai" data-yg-cat="AI" href="AI/Claude_Code/Claude_Code/">
+    <a class="yg-cat-v2" data-cat="ai" data-yg-cat="AI" href="AI/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>AI</h3>
@@ -69,7 +69,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="AI">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="Backend" href="Backend/API/API_Design_Patterns/">
+    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="Backend" href="Backend/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Backend</h3>
@@ -77,7 +77,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Backend">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="devops" data-yg-cat="DevOps" href="DevOps/Kubernetes/Kubernetes/">
+    <a class="yg-cat-v2" data-cat="devops" data-yg-cat="DevOps" href="DevOps/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>DevOps</h3>
@@ -85,7 +85,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="DevOps">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="Cloud" href="Cloud/AWS/Containers/ECS/">
+    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="Cloud" href="Cloud/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Cloud</h3>
@@ -101,7 +101,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Cloud/AWS">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="database" data-yg-cat="DataBase" href="DataBase/NoSQL/NoSQL/">
+    <a class="yg-cat-v2" data-cat="database" data-yg-cat="DataBase" href="DataBase/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Database</h3>
@@ -109,7 +109,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="DataBase">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="framework" data-yg-cat="Framework" href="Framework/Java/Spring/Bean/">
+    <a class="yg-cat-v2" data-cat="framework" data-yg-cat="Framework" href="Framework/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Framework</h3>
@@ -117,7 +117,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Framework">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="language" data-yg-cat="Language" href="Language/Java/Java 기본 개념/String 불변 객체/">
+    <a class="yg-cat-v2" data-cat="language" data-yg-cat="Language" href="Language/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Language</h3>
@@ -125,7 +125,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Language">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="arch" data-yg-cat="Architecture" href="Architecture/Clean_Architecture/">
+    <a class="yg-cat-v2" data-cat="arch" data-yg-cat="Architecture" href="Architecture/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Architecture</h3>
@@ -133,7 +133,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Architecture">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="network" data-yg-cat="Network" href="Network/Protocol/Protocol/">
+    <a class="yg-cat-v2" data-cat="network" data-yg-cat="Network" href="Network/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Network</h3>
@@ -141,7 +141,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Network">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="security" data-yg-cat="Security" href="Security/HTTPS_and_TLS/">
+    <a class="yg-cat-v2" data-cat="security" data-yg-cat="Security" href="Security/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Security</h3>
@@ -157,7 +157,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="DevOps/Linux">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="OS" href="OS/Process%20&amp;%20Thread/Process%20&amp;%20Thread/">
+    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="OS" href="OS/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>OS</h3>
@@ -165,7 +165,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="OS">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="arch" data-yg-cat="Algorithm" href="Algorithm/Binary_Search/">
+    <a class="yg-cat-v2" data-cat="arch" data-yg-cat="Algorithm" href="Algorithm/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Algorithm</h3>
@@ -173,7 +173,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Algorithm">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="webserver" data-yg-cat="WebServer" href="WebServer/Nginx/Definition/">
+    <a class="yg-cat-v2" data-cat="webserver" data-yg-cat="WebServer" href="WebServer/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Web Server</h3>
