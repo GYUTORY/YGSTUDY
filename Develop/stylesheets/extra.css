@@ -2218,7 +2218,11 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
 }
 
 /* 카드 부제가 잘리는 건 개수 배지가 폭을 과하게 잡아서다. 배지는 내용만큼만. */
-.yg-cat-v2-count { flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding-left: 6px; }
+/* 배지가 고정 슬롯을 차지해 부제가 250px 카드에서 98px 밖에 못 썼다.
+   그래서 "ECS · Fargate · Network · IAM" 이 4줄로 접히고 행 높이가 제각각이 됐다. */
+.yg-cat-v2-count { flex: 0 0 auto; white-space: nowrap; font-size: 12px; padding-left: 4px; min-width: 0; }
+.yg-cat-v2 { align-items: flex-start; }
+.yg-cat-v2-body h3 { word-break: keep-all; overflow-wrap: break-word; }
 .yg-cat-v2-body { min-width: 0; flex: 1 1 auto; }
 /* overflow-wrap: anywhere 를 걸었더니 한글이 음절 단위로 쪼개졌다("컨/테이너").
    한국어는 어절 단위로 접어야 읽힌다. keep-all 로 단어를 지키고,

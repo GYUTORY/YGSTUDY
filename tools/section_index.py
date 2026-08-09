@@ -101,7 +101,7 @@ def _build_one(docs_dir, key, counts):
             "hide:\n  - toc\n",
             "---\n\n",
             "<!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->\n\n",
-            f"# {name}\n\n",
+            f"# {name} 전체 보기\n\n",
         ]
         if name in BLURB:
             lines.append(BLURB[name] + "\n\n")

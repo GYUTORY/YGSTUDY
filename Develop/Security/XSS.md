@@ -66,9 +66,9 @@ sequenceDiagram
 
     공격자->>피해자: 피싱 메일로 조작된 URL 전달<br/>https://target.com/search?q=〈script〉...〈/script〉
     피해자->>피해자 브라우저: 링크 클릭
-    피해자 브라우저->>서버: GET /search?q=&lt;script&gt;...&lt;/script&gt;
+    피해자 브라우저->>서버: GET /search?q=〈script〉...〈/script〉
     Note over 서버: 검색어를 응답 HTML에 그대로 삽입
-    서버-->>피해자 브라우저: 〈p〉검색어: 〈script〉...〈/script〉〈/p〉
+    서버-->>피해자 브라우저: 응답 HTML 에 〈p〉〈script〉...〈/script〉〈/p〉 삽입
     Note over 피해자 브라우저: 응답 HTML 파싱하며 스크립트 실행
     피해자 브라우저->>공격자 서버: document.cookie 전송
 ```
