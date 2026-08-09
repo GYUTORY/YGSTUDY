@@ -1,490 +1,156 @@
 ---
 title: TypeScript void 타입
-tags: [language, typescript, javascript]
-updated: 2025-08-10
+tags: [language, typescript]
+updated: 2026-08-09
 ---
 
-# TypeScript void 타입
-## 배경
+# void
 
-TypeScript에서 `void` 타입은 함수가 값을 반환하지 않는 경우의 반환 타입을 나타냅니다.
+## 반환값을 무시하겠다는 선언
 
-### void 타입의 필요성
-- **반환값 없음 명시**: 함수가 값을 반환하지 않음을 명확히 표현
-- **타입 안전성**: 반환값이 없는 함수의 타입 보장
-- **코드 가독성**: 함수의 의도를 명확하게 전달
-- **API 설계**: 반환값이 없는 함수의 인터페이스 정의
+`void`는 "이 함수가 무엇을 반환하든 나는 안 본다"는 뜻이다. "아무것도 반환하지 않는다"가 아니다. 이 차이가 `void`의 거의 모든 특이 동작을 만든다.
 
-### 기본 개념
-- **반환값 없음**: 함수가 명시적인 값을 반환하지 않음
-- **undefined 반환**: JavaScript에서는 암묵적으로 undefined 반환
-- **타입 추론**: 반환문이 없으면 자동으로 void로 추론
-- **함수 전용**: 주로 함수의 반환 타입으로 사용
+가장 흔하게 마주치는 곳은 콜백이다.
 
-## 핵심
-
-### 1. void 타입 기본 사용법
-
-#### void 함수 선언
 ```typescript
-// 명시적 void 반환 타입
-function printMessage(): void {
-    console.log('Hello, World!');
-}
+declare function forEach<T>(xs: T[], f: (x: T) => void): void;
 
-// 반환문이 없는 함수 (자동으로 void 추론)
-function logInfo(): void {
-    console.log('정보를 로그에 기록합니다.');
-    // return 문이 없음
-}
-
-// void 함수 호출
-printMessage(); // "Hello, World!"
-logInfo();      // "정보를 로그에 기록합니다."
-
-// void 함수의 반환값 사용 (undefined)
-const result = printMessage();
-console.log(result); // undefined
+const out: number[] = [];
+forEach([1, 2, 3], x => out.push(x));   // push는 number를 반환하는데 통과한다
 ```
 
-#### void와 return 문
+`f`의 반환 타입이 `void`인데 `out.push(x)`는 `number`를 반환한다. 그런데도 에러가 나지 않는다. `void`가 "반환값이 없어야 한다"는 제약이었다면 이 코드는 컴파일되지 않고, `x => { out.push(x); }`처럼 중괄호를 씌워야 했을 것이다.
+
+TypeScript가 이렇게 설계한 이유는 실용성이다. 콜백을 넘길 때마다 반환값을 버리려고 중괄호를 씌우는 건 번거롭고, 호출하는 쪽이 그 값을 쓰지 않는다면 아무 문제도 생기지 않는다.
+
+## undefined 와 무엇이 다른가
+
+둘은 자주 혼동되지만 다른 층위의 개념이다. `undefined`는 값이고 `void`는 "값을 보지 않겠다"는 계약이다.
+
 ```typescript
-// void 함수에서 return 사용
-function processData(data: string): void {
-    if (!data) {
-        return; // 값을 반환하지 않고 함수 종료
-    }
-    console.log('데이터 처리:', data);
-}
+function f(): void {}
+function g(): undefined { return undefined; }
 
-// void 함수에서 return undefined
-function validateInput(input: string): void {
-    if (input.length === 0) {
-        return undefined; // 명시적으로 undefined 반환
-    }
-    console.log('입력값 검증 완료:', input);
-}
-
-// 사용 예시
-processData('');        // 아무것도 출력되지 않음
-processData('test');    // "데이터 처리: test"
-
-validateInput('');      // 아무것도 출력되지 않음
-validateInput('hello'); // "입력값 검증 완료: hello"
+const a: void = undefined;      // OK
+const b: undefined = f();
+// Type 'void' is not assignable to type 'undefined'.
 ```
 
-### 2. void와 함수 타입
+`undefined`는 `void`에 넣을 수 있지만 반대는 안 된다. `void`를 반환하는 함수의 결과를 실제로 쓰려고 하면 막힌다는 뜻이다.
 
-#### void 함수 타입 정의
+`strictNullChecks`를 끄면 이 구분이 흐려진다. `null`과 `undefined`가 모든 타입에 대입 가능해지면서 위 에러가 사라진다.
+
+반환 타입을 명시하지 않으면 추론 결과도 다르다.
+
 ```typescript
-// void 함수 타입 정의
-type VoidFunction = () => void;
-type StringProcessor = (input: string) => void;
-
-// void 함수 타입 사용
-const logger: VoidFunction = () => {
-    console.log('로그 메시지');
-};
-
-const stringHandler: StringProcessor = (str: string) => {
-    console.log('문자열 처리:', str.toUpperCase());
-};
-
-// 사용 예시
-logger();           // "로그 메시지"
-stringHandler('hello'); // "문자열 처리: HELLO"
+function h() {}                 // 추론: void
+function i() { return; }        // 추론: void
+function j() { return undefined; }  // 추론: undefined
 ```
 
-#### void와 콜백 함수
+## 대입 가능성의 방향
+
+`void`는 타입 시스템에서 특이한 자리에 있다. 함수 타입끼리 비교할 때만 특별 취급을 받는다.
+
 ```typescript
-// void 콜백 함수
-function processArray<T>(
-    items: T[],
-    callback: (item: T, index: number) => void
-): void {
-    items.forEach((item, index) => {
-        callback(item, index);
-    });
+type Handler = () => void;
+
+const h1: Handler = () => 42;        // OK — 반환 타입이 달라도 통과
+const h2: Handler = () => "hello";   // OK
+
+const n: number = h1();
+// Type 'void' is not assignable to type 'number'.
+```
+
+`() => number`를 `() => void`에 대입하는 건 허용되지만, 그렇게 대입한 뒤에는 반환값을 꺼낼 수 없다. 값은 런타임에 실제로 존재하지만 타입 시스템이 접근을 막는다.
+
+이 비대칭이 실수를 만드는 지점이 있다.
+
+```typescript
+declare function each<T>(xs: T[], f: (x: T) => void): void;
+
+// 의도: 모든 값이 조건을 만족하는지 보려 했다
+each([1, 2, 3], x => x > 0);   // 반환값이 그냥 버려진다. 경고도 없다
+```
+
+`f`가 `boolean`을 돌려줘도 `each`는 무시한다. 검사 함수를 넘길 자리에 `void` 콜백을 쓰면 결과가 조용히 사라진다. 콜백의 반환값을 실제로 쓸 거라면 시그니처에 그 타입을 써야 한다.
+
+## async 함수와 Promise&lt;void&gt;
+
+```typescript
+async function save(): Promise<void> {
+  await db.write();
 }
+```
 
-// void 콜백 함수 사용
-const numbers = [1, 2, 3, 4, 5];
+`Promise<void>`는 "이행되지만 값이 없다"는 뜻이다. 앞서 나온 콜백 규칙이 여기서도 그대로 적용되어, 이벤트 핸들러에 `async` 함수를 넘길 때 문제가 된다.
 
-processArray(numbers, (num, index) => {
-    console.log(`인덱스 ${index}: ${num}`);
+```typescript
+declare function on(event: string, f: () => void): void;
+
+on("click", async () => {
+  await mightThrow();   // 여기서 던지면 아무도 못 잡는다
 });
-
-// 결과:
-// "인덱스 0: 1"
-// "인덱스 1: 2"
-// "인덱스 2: 3"
-// "인덱스 3: 4"
-// "인덱스 4: 5"
 ```
 
-### 3. void와 이벤트 핸들러
+`() => Promise<void>`가 `() => void`에 대입되면서 프로미스가 버려진다. 거부된 프로미스를 아무도 기다리지 않으므로 `unhandledRejection`으로 빠진다. `void` 콜백 자리에 `async`를 넣을 때는 함수 안에서 직접 `try/catch`로 닫아야 한다.
 
-#### 이벤트 핸들러에서 void 사용
+## void 연산자
+
+타입이 아니라 JavaScript 연산자인 `void`도 있다. 피연산자를 평가하고 `undefined`를 돌려준다.
+
 ```typescript
-// 이벤트 핸들러 타입 정의
-type ClickHandler = (event: MouseEvent) => void;
-type KeyHandler = (event: KeyboardEvent) => void;
-
-// void 이벤트 핸들러
-const handleClick: ClickHandler = (event) => {
-    console.log('클릭 이벤트:', event.target);
-    // 값을 반환하지 않음
-};
-
-const handleKeyPress: KeyHandler = (event) => {
-    if (event.key === 'Enter') {
-        console.log('Enter 키가 눌렸습니다.');
-    }
-    // 값을 반환하지 않음
-};
-
-// 사용 예시 (실제 DOM에서는 이렇게 사용)
-// button.addEventListener('click', handleClick);
-// input.addEventListener('keypress', handleKeyPress);
+void 0            // undefined
+void someCall()   // someCall()을 실행하고 결과는 버림
 ```
 
-## 예시
+린터가 "프로미스를 안 기다렸다"고 경고할 때 의도적으로 무시한다는 표시로 쓰인다.
 
-### 1. 실제 사용 사례
-
-#### 로깅 시스템
 ```typescript
-interface LogLevel {
-    INFO: 'info';
-    WARN: 'warn';
-    ERROR: 'error';
-}
-
-type LogLevelType = LogLevel[keyof LogLevel];
-
-class Logger {
-    private logs: Array<{ level: LogLevelType; message: string; timestamp: Date }> = [];
-
-    log(level: LogLevelType, message: string): void {
-        const logEntry = {
-            level,
-            message,
-            timestamp: new Date()
-        };
-        
-        this.logs.push(logEntry);
-        console.log(`[${level.toUpperCase()}] ${message}`);
-    }
-
-    info(message: string): void {
-        this.log('info', message);
-    }
-
-    warn(message: string): void {
-        this.log('warn', message);
-    }
-
-    error(message: string): void {
-        this.log('error', message);
-    }
-
-    getLogs(): Array<{ level: LogLevelType; message: string; timestamp: Date }> {
-        return [...this.logs];
-    }
-
-    clearLogs(): void {
-        this.logs = [];
-    }
-}
-
-// 사용 예시
-const logger = new Logger();
-
-logger.info('애플리케이션이 시작되었습니다.');
-logger.warn('메모리 사용량이 높습니다.');
-logger.error('데이터베이스 연결에 실패했습니다.');
-
-console.log('로그 개수:', logger.getLogs().length); // 3
-logger.clearLogs();
-console.log('로그 개수:', logger.getLogs().length); // 0
+void logAsync();   // 기다리지 않는 게 의도임을 명시
 ```
 
-#### 상태 관리 시스템
+타입 `void`와 이름만 같고 관계는 없다.
+
+## 자주 틀리는 지점
+
+**`void`를 매개변수 타입으로 쓰는 것**
+
 ```typescript
-interface State {
-    count: number;
-    isLoading: boolean;
-    error: string | null;
-}
-
-class StateManager {
-    private state: State = {
-        count: 0,
-        isLoading: false,
-        error: null
-    };
-
-    private listeners: Array<(state: State) => void> = [];
-
-    getState(): State {
-        return { ...this.state };
-    }
-
-    setState(updates: Partial<State>): void {
-        this.state = { ...this.state, ...updates };
-        this.notifyListeners();
-    }
-
-    subscribe(listener: (state: State) => void): void {
-        this.listeners.push(listener);
-    }
-
-    unsubscribe(listener: (state: State) => void): void {
-        const index = this.listeners.indexOf(listener);
-        if (index > -1) {
-            this.listeners.splice(index, 1);
-        }
-    }
-
-    private notifyListeners(): void {
-        this.listeners.forEach(listener => {
-            listener(this.getState());
-        });
-    }
-
-    increment(): void {
-        this.setState({ count: this.state.count + 1 });
-    }
-
-    decrement(): void {
-        this.setState({ count: this.state.count - 1 });
-    }
-
-    setLoading(isLoading: boolean): void {
-        this.setState({ isLoading });
-    }
-
-    setError(error: string | null): void {
-        this.setState({ error });
-    }
-}
-
-// 사용 예시
-const stateManager = new StateManager();
-
-// 상태 변경 리스너
-const stateListener = (state: State) => {
-    console.log('상태 변경:', state);
-};
-
-stateManager.subscribe(stateListener);
-
-stateManager.increment(); // 상태 변경: { count: 1, isLoading: false, error: null }
-stateManager.setLoading(true); // 상태 변경: { count: 1, isLoading: true, error: null }
-stateManager.setError('오류 발생'); // 상태 변경: { count: 1, isLoading: true, error: '오류 발생' }
+function f(x: void) {}
+f(undefined);   // 이것만 가능
 ```
 
-### 2. 고급 패턴
+받을 수 있는 값이 사실상 `undefined` 하나뿐이라 의미가 없다. 제네릭 기본값 자리(`Promise<void>`)가 아니라면 매개변수에 쓸 일이 없다.
 
-#### void와 제네릭
+**메서드 오버라이드에서 반환 타입을 좁히는 것**
+
 ```typescript
-// void를 반환하는 제네릭 함수
-class DataProcessor<T> {
-    private data: T[] = [];
-
-    add(item: T): void {
-        this.data.push(item);
-    }
-
-    remove(predicate: (item: T) => boolean): void {
-        this.data = this.data.filter(item => !predicate(item));
-    }
-
-    forEach(callback: (item: T, index: number) => void): void {
-        this.data.forEach(callback);
-    }
-
-    clear(): void {
-        this.data = [];
-    }
-
-    getItems(): T[] {
-        return [...this.data];
-    }
-}
-
-// 사용 예시
-const processor = new DataProcessor<string>();
-
-processor.add('item1');
-processor.add('item2');
-processor.add('item3');
-
-processor.forEach((item, index) => {
-    console.log(`항목 ${index}: ${item}`);
-});
-
-processor.remove(item => item === 'item2');
-console.log('제거 후:', processor.getItems()); // ['item1', 'item3']
-
-processor.clear();
-console.log('클리어 후:', processor.getItems()); // []
-```
-
-#### void와 비동기 함수
-```typescript
-// void를 반환하는 비동기 함수
-class AsyncTaskManager {
-    private tasks: Array<() => Promise<void>> = [];
-
-    addTask(task: () => Promise<void>): void {
-        this.tasks.push(task);
-    }
-
-    async executeAll(): Promise<void> {
-        for (const task of this.tasks) {
-            try {
-                await task();
-            } catch (error) {
-                console.error('작업 실행 오류:', error);
-            }
-        }
-    }
-
-    async executeSequentially(): Promise<void> {
-        const results: Promise<void>[] = [];
-        
-        for (const task of this.tasks) {
-            results.push(task());
-        }
-        
-        await Promise.all(results);
-    }
-
-    clearTasks(): void {
-        this.tasks = [];
-    }
-}
-
-// 사용 예시
-const taskManager = new AsyncTaskManager();
-
-// 비동기 작업 추가
-taskManager.addTask(async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('작업 1 완료');
-});
-
-taskManager.addTask(async () => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    console.log('작업 2 완료');
-});
-
-// 순차 실행
-await taskManager.executeAll();
-// "작업 1 완료"
-// "작업 2 완료"
-```
-
-## 운영 팁
-
-### 성능 최적화
-
-#### void 함수 최적화
-```typescript
-// void 함수의 성능 최적화
-class OptimizedProcessor {
-    private cache = new Map<string, any>();
-
-    // void 함수에서 캐시 활용
-    processData(key: string, data: any): void {
-        if (this.cache.has(key)) {
-            console.log('캐시된 데이터 사용:', key);
-            return; // 조기 반환으로 성능 향상
-        }
-        
-        // 데이터 처리
-        const processedData = this.processExpensive(data);
-        this.cache.set(key, processedData);
-        console.log('새로운 데이터 처리 완료:', key);
-    }
-
-    private processExpensive(data: any): any {
-        // 비용이 큰 처리 로직
-        return data;
-    }
-
-    clearCache(): void {
-        this.cache.clear();
-    }
+class Base { run(): void {} }
+class Child extends Base {
+  run(): number { return 1; }   // OK — void 규칙 때문에 통과한다
 }
 ```
 
-### 에러 처리
+통과하지만 `Base` 타입으로 다루는 코드에서는 반환값을 못 쓴다. 자식만 아는 반환값은 인터페이스를 분리하는 게 맞다.
 
-#### 안전한 void 함수 사용
-```typescript
-// 안전한 void 함수 처리
-class SafeProcessor {
-    private errorHandler: (error: Error) => void = console.error;
+**`never`와 혼동**
 
-    setErrorHandler(handler: (error: Error) => void): void {
-        this.errorHandler = handler;
-    }
+| | 의미 | 함수가 |
+|---|---|---|
+| `void` | 반환값을 보지 않음 | 정상적으로 끝남 |
+| `never` | 반환이 일어나지 않음 | throw 하거나 끝나지 않음 |
 
-    safeExecute<T>(operation: () => T): T | void {
-        try {
-            return operation();
-        } catch (error) {
-            this.errorHandler(error instanceof Error ? error : new Error(String(error)));
-        }
-    }
+`void`를 반환하는 함수는 제어 흐름을 이어가지만 `never`는 그 아래를 도달 불가로 만든다.
 
-    async safeExecuteAsync<T>(operation: () => Promise<T>): Promise<T | void> {
-        try {
-            return await operation();
-        } catch (error) {
-            this.errorHandler(error instanceof Error ? error : new Error(String(error)));
-        }
-    }
-}
+## void 를 쓰면 안 되는 곳
 
-// 사용 예시
-const processor = new SafeProcessor();
+**반환값을 쓸 가능성이 있는 콜백 시그니처.** 위의 `each` 예처럼 결과가 조용히 버려진다. 검사·변환 콜백이라면 `(x: T) => boolean`, `(x: T) => U`로 정확히 쓴다.
 
-processor.safeExecute(() => {
-    console.log('안전한 실행');
-});
-
-processor.safeExecute(() => {
-    throw new Error('테스트 오류');
-}); // 오류가 안전하게 처리됨
-```
+**"아직 안 정했다"는 뜻으로.** 반환 타입을 미루려고 `void`를 두면 나중에 값을 반환하도록 바꿀 때 호출부가 전부 그 값을 못 쓴다. 값이 생길 예정이라면 처음부터 그 타입을 쓰거나 `unknown`을 쓴다.
 
 ## 참고
 
-### void 타입 특성
-
-| 특성 | 설명 |
-|------|------|
-| **반환값** | 명시적인 값을 반환하지 않음 |
-| **실제 반환값** | JavaScript에서는 undefined |
-| **사용 목적** | 함수의 반환 타입으로 주로 사용 |
-| **타입 추론** | 반환문이 없으면 자동으로 void 추론 |
-
-### void vs undefined vs never 비교표
-
-| 타입 | 설명 | 사용 목적 |
-|------|------|-----------|
-| **void** | 반환값이 없음 | 함수 반환 타입 |
-| **undefined** | 정의되지 않은 값 | 변수, 선택적 속성 |
-| **never** | 절대 발생하지 않음 | 예외, 무한 반복 |
-
-### 결론
-TypeScript의 void 타입은 함수가 값을 반환하지 않음을 명확히 표현합니다.
-함수의 의도를 명확하게 전달하여 코드의 가독성을 향상시킵니다.
-이벤트 핸들러와 콜백 함수에서 주로 사용됩니다.
-void 함수에서도 return 문을 사용할 수 있지만 값을 반환하지 않습니다.
-비동기 함수에서도 void를 사용하여 Promise<void>를 반환할 수 있습니다.
-void 타입을 적절히 사용하여 함수의 인터페이스를 명확하게 정의하세요.
-
+- [TypeScript Handbook — More on Functions: void](https://www.typescriptlang.org/docs/handbook/2/functions.html#void)
+- [TypeScript Handbook — Assignability of functions](https://www.typescriptlang.org/docs/handbook/2/functions.html#assignability-of-functions)
+- [TypeScript FAQ — Why are functions returning non-void assignable to functions returning void?](https://github.com/microsoft/TypeScript/wiki/FAQ#why-are-functions-returning-non-void-assignable-to-function-returning-void)
