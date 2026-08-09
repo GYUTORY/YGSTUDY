@@ -532,7 +532,6 @@ API Gateway는 정책 엔진이다. 인증, 제한, 변환, 캐시, 모니터링
 
 - [API Gateway 공식 문서](https://docs.aws.amazon.com/apigateway/)
 - [ALB 공식 문서](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html)
-- [AWS API Gateway vs ALB 공식 비교](https://aws.amazon.com/ko/compare/api-gateway-vs-application-load-balancer/)
 - [ALB Pricing — LCU 4개 차원 설명](https://aws.amazon.com/elasticloadbalancing/pricing/)
 - [API Gateway Pricing](https://aws.amazon.com/api-gateway/pricing/)
 - [ALB OIDC 인증 동작과 헤더](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html)

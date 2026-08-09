@@ -328,4 +328,3 @@ catalog를 도입하면 lock 파일에 있는 `specifier` 필드 값이 `^18.2.0
 - [pnpm-lock.yaml 포맷](https://pnpm.io/9.x/git#lockfiles)
 - [pnpm Workspace 설정](https://pnpm.io/pnpm-workspace_yaml)
 - [pnpm CLI - install 옵션](https://pnpm.io/cli/install)
-- [Renovate Bot - pnpm catalog 지원](https://docs.renovatebot.com/modules/manager/pnpm-catalog/)

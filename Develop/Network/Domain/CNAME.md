@@ -18,7 +18,7 @@ CNAME은 한 도메인을 다른 도메인의 별칭으로 지정하는 DNS 레�
 
 질의 흐름을 보자. 클라이언트가 `www.example.com`의 A를 묻는다. 권한 서버가 `www.example.com CNAME example.com`을 돌려준다. 리졸버는 이걸 받고 다시 `example.com`의 A를 묻는다. 권한 서버가 `93.184.216.34`를 돌려준다. 최종적으로 클라이언트에는 CNAME 체인과 마지막 A가 함께 전달된다.
 
-```
+```bash
 $ dig www.example.com +noall +answer
 www.example.com.    300    IN    CNAME    example.com.
 example.com.        300    IN    A        93.184.216.34

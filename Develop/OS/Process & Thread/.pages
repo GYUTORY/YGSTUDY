@@ -1,6 +1,6 @@
 title: 프로세스 & 스레드
 nav:
-  - 개요: Process & Thread.md
+  - Process & Thread 개요: Process & Thread.md
   - CPU 스케줄링: CPU_Scheduling.md
   - CPU 스케줄링 심화: CPU_Scheduling_Deep_Dive.md
   - 컨텍스트 스위칭: Context_Switching.md

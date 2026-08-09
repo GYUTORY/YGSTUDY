@@ -69,7 +69,7 @@ updated: 2026-03-30
 NestJS에서는 `opossum` 라이브러리를 많이 사용한다.
 
 **패키지 설치:**
-```
+```bash
 npm install opossum
 npm install --save-dev @types/opossum
 ```

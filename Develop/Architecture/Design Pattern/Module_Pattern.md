@@ -2019,7 +2019,6 @@ import { apiClient } from './utils/apiClient.js';
 ### 📖 추가 학습 자료
 
 - [JavaScript.info - Modules](https://javascript.info/modules)
-- [Exploring JS - Modules](https://exploringjs.com/es6/ch_modules.html)
 - [You Don't Know JS - ES6 & Beyond](https://github.com/getify/You-Dont-Know-JS/tree/1st-ed/es6%20%26%20beyond)
 
 ### 실무 가이드

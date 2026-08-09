@@ -399,7 +399,6 @@ m5.large + Prefix Delegation:
 ## 참조
 
 - [VPC CNI GitHub](https://github.com/aws/amazon-vpc-cni-k8s)
-- [EKS max-pods 값 표](https://github.com/awslabs/amazon-eks-ami/blob/master/files/eni-max-pods.txt)
 - [Security Groups for Pods](https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html)
 - [Prefix Delegation 설정](https://docs.aws.amazon.com/eks/latest/userguide/cni-increase-ip-addresses.html)
 - [VPC CNI 환경 변수 레퍼런스](https://github.com/aws/amazon-vpc-cni-k8s/blob/master/README.md#cni-configuration-variables)

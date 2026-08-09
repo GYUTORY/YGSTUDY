@@ -1289,7 +1289,6 @@ app.use(limiter);
 
 - [CI/CD 모범 사례](https://docs.github.com/en/actions/learn-github-actions)
 - [Docker 보안 모범 사례](https://docs.docker.com/develop/security-best-practices/)
-- [Node.js 성능 최적화](https://nodejs.org/en/docs/guides/simple-profiling/)
 - [Express.js 보안 모범 사례](https://expressjs.com/en/advanced/best-practice-security.html)
 
 ### 9.3 도구 및 플러그인

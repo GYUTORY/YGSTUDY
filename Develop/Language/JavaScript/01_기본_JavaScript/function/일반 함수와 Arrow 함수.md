@@ -1578,4 +1578,3 @@ const sum = () => {
 - [ECMAScript 2015 Language Specification - Arrow Function Definitions](https://262.ecma-international.org/6.0/#sec-arrow-function-definitions)
 - [JavaScript.info - Arrow functions revisited](https://javascript.info/arrow-functions)
 - [You Don't Know JS: this & Object Prototypes](https://github.com/getify/You-Dont-Know-JS/blob/1st-ed/this%20%26%20object%20prototypes/README.md)
-- [Exploring ES6 - Arrow functions](https://exploringjs.com/es6/ch_arrow-functions.html)

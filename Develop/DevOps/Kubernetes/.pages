@@ -1,7 +1,7 @@
 title: Kubernetes
 nav:
   - index.md
-  - 개요: Kubernetes.md
+  - Kubernetes 핵심 개념 및 운영: Kubernetes.md
   - 클러스터 아키텍처: Kubernetes_Architecture.md
   - Reconciliation Loop: Reconciliation_Loop.md
   - 네트워킹 심화: Kubernetes_Networking.md

@@ -106,7 +106,7 @@ pipelines:
           - npm test
         artifacts:
           - dist/**
-```
+```bash
 
 npm ci는 package-lock.json을 기반으로 정확한 버전을 설치한다. npm install보다 빠르고 재현 가능하다. 프로덕션 빌드에서는 npm ci를 사용하는 것이 좋다.
 

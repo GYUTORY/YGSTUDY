@@ -3134,10 +3134,10 @@ async function transferPoints(fromUserId, toUserId, points) {
 | 번호 | 기업 | 주제 | 핵심 내용 |
 |------|------|------|----------|
 | 18 | [Twitter](https://blog.twitter.com/engineering/en_us/topics/infrastructure/2017/the-infrastructure-behind-twitter-scale) | Redis 활용 | 대규모 Redis 운영 사례 |
-| 19 | [Instagram](https://instagram-engineering.com/storing-hundreds-of-millions-of-simple-key-value-pairs-in-redis-1091ae80f74c) | Redis 사용 | 수억 건 데이터 저장 |
+| 19 | Instagram | Redis 사용 | 수억 건 데이터 저장 |
 | 20 | [Stack Overflow](https://nickcraver.com/blog/2019/08/06/stack-overflow-how-we-do-app-caching/) | 캐싱 전략 | 실제 캐싱 아키텍처 |
 | 21 | [Netflix](https://netflixtechblog.com/tagged/microservices) | MSA | 마이크로서비스 아키텍처 |
 | 22 | [Airbnb](https://medium.com/airbnb-engineering/building-services-at-airbnb-part-1-c4c1d8fa811b) | MSA 전환 | 모놀리스에서 MSA로 |
-| 23 | [Uber](https://eng.uber.com/microservice-architecture/) | 확장성 | 대규모 확장 아키텍처 |
+| 23 | Uber | 확장성 | 대규모 확장 아키텍처 |
 
 ---

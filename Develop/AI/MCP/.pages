@@ -1,4 +1,4 @@
 nav:
-  - 개요: MCP.md
+  - MCP (Model Context Protocol) 핵심 개념: MCP.md
   - 전송 방식: SSE_and_Stdio.md
   - 서버 직접 구현: MCP_Server_Implementation.md

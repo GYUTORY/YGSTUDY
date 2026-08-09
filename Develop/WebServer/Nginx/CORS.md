@@ -585,10 +585,9 @@ curl -v https://api.example.com/api/users \
 ### 추가 학습 자료
 - [OWASP CORS Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing)
 - [CORS in Action](https://www.manning.com/books/cors-in-action) - Manning Publications
-- [Web Security Academy - CORS](https://portswigger.net/web-security/cors)
 
 ### 도구 및 유틸리티
-- [CORS Tester](https://www.test-cors.org/) - 온라인 CORS 테스트 도구
+- CORS Tester - 온라인 CORS 테스트 도구
 - [CORS Anywhere](https://github.com/Rob--W/cors-anywhere) - 개발용 CORS 프록시
 - [Browser Developer Tools](https://developer.chrome.com/docs/devtools/) - CORS 디버깅
 

@@ -179,7 +179,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt \
     apt-get update && apt-get install -y curl
-```
+```bash
 
 apt 캐시를 쓸 때 주의할 점이 있다. 도커 베이스 이미지에는 `/etc/apt/apt.conf.d/docker-clean` 파일이 있어서 패키지 설치 후 apt 캐시를 자동으로 지운다. 캐시 마운트를 효율적으로 쓰려면 이 파일을 비워주거나 `Acquire::http::Pipeline-Depth "0";` 같은 옵션을 추가해야 한다.
 

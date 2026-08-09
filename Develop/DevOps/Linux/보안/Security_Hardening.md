@@ -663,7 +663,6 @@ sudo sysctl -p /etc/sysctl.d/99-security.conf
 
 ## 참고
 
-- [CIS Benchmarks for Linux](https://www.cisecurity.org/benchmark/distribution_independent_linux)
 - [SSH & 원격 접속](SSH.md) — SSH 상세 설명
 - [네트워크 관리](../네트워크/네트워크_관리.md) — 네트워크 기본
 - [시스템 모니터링](../시스템_관리/시스템_모니터링.md) — 모니터링 도구

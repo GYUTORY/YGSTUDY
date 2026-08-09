@@ -9,7 +9,7 @@ hide:
 
 # GCP
 
-문서 20개.
+문서 19개.
 
 ## Compute
 
@@ -40,6 +40,5 @@ hide:
 ## Security
 
 - [GCP IAM (Identity and Access Management)](Security/GCP_IAM.md)
-- [GCP IAM (리소스 계층 · 역할 · 서비스 계정 · Workload Identity)](Security/IAM.md)
 - [GCP IAM Deny Policy](Security/IAM_Deny_Policy.md)
 

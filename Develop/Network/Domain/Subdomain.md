@@ -49,7 +49,7 @@ api.staging.example.com.
 ### A 레코드와 CNAME 레코드
 서브도메인을 만들려면 DNS에 레코드를 추가해야 한다. 주로 쓰는 건 A, AAAA, CNAME이다.
 
-```
+```bash
 # A 레코드: 도메인을 IPv4 주소로 매핑
 api.example.com.        300     IN      A       192.0.2.10
 
@@ -66,7 +66,7 @@ A 레코드는 직접 IP를 박는 거고 CNAME은 다른 도메인 이름으로
 ### ALIAS와 ANAME
 ALIAS 레코드는 표준 DNS 스펙에는 없는 비표준 확장이다. Route53, DNSimple, Cloudflare 같은 매니지드 DNS 서비스에서 제공한다. 동작은 CNAME과 비슷하지만 apex 도메인에서도 쓸 수 있고, 응답할 때는 A 레코드처럼 IP를 직접 돌려준다.
 
-```
+```bash
 # Route53 콘솔에서 (Hosted Zone)
 example.com.    A       ALIAS d1234.cloudfront.net.    (apex에 alb/cloudfront 연결)
 www.example.com. CNAME  d1234.cloudfront.net.          (서브도메인은 그냥 CNAME)
@@ -77,7 +77,7 @@ ALIAS는 DNS 서버 내부에서 타깃의 IP를 미리 해석해서 응답하�
 ### 와일드카드 레코드
 서브도메인이 동적으로 늘어나는 멀티테넌트 서비스에서는 와일드카드 레코드를 쓴다.
 
-```
+```bash
 # 와일드카드 A 레코드
 *.example.com.          300     IN      A       192.0.2.10
 
@@ -94,7 +94,7 @@ ALIAS는 DNS 서버 내부에서 타깃의 IP를 미리 해석해서 응답하�
 ### TTL 설정
 서브도메인 추가나 IP 변경시 TTL은 중요하다. TTL이 86400(1일)인 레코드를 변경하면 전 세계 리졸버 캐시가 만료될 때까지 하루 가까이 기다려야 한다. 마이그레이션 며칠 전에 TTL을 60~300초로 낮춰두고, 마이그레이션이 끝나고 안정화되면 다시 올리는 패턴이 일반적이다.
 
-```
+```bash
 # 마이그레이션 1주일 전: TTL 낮추기
 api.example.com.        86400   IN      A       192.0.2.10
                           ↓

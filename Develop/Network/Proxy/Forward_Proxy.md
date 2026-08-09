@@ -18,7 +18,7 @@ Squid는 포워드 프록시의 사실상 표준이다. 최소 설정으로 띄�
 
 ACL은 "조건에 이름을 붙이는 것"이고, `http_access`가 그 이름들을 조합해 허용/거부를 결정한다. 자주 쓰는 ACL 타입은 이렇다.
 
-```
+```bash
 # /etc/squid/squid.conf
 http_port 3128
 
@@ -42,7 +42,7 @@ acl work_hours time MTWHF 09:00-18:00
 
 규칙을 거는 순서가 동작을 결정한다. Squid는 `http_access`를 위에서 아래로 읽다가 처음 매칭되는 줄에서 멈추고 거기서 끝낸다. 그래서 좁고 구체적인 규칙을 위에, 넓은 규칙을 아래에 둔다.
 
-```
+```bash
 # CONNECT는 443으로만 허용 (다른 포트 터널링 차단)
 http_access deny CONNECT !SSL_ports
 http_access deny !Safe_ports

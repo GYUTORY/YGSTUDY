@@ -108,7 +108,7 @@ NAT는 IP 주소만 바꿔서 내보낸다. 어디로 나가는지는 신경 안
 
 Squid 같은 포워드 프록시로 도메인 allow-list를 거는 설정은 대략 이렇다.
 
-```
+```bash
 # /etc/squid/squid.conf
 
 # 허용할 도메인 목록
@@ -125,7 +125,7 @@ http_access deny all
 access_log /var/log/squid/access.log squid
 ```
 
-```
+```bash
 # /etc/squid/allowed_domains.txt
 .payments.example.com
 .repo.internal.example.com

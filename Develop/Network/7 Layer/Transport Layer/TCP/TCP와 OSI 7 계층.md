@@ -16,7 +16,7 @@ OSI 모델 전반은 [OSI 7 계층 모델](../../OSI_7_Layer_Model.md) 문서에
 
 **L7 (Application): HTTP 요청 구성**
 
-```
+```http
 GET /index.html HTTP/1.1\r\n
 Host: example.com\r\n
 Connection: keep-alive\r\n

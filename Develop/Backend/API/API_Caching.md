@@ -33,7 +33,7 @@ HTTP 캐싱은 크게 두 가지로 나뉜다. 클라이언트(브라우저)가 
 
 ### API 유형별 설정
 
-```
+```bash
 # 거의 바뀌지 않는 설정 데이터 (국가 코드, 카테고리 목록 등)
 Cache-Control: public, max-age=86400, s-maxage=604800
 
@@ -58,7 +58,7 @@ Cache-Control: public, no-cache
 
 서버가 응답할 때 리소스의 "버전 식별자"를 `ETag` 헤더에 담아 보낸다. 클라이언트가 다음 요청에서 `If-None-Match` 헤더에 이전에 받은 ETag 값을 보내면, 서버가 현재 리소스의 ETag와 비교한다. 같으면 304 Not Modified를 본문 없이 반환한다.
 
-```
+```bash
 # 첫 번째 요청
 GET /api/v1/products/123 HTTP/1.1
 
@@ -71,7 +71,7 @@ Content-Type: application/json
 {"id": 123, "name": "상품A", "price": 50000}
 ```
 
-```
+```bash
 # 두 번째 요청 (ETag 포함)
 GET /api/v1/products/123 HTTP/1.1
 If-None-Match: "a1b2c3d4"

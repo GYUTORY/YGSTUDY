@@ -6,7 +6,7 @@ nav:
   - 정렬 알고리즘: Sorting.md
   - Binary Search: Binary_Search.md
   - Dynamic Programming:
-    - 개요: Dynamic_Programming.md
+    - Dynamic Programming (동적 계획법): Dynamic_Programming.md
     - 심화: Dynamic_Programming_Advanced.md
     - 유형: Dynamic_Programming_Patterns.md
   - Greedy:

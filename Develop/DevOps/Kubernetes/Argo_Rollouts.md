@@ -19,7 +19,7 @@ helm repo add argo https://argoproj.github.io/argo-helm
 helm install argo-rollouts argo/argo-rollouts \
   --namespace argo-rollouts \
   --create-namespace
-```
+```bash
 
 kubectl 플러그인도 같이 설치해야 `kubectl argo rollouts` 명령을 쓸 수 있다.
 

@@ -30,7 +30,7 @@ POST가 문제다. 결제 API를 POST로 호출하는데 타임아웃이 나면,
 
 Stripe, Toss Payments 등 결제 API에서 사실상 표준으로 쓰는 방식이다. 클라이언트가 UUID v4 같은 고유 키를 생성해서 `Idempotency-Key` 헤더에 담아 보낸다.
 
-```
+```http
 POST /api/v1/payments HTTP/1.1
 Content-Type: application/json
 Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000

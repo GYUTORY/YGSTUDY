@@ -443,4 +443,3 @@ GRANT SELECT ON mydb.* TO 'readonly_user'@'localhost';
 
 - [OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)
 - [CWE-89: SQL Injection](https://cwe.mitre.org/data/definitions/89.html)
-- [PortSwigger SQL Injection](https://portswigger.net/web-security/sql-injection)

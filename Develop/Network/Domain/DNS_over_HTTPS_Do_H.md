@@ -33,13 +33,13 @@ DoH는 RFC 8484로 정의됐다. DNS 질의를 HTTPS 요청 본문에 실어 보
 
 HTTP 메서드는 GET이나 POST 둘 다 가능하다. GET이면 base64url로 인코딩한 DNS 메시지를 쿼리 파라미터로 붙이고, POST면 본문에 바이너리로 넣는다.
 
-```
+```http
 GET /dns-query?dns=AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB HTTP/2
 Host: dns.google
 Accept: application/dns-message
 ```
 
-```
+```http
 POST /dns-query HTTP/2
 Host: cloudflare-dns.com
 Content-Type: application/dns-message

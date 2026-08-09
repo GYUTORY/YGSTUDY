@@ -2105,7 +2105,6 @@ TypeScript는 JavaScript의 상위 집합으로 정적 타입 시스템을 제�
 - [React + TypeScript](https://react-typescript-cheatsheet.netlify.app/)
 - [Vue.js + TypeScript](https://vuejs.org/guide/typescript/overview.html)
 - [Angular + TypeScript](https://angular.io/guide/typescript-configuration)
-- [Node.js + TypeScript](https://nodejs.org/en/docs/guides/typescript/)
 
 ### 고급 주제
 - [TypeScript 유틸리티 타입](https://www.typescriptlang.org/docs/handbook/utility-types.html)
@@ -2114,14 +2113,11 @@ TypeScript는 JavaScript의 상위 집합으로 정적 타입 시스템을 제�
 - [TypeScript 네임스페이스](https://www.typescriptlang.org/docs/handbook/namespaces.html)
 
 ### 성능 및 최적화
-- [TypeScript 성능 가이드](https://www.typescriptlang.org/docs/handbook/performance.html)
 - [프로젝트 참조](https://www.typescriptlang.org/docs/handbook/project-references.html)
 - [증분 컴파일](https://www.typescriptlang.org/docs/handbook/project-references.html#incremental-builds)
 
 ### 커뮤니티 및 지원
 - [TypeScript Discord](https://discord.gg/typescript)
-- [Stack Overflow TypeScript 태그](https://stackoverflow.com/questions/tagged/typescript)
-- [TypeScript Reddit](https://www.reddit.com/r/typescript/)
 
 ### 관련 기술
 - [JavaScript (ES6+)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)

@@ -361,7 +361,7 @@ console.log(user1.deactivate()); // "john_doe 사용자가 비활성화되었습
 
 ---
 
-**참고 자료:** [Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리](https://inpa.tistory.com/entry/JS-📚-자바스크립트-ES6-Class-문법-완벽-정리)
+**참고 자료:** Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리
 
 - 객체 생성 시 초기값 설정
 - 메서드를 통한 객체 상태 변경
@@ -370,7 +370,7 @@ console.log(user1.deactivate()); // "john_doe 사용자가 비활성화되었습
 
 ---
 
-**참고 자료:** [Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리](https://inpa.tistory.com/entry/JS-📚-자바스크립트-ES6-Class-문법-완벽-정리)
+**참고 자료:** Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리
 
 
 
@@ -660,7 +660,7 @@ console.log(user1.deactivate()); // "john_doe 사용자가 비활성화되었습
 
 ---
 
-**참고 자료:** [Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리](https://inpa.tistory.com/entry/JS-📚-자바스크립트-ES6-Class-문법-완벽-정리)
+**참고 자료:** Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리
 
 - 객체 생성 시 초기값 설정
 - 메서드를 통한 객체 상태 변경
@@ -669,7 +669,7 @@ console.log(user1.deactivate()); // "john_doe 사용자가 비활성화되었습
 
 ---
 
-**참고 자료:** [Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리](https://inpa.tistory.com/entry/JS-📚-자바스크립트-ES6-Class-문법-완벽-정리)
+**참고 자료:** Inpa Dev - 자바스크립트 ES6 Class 문법 완벽 정리
 
 
 

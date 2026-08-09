@@ -14,7 +14,7 @@ updated: 2026-07-27
 
 오픈 리다이렉트가 `Location` 헤더에 사용자 입력을 그대로 넣는 구조라면, CRLF(`\r\n`) 인젝션과 결합해 응답 헤더를 통째로 조작할 수 있다.
 
-```
+```http
 GET /redirect?url=https://example.com%0d%0aSet-Cookie:+session=hacked HTTP/1.1
 ```
 

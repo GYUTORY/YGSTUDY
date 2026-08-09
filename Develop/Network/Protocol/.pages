@@ -1,6 +1,6 @@
 title: Protocol
 nav:
-  - 개요: Protocol.md
+  - Protocol 개요: Protocol.md
   - WebSocket 심화: WebSocket.md
   - WebRTC 심화: Web_RTC.md
   - SFU 미디어 서버: SFU_Media_Server.md

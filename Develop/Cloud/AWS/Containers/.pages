@@ -3,7 +3,7 @@ nav:
   - App Mesh 다중 컨테이너 서비스 메시: App_Mesh.md
   - ECR: ECR.md
   - ECS:
-    - 개요: ECS.md
+    - AWS ECS (Elastic Container Service): ECS.md
     - ECS에서 Aurora 클러스터 접속하기: ECS_Aurora_Connection.md
     - Capacity Providers: ECS_Capacity_Providers.md
     - Cluster 생성과 설정: ECS_Cluster_Configuration.md
@@ -35,10 +35,10 @@ nav:
     - Volumes와 EFS: ECS_Volumes_EFS.md
     - 로그 관리: ECS_로그_관리.md
   - EKS:
-    - 개요: EKS.md
+    - AWS EKS (Elastic Kubernetes Service): EKS.md
     - 비용 절감: EKS_Cost_Optimization.md
     - VPC CNI와 ENI: EKS_VPC_CNI_ENI.md
   - Fargate:
-    - 개요: Fargate.md
+    - AWS Fargate: Fargate.md
     - Fargate로 MSA 서버 처음 띄우기: Fargate_MSA_Server_Deployment.md
     - Spot 운영 심화: Fargate_Spot.md

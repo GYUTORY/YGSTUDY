@@ -12,7 +12,7 @@ updated: 2026-07-04
 
 각 노드에 `node-local-dns` DaemonSet을 배포하면, 해당 에이전트가 링크로컬 주소 `169.254.20.10`을 노드 네트워크 인터페이스에 바인딩한다. kubelet은 이 주소를 각 Pod의 `resolv.conf`에 nameserver로 주입한다.
 
-```
+```bash
 # Pod 내부 /etc/resolv.conf 예시
 nameserver 169.254.20.10
 search default.svc.cluster.local svc.cluster.local cluster.local

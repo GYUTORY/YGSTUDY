@@ -1,6 +1,6 @@
 title: NoSQL
 nav:
-  - 개요: NoSQL.md
+  - NoSQL 데이터베이스 개요: NoSQL.md
   - MongoDB 심화: MongoDB.md
   - CouchDB: Couch_DB.md
   - Graph DB 관계 모델: Graph_DB.md

@@ -61,6 +61,8 @@ plugins:
   # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
   - redirects:
       redirect_maps:
+        # GCP IAM 중복 문서 통합 — 더 포괄적인 GCP_IAM.md 를 남김
+        'Cloud/GCP/Security/IAM.md': 'Cloud/GCP/Security/GCP_IAM.md'
         # Claude_Code_Fable_5.md 폐기 — 전제가 틀린 환각 문서, Claude.md로 임시 연결 (2026-08-07)
         'AI/Claude_Code/Claude_Code_Fable_5.md': 'AI/Claude/Claude.md'
         # Infra/DevOps 경계 정리 (2026-08-01): 겹치던 주제를 DevOps로 모음
@@ -322,7 +324,7 @@ plugins:
         'GCP/Network/GCP_VPC.md': 'Cloud/GCP/Network/GCP_VPC.md'
         'GCP/Security/GCP_IAM.md': 'Cloud/GCP/Security/GCP_IAM.md'
         'GCP/Security/IAM_Deny_Policy.md': 'Cloud/GCP/Security/IAM_Deny_Policy.md'
-        'GCP/Security/IAM.md': 'Cloud/GCP/Security/IAM.md'
+        'GCP/Security/IAM.md': 'Cloud/GCP/Security/GCP_IAM.md'
         'Git/Git_자주_사용하는_명령어.md': 'DevOps/Git/Git_자주_사용하는_명령어.md'
         'Git/Git_Hooks.md': 'DevOps/Git/Git_Hooks.md'
         'Git/Git_Internals.md': 'DevOps/Git/Git_Internals.md'

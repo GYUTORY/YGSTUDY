@@ -12,7 +12,6 @@ Java 코드에서 반복되는 getter/setter/생성자/toString 같은 보일러
 
 참고 문서:
 - [Project Lombok 공식 문서](https://projectlombok.org/features/all)
-- [Spring Boot with Lombok](https://spring.io/blog/2018/12/12/spring-boot-with-lombok)
 
 ## 1. 환경 설정
 

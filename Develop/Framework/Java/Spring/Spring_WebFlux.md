@@ -973,6 +973,5 @@ public WebClient webClient() {
 ## 참고
 
 - [Spring WebFlux 공식 문서](https://docs.spring.io/spring-framework/reference/web/webflux.html)
-- [Project Reactor](https://projectreactor.io/docs/core/release/reference/)
 - [Spring MVC REST API](Spring_MVC_REST_API.md) — MVC 방식과 비교
 - [Spring Data JPA](Spring_Data_JPA.md) — 블로킹 DB 접근 (비교)

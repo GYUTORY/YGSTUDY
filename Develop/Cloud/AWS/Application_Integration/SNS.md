@@ -797,7 +797,6 @@ exports.handler = async (event) => {
 ### AWS 공식 문서
 
 - [AWS SNS 개발자 가이드](https://docs.aws.amazon.com/ko_kr/sns/latest/dg/welcome.html)
-- [SNS API 참조](https://docs.aws.amazon.com/ko_kr/sns/latest/api/welcome.html)
 - [SNS 보안 문서](https://docs.aws.amazon.com/ko_kr/sns/latest/dg/sns-security-best-practices.html)
 
 ### AWS 서비스 연동 문서

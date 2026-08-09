@@ -12,7 +12,7 @@ updated: 2026-07-19
 
 WebSocket은 HTTP로 시작한다. 클라이언트가 `ws://` 또는 `wss://`로 접속할 때 실제로는 HTTP GET 요청을 먼저 보내고, 그 안에 업그레이드 요청을 담는다.
 
-```
+```http
 GET /chat HTTP/1.1
 Host: example.com
 Upgrade: websocket

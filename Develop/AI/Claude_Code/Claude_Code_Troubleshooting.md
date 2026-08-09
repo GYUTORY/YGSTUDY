@@ -35,7 +35,7 @@ or use replace_all to change every instance.
 
 Read 도구 출력에는 줄 번호 프리픽스가 붙는다. 이걸 복사해서 Edit에 넣으면 들여쓰기가 안 맞아서 실패한다.
 
-```
+```bash
 # Read 출력 (줄번호 + 탭 + 내용)
 42	    const result = await fetch(url);
 

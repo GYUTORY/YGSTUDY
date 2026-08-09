@@ -1,6 +1,6 @@
 title: Caddy
 nav:
-  - 개요: Caddy.md
+  - Caddy 개요: Caddy.md
   - 설정:
     - Caddyfile 문법 심화: Caddyfile_Syntax.md
     - Admin API와 JSON 설정: Admin_API.md

@@ -846,34 +846,26 @@ SA와 PSACCT는 Linux 시스템 모니터링의 핵심 도구로, 각각 시스�
 
 ### 공식 문서
 - [sysstat 공식 문서](https://github.com/sysstat/sysstat)
-- [psacct 공식 문서](https://www.gnu.org/software/acct/)
 - [Linux man pages - sar](https://man7.org/linux/man-pages/man1/sar.1.html)
 - [Linux man pages - iostat](https://man7.org/linux/man-pages/man1/iostat.1.html)
 - [Linux man pages - mpstat](https://man7.org/linux/man-pages/man1/mpstat.1.html)
 - [Linux man pages - accton](https://man7.org/linux/man-pages/man8/accton.8.html)
 - [Linux man pages - lastcomm](https://man7.org/linux/man-pages/man1/lastcomm.1.html)
-- [Linux man pages - sa](https://man7.org/linux/man-pages/man1/sa.1.html)
 
 ### 관련 리소스
 - [Red Hat Enterprise Linux Performance Tuning Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/monitoring_and_managing_system_status_and_performance/)
-- [Ubuntu Server Guide - System Monitoring](https://ubuntu.com/server/docs/monitoring)
 - [Linux Performance and Tuning Guidelines](https://www.ibm.com/docs/en/linux-on-systems?topic=linux-performance-tuning-guidelines)
 
 ### 추가 학습 자료
-- [Linux System Administration](https://www.linux.org/forums/linux-system-administration/)
 - [Linux Performance Monitoring Tools](https://www.tecmint.com/linux-performance-monitoring-tools/)
 - [Process Accounting in Linux](https://www.linuxjournal.com/article/6144)
 
 ### 도구 및 스크립트
 - [sysstat GitHub Repository](https://github.com/sysstat/sysstat)
-- [psacct Source Code](https://www.gnu.org/software/acct/)
 - [Linux Performance Tools](https://github.com/brendangregg/perf-tools)
 
 ### 커뮤니티 및 지원
-- [Linux Questions](https://www.linuxquestions.org/)
-- [Stack Overflow - Linux](https://stackoverflow.com/questions/tagged/linux)
 - [Red Hat Customer Portal](https://access.redhat.com/)
-- [Ubuntu Forums](https://ubuntuforums.org/)
 
 ---
 *문서 작성일: 2025-09-20*  

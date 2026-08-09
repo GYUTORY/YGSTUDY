@@ -1,5 +1,5 @@
 nav:
-  - 개요: Collection_Framework.md
+  - Java 컬렉션 프레임워크: Collection_Framework.md
   - EnumSet: EnumSet.md
   - EnumSet 심화: Enum_Set_Deep_Dive.md
   - Queue: Queue.md

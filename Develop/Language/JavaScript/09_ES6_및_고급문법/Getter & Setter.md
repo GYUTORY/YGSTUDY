@@ -270,7 +270,7 @@ console.log(userProfile.age);      // 25
 
 ---
 
-**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+**참고 자료**: Inpa Dev - Getter & Setter
 
 ```javascript
 const userProfile = {
@@ -333,7 +333,7 @@ console.log(userProfile.age);      // 25
 
 ---
 
-**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+**참고 자료**: Inpa Dev - Getter & Setter
 
 
 
@@ -412,7 +412,7 @@ console.log(userProfile.age);      // 25
 
 ---
 
-**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+**참고 자료**: Inpa Dev - Getter & Setter
 
 ```javascript
 const userProfile = {
@@ -475,7 +475,7 @@ console.log(userProfile.age);      // 25
 
 ---
 
-**참고 자료**: [Inpa Dev - Getter & Setter](https://inpa.tistory.com/entry/JS-📚-getter-setter-란)
+**참고 자료**: Inpa Dev - Getter & Setter
 
 
 

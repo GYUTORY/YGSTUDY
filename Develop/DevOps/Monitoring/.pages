@@ -1,11 +1,11 @@
 title: Monitoring
 nav:
   - Prometheus:
-    - 개요: Prometheus.md
+    - Prometheus: Prometheus.md
     - 메트릭 수집: Prometheus_메트릭_수집.md
     - + Grafana 모니터링 스택: Prometheus_Grafana.md
   - Grafana:
-    - 개요: Grafana.md
+    - Grafana: Grafana.md
     - + Prometheus 대시보드: Grafana_Prometheus_대시보드.md
     - Tempo: Grafana_Tempo.md
   - OpenTelemetry: OpenTelemetry.md

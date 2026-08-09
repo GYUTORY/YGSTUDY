@@ -241,7 +241,7 @@ packages/
 node_modules/
   .bin/
     my-tool -> ???  <- 이 심링크가 없음
-```
+```bash
 
 npm workspace를 쓰면 루트 `node_modules/.bin/`에 workspace 패키지의 bin도 링크된다. 하지만 `npm ci` 후 이 링크가 없다면 루트 `package.json`의 workspace 설정이 빠진 것이다.
 

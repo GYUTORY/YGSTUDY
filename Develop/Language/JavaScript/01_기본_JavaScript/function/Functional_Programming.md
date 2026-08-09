@@ -304,5 +304,4 @@ JavaScript는 `map`/`filter`/`reduce`, 스프레드, 클로저, 화살표 함수
 ## 참고 자료
 
 - [함수형 프로그래밍 심화](Functional_Programming_Advanced.md) — 커링 구현, 트랜스듀서, 모나드, Lens, 트램폴린, 성능 함정
-- [MDN - 함수형 프로그래밍](https://developer.mozilla.org/ko/docs/Glossary/Functional_programming)
 - [Mostly Adequate Guide to Functional Programming](https://github.com/MostlyAdequate/mostly-adequate-guide)

@@ -1864,4 +1864,3 @@ rabbitmqctl list_connections
 - [MQTT GitHub](https://github.com/mqtt/mqtt.github.io)
 - [RabbitMQ GitHub](https://github.com/rabbitmq)
 - [Eclipse Mosquitto](https://mosquitto.org/)
-- [AMQP 1.0 표준](https://www.amqp.org/specification/1.0/amqp-org-download)

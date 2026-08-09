@@ -18,5 +18,5 @@ nav:
   - MSA
   - OMO
   - DDD:
-    - 개요: DDD.md
+    - DDD (Domain-Driven Design): DDD.md
     - DDD

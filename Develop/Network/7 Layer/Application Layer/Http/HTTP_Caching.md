@@ -116,7 +116,7 @@ ETag는 리소스의 특정 버전을 식별하는 값이다. 해시값이나 �
 5. 서버가 현재 ETag와 비교한다
 6. 같으면 `304 Not Modified` (본문 없음), 다르면 `200 OK`와 새 데이터
 
-```
+```bash
 # 첫 번째 요청
 GET /api/users/1 HTTP/1.1
 
@@ -148,7 +148,7 @@ ETag에는 Strong ETag와 Weak ETag가 있다.
 
 시간 기반 검증이다. ETag보다 정밀도가 낮다(초 단위).
 
-```
+```bash
 # 서버 응답
 HTTP/1.1 200 OK
 Last-Modified: Sat, 29 Mar 2026 10:00:00 GMT

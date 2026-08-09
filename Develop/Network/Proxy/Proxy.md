@@ -50,7 +50,7 @@ example.com은 누가 진짜로 요청했는지 모른다. 출발지 IP가 프�
 
 Squid는 포워드 프록시의 대표격이다. 패키지로 깔면 `/etc/squid/squid.conf`에 기본 설정이 한가득 들어있는데, 처음 띄울 때 동작하는 최소 설정만 추리면 이 정도다.
 
-```
+```bash
 # /etc/squid/squid.conf
 http_port 3128
 

@@ -97,7 +97,7 @@ EC2 인스턴스 레벨에서 작동하는 가상 방화벽이다. 인스턴스 
 
 Security Group끼리 참조하는 방식이 실무에서 가장 자주 쓰인다. IP 대역 대신 "이 Security Group에서 온 트래픽"으로 허용하면, 서버 IP가 바뀌거나 오토스케일링으로 인스턴스가 추가돼도 룰을 수정할 필요가 없다.
 
-```
+```bash
 # ALB Security Group: 인터넷 443 허용
 # App Security Group: ALB Security Group에서 8080 허용
 # DB Security Group: App Security Group에서 5432 허용

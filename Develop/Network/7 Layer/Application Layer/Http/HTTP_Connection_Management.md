@@ -16,7 +16,7 @@ HTTP 통신은 결국 TCP 커넥션 위에서 동작한다. 요청마다 TCP 3-w
 
 HTTP/1.0에서는 요청 하나를 보내고 응답을 받으면 TCP 커넥션을 바로 끊었다. HTTP/1.1부터는 기본적으로 Keep-Alive가 켜져 있어서, 하나의 TCP 커넥션으로 여러 요청/응답을 주고받는다.
 
-```
+```bash
 # HTTP/1.1 요청 — Connection 헤더를 안 보내도 Keep-Alive가 기본
 GET /api/users HTTP/1.1
 Host: example.com

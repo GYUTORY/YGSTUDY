@@ -21,7 +21,7 @@ S3 콘솔에서 버킷을 만든 다음 Properties 탭 하단의 "Static website
 
 이 두 값이 입력되면 페이지 하단에 웹사이트 엔드포인트 URL이 표시된다. 형식은 리전마다 살짝 다르다.
 
-```
+```bash
 # us-east-1
 http://bucket-name.s3-website-us-east-1.amazonaws.com
 

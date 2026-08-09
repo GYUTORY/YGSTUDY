@@ -16,14 +16,14 @@ CDN이나 리버스 프록시를 앞에 두면 같은 응답을 캐시에 저장
 
 먼저 캐시 키에 뭐가 들어가는지 봐야 한다. 일반적인 CDN 기본 캐시 키는 이렇다.
 
-```
+```http
 GET /products HTTP/1.1
 Host: shop.example.com
 ```
 
 여기서 키는 `GET + shop.example.com + /products` 정도다. 쿠키나 대부분의 요청 헤더는 키에 안 들어간다. 그런데 애플리케이션이 이런 헤더를 읽어서 응답에 반영하면 문제가 된다.
 
-```
+```http
 GET /products HTTP/1.1
 Host: shop.example.com
 X-Forwarded-Host: evil.com

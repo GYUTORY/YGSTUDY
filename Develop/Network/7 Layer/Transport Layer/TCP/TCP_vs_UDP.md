@@ -84,7 +84,7 @@ DNS over TCP가 필요한 상황:
 - 응답이 512바이트 초과: UDP 응답에 TC(Truncation) 플래그가 세팅되면 클라이언트가 TCP로 재시도
 - DNS over TLS(DoT): TCP 853 포트
 
-```
+```bash
 # tcpdump로 DNS TCP fallback 확인
 tcpdump -i eth0 port 53
 
@@ -121,7 +121,7 @@ Head-of-line blocking: TCP는 하나의 스트림이다. 패킷 하나가 유실
 
 네트워크 전환: 모바일 환경에서 WiFi에서 LTE로 바뀌면 IP가 바뀐다. TCP는 연결이 끊긴다. QUIC는 Connection ID로 연결을 식별하기 때문에 IP가 바뀌어도 연결이 유지된다.
 
-```
+```bash
 # curl로 HTTP/3 테스트
 curl -v --http3 https://example.com
 

@@ -23,7 +23,7 @@ nav:
     - S3 정적 웹사이트 호스팅: S3_Static_Website_Hosting.md
     - ALB → ECS → S3 요청 흐름: ALB_ECS_S3_Request_Flow.md
   - VPC:
-    - 개요: VPC.md
+    - AWS VPC: VPC.md
     - Endpoints: VPC_Endpoints.md
     - Flow Logs: VPC_Flow_Logs.md
     - IPAM: VPC_IPAM.md

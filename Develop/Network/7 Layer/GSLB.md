@@ -521,6 +521,6 @@ GSLB는 도입과 운영 비용이 작지 않다. 다음 조건이 아니면 단
 1. [RFC 7871 — Client Subnet in DNS Queries](https://datatracker.ietf.org/doc/html/rfc7871)
 2. [RFC 8305 — Happy Eyeballs Version 2](https://datatracker.ietf.org/doc/html/rfc8305)
 3. [Route 53 Health Check Routing Policy](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html)
-4. [Cloudflare: How DNS-based load balancing differs from anycast](https://blog.cloudflare.com/anycast-and-load-balancing/)
+4. Cloudflare: How DNS-based load balancing differs from anycast
 5. [NS1 — Filter Chain and Pulsar](https://www.ns1.com/products/dns/pulsar/)
 6. [F5 BIG-IP DNS Overview](https://www.f5.com/products/big-ip-services/big-ip-dns)

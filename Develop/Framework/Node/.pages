@@ -2,7 +2,7 @@ title: Node.js
 nav:
   - 프레임워크 문서 인덱스: README.md
   - 프레임워크:
-    - 개요: Nodejs_Framework_Overview.md
+    - Node.js 프레임워크 개요: Nodejs_Framework_Overview.md
     - 비교 (Express·Fastify·NestJS·Hapi): Nest_Hapi_Express_fastify.md
     - 애플리케이션 라우팅: Application_Routing.md
     - View_Engine

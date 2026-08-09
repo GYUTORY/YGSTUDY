@@ -321,4 +321,3 @@ JWT의 "즉시 무효화 어려움" 문제를 우회하려고 JWT를 HttpOnly �
 - [슬기로운 개발생활:티스토리](https://dev-coco.tistory.com/61#recentComments)
 - [code-lab1.tistory.com](https://code-lab1.tistory.com/298)
 - [MDN Web Docs - HTTP Cookies](https://developer.mozilla.org/ko/docs/Web/HTTP/Cookies)
-- [OWASP Session Management Cheat Sheet](https://owasp.org/www-community/attacks/Session_Management_Cheat_Sheet)

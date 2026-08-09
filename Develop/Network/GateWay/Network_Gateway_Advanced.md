@@ -32,7 +32,7 @@ Destination       Next-Hop          Interface   Metric
 
 `10.0.0.9`로 보내야 한다고 결정했지만, 이건 IP다. 이더넷 프레임을 만들려면 MAC 주소가 필요하다. 라우터는 ARP 캐시를 먼저 본다.
 
-```
+```bash
 $ ip neigh show
 10.0.0.1   dev eth0   lladdr  00:11:22:33:44:55  REACHABLE
 10.0.0.9   dev eth2   lladdr  aa:bb:cc:dd:ee:ff  STALE
