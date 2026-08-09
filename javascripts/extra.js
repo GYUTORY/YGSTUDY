@@ -146,8 +146,26 @@
         var locs = xml.querySelectorAll("loc");
         if (!locs.length) return;
 
-        // 사이트 베이스 경로 (예: /YGSTUDY/) 추정
-        var basePath = window.location.pathname.replace(/[^\/]*$/, "");
+        // 사이트 베이스 경로를 sitemap 항목들의 공통 접두사에서 구한다.
+        // 현재 URL 로 추정하면 배포 위치가 다를 때(로컬 루트 서빙 등) 세그먼트가
+        // 한 칸씩 밀려서 Cloud/AWS 같은 복합 키가 영영 안 맞는다.
+        var allPaths = [];
+        locs.forEach(function (n) {
+          var t = (n.textContent || "").trim();
+          try { allPaths.push(new URL(t).pathname); } catch (e) { /* skip */ }
+        });
+        var basePath = "/";
+        if (allPaths.length) {
+          var first = allPaths[0].split("/");
+          var common = [];
+          for (var d = 0; d < first.length; d++) {
+            var segd = first[d];
+            if (allPaths.every(function (p) { return p.split("/")[d] === segd; })) common.push(segd);
+            else break;
+          }
+          basePath = common.join("/");
+          if (!basePath.endsWith("/")) basePath += "/";
+        }
 
         var counts = {};
         var total = 0;
