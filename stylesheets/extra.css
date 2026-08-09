@@ -2207,3 +2207,17 @@ body { overflow-x: clip; }
    라벨이 들어갈 자리가 거의 남지 않는다. */
 .md-nav__list .md-nav__list .md-nav__list { padding-left: 0.35rem; }
 .md-nav__list .md-nav__list .md-nav__list .md-nav__list { padding-left: 0.25rem; }
+
+/* 홈에는 TOC 가 없는데(hide: toc) 오른쪽 사이드바 자리는 계속 예약돼 있었다.
+   1440px 에서 332px 백지다. 카드 부제가 잘리는 와중에 옆이 비어 있으면 안 된다. */
+.md-typeset .yg-home { max-width: none; }
+body:has(.yg-home) .md-content { margin-right: 0 !important; }
+@media screen and (min-width: 76.25em) {
+  body:has(.yg-home) .md-sidebar--secondary { display: none; }
+  body:has(.yg-home) .md-content__inner { margin-right: 0; }
+}
+
+/* 카드 부제가 잘리는 건 개수 배지가 폭을 과하게 잡아서다. 배지는 내용만큼만. */
+.yg-cat-v2-count { flex: 0 0 auto; white-space: nowrap; }
+.yg-cat-v2-body { min-width: 0; }
+.yg-cat-v2-body p { overflow-wrap: anywhere; white-space: normal; }
