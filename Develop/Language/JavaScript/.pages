@@ -1,5 +1,6 @@
 title: JavaScript
 nav:
+  - index.md
   - 01_기본_JavaScript
   - 02_복사_및_스프레드
   - 03_성능_최적화

@@ -93,10 +93,10 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Cloud">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="AWS" href="Cloud/AWS/Compute/Auto_Scaling/">
+    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="Cloud/AWS" href="Cloud/AWS/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
-        <h3>AWS</h3>
+        <h3>AWS <small>· Cloud 하위</small></h3>
         <p>ECS · Fargate · Network · IAM</p>
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Cloud/AWS">—</div>
@@ -149,10 +149,10 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Security">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="linux" data-yg-cat="Linux" href="DevOps/Linux/기본_명령어/기본_명령어/">
+    <a class="yg-cat-v2" data-cat="linux" data-yg-cat="DevOps/Linux" href="DevOps/Linux/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
-        <h3>Linux</h3>
+        <h3>Linux <small>· DevOps 하위</small></h3>
         <p>Shell · 권한 · 프로세스 · 시스템</p>
       </div>
       <div class="yg-cat-v2-count" data-yg-count="DevOps/Linux">—</div>

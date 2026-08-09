@@ -2218,6 +2218,13 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
 }
 
 /* 카드 부제가 잘리는 건 개수 배지가 폭을 과하게 잡아서다. 배지는 내용만큼만. */
-.yg-cat-v2-count { flex: 0 0 auto; white-space: nowrap; }
-.yg-cat-v2-body { min-width: 0; }
-.yg-cat-v2-body p { overflow-wrap: anywhere; white-space: normal; }
+.yg-cat-v2-count { flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding-left: 6px; }
+.yg-cat-v2-body { min-width: 0; flex: 1 1 auto; }
+/* overflow-wrap: anywhere 를 걸었더니 한글이 음절 단위로 쪼개졌다("컨/테이너").
+   한국어는 어절 단위로 접어야 읽힌다. keep-all 로 단어를 지키고,
+   정 넘칠 때만 break-word 로 끊는다. */
+.yg-cat-v2-body p {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}

@@ -30,6 +30,8 @@ BLURB = {
     "Frontend": "브라우저 쪽 주제.",
 }
 
+SECOND_LEVEL = ["Cloud/AWS", "Cloud/GCP", "DevOps/Linux", "DevOps/Kubernetes", "Language/Java", "Language/JavaScript", "Language/TypeScript"]
+
 SKIP_DIRS = {"assets", "javascripts", "stylesheets", "etc", ".omc", "_hub", "로드맵"}
 FM_TITLE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
 
@@ -56,20 +58,20 @@ def _md_link(rel):
     return "<%s>" % rel if " " in rel else rel
 
 
-def on_pre_build(config, **kwargs):
-    docs_dir = config["docs_dir"]
-
-    for name in sorted(os.listdir(docs_dir)):
-        section = os.path.join(docs_dir, name)
-        if not os.path.isdir(section) or name.startswith(".") or name in SKIP_DIRS:
-            continue
+def _build_one(docs_dir, key, counts):
+    """key 는 docs_dir 기준 상대 경로. 최상위든 2단계든 같은 처리를 한다."""
+    name = key.split("/")[-1]
+    section = os.path.join(docs_dir, *key.split("/"))
+    if not os.path.isdir(section):
+        return
+    if True:  # 들여쓰기 유지용
 
         index_path = os.path.join(section, "index.md")
         # 사람이 직접 쓴 index.md 가 있으면 건드리지 않는다.
         if os.path.exists(index_path):
             with open(index_path, "r", encoding="utf-8") as f:
                 if "AUTO-SECTION-INDEX" not in f.read(400):
-                    continue
+                    return
 
         # 하위 그룹별로 문서를 모은다. 섹션 바로 아래 문서는 "개요"로 묶는다.
         groups = {}
@@ -88,12 +90,13 @@ def on_pre_build(config, **kwargs):
                 )
                 total += 1
 
+        counts[key] = total
         if not total:
-            continue
+            return
 
         lines = [
             "---\n",
-            f"title: {name}\n",
+            f"title: {name} 전체 보기\n",
             "tags: []\n",
             "hide:\n  - toc\n",
             "---\n\n",
@@ -128,3 +131,23 @@ def on_pre_build(config, **kwargs):
                 txt = txt.replace("nav:\n", "nav:\n  - index.md\n", 1)
                 with open(pages_path, "w", encoding="utf-8") as f:
                     f.write(txt)
+
+
+def on_pre_build(config, **kwargs):
+    docs_dir = config["docs_dir"]
+    counts = {}
+
+    for name in sorted(os.listdir(docs_dir)):
+        path = os.path.join(docs_dir, name)
+        if not os.path.isdir(path) or name.startswith(".") or name in SKIP_DIRS:
+            continue
+        _build_one(docs_dir, name, counts)
+
+    for key in SECOND_LEVEL:
+        _build_one(docs_dir, key, counts)
+
+    # 홈 카드가 읽을 단일 소스. 카드와 섹션 페이지가 같은 값을 쓰게 해서
+    # "카드는 74개인데 들어가면 64개" 같은 불일치를 원천 차단한다.
+    import json
+    with open(os.path.join(docs_dir, "section_counts.json"), "w", encoding="utf-8") as f:
+        json.dump(counts, f, ensure_ascii=False)

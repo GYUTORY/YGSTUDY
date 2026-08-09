@@ -133,73 +133,33 @@
       mo.observe(sidebar, { childList: true, subtree: true });
     }
 
-    // ----- 홈 카테고리 카운트 (sitemap.xml 기반) -----
+    // ----- 홈 카테고리 카운트 -----
+    // 빌드 때 tools/section_index.py 가 만든 section_counts.json 을 읽는다.
+    // 예전에는 sitemap 경로를 세그먼트로 세었는데, 그러면 Backend/Security/,
+    // Cloud/AWS/Security/ 같은 다른 섹션 하위 폴더까지 Security 로 집계돼
+    // 카드 숫자와 섹션 페이지 숫자가 어긋났다(13개 섹션 전부, Security 는 10건 차이).
+    // 두 숫자가 영원히 같으려면 같은 소스에서 나와야 한다.
     var countTargets = document.querySelectorAll("[data-yg-count]");
     var totalTarget = document.querySelector("[data-yg-total]");
     if (!countTargets.length && !totalTarget) return;
 
-    fetch("sitemap.xml", { credentials: "same-origin" })
-      .then(function (r) { return r.ok ? r.text() : null; })
-      .then(function (text) {
-        if (!text) return;
-        var xml = new DOMParser().parseFromString(text, "text/xml");
-        var locs = xml.querySelectorAll("loc");
-        if (!locs.length) return;
+    var base = document.querySelector("link[rel=canonical]");
+    var root = base ? new URL(base.href).pathname.replace(/[^\/]*$/, "") : "/";
 
-        // 사이트 베이스 경로를 sitemap 항목들의 공통 접두사에서 구한다.
-        // 현재 URL 로 추정하면 배포 위치가 다를 때(로컬 루트 서빙 등) 세그먼트가
-        // 한 칸씩 밀려서 Cloud/AWS 같은 복합 키가 영영 안 맞는다.
-        var allPaths = [];
-        locs.forEach(function (n) {
-          var t = (n.textContent || "").trim();
-          try { allPaths.push(new URL(t).pathname); } catch (e) { /* skip */ }
-        });
-        var basePath = "/";
-        if (allPaths.length) {
-          var first = allPaths[0].split("/");
-          var common = [];
-          for (var d = 0; d < first.length; d++) {
-            var segd = first[d];
-            if (allPaths.every(function (p) { return p.split("/")[d] === segd; })) common.push(segd);
-            else break;
-          }
-          basePath = common.join("/");
-          if (!basePath.endsWith("/")) basePath += "/";
-        }
-
-        var counts = {};
+    fetch(root + "section_counts.json", { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (counts) {
+        if (!counts) return;
         var total = 0;
-        locs.forEach(function (node) {
-          var href = (node.textContent || "").trim();
-          if (!href) return;
-          var path;
-          try { path = new URL(href).pathname; } catch (e) { return; }
-          if (basePath && path.indexOf(basePath) === 0) {
-            path = path.slice(basePath.length);
-          } else {
-            path = path.replace(/^\/+/, "");
-          }
-          if (!path || path === "/" || path === "index.html") return;
-          var parts = path.split("/").filter(Boolean);
-          var seg = parts[0];
-          if (!seg || seg === "tags") return;
-          counts[seg] = (counts[seg] || 0) + 1;
-          // AWS·Linux 처럼 한 단계 아래에 있는 카드도 세어야 한다.
-          // 첫 세그먼트만 보면 Cloud/AWS/, DevOps/Linux/ 가 영영 0 이라 "—" 로 남는다.
-          if (parts.length > 1) {
-            counts[parts[1]] = (counts[parts[1]] || 0) + 1;
-            counts[seg + "/" + parts[1]] = (counts[seg + "/" + parts[1]] || 0) + 1;
-          }
-          total += 1;
+        Object.keys(counts).forEach(function (k) {
+          if (k.indexOf("/") === -1) total += counts[k];
         });
-
         countTargets.forEach(function (el) {
-          var key = el.getAttribute("data-yg-count");
-          var n = counts[key] || 0;
-          el.textContent = n > 0 ? n + "개" : "—";
+          var n = counts[el.getAttribute("data-yg-count")];
+          el.textContent = n ? n + "개" : "—";
         });
         if (totalTarget) totalTarget.textContent = total > 0 ? total : "—";
       })
-      .catch(function () { /* 무시 — 초기 로딩 실패시 placeholder 유지 */ });
+      .catch(function () { /* 실패 시 placeholder 유지 */ });
   });
 })();

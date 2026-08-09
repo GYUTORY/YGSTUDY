@@ -9,3 +9,6 @@ Develop/최근.md
 
 # 빌드가 생성하는 섹션 랜딩 페이지
 Develop/*/index.md
+
+# 빌드가 생성하는 카운트 파일
+Develop/section_counts.json
