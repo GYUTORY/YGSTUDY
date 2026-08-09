@@ -15,14 +15,14 @@ ECS에서 "Task를 여러 개 띄워서 서로 연결한다"는 말은 두 가�
 ```mermaid
 flowchart TB
     Q{연결 단위}
-    Q -->|같은 라이프사이클<br/>localhost로 통신| INTRA[단일 Task 다중 컨테이너]
-    Q -->|독립 배포/스케일<br/>네트워크로 통신| INTER[Service 간 Task 연결]
+    Q -->|"같은 라이프사이클<br/>localhost로 통신"| INTRA[단일 Task 다중 컨테이너]
+    Q -->|"독립 배포/스케일<br/>네트워크로 통신"| INTER[Service 간 Task 연결]
 
     INTRA --> S1[sidecar + dependsOn]
     INTRA --> S2[공유 볼륨]
     INTRA --> S3[localhost 포트 호출]
 
-    INTER --> P1[내부 ALB / NLB]
+    INTER --> P1["내부 ALB / NLB"]
     INTER --> P2[Cloud Map Service Discovery]
     INTER --> P3[Service Connect Envoy]
 ```
@@ -55,12 +55,12 @@ flowchart TB
 
 ```mermaid
 graph LR
-    subgraph Task[Task ENI: 10.0.1.42]
-        App[App<br/>:8080]
-        Envoy[Envoy<br/>:9901, :15000]
-        Logger[FireLens<br/>:24224]
+    subgraph Task["Task ENI: 10.0.1.42"]
+        App["App<br/>:8080"]
+        Envoy["Envoy<br/>:9901, :15000"]
+        Logger["FireLens<br/>:24224"]
     end
-    App -->|localhost:9901| Envoy
+    App -->|"localhost:9901"| Envoy
     Envoy -->|outbound| External[외부 Service]
     App -.->|stdout 자동 수집| Logger
 ```
@@ -250,13 +250,13 @@ flowchart LR
         A2[Task A2]
     end
     subgraph LB[Internal ALB]
-        TG[Target Group<br/>order-api-tg]
+        TG["Target Group<br/>order-api-tg"]
     end
     subgraph SvcB[Service B 클러스터]
         B1[Task B1]
         B2[Task B2]
     end
-    A1 -->|order-api-internal.elb.amazonaws.com:80| TG
+    A1 -->|"order-api-internal.elb.amazonaws.com:80"| TG
     A2 --> TG
     TG --> B1
     TG --> B2
@@ -369,7 +369,7 @@ graph LR
         AppB[App B]
         EnvoyB -->|localhost| AppB
     end
-    EnvoyA -->|order-api:8080<br/>L7 LB, retry, mTLS| EnvoyB
+    EnvoyA -->|"order-api:8080<br/>L7 LB, retry, mTLS"| EnvoyB
     EnvoyA -.메트릭.-> CW[CloudWatch]
     EnvoyB -.메트릭.-> CW
 ```
@@ -635,9 +635,9 @@ Service Connect 또는 ALB에서 새 Task가 healthy로 전환되는 순간, 옛
 
 ```mermaid
 flowchart TB
-    Client[모바일/웹] --> ExtALB[External ALB]
-    ExtALB --> APITask[order-api Task<br/>app + envoy + firelens]
-    APITask -->|payment-worker:8080<br/>Service Connect| WorkerTask[payment-worker Task<br/>app + envoy]
+    Client["모바일/웹"] --> ExtALB[External ALB]
+    ExtALB --> APITask["order-api Task<br/>app + envoy + firelens"]
+    APITask -->|"payment-worker:8080<br/>Service Connect"| WorkerTask["payment-worker Task<br/>app + envoy"]
     APITask -->|SQS| SQS[(SQS Queue)]
     SQS --> WorkerTask
     WorkerTask -->|RDS| DB[(Aurora)]
@@ -660,15 +660,15 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    Client --> ExtALB[External ALB<br/>Path Routing]
-    ExtALB -->|/legacy/*| LegacyTG[Legacy TG<br/>instance type]
-    ExtALB -->|/api/v2/*| NewTG[New API TG<br/>ip type]
-    LegacyTG --> Legacy[Monolith Tasks<br/>bridge mode]
-    NewTG --> NewAPI[New API Tasks<br/>awsvpc + Service Connect]
+    Client --> ExtALB["External ALB<br/>Path Routing"]
+    ExtALB -->|"/legacy/*"| LegacyTG["Legacy TG<br/>instance type"]
+    ExtALB -->|"/api/v2/*"| NewTG["New API TG<br/>ip type"]
+    LegacyTG --> Legacy["Monolith Tasks<br/>bridge mode"]
+    NewTG --> NewAPI["New API Tasks<br/>awsvpc + Service Connect"]
 
-    NewAPI -.|legacy-internal-alb<br/>DNS 호출| InternalALB[Internal ALB]
+    NewAPI -.|"legacy-internal-alb<br/>DNS 호출"| InternalALB[Internal ALB]
     InternalALB --> Legacy
-    NewAPI -->|order-api:8080<br/>Service Connect| OrderAPI[Order API Task]
+    NewAPI -->|"order-api:8080<br/>Service Connect"| OrderAPI[Order API Task]
 ```
 
 - 새 API는 Service Connect로 다른 새 서비스를 부른다.

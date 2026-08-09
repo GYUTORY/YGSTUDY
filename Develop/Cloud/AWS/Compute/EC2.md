@@ -777,7 +777,7 @@ flowchart TB
         IMDS2 -- "4. 메타데이터 응답" --> App2
     end
 
-    SSRF["SSRF 공격자"] -. "PUT 요청 불가<br/>(리다이렉트 시 헤더 제거)" -.x IMDS2
+    SSRF["SSRF 공격자"] -. "PUT 요청 불가<br/>(리다이렉트 시 헤더 제거)" .-x IMDS2
 
     style v1 fill:#fef2f2,stroke:#dc2626
     style v2 fill:#f0fdf4,stroke:#16a34a

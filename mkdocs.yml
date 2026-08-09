@@ -402,8 +402,11 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences:
       custom_fences:
+        # 클래스를 `mermaid` 로 두면 Material 번들이 먼저 낚아채 pre 를 빈 div 로
+        # 바꿔버리고 소스가 증발한다(다이어그램 938개가 빈 상자였던 직접 원인).
+        # 다른 이름을 줘서 Material 이 건드리지 않게 하고 우리 스크립트가 렌더한다.
         - name: mermaid
-          class: mermaid
+          class: mermaid-diagram
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true

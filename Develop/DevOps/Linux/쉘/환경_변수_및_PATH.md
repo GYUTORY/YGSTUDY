@@ -148,13 +148,13 @@ export LC_ALL=ko_KR.UTF-8
 ```mermaid
 flowchart TD
     A[쉘 시작] --> B{로그인 쉘?}
-    B -- Yes --> C[/etc/profile 실행]
+    B -- Yes --> C["/etc/profile 실행"]
     C --> D{~/.bash_profile 존재?}
-    D -- Yes --> E[~/.bash_profile 실행]
+    D -- Yes --> E["~/.bash_profile 실행"]
     D -- No --> F{~/.bash_login 존재?}
-    F -- Yes --> G[~/.bash_login 실행]
+    F -- Yes --> G["~/.bash_login 실행"]
     F -- No --> H{~/.profile 존재?}
-    H -- Yes --> I[~/.profile 실행]
+    H -- Yes --> I["~/.profile 실행"]
     H -- No --> J[설정 없이 시작]
     E --> K[쉘 준비 완료]
     G --> K
@@ -162,7 +162,7 @@ flowchart TD
     J --> K
 
     B -- No --> L{인터랙티브 쉘?}
-    L -- Yes --> M[~/.bashrc 실행]
+    L -- Yes --> M["~/.bashrc 실행"]
     L -- No --> N{BASH_ENV 설정?}
     N -- Yes --> O["$BASH_ENV 파일 실행"]
     N -- No --> P[설정 없이 시작]
@@ -225,13 +225,13 @@ Zsh는 Bash와 로딩 순서가 다르다. macOS 기본 쉘이 Zsh로 바뀐 뒤
 
 ```mermaid
 flowchart LR
-    A[Zsh 시작] --> B[~/.zshenv<br/>항상 실행]
+    A[Zsh 시작] --> B["~/.zshenv<br/>항상 실행"]
     B --> C{로그인 쉘?}
-    C -- Yes --> D[~/.zprofile]
-    D --> E[~/.zshrc<br/>인터랙티브일 때]
-    E --> F[~/.zlogin]
+    C -- Yes --> D["~/.zprofile"]
+    D --> E["~/.zshrc<br/>인터랙티브일 때"]
+    E --> F["~/.zlogin"]
     C -- No --> G{인터랙티브?}
-    G -- Yes --> H[~/.zshrc]
+    G -- Yes --> H["~/.zshrc"]
     G -- No --> I[설정 완료]
     F --> I
     H --> I

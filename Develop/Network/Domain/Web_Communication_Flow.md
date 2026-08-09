@@ -92,7 +92,7 @@ performance.measure('api-call', 'api-start', 'api-end');
 ```mermaid
 flowchart TD
     A[브라우저 캐시] -->|miss| B[OS DNS 캐시]
-    B -->|miss| C[/etc/hosts 또는 hosts]
+    B -->|miss| C["/etc/hosts 또는 hosts"]
     C -->|없음| D[리졸버 DNS]
     D -->|miss| E[루트 DNS]
     E --> F[TLD DNS .com .kr]

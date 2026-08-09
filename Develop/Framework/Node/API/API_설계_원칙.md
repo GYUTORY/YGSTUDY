@@ -49,7 +49,7 @@ graph TD
     D --> J[표준 코드]
     E --> K[일관된 형식]
     F --> L[하위 호환성]
-    G --> M[OpenAPI/Swagger]
+    G --> M["OpenAPI/Swagger"]
     
     style A fill:#4fc3f7
     style B fill:#66bb6a
@@ -67,9 +67,9 @@ graph LR
     A --> C[계층 구조]
     A --> D[복수형]
     
-    B --> E[/users]
-    C --> F[/users/123/posts]
-    D --> G[/users, /posts]
+    B --> E["/users"]
+    C --> F["/users/123/posts"]
+    D --> G["/users, /posts"]
     
     style A fill:#4fc3f7
     style B fill:#66bb6a
@@ -220,22 +220,22 @@ graph TB
     end
     
     subgraph "URL 버저닝"
-        U1[/api/v1/users]
-        U2[/api/v2/users]
+        U1["/api/v1/users"]
+        U2["/api/v2/users"]
         U3[명확하고 직관적]
         U4[캐싱 용이]
         U5[URL 변경 필요]
     end
     
     subgraph "Header 버저닝"
-        H1[API-Version: 1]
+        H1["API-Version: 1"]
         H2[api-version 헤더]
         H3[URL 유지]
         H4[클라이언트 설정 필요]
     end
     
     subgraph "Content Negotiation"
-        C1[Accept: application/vnd.api.v1+json]
+        C1["Accept: application/vnd.api.v1+json"]
         C2[표준 방식]
         C3[복잡도 증가]
     end
@@ -728,9 +728,9 @@ graph TB
     
     subgraph "API 게이트웨이 계층"
         GATEWAY[API Gateway]
-        AUTH[인증/인가]
+        AUTH["인증/인가"]
         RATE[Rate Limiting]
-        LOG[로깅/모니터링]
+        LOG["로깅/모니터링"]
         TRANS[트랜스포메이션]
         CACHE[캐싱]
         ROUTE[라우팅]
@@ -744,9 +744,9 @@ graph TB
     end
     
     subgraph "인프라 서비스"
-        DB[(데이터베이스)]
+        DB["(데이터베이스)"]
         QUEUE[메시지 큐]
-        CACHE_STORE[(캐시 저장소)]
+        CACHE_STORE["(캐시 저장소)"]
     end
     
     WEB --> GATEWAY
@@ -895,7 +895,7 @@ flowchart TD
     L5 --> L6[6. 라우팅 계층]
     L6 --> SVC[백엔드 서비스]
     
-    L1 --> AUTH[인증/인가]
+    L1 --> AUTH["인증/인가"]
     L1 --> VALID[입력 검증]
     
     L2 --> RATE[Rate Limiting]
@@ -1047,9 +1047,9 @@ graph TB
     end
     
     subgraph "API 서버"
-        DOCS[API 문서<br/>Swagger/OpenAPI]
+        DOCS["API 문서<br/>Swagger/OpenAPI"]
         VERSION[버전 관리]
-        AUTH[인증/인가]
+        AUTH["인증/인가"]
         RATE[Rate Limiting]
         VALID[계약 검증]
         ROUTE[라우팅]
@@ -1058,7 +1058,7 @@ graph TB
     
     subgraph "백엔드"
         SERVICE[비즈니스 로직]
-        DB[(데이터베이스)]
+        DB["(데이터베이스)"]
     end
     
     CLIENT --> DOCS

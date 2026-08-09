@@ -6,9 +6,11 @@
  * 전부 빈 상자로 나갔다. 남의 CDN 최신 태그에 렌더링을 맡기면 언제 또 깨질지
  * 알 수 없으므로 버전을 고정해서 우리가 초기화한다.
  *
- * 대상 마크업은 superfences 가 만드는 `<pre class="mermaid"><code>...</code></pre>` 다.
- * mermaid 는 요소의 textContent 를 읽으므로, 렌더 전에 코드 텍스트만 남긴
- * `<div class="mermaid">` 로 바꿔준다.
+ * 대상 마크업은 superfences 가 만드는 `<pre class="mermaid-diagram"><code>...</code></pre>` 다.
+ * 클래스가 `mermaid` 가 아닌 이유: Material 번들이 그 이름을 먼저 낚아채 pre 를 빈 div 로
+ * 바꿔버려 소스가 증발한다. 실제로 그것이 다이어그램 938개가 빈 상자였던 원인이다.
+ * 렌더 결과도 `.yg-mermaid` 로 둔다 — instant navigation 에서 Material 이 다시 훑을 때
+ * `.mermaid` 였다면 또 지워질 수 있다.
  */
 (function () {
   "use strict";
@@ -26,19 +28,19 @@
   /** pre.mermaid > code 를 div.mermaid 로 정규화하고, 원본 소스를 보관한다. */
   function collect() {
     var nodes = [];
-    document.querySelectorAll("pre.mermaid").forEach(function (pre) {
+    document.querySelectorAll("pre.mermaid-diagram").forEach(function (pre) {
       var code = pre.querySelector("code");
       var src = (code ? code.textContent : pre.textContent) || "";
       if (!src.trim()) return;
       var div = document.createElement("div");
-      div.className = "mermaid";
+      div.className = "yg-mermaid";
       div.setAttribute("data-mermaid-src", src);
       div.textContent = src;
       pre.replaceWith(div);
       nodes.push(div);
     });
     // 이미 div 형태로 존재하고 아직 렌더되지 않은 것도 포함
-    document.querySelectorAll("div.mermaid:not([data-mermaid-done])").forEach(function (div) {
+    document.querySelectorAll("div.yg-mermaid:not([data-mermaid-done])").forEach(function (div) {
       if (nodes.indexOf(div) !== -1) return;
       var src = div.getAttribute("data-mermaid-src") || div.textContent || "";
       if (!src.trim()) return;
