@@ -9,6 +9,7 @@ repo_url: https://github.com/gyutory/YGSTUDY
 docs_dir: Develop
 
 hooks:
+  - tools/section_index.py
   - tools/volatility_banner.py
   - tools/inject_build_meta.py
   - tools/related_docs.py
