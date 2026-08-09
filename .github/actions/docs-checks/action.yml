@@ -14,7 +14,7 @@ runs:
   steps:
     - name: Check tags
       shell: bash
-      run: python3 tools/gen_tags.py || true      # 태그 정리 완료 후 --strict 복원
+      run: python3 tools/gen_tags.py --strict
 
     - name: Check frontmatter
       shell: bash

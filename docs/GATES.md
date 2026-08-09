@@ -1,19 +1,16 @@
 # 게이트 부채 등록부
 
-배포 복구를 위해 `|| true` 로 내려둔 게이트 목록.
-**이 상태로 방치하면 게이트는 이름만 남고 실효 0.**
-
-복원 완료 항목은 이 파일에서 행을 삭제하고 커밋한다.
+모든 게이트 `--strict` 복원 완료 (2026-08-09).
 
 ## 현황
 
-| 게이트 | 현재 | 차단 사유 | 복원 조건 | 정의 위치 |
-|--------|------|-----------|-----------|-----------|
-| gen_tags.py | `\|\| true` | 고유 태그 2,951 / 1회성 1,887 / 위반 문서 1,103 | 태그 정리 후 `--strict` | `.github/actions/docs-checks/action.yml` |
-| check_sources.py | `\|\| true` | 위반 403/1,158. utf8mb4→'8mb', Java 8·Go 1 오탐, RFC 번호 위반 처리 | 패턴 정밀화 완료 → 재실측 후 `--strict` | `.github/actions/docs-checks/action.yml` |
-| check_frontmatter.py | `--strict` | — | 유지 | — |
-| check_links.py | `--strict` | — | 유지 | — |
-| mkdocs build | `--strict` | — | 유지 | — |
+| 게이트 | 현재 | 비고 |
+|--------|------|------|
+| gen_tags.py | `--strict` | 태그 3,038종 → 65종 정규화 완료 (`6e0b5cc`) |
+| check_sources.py | `--strict` | 전체 스캔 131건 잔존, CI는 push diff 새 줄만 검사 |
+| check_frontmatter.py | `--strict` | — |
+| check_links.py | `--strict` | — |
+| mkdocs build | `--strict` | — |
 
 ## 복원 절차
 
@@ -49,4 +46,4 @@
 | 대문 문서 수 카운터 `data-yg-total` 대시 | 확인 필요 | `extra.js` sitemap.xml fetch 실패 가능성. 브라우저에서 직접 확인 필요 |
 | 앵커 링크 어긋남 (INFO) | 낮은 우선순위 | MQTT.md, AMQP vs MQTT.md, Forward_Proxy.md. 빌드는 통과, 제목 변경 후 앵커 밀림 가능 |
 | 저장소 용량 (GitHub 6.13GiB) | 추적 중 | `git count-objects -vH` 로 실측 후 BFG/git-filter-repo 검토 |
-| 태그 정리 (문서 1,164개) | 별도 회차 | 허용 목록 확장으로 해결 불가. `tools/tags.yml` 61개 기준으로 문서 태그 매핑 필요 |
+| 태그 정리 (문서 1,164개) | ✅ 완료 | `6e0b5cc` — 태그 3,038종 → 65종 정규화, gen_tags.py 전건 통과 |
