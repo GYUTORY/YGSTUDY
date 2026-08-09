@@ -109,55 +109,12 @@ Java가 기본 제공하는 함수형 인터페이스들이다. 직접 만들기
 
 ### 핵심 4가지 인터페이스
 
-```mermaid
-block-beta
-    columns 4
-    block:header:4
-        columns 4
-        h0[""] h1["입력 없음"] h2["입력 있음"] h3["입력 2개"]
-    end
-    block:row1:4
-        columns 4
-        r1h["반환 없음\n(void)"]
-        r1c1["Runnable\n() → void"]
-        r1c2["Consumer‹T›\nT → void"]
-        r1c3["BiConsumer‹T,U›\n(T,U) → void"]
-    end
-    block:row2:4
-        columns 4
-        r2h["반환 있음"]
-        r2c1["Supplier‹T›\n() → T"]
-        r2c2["Function‹T,R›\nT → R"]
-        r2c3["BiFunction‹T,U,R›\n(T,U) → R"]
-    end
-    block:row3:4
-        columns 4
-        r3h["boolean 반환"]
-        r3c1["—"]
-        r3c2["Predicate‹T›\nT → boolean"]
-        r3c3["BiPredicate‹T,U›\n(T,U) → boolean"]
-    end
-    block:row4:4
-        columns 4
-        r4h["같은 타입\n입출력"]
-        r4c1["—"]
-        r4c2["UnaryOperator‹T›\nT → T"]
-        r4c3["BinaryOperator‹T›\n(T,T) → T"]
-    end
-
-    style r1c1 fill:#dbeafe,stroke:#2563eb,color:#000
-    style r1c2 fill:#dbeafe,stroke:#2563eb,color:#000
-    style r1c3 fill:#dbeafe,stroke:#2563eb,color:#000
-    style r2c1 fill:#fef3c7,stroke:#b45309,color:#000
-    style r2c2 fill:#fef3c7,stroke:#b45309,color:#000
-    style r2c3 fill:#fef3c7,stroke:#b45309,color:#000
-    style r3c1 fill:#f3e8ff,stroke:#7c3aed,color:#000
-    style r3c2 fill:#f3e8ff,stroke:#7c3aed,color:#000
-    style r3c3 fill:#f3e8ff,stroke:#7c3aed,color:#000
-    style r4c1 fill:#d1fae5,stroke:#047857,color:#000
-    style r4c2 fill:#d1fae5,stroke:#047857,color:#000
-    style r4c3 fill:#d1fae5,stroke:#047857,color:#000
-```
+| | 입력 없음 | 입력 있음 | 입력 2개 |
+|---|---|---|---|
+| **반환 없음 (void)** | `Runnable`<br/>`() → void` | `Consumer<T>`<br/>`T → void` | `BiConsumer<T,U>`<br/>`(T,U) → void` |
+| **반환 있음** | `Supplier<T>`<br/>`() → T` | `Function<T,R>`<br/>`T → R` | `BiFunction<T,U,R>`<br/>`(T,U) → R` |
+| **boolean 반환** | — | `Predicate<T>`<br/>`T → boolean` | `BiPredicate<T,U>`<br/>`(T,U) → boolean` |
+| **같은 타입 입출력** | — | `UnaryOperator<T>`<br/>`T → T` | `BinaryOperator<T>`<br/>`(T,T) → T` |
 
 > `Runnable`은 `java.lang` 패키지에 있지만, 개념상 함수형 인터페이스로 같이 분류한다.
 

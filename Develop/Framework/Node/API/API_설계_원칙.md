@@ -799,30 +799,27 @@ sequenceDiagram
     
     alt 인증 실패
         GW-->>C: 401 Unauthorized
-        deactivate GW
     else 인증 성공
         GW->>RATE: Rate Limit 체크
         RATE-->>GW: 허용/거부
         
         alt Rate Limit 초과
             GW-->>C: 429 Too Many Requests
-            deactivate GW
         else Rate Limit 통과
             GW->>CACHE: 캐시 확인
             
             alt 캐시 히트
                 CACHE-->>GW: 캐시된 응답
                 GW-->>C: 응답 반환
-                deactivate GW
             else 캐시 미스
                 GW->>SVC: 백엔드 요청
                 SVC-->>GW: 응답
                 GW->>CACHE: 응답 캐싱
                 GW-->>C: 응답 반환
-                deactivate GW
             end
         end
     end
+    deactivate GW
 ```
 
 ### API 게이트웨이 기능 계층

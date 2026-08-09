@@ -666,7 +666,7 @@ flowchart LR
     LegacyTG --> Legacy["Monolith Tasks<br/>bridge mode"]
     NewTG --> NewAPI["New API Tasks<br/>awsvpc + Service Connect"]
 
-    NewAPI -.|"legacy-internal-alb<br/>DNS 호출"| InternalALB[Internal ALB]
+    NewAPI -.->|"legacy-internal-alb<br/>DNS 호출"| InternalALB["Internal ALB"]
     InternalALB --> Legacy
     NewAPI -->|"order-api:8080<br/>Service Connect"| OrderAPI[Order API Task]
 ```

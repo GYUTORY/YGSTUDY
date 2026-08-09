@@ -35,9 +35,9 @@ sequenceDiagram
     participant 셸
     participant OS
 
-    공격자->>앱: filename=image.jpg; cat /etc/passwd
-    앱->>셸: /bin/sh -c "convert image.jpg; cat /etc/passwd output.webp"
-    셸->>셸: ; 를 명령 구분자로 파싱
+    공격자->>앱: filename=image.jpg#59; cat /etc/passwd
+    앱->>셸: /bin/sh -c "convert image.jpg#59; cat /etc/passwd output.webp"
+    셸->>셸: #59; 를 명령 구분자로 파싱
     셸->>OS: convert image.webp
     OS-->>셸: 종료 코드 0
     셸->>OS: cat /etc/passwd output.webp

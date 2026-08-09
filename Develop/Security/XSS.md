@@ -27,7 +27,7 @@ sequenceDiagram
     participant 공격자 서버
 
     Note over 공격자, DB: 1단계 — 악성 페이로드 저장
-    공격자->>서버: POST /comments<br/>content=&lt;img src=x onerror=...&gt;
+    공격자->>서버: POST /comments<br/>content=〈img src=x onerror=...〉
     서버->>DB: 댓글 데이터 저장 (sanitize 누락)
 
     Note over 피해자 브라우저, 공격자 서버: 2단계 — 정상 사용자가 피해를 입음
@@ -64,11 +64,11 @@ sequenceDiagram
     participant 서버
     participant 공격자 서버
 
-    공격자->>피해자: 피싱 메일로 조작된 URL 전달<br/>https://target.com/search?q=&lt;script&gt;...&lt;/script&gt;
+    공격자->>피해자: 피싱 메일로 조작된 URL 전달<br/>https://target.com/search?q=〈script〉...〈/script〉
     피해자->>피해자 브라우저: 링크 클릭
     피해자 브라우저->>서버: GET /search?q=&lt;script&gt;...&lt;/script&gt;
     Note over 서버: 검색어를 응답 HTML에 그대로 삽입
-    서버-->>피해자 브라우저: &lt;p&gt;검색어: &lt;script&gt;...&lt;/script&gt;&lt;/p&gt;
+    서버-->>피해자 브라우저: 〈p〉검색어: 〈script〉...〈/script〉〈/p〉
     Note over 피해자 브라우저: 응답 HTML 파싱하며 스크립트 실행
     피해자 브라우저->>공격자 서버: document.cookie 전송
 ```

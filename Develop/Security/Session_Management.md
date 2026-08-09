@@ -188,17 +188,17 @@ sequenceDiagram
 
     C->>S: POST /login (email, password)
     S->>S: Validate credentials
-    S->>R: SET sess:<newId> {userId} EX 7200
-    S-->>C: Set-Cookie: sid=<newId>; Secure; HttpOnly; SameSite=Lax
+    S->>R: SET sess:#lt;newId#gt; {userId} EX 7200
+    S-->>C: Set-Cookie: sid=#lt;newId#gt;#59; Secure#59; HttpOnly#59; SameSite=Lax
 
-    C->>S: GET /profile (Cookie: sid=<newId>)
-    S->>R: GET sess:<newId>
+    C->>S: GET /profile (Cookie: sid=#lt;newId#gt;)
+    S->>R: GET sess:#lt;newId#gt;
     R-->>S: {userId: 42}
     S-->>C: 200 OK profile data
 
     C->>S: POST /logout
-    S->>R: DEL sess:<newId>
-    S-->>C: Set-Cookie: sid=; Max-Age=0
+    S->>R: DEL sess:#lt;newId#gt;
+    S-->>C: Set-Cookie: sid=#59; Max-Age=0
 ```
 
 ## JWT와의 비교

@@ -347,11 +347,11 @@ import {
 ```mermaid
 graph TB
     subgraph "environments/dev/main.tf"
-        DevMain["module \"vpc\" {\n  source = ../../modules/vpc\n  name = dev\n  cidr = 10.0.0.0/16\n}"]
+        DevMain["module #quot;vpc#quot; {<br/>source = ../../modules/vpc<br/>name = dev<br/>cidr = 10.0.0.0/16<br/>}"]
     end
 
     subgraph "environments/prod/main.tf"
-        ProdMain["module \"vpc\" {\n  source = ../../modules/vpc\n  name = prod\n  cidr = 10.1.0.0/16\n}"]
+        ProdMain["module #quot;vpc#quot; {<br/>source = ../../modules/vpc<br/>name = prod<br/>cidr = 10.1.0.0/16<br/>}"]
     end
 
     subgraph "modules/vpc/"
