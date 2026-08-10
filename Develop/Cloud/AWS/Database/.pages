@@ -20,7 +20,7 @@ nav:
     - Blue/Green Deployment: RDS_Blue_Green_Deployment.md
     - Multi-AZ: RDS_Multi_AZ.md
     - Parameter Groups: RDS_Parameter_Groups.md
+    - Performance Insights: RDS_Performance_Insights.md
     - 보안: RDS_Security.md
     - Storage: RDS_Storage.md
-  - Performance Insights로 RDS 성능 진단하기: RDS_Performance_Insights.md
   - Timestream: Timestream.md

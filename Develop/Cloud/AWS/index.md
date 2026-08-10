@@ -9,7 +9,7 @@ hide:
 
 # AWS 전체 보기
 
-문서 181개.
+문서 182개.
 
 ## AI
 
@@ -183,6 +183,7 @@ hide:
 - [AWS CloudFront 캐시 무효화(Cache Invalidation) 정책](<Network/CDN 캐시 무효화 정책.md>)
 - [AWS Direct Connect](Network/Direct_Connect.md)
 - [AWS Global Accelerator](Network/Global_Accelerator.md)
+- [AWS Internet Gateway](Network/Internet_Gateway.md)
 - [AWS NAT Gateway](Network/Nat_Gateway.md)
 - [AWS Private Subnet vs Public Subnet 심화](Network/Private_Subnet__vs__Public_Subnet.md)
 - [AWS PrivateLink](Network/PrivateLink.md)
