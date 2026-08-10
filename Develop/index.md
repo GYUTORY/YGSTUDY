@@ -14,10 +14,10 @@ updated: 2026-08-07
       <span class="yg-section-kicker">ABOUT</span>
       <h1 class="yg-about-title">Kang Young Gyu</h1>
       <p class="yg-about-tagline">
-        시스템을 안정적으로 <span class="yg-intro-accent">운영하는 방법</span>에 대한 기록.
+        운영하면서 <span class="yg-intro-accent">직접 부딪힌 것</span>들의 기록.
       </p>
       <p class="yg-about-desc">
-        백엔드 엔지니어로 일하면서 마주친 문제와 그 해결 과정을 정리합니다. 쿠버네티스, 인프라 자동화, 그리고 그 사이의 모든 것 — 코드 단편보다 시스템을 안정적으로 운영하는 원리에 더 관심이 많습니다.
+        백엔드 엔지니어로 일하면서 마주친 문제와 그 해결 과정을 씁니다. 쿠버네티스, 인프라 자동화, 그리고 그 사이 — 코드보다 시스템이 어떻게 살아 있는지에 더 관심이 많습니다.
       </p>
       <div class="yg-about-tags">
         <span>Java</span><span>Spring Boot</span><span>Node.js</span><span>TypeScript</span>
@@ -197,15 +197,15 @@ updated: 2026-08-07
       <div class="yg-series-body">
         <span class="yg-series-tag">Kubernetes</span>
         <h3>쿠버네티스, 처음부터 운영까지</h3>
-        <p>아키텍처와 핵심 리소스부터 네트워킹·스토리지·모니터링까지 단계별로.</p>
+        <p>파드가 뭔지 몰랐던 때부터 실제 클러스터 운영까지 순서대로.</p>
       </div>
     </a>
-    <a class="yg-series" href="AWS/Containers/ECS/">
+    <a class="yg-series" href="Cloud/AWS/Containers/ECS/">
       <div class="yg-series-num" data-cat="aws">02</div>
       <div class="yg-series-body">
         <span class="yg-series-tag">AWS · ECS</span>
         <h3>ECS / Fargate 실전 배포</h3>
-        <p>태스크 정의, 오토스케일링, 사이드카, 멀티 태스크 커넥션까지 실무 케이스 중심으로.</p>
+        <p>EC2 없이 컨테이너를 굴릴 때 실제로 부딪히는 것들 — 태스크 정의부터 오토스케일링까지.</p>
       </div>
     </a>
     <a class="yg-series" href="Architecture/MSA/Saga_패턴_및_분산_트랜잭션/">
@@ -242,7 +242,7 @@ updated: 2026-08-07
       <div class="yg-proj-body">
         <span class="yg-proj-tag">AI · Web</span>
         <h3>MOMO Assistant</h3>
-        <p>페르소나 기반 AI 어시스턴트. 코딩 멘토, 번역가, 자소서 첨삭 등 역할별 전문 대화 지원.</p>
+        <p>역할마다 다른 방식으로 대화하는 AI. 코딩 멘토일 땐 코드를 보고, 자소서 첨삭일 땐 문장을 잡는다.</p>
       </div>
     </a>
     <a class="yg-proj" href="http://gyutory.co.kr/momo_editor/" target="_blank" rel="noopener">
@@ -252,7 +252,7 @@ updated: 2026-08-07
       <div class="yg-proj-body">
         <span class="yg-proj-tag">Desktop · Video</span>
         <h3>MOMO Editor</h3>
-        <p>동영상 편집 데스크톱 애플리케이션. 타임라인 기반 편집, 미디어 라이브러리, 실시간 프리뷰.</p>
+        <p>직접 쓰려고 만든 영상 편집기. 타임라인 편집, 미디어 라이브러리, 실시간 프리뷰.</p>
       </div>
     </a>
     <div class="yg-proj yg-proj--wip">
@@ -263,7 +263,7 @@ updated: 2026-08-07
       <div class="yg-proj-body">
         <span class="yg-proj-tag">AI · Mobile</span>
         <h3>AI Trip Planner</h3>
-        <p>AI 기반 여행 일정 생성 앱. 도시를 선택하면 맛집·관광지·카페 일정을 자동으로 구성.</p>
+        <p>도시 하나 고르면 맛집·관광지·카페 일정이 잡힌다.</p>
       </div>
     </div>
   </div>
