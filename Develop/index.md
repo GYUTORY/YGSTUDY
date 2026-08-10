@@ -141,7 +141,7 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Security">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="OS" href="OS/">
+    <a class="yg-cat-v2" data-cat="linux" data-yg-cat="OS" href="OS/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>OS</h3>
@@ -301,6 +301,20 @@ updated: 2026-08-07
         <span class="yg-series-tag">Observability · Monitoring</span>
         <h3>관측성</h3>
         <p>서비스가 이상한데 어디서 봐야 할지 모를 때 — 로그, 메트릭, 분산 추적.</p>
+      </div>
+    </a>
+    <a class="yg-series" href="_hub/AI_개발_도구/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">AI · LLM · MCP</span>
+        <h3>AI 개발 도구</h3>
+        <p>Claude Code, RAG, MCP 서버, 에이전트 구축 — LLM을 프로덕션에 붙일 때 필요한 것들.</p>
+      </div>
+    </a>
+    <a class="yg-series" href="_hub/JavaScript_TypeScript/">
+      <div class="yg-series-body">
+        <span class="yg-series-tag">JavaScript · TypeScript</span>
+        <h3>JavaScript &amp; TypeScript</h3>
+        <p>클로저·this·Promise 동작 원리부터 타입 시스템·tsconfig 설정까지.</p>
       </div>
     </a>
   </div>
