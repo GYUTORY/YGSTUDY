@@ -1,6 +1,6 @@
 ---
 title: AWS Internet Gateway
-tags: [aws, vpc, network, igw, cloud]
+tags: [aws, vpc, network, cloud]
 updated: 2026-08-10
 ---
 

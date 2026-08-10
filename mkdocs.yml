@@ -389,6 +389,10 @@ plugins:
       enable_creation_date: true
       type: date
       locale: ko
+      fallback_to_build_date: true
+      exclude:
+        - "*/index.md"
+        - "최근.md"
   - rss:
       match_path: ".*"
       date_from_meta:
