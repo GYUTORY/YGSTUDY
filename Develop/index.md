@@ -17,7 +17,7 @@ updated: 2026-08-07
         운영하면서 <span class="yg-intro-accent">직접 부딪힌 것</span>들의 기록.
       </p>
       <p class="yg-about-desc">
-        백엔드 엔지니어로 일하면서 마주친 문제와 그 해결 과정을 씁니다. 쿠버네티스, 인프라 자동화, 그리고 그 사이 — 코드보다 시스템이 어떻게 살아 있는지에 더 관심이 많습니다.
+        백엔드 엔지니어로 일하면서 마주친 문제와 그 해결 과정을 씁니다. 쿠버네티스, 인프라 자동화, 그리고 그 사이 — 코드가 아니라 시스템이 어떻게 돌아가는지 더 신경 씁니다.
       </p>
       <div class="yg-about-tags">
         <span>Java</span><span>Spring Boot</span><span>Node.js</span><span>TypeScript</span>
@@ -26,7 +26,7 @@ updated: 2026-08-07
       <div class="yg-about-meta">
         <span class="yg-about-stat"><strong data-yg-total>—</strong>개의 문서</span>
         <span class="yg-intro-dot"></span>
-        <span class="yg-about-stat">최근 업데이트 <strong>2026.05</strong></span>
+        <span class="yg-about-stat">최근 업데이트 <strong>2026.08</strong></span>
       </div>
     </div>
     <div class="yg-about-right">
@@ -93,14 +93,6 @@ updated: 2026-08-07
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Cloud">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="Cloud/AWS" href="Cloud/AWS/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>AWS <small>· Cloud 하위</small></h3>
-        <p>ECS · Fargate · Network · IAM</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Cloud/AWS">—</div>
-    </a>
     <a class="yg-cat-v2" data-cat="database" data-yg-cat="DataBase" href="DataBase/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
@@ -148,14 +140,6 @@ updated: 2026-08-07
         <p>HTTPS · TLS · OAuth · 인증</p>
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Security">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="linux" data-yg-cat="DevOps/Linux" href="DevOps/Linux/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Linux <small>· DevOps 하위</small></h3>
-        <p>Shell · 권한 · 프로세스 · 시스템</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="DevOps/Linux">—</div>
     </a>
     <a class="yg-cat-v2" data-cat="backend" data-yg-cat="OS" href="OS/">
       <div class="yg-cat-v2-icon"><span></span></div>
@@ -252,7 +236,7 @@ updated: 2026-08-07
       <div class="yg-proj-body">
         <span class="yg-proj-tag">Desktop · Video</span>
         <h3>MOMO Editor</h3>
-        <p>직접 쓰려고 만든 영상 편집기. 타임라인 편집, 미디어 라이브러리, 실시간 프리뷰.</p>
+        <p>직접 쓰려고 만든 영상 편집기 — 타임라인 잘라붙이고 바로 미리보기까지.</p>
       </div>
     </a>
     <div class="yg-proj yg-proj--wip">
