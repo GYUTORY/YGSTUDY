@@ -221,7 +221,7 @@ updated: 2026-08-07
       <div class="yg-series-body">
         <span class="yg-series-tag">AI Tools</span>
         <h3>AI 코딩 도구 정리</h3>
-        <p>Claude Code, Cursor, Copilot, MCP — 어떤 상황에 무엇을 쓸지 비교하며 정리.</p>
+        <p>Claude Code, Cursor, Copilot — 실제로 써보면서 느낀 차이.</p>
       </div>
     </a>
   </div>
@@ -281,42 +281,42 @@ updated: 2026-08-07
       <div class="yg-series-body">
         <span class="yg-series-tag">Database · OS</span>
         <h3>트랜잭션과 동시성</h3>
-        <p>ACID, 격리 수준, 분산 트랜잭션, Saga 패턴까지.</p>
+        <p>격리 수준을 잘못 잡으면 어떻게 되는지 — ACID부터 Saga 패턴까지.</p>
       </div>
     </a>
     <a class="yg-series" href="_hub/인증과_토큰/">
       <div class="yg-series-body">
         <span class="yg-series-tag">Security · Auth</span>
         <h3>인증과 토큰</h3>
-        <p>JWT, OAuth2, SSO, Passkey, NestJS Guards까지.</p>
+        <p>JWT 혼자 쓸 때와 OAuth2·SSO를 붙였을 때 달라지는 것들.</p>
       </div>
     </a>
     <a class="yg-series" href="_hub/메시징과_전달_보장/">
       <div class="yg-series-body">
         <span class="yg-series-tag">Messaging · Queue</span>
         <h3>메시징과 전달 보장</h3>
-        <p>Kafka, RabbitMQ, SQS, Outbox 패턴, 멱등성까지.</p>
+        <p>메시지가 반드시 처리되어야 할 때 — Kafka, RabbitMQ, Outbox 패턴.</p>
       </div>
     </a>
     <a class="yg-series" href="_hub/인덱스와_쿼리_성능/">
       <div class="yg-series-body">
         <span class="yg-series-tag">Database · Performance</span>
         <h3>인덱스와 쿼리 성능</h3>
-        <p>B-Tree 인덱스, EXPLAIN, 옵티마이저, 성능 튜닝까지.</p>
+        <p>인덱스 걸었는데 왜 느린지 — B-Tree 구조, EXPLAIN, 옵티마이저 동작.</p>
       </div>
     </a>
     <a class="yg-series" href="_hub/캐싱/">
       <div class="yg-series-body">
         <span class="yg-series-tag">Cache · Redis</span>
         <h3>캐싱</h3>
-        <p>Cache-Aside, Write-Through, Redis, 분산 캐싱까지.</p>
+        <p>전략 없이 Redis 쓰면 나오는 문제들. Cache-Aside, Write-Through, 분산 캐싱.</p>
       </div>
     </a>
     <a class="yg-series" href="_hub/관측성/">
       <div class="yg-series-body">
         <span class="yg-series-tag">Observability · Monitoring</span>
         <h3>관측성</h3>
-        <p>분산 추적, 메트릭, 로그, OpenTelemetry, SLI/SLO까지.</p>
+        <p>서비스가 이상한데 어디서 봐야 할지 모를 때 — 로그, 메트릭, 분산 추적.</p>
       </div>
     </a>
   </div>
