@@ -1,10 +1,10 @@
 ---
-title: PBKDF2 (Password-Based Key Derivation Function 2)
+title: PBKDF2 — 비밀번호 키 유도 함수
 tags: [language, javascript]
 updated: 2025-11-01
 ---
 
-# PBKDF2 (Password-Based Key Derivation Function 2)
+# PBKDF2 — 비밀번호 키 유도 함수
 
 ## 배경
 

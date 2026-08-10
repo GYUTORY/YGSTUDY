@@ -1,10 +1,10 @@
 ---
-title: 소켓 I/O 멀티플렉싱 - select, poll, epoll, kqueue, IOCP
+title: 소켓 I/O 멀티플렉싱 심화
 tags: [network]
 updated: 2026-08-02
 ---
 
-# 소켓 I/O 멀티플렉싱 - select, poll, epoll, kqueue, IOCP
+# 소켓 I/O 멀티플렉싱 심화
 ## I/O 멀티플렉싱이 왜 필요한가
 
 서버가 클라이언트 한 명만 받는다면 멀티플렉싱은 필요 없다. `accept()` 하고 `read()` 하고 `write()` 하면 끝이다. 문제는 클라이언트가 100명, 1000명, 10만 명이 될 때 시작된다.

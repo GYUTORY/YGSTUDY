@@ -1,10 +1,10 @@
 ---
-title: 직렬화 포맷 심화 — JSON·Protobuf·MessagePack·Avro 비교, 스키마 진화, 성능·보안
+title: 직렬화 포맷 심화 — JSON·Protobuf·Avro
 tags: [api, messaging, grpc, security]
 updated: 2026-06-05
 ---
 
-# 직렬화 포맷 심화 — JSON·Protobuf·MessagePack·Avro 비교, 스키마 진화, 성능·보안
+# 직렬화 포맷 심화 — JSON·Protobuf·Avro
 ## 들어가기 전에
 
 직렬화 포맷 선택은 보통 "JSON 쓰면 되지 뭐"로 끝난다. 그러다 트래픽이 늘고, Kafka에 메시지가 쌓이고, gRPC로 마이크로서비스가 갈라지면 그제야 바이트 크기·스키마 진화·역직렬화 보안이 한꺼번에 문제로 튀어나온다.

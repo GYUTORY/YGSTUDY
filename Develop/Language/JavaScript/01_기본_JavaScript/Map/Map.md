@@ -4,7 +4,7 @@ tags: [language, javascript, performance]
 updated: 2025-08-10
 ---
 
-# JavaScript Map vs find() vs filter() 성능 비교 및 최적화 가이드
+# JavaScript Map vs find() vs filter() 성능 비교
 
 ## 배경
 

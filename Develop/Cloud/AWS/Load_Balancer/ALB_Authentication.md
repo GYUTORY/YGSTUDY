@@ -1,10 +1,10 @@
 ---
-title: ALB 내장 인증 (authenticate-oidc / authenticate-cognito)
+title: ALB 내장 인증 — OIDC·Cognito
 tags: [aws, auth, jwt, load-balancer]
 updated: 2026-06-17
 ---
 
-# ALB 내장 인증 (authenticate-oidc / authenticate-cognito)
+# ALB 내장 인증 — OIDC·Cognito
 
 ALB 리스너 규칙에는 `forward`, `redirect`, `fixed-response` 말고 인증 액션이 두 개 더 있다. `authenticate-oidc`와 `authenticate-cognito`다. 백엔드 앞단에서 ALB가 직접 OIDC 인증을 처리하고, 인증이 끝난 요청만 백엔드로 흘려보낸다. 애플리케이션 코드에 인증 로직을 안 넣어도 로그인 게이트를 세울 수 있다.
 

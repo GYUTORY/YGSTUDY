@@ -1,10 +1,10 @@
 ---
-title: ISBM (Integration Services for Business Messaging)
+title: ISBM — B2B 메시지 통합 표준
 tags: [backend, messaging]
 updated: 2026-04-06
 ---
 
-# ISBM (Integration Services for Business Messaging)
+# ISBM — B2B 메시지 통합 표준
 
 ## 개요
 

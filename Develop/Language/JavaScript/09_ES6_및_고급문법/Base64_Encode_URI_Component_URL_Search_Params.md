@@ -1,10 +1,10 @@
 ---
-title: Base64 · encodeURIComponent · URLSearchParams — 세 도구 중 뭘 쓸지
+title: Base64·encodeURI·URLSearchParams 비교
 tags: [language, javascript, database]
 updated: 2026-04-23
 ---
 
-# Base64 · encodeURIComponent · URLSearchParams — 세 도구 중 뭘 쓸지
+# Base64·encodeURI·URLSearchParams 비교
 
 ## 이 문서의 범위
 

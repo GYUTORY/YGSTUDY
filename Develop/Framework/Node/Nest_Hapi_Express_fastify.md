@@ -1,10 +1,10 @@
 ---
-title: Node.js 프레임워크 비교 - Express, Fastify, NestJS, Hapi
+title: Node.js 프레임워크 4종 비교
 tags: [nodejs]
 updated: 2026-04-09
 ---
 
-# Node.js 웹 프레임워크 비교: Express vs Fastify vs NestJS vs Hapi
+# Node.js 프레임워크 4종 비교
 
 ## 각 프레임워크가 요청을 처리하는 방식
 

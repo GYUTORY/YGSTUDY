@@ -1,10 +1,10 @@
 ---
-title: JavaScript forEach 메서드 심화 (동작 원리·콜백 시그니처·break 불가 한계)
+title: forEach 심화 — 동작 원리와 한계
 tags: [language, javascript]
 updated: 2026-06-05
 ---
 
-# JavaScript forEach 메서드 심화 (동작 원리·콜백 시그니처·break 불가 한계)
+# forEach 심화 — 동작 원리와 한계
 
 기본 사용법은 `forEach_개념.md`, `forEach_예제.md`에서 다룬다. 이 문서는 한 단계 더 들어가서 ECMAScript 스펙이 정의하는 내부 동작, 콜백 시그니처에 숨은 함정, `break`가 안 되는 진짜 이유, sparse array·순회 중 변경·async 환경에서의 실제 거동까지 정리한다. 실무에서 forEach 때문에 디버깅 두세 시간 날린 경험이 있으면 이 문서가 도움이 된다.
 

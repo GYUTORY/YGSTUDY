@@ -1,10 +1,10 @@
 ---
-title: 파일 권한 심화 - ACL, Special Permissions, Capabilities
+title: 파일 권한 심화 — ACL·Capabilities
 tags: [linux, security, docker, devops]
 updated: 2026-04-23
 ---
 
-# 파일 권한 심화 - ACL, Special Permissions, Capabilities
+# 파일 권한 심화 — ACL·Capabilities
 
 ## 개요
 
