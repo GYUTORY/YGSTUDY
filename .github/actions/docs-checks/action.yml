@@ -44,4 +44,6 @@ runs:
 
     - name: Build strict
       shell: bash
+      env:
+        DISABLE_MKDOCS_2_WARNING: "true"
       run: mkdocs build --strict
