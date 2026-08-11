@@ -1,6 +1,3 @@
 title: Cost
 nav:
-  - Budgets: Budgets.md
-  - Compute Optimizer: Compute_Optimizer.md
-  - Cost Explorer: Cost_Explorer.md
-  - Savings Plans: Savings_Plans.md
+  - index.md

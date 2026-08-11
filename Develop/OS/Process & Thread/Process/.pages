@@ -1,4 +1,2 @@
 nav:
-  - 프로세스 자원 한계값: Process_Resource_Limits.md
-  - 프로세스의 구조: 프로세스의 구조.md
-  - 프로세스의 자원 구조: 프로세스의 자원 구조.md
+  - index.md

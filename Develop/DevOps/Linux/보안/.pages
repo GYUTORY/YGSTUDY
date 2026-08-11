@@ -1,4 +1,3 @@
 title: 보안
 nav:
-  - SSH 보안: SSH.md
-  - 보안 하드닝: Security_Hardening.md
+  - index.md

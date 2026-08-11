@@ -1,6 +1,3 @@
 title: 타입 유틸리티
 nav:
-  - 제네릭 (Generics): Generics.md
-  - 유틸리티 타입: 유틸리티 타입.md
-  - 고급 타입 패턴: Advanced_Type_Patterns.md
-  - moduleResolution: module과 moduleResolution.md
+  - index.md

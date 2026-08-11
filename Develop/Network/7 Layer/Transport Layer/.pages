@@ -1,3 +1,2 @@
 nav:
-  - UDP 프로토콜 동작 메커니즘: UDP.md
-  - TCP
+  - index.md

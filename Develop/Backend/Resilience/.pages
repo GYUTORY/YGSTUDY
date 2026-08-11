@@ -1,5 +1,6 @@
 title: Resilience
 nav:
+  - index.md
   - 장애 대응 패턴: Fault_Tolerance.md
   - Rate Limiting·Bulkhead: Rate_Limiting_and_Bulkhead.md
   - Connection Limit: Connection_Limit.md

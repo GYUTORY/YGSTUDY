@@ -1,4 +1,2 @@
 nav:
-  - 다층 캐시: Multi_Level_Cache.md
-  - 캐싱 심화: Node_Cache_Advanced.md
-  - 캐싱 기본: 캐싱_전략.md
+  - index.md

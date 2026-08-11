@@ -1,5 +1,3 @@
 title: AI
 nav:
-  - Bedrock: Bedrock.md
-  - SageMaker 실무 활용: Sage_Maker.md
-  - Amazon Q: Amazon_Q.md
+  - index.md

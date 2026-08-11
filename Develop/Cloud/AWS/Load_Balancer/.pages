@@ -1,14 +1,3 @@
 title: Load Balancer
 nav:
-  - 로드 밸런서: LB.md
-  - Elastic Load Balancer: ELB.md
-  - ALB:
-    - 개요: ALB.md
-    - ALB vs API Gateway 비교: ALB vs API Gateway.md
-    - 내장 인증: ALB_Authentication.md
-    - 기반 Blue/Green 무중단 배포: ALB_Blue_Green_Deployment.md
-    - ALB에 커스텀 도메인 연결: ALB_Domain_Connection.md
-    - Lambda 타겟 그룹 심화: ALB_Lambda_Target.md
-    - 5xx 트러블슈팅: ALB_Troubleshooting.md
-  - Gateway Load Balancer: GWLB.md
-  - NLB 단독 운영: NLB.md
+  - index.md

@@ -32,6 +32,10 @@ BLURB = {
 
 SECOND_LEVEL = ["Cloud/AWS", "Cloud/GCP", "DevOps/Linux", "DevOps/Kubernetes", "Language/Java", "Language/JavaScript", "Language/TypeScript"]
 
+# 사이드바 레벨 2 제한 지원: depth 1-3 디렉터리에 허브 페이지 자동 생성
+# gen_nav.py --write 이전에 단독 실행해 index.md 를 미리 만들어 둔다.
+MAX_HUB_DEPTH = 3   # docs_dir 기준 하위 디렉터리 깊이 상한
+
 SKIP_DIRS = {"assets", "javascripts", "stylesheets", "etc", ".omc", "_hub", "로드맵"}
 FM_TITLE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
 
@@ -133,17 +137,37 @@ def _build_one(docs_dir, key, counts):
                     f.write(txt)
 
 
+def _collect_keys(docs_dir, max_depth=MAX_HUB_DEPTH):
+    """docs_dir 아래 depth 1~max_depth 의 모든 디렉터리 키를 모은다."""
+    keys = []
+
+    def _scan(rel_parts):
+        if len(rel_parts) > max_depth:
+            return
+        full = os.path.join(docs_dir, *rel_parts) if rel_parts else docs_dir
+        try:
+            entries = sorted(os.listdir(full))
+        except OSError:
+            return
+        for e in entries:
+            if e.startswith(".") or e in SKIP_DIRS:
+                continue
+            child = os.path.join(full, e)
+            if not os.path.isdir(child):
+                continue
+            child_key = "/".join(rel_parts + [e])
+            keys.append(child_key)
+            _scan(rel_parts + [e])
+
+    _scan([])
+    return keys
+
+
 def on_pre_build(config, **kwargs):
     docs_dir = config["docs_dir"]
     counts = {}
 
-    for name in sorted(os.listdir(docs_dir)):
-        path = os.path.join(docs_dir, name)
-        if not os.path.isdir(path) or name.startswith(".") or name in SKIP_DIRS:
-            continue
-        _build_one(docs_dir, name, counts)
-
-    for key in SECOND_LEVEL:
+    for key in _collect_keys(docs_dir):
         _build_one(docs_dir, key, counts)
 
     # 홈 카드가 읽을 단일 소스. 카드와 섹션 페이지가 같은 값을 쓰게 해서
@@ -151,3 +175,13 @@ def on_pre_build(config, **kwargs):
     import json
     with open(os.path.join(docs_dir, "section_counts.json"), "w", encoding="utf-8") as f:
         json.dump(counts, f, ensure_ascii=False)
+
+
+if __name__ == "__main__":
+    import json
+    import sys
+    docs_dir = sys.argv[1] if len(sys.argv) > 1 else "Develop"
+    counts = {}
+    for key in _collect_keys(docs_dir):
+        _build_one(docs_dir, key, counts)
+    print(f"허브 페이지 생성 완료: {len(counts)}개 섹션")

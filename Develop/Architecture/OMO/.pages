@@ -1,3 +1,4 @@
 nav:
+  - index.md
   - 아키텍처: Online_Merge_Offline.md
   - 운영 실무: OMO_운영_실무.md

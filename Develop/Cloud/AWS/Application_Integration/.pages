@@ -1,12 +1,3 @@
 title: App 연동
 nav:
-  - MQ 운영 노트: Amazon_MQ.md
-  - AppSync: App_Sync.md
-  - EventBridge: EventBridge.md
-  - Kinesis: Kinesis.md
-  - MSK: MSK.md
-  - SES: SES.md
-  - SNS: SNS.md
-  - SNS·SQS·Lambda 파이프라인: SNS_SQS_Lambda_통합_메시지_파이프라인.md
-  - SQS와 SNS 연동: SQS.md
-  - Step Functions: Step_Functions.md
+  - index.md

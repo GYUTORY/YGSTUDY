@@ -1,4 +1,3 @@
 title: 애플리케이션 서버
 nav:
-  - EE (Jakarta EE): Java EE.md
-  - Servlet: Java Servlet.md
+  - index.md

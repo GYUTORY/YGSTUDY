@@ -4,10 +4,9 @@ nav:
   - Language
   - Backend:
     - Framework
-    - Backend
+    - API·인증: Backend
     - Architecture
-  - Data:
-    - DataBase
+  - Database: DataBase
   - Infra:
     - Cloud
     - DevOps

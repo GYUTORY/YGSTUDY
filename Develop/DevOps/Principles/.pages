@@ -1,5 +1,6 @@
 title: Principles
 nav:
+  - index.md
   - 인프라 용량 산정: Infrastructure_Capacity_Planning.md
   - 클라우드 인프라 비용 최적화: Infrastructure_Cost_Optimization.md
   - 인프라 설계 원칙: Infrastructure_Design_Principles.md

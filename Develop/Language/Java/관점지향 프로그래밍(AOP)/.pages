@@ -1,4 +1,3 @@
 title: AOP
 nav:
-  - AOP 심화: AOP_Deep_Dive.md
-  - 관점지향 프로그래밍 (AOP): 관점지향 프로그래밍.md
+  - index.md

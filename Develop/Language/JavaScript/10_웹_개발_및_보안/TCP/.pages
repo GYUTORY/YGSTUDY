@@ -1,3 +1,2 @@
 nav:
-  - Node.js Buffer TCP: NodeJs Buffer와 TCP.md
-  - Socket Manage: Socket Manage.md
+  - index.md

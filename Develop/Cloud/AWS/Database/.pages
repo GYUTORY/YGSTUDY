@@ -1,26 +1,3 @@
 title: Database
 nav:
-  - Aurora:
-    - MySQL vs RDS for MySQL: Aurora_DB.md
-    - DB Cluster Failover: Aurora_DB_Cluster.md
-    - MySQL에서의 JSON 타입 실무: Aurora_My_SQL_JSON.md
-    - MySQL Serverless v2 운영: Aurora_Serverless_V2.md
-    - MySQL 메이저 버전 업그레이드: Aurora_Version_Upgrade.md
-  - DAX: DAX.md
-  - DB Proxy: DB_Proxy.md
-  - DMS: DMS.md
-  - DocumentDB: Document_DB.md
-  - DynamoDB: DynamoDB.md
-  - ElastiCache: ElastiCache.md
-  - MemoryDB: Memory_DB.md
-  - Neptune: Neptune.md
-  - RDS:
-    - 개요: RDS.md
-    - Backup & Snapshot: RDS_Backup_Snapshot.md
-    - Blue/Green Deployment: RDS_Blue_Green_Deployment.md
-    - Multi-AZ: RDS_Multi_AZ.md
-    - Parameter Groups: RDS_Parameter_Groups.md
-    - Performance 진단: RDS_Performance_Insights.md
-    - 보안: RDS_Security.md
-    - Storage: RDS_Storage.md
-  - Timestream: Timestream.md
+  - index.md

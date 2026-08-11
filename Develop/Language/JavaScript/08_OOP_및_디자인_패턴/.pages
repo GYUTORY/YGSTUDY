@@ -1,4 +1,3 @@
 title: OOP & 디자인 패턴
 nav:
-  - JSDoc: JsDoc - 1.md
-  - static 멤버: static.md
+  - index.md

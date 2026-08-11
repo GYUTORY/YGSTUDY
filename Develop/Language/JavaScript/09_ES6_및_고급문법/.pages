@@ -1,10 +1,3 @@
 title: ES6 & 고급 문법
 nav:
-  - URL 인코딩 비교: Base64_Encode_URI_Component_URL_Search_Params.md
-  - encodeURIComponent: Encode_URI_Component_Decode_URI_Component.md
-  - Spread & Rest 연산자: Spread & Rest 연산자.md
-  - Truthy와 Falsy: Truthy__Falsy.md
-  - encodeURI: encodeURI.md
-  - ES6 Class: ES6 Class.md
-  - ESM과 CommonJS: ESM과 CommonJS.md
-  - Getter Setter: Getter & Setter.md
+  - index.md

@@ -1,5 +1,6 @@
 title: DDD 심화
 nav:
+  - index.md
   - Bounded Context: Bounded_Context.md
   - 빌딩 블록 (전술적 설계): DDD_Building_Blocks.md
   - 도메인 이벤트: Domain_Event.md

@@ -2,17 +2,19 @@ nav:
   - index.md
   - 개념: Concepts
   - Claude
-  - Claude_Code
-  - Cursor
-  - GitHub Copilot: GitHub_Copilot/GitHub_Copilot.md
-  - Codex: Codex/Codex.md
+  - Claude Code: Claude_Code
   - Gemini
-  - GPT: GPT/GPT_5_5.md
-  - Grok: Grok/Grok.md
-  - Qwen: Qwen/Qwen.md
-  - DeepSeek: DeepSeek/Deep_Seek.md
-  - Ollama: Ollama/Ollama.md
-  - MCP
-  - CodeSight: CodeSight/Code_Sight_Wiki.md
-  - Clawsweeper: Clawsweeper/Clawsweeper.md
-  - GBrain: GBrain/G_Brain.md
+  - AI 모델:
+    - GPT: GPT/GPT_5_5.md
+    - Grok: Grok/Grok.md
+    - DeepSeek: DeepSeek/Deep_Seek.md
+    - Qwen: Qwen/Qwen.md
+    - GBrain: GBrain/G_Brain.md
+    - Ollama: Ollama/Ollama.md
+  - 개발 도구:
+    - Cursor
+    - MCP
+    - GitHub Copilot: GitHub_Copilot/GitHub_Copilot.md
+    - Codex: Codex/Codex.md
+    - CodeSight: CodeSight/Code_Sight_Wiki.md
+    - Clawsweeper: Clawsweeper/Clawsweeper.md

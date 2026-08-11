@@ -1,35 +1,3 @@
 title: Spring
 nav:
-  - 테스트: Spring_Test.md
-  - JPA 소프트 삭제: JPA_Soft_Delete.md
-  - DI와 Bean:
-    - Bean 개념과 사용법: Bean.md
-    - Bean 심화: Spring_Bean_심화.md
-    - AOP & 트랜잭션 심화: AOP_트랜잭션.md
-    - Profiles 심화: Spring Boot Profiles.md
-  - 웹 계층:
-    - MVC와 REST API 설계: Spring_MVC_REST_API.md
-    - WebFlux: Spring_WebFlux.md
-    - SSE: Spring_SSE.md
-    - Security: Spring_Security.md
-    - Rate Limiting 구현: Rate_Limiting.md
-  - 데이터 접근:
-    - Data JPA: Spring_Data_JPA.md
-    - Data JPA 심화: Spring_Data_JPA_Advanced.md
-    - JPA @Lock 어노테이션 비교: JPA_Lock_Annotations.md
-    - 낙관적 락 재시도 처리: Optimistic_Lock_Retry_Pattern.md
-    - Cache: Spring_Cache.md
-  - 배치와 분산:
-    - Batch: Spring_Batch.md
-    - Cloud MSA: Spring_Cloud.md
-  - 로깅:
-    - Spring 로깅: Spring_Logging.md
-    - SLF4J: SLF4J.md
-  - Lombok:
-    - Project Lombok: Lombok.md
-    - Lombok 심화: Lombok_Deep_Dive.md
-    - 보조 어노테이션: Lombok_Minor_Annotations.md
-  - 빌드와 마이그레이션:
-    - Gradle vs Maven: Gradle__vs__Maven.md
-    - Boot 2.x vs 3.x 의사결정: Boot2.0__vs__Boot3.0.md
-    - Boot 2.x→3.x 마이그레이션: Spring_Boot_Migration_2_to_3.md
+  - index.md

@@ -1,5 +1,2 @@
 nav:
-  - 개요: Collection_Framework.md
-  - EnumSet: EnumSet.md
-  - EnumSet 심화: Enum_Set_Deep_Dive.md
-  - Queue: Queue.md
+  - index.md

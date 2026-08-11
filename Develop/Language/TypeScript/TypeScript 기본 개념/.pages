@@ -1,8 +1,3 @@
 title: TypeScript 기본
 nav:
-  - export default 심화: Export_Default와_Default_New.md
-  - TypeScript: TypeScript.md
-  - tsc와 ts-node의 차이: tsc vs ts-node.md
-  - tsc-alias: tsc-alias.md
-  - 생성자: 생성자.md
-  - 데코레이터: Decorator.md
+  - index.md

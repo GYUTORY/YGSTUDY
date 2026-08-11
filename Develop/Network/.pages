@@ -27,3 +27,5 @@ nav:
   - GateWay
   - Proxy
   - Security
+  - IO
+  - Observability

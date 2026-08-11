@@ -1,3 +1,2 @@
 nav:
-  - IAM: GCP_IAM.md
-  - IAM Deny Policy: IAM_Deny_Policy.md
+  - index.md

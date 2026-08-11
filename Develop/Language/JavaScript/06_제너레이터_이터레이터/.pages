@@ -1,4 +1,3 @@
 title: 제너레이터 & 이터레이터
 nav:
-  - 무한 시퀀스 생성: 무한 시퀀스 생성.md
-  - Generator: 제너레이터 함수의 사용.md
+  - index.md

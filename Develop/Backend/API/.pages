@@ -1,5 +1,6 @@
 title: API Design
 nav:
+  - index.md
   - 설계 패턴: API_Design_Patterns.md
   - REST 리소스 모델링 심화: REST_Resource_Modeling.md
   - 버저닝 실무: API_Versioning.md

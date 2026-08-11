@@ -22,6 +22,18 @@ WRITE = '--write' in sys.argv
 # 사이드바 라벨 길이 목표 (넘으면 부제를 떼어낸다)
 LABEL_SOFT_MAX = 20
 
+# 사이드바 최대 노출 깊이 (ROOT = 0 기준).
+# depth > MAX_SIDEBAR_DEPTH 인 디렉터리는 index.md 하나만 .pages 에 기록한다.
+# 허브 페이지(index.md)는 section_index.py 가 빌드 시점에 자동 생성한다.
+# 예) Develop/Cloud/AWS/Compute = depth 3 > 2 → index.md 만 노출
+MAX_SIDEBAR_DEPTH = 2
+
+# 이 디렉터리의 .pages 는 수동으로 관리한다. gen_nav.py 가 덮어쓰지 않는다.
+# Develop/.pages 는 이미 루트 스킵 로직으로 보호되므로 여기엔 포함하지 않는다.
+MANUAL_DIRS = {
+    'Develop/AI',   # AI 섹션은 6-그룹 구조로 수동 큐레이션
+}
+
 
 # ---------------------------------------------------------------- 제목 읽기
 
@@ -1207,6 +1219,9 @@ def walk_and_generate():
             # 루트 .pages는 7개 최상위 그룹 구조로 수동 관리한다.
             # gen_nav.py가 덮어쓰지 않도록 스킵. (Develop/.pages 참고)
             continue
+        if dirpath.replace(os.sep, '/') in MANUAL_DIRS:
+            # 수동 관리 디렉터리 — .pages 를 건드리지 않는다
+            continue
         # 문서 1개짜리 디렉터리는 부모가 흡수했으므로 .pages 불필요.
         # 단 최상위 섹션은 흡수 대상이 아니므로 그대로 둔다.
         if only_md(dirpath) and os.path.dirname(dirpath) != ROOT:
@@ -1216,7 +1231,30 @@ def walk_and_generate():
             generated[dirpath] = None
             continue
         ancestors = parts[1:-1]
-        entries = build(dirpath, ancestors)
+        depth = len(parts) - 1  # ROOT = 0, ROOT/child = 1, ...
+        if depth > MAX_SIDEBAR_DEPTH:
+            # depth 3+ 는 sidebar 에서 제거: index.md(허브) 하나만 노출.
+            # 이 index.md 는 section_index.py 가 빌드 시점에 자동 생성한다.
+            index_exists = os.path.exists(os.path.join(dirpath, 'index.md'))
+            if index_exists:
+                entries = [(None, 'index.md')]
+            else:
+                # index.md 아직 없음(첫 실행) → 파일 목록 그대로, 서브디렉터리는 제외
+                files, _ = children(dirpath)
+                dirname = os.path.basename(dirpath)
+                overview_f = next(
+                    (f for f in files if f != 'index.md' and
+                     os.path.splitext(f)[0].replace('_', '').lower() ==
+                     dirname.replace('_', '').lower()), None)
+                entries = []
+                for f in files:
+                    if f == overview_f:
+                        entries.insert(0, ('개요', f))
+                    else:
+                        entries.append((make_label(os.path.join(dirpath, f),
+                                                    ancestors + [dirname]), f))
+        else:
+            entries = build(dirpath, ancestors)
         key = dirpath.replace(os.sep, '/')
         title = TITLE_OVERRIDE.get(key, existing_title(dirpath))
         generated[dirpath] = write_pages(dirpath, entries, title)[1]

@@ -1,7 +1,3 @@
 title: Analytics
 nav:
-  - Athena (S3 서버리스 SQL): Athena.md
-  - Glue (서버리스 ETL): Glue.md
-  - OpenSearch: Open_Search.md
-  - QuickSight: Quick_Sight.md
-  - Redshift (데이터 웨어하우스): Redshift.md
+  - index.md

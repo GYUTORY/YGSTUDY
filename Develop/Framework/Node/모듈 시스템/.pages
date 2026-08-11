@@ -1,9 +1,3 @@
 title: 모듈 시스템
 nav:
-  - CommonJS vs ESM: CommonJS vs ESM.md
-  - npm & package.json: npm.md
-  - npm ci와 bin: npm_ci_vs_bin.md
-  - npx: npx.md
-  - pnpm: pnpm.md
-  - pnpm-lock·catalog: Pnpm_Lock_and_Catalog.md
-  - Dual Package Build: Dual_Package_Build.md
+  - index.md

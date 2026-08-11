@@ -1,4 +1,5 @@
 title: Performance
 nav:
+  - index.md
   - RPS: RPS.md
   - TPS와 RPS: TPS_and_RPS.md

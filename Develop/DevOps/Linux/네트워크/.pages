@@ -1,5 +1,3 @@
 title: 네트워크
 nav:
-  - 네트워크 관리 심화: Network_Management_Deep_Dive.md
-  - 관리: 네트워크_관리.md
-  - 네트워크 트러블슈팅: 네트워크_트러블슈팅.md
+  - index.md

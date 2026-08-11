@@ -1,9 +1,3 @@
 title: 디자인 패턴 & 원칙
 nav:
-  - Dependency Injection: Dependency_Injection.md
-  - Generics: Generics.md
-  - IoC: Ioc(Inversion of Control).md
-  - 함수형 인터페이스 실무 활용: Java_Functional_Interface.md
-  - Proxy Pattern: Java_Proxy_Pattern.md
-  - Reflection: Reflection.md
-  - 단일 책임 원칙: 단일 책임 원칙.md
+  - index.md

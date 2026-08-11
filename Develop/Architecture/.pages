@@ -1,6 +1,5 @@
 title: Architecture
 nav:
-  - index.md
   - 클린 아키텍처: Clean_Architecture.md
   - MVP: MVP.md
   - MVVM: MVVM.md
@@ -22,3 +21,4 @@ nav:
     - Bounded Context: DDD/Bounded_Context.md
     - 빌딩 블록 (전술적 설계): DDD/DDD_Building_Blocks.md
     - 도메인 이벤트: DDD/Domain_Event.md
+    - 전체 보기: DDD/index.md

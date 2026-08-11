@@ -1,4 +1,5 @@
 title: Coordination
 nav:
+  - index.md
   - etcd: etcd.md
   - Apache ZooKeeper: Apache_Zoo_Keeper.md

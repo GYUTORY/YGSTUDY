@@ -1,6 +1,2 @@
 nav:
-  - any 타입 심화: Any_Type_Deep_Dive.md
-  - any 타입: any.md
-  - never 타입: never.md
-  - object 타입: object.md
-  - unknown 타입: unknown.md
+  - index.md

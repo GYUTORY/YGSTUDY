@@ -1,5 +1,6 @@
 title: Monitoring
 nav:
+  - index.md
   - Prometheus:
     - 개요: Prometheus.md
     - 메트릭 수집: Prometheus_메트릭_수집.md
