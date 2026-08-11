@@ -3,5 +3,5 @@ nav:
   - 멀티스레딩: Multi_Threading.md
   - 동시성 심화: Java_Concurrency.md
   - 멀티스레딩과 동시성 제어 심화: Java_Concurrency_Deep_Dive.md
-  - java.util.concurrent 동기화 유틸리티 심화: Java_Util_Concurrent_Sync_Utilities.md
+  - concurrent 유틸리티: Java_Util_Concurrent_Sync_Utilities.md
   - 가상 스레드: Java_Virtual_Threads.md

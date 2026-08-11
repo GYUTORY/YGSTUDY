@@ -2,7 +2,7 @@ title: 런타임 구조
 nav:
   - AsyncLocalStorage: Async_Local_Storage.md
   - Cluster (클러스터): Cluster.md
-  - Cluster vs Worker Threads: Cluster와 Multi Thread.md
+  - Cluster vs Worker: Cluster와 Multi Thread.md
   - EventEmitter: Event_Emitter.md
   - 이벤트 루프 심화: Event_Loop.md
   - 구조와 작동 원리: Node.md

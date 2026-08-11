@@ -31,7 +31,7 @@ nav:
     - JWKS URL: JWKS_Endpoint.md
     - Session Management: Session_Management.md
     - Cookie Security: Cookie_Security.md
-    - WebAuthn / FIDO2 / Passkeys: Web_Authn_Passkeys.md
+    - WebAuthn·Passkeys: Web_Authn_Passkeys.md
     - 모바일 앱 토큰 저장: Mobile_Token_Storage.md
   - 웹 취약점:
     - XSS: XSS.md
@@ -55,7 +55,7 @@ nav:
     - DNS Security: DNS_Security.md
     - 공급망 공격 방어: Supply_Chain_Security.md
   - 인프라 보안:
-    - Zero Trust Architecture: Zero_Trust_Architecture.md
+    - Zero Trust: Zero_Trust_Architecture.md
     - Docker 컨테이너 보안: Container_Security.md
     - 쿠버네티스 보안: Kubernetes_Security.md
     - 시크릿 관리: Secrets_Management.md
@@ -71,6 +71,6 @@ nav:
     - AI로 보안 강화하기: AI_for_Security.md
     - DID: DID.md
   - SQL Injection:
-    - SQL Injection: SQL_인젝션.md
+    - 개요: SQL_인젝션.md
     - 심화: SQL_Injection.md
     - 진단과 테스트: SQL_Injection_Testing.md

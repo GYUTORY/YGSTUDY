@@ -1,5 +1,5 @@
 nav:
-  - Claude Code: Claude_Code.md
+  - 개요: Claude_Code.md
   - 기능:
     - 모델 선택: Claude_Code_Model.md
     - Agent 시스템: Claude_Code_Agent.md
@@ -9,7 +9,7 @@ nav:
     - Auto Mode: Claude_Code_Auto_Mode.md
   - 병렬 작업:
     - 오케스트레이션: Claude_Code_Orchestration.md
-    - OMC (Orchestrated Multi-Claude): Claude_Code_OMC.md
+    - OMC: Claude_Code_OMC.md
     - Worktree: Claude_Code_Worktree.md
     - Worktree 병렬 스크립트: Claude_Code_Worktree_Script.md
     - 롱잡 운영: Claude_Code_Long_Job.md

@@ -9,5 +9,5 @@ nav:
   - 직렬화(Serialization): Serialization.md
   - 직렬화 포맷 심화: Serialization_Formats_Deep_Dive.md
   - 비트 단위 논리 연산: 비트 단위 논리 연산.md
-  - 엔디언과 2의 보수, IEEE 754 부동소수점: 엔디언과 2의 보수, IEEE 754 부동소수점.md
+  - 엔디언·부동소수점: 엔디언과 2의 보수, IEEE 754 부동소수점.md
   - Encoding

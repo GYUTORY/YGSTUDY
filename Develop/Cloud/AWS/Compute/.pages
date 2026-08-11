@@ -1,23 +1,23 @@
 title: Compute
 nav:
   - EC2:
-    - EC2: EC2.md
-    - Instance Metadata Service 심화: EC2_Instance_Metadata_Service.md
+    - 개요: EC2.md
     - 인스턴스 유형: EC2_Types.md
     - T 시리즈 인스턴스: EC2_T-시리즈.md
     - Nitro System: EC2_Nitro_System.md
     - 구매 옵션: EC2_Purchase_Options.md
-    - On-Demand Capacity 예약: EC2_Capacity_Reservation.md
     - 테넌시와 Dedicated Hosts: EC2_Tenancy_Dedicated_Hosts.md
     - Fleet과 Spot Fleet: EC2_Fleet.md
+  - Instance Metadata: EC2_Instance_Metadata_Service.md
+  - On-Demand Capacity 예약: EC2_Capacity_Reservation.md
   - Auto Scaling: Auto_Scaling.md
   - ASG 라이프사이클 훅: Auto_Scaling_Lifecycle_Hooks.md
   - Lambda:
-    - AWS Lambda: Lambda.md
+    - 개요: Lambda.md
     - 콜드 스타트 심화: Lambda_Cold_Start_심화.md
     - VPC 연동 심화: Lambda_VPC_연동.md
     - 배포와 패키징 심화: Lambda_배포_패키징.md
-    - 무중단 배포 Traffic Shifting: Lambda_Traffic_Shifting.md
+    - 무중단 배포: Lambda_Traffic_Shifting.md
   - Elastic Beanstalk: Elastic_Beanstalk.md
   - Batch 대량 배치 작업 처리: AWS_Batch.md
   - App Runner 심화: App_Runner.md

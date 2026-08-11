@@ -1,6 +1,6 @@
 title: Caddy
 nav:
-  - Caddy 개요: Caddy.md
+  - 개요: Caddy.md
   - 설정:
     - Caddyfile 문법 심화: Caddyfile_Syntax.md
     - Admin API와 JSON 설정: Admin_API.md
@@ -12,7 +12,7 @@ nav:
   - 보안:
     - SSL/TLS 심화: SSL_TLS.md
     - 인증 처리: Authentication.md
-    - Rate Limiting (Nginx 비교): Rate_Limiting.md
+    - Rate Limiting: Rate_Limiting.md
   - 운영:
     - 로깅과 관찰성: Logging_Monitoring.md
     - 커스텀 xcaddy 이미지 CI/CD: Docker_Caddy_Image_CICD_Pipeline.md

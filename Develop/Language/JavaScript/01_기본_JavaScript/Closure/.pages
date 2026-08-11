@@ -1,5 +1,5 @@
 nav:
-  - JavaScript 클로저와 렉시컬 스코프: Closure.md
+  - 개요: Closure.md
   - 클로저와 렉시컬 스코프 심화: Closure_Lexical_Scope_Deep_Dive.md
-  - 백엔드 실무에서 클로저를 설계 도구로 쓰는 패턴: Closure_Practical_Patterns.md
+  - 클로저 설계 패턴: Closure_Practical_Patterns.md
   - 렉시컬 스코프와 클로저의 관계: 렉시컬 스코프와 클로저의 관계.md

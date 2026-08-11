@@ -35,13 +35,13 @@ nav:
   - 분산 처리:
     - 마이크로서비스: Nest_JS_마이크로서비스.md
     - gRPC 트랜스포트 심화: Nest_JS_g_RPC.md
-    - Event Emitter / CQRS 심화: Nest_JS_Event_Emitter_CQRS.md
+    - Event Emitter·CQRS: Nest_JS_Event_Emitter_CQRS.md
     - 작업 큐 (BullMQ) 운영기: Nest_JS_작업_큐_Bull_MQ.md
     - Schedule Module 심화: Nest_JS_Schedule_Module.md
   - 운영:
     - 설정 관리: Nest_JS_설정_관리.md
-    - Type-safe ConfigService: Type_Safe_Config_Service.md
-    - AWS Secrets Manager와 KMS: Nest_JS_AWS_Secrets_Manager_KMS.md
+    - ConfigService 타입안전: Type_Safe_Config_Service.md
+    - Secrets Manager·KMS: Nest_JS_AWS_Secrets_Manager_KMS.md
     - 인증 (JWT · Passport): Nest_JS_인증_JWT_Passport.md
     - Throttler 심화: Nest_JS_Throttler.md
     - 로깅 실무: Nest_JS_Logging.md

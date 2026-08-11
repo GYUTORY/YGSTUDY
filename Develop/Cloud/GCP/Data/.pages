@@ -1,7 +1,7 @@
 nav:
   - BigQuery: Big_Query.md
   - Cloud SQL:
-    - Cloud SQL (MySQL / PostgreSQL): Cloud_SQL.md
+    - 개요: Cloud_SQL.md
     - 성능 분석: Cloud_SQL_Performance.md
     - 마이그레이션: Cloud_SQL_Migration.md
   - Cloud Storage (GCS): Cloud_Storage.md

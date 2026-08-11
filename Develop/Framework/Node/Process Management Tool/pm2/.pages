@@ -1,4 +1,4 @@
 nav:
-  - PM2 Node.js: pm2.md
+  - 개요: pm2.md
   - Ecosystem File: ecosystem.md
   - Cluster Mode: 클러스터_모드.md

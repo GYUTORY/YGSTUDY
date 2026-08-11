@@ -1,5 +1,5 @@
 nav:
-  - RPC (Remote Procedure Call): RPC.md
+  - 개요: RPC.md
   - NFS: NFS.md
   - WSDL: WSDL.md
   - gRPC: gRPC.md

@@ -10,6 +10,6 @@ nav:
   - Resilience
   - Standards
   - i18n
-  - Scheduling
-  - Security
-  - Tools
+  - 미래 예약 저장: Scheduling/Future_Reservation_Storage.md
+  - 보안 감사 로깅: Security/Security_Logging_and_Auditing.md
+  - Semble: Tools/Semble.md

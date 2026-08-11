@@ -104,6 +104,60 @@ ORDER_OVERRIDE = {
     ],
 }
 
+
+# 특정 파일에 대한 라벨 직접 지정 (자동 단축 규칙으로 20자 이하로 줄이기 어려운 경우)
+LABEL_OVERRIDE = {
+    'Develop/DevOps/Kubernetes/Docker/Jenkins와 Docker로 Git 자동 배포 시스템 구축하기.md': 'Jenkins CI/CD 구축',
+    'Develop/Framework/Node/아키텍처/Event_Driven_Architecture_with_AWS.md': 'Event-Driven with AWS',
+    'Develop/Language/JavaScript/09_ES6_및_고급문법/Encode_URI_Component_Decode_URI_Component.md': 'encodeURIComponent',
+    'Develop/Language/JavaScript/04_심화_JavaScript/Symbol_Weak_Ref.md': 'WeakRef 심화',
+    'Develop/Language/JavaScript/09_ES6_및_고급문법/Base64_Encode_URI_Component_URL_Search_Params.md': 'URL 인코딩 비교',
+    'Develop/Framework/Node/모듈 시스템/npm.md': 'npm & package.json',
+    'Develop/Language/JavaScript/04_심화_JavaScript/JavaScript에서 2진수, 10진수, 16진수 다루기.md': '2진수·10진수·16진수',
+    'Develop/Language/JavaScript/01_기본_JavaScript/Closure/Closure_Practical_Patterns.md': '클로저 설계 패턴',
+    'Develop/Cloud/AWS/Compute/EC2_Capacity_Reservation.md': 'On-Demand Capacity 예약',
+    'Develop/Cloud/AWS/Compute/EC2_Instance_Metadata_Service.md': 'Instance Metadata',
+    'Develop/Cloud/AWS/Containers/ECS_Task_Failure_Troubleshooting.md': 'stoppedReason 디버깅',
+    'Develop/Cloud/AWS/Database/RDS_Performance_Insights.md': 'RDS Performance 진단',
+    'Develop/Cloud/AWS/Application_Integration/SNS_SQS_Lambda_통합_메시지_파이프라인.md': 'SNS·SQS·Lambda 파이프라인',
+    'Develop/Cloud/AWS/Load_Balancer/ALB.md': 'ALB',
+    'Develop/Cloud/AWS/Load_Balancer/ALB vs API Gateway.md': 'ALB vs API Gateway 비교',
+    'Develop/Cloud/AWS/Load_Balancer/GWLB.md': 'Gateway Load Balancer',
+    'Develop/Cloud/AWS/Containers/ECS_DB_Connection_Pool_관리.md': 'Task DB 커넥션 풀 관리',
+    'Develop/Cloud/AWS/Containers/ECS_Infrastructure_Task_Relationship.md': 'Task Definition 관계',
+    'Develop/Cloud/AWS/Containers/ECS_Task_Scale_Out_부작용.md': 'Task Scale Out 부작용',
+    'Develop/Cloud/AWS/Containers/App_Mesh.md': 'App Mesh',
+    'Develop/AI/Concepts/Lang_Chain_vs_SDK.md': 'LangChain vs 순수 SDK',
+    'Develop/AI/Concepts/RAG_Evaluation.md': 'RAG 품질 평가',
+    'Develop/Backend/Messaging/Kafka_Consumer_Group_Rebalancing.md': 'Consumer Group 재조정',
+    'Develop/Backend/Authentication/O_Auth2_OIDC_Flows.md': 'OAuth·OIDC Flow 심화',
+    'Develop/Backend/Messaging/Kafka_Exactly_Once_Semantics.md': 'Kafka EOS',
+    'Develop/Backend/Resilience/Rate_Limiting_and_Bulkhead.md': 'Rate Limiting·Bulkhead',
+    'Develop/Language/Java/컬렉션 및 데이터 처리/Serialization_Deserialization.md': '직렬화·역직렬화',
+    'Develop/Language/Java/자바 디자인 패턴 및 원칙/단일 책임 원칙.md': '단일 책임 원칙',
+    'Develop/Language/Java/멀티스레딩 및 동시성/Java_Util_Concurrent_Sync_Utilities.md': 'concurrent 유틸리티',
+    'Develop/Network/7 Layer/Network Layer/MTU_MSS_PMTUD.md': 'MTU·MSS 심화',
+    'Develop/DevOps/Git/Git_Worktree_Submodule_LFS.md': 'Worktree·Submodule·LFS',
+    'Develop/Language/TypeScript/타입 유틸리티/module과 moduleResolution.md': 'moduleResolution',
+    'Develop/Language/TypeScript/TypeScript 기본 개념/Export_Default와_Default_New.md': 'export default 심화',
+    'Develop/Language/TypeScript/프로젝트 설정 및 컴파일러/tsc-alias와 workspace 함께 사용하기.md': 'tsc-alias·workspace',
+    'Develop/DataBase/DataRepresentation/엔디언과 2의 보수, IEEE 754 부동소수점.md': '엔디언·부동소수점',
+    'Develop/Architecture/MSA/Expand_Migrate_Contract.md': 'EMC 패턴',
+    'Develop/Architecture/Design Pattern/Abstract_Factory_Pattern.md': '추상 팩토리 패턴',
+    'Develop/Framework/Node/API/Rate_Limiting.md': 'Rate Limiting·Bulkhead',
+    'Develop/Backend/Standards/Instant_vs_Local_Date_Time.md': 'Instant vs LocalDT',
+    'Develop/Language/Java/객체지향 프로그래밍 (OOP)/interface/Abstract Class__vs__Interface.md': 'Abstract vs Interface',
+    'Develop/Framework/Node/Nodejs의 구조 및 작동 원리/Cluster와 Multi Thread.md': 'Cluster vs Worker',
+    'Develop/Language/JavaScript/05_이벤트_루프_비동기/Async_Await_and_Promise.md': 'Async/Await & Promise',
+    'Develop/DataBase/RDBMS/pt_online_schema_change.md': 'Online Schema Change',
+    'Develop/Framework/Node/모듈 시스템/Pnpm_Lock_and_Catalog.md': 'pnpm-lock·catalog',
+    'Develop/Security/Zero_Trust_Architecture.md': 'Zero Trust',
+    'Develop/Algorithm/Graph_Traversal.md': '그래프 탐색 (DFS/BFS)',
+    'Develop/DevOps/Kubernetes/Docker/Docker_Compose_Port_Forwarding.md': 'Port Forwarding',
+    'Develop/_hub/JavaScript_TypeScript.md': 'JS & TypeScript',
+    'Develop/Network/Security/Zero_Trust_CICD_Pipeline.md': 'CI/CD Zero Trust',
+}
+
 # 손으로 짠 묶음.
 # 자동 규칙은 crypto와 fs가 '코어 모듈'이라는 걸 알 수 없다. 낱장 문서가
 # 20개 넘게 평평하게 늘어서는 곳만 여기서 직접 묶는다.
@@ -162,7 +216,7 @@ MANUAL_GROUPS = {
         ('보안', [
             ('SSL/TLS 심화', 'SSL_TLS.md'),
             ('인증 처리', 'Authentication.md'),
-            ('Rate Limiting (Nginx 비교)', 'Rate_Limiting.md'),
+            ('Rate Limiting', 'Rate_Limiting.md'),
         ]),
         ('운영', [
             ('로깅과 관찰성', 'Logging_Monitoring.md'),
@@ -182,7 +236,7 @@ MANUAL_GROUPS = {
         ]),
         ('병렬 작업', [
             ('오케스트레이션', 'Claude_Code_Orchestration.md'),
-            ('OMC (Orchestrated Multi-Claude)', 'Claude_Code_OMC.md'),
+            ('OMC', 'Claude_Code_OMC.md'),
             ('Worktree', 'Claude_Code_Worktree.md'),
             ('Worktree 병렬 스크립트', 'Claude_Code_Worktree_Script.md'),
             ('롱잡 운영', 'Claude_Code_Long_Job.md'),
@@ -228,12 +282,12 @@ MANUAL_GROUPS = {
     ],
     'Develop/Cloud/AWS/Network': [
         ('VPC 네트워킹', [
-            ('Private Subnet vs Public Subnet 심화',
+            ('Private·Public Subnet',
              'Private_Subnet__vs__Public_Subnet.md'),
             ('라우팅 테이블', 'Route_Table.md'),
             ('ENI', 'Elastic_Network_Interface.md'),
             ('NAT Gateway', 'Nat_Gateway.md'),
-            ('Security Groups vs NACLs', 'Security_Groups_vs_NACLs.md'),
+            ('SG vs NACLs', 'Security_Groups_vs_NACLs.md'),
             ('네트워크 구성요소 비유로 이해하기',
              'AWS_Network_Components_Analogy.md'),
         ]),
@@ -241,7 +295,7 @@ MANUAL_GROUPS = {
             ('Transit Gateway', 'Transit_Gateway.md'),
             ('PrivateLink', 'PrivateLink.md'),
             ('Direct Connect', 'Direct_Connect.md'),
-            ('Site-to-Site VPN & Client VPN', 'Site_to_Site_VPN.md'),
+            ('Site-to-Site VPN', 'Site_to_Site_VPN.md'),
         ]),
         ('엣지와 배포', [
             ('CloudFront', 'CDN.md'),
@@ -293,7 +347,7 @@ MANUAL_GROUPS = {
         ('빌드와 마이그레이션', [
             ('Gradle vs Maven', 'Gradle__vs__Maven.md'),
             ('Boot 2.x vs 3.x 의사결정', 'Boot2.0__vs__Boot3.0.md'),
-            ('Boot 2.x → 3.x 마이그레이션 심화',
+            ('Boot 2.x→3.x 마이그레이션',
              'Spring_Boot_Migration_2_to_3.md'),
         ]),
     ],
@@ -317,7 +371,7 @@ MANUAL_GROUPS = {
         ('데이터 일관성', [
             ('데이터 관리 패턴', '데이터_관리_패턴.md'),
             ('Saga 패턴 및 분산 트랜잭션', 'Saga_패턴_및_분산_트랜잭션.md'),
-            ('Transactional Outbox 패턴', '트랜잭셔널_아웃박스_패턴.md'),
+            ('Transactional Outbox', '트랜잭셔널_아웃박스_패턴.md'),
             ('이벤트 소싱과 CQRS', '이벤트_소싱_및_CQRS.md'),
             ('분산 캐싱 패턴', '분산_캐싱_패턴.md'),
         ]),
@@ -336,9 +390,9 @@ MANUAL_GROUPS = {
         ('에이전트', [
             ('Agent Harness', 'Agent_Harness.md'),
             ('멀티 에이전트 시스템', 'Multi_Agent_Systems.md'),
-            ('Function Calling / Tool Use', 'Tool_Use.md'),
+            ('Function Calling', 'Tool_Use.md'),
             ('Structured Output', 'Structured_Output.md'),
-            ('effort mode와 reasoning effort', 'Effort_Mode.md'),
+            ('reasoning effort', 'Effort_Mode.md'),
             ('UltraReview', 'Ultra_Review.md'),
         ]),
         ('RAG와 검색', [
@@ -354,7 +408,7 @@ MANUAL_GROUPS = {
             ('할루시네이션', 'AI_Hallucination.md'),
             ('바이브 코딩 보안 대처법', 'Vibe_Coding_Security.md'),
             ('Obsidian 실무', 'Obsidian.md'),
-            ('Karpathy의 LLM + Obsidian 워크플로우',
+            ('LLM+Obsidian 워크플로',
              'Karpathy_LLM_Obsidian.md'),
             ('팔란티어가 AI로 일하는 방식', 'Palantir_AI_Workflow.md'),
             ('로컬 구동 (unsloth/Qwen3)', 'Unsloth_Qwen3_GGUF.md'),
@@ -371,7 +425,7 @@ MANUAL_GROUPS = {
             ('트랜잭션과 Lock', 'Transaction_and_Lock.md'),
             ('격리 수준별 이상 현상 재현', 'Isolation_Level_Anomaly_Examples.md'),
             ('MySQL InnoDB 락 심화', 'My_SQL_Inno_DB_Locking_Deep_Dive.md'),
-            ('PostgreSQL Advisory Lock', 'Postgre_SQL_Advisory_Lock.md'),
+            ('Advisory Lock', 'Postgre_SQL_Advisory_Lock.md'),
             ('분산 트랜잭션', 'Distributed_Transaction.md'),
         ]),
         ('모델링과 정규화', [
@@ -410,7 +464,7 @@ MANUAL_GROUPS = {
             ('데이터베이스 샤딩', '데이터베이스_샤딩.md'),
             ('읽기 전용 복제본', '읽기_전용_복제본.md'),
             ('CDC 파이프라인', 'CDC_Pipeline.md'),
-            ('MySQL vs PostgreSQL 실무 비교', 'My_SQL_vs_Postgre_SQL.md'),
+            ('MySQL vs PostgreSQL', 'My_SQL_vs_Postgre_SQL.md'),
             ('ClickHouse', 'ClickHouse.md'),
         ]),
     ],
@@ -424,7 +478,7 @@ MANUAL_GROUPS = {
         ]),
         ('주소 변환과 연결', [
             ('NAT', 'NAT.md'),
-            ('NAT 트래버설 (STUN·TURN·ICE)', 'NAT_Traversal_STUN_TURN_ICE.md'),
+            ('NAT 트래버설', 'NAT_Traversal_STUN_TURN_ICE.md'),
             ('터널링', 'Tunneling.md'),
             ('배스천 호스트', 'Bastion_Host.md'),
             ('Private DNS', 'Private_DNS.md'),
@@ -471,7 +525,7 @@ MANUAL_GROUPS = {
             ('JWKS URL', 'JWKS_Endpoint.md'),
             ('Session Management', 'Session_Management.md'),
             ('Cookie Security', 'Cookie_Security.md'),
-            ('WebAuthn / FIDO2 / Passkeys', 'Web_Authn_Passkeys.md'),
+            ('WebAuthn·Passkeys', 'Web_Authn_Passkeys.md'),
             ('모바일 앱 토큰 저장', 'Mobile_Token_Storage.md'),
         ]),
         ('웹 취약점', [
@@ -498,7 +552,7 @@ MANUAL_GROUPS = {
             ('공급망 공격 방어', 'Supply_Chain_Security.md'),
         ]),
         ('인프라 보안', [
-            ('Zero Trust Architecture', 'Zero_Trust_Architecture.md'),
+            ('Zero Trust', 'Zero_Trust_Architecture.md'),
             ('Docker 컨테이너 보안', 'Container_Security.md'),
             ('쿠버네티스 보안', 'Kubernetes_Security.md'),
             ('시크릿 관리', 'Secrets_Management.md'),
@@ -555,14 +609,14 @@ MANUAL_GROUPS = {
         ('분산 처리', [
             ('마이크로서비스', 'Nest_JS_마이크로서비스.md'),
             ('gRPC 트랜스포트 심화', 'Nest_JS_g_RPC.md'),
-            ('Event Emitter / CQRS 심화', 'Nest_JS_Event_Emitter_CQRS.md'),
+            ('Event Emitter·CQRS', 'Nest_JS_Event_Emitter_CQRS.md'),
             ('작업 큐 (BullMQ) 운영기', 'Nest_JS_작업_큐_Bull_MQ.md'),
             ('Schedule Module 심화', 'Nest_JS_Schedule_Module.md'),
         ]),
         ('운영', [
             ('설정 관리', 'Nest_JS_설정_관리.md'),
-            ('Type-safe ConfigService', 'Type_Safe_Config_Service.md'),
-            ('AWS Secrets Manager와 KMS', 'Nest_JS_AWS_Secrets_Manager_KMS.md'),
+            ('ConfigService 타입안전', 'Type_Safe_Config_Service.md'),
+            ('Secrets Manager·KMS', 'Nest_JS_AWS_Secrets_Manager_KMS.md'),
             ('인증 (JWT · Passport)', 'Nest_JS_인증_JWT_Passport.md'),
             ('Throttler 심화', 'Nest_JS_Throttler.md'),
             ('로깅 실무', 'Nest_JS_Logging.md'),
@@ -574,7 +628,7 @@ MANUAL_GROUPS = {
     'Develop/Framework/Node': [
         ('프레임워크', [
             ('개요', 'Nodejs_Framework_Overview.md'),
-            ('비교 (Express·Fastify·NestJS·Hapi)', 'Nest_Hapi_Express_fastify.md'),
+            ('프레임워크 비교', 'Nest_Hapi_Express_fastify.md'),
             ('애플리케이션 라우팅', 'Application_Routing.md'),
             ('뷰 엔진 (Handlebars)', 'View_Engine/Handlebars.md'),
         ]),
@@ -796,6 +850,9 @@ def label_ladder(path, ancestors):
 def make_label(path, ancestors, is_overview=False):
     if is_overview:
         return '개요'
+    key = path.replace(os.sep, '/')
+    if key in LABEL_OVERRIDE:
+        return LABEL_OVERRIDE[key]
     return label_ladder(path, ancestors)[0]
 
 
@@ -936,7 +993,7 @@ def build(dirpath, ancestors):
         if match and match != overview:
             merged[d] = match
 
-    rest = [f for f in files if f != overview and f not in merged.values()]
+    rest = [f for f in files if f != overview and f not in merged.values() and f != 'index.md']
     # 문서를 먼저, 하위 섹션을 뒤로. 섞여 있으면 사이드바가 어수선해진다.
     # (각 묶음 안에서는 기존 큐레이션 순서를 지킨다)
     fitems = sorted((('f', f) for f in rest), key=lambda t: (rank(t[1]), t[1]))

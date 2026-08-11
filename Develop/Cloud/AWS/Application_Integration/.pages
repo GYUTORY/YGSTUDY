@@ -7,6 +7,6 @@ nav:
   - MSK: MSK.md
   - SES: SES.md
   - SNS: SNS.md
-  - SNS/SQS/Lambda 통합 메시지 파이프라인: SNS_SQS_Lambda_통합_메시지_파이프라인.md
+  - SNS·SQS·Lambda 파이프라인: SNS_SQS_Lambda_통합_메시지_파이프라인.md
   - SQS와 SNS 연동: SQS.md
   - Step Functions: Step_Functions.md

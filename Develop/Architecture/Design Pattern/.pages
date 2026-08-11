@@ -5,9 +5,10 @@ nav:
   - 행동 패턴 심화: Behavioral_Pattern_Advanced.md
   - Singleton Pattern: Singleton_Pattern.md
   - Factory Method Pattern: Factory Method.md
-  - Abstract Factory Pattern: Abstract_Factory_Pattern.md
+  - 추상 팩토리 패턴: Abstract_Factory_Pattern.md
   - Prototype Pattern: Prototype_Pattern.md
   - Observer Pattern: Observer Pattern.md
   - Proxy Pattern: Proxy_Pattern.md
   - 모듈 패턴: Module_Pattern.md
   - 상태 머신: State_Machine.md
+  - Builder Pattern: Builder_Pattern.md

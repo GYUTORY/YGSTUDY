@@ -4,7 +4,7 @@ nav:
   - 케밥같은 용어들: Naming_Conventions.md
   - 타임존 처리: Timezone_Handling.md
   - UTC 저장: UTC_Storage.md
-  - Instant vs LocalDateTime: Instant_vs_Local_Date_Time.md
+  - Instant vs LocalDT: Instant_vs_Local_Date_Time.md
   - DST (일광 절약 시간): DST.md
   - tzdata 버전 관리: Tzdata_Management.md
   - 타임존 테스트: Timezone_Testing.md

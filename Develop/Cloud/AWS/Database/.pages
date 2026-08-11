@@ -15,12 +15,12 @@ nav:
   - MemoryDB: Memory_DB.md
   - Neptune: Neptune.md
   - RDS:
-    - RDS (Relational Database Service): RDS.md
+    - 개요: RDS.md
     - Backup & Snapshot: RDS_Backup_Snapshot.md
     - Blue/Green Deployment: RDS_Blue_Green_Deployment.md
     - Multi-AZ: RDS_Multi_AZ.md
     - Parameter Groups: RDS_Parameter_Groups.md
-    - Performance Insights: RDS_Performance_Insights.md
+    - Performance 진단: RDS_Performance_Insights.md
     - 보안: RDS_Security.md
     - Storage: RDS_Storage.md
   - Timestream: Timestream.md

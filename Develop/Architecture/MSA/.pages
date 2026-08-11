@@ -1,6 +1,8 @@
 title: MSA
 nav:
   - 마이크로서비스 아키텍처: Microservices_Architecture.md
+  - EMC 패턴: Expand_Migrate_Contract.md
+  - 서비스 체인 멱등성: MSA_Idempotency_Chain.md
   - 설계와 전환:
     - 서비스 분해 및 도메인 설계: 서비스_분해_및_도메인_설계.md
     - 모놀리스 → MSA 마이그레이션: 모놀리스_to_MSA_마이그레이션.md
@@ -17,11 +19,9 @@ nav:
   - 데이터 일관성:
     - 데이터 관리 패턴: 데이터_관리_패턴.md
     - Saga 패턴 및 분산 트랜잭션: Saga_패턴_및_분산_트랜잭션.md
-    - Transactional Outbox 패턴: 트랜잭셔널_아웃박스_패턴.md
-    - Expand-Migrate-Contract 패턴: Expand_Migrate_Contract.md
+    - Transactional Outbox: 트랜잭셔널_아웃박스_패턴.md
     - 이벤트 소싱과 CQRS: 이벤트_소싱_및_CQRS.md
     - 분산 캐싱 패턴: 분산_캐싱_패턴.md
-    - 서비스 체인 멱등성: MSA_Idempotency_Chain.md
   - 배포와 운영:
     - 배포 패턴: 배포_패턴.md
     - 설정 관리 및 Secret 관리: 설정_관리_및_Secret_관리.md

@@ -6,4 +6,4 @@ nav:
   - 함수형 인터페이스 실무 활용: Java_Functional_Interface.md
   - Proxy Pattern: Java_Proxy_Pattern.md
   - Reflection: Reflection.md
-  - Single Responsibility Principle: 단일 책임 원칙.md
+  - 단일 책임 원칙: 단일 책임 원칙.md

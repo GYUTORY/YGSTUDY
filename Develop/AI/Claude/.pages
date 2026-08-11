@@ -1,5 +1,5 @@
 nav:
-  - Claude 개요: Claude.md
+  - 개요: Claude.md
   - Opus 4.8: Claude_Opus_4_8.md
   - Opus 4.7: Claude_Opus_4_7.md
   - Claude를 전문가처럼 활용하는 방법: Claude_Expert_Usage.md

@@ -1,5 +1,6 @@
 nav:
   - index.md
+  - 스토리지 서비스 비교: 스토리지_서비스_비교.md
   - Network
   - Compute
   - Containers
@@ -14,4 +15,3 @@ nav:
   - CICD
   - Cost
   - AI
-  - 스토리지 서비스 비교: 스토리지_서비스_비교.md

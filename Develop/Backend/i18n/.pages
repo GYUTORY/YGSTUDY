@@ -1,6 +1,6 @@
 title: i18n
 nav:
-  - 다국어 저장: Multilingual_Storage.md
-  - i18n 스키마 설계: i18n_Schema_Design.md
-  - 번역 테이블 심화: Translation_Table.md
+  - 다국어 콘텐츠 DB 저장: Multilingual_Storage.md
+  - DB 스키마 설계: i18n_Schema_Design.md
+  - 번역 테이블(EAV) 심화: Translation_Table.md
   - 언어 추가 비용: Language_Addition_Cost.md

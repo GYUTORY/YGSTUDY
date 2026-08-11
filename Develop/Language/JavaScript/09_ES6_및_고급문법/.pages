@@ -1,7 +1,7 @@
 title: ES6 & 고급 문법
 nav:
-  - Base64·encodeURI·URLSearchParams: Base64_Encode_URI_Component_URL_Search_Params.md
-  - encode/decodeURIComponent: Encode_URI_Component_Decode_URI_Component.md
+  - URL 인코딩 비교: Base64_Encode_URI_Component_URL_Search_Params.md
+  - encodeURIComponent: Encode_URI_Component_Decode_URI_Component.md
   - Spread & Rest 연산자: Spread & Rest 연산자.md
   - Truthy와 Falsy: Truthy__Falsy.md
   - encodeURI: encodeURI.md

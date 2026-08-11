@@ -1,13 +1,13 @@
 nav:
-  - RAG 품질 평가 - RAGAS와 TruLens 실무: RAG_Evaluation.md
+  - RAG 품질 평가: RAG_Evaluation.md
   - Prompt Caching: Prompt_Caching.md
-  - LangChain / LlamaIndex vs 순수 SDK: Lang_Chain_vs_SDK.md
+  - LangChain vs 순수 SDK: Lang_Chain_vs_SDK.md
   - 에이전트:
     - Agent Harness: Agent_Harness.md
     - 멀티 에이전트 시스템: Multi_Agent_Systems.md
-    - Function Calling / Tool Use: Tool_Use.md
+    - Function Calling: Tool_Use.md
     - Structured Output: Structured_Output.md
-    - effort mode와 reasoning effort: Effort_Mode.md
+    - reasoning effort: Effort_Mode.md
     - UltraReview: Ultra_Review.md
   - RAG와 검색:
     - 텍스트 임베딩 실무: Embeddings.md
@@ -21,7 +21,7 @@ nav:
     - 할루시네이션: AI_Hallucination.md
     - 바이브 코딩 보안 대처법: Vibe_Coding_Security.md
     - Obsidian 실무: Obsidian.md
-    - Karpathy의 LLM + Obsidian 워크플로우: Karpathy_LLM_Obsidian.md
+    - LLM+Obsidian 워크플로: Karpathy_LLM_Obsidian.md
     - 팔란티어가 AI로 일하는 방식: Palantir_AI_Workflow.md
     - 로컬 구동 (unsloth/Qwen3): Unsloth_Qwen3_GGUF.md
   - LLM:

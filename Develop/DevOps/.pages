@@ -13,6 +13,6 @@ nav:
   - Principles
   - Git
   - Linux
-  - Container_Registry
-  - Secrets
-  - Testing
+  - Container Registry: Container_Registry/Container_Registry.md
+  - HashiCorp Vault: Secrets/Hashi_Corp_Vault.md
+  - Testing: Testing/부하_테스트.md

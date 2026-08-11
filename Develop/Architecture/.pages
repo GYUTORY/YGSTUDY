@@ -18,5 +18,7 @@ nav:
   - MSA
   - OMO
   - DDD:
-    - DDD (Domain-Driven Design): DDD.md
-    - DDD
+    - 개요: DDD.md
+    - Bounded Context: DDD/Bounded_Context.md
+    - 빌딩 블록 (전술적 설계): DDD/DDD_Building_Blocks.md
+    - 도메인 이벤트: DDD/Domain_Event.md

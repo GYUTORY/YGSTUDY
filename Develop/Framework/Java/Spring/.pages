@@ -32,4 +32,4 @@ nav:
   - 빌드와 마이그레이션:
     - Gradle vs Maven: Gradle__vs__Maven.md
     - Boot 2.x vs 3.x 의사결정: Boot2.0__vs__Boot3.0.md
-    - Boot 2.x → 3.x 마이그레이션 심화: Spring_Boot_Migration_2_to_3.md
+    - Boot 2.x→3.x 마이그레이션: Spring_Boot_Migration_2_to_3.md

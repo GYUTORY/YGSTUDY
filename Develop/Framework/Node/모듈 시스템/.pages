@@ -5,5 +5,5 @@ nav:
   - npm ci와 bin: npm_ci_vs_bin.md
   - npx: npx.md
   - pnpm: pnpm.md
-  - pnpm-lock.yaml과 catalog: Pnpm_Lock_and_Catalog.md
+  - pnpm-lock·catalog: Pnpm_Lock_and_Catalog.md
   - Dual Package Build: Dual_Package_Build.md
