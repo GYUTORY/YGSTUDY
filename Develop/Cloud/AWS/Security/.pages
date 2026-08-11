@@ -17,6 +17,6 @@ nav:
     - Inspector: Inspector.md
     - Security Hub: Security_Hub.md
   - WAF:
-    - AWS WAF (Web Application Firewall): WAF.md
+    - WAF (Web Application Firewall): WAF.md
     - Bot Control과 봇 방어: WAF_Bot_Control.md
     - 고급 규칙 운영: WAF_Advanced_Rules.md

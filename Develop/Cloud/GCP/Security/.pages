@@ -1,4 +1,4 @@
 nav:
   - IAM:
-    - IAM (Identity and Access Management): GCP_IAM.md
+    - IAM 권한 관리: GCP_IAM.md
     - Deny Policy: IAM_Deny_Policy.md

@@ -3,7 +3,7 @@ nav:
   - App Mesh 다중 컨테이너 서비스 메시: App_Mesh.md
   - ECR: ECR.md
   - ECS:
-    - AWS ECS (Elastic Container Service): ECS.md
+    - ECS (Elastic Container Service): ECS.md
     - ECS에서 Aurora 클러스터 접속하기: ECS_Aurora_Connection.md
     - Capacity Providers: ECS_Capacity_Providers.md
     - Cluster 생성과 설정: ECS_Cluster_Configuration.md
@@ -28,14 +28,14 @@ nav:
     - Service 설정 심화: ECS_Service_Definition.md
     - 다중 컨테이너 Sidecar 패턴: ECS_Sidecar_Patterns.md
     - Task Definition 심화: ECS_Task_Definition.md
-    - 태스크가 안 뜨거나 죽을 때 stoppedReason 디버깅: ECS_Task_Failure_Troubleshooting.md
+    - 태스크 장애 stoppedReason 디버깅: ECS_Task_Failure_Troubleshooting.md
     - Task Graceful Shutdown: ECS_Task_Graceful_Shutdown.md
     - Task Placement: ECS_Task_Placement.md
     - Task Scale Out 시 발생하는 부작용: ECS_Task_Scale_Out_부작용.md
     - Volumes와 EFS: ECS_Volumes_EFS.md
     - 로그 관리: ECS_로그_관리.md
   - EKS:
-    - AWS EKS (Elastic Kubernetes Service): EKS.md
+    - EKS (Elastic Kubernetes Service): EKS.md
     - 비용 절감: EKS_Cost_Optimization.md
     - VPC CNI와 ENI: EKS_VPC_CNI_ENI.md
   - Fargate:

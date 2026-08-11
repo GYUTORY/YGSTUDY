@@ -1,4 +1,4 @@
 title: 아키텍처
 nav:
-  - NestJS Event Driven Architecture with AWS: Event_Driven_Architecture_with_AWS.md
+  - NestJS Event-Driven with AWS: Event_Driven_Architecture_with_AWS.md
   - 마이크로서비스 통신 패턴: 마이크로서비스_통신_패턴.md

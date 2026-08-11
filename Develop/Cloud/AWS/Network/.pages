@@ -2,7 +2,7 @@ title: Network
 nav:
   - VPC:
     - AWS VPC: VPC.md
-    - Private Subnet vs Public Subnet 심화: Private_Subnet__vs__Public_Subnet.md
+    - Private vs Public Subnet 심화: Private_Subnet__vs__Public_Subnet.md
     - 라우팅 테이블: Route_Table.md
     - Internet Gateway: Internet_Gateway.md
     - NAT Gateway: Nat_Gateway.md

@@ -15,7 +15,7 @@ nav:
   - MemoryDB: Memory_DB.md
   - Neptune: Neptune.md
   - RDS:
-    - AWS RDS (Relational Database Service): RDS.md
+    - RDS (Relational Database Service): RDS.md
     - Backup & Snapshot: RDS_Backup_Snapshot.md
     - Blue/Green Deployment: RDS_Blue_Green_Deployment.md
     - Multi-AZ: RDS_Multi_AZ.md
