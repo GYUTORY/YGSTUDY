@@ -1,4 +1,4 @@
-title: Application Integration
+title: App 연동
 nav:
   - MQ 운영 노트: Amazon_MQ.md
   - AppSync: App_Sync.md

@@ -62,7 +62,7 @@ body {
   /* 따뜻한 중성 스케일 */
   --warm-white: #FDFBFA;
   --warm-dark: #31302e;
-  --warm-gray-500: #615d59;
+  --warm-gray-500: #57524E;
   --warm-gray-300: #a39e98;
 
   /* 배지 */
@@ -79,11 +79,11 @@ body {
   --accent-brown: #523410;
 
   /* Alias (airbnb-era 호환) */
-  --point: var(--notion-blue);
-  --point-dark: var(--notion-blue-active);
-  --rausch: var(--notion-blue);
-  --rausch-dark: var(--notion-blue-active);
-  --rausch-pressed: var(--notion-blue-active);
+  --point: var(--blue);
+  --point-dark: var(--blue-active);
+  --rausch: var(--blue);
+  --rausch-dark: var(--blue-active);
+  --rausch-pressed: var(--blue-active);
 
   --text: var(--notion-black);
   --text-focused: #000000;
@@ -444,7 +444,7 @@ body {
   scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
   padding: 0.4rem 0.4rem 1.2rem;
 }
-.md-sidebar__scrollwrap::-webkit-scrollbar { width: 6px; }
+.md-sidebar__scrollwrap::-webkit-scrollbar { width: 8px; }
 .md-sidebar__scrollwrap::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.18);
   border-radius: 3px;
@@ -463,32 +463,28 @@ body {
 .md-nav__toggle ~ .md-nav { transition: none; }
 
 /* 항목 자체에는 overflow 걸지 않음 (활성 배경/텍스트가 부모와 겹쳐 보이는 버그의 원인) */
-.md-nav__item { overflow: visible; }
+.md-nav__item { overflow: visible; margin-bottom: 2px; }
 
 /* 사이드바 상단 사이트명("YGSTUDY") 라벨 모두 제거 — 데스크톱·모바일 공통 */
 .md-nav--primary > .md-nav__title { display: none !important; }
 
-/* 기본 링크 — 한 줄 유지하되 폰트/색 강화 */
+/* 기본 링크 — 두 줄까지 허용, 어절 단위 줄바꿈 */
 .md-nav__link {
   font-size: 0.68rem;
-  padding: 0.2rem 0.45rem;
+  padding: 7px 12px;
   color: var(--text);
   transition: color 0.15s ease, background-color 0.15s ease;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   min-width: 0;
   max-width: 100%;
   font-weight: 500;
   letter-spacing: -0.1px;
   border-radius: var(--radius-sm);
-  line-height: 1.3;
+  line-height: 1.5;
   gap: 0.28rem;
+  word-break: keep-all;
 }
 .md-nav__link .md-ellipsis {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: block;
   min-width: 0;
   flex: 1;
@@ -504,7 +500,7 @@ body {
   background: var(--blue-light);
   border-left: 3px solid var(--blue);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  padding-left: calc(0.45rem - 3px) !important;
+  padding-left: 9px !important;
 }
 [data-md-color-scheme="slate"] .md-nav__link {
   color: #e8e4df;
@@ -1156,7 +1152,7 @@ body {
 .yg-pill:hover {
   color: var(--notion-blue);
   background: var(--badge-blue-bg);
-  border-color: rgba(49, 130, 246, 0.18);
+  border-color: rgba(127, 179, 213, 0.18);
   transform: translateY(-1px);
 }
 .yg-pill[data-cat="ai"]::before        { background: var(--cat-ai); }
@@ -1265,7 +1261,7 @@ body {
   height: 6px;
   border-radius: 50%;
   background: var(--notion-blue);
-  box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.18);
+  box-shadow: 0 0 0 4px rgba(127, 179, 213, 0.18);
 }
 .yg-intro-title {
   font-size: 56px;
@@ -1278,7 +1274,7 @@ body {
   padding: 0 !important;
 }
 .yg-intro-accent {
-  background: linear-gradient(180deg, transparent 62%, rgba(49, 130, 246, 0.18) 62%);
+  background: linear-gradient(180deg, transparent 62%, rgba(127, 179, 213, 0.18) 62%);
   padding: 0 4px;
 }
 .yg-intro-bio {
@@ -1611,7 +1607,7 @@ body {
 .yg-series-num[data-cat="aws"]     { background: linear-gradient(135deg, #ff9900, #cc6f00); }
 .yg-series-num[data-cat="arch"]    { background: linear-gradient(135deg, #6c43a8, #391c57); }
 .yg-series-num[data-cat="ai"]      { background: linear-gradient(135deg, #a855f7, #6d28d9); }
-.yg-series-num[data-cat="backend"] { background: linear-gradient(135deg, #3182f6, #1b64da); }
+.yg-series-num[data-cat="backend"] { background: linear-gradient(135deg, #0075de, #0058a8); }
 
 .yg-series-body { flex: 1; min-width: 0; }
 .yg-series-tag {
@@ -1963,8 +1959,27 @@ body {
 }
 
 /* 가로 스크롤 안전장치 — `clip`은 sticky를 깨지 않음 (`hidden`은 깸) */
-html { overflow-x: clip; }
+html {
+  overflow-x: clip;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,.16) transparent;
+}
 body { overflow-x: clip; }
+
+/* 전역 스크롤바 — OS 강조색(파랑) 대신 중립 회색 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.16);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.28); background-clip: content-box; }
+
+[data-md-color-scheme="slate"] html { scrollbar-color: rgba(255,255,255,.2) transparent; }
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); background-clip: content-box; }
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.35); background-clip: content-box; }
 
 /* 모바일: pillbar 더 컴팩트하게 + 좌우 끝 페이드로 스와이프 affordance 표시 */
 @media (max-width: 768px) {
@@ -2233,13 +2248,14 @@ body { overflow-x: clip; }
 .md-nav__link .md-ellipsis,
 .md-nav__item .md-ellipsis {
   white-space: normal;
-  overflow: visible;
+  overflow: hidden;
   text-overflow: clip;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.45;
 }
 
 /* 깊은 단계일수록 들여쓰기를 줄인다. 4단까지 내려가면 기본 들여쓰기로는
