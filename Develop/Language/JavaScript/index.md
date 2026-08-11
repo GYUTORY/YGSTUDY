@@ -18,7 +18,6 @@ hide:
 - [JavaScript Map 개념과 사용법](01_기본_JavaScript/Map/Map_개념.md)
 - [JavaScript Strict Mode (엄격 모드)](01_기본_JavaScript/Object/use-strict.md)
 - [JavaScript forEach 메서드 개념과 사용법](01_기본_JavaScript/For_Loop/forEach_개념.md)
-- [JavaScript forEach 메서드 심화 (동작 원리·콜백 시그니처·break 불가 한계)](01_기본_JavaScript/For_Loop/for_Each_Deep_Dive.md)
 - [JavaScript this 바인딩](01_기본_JavaScript/This_Binding.md)
 - [JavaScript try-catch 에러 처리](01_기본_JavaScript/Object/try-catch.md)
 - [JavaScript use strict에서의 this 바인딩](<01_기본_JavaScript/function/use-strict에서의 this.md>)
@@ -35,6 +34,7 @@ hide:
 - [JavaScript 함수형 프로그래밍 심화](01_기본_JavaScript/function/Functional_Programming_Advanced.md)
 - [JavaScript 호이스팅(Hoisting)](01_기본_JavaScript/Hoisting.md)
 - [forEach 실전 예제와 함정](01_기본_JavaScript/For_Loop/forEach_예제.md)
+- [forEach 심화 — 동작 원리와 한계](01_기본_JavaScript/For_Loop/for_Each_Deep_Dive.md)
 - [백엔드 실무에서 클로저를 설계 도구로 쓰는 패턴](01_기본_JavaScript/Closure/Closure_Practical_Patterns.md)
 
 ## 02 복사 및 스프레드
@@ -86,7 +86,7 @@ hide:
 
 ## 09 ES6 및 고급문법
 
-- [Base64 · encodeURIComponent · URLSearchParams — 세 도구 중 뭘 쓸지](09_ES6_및_고급문법/Base64_Encode_URI_Component_URL_Search_Params.md)
+- [Base64·encodeURI·URLSearchParams 비교](09_ES6_및_고급문법/Base64_Encode_URI_Component_URL_Search_Params.md)
 - [ES6 Class](<09_ES6_및_고급문법/ES6 Class.md>)
 - [ESM과 CommonJS](<09_ES6_및_고급문법/ESM과 CommonJS.md>)
 - [JavaScript Getter Setter](<09_ES6_및_고급문법/Getter & Setter.md>)
@@ -98,6 +98,6 @@ hide:
 ## 10 웹 개발 및 보안
 
 - [Node.js Buffer TCP](<10_웹_개발_및_보안/TCP/NodeJs Buffer와 TCP.md>)
-- [PBKDF2 (Password-Based Key Derivation Function 2)](10_웹_개발_및_보안/pbkdf2.md)
+- [PBKDF2 — 비밀번호 키 유도 함수](10_웹_개발_및_보안/pbkdf2.md)
 - [Socket Manage](<10_웹_개발_및_보안/TCP/Socket Manage.md>)
 

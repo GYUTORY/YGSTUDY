@@ -1,23 +1,27 @@
 nav:
   - index.md
   - 최근 변경 문서: 최근.md
-  - 주제별 가이드: _hub
-  - 로드맵
   - Language
-  - Framework
+  - Backend:
+    - Framework
+    - Backend
+    - Architecture
+  - Data:
+    - DataBase
+  - Infra:
+    - Cloud
+    - DevOps
+    - WebServer
+  - CS:
+    - Network
+    - OS
+    - Algorithm
+    - Security
   - AI
-  - Backend
-  - Architecture
-  - Cloud
-  - DevOps
-  - Network
-  - DataBase
-  - Algorithm
-  - Security
-  - WebServer
-  - OS
-  - Frontend
+  - 가이드:
+    - 주제별 가이드: _hub
+    - 로드맵
+    - Frontend
   - tags.md
-# `- ...` 캐치올을 쓰지 않는다. 그걸 두면 404 페이지와 개인 학습 체크리스트(todo)까지
-# 최상위 메뉴로 올라온다. 사이트 장치는 메뉴에 있을 이유가 없다.
-# 새 최상위 섹션을 만들면 여기에 직접 추가할 것.
+# 이 파일은 gen_nav.py 로 재생성하지 않는다. 최상위 7개 그룹 구조는 수동으로 유지.
+# 새 카테고리 추가 시 여기에 직접 반영할 것.

@@ -56,7 +56,7 @@ hide:
 - [Mount](파일_시스템/Mount.md)
 - [디스크 관리](파일_시스템/디스크_관리.md)
 - [파일 권한 및 소유권](파일_시스템/파일_권한_및_소유권.md)
-- [파일 권한 심화 - ACL, Special Permissions, Capabilities](파일_시스템/파일_권한_심화_ACL_Capabilities.md)
+- [파일 권한 심화 — ACL·Capabilities](파일_시스템/파일_권한_심화_ACL_Capabilities.md)
 - [파일 시스템](파일_시스템/파일_시스템.md)
 
 ## 패키지

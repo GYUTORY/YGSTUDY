@@ -3,11 +3,115 @@ title: YGSTUDY
 hide:
   - toc
   - footer
-updated: 2026-08-07
+updated: 2026-08-11
 ---
 
 <div class="yg-home" markdown="0">
 
+<!-- ═══════════════════════════════════════════════
+     히어로
+════════════════════════════════════════════════ -->
+<section class="yg-section yg-hero-block">
+  <span class="yg-section-kicker">백엔드 엔지니어 강영규의 기술 노트</span>
+  <h1 class="yg-hero-headline">운영하면서 직접 부딪힌 것들의 기록.</h1>
+  <label for="__search" class="yg-hero-search-cta">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <span>문서 검색...</span>
+    <span class="yg-hero-kbd">⌘K</span>
+  </label>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     카테고리 (7 그룹)
+════════════════════════════════════════════════ -->
+<section class="yg-section">
+  <div class="yg-section-head">
+    <div>
+      <span class="yg-section-kicker">CATEGORIES</span>
+      <h2 class="yg-section-title">관심 있는 주제로 바로 가기</h2>
+    </div>
+  </div>
+  <div class="yg-cats-v2">
+    <a class="yg-cat-v2" data-cat="language" data-yg-cat="Language" href="Language/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>Language</h3>
+        <p>Java · TypeScript · Python · Go · Rust</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="Language">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="Framework" href="Framework/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>Backend</h3>
+        <p>Spring · NestJS · API · Auth · MSA</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="Framework">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="data" data-yg-cat="DataBase" href="DataBase/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>Data</h3>
+        <p>RDBMS · NoSQL · Redis · 인코딩</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="DataBase">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="infra" data-yg-cat="Cloud" href="Cloud/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>Infra</h3>
+        <p>AWS · GCP · Kubernetes · Docker · CI/CD</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="Cloud">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="cs" data-yg-cat="Network" href="Network/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>CS</h3>
+        <p>Network · OS · Algorithm · Security</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="Network">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="ai" data-yg-cat="AI" href="AI/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>AI</h3>
+        <p>Claude · Cursor · MCP · RAG · Agents</p>
+      </div>
+      <div class="yg-cat-v2-count" data-yg-count="AI">—</div>
+    </a>
+    <a class="yg-cat-v2" data-cat="guide" href="_hub/">
+      <div class="yg-cat-v2-icon"><span></span></div>
+      <div class="yg-cat-v2-body">
+        <h3>가이드</h3>
+        <p>주제별 허브 · 로드맵 · 심화 시리즈</p>
+      </div>
+      <div class="yg-cat-v2-count">—</div>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     최근 변경 문서 (inject_build_meta.py 가 채운다)
+════════════════════════════════════════════════ -->
+<section class="yg-section">
+  <div class="yg-section-head">
+    <div>
+      <span class="yg-section-kicker">RECENT</span>
+      <h2 class="yg-section-title">최근에 쓴 글</h2>
+    </div>
+    <a class="yg-section-more" href="최근/">전체 보기</a>
+  </div>
+  <!-- YG_RECENT: 빌드 시점에 tools/inject_build_meta.py 가 채운다. 직접 쓰지 말 것. -->
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     ABOUT
+════════════════════════════════════════════════ -->
 <section class="yg-section yg-about yg-about--hero">
   <div class="yg-about-card">
     <div class="yg-about-left">
@@ -42,132 +146,9 @@ updated: 2026-08-07
   </div>
 </section>
 
-<section class="yg-section">
-  <div class="yg-section-head">
-    <div>
-      <span class="yg-section-kicker">RECENT</span>
-      <h2 class="yg-section-title">최근에 쓴 글</h2>
-    </div>
-    <a class="yg-section-more" href="최근/">전체 보기</a>
-  </div>
-  <!-- YG_RECENT: 빌드 시점에 tools/inject_build_meta.py 가 채운다. 직접 쓰지 말 것. -->
-</section>
-
-<section class="yg-section">
-  <div class="yg-section-head">
-    <div>
-      <span class="yg-section-kicker">CATEGORIES</span>
-      <h2 class="yg-section-title">관심 있는 주제로 바로 가기</h2>
-    </div>
-  </div>
-  <div class="yg-cats-v2">
-    <a class="yg-cat-v2" data-cat="ai" data-yg-cat="AI" href="AI/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>AI</h3>
-        <p>Claude · Cursor · MCP · RAG</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="AI">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="Backend" href="Backend/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Backend</h3>
-        <p>API · Auth · Resilience · Database</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Backend">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="devops" data-yg-cat="DevOps" href="DevOps/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>DevOps</h3>
-        <p>Kubernetes · Docker · CI/CD</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="DevOps">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="aws" data-yg-cat="Cloud" href="Cloud/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Cloud</h3>
-        <p>AWS · GCP · 컨테이너 · 네트워킹</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Cloud">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="database" data-yg-cat="DataBase" href="DataBase/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Database</h3>
-        <p>NoSQL · Redis · 인덱스 · 트랜잭션</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="DataBase">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="framework" data-yg-cat="Framework" href="Framework/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Framework</h3>
-        <p>Spring · Node.js · NestJS</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Framework">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="language" data-yg-cat="Language" href="Language/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Language</h3>
-        <p>Java · TypeScript · JavaScript · Python</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Language">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="arch" data-yg-cat="Architecture" href="Architecture/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Architecture</h3>
-        <p>Clean Arch · MSA · DDD · Saga</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Architecture">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="network" data-yg-cat="Network" href="Network/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Network</h3>
-        <p>Protocol · TCP/IP · HTTP · DNS</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Network">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="security" data-yg-cat="Security" href="Security/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Security</h3>
-        <p>HTTPS · TLS · OAuth · 인증</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Security">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="linux" data-yg-cat="OS" href="OS/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>OS</h3>
-        <p>프로세스 · 스레드 · 메모리 · 스케줄링</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="OS">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="arch" data-yg-cat="Algorithm" href="Algorithm/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Algorithm</h3>
-        <p>탐색 · 정렬 · 동적 계획법</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="Algorithm">—</div>
-    </a>
-    <a class="yg-cat-v2" data-cat="webserver" data-yg-cat="WebServer" href="WebServer/">
-      <div class="yg-cat-v2-icon"><span></span></div>
-      <div class="yg-cat-v2-body">
-        <h3>Web Server</h3>
-        <p>Nginx · Apache · 리버스 프록시</p>
-      </div>
-      <div class="yg-cat-v2-count" data-yg-count="WebServer">—</div>
-    </a>
-  </div>
-</section>
-
+<!-- ═══════════════════════════════════════════════
+     시리즈
+════════════════════════════════════════════════ -->
 <section class="yg-section">
   <div class="yg-section-head">
     <div>
@@ -211,48 +192,9 @@ updated: 2026-08-07
   </div>
 </section>
 
-<section class="yg-section">
-  <div class="yg-section-head">
-    <div>
-      <span class="yg-section-kicker">PROJECTS</span>
-      <h2 class="yg-section-title">개인 프로젝트</h2>
-    </div>
-  </div>
-  <div class="yg-proj-grid">
-    <a class="yg-proj" href="http://gyutory.co.kr/momo" target="_blank" rel="noopener">
-      <div class="yg-proj-thumb">
-        <img src="assets/images/momo_assistant.webp" alt="MOMO Assistant">
-      </div>
-      <div class="yg-proj-body">
-        <span class="yg-proj-tag">AI · Web</span>
-        <h3>MOMO Assistant</h3>
-        <p>역할마다 다른 방식으로 대화하는 AI. 코딩 멘토일 땐 코드를 보고, 자소서 첨삭일 땐 문장을 잡는다.</p>
-      </div>
-    </a>
-    <a class="yg-proj" href="http://gyutory.co.kr/momo_editor/" target="_blank" rel="noopener">
-      <div class="yg-proj-thumb">
-        <img src="assets/images/momo_editor.webp" alt="MOMO Editor">
-      </div>
-      <div class="yg-proj-body">
-        <span class="yg-proj-tag">Desktop · Video</span>
-        <h3>MOMO Editor</h3>
-        <p>직접 쓰려고 만든 영상 편집기 — 타임라인 잘라붙이고 바로 미리보기까지.</p>
-      </div>
-    </a>
-    <div class="yg-proj yg-proj--wip">
-      <div class="yg-proj-thumb">
-        <img src="assets/images/trip_planner.webp" alt="AI Trip Planner">
-        <span class="yg-proj-badge">준비 중</span>
-      </div>
-      <div class="yg-proj-body">
-        <span class="yg-proj-tag">AI · Mobile</span>
-        <h3>AI Trip Planner</h3>
-        <p>도시 하나 고르면 맛집·관광지·카페 일정이 잡힌다.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
+<!-- ═══════════════════════════════════════════════
+     주제별 가이드 (허브)
+════════════════════════════════════════════════ -->
 <section class="yg-section">
   <div class="yg-section-head">
     <div>
@@ -317,6 +259,51 @@ updated: 2026-08-07
         <p>클로저·this·Promise 동작 원리부터 타입 시스템·tsconfig 설정까지.</p>
       </div>
     </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     개인 프로젝트
+════════════════════════════════════════════════ -->
+<section class="yg-section">
+  <div class="yg-section-head">
+    <div>
+      <span class="yg-section-kicker">PROJECTS</span>
+      <h2 class="yg-section-title">개인 프로젝트</h2>
+    </div>
+  </div>
+  <div class="yg-proj-grid">
+    <a class="yg-proj" href="http://gyutory.co.kr/momo" target="_blank" rel="noopener">
+      <div class="yg-proj-thumb">
+        <img src="assets/images/momo_assistant.webp" alt="MOMO Assistant">
+      </div>
+      <div class="yg-proj-body">
+        <span class="yg-proj-tag">AI · Web</span>
+        <h3>MOMO Assistant</h3>
+        <p>역할마다 다른 방식으로 대화하는 AI. 코딩 멘토일 땐 코드를 보고, 자소서 첨삭일 땐 문장을 잡는다.</p>
+      </div>
+    </a>
+    <a class="yg-proj" href="http://gyutory.co.kr/momo_editor/" target="_blank" rel="noopener">
+      <div class="yg-proj-thumb">
+        <img src="assets/images/momo_editor.webp" alt="MOMO Editor">
+      </div>
+      <div class="yg-proj-body">
+        <span class="yg-proj-tag">Desktop · Video</span>
+        <h3>MOMO Editor</h3>
+        <p>직접 쓰려고 만든 영상 편집기 — 타임라인 잘라붙이고 바로 미리보기까지.</p>
+      </div>
+    </a>
+    <div class="yg-proj yg-proj--wip">
+      <div class="yg-proj-thumb">
+        <img src="assets/images/trip_planner.webp" alt="AI Trip Planner">
+        <span class="yg-proj-badge">준비 중</span>
+      </div>
+      <div class="yg-proj-body">
+        <span class="yg-proj-tag">AI · Mobile</span>
+        <h3>AI Trip Planner</h3>
+        <p>도시 하나 고르면 맛집·관광지·카페 일정이 잡힌다.</p>
+      </div>
+    </div>
   </div>
 </section>
 

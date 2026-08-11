@@ -1147,7 +1147,8 @@ def walk_and_generate():
         dirnames[:] = [d for d in dirnames
                        if d not in SKIP_DIRS and not d.startswith('.')]
         if dirpath == ROOT:
-            generated[dirpath] = write_pages(ROOT, build_top(), root=True)[1]
+            # 루트 .pages는 7개 최상위 그룹 구조로 수동 관리한다.
+            # gen_nav.py가 덮어쓰지 않도록 스킵. (Develop/.pages 참고)
             continue
         # 문서 1개짜리 디렉터리는 부모가 흡수했으므로 .pages 불필요.
         # 단 최상위 섹션은 흡수 대상이 아니므로 그대로 둔다.
