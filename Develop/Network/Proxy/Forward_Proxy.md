@@ -196,7 +196,7 @@ java -Dhttp.proxyHost=192.168.0.10 -Dhttp.proxyPort=3128 \
 
 ## HTTPS는 CONNECT로 터널을 뚫는다
 
-평문 HTTP는 프록시가 요청 라인을 읽고 목적지로 전달한다. HTTPS는 프록시가 내용을 못 읽으니 `CONNECT`로 TCP 통로만 연다. 클라이언트가 `CONNECT example.com:443`을 보내면 프록시가 그 목적지에 TCP를 연결하고 `200 Connection Established`로 답한 뒤, 그때부터 양쪽 바이트를 그대로 중계만 한다. TLS 핸드셰이크와 암호문은 프록시를 통과만 하고 프록시는 안을 못 본다. 동작 흐름과 Squid에서 CONNECT 포트를 443으로 제한하는 이유는 [개요 문서의 CONNECT 절](Proxy.md#https-http-connect)에 자세히 있다.
+평문 HTTP는 프록시가 요청 라인을 읽고 목적지로 전달한다. HTTPS는 프록시가 내용을 못 읽으니 `CONNECT`로 TCP 통로만 연다. 클라이언트가 `CONNECT example.com:443`을 보내면 프록시가 그 목적지에 TCP를 연결하고 `200 Connection Established`로 답한 뒤, 그때부터 양쪽 바이트를 그대로 중계만 한다. TLS 핸드셰이크와 암호문은 프록시를 통과만 하고 프록시는 안을 못 본다. 동작 흐름과 Squid에서 CONNECT 포트를 443으로 제한하는 이유는 [개요 문서의 CONNECT 절](Proxy.md#https는-프록시를-어떻게-통과하는가-http-connect)에 자세히 있다.
 
 포워드 프록시 운영에서 기억할 건, CONNECT가 200을 못 받으면 프록시가 그 목적지/포트를 막은 것이고, 200은 받았는데 그 뒤 TLS에서 실패하면 프록시가 아니라 원서버 인증서 문제라는 점이다. 단, 회사 프록시가 SSL 인터셉트를 켜둔 경우는 얘기가 달라지는데, 그게 다음 절이다.
 

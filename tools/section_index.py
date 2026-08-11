@@ -82,7 +82,7 @@ def _build_one(docs_dir, key, counts):
         total = 0
         for root, dirs, files in os.walk(section):
             dirs[:] = [d for d in dirs if not d.startswith(".") and d not in SKIP_DIRS]
-            mds = [f for f in files if f.endswith(".md") and f != "index.md"]
+            mds = [f for f in files if f.endswith(".md") and f not in ("index.md", "README.md")]
             if not mds:
                 continue
             rel_dir = os.path.relpath(root, section)

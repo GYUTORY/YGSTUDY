@@ -179,7 +179,7 @@ Nitro 세대에서는 Nitro Card Controller가 응답한다. 게스트 OS에서 
 
 IMDSv2의 토큰 발급(PUT 요청)이 하이퍼바이저 단에서 처리되는 게 아니라 카드 단에서 처리된다. 게스트 커널이 해킹당해도 카드 단의 토큰 검증은 우회할 수 없다. SSRF 공격으로 토큰을 못 가져오는 이유는 PUT 요청이 HTTP 리다이렉트 시 헤더가 사라지는 표준 동작 덕분이기도 하지만, 응답 주체 자체가 하드웨어인 것도 한몫한다.
 
-IMDSv2 자체의 사용법은 [EC2](EC2.md#imds-인스턴스-메타데이터-서비스) 문서에 정리해뒀다. 여기서는 Nitro 인스턴스에서 IMDSv2를 강제할 때 한 가지만 더 짚는다.
+IMDSv2 자체의 사용법은 [EC2](EC2.md#instance-metadata-service-imds) 문서에 정리해뒀다. 여기서는 Nitro 인스턴스에서 IMDSv2를 강제할 때 한 가지만 더 짚는다.
 
 ```bash
 # 신규 인스턴스에 IMDSv2 hop limit 1로 강제
