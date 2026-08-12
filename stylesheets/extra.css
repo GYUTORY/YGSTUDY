@@ -242,6 +242,7 @@ body {
 .md-header__title .md-header__topic {
   top: 50%;
   transform: translateY(-50%);
+  left: 0 !important;
 }
 
 .md-header__title .md-header__topic:first-child .md-ellipsis {
@@ -2146,10 +2147,16 @@ body { overflow-x: clip; }
    빈 상자로 나가는데도 콘솔이 깨끗해서 아무도 몰랐다. 깨지면 보여야 고친다. */
 .md-typeset .yg-mermaid { text-align: center; }
 .md-typeset .yg-mermaid > svg { max-width: 100%; height: auto; }
-/* 한글 라벨이 박스를 넘치는 잔여분 마감 — (a) wrappingWidth 조정 후에도 남는 경우 */
-.md-typeset .yg-mermaid foreignObject > div {
-  line-height: 1.2 !important;
-  font-size: 12px !important;
+/* 한글 라벨 넘침 마감 — mermaid 가 CJK 폭을 라틴 기준으로 계산해 박스가 작게 잡힘 */
+.md-typeset .yg-mermaid svg g.node foreignObject {
+  overflow: visible !important;
+}
+.md-typeset .yg-mermaid foreignObject > div,
+.md-typeset .yg-mermaid foreignObject span {
+  line-height: 1.15 !important;
+  font-size: 11px !important;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
   padding: 0 2px;
 }
 .md-typeset .mermaid-error {

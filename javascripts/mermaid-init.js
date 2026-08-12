@@ -78,7 +78,7 @@
             wrappingWidth: 180,
           },
           sequence: { useMaxWidth: true },
-          themeVariables: { fontSize: "12px" },
+          themeVariables: { fontSize: "11px" },
         });
         return nodes.reduce(function (chain, node, i) {
           return chain.then(function () {
