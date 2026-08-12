@@ -5,19 +5,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap');
-/* 제목 전용 — Gmarket Sans (GS Retail 제공) */
-@font-face {
-  font-family: 'GmarketSans';
-  font-weight: 700;
-  font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/wizfile/font/GmarketSansBold.woff') format('woff');
-}
-@font-face {
-  font-family: 'GmarketSans';
-  font-weight: 500;
-  font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/wizfile/font/GmarketSansMedium.woff') format('woff');
-}
 
 /* ---------- 폰트 렌더링 ---------- */
 body {
@@ -249,6 +236,12 @@ body {
   color: #ffffff !important;
   width: 16px;
   height: 16px;
+}
+
+/* topic 2개가 absolute로 겹쳐있어 부모 flex center가 미적용 — 직접 중앙 고정 */
+.md-header__title .md-header__topic {
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .md-header__title .md-header__topic:first-child .md-ellipsis {
@@ -691,7 +684,7 @@ body {
 .md-typeset h2,
 .md-typeset h3,
 .md-typeset h4 {
-  font-family: 'GmarketSans', "Pretendard Variable", "Pretendard", -apple-system, sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", -apple-system, sans-serif;
 }
 
 .md-typeset h1 {
@@ -2364,7 +2357,7 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
   text-align: center;
 }
 .yg-hero-headline {
-  font-family: 'GmarketSans', "Pretendard Variable", "Pretendard", sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", sans-serif;
   font-size: clamp(1.8rem, 4vw, 2.8rem);
   font-weight: 700;
   letter-spacing: -0.04em;
