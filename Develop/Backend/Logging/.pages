@@ -1,6 +1,5 @@
 title: Logging & Monitoring
 nav:
-  - index.md
   - 로그 수집 파이프라인: Log_Aggregation_Pipeline.md
   - 로깅 & 모니터링: Logging_and_Monitoring.md
   - 감사 요구사항: Audit_Requirements.md

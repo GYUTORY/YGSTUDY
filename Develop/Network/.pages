@@ -1,5 +1,4 @@
 nav:
-  - index.md
   - 기초:
     - 네트워크 기초: Networking_Fundamentals.md
     - 라우팅: 라우팅.md

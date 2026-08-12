@@ -1,6 +1,5 @@
 title: Backend
 nav:
-  - index.md
   - Authentication
   - API
   - Messaging

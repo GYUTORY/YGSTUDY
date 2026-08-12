@@ -1,6 +1,5 @@
 title: Nginx
 nav:
-  - index.md
   - Nginx: Definition.md
   - 설정 구조:
     - Virtual Host 설정: Virtual_Host_설정.md

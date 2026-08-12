@@ -1,5 +1,4 @@
 nav:
-  - index.md
   - 배포판 계열: Linux_배포판_계열.md
   - SA와 PSACCT 모니터링 도구: SA__PSACCT.md
   - WSL2: WSL.md

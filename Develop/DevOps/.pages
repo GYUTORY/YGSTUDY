@@ -1,6 +1,5 @@
 title: DevOps
 nav:
-  - index.md
   - CI_CD
   - GitOps
   - Infrastructure_as_Code

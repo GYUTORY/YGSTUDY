@@ -1,6 +1,5 @@
 title: Data Representation
 nav:
-  - index.md
   - 2진수를 16진수로 변환하는 방법: 2진수를 16진수로 변환하는 방법.md
   - Binary와 Bit의 차이: Binary VS Bit.md
   - 2진수와 16진수 변환 심화: Binary_Hex_Conversion_Deep_Dive.md

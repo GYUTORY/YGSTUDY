@@ -1,5 +1,4 @@
 nav:
-  - index.md
   - 개요: Claude.md
   - Opus 4.8: Claude_Opus_4_8.md
   - Opus 4.7: Claude_Opus_4_7.md

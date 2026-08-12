@@ -1,5 +1,4 @@
 nav:
-  - index.md
   - RAG 품질 평가: RAG_Evaluation.md
   - Prompt Caching: Prompt_Caching.md
   - LangChain vs 순수 SDK: Lang_Chain_vs_SDK.md

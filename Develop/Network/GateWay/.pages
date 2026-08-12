@@ -1,6 +1,5 @@
 title: Gateway
 nav:
-  - index.md
   - Gateway (게이트웨이): Definition.md
   - Gateway 심화: Network_Gateway_Advanced.md
   - API Gateway 심화: API_Gateway.md

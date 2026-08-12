@@ -1,6 +1,5 @@
 title: Design Pattern
 nav:
-  - index.md
   - 생성 패턴: Creational_Pattern.md
   - 행동 패턴: Behavioral_Pattern.md
   - 행동 패턴 심화: Behavioral_Pattern_Advanced.md

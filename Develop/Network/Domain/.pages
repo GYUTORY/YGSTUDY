@@ -1,6 +1,5 @@
 title: Domain
 nav:
-  - index.md
   - CNAME: CNAME.md
   - DNS:
     - 개요: DNS.md

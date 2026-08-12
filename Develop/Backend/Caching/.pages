@@ -1,5 +1,4 @@
 title: Caching
 nav:
-  - index.md
   - 캐싱 전략: Caching_Strategies.md
   - Cache Warming: Cache_Warming.md

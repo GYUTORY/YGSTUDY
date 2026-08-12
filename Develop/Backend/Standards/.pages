@@ -1,6 +1,5 @@
 title: Standards
 nav:
-  - index.md
   - ISO 표준: ISO_Standards.md
   - 케밥같은 용어들: Naming_Conventions.md
   - 타임존 처리: Timezone_Handling.md

@@ -1,6 +1,5 @@
 title: Load Balancer
 nav:
-  - index.md
   - HAProxy: HA_Proxy.md
   - Keepalived: Keepalived.md
   - Envoy: Envoy.md

@@ -1,6 +1,5 @@
 title: Python
 nav:
-  - index.md
   - 동시성 모델 비교: Python_Concurrency.md
   - 예외 처리: Python_Error_Handling.md
   - None 처리: Python_None_Handling.md

@@ -1,3 +1,2 @@
 nav:
-  - index.md
   - 소켓 I/O 멀티플렉싱 심화: Socket_IO_Multiplexing.md

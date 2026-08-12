@@ -1,6 +1,5 @@
 title: TypeScript
 nav:
-  - index.md
   - TypeScript 기본 개념
   - 타입 및 타입 정의
   - 타입 유틸리티

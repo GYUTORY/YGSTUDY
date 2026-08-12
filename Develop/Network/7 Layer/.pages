@@ -1,6 +1,5 @@
 title: OSI 7계층
 nav:
-  - index.md
   - DHCP: DHCP.md
   - GSLB: GSLB.md
   - 네트워크 플로우: Network Flow.md

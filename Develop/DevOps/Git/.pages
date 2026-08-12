@@ -1,5 +1,4 @@
 nav:
-  - index.md
   - 자주 사용하는 명령어: Git_자주_사용하는_명령어.md
   - 내부 구조: Git_Internals.md
   - Hooks 실무: Git_Hooks.md

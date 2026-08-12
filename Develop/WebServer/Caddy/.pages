@@ -1,6 +1,5 @@
 title: Caddy
 nav:
-  - index.md
   - 개요: Caddy.md
   - 설정:
     - Caddyfile 문법 심화: Caddyfile_Syntax.md

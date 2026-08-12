@@ -1,6 +1,5 @@
 title: Security
 nav:
-  - index.md
   - TLS와 HTTPS: TLS_HTTPS.md
   - mTLS: Mutual_TLS.md
   - VPN: VPN.md

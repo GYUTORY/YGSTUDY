@@ -1,6 +1,5 @@
 title: Node.js
 nav:
-  - index.md
   - 프레임워크 문서 인덱스: Node_Framework_Index.md
   - 프레임워크:
     - 개요: Nodejs_Framework_Overview.md

@@ -1,5 +1,4 @@
 nav:
-  - index.md
   - 언어별 에러 처리 방식 비교: Error_Handling_Across_Languages.md
   - 언어별 동시성 모델 비교: Concurrency_Models_Comparison.md
   - 언어별 null 처리 방식 비교: Null_Handling_Across_Languages.md

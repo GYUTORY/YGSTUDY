@@ -1,6 +1,5 @@
 title: CI/CD
 nav:
-  - index.md
   - GitHub Actions CI/CD: GitHub_Actions.md
   - Jenkins: Jenkins.md
   - Bitbucket Pipelines: Bitbucket_Pipeline.md

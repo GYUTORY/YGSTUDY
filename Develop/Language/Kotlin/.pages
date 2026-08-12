@@ -1,6 +1,5 @@
 title: Kotlin
 nav:
-  - index.md
   - 코루틴: Kotlin_Coroutines.md
   - 코루틴 DB 트랜잭션: Kotlin_Coroutines_Transaction.md
   - Null Safety: Kotlin_Null_Safety.md
