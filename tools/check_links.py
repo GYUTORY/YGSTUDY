@@ -18,6 +18,8 @@ import unicodedata
 import urllib.parse
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT = Path(__file__).parent.parent
 DOCS_DIR = REPO_ROOT / "Develop"
 
@@ -141,6 +143,32 @@ def check_file(md: Path, tracked: set[str]) -> list[tuple[str, str]]:
     return broken
 
 
+def check_redirect_maps() -> list[str]:
+    """mkdocs.yml redirect_maps 우변(목적지)이 Develop/ 아래 실제 파일인지 확인."""
+    mkdocs_yml = REPO_ROOT / 'mkdocs.yml'
+    if not mkdocs_yml.exists():
+        return []
+
+    try:
+        with open(mkdocs_yml, encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+    except Exception:
+        return []
+
+    redirect_maps: dict = {}
+    for plugin in (config.get('plugins') or []):
+        if isinstance(plugin, dict) and 'redirects' in plugin:
+            redirect_maps = plugin['redirects'].get('redirect_maps') or {}
+            break
+
+    broken = []
+    for src_path, dst_path in redirect_maps.items():
+        target = REPO_ROOT / 'Develop' / dst_path
+        if not target.exists():
+            broken.append(f'  redirect_maps 목적지 없음: {dst_path!r}  (from {src_path!r})')
+    return broken
+
+
 def main():
     parser = argparse.ArgumentParser(description='내부 링크 검사')
     parser.add_argument('--strict', action='store_true', help='깨진 링크 발견 시 exit 1')
@@ -158,15 +186,25 @@ def main():
     for md in targets:
         all_broken.extend(check_file(md, tracked))
 
-    if not all_broken:
-        print(f'✓ {len(targets)}개 파일 내부 링크 이상 없음.')
+    redirect_broken = check_redirect_maps()
+
+    has_error = bool(all_broken) or bool(redirect_broken)
+
+    if not has_error:
+        print(f'✓ {len(targets)}개 파일 내부 링크 이상 없음. redirect_maps 목적지 이상 없음.')
         return
 
-    print(f'⚠ 깨진 내부 링크 {len(all_broken)}건:\n')
-    for link, src in all_broken[:50]:
-        print(f'  {src}  →  {link}')
-    if len(all_broken) > 50:
-        print(f'  ... 외 {len(all_broken) - 50}건')
+    if all_broken:
+        print(f'⚠ 깨진 내부 링크 {len(all_broken)}건:\n')
+        for link, src in all_broken[:50]:
+            print(f'  {src}  →  {link}')
+        if len(all_broken) > 50:
+            print(f'  ... 외 {len(all_broken) - 50}건')
+
+    if redirect_broken:
+        print(f'\n⚠ redirect_maps 목적지 오류 {len(redirect_broken)}건:\n')
+        for msg in redirect_broken:
+            print(msg)
 
     if args.strict:
         sys.exit(1)

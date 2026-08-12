@@ -247,7 +247,7 @@ plugins:
         'AWS/Network/Global_Accelerator.md': 'Cloud/AWS/Network/Global_Accelerator.md'
         'AWS/Network/Nat_Gateway.md': 'Cloud/AWS/Network/Nat_Gateway.md'
         'AWS/Network/PrivateLink.md': 'Cloud/AWS/Network/PrivateLink.md'
-        'AWS/Network/Private_Subnet__vs__Public_Subnet.md': 'Cloud/AWS/Network/Private_Subnet__vs__Public_Subnet.md'
+        'AWS/Network/Private_Subnet__vs__Public_Subnet.md': 'Cloud/AWS/Network/Private_vs_Public_Subnet.md'
         'AWS/Network/Route 53.md': 'Cloud/AWS/Network/Route 53.md'
         'AWS/Network/Route_Table.md': 'Cloud/AWS/Network/Route_Table.md'
         'AWS/Network/S3.md': 'Cloud/AWS/Network/S3.md'
