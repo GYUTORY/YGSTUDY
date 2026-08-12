@@ -69,8 +69,16 @@
           startOnLoad: false,
           securityLevel: "loose",
           theme: isDark() ? "dark" : "default",
-          flowchart: { htmlLabels: true, useMaxWidth: true },
+          flowchart: {
+            htmlLabels: true,
+            useMaxWidth: true,
+            padding: 14,
+            nodeSpacing: 60,
+            rankSpacing: 60,
+            wrappingWidth: 220,
+          },
           sequence: { useMaxWidth: true },
+          themeVariables: { fontSize: "13px" },
         });
         return nodes.reduce(function (chain, node, i) {
           return chain.then(function () {
