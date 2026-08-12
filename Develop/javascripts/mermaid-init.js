@@ -72,13 +72,13 @@
           flowchart: {
             htmlLabels: true,
             useMaxWidth: true,
-            padding: 14,
-            nodeSpacing: 60,
-            rankSpacing: 60,
-            wrappingWidth: 220,
+            padding: 18,
+            nodeSpacing: 55,
+            rankSpacing: 65,
+            wrappingWidth: 180,
           },
           sequence: { useMaxWidth: true },
-          themeVariables: { fontSize: "13px" },
+          themeVariables: { fontSize: "12px" },
         });
         return nodes.reduce(function (chain, node, i) {
           return chain.then(function () {
