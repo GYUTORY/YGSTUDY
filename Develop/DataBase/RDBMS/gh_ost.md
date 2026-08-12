@@ -35,7 +35,7 @@ SHOW VARIABLES LIKE 'binlog_format';
 
 ---
 
-## pt-online-schema-change와의 차이
+## pt-osc와의 차이
 
 | 항목 | gh-ost | pt-osc |
 |---|---|---|

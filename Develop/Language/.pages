@@ -1,4 +1,5 @@
 nav:
+  - index.md
   - Java
   - Kotlin
   - JavaScript

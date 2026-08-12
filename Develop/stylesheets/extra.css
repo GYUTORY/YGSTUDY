@@ -597,8 +597,8 @@ body {
 /* 들여쓰기 시각 가이드 — 좌측 가는 라인, 레벨당 12px */
 .md-nav__item--nested .md-nav {
   border-left: 1px solid rgba(0, 0, 0, 0.08);
-  margin-left: 0.35rem;
-  padding-left: 0.25rem;
+  margin-left: 7px;
+  padding-left: 5px;
 }
 [data-md-color-scheme="slate"] .md-nav__item--nested .md-nav {
   border-left-color: rgba(255, 255, 255, 0.08);

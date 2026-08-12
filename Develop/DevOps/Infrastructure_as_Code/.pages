@@ -1,5 +1,6 @@
 title: Infrastructure as Code
 nav:
+  - index.md
   - Terraform:
     - 개요: Terraform.md
     - 기초: Terraform_기초.md

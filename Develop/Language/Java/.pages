@@ -1,5 +1,6 @@
 title: Java
 nav:
+  - index.md
   - JVM 관련
   - Java 기본 개념
   - 객체지향 프로그래밍 (OOP)

@@ -1,5 +1,6 @@
 title: MSA
 nav:
+  - index.md
   - 마이크로서비스 아키텍처: Microservices_Architecture.md
   - EMC 패턴: Expand_Migrate_Contract.md
   - 서비스 체인 멱등성: MSA_Idempotency_Chain.md

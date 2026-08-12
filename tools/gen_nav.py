@@ -700,6 +700,9 @@ DIR_LABEL = {
     'Develop/Framework/Node/Process Management Tool': '프로세스 관리',
     'Develop/Framework/Node/Testing': '테스트',
     'Develop/Framework/Node/데이터베이스': '데이터베이스',
+    'Develop/Cloud/AWS/Application_Integration': '메시징 연동',
+    'Develop/DevOps/Infrastructure_as_Code': 'IaC',
+    'Develop/DataBase/DataRepresentation': '데이터 표현',
 }
 
 DASHES = [' — ', ' – ', ' - ']

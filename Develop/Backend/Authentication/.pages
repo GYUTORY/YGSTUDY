@@ -1,5 +1,6 @@
 title: Authentication
 nav:
+  - index.md
   - 인증/인가 방식 비교: Authentication_Strategy.md
   - 인증 전략 심화: Auth_Strategy_Deep_Dive.md
   - 로그인 무차별 대입 방어: Login_Brute_Force_Protection.md

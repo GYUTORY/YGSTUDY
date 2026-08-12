@@ -37,8 +37,7 @@ theme:
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
-    # navigation.indexes 는 awesome-pages 의 명시 nav 와 함께 쓰면 섹션 제목에
-    # 링크를 붙여주지 않는다(4회에 걸쳐 확인). 대신 index.md 를 일반 항목으로 노출한다.
+    - navigation.indexes
     - navigation.footer
     - search.suggest
     - search.highlight

@@ -1,8 +1,9 @@
 title: DevOps
 nav:
+  - index.md
   - CI_CD
   - GitOps
-  - Infrastructure_as_Code
+  - IaC: Infrastructure_as_Code
   - Kubernetes
   - Monitoring
   - Service_Mesh

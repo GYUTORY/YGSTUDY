@@ -1,5 +1,6 @@
 title: Security
 nav:
+  - index.md
   - 보안 기초 개념: Basic.md
   - 위협 모델링: Threat_Modeling.md
   - OWASP Top 10: OWASP_Top_10.md

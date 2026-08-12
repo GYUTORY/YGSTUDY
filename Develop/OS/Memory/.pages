@@ -1,5 +1,6 @@
 title: Memory
 nav:
+  - index.md
   - 스왑 메모리 (Swap Memory): Swap Memory.md
   - Virtual Memory: 가상 메모리.md
   - 메모리 관리: 메모리 관리.md

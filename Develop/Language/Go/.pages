@@ -1,5 +1,6 @@
 title: Go
 nav:
+  - index.md
   - 기본 문법: Go_Basics.md
   - net/http 서버: Go_HTTP_Server.md
   - 테스트: Go_Testing.md

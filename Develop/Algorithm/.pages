@@ -1,5 +1,6 @@
 title: Algorithm
 nav:
+  - index.md
   - Brute Force (완전탐색): Brute_Force.md
   - 시간복잡도와 공간복잡도: Time_Complexity.md
   - 정렬 알고리즘: Sorting.md

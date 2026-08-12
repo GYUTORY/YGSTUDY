@@ -1,4 +1,5 @@
 nav:
+  - index.md
   - 스토리지 서비스 비교: 스토리지_서비스_비교.md
   - Network
   - Compute
@@ -7,7 +8,7 @@ nav:
   - Database
   - Security
   - Load_Balancer
-  - Application_Integration
+  - 메시징 연동: Application_Integration
   - Analytics
   - Monitoring
   - Management
