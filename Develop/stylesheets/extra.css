@@ -2395,3 +2395,8 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
   .yg-hero-headline { font-size: 1.55rem; margin-bottom: 20px; }
   .yg-hero-search-cta { padding: 12px 18px; font-size: 0.9rem; }
 }
+
+/* navigation.instant 사이드바 스크롤 위치 튐 방지 */
+.md-sidebar--primary .md-sidebar__scrollwrap {
+  overflow-anchor: none;
+}
