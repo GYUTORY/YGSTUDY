@@ -35,7 +35,7 @@ OSI 7계층, HTTP/TLS, TCP, DNS, 프록시.
 - [AWS 네트워크 구성요소를 건물 비유로 이해하기](AWS_Network_Components_Analogy.md)
 - [AWS 라우팅 테이블](Route_Table.md)
 - [ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다](Elastic_Network_Interface.md)
-- [Private vs Public Subnet 심화](Private_Subnet__vs__Public_Subnet.md)
+- [Private vs Public Subnet](Private_vs_Public_Subnet.md)
 - [S3 정적 웹사이트 호스팅](S3_Static_Website_Hosting.md)
 - [Security Groups vs NACLs](Security_Groups_vs_NACLs.md)
 - [VPC Endpoints](VPC_Endpoints.md)

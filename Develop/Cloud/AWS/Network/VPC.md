@@ -751,7 +751,7 @@ VPC를 처음 만들 때 결정해야 하는 것들.
 
 ## 관련 문서
 
-- [Public Subnet vs Private Subnet](./Private_Subnet__vs__Public_Subnet.md)
+- [Private vs Public Subnet](./Private_vs_Public_Subnet.md)
 - [NAT Gateway](./Nat_Gateway.md)
 - [VPC Peering](./VPC_Peering.md)
 - [Transit Gateway](./Transit_Gateway.md)

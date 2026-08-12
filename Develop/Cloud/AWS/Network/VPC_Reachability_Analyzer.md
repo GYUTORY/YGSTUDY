@@ -354,7 +354,7 @@ Reachability Analyzer는 `ForwardPathComponents`(가는 길)와 `ReturnPathCompo
 - `NO_ROUTE_TO_DESTINATION` 또는 `MISSING_NAT_GATEWAY` 류가 나오면 라우트 문제다. 프라이빗 서브넷 라우트 테이블에 `0.0.0.0/0 → NAT Gateway`가 있는지 확인한다.
 - `ROUTE_BLACKHOLE`가 나���면 라우트는 있는데 NAT Gateway가 삭제됐거나 다른 서브넷으로 잘못 연결된 상태다. NAT Gateway를 지웠다가 다시 만들면서 ID가 바뀌었는데 라우트 테이블을 안 고친 경우가 대표적이다.
 
-라우트 우선순위와 블랙홀에 대한 상세는 [Route Table](Route_Table.md)을 참고한다. 프라이빗 서브넷이 NAT를 거쳐 나가는 구조 자체가 헷갈리면 [Private Subnet vs Public Subnet](Private_Subnet__vs__Public_Subnet.md)을 본다.
+라우트 우선순위와 블랙홀에 대한 상세는 [Route Table](Route_Table.md)을 참고한다. 프라이빗 서브넷이 NAT를 거쳐 나가는 구조 자체가 헷갈리면 [Private vs Public Subnet](Private_vs_Public_Subnet.md)을 본다.
 
 ### 시나리오 3: VPC Peering 너머의 인스턴스에 안 붙음
 

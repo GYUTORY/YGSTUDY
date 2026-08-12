@@ -1,10 +1,10 @@
 ---
-title: Private vs Public Subnet 심화
+title: Private vs Public Subnet
 tags: [aws, vpc, cloud]
 updated: 2026-06-09
 ---
 
-# AWS Private Subnet vs Public Subnet 심화
+# Private vs Public Subnet
 
 ## 들어가며
 
