@@ -681,7 +681,15 @@ body {
     position: fixed !important;
     top: 0 !important;
     height: 100% !important;
-    width: auto;
+    /* width:auto 였다. position:fixed 에 left/right 를 주지 않으면 auto 는
+       shrink-to-fit 이라 드로어가 1px 로 쪼그라들어 모바일 메뉴가 아예 안 열렸다.
+       (햄버거를 눌러도 배경만 어두워지고 항목이 0개)
+       화면 밖으로 넘지 않게 vw 로 상한을 두고, 오른쪽 여백은 탭해서 닫는 자리로 남긴다. */
+    width: min(82vw, 17rem);
+  }
+  /* 오른쪽 목차 드로어도 같은 규칙을 공유하므로 폭을 함께 준다 */
+  .md-sidebar--secondary {
+    width: min(82vw, 17rem);
   }
   .md-sidebar__scrollwrap {
     max-height: 100% !important;
