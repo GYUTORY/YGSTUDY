@@ -471,7 +471,7 @@ body {
 .md-nav__link {
   font-size: 0.75rem;
   padding: 7px 12px;
-  color: var(--text);
+  color: var(--text) !important;
   transition: color 0.15s ease, background-color 0.15s ease;
   overflow: hidden;
   min-width: 0;
@@ -672,11 +672,11 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* 모바일 본문: 한글 권장 최소 15px 이상, 좌우 여백 축소로 텍스트 폭 확보 */
+/* 모바일 본문: 15px 절대값으로 고정 — Material 자체 0.8rem(12.8px) 오버라이드 */
 @media screen and (max-width: 600px) {
-  .md-typeset { font-size: 0.94rem; line-height: 1.7; }
+  .md-typeset { font-size: 15px !important; line-height: 1.7; }
   .md-typeset h1 { font-size: 1.5rem; }
-  .md-content__inner { padding: 0 0.6rem 1.2rem; }
+  .md-content__inner { padding: 0 0.5rem 1.2rem; }
   .md-typeset table:not([class]) { font-size: 0.78rem; }
 }
 
@@ -887,13 +887,25 @@ body {
   font-family: var(--md-code-font);
 }
 
+/* 코드블록 래퍼가 뷰포트 밖으로 나가지 않도록 */
+.md-typeset .highlight {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* 본문 이미지 반응형 — width 속성이 붙은 <img>도 뷰포트 밖 탈출 방지 */
+.md-typeset img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* 인라인 코드만 핑크 — 코드블록(pre > code)은 제외 */
 .md-typeset :not(pre) > code {
   font-size: 0.875em;
   padding: 0.16em 0.5em;
   border-radius: var(--radius-xs);
   background: var(--warm-white);
-  color: var(--blue-text);
+  color: var(--blue-text) !important;
   border: none;
   font-weight: 500;
 }
@@ -906,6 +918,8 @@ body {
   border-radius: var(--radius-md);
   border: var(--whisper-border);
   box-shadow: none;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 .md-typeset pre,
 .md-typeset pre code {
@@ -938,8 +952,10 @@ body {
 
 /* 표 래퍼 전역 가로 스크롤 — PC·모바일 공통 */
 .md-typeset__table {
+  display: block;
   overflow-x: auto;
   max-width: 100%;
+  width: 100%;
 }
 .md-typeset__table > table {
   min-width: max-content;
