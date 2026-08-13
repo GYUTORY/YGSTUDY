@@ -275,7 +275,7 @@ updated: 2026-08-11
   <div class="yg-proj-grid">
     <a class="yg-proj" href="http://gyutory.co.kr/momo" target="_blank" rel="noopener">
       <div class="yg-proj-thumb">
-        <img src="assets/images/momo_assistant.webp" alt="MOMO Assistant">
+        <img src="assets/images/momo_assistant.webp" alt="MOMO Assistant" loading="lazy" decoding="async" width="720" height="374">
       </div>
       <div class="yg-proj-body">
         <span class="yg-proj-tag">AI · Web</span>
@@ -285,7 +285,7 @@ updated: 2026-08-11
     </a>
     <a class="yg-proj" href="http://gyutory.co.kr/momo_editor/" target="_blank" rel="noopener">
       <div class="yg-proj-thumb">
-        <img src="assets/images/momo_editor.webp" alt="MOMO Editor">
+        <img src="assets/images/momo_editor.webp" alt="MOMO Editor" loading="lazy" decoding="async" width="720" height="375">
       </div>
       <div class="yg-proj-body">
         <span class="yg-proj-tag">Desktop · Video</span>
@@ -295,7 +295,7 @@ updated: 2026-08-11
     </a>
     <div class="yg-proj yg-proj--wip">
       <div class="yg-proj-thumb">
-        <img src="assets/images/trip_planner.webp" alt="AI Trip Planner">
+        <img src="assets/images/trip_planner.webp" alt="AI Trip Planner" loading="lazy" decoding="async" width="602" height="1316">
         <span class="yg-proj-badge">준비 중</span>
       </div>
       <div class="yg-proj-body">
