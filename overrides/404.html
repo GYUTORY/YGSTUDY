@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{#
+  기본 404 는 "404 - Not found" 한 줄이 전부다. 한글 사이트인데 영어이고,
+  돌아갈 링크가 하나도 없어서 막다른 길이 된다.
+  검색과 주요 섹션으로 이어주는 자리를 만든다.
+#}
+{% block content %}
+<div class="yg-404">
+  <p class="yg-404-code">404</p>
+  <h1>찾는 문서가 없습니다</h1>
+  <p class="yg-404-lead">
+    주소가 바뀌었거나, 문서가 다른 곳으로 옮겨졌을 수 있습니다.
+    위 검색창에서 찾아보시거나 아래에서 골라 주세요.
+  </p>
+  <div class="yg-404-links">
+    <a href="{{ base_url }}">홈</a>
+    <a href="{{ base_url }}최근/">최근 변경 문서</a>
+    <a href="{{ base_url }}tags/">태그로 찾기</a>
+    <a href="{{ base_url }}Language/">Language</a>
+    <a href="{{ base_url }}Backend/">Backend</a>
+    <a href="{{ base_url }}DataBase/">Database</a>
+    <a href="{{ base_url }}DevOps/">Infra</a>
+    <a href="{{ base_url }}AI/">AI</a>
+  </div>
+</div>
+{% endblock %}
