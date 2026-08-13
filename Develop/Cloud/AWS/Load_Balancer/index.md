@@ -1,5 +1,5 @@
 ---
-title: Load_Balancer 전체 보기
+title: AWS · Load Balancer 전체 보기
 tags: []
 hide:
   - toc
@@ -7,7 +7,7 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# Load_Balancer 전체 보기
+# AWS · Load Balancer 전체 보기
 
 문서 11개.
 

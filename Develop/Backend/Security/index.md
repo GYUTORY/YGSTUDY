@@ -1,5 +1,5 @@
 ---
-title: Security 전체 보기
+title: Backend · Security 전체 보기
 tags: []
 hide:
   - toc
@@ -7,9 +7,9 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# Security 전체 보기
+# Backend · Security 전체 보기
 
-인증·인가, 암호화, 웹 취약점, 공급망과 제로트러스트.
+서버 애플리케이션에서 다루는 보안 — 감사 로깅과 접근 통제.
 
 문서 1개.
 

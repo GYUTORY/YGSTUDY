@@ -1,5 +1,5 @@
 ---
-title: Network 전체 보기
+title: GCP · Network 전체 보기
 tags: []
 hide:
   - toc
@@ -7,9 +7,9 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# Network 전체 보기
+# GCP · Network 전체 보기
 
-OSI 7계층, HTTP/TLS, TCP, DNS, 프록시.
+VPC·Cloud DNS·Cloud CDN 등 GCP 네트워크 서비스.
 
 문서 3개.
 

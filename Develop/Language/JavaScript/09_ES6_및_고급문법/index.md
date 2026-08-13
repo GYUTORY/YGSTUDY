@@ -1,5 +1,5 @@
 ---
-title: 09_ES6_및_고급문법 전체 보기
+title: 09 ES6 및 고급문법 전체 보기
 tags: []
 hide:
   - toc
@@ -7,7 +7,7 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# 09_ES6_및_고급문법 전체 보기
+# 09 ES6 및 고급문법 전체 보기
 
 문서 8개.
 

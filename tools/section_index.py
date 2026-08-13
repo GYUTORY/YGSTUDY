@@ -28,6 +28,20 @@ BLURB = {
     "WebServer": "Nginx·Caddy 설정과 리버스 프록시 운영.",
     "OS": "프로세스와 스레드, 메모리, 스케줄링.",
     "Frontend": "브라우저 쪽 주제.",
+
+    # 아래는 전체 경로 키. 같은 이름의 폴더가 여러 곳에 있으면 잎 이름만으로는
+    # 어느 설명인지 정할 수 없어(예: Security 는 5곳) 잎 이름 조회를 막아 뒀다.
+    # 그래서 각 위치에 맞는 설명을 경로로 직접 지정한다.
+    "AI": "Claude·Gemini·GPT 같은 모델과 Claude Code·Cursor 같은 도구, 그리고 LLM·RAG·MCP 개념.",
+    "Cloud/AWS/AI": "Bedrock·SageMaker 등 AWS 가 제공하는 AI·머신러닝 서비스.",
+    "Network": "OSI 7계층, HTTP/TLS, TCP, DNS, 프록시.",
+    "Cloud/AWS/Network": "VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.",
+    "Cloud/GCP/Network": "VPC·Cloud DNS·Cloud CDN 등 GCP 네트워크 서비스.",
+    "Security": "인증·인가, 암호화, 웹 취약점, 공급망과 제로트러스트.",
+    "Backend/Security": "서버 애플리케이션에서 다루는 보안 — 감사 로깅과 접근 통제.",
+    "Cloud/AWS/Security": "IAM·KMS·WAF·GuardDuty 등 AWS 보안 서비스.",
+    "Cloud/GCP/Security": "IAM·Secret Manager 등 GCP 보안 서비스.",
+    "Network/Security": "네트워크 계층의 보안 — TLS, 방화벽, 트래픽 보호.",
 }
 
 SECOND_LEVEL = ["Cloud/AWS", "Cloud/GCP", "DevOps/Linux", "DevOps/Kubernetes", "Language/Java", "Language/JavaScript", "Language/TypeScript"]
@@ -62,9 +76,25 @@ def _md_link(rel):
     return "<%s>" % rel if " " in rel else rel
 
 
-def _build_one(docs_dir, key, counts):
+def _label_for(key, leaf_counts):
+    """섹션 표시 이름.
+
+    폴더 이름만 쓰면 Backend/Security 와 Cloud/AWS/Security 가 둘 다
+    "Security 전체 보기" 가 되어 검색 결과에서 구분이 안 된다(Security 5개,
+    Network·Testing 각 3개가 실제로 겹쳐 있었다).
+    겹치는 이름에만 바로 위 폴더를 붙인다 — 안 겹치면 그대로 둬서 길어지지 않게.
+    """
+    parts = key.split("/")
+    name = parts[-1]
+    if leaf_counts.get(name, 0) > 1 and len(parts) > 1:
+        return "%s · %s" % (parts[-2].replace("_", " "), name.replace("_", " "))
+    return name.replace("_", " ")
+
+
+def _build_one(docs_dir, key, counts, leaf_counts=None):
     """key 는 docs_dir 기준 상대 경로. 최상위든 2단계든 같은 처리를 한다."""
     name = key.split("/")[-1]
+    label = _label_for(key, leaf_counts or {})
     section = os.path.join(docs_dir, *key.split("/"))
     if not os.path.isdir(section):
         return
@@ -100,15 +130,21 @@ def _build_one(docs_dir, key, counts):
 
         lines = [
             "---\n",
-            f"title: {name} 전체 보기\n",
+            f"title: {label} 전체 보기\n",
             "tags: []\n",
             "hide:\n  - toc\n",
             "---\n\n",
             "<!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->\n\n",
-            f"# {name} 전체 보기\n\n",
+            f"# {label} 전체 보기\n\n",
         ]
-        if name in BLURB:
-            lines.append(BLURB[name] + "\n\n")
+        # BLURB 를 잎 이름으로만 찾으면 Backend/Security(문서 1개)에도
+        # Cloud/AWS/Security 용 설명이 그대로 붙는다. 전체 경로를 먼저 보고,
+        # 이름이 겹치지 않을 때만 잎 이름으로 떨어진다.
+        blurb = BLURB.get(key)
+        if blurb is None and leaf_counts.get(name, 0) <= 1:
+            blurb = BLURB.get(name)
+        if blurb:
+            lines.append(blurb + "\n\n")
         lines.append(f"문서 {total}개.\n\n")
 
         for group in sorted(groups, key=lambda g: (g == "", g)):
@@ -163,12 +199,23 @@ def _collect_keys(docs_dir, max_depth=MAX_HUB_DEPTH):
     return keys
 
 
+def _leaf_counts(keys):
+    """폴더 이름이 트리 전체에서 몇 번 나오는지 — 제목 중복 판정용."""
+    c = {}
+    for k in keys:
+        leaf = k.split("/")[-1]
+        c[leaf] = c.get(leaf, 0) + 1
+    return c
+
+
 def on_pre_build(config, **kwargs):
     docs_dir = config["docs_dir"]
     counts = {}
 
-    for key in _collect_keys(docs_dir):
-        _build_one(docs_dir, key, counts)
+    keys = _collect_keys(docs_dir)
+    leaf_counts = _leaf_counts(keys)
+    for key in keys:
+        _build_one(docs_dir, key, counts, leaf_counts)
 
     # 홈 카드가 읽을 단일 소스. 카드와 섹션 페이지가 같은 값을 쓰게 해서
     # "카드는 74개인데 들어가면 64개" 같은 불일치를 원천 차단한다.
@@ -182,6 +229,8 @@ if __name__ == "__main__":
     import sys
     docs_dir = sys.argv[1] if len(sys.argv) > 1 else "Develop"
     counts = {}
-    for key in _collect_keys(docs_dir):
-        _build_one(docs_dir, key, counts)
+    keys = _collect_keys(docs_dir)
+    leaf_counts = _leaf_counts(keys)
+    for key in keys:
+        _build_one(docs_dir, key, counts, leaf_counts)
     print(f"허브 페이지 생성 완료: {len(counts)}개 섹션")
