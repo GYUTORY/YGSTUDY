@@ -134,7 +134,7 @@ graph LR
 아래 그림은 Decoder-Only Transformer의 전체 구조를 나타낸다. 입력 토큰이 임베딩과 위치 인코딩을 거친 뒤, N개의 Decoder Block을 반복 통과하고, 최종적으로 다음 토큰의 확률 분포를 출력한다.
 
 <figure>
-  <img src="images/transformer_architecture.svg" alt="Decoder-Only Transformer 아키텍처 구조도" width="720">
+  <img src="../images/transformer_architecture.svg" alt="Decoder-Only Transformer 아키텍처 구조도" width="720">
   <figcaption>Decoder-Only Transformer 아키텍처. 입력 토큰 → Embedding → N개 Decoder Block → Softmax → 다음 토큰 확률</figcaption>
 </figure>
 
@@ -198,7 +198,7 @@ graph TB
 아래 그림은 Self-Attention 연산의 전체 과정을 한눈에 보여준다. 입력 벡터에서 Q, K, V를 생성하고, Attention 가중치 행렬을 계산한 뒤, V와 가중합하는 흐름이다.
 
 <figure>
-  <img src="images/self_attention.svg" alt="Self-Attention 연산 흐름도" width="780">
+  <img src="../images/self_attention.svg" alt="Self-Attention 연산 흐름도" width="780">
   <figcaption>Self-Attention 연산 흐름. Q×K^T → 스케일링 → Mask → Softmax → ×V → 문맥 반영 벡터</figcaption>
 </figure>
 
@@ -259,7 +259,7 @@ graph LR
 아래 그림은 BPE 토크나이저의 인코딩·디코딩 전체 과정이다. 원본 텍스트가 UTF-8 바이트로 분해되고, 빈도 기반 병합을 거쳐 토큰 ID로 변환되는 흐름을 보여준다.
 
 <figure>
-  <img src="images/bpe_tokenizer.svg" alt="BPE 토크나이저 인코딩/디코딩 과정" width="780">
+  <img src="../images/bpe_tokenizer.svg" alt="BPE 토크나이저 인코딩/디코딩 과정" width="780">
   <figcaption>BPE 인코딩: 텍스트 → UTF-8 바이트 → 빈도 기반 쌍 병합 → 토큰 ID / 디코딩은 역순</figcaption>
 </figure>
 
@@ -372,7 +372,7 @@ graph TB
 아래 그림은 Temperature와 Top-p 설정에 따른 확률 분포 변화를 막대 그래프로 비교한 것이다.
 
 <figure>
-  <img src="images/temperature_top_p.svg" alt="Temperature와 Top-p에 따른 확률 분포 비교" width="780">
+  <img src="../images/temperature_top_p.svg" alt="Temperature와 Top-p에 따른 확률 분포 비교" width="780">
   <figcaption>Temperature 0.0/1.0/2.0과 Top-p 0.7의 확률 분포 비교. Temperature는 분포 모양을 바꾸고, Top-p는 하위 토큰을 잘라낸다</figcaption>
 </figure>
 
@@ -967,7 +967,7 @@ graph LR
 아래 그림은 LLM 학습 파이프라인의 전체 과정이다. 각 단계에서 사용하는 데이터, 학습 목표, 결과물이 어떻게 달라지는지 보여준다.
 
 <figure>
-  <img src="images/llm_training_pipeline.svg" alt="LLM 학습 파이프라인: Pre-training → SFT → RLHF/DPO" width="780">
+  <img src="../images/llm_training_pipeline.svg" alt="LLM 학습 파이프라인: Pre-training → SFT → RLHF/DPO" width="780">
   <figcaption>LLM 3단계 학습 파이프라인. Pre-training(언어 이해) → SFT(대화 학습) → RLHF/DPO(선호도 정렬)</figcaption>
 </figure>
 
@@ -1061,7 +1061,7 @@ LLM의 내부에서는 모든 것이 벡터(숫자 배열)로 표현된다. 텍�
 아래 그림은 임베딩 벡터 공간을 2D로 축소한 시각화다. 의미적으로 가까운 단어들이 클러스터를 형성하고, 관련 없는 단어는 먼 위치에 놓이는 구조를 볼 수 있다.
 
 <figure>
-  <img src="images/embedding_vector_space.svg" alt="임베딩 벡터 공간 시각화" width="780">
+  <img src="../images/embedding_vector_space.svg" alt="임베딩 벡터 공간 시각화" width="780">
   <figcaption>임베딩 벡터 공간. 의미적으로 유사한 단어가 가까이 클러스터링된다 (실제는 수천 차원, 이 그림은 2D 축소)</figcaption>
 </figure>
 

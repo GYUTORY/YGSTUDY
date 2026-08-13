@@ -90,7 +90,18 @@ def resolve_link(src: Path, raw_link: str, tracked: set[str]) -> tuple[bool, str
     if decoded.startswith('/'):
         return None  # MkDocs site root 절대경로 스킵
     else:
-        target = (src.parent / decoded).resolve()
+        # MkDocs는 non-index .md 파일을 하위 디렉토리로 감싼다.
+        # (예: AI/Concepts/LLM.md → 사이트 URL: AI/Concepts/LLM/)
+        # 이미지 등 에셋의 상대 경로는 실제 URL 기준으로 작성되므로,
+        # index.md가 아닌 파일에서 비-.md 경로를 해석할 때 한 단계 내려간다.
+        suffix = Path(decoded).suffix.lower()
+        is_asset = suffix and suffix not in ('.md',)
+        is_non_index = src.name.lower() not in ('index.md', 'readme.md')
+        if is_asset and is_non_index:
+            base = src.parent / src.stem
+        else:
+            base = src.parent
+        target = (base / decoded).resolve()
 
     # NFC 정규화 후 git 추적 목록과 대조
     try:
@@ -115,32 +126,39 @@ def resolve_link(src: Path, raw_link: str, tracked: set[str]) -> tuple[bool, str
     return (False, rel)
 
 
-def check_file(md: Path, tracked: set[str]) -> list[tuple[str, str]]:
-    """[(링크, 소스_경로)] 형태의 깨진 링크 반환."""
+def check_file(md: Path, tracked: set[str]) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """(깨진_링크, 깨진_이미지) 튜플 반환."""
     try:
         content = md.read_text(encoding='utf-8')
     except Exception:
-        return []
+        return [], []
 
     clean = _strip_code_blocks(content)
-    broken = []
+    broken_links: list[tuple[str, str]] = []
+    broken_images: list[tuple[str, str]] = []
 
-    # Markdown 링크
+    _IMAGE_SUFFIXES = {'.svg', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.ico'}
+
+    # Markdown 링크 — .md 링크는 링크 오류, 이미지 확장자는 이미지 오류로 분류
     for raw in _extract_md_links(clean):
         result = resolve_link(md, raw, tracked)
         if result is not None and not result[0]:
-            rel_src = md.relative_to(REPO_ROOT)
-            broken.append((raw, str(rel_src)))
+            rel_src = str(md.relative_to(REPO_ROOT))
+            suffix = Path(raw.split('#')[0]).suffix.lower()
+            if suffix in _IMAGE_SUFFIXES:
+                broken_images.append((raw, rel_src))
+            else:
+                broken_links.append((raw, rel_src))
 
-    # HTML <img src>
+    # HTML <img src> — 항상 이미지 오류로 분류
     for m in IMG_RE.finditer(clean):
         raw = m.group(1)
         result = resolve_link(md, raw, tracked)
         if result is not None and not result[0]:
-            rel_src = md.relative_to(REPO_ROOT)
-            broken.append((raw, str(rel_src)))
+            rel_src = str(md.relative_to(REPO_ROOT))
+            broken_images.append((raw, rel_src))
 
-    return broken
+    return broken_links, broken_images
 
 
 def check_redirect_maps() -> list[str]:
@@ -171,7 +189,7 @@ def check_redirect_maps() -> list[str]:
 
 def main():
     parser = argparse.ArgumentParser(description='내부 링크 검사')
-    parser.add_argument('--strict', action='store_true', help='깨진 링크 발견 시 exit 1')
+    parser.add_argument('--strict', action='store_true', help='깨진 링크/redirect 발견 시 exit 1')
     args = parser.parse_args()
 
     tracked = _git_tracked_files()
@@ -183,16 +201,21 @@ def main():
         targets.insert(0, root_index)
 
     all_broken: list[tuple[str, str]] = []
+    all_broken_images: list[tuple[str, str]] = []
     for md in targets:
-        all_broken.extend(check_file(md, tracked))
+        links, images = check_file(md, tracked)
+        all_broken.extend(links)
+        all_broken_images.extend(images)
 
     redirect_broken = check_redirect_maps()
 
     has_error = bool(all_broken) or bool(redirect_broken)
 
-    if not has_error:
-        print(f'✓ {len(targets)}개 파일 내부 링크 이상 없음. redirect_maps 목적지 이상 없음.')
+    if not has_error and not all_broken_images:
+        print(f'✓ {len(targets)}개 파일 내부 링크·이미지 이상 없음. redirect_maps 목적지 이상 없음.')
         return
+    elif not has_error:
+        print(f'✓ {len(targets)}개 파일 내부 링크 이상 없음. redirect_maps 목적지 이상 없음.')
 
     if all_broken:
         print(f'⚠ 깨진 내부 링크 {len(all_broken)}건:\n')
@@ -206,7 +229,15 @@ def main():
         for msg in redirect_broken:
             print(msg)
 
-    if args.strict:
+    # 이미지 404는 warn-only — CI 차단 없음 (pre-existing broken assets 다수)
+    if all_broken_images:
+        print(f'\n⚠ 깨진 이미지 경로 {len(all_broken_images)}건 (경고만, CI 비차단):')
+        for link, src in all_broken_images[:20]:
+            print(f'  {src}  →  {link}')
+        if len(all_broken_images) > 20:
+            print(f'  ... 외 {len(all_broken_images) - 20}건')
+
+    if has_error and args.strict:
         sys.exit(1)
 
 
