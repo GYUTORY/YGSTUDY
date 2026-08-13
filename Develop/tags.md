@@ -1,10 +1,16 @@
 ---
-title: Tags
+title: 태그로 찾기
 hide:
   - navigation
   - toc
 tags: []
-updated: 2026-07-03
+updated: 2026-08-13
 ---
 
-# Tags
+# 태그로 찾기
+
+메뉴는 문서를 한 자리에만 놓지만, 실제 주제는 여러 갈래에 걸친다.
+예를 들어 Kubernetes 문서는 Infra 아래 있어도 네트워크·보안 이야기를 함께 다룬다.
+아래 태그는 그렇게 메뉴 계층을 가로지르는 축으로 문서를 다시 묶은 것이다.
+
+<!-- material/tags -->

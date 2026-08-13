@@ -34,8 +34,10 @@ theme:
         name: 라이트 모드로 전환
   font: false
   features:
-    - navigation.instant
-    - navigation.instant.progress
+    # navigation.instant 는 켜지 않는다.
+    # prune 을 쓰면 페이지마다 사이드바 트리가 달라진다(섹션 이동 시 항목 11개 사라지고
+    # 28개 생기며 높이 1505->2171px). instant 는 그 교체를 화면 안에서 그대로 보여줘
+    # 메뉴가 통째로 요동친다. 일반 내비게이션이면 브라우저가 새 화면을 한 번에 그린다.
     - navigation.prune
     - navigation.tracking
     - navigation.indexes
@@ -58,6 +60,9 @@ plugins:
         - en
       separator: '[\s\-\._]+'
   - awesome-pages
+  # 태그 목록은 tags.md 안의 <!-- material/tags --> 지시자 자리에 생성된다.
+  # 이 지시자가 없으면 목록이 들어갈 자리가 없어 tags.md 가 영구 빈 페이지가 된다.
+  # (구 tags_file 옵션은 이 버전에서 폐기 — strict 빌드가 경고로 잡는다)
   - tags
   # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
   - redirects:
