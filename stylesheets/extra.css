@@ -42,8 +42,13 @@ body {
 
   /* 기존 alias → 새 팔레트로 연결 */
   --notion-black: #3D3A38;
-  --notion-blue:  #7AAEC2;        /* 스틸 블루 (링크·호버) */
-  --notion-blue-active: #5B96AE;
+  /* 스틸 블루 (링크·호버) — 16곳 중 11곳이 글자색이라 대비를 먼저 맞춘다.
+     구 #7AAEC2 는 흰 배경 2.42:1 / 카드 2.27:1 로 WCAG AA(4.5:1) 한참 미달이었다.
+     #3D7387 은 흰 배경 5.25:1 / 카드 4.92:1 로 두 배경 모두 통과한다. */
+  --notion-blue:  #3D7387;
+  --notion-blue-active: #2F5B6B;
+  /* 아이콘·테두리·배경처럼 대비 규정이 없는 장식용 연한 파랑은 따로 남긴다 */
+  --notion-blue-soft: #7AAEC2;
   --notion-blue-focus:  #A8C5D6;
   --notion-navy: #3D3A38;
 
@@ -55,7 +60,7 @@ body {
 
   /* 배지 */
   --badge-blue-bg: rgba(168, 197, 214, 0.15);
-  --badge-blue-text: #5B96AE;
+  --badge-blue-text: #3D7387;   /* 배지 배경 위 3.00:1 -> 4.82:1 */
   --badge-soft-bg: #f4f2f0;
   --badge-soft-text: #6b6460;
 
@@ -76,7 +81,9 @@ body {
   --text: var(--notion-black);
   --text-focused: #000000;
   --text-sub: var(--warm-gray-500);
-  --text-muted: var(--warm-gray-300);
+  /* warm-gray-300(#a39e98) 은 카드 배경 #FAF7F6 위에서 2.49:1 로 WCAG AA(4.5:1) 미달이었다.
+     13px 로 쓰이는 자리라 큰 글자 예외(3:1)도 못 받는다. #736E68 은 4.74:1. */
+  --text-muted: #736E68;
 
   /* 보더·서피스 */
   --whisper-border: 1px solid rgba(0, 0, 0, 0.1);
@@ -134,7 +141,8 @@ body {
   --text: var(--notion-black);
   --text-focused: #ffffff;
   --text-sub: #b7b3ad;
-  --text-muted: #7a7671;
+  /* 다크도 같은 이유 — #7a7671 은 카드 배경 #272320 위에서 3.46:1. #9A948C 는 5.19:1. */
+  --text-muted: #9A948C;
 
   --whisper-border: 1px solid rgba(255, 255, 255, 0.08);
   --border: rgba(255, 255, 255, 0.08);
@@ -154,12 +162,18 @@ body {
   --cat-ai: #c084fc;
 }
 
-[data-md-color-scheme="slate"] body {
+/* Material 은 data-md-color-scheme 를 <body> 자신에 붙인다.
+   "[속성] body" 는 자손 body 를 찾는 선택자라 영원히 매치되지 않았고,
+   그래서 다크모드가 흰 배경 + 밝은 글자(1.13:1)로 통째로 안 읽혔다. */
+body[data-md-color-scheme="slate"] {
   background: #1F1C1E;
 }
 
 [data-md-color-scheme="slate"] {
   --md-default-bg-color: #1F1C1E;
+  /* 배경으로 쓰이는 자리 7곳이 다크에서도 라이트로 남아 있었다.
+     패널처럼 도드라져야 하는 자리는 --bg-surface / --bg-card 를 따로 쓴다. */
+  --warm-white: #1F1C1E;
 }
 
 /* ================================================
@@ -277,7 +291,7 @@ body {
   padding-left: 40px !important;
 }
 .md-search__input::placeholder {
-  color: var(--warm-gray-300) !important;
+  color: var(--text-muted) !important;
   font-weight: 500;
 }
 .md-search__icon {
@@ -646,6 +660,10 @@ body {
   color: var(--notion-blue) !important;
   font-weight: 600;
 }
+/* 목차 제목은 다크 오버라이드가 없어 warm-gray-500 그대로였다 (2.19:1) */
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__title {
+  color: var(--text-sub);
+}
 [data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link {
   color: #c0bdb8;
 }
@@ -663,7 +681,15 @@ body {
     position: fixed !important;
     top: 0 !important;
     height: 100% !important;
-    width: auto;
+    /* width:auto 였다. position:fixed 에 left/right 를 주지 않으면 auto 는
+       shrink-to-fit 이라 드로어가 1px 로 쪼그라들어 모바일 메뉴가 아예 안 열렸다.
+       (햄버거를 눌러도 배경만 어두워지고 항목이 0개)
+       화면 밖으로 넘지 않게 vw 로 상한을 두고, 오른쪽 여백은 탭해서 닫는 자리로 남긴다. */
+    width: min(82vw, 17rem);
+  }
+  /* 오른쪽 목차 드로어도 같은 규칙을 공유하므로 폭을 함께 준다 */
+  .md-sidebar--secondary {
+    width: min(82vw, 17rem);
   }
   .md-sidebar__scrollwrap {
     max-height: 100% !important;
@@ -1059,7 +1085,7 @@ body {
 .md-footer__link:hover .md-icon svg { opacity: 1; color: var(--notion-blue); }
 
 .md-footer__title {
-  color: var(--warm-gray-300) !important;
+  color: var(--text-muted) !important;
   font-size: 0.7rem;
   letter-spacing: 0.5px;
   font-weight: 600;
@@ -1067,7 +1093,8 @@ body {
   margin-bottom: 2px;
 }
 .md-footer__direction {
-  color: var(--warm-gray-300) !important;
+  /* warm-gray-300 은 2.58:1 로 AA 미달이었다. text-muted 는 4.89:1 */
+  color: var(--text-muted) !important;
   font-size: 0.7rem;
   letter-spacing: 0.5px;
   font-weight: 600;
@@ -1086,8 +1113,11 @@ body {
   margin: 0 auto;
 }
 .md-footer-copyright,
-.md-footer-copyright a {
-  color: var(--warm-gray-300) !important;
+.md-footer-copyright a,
+.md-copyright,
+.md-copyright a,
+.md-copyright__highlight {
+  color: var(--text-muted) !important;
   font-size: 0.8rem;
   font-weight: 500;
   letter-spacing: 0;
@@ -1118,7 +1148,10 @@ body {
 [data-md-color-scheme="slate"] .md-footer__title,
 [data-md-color-scheme="slate"] .md-footer__direction,
 [data-md-color-scheme="slate"] .md-footer-copyright,
-[data-md-color-scheme="slate"] .md-footer-copyright a {
+[data-md-color-scheme="slate"] .md-footer-copyright a,
+[data-md-color-scheme="slate"] .md-copyright,
+[data-md-color-scheme="slate"] .md-copyright a,
+[data-md-color-scheme="slate"] .md-copyright__highlight {
   color: var(--warm-gray-300) !important;
 }
 
@@ -2034,7 +2067,8 @@ body { overflow-x: clip; }
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.28); background-clip: content-box; }
 
-[data-md-color-scheme="slate"] html { scrollbar-color: rgba(255,255,255,.2) transparent; }
+/* html 은 body 의 조상이라 자손 선택자로는 못 잡는다 — body 에 건다 */
+body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) transparent; }
 [data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); background-clip: content-box; }
 [data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.35); background-clip: content-box; }
 
@@ -2464,4 +2498,21 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
 /* navigation.instant 사이드바 스크롤 위치 튐 방지 */
 .md-sidebar--primary .md-sidebar__scrollwrap {
   overflow-anchor: none;
+}
+
+
+/* mermaid 화살표 라벨 — 다크 대비
+   mermaid 가 SVG 안에 #mmd-xxx .edgeLabel{background-color:#e8e8e8} 를 구워 넣는다.
+   ID 선택자라 클래스만으로는 못 이기고, 다크에서 밝은 글자가 밝은 배경에 얹혀 사라졌다.
+   배경과 글자를 함께 지정한다 — 배경을 투명으로 두면 화살표가 글자를 관통한다. */
+[data-md-color-scheme="slate"] .yg-mermaid .edgeLabel,
+[data-md-color-scheme="slate"] .yg-mermaid .edgeLabel p,
+[data-md-color-scheme="slate"] .yg-mermaid span.edgeLabel,
+[data-md-color-scheme="slate"] .yg-mermaid .edgeLabel span {
+  background-color: #1F1C1E !important;
+  color: #F0EDE9 !important;
+}
+[data-md-color-scheme="slate"] .yg-mermaid .edgeLabel rect {
+  fill: #1F1C1E !important;
+  opacity: 1 !important;
 }
