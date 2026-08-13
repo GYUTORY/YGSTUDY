@@ -19,6 +19,10 @@
   var SRC = "https://cdn.jsdelivr.net/npm/mermaid@" + MERMAID_VERSION + "/dist/mermaid.esm.min.mjs";
 
   var loading = null;
+  var initialized = false; // mermaid.initialize 는 한 번만
+  var seq = 0; // 렌더 id 일련번호 (배치가 나뉘어도 충돌 없게)
+  var queue = []; // 그릴 순서 (전역 단일 큐)
+  var draining = false; // 큐 처리 중 여부 — 동시 렌더 금지
 
   function isDark() {
     var el = document.body;
@@ -59,57 +63,103 @@
     return loading;
   }
 
+  /**
+   * 화면에 들어오는 다이어그램만 그린다.
+   *
+   * 왜: 렌더는 메인 스레드를 잡는다. 다이어그램이 14개인 문서에서 전부 순차로 그리면
+   * 롱태스크가 1초 넘게 쌓여 첫 스크롤이 끊긴다. 대부분은 접혀 있어 보이지도 않는다.
+   * rootMargin 을 한 화면치 줘서 스크롤이 닿기 전에 미리 그린다.
+   * IntersectionObserver 가 없으면 예전처럼 전부 그린다(동작 동일, 속도만 손해).
+   */
+  function renderWhenVisible(nodes) {
+    if (typeof IntersectionObserver !== "function") return enqueue(nodes);
+    var io = new IntersectionObserver(
+      function (entries) {
+        var due = [];
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          io.unobserve(e.target);
+          due.push(e.target);
+        });
+        if (due.length) enqueue(due);
+      },
+      { rootMargin: "600px 0px" }
+    );
+    nodes.forEach(function (n) {
+      io.observe(n);
+    });
+  }
+
   function render() {
     var nodes = collect();
     if (!nodes.length) return;
+    renderWhenVisible(nodes);
+  }
 
-    load()
+  /**
+   * 전역 단일 큐.
+   *
+   * mermaid 10 은 렌더할 때 공용 DOM 샌드박스를 쓴다. 화면에 들어오는 대로 배치마다
+   * 렌더 체인을 따로 만들면 그 체인들이 겹치면서 일부가 조용히 실패한다
+   * (14개 중 10개만 그려지고 예외도 안 났다). 배치와 무관하게 한 줄로 세워서 그린다.
+   */
+  function enqueue(nodes) {
+    for (var i = 0; i < nodes.length; i++) {
+      if (queue.indexOf(nodes[i]) === -1) queue.push(nodes[i]);
+    }
+    pump();
+  }
+
+  function pump() {
+    if (draining) return;
+    var node = queue.shift();
+    if (!node) return;
+    draining = true;
+    drawOne(node)["catch"](function () {})
+      .then(function () {
+        draining = false;
+        pump();
+      });
+  }
+
+  function drawOne(node) {
+    var src = node.getAttribute("data-mermaid-src") || "";
+    return load()
       .then(function (mermaid) {
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: "loose",
-          theme: isDark() ? "dark" : "default",
-          flowchart: {
-            htmlLabels: true,
-            useMaxWidth: true,
-            padding: 18,
-            nodeSpacing: 55,
-            rankSpacing: 65,
-            wrappingWidth: 180,
-          },
-          sequence: { useMaxWidth: true },
-          themeVariables: { fontSize: "11px" },
-        });
-        return nodes.reduce(function (chain, node, i) {
-          return chain.then(function () {
-            var src = node.getAttribute("data-mermaid-src") || "";
-            var id = "mmd-" + Date.now().toString(36) + "-" + i;
-            return mermaid
-              .render(id, src)
-              .then(function (out) {
-                node.innerHTML = out.svg;
-                node.setAttribute("data-mermaid-done", "1");
-                if (typeof out.bindFunctions === "function") out.bindFunctions(node);
-              })
-              .catch(function (err) {
-                // 숨기지 않는다. 깨진 건 보이게 두고 원본 소스를 남긴다.
-                node.setAttribute("data-mermaid-done", "error");
-                node.classList.add("mermaid-error");
-                node.textContent =
-                  "다이어그램을 그리지 못했습니다: " + (err && err.message ? err.message : err) + "\n\n" + src;
-              });
+        // 여러 번 불리므로 초기화는 한 번만 한다
+        if (!initialized) {
+          initialized = true;
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "loose",
+            theme: isDark() ? "dark" : "default",
+            flowchart: {
+              htmlLabels: true,
+              useMaxWidth: true,
+              padding: 18,
+              nodeSpacing: 55,
+              rankSpacing: 65,
+              wrappingWidth: 180,
+            },
+            sequence: { useMaxWidth: true },
+            themeVariables: { fontSize: "11px" },
           });
-        }, Promise.resolve());
-      })
-      .catch(function (err) {
-        // 라이브러리 자체를 못 불러온 경우 — 소스라도 읽을 수 있게 남긴다.
-        nodes.forEach(function (node) {
-          node.setAttribute("data-mermaid-done", "error");
-          node.classList.add("mermaid-error");
-          node.textContent =
-            "다이어그램 라이브러리를 불러오지 못했습니다.\n\n" + (node.getAttribute("data-mermaid-src") || "");
+        }
+        // 배치가 나뉘어 그려지므로 인덱스 대신 전역 일련번호로 id 충돌을 막는다
+        var id = "mmd-" + (seq++).toString(36) + "-" + Date.now().toString(36);
+        return mermaid.render(id, src).then(function (out) {
+          node.innerHTML = out.svg;
+          node.setAttribute("data-mermaid-done", "1");
+          if (typeof out.bindFunctions === "function") out.bindFunctions(node);
         });
-        if (window.console) console.error("[mermaid] load failed", err);
+      })
+      ["catch"](function (err) {
+        // 숨기지 않는다. 깨진 건 보이게 두고 원본 소스를 남긴다.
+        node.setAttribute("data-mermaid-done", "error");
+        node.classList.add("mermaid-error");
+        node.textContent =
+          "다이어그램을 그리지 못했습니다: " + (err && err.message ? err.message : err) + "\n\n" + src;
+        if (window.console) console.error("[mermaid] render failed", err);
       });
   }
 
