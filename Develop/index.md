@@ -116,7 +116,7 @@ updated: 2026-08-11
   <div class="yg-about-card">
     <div class="yg-about-left">
       <span class="yg-section-kicker">ABOUT</span>
-      <h1 class="yg-about-title">Kang Young Gyu</h1>
+      <h2 class="yg-about-title">Kang Young Gyu</h2>
       <p class="yg-about-tagline">
         운영하면서 <span class="yg-intro-accent">직접 부딪힌 것</span>들의 기록.
       </p>

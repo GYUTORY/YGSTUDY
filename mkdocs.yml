@@ -16,6 +16,8 @@ hooks:
 
 theme:
   name: material
+  # overrides/main.html — Open Graph 태그 (Material 무료판은 넣어주지 않는다)
+  custom_dir: overrides
   language: ko
   palette:
     - media: "(prefers-color-scheme: light)"
