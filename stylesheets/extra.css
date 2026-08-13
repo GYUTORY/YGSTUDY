@@ -2516,3 +2516,40 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
   fill: #1F1C1E !important;
   opacity: 1 !important;
 }
+
+/* ================================================
+   404 — 기본은 "404 - Not found" 한 줄에 복귀 링크가 없어 막다른 길이었다.
+   ================================================ */
+.yg-404 { max-width: 620px; margin: 12vh auto 0; padding: 0 24px; text-align: center; }
+.yg-404-code {
+  font-size: 4.2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin: 0 0 12px;
+  color: var(--notion-blue);
+  letter-spacing: -2px;
+}
+.yg-404 h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 14px;
+  color: var(--text);
+  border: none;
+}
+.yg-404-lead { color: var(--text-muted); line-height: 1.7; margin: 0 0 32px; }
+.yg-404-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.yg-404-links a {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text) !important;
+  background: var(--bg-surface);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.yg-404-links a:hover {
+  border-color: var(--notion-blue);
+  color: var(--notion-blue) !important;
+}
