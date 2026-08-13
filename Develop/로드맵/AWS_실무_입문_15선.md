@@ -1,6 +1,6 @@
 ---
 title: AWS 실무 입문 15선
-tags: [AWS, Cloud, Architecture, DevOps]
+tags: [aws, cloud, architecture, devops]
 updated: 2026-08-07
 ---
 

@@ -43,9 +43,19 @@ def scan_violations(allowed):
         if not m:
             continue
         for raw in m.group(1).split(","):
-            tag = raw.strip().lower()
-            if tag and tag not in allowed:
+            written = raw.strip()
+            tag = written.lower()
+            if not tag:
+                continue
+            if tag not in allowed:
                 violations.append((str(md.relative_to(REPO_ROOT)), tag))
+            elif written != tag:
+                # 어휘 대조는 소문자로 하니 AWS 도 통과해버린다. 그런데 태그 페이지의
+                # 앵커는 슬러그(tag:aws)라, aws 와 AWS 가 같은 id 를 만들어 충돌한다.
+                # 실제로 AWS·Cloud·Architecture·DevOps 4개가 이렇게 갈려 있었다.
+                violations.append(
+                    (str(md.relative_to(REPO_ROOT)), f"{written} (표기 불일치 — {tag} 로 쓸 것)")
+                )
 
     return violations
 
